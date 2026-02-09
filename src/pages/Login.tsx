@@ -6,6 +6,7 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    localStorage.setItem('isLoggedIn', 'true')
     console.log('Login pokušaj prebacujem na /home')
     navigate('/home')
   }

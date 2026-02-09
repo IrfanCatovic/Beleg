@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useNavigate } from 'react-router-dom'
 
 export default function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -11,7 +12,7 @@ export default function AppLayout() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
 
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <Link to="/home" className="text-xl font-bold sm:text-2xl">
                 Beleg PD
               </Link>
@@ -71,14 +72,20 @@ export default function AppLayout() {
               >
                 Finansije
               </Link>
-              <button className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 hover:text-white transition">
+              <button
+                onClick={() => {
+                localStorage.removeItem('isLoggedIn') 
+                navigate('/', { replace: true })      
+                }}
+                className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 hover:text-white transition"
+            >
                 Odjavi se
-              </button>
+            </button>
             </nav>
           </div>
         </div>
 
-        {/* Mobilni meni – pada dole kada se otvori */}
+
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="space-y-1 px-2 pb-3 pt-2">
@@ -103,9 +110,15 @@ export default function AppLayout() {
               >
                 Finansije
               </Link>
-              <button className="block w-full rounded-md px-3 py-2 text-left text-base font-medium hover:bg-[#fed74c]/30">
+            <button
+                onClick={() => {
+                localStorage.removeItem('isLoggedIn') 
+                navigate('/', { replace: true })      
+                }}
+                className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 hover:text-white transition"
+            >
                 Odjavi se
-              </button>
+            </button>
             </div>
           </div>
         )}

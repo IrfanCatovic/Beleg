@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Finance from './pages/Finance'
 import Actions from './pages/Actions'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
   {
@@ -18,16 +19,12 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        path: '/home',         
-        element: <Home />,
-      },
-      { 
-        path: '/finansije',
-        element: <Finance />,
-      },
-      {
-        path: '/akcije',
-        element: <Actions />,
+       element: <ProtectedRoute />, //This will prevent access to child routes if not authenticated
+        children: [
+          { path: '/home', element: <Home /> },
+          { path: '/akcije', element: <Actions /> },
+          { path: '/finansije', element: <Finance /> },
+        ],
       },
     ],
   },
