@@ -27,10 +27,10 @@ const [password, setPassword] = useState('')
             className="text-3xl sm:text-4xl font-bold"
             style={{ color: '#41ac53' }}
           >
-            Beleg PD
+            Adri Sentinel
           </h2>
           <p className="mt-2 text-base sm:text-lg text-gray-600">
-            Prijava člana
+            User login
           </p>
         </div>
 
@@ -41,7 +41,7 @@ const [password, setPassword] = useState('')
               htmlFor="username" 
               className="mb-2 block text-sm sm:text-base font-medium text-gray-700"
             >
-              Korisničko ime
+              Username
             </label>
             <input
               id="username"
@@ -49,7 +49,7 @@ const [password, setPassword] = useState('')
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
-              placeholder="Unesite korisničko ime"
+              placeholder="Enter your username"
               required
             />
           </div>
@@ -59,7 +59,7 @@ const [password, setPassword] = useState('')
               htmlFor="password" 
               className="mb-2 block text-sm sm:text-base font-medium text-gray-700"
             >
-              Lozinka
+              Password
             </label>
             <input
               id="password"
@@ -67,7 +67,7 @@ const [password, setPassword] = useState('')
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
-              placeholder="Unesite lozinku"
+              placeholder="Enter your password"
               required
             />
           </div>
@@ -80,12 +80,12 @@ const [password, setPassword] = useState('')
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
           >
-            Uloguj se
+            Login
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm sm:text-base text-gray-500">
-          Nemaš nalog? Obrati se administratoru društva.
+          Don't have an account? Contact administrator to create one.
         </p>
       </div>
     </div>

@@ -22,7 +22,7 @@ export default function AppLayout() {
             {/* Logo */}
             <div className="shrink-0">
               <Link to="/home" className="text-xl font-bold sm:text-2xl">
-                Beleg PD
+                Adri Sentinel
               </Link>
             </div>
 
@@ -45,25 +45,25 @@ export default function AppLayout() {
             {/* Desktop menu visible only in 768+ resolution */}
             <nav className="hidden md:flex md:space-x-8">
               <Link to="/home" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                Početna
+                Home
               </Link>
               <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                Akcije
+                Actions
               </Link>
 
-              {/* Finansije - SAMO ZA ADMIN-A */}
+              {/* Finansije just for admin role*/}
               {user?.role === 'admin' && (
                 <Link to="/finansije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                  Finansije
+                  Finance
                 </Link>
               )}
 
-              {/* Odjavi se - koristi context logout */}
+              {/* Logout */}
               <button
                 onClick={handleLogout}
                 className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition"
               >
-                Odjavi se
+                Logout
               </button>
             </nav>
           </div>
@@ -79,7 +79,7 @@ export default function AppLayout() {
                 className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Početna
+                Home
               </Link>
 
               <Link
@@ -87,7 +87,7 @@ export default function AppLayout() {
                 className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Akcije
+                Actions
               </Link>
 
               {/* Finansije page, check if role is admin and let him in */}
@@ -97,7 +97,7 @@ export default function AppLayout() {
                   className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Finansije
+                  Finance
                 </Link>
               )}
 
@@ -106,7 +106,7 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="block w-full rounded-md px-3 py-2 text-left text-base font-medium hover:bg-[#fed74c]/30"
               >
-                Odjavi se
+                Logout
               </button>
             </div>
           </div>
