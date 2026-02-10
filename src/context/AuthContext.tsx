@@ -35,7 +35,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             } else {   
                 localStorage.removeItem('isLoggedIn') //when user log out, it removes the item isLoggedIn from localStorage
                 localStorage.removeItem('user')
-                setUser(null)
             }
         }, [isLoggedIn])
 
@@ -77,6 +76,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             </AuthContext.Provider>
         );
         }
+        
     export function useAuth() {
     const context = useContext(AuthContext)
     if (context === undefined) {
