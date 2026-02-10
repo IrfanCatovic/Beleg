@@ -55,7 +55,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                     fullName: 'Pera Perić',
                     role: 'clan'
                 }
-                }
+             }
 
                 if (simulatedUser) {
                 setUser(simulatedUser)
@@ -65,9 +65,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                 alert('Pogrešno korisničko ime ili lozinka!')
                 }
             }
-
-
-
+            
             const logout = () => {
             setIsLoggedIn(false)
             setUser(null)
