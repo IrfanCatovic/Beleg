@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    localStorage.setItem('isLoggedIn', 'true')
+    login() //that is login from the context, it will set the isAuthenticated to true and also save it in localStorage, so that the user will stay logged in even after refreshing the page
     console.log('Login pokušaj prebacujem na /home')
     navigate('/home')
   }
