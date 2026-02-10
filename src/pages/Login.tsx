@@ -1,15 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useState } from 'react'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [username, setUsername] = useState('')
+const [password, setPassword] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    login() //that is login from the context, it will set the isAuthenticated to true and also save it in localStorage, so that the user will stay logged in even after refreshing the page
-    console.log('Login pokušaj prebacujem na /home')
+    login(username, password) //that is login from the context, it will set the isAuthenticated to true and also save it in localStorage, 
+    // so that the user will stay logged in even after refreshing the page
     navigate('/home')
   }
 
@@ -43,6 +46,8 @@ export default function Login() {
             <input
               id="username"
               type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
               placeholder="Unesite korisničko ime"
               required
@@ -59,6 +64,8 @@ export default function Login() {
             <input
               id="password"
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
               placeholder="Unesite lozinku"
               required
