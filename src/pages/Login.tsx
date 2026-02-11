@@ -9,10 +9,12 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('') // Clear previous error
+    setLoading(true)
 
     try{
       const response = await api.post('/login', { username, password }) // Call the backend login endpoint
@@ -23,6 +25,9 @@ export default function Login() {
     } 
      catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.') // Show error message from backend or a generic one
+    }
+    finally {
+      setLoading(false)
     }
   }
 
@@ -61,6 +66,7 @@ export default function Login() {
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
               placeholder="Enter your username"
               required
+              disabled={loading}
             />
           </div>
 
@@ -79,13 +85,16 @@ export default function Login() {
               className="w-full rounded-lg border border-gray-300 px-4 py-3 sm:py-3.5 text-base sm:text-lg focus:border-[#41ac53] focus:ring-2 focus:ring-[#41ac53]/30 focus:outline-none transition"
               placeholder="Enter your password"
               required
+              disabled={loading}
             />
           </div>
 
 
           <button
             type="submit"
-            className="w-full rounded-lg py-3.5 sm:py-4 font-semibold text-white text-base sm:text-lg transition-colors duration-200"
+            className={`w-full rounded-lg py-3.5 sm:py-4 font-semibold text-white text-base sm:text-lg transition-colors duration-200 ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             style={{ backgroundColor: '#41ac53' }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
