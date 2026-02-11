@@ -1,19 +1,29 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useState } from 'react'
+import api from '../services/api'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
-const [password, setPassword] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('') // Clear previous error
 
-    login(username, password) //that is login from the context, it will set the isAuthenticated to true and also save it in localStorage, 
-    // so that the user will stay logged in even after refreshing the page
-    navigate('/home')
+    try{
+      const response = await api.post('/login', { username, password }) // Call the backend login endpoint
+      const { token, role, user } = response.data
+      localStorage.setItem('token', token) // Save token in localStorage
+      login(username, password) 
+      navigate('/home') 
+    } 
+     catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.') // Show error message from backend or a generic one
+    }
   }
 
   return (
