@@ -1,6 +1,7 @@
 package main
 
 import (
+	"beleg-app/backend/middleware"
 	"net/http"
 	"time"
 
@@ -89,6 +90,53 @@ func main() {
 			},
 		})
 	})
+
+	//protected routes
+	protected := r.Group("/api")
+	protected.Use(middleware.AuthMiddleware())
+	{
+		protected.GET("/test", func(c *gin.Context) {
+			username, _ := c.Get("username")
+			role, _ := c.Get("role")
+			c.JSON(http.StatusOK, gin.H{
+				"message":  "Protected route OK",
+				"username": username,
+				"role":     role,
+			})
+		})
+
+		///ackija ruta handler
+		protected.GET("/akcije", func(c *gin.Context) {
+			// Simulirana lista akcija (kasnije iz baze)
+			akcije := []map[string]interface{}{
+				{
+					"id":    1,
+					"naziv": "Uspon na Rtanj",
+					"vrh":   "Rtanj (1565m)",
+					"datum": "2026-03-15",
+					"opis":  "Tehnički uspon sa prelepim pogledom na Dunav.",
+				},
+				{
+					"id":    2,
+					"naziv": "Tara zimski uspon",
+					"vrh":   "Zvijezda (1544m)",
+					"datum": "2026-02-28",
+					"opis":  "Zimska tura sa krpljama, mogućnost noćenja u planinarskom domu.",
+				},
+				{
+					"id":    3,
+					"naziv": "Kopaonik prolećni treking",
+					"vrh":   "Pančićev vrh (2017m)",
+					"datum": "2026-04-20",
+					"opis":  "Lagana tura sa puno cvijeća i pogledom na celu Srbiju.",
+				},
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"akcije": akcije,
+			})
+		})
+	}
 
 	r.Run(":8080")
 }
