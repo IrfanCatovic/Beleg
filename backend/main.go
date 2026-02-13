@@ -27,7 +27,7 @@ type LoginResponse struct {
 }
 
 func main() {
-	r := gin.Default()
+	r := gin.Default() //this is almost the same like creating routes in gorilla mu
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"}, // frontend URL
