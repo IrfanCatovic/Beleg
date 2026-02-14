@@ -14,6 +14,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+//i have stoped exploring file here.
 
     export function AuthProvider({ children }: { children: ReactNode }) {
 
