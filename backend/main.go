@@ -109,27 +109,7 @@ func main() {
 		protected.GET("/akcije", func(c *gin.Context) {
 			// Simulirana lista akcija (kasnije iz baze)
 			akcije := []map[string]interface{}{
-				{
-					"id":    1,
-					"naziv": "Uspon na Rtanj",
-					"vrh":   "Rtanj (1565m)",
-					"datum": "2026-03-15",
-					"opis":  "Tehnički uspon sa prelepim pogledom na Dunav.",
-				},
-				{
-					"id":    2,
-					"naziv": "Tara zimski uspon",
-					"vrh":   "Zvijezda (1544m)",
-					"datum": "2026-02-28",
-					"opis":  "Zimska tura sa krpljama, mogućnost noćenja u planinarskom domu.",
-				},
-				{
-					"id":    3,
-					"naziv": "Kopaonik prolećni treking",
-					"vrh":   "Pančićev vrh (2017m)",
-					"datum": "2026-04-20",
-					"opis":  "Lagana tura sa puno cvijeća i pogledom na celu Srbiju.",
-				},
+				//Have some error with action id
 			}
 
 			c.JSON(http.StatusOK, gin.H{
