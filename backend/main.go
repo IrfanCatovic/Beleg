@@ -3,6 +3,7 @@ package main
 import (
 	"beleg-app/backend/middleware"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -147,6 +148,53 @@ func main() {
 				"akcije": akcije,
 			})
 		})
+
+		//POST /api/akcije/:id/prijavi
+		var prijave = make(map[int][]string)
+
+		protected.POST("/akcije/:id/prijavi", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action ID"})
+				return
+			}
+
+			//extract username from context
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+				return
+			}
+
+			userNameStr, ok := username.(string)
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
+				return
+			}
+
+			//check if user already applied for this action
+			if _, ok := prijave[id]; !ok {
+				prijave[id] = []string{}
+			}
+
+			for _, u := range prijave[id] {
+				if u == userNameStr {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Već ste prijavljeni za ovu akciju"})
+					return
+				}
+			}
+
+			//add user
+			prijave[id] = append(prijave[id], userNameStr)
+
+			c.JSON(http.StatusOK, gin.H{
+				"message":     "Uspešno ste se prijavili za akciju!",
+				"akcijaId":    id,
+				"prijavljeni": len(prijave[id]),
+			})
+		})
+
 	}
 
 	r.Run(":8080")

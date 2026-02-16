@@ -81,12 +81,23 @@ export default function Actions() {
 
               <div className="px-6 pb-6">
                 <button
-                  className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
-                  style={{ backgroundColor: '#41ac53' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
-                >
-                  Pridruži se
+                    onClick={async () => {
+                        if (!confirm(`Da li želite da se prijavite za "${akcija.naziv}"?`)) return
+
+                        try {
+                        const response = await api.post(`/api/akcije/${akcija.id}/prijavi`)
+                        alert(response.data.message)
+                        // Možeš da osvežiš listu ili prikažeš "Prijavljen" badge
+                        } catch (err: any) {
+                        alert(err.response?.data?.error || 'Greška pri prijavi')
+                        }
+                    }}
+                    className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
+                    style={{ backgroundColor: '#41ac53' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
+                    >
+                    Pridruži se
                 </button>
               </div>
             </div>
