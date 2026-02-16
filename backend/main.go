@@ -109,7 +109,38 @@ func main() {
 		protected.GET("/akcije", func(c *gin.Context) {
 			// Simulirana lista akcija (kasnije iz baze)
 			akcije := []map[string]interface{}{
-				//Have some error with action id
+				{
+					"id":     1,
+					"naziv":  "Uspon na Rtanj",
+					"vrh":    "Rtanj (1565m)",
+					"datum":  "2026-03-15",
+					"opis":   "Tehnički uspon sa prelepim pogledom na Dunav. Potrebna dobra kondicija.",
+					"tezina": "srednje teško",
+				},
+				{
+					"id":     2,
+					"naziv":  "Zimski uspon na Taru",
+					"vrh":    "Zvijezda (1544m)",
+					"datum":  "2026-02-28",
+					"opis":   "Zimska tura sa krpljama. Mogućnost noćenja u planinarskom domu.",
+					"tezina": "teško",
+				},
+				{
+					"id":     3,
+					"naziv":  "Prolećni treking Kopaonik",
+					"vrh":    "Pančićev vrh (2017m)",
+					"datum":  "2026-04-20",
+					"opis":   "Lagana tura sa puno cvijeća i pogledom na celu Srbiju. Idealno za početnike.",
+					"tezina": "lako",
+				},
+				{
+					"id":     4,
+					"naziv":  "Jadovnik ljetnji uspon",
+					"vrh":    "Veliki Jadovnik (1734m)",
+					"datum":  "2026-07-10",
+					"opis":   "Ljetnja tura sa mogućnošću kupanja u planinskim jezerima.",
+					"tezina": "srednje",
+				},
 			}
 
 			c.JSON(http.StatusOK, gin.H{
