@@ -2,6 +2,8 @@ package main
 
 import (
 	"beleg-app/backend/middleware"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,6 +11,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var jwtSecret = []byte("super-secret-key-adri-sentinel-9876543210")
@@ -28,7 +32,21 @@ type LoginResponse struct {
 }
 
 func main() {
-	r := gin.Default() //this is almost the same like creating routes in gorilla mu
+	r := gin.Default() //this is almost the same like creating routes in gorilla mux
+
+	dsn := "host=localhost user=postgres password=novatajna123 dbname=adri_sentinel port=5432 sslmode=disable TimeZone=Europe/Belgrade"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Ne mogu da se povežem sa bazom:", err)
+	}
+
+	fmt.Println("Uspješno povezan sa bazom!")
+
+	// Spremi db u Gin context da ga handler-i mogu koristiti
+	r.Use(func(c *gin.Context) {
+		c.Set("db", db)
+		c.Next()
+	})
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"}, // frontend URL
@@ -96,15 +114,6 @@ func main() {
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/test", func(c *gin.Context) {
-			username, _ := c.Get("username")
-			role, _ := c.Get("role")
-			c.JSON(http.StatusOK, gin.H{
-				"message":  "Protected route OK",
-				"username": username,
-				"role":     role,
-			})
-		})
 
 		///ackija ruta handler
 		protected.GET("/akcije", func(c *gin.Context) {
