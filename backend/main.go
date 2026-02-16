@@ -1,6 +1,7 @@
 package main
 
 import (
+	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
 	"fmt"
 	"log"
@@ -34,6 +35,7 @@ type LoginResponse struct {
 func main() {
 	r := gin.Default() //this is almost the same like creating routes in gorilla mux
 
+	//connect to database
 	dsn := "host=localhost user=postgres password=novatajna123 dbname=adri_sentinel port=5432 sslmode=disable TimeZone=Europe/Belgrade"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -41,8 +43,7 @@ func main() {
 	}
 
 	fmt.Println("Uspješno povezan sa bazom!")
-
-	// Spremi db u Gin context da ga handler-i mogu koristiti
+	//inject db into context for handlers to use
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Next()
@@ -117,45 +118,22 @@ func main() {
 
 		///ackija ruta handler
 		protected.GET("/akcije", func(c *gin.Context) {
-			// Simulirana lista akcija (kasnije iz baze)
-			akcije := []map[string]interface{}{
-				{
-					"id":     1,
-					"naziv":  "Uspon na Rtanj",
-					"vrh":    "Rtanj (1565m)",
-					"datum":  "2026-03-15",
-					"opis":   "Tehnički uspon sa prelepim pogledom na Dunav. Potrebna dobra kondicija.",
-					"tezina": "srednje teško",
-				},
-				{
-					"id":     2,
-					"naziv":  "Zimski uspon na Taru",
-					"vrh":    "Zvijezda (1544m)",
-					"datum":  "2026-02-28",
-					"opis":   "Zimska tura sa krpljama. Mogućnost noćenja u planinarskom domu.",
-					"tezina": "teško",
-				},
-				{
-					"id":     3,
-					"naziv":  "Prolećni treking Kopaonik",
-					"vrh":    "Pančićev vrh (2017m)",
-					"datum":  "2026-04-20",
-					"opis":   "Lagana tura sa puno cvijeća i pogledom na celu Srbiju. Idealno za početnike.",
-					"tezina": "lako",
-				},
-				{
-					"id":     4,
-					"naziv":  "Jadovnik ljetnji uspon",
-					"vrh":    "Veliki Jadovnik (1734m)",
-					"datum":  "2026-07-10",
-					"opis":   "Ljetnja tura sa mogućnošću kupanja u planinskim jezerima.",
-					"tezina": "srednje",
-				},
+			db, exists := c.Get("db")
+			if !exists {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database not available"})
+				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"akcije": akcije,
-			})
+			gormDb := db.(*gorm.DB)
+
+			var akcije []models.Akcija
+			result := gormDb.Find(&akcije)
+			if result.Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch akcije"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"akcije": akcije})
 		})
 
 		//POST /api/akcije/:id/prijavi
