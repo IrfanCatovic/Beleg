@@ -161,7 +161,7 @@ func main() {
 			}
 
 			//extract username from context
-			username, exists := c.Get("username")
+			username, exists := c.Get("username") //middleware je stavio usera ovde
 			if !exists {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 				return

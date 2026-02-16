@@ -11,11 +11,14 @@ import api from '../services/api'
         tezin?: string
         }
 
+        
+
 export default function Actions() {
-  const { isLoggedIn } = useAuth()
-  const [akcije, setAkcije] = useState<Akcija[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+    const { isLoggedIn } = useAuth()
+    const [akcije, setAkcije] = useState<Akcija[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState('')
+    const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
 
     useEffect(() => {
         if (!isLoggedIn) return
@@ -33,6 +36,20 @@ export default function Actions() {
 
         fetchAkcije()
     }, [isLoggedIn])
+
+    const handlePrijavi = async (akcijaId: number, naziv: string) => {
+        if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
+
+        try {
+            const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
+            alert(response.data.message)
+
+            // Dodaj ID u skup prijavljenih akcija
+            setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+        } catch (err: any) {
+            alert(err.response?.data?.error || 'Greška pri prijavi')
+        }
+    }
 
   if (!isLoggedIn) {
     return <div className="text-center py-10 text-gray-700">Morate se ulogovati da biste vidjeli akcije.</div>
@@ -80,26 +97,22 @@ export default function Actions() {
               </div>
 
               <div className="px-6 pb-6">
-                <button
-                    onClick={async () => {
-                        if (!confirm(`Da li želite da se prijavite za "${akcija.naziv}"?`)) return
-
-                        try {
-                        const response = await api.post(`/api/akcije/${akcija.id}/prijavi`)
-                        alert(response.data.message)
-                        // Možeš da osvežiš listu ili prikažeš "Prijavljen" badge
-                        } catch (err: any) {
-                        alert(err.response?.data?.error || 'Greška pri prijavi')
-                        }
-                    }}
+                {prijavljeneAkcije.has(akcija.id) ? (
+                    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
+                    Prijavljen ✓
+                    </div>
+                ) : (
+                    <button
+                    onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
                     className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
                     style={{ backgroundColor: '#41ac53' }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
                     >
                     Pridruži se
-                </button>
-              </div>
+                    </button>
+                )}
+                </div>
             </div>
           ))}
         </div>
