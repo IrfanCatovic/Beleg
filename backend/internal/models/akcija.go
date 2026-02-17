@@ -12,3 +12,8 @@ type Akcija struct {
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }
+
+// TableName specifies the table name for the Akcija model
+func (Akcija) TableName() string {
+	return "akcije"
+}
