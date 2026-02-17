@@ -43,6 +43,17 @@ func main() {
 	}
 
 	fmt.Println("Uspješno povezan sa bazom!")
+
+	//This will create tables if they don't exist and update them if they do, based on the models defined in the code
+	err = db.AutoMigrate(
+		&models.Akcija{},
+		&models.Prijava{},
+	)
+	if err != nil {
+		log.Fatal("Greška pri automigraciji tabela:", err)
+	}
+	log.Println("Tabele 'akcije' i 'prijave' su migrirane (kreirane ako nisu postojale)")
+
 	//inject db into context for handlers to use
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
@@ -146,7 +157,6 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action ID"})
 				return
 			}
-
 			//extract username from context
 			username, exists := c.Get("username") //middleware je stavio usera ovde
 			if !exists {
