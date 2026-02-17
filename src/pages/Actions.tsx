@@ -23,33 +23,43 @@ export default function Actions() {
     useEffect(() => {
         if (!isLoggedIn) return
 
-        const fetchAkcije = async () => {
-        try {
-            const response = await api.get('/api/akcije')
-            setAkcije(response.data.akcije) // backend vraća { akcije: [...] }
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Greška pri učitavanju akcija')
-        } finally {
+        const fetchData = async () => {
+          setLoading(true)
+          try {
+            // 1. Fetch sve akcije
+            const akcijeRes = await api.get('/api/akcije')
+            setAkcije(akcijeRes.data.akcije || [])
+
+            // 2. Fetch moje prijave (ID-ovi akcija na koje sam prijavljen)
+            const mojeRes = await api.get('/api/moje-prijave')
+            const ids = mojeRes.data.prijavljeneAkcije || []
+            setPrijavljeneAkcije(new Set(ids))
+          } catch (err: any) {
+            setError(err.response?.data?.error || 'Greška pri učitavanju')
+          } finally {
             setLoading(false)
+          }
         }
-        }
+        fetchData()
+      }, [isLoggedIn])
 
-        fetchAkcije()
-    }, [isLoggedIn])
-
-    const handlePrijavi = async (akcijaId: number, naziv: string) => {
+      const handlePrijavi = async (akcijaId: number, naziv: string) => {
         if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
 
         try {
-            const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
-            alert(response.data.message)
+          const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
+          alert(response.data.message)
 
-            // Dodaj ID u skup prijavljenih akcija
-            setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+          // Dodaj ID u Set (samo ako je uspešno)
+          setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Greška pri prijavi')
+          alert(err.response?.data?.error || 'Greška pri prijavi')
+          // Ako je greška "Već ste prijavljeni" – možemo i tu dodati ID u Set
+          if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
+            setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+          }
         }
-    }
+      }
 
   if (!isLoggedIn) {
     return <div className="text-center py-10 text-gray-700">Morate se ulogovati da biste vidjeli akcije.</div>

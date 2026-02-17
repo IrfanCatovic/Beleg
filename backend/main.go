@@ -33,9 +33,19 @@ type LoginResponse struct {
 }
 
 func main() {
-	r := gin.Default() //this is almost the same like creating routes in gorilla mux
+	r := gin.Default()
 
-	//connect to database
+	// CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	// Konekcija na bazu
 	dsn := "host=localhost user=postgres password=novatajna123 dbname=adri_sentinel port=5432 sslmode=disable TimeZone=Europe/Belgrade"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -44,7 +54,7 @@ func main() {
 
 	fmt.Println("Uspješno povezan sa bazom!")
 
-	//This will create tables if they don't exist and update them if they do, based on the models defined in the code
+	// AutoMigrate – kreira ili ažurira tabele
 	err = db.AutoMigrate(
 		&models.Akcija{},
 		&models.Prijava{},
@@ -52,23 +62,15 @@ func main() {
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
-	log.Println("Tabele 'akcije' i 'prijave' su migrirane (kreirane ako nisu postojale)")
+	log.Println("Tabele 'akcije' i 'prijave' su migrirane")
 
-	//inject db into context for handlers to use
+	// Inject db u Gin context
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Next()
 	})
 
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // frontend URL
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
+	// Public rute
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Pong from Adri Sentinel backend!"})
 	})
@@ -83,7 +85,6 @@ func main() {
 		var role string
 		var fullName string
 
-		//Database sumilation hardcoded users
 		if req.Username == "admin" && req.Password == "admin123" {
 			role = "admin"
 			fullName = "Admin Adri"
@@ -95,7 +96,6 @@ func main() {
 			return
 		}
 
-		// craeat jwt token
 		claims := jwt.MapClaims{
 			"username": req.Username,
 			"role":     role,
@@ -122,77 +122,101 @@ func main() {
 		})
 	})
 
-	//protected routes
+	// PROTECTED RUTE – SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
 	{
-
-		///ackija ruta handler
+		// GET /api/akcije – lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
-			db, exists := c.Get("db")
+			dbAny, exists := c.Get("db")
 			if !exists {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database not available"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
 				return
 			}
 
-			gormDb := db.(*gorm.DB)
+			gormDb := dbAny.(*gorm.DB)
 
 			var akcije []models.Akcija
 			result := gormDb.Find(&akcije)
 			if result.Error != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch akcije"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju akcija"})
 				return
 			}
 
 			c.JSON(http.StatusOK, gin.H{"akcije": akcije})
 		})
 
-		//POST /api/akcije/:id/prijavi
-		var prijave = make(map[int][]string)
-
+		// POST /api/akcije/:id/prijavi – prijava na akciju
 		protected.POST("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
 			id, err := strconv.Atoi(idStr)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid action ID"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
 				return
 			}
-			//extract username from context
-			username, exists := c.Get("username") //middleware je stavio usera ovde
+
+			username, exists := c.Get("username")
 			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			korisnik := username.(string)
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var count int64
+			db.Model(&models.Prijava{}).
+				Where("akcija_id = ? AND korisnik = ?", id, korisnik).
+				Count(&count)
+
+			if count > 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Već ste prijavljeni za ovu akciju"})
 				return
 			}
 
-			userNameStr, ok := username.(string)
-			if !ok {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
+			prijava := models.Prijava{
+				AkcijaID: uint(id),
+				Korisnik: korisnik,
+			}
+
+			if err := db.Create(&prijava).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prijavi"})
 				return
 			}
-
-			//check if user already applied for this action
-			if _, ok := prijave[id]; !ok {
-				prijave[id] = []string{}
-			}
-
-			for _, u := range prijave[id] {
-				if u == userNameStr {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Već ste prijavljeni za ovu akciju"})
-					return
-				}
-			}
-
-			//add user
-			prijave[id] = append(prijave[id], userNameStr)
 
 			c.JSON(http.StatusOK, gin.H{
-				"message":     "Uspešno ste se prijavili za akciju!",
-				"akcijaId":    id,
-				"prijavljeni": len(prijave[id]),
+				"message":      "Uspešno ste se prijavili!",
+				"akcijaId":     id,
+				"prijavljenAt": prijava.PrijavljenAt,
 			})
 		})
 
+		// GET /api/moje-prijave – lista ID-ova akcija na koje je korisnik prijavljen
+		protected.GET("/moje-prijave", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			korisnik := username.(string)
+
+			dbAny, exists := c.Get("db")
+			if !exists {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+				return
+			}
+			db := dbAny.(*gorm.DB)
+
+			var prijavljene []uint
+			db.Model(&models.Prijava{}).
+				Where("korisnik = ?", korisnik).
+				Pluck("akcija_id", &prijavljene)
+
+			c.JSON(http.StatusOK, gin.H{"prijavljeneAkcije": prijavljene})
+		})
 	}
 
+	// OVO MORA BITI NA KRAJU – NIKAKO ISPOD!
 	r.Run(":8080")
 }
