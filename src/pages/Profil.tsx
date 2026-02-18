@@ -25,7 +25,7 @@ export default function Profil() {
                 setLoading(true)
                 try {
                 const res = await api.get('/api/moje-akcije-profil') 
-                console.log("Backend odgovor za Profil:", res.data) 
+
 
                 const mojePrijave = res.data?.prijave || [] 
                 setPrijave(mojePrijave)
