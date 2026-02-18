@@ -1,133 +1,171 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext' // pretpostavljam da koristiš ovo za user i role
 import api from '../services/api'
 
-        interface Akcija {
-        id: number
-        naziv: string
-        vrh: string
-        datum: string
-        opis?: string
-        tezin?: string
-        }
-
-        
+interface Akcija {
+  id: number
+  naziv: string
+  vrh: string
+  datum: string
+  opis?: string
+  tezina?: string
+}
 
 export default function Actions() {
-    const { isLoggedIn } = useAuth()
-    const [akcije, setAkcije] = useState<Akcija[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState('')
-    const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
+  const { isLoggedIn, user } = useAuth()
+  const [akcije, setAkcije] = useState<Akcija[]>([])
+  const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-    useEffect(() => {
-        if (!isLoggedIn) return
+  useEffect(() => {
+    if (!isLoggedIn) return
 
-        const fetchData = async () => {
-          setLoading(true)
-          try {
-            // Fetch sve akcije
-            const akcijeRes = await api.get('/api/akcije')
-            setAkcije(akcijeRes.data.akcije || [])
+    const fetchData = async () => {
+      setLoading(true)
+      try {
 
-            // Fetch moje prijave (ID-ovi akcija na koje sam prijavljen)
-            const mojeRes = await api.get('/api/moje-prijave')
-            const ids = mojeRes.data.prijavljeneAkcije || []
-            setPrijavljeneAkcije(new Set(ids))
-          } catch (err: any) {
-            setError(err.response?.data?.error || 'Greška pri učitavanju')
-          } finally {
-            setLoading(false)
-          }
-        }
-        fetchData()
-      }, [isLoggedIn])
+        const akcijeRes = await api.get('/api/akcije')
+        setAkcije(akcijeRes.data.akcije || [])
 
-      const handlePrijavi = async (akcijaId: number, naziv: string) => {
-        if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
-
-        try {
-          const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
-          alert(response.data.message)
-
-          // Dodaj ID u Set (samo ako je uspešno)
-          setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
-        } catch (err: any) {
-          alert(err.response?.data?.error || 'Greška pri prijavi')
-          // Ako je greška "Već ste prijavljeni" možemo i tu dodati ID u Set
-          if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
-            setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
-          }
-        }
+        const mojeRes = await api.get('/api/moje-prijave')
+        const ids = mojeRes.data.prijavljeneAkcije || []
+        setPrijavljeneAkcije(new Set(ids))
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
+      } finally {
+        setLoading(false)
       }
+    }
 
-  if (!isLoggedIn) {
-    return <div className="text-center py-10 text-gray-700">Morate se ulogovati da biste vidjeli akcije.</div>
+    fetchData()
+  }, [isLoggedIn])
+
+  const handlePrijavi = async (akcijaId: number, naziv: string) => {
+    if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
+
+    try {
+      const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
+      alert(response.data.message)
+
+      setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Greška pri prijavi')
+      // if user is already registered for this action, we can optimistically 
+      // add it to the prijavljeneAkcije set to update the UI, since the backend will 
+      // return an error in that case. This way, even if the user tries to register again,
+      // they will see that they are already registered without needing to refresh the page.
+      if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
+        setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+      }
+    }
   }
 
-  if (loading) return <div className="text-center py-10 text-gray-600">Učitavanje akcija...</div>
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Morate se ulogovati</h2>
+          <p className="text-gray-600">Da biste videli akcije, potrebno je da se prijavite.</p>
+        </div>
+      </div>
+    )
+  }
 
-  if (error) return <div className="text-center py-10 text-red-600">{error}</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#41ac53] mx-auto mb-4"></div>
+          <p className="text-gray-600">Učitavanje akcija...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center text-red-600">
+          <h2 className="text-xl font-bold mb-2">Greška</h2>
+          <p>{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10" style={{ color: '#41ac53' }}>
-        Trenutne akcije Adri Sentinel
-      </h2>
-
-      {akcije.length === 0 ? (
-        <p className="text-center text-lg text-gray-600">Trenutno nema aktivnih akcija. Vrati se kasnije!</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {akcije.map((akcija) => (
-            <div
-              key={akcija.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200"
-            >
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">{akcija.naziv}</h3>
-                <p className="text-gray-700 mb-1">
-                  <span className="font-medium">Vrh:</span> {akcija.vrh}
-                </p>
-                <p className="text-gray-600 mb-3">
-
-                  <span className="text-gray-600 mb-1">Datum:</span> {new Date(akcija.datum).toLocaleDateString('sr-RS')} 
-                </p>
-                {akcija.opis && (
-                  <p className="text-gray-500 mb-4 text-sm">{akcija.opis}</p>
-                )}
-                {akcija.tezin && (
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    akcija.tezin === 'lako' ? 'bg-green-100 text-green-800' :
-                    akcija.tezin === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {akcija.tezin}
-                  </span>
-                )}
-              </div>
-
-              <div className="px-6 pb-6">
-                {prijavljeneAkcije.has(akcija.id) ? (
-                    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
-                    Prijavljen ✓
-                    </div>
-                ) : (
-                    <button
-                    onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
-                    className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
-                    style={{ backgroundColor: '#41ac53' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fed74c'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
-                    >
-                    Pridruži se
-                    </button>
-                )}
-                </div>
-            </div>
-          ))}
-        </div>
+    <div className="relative min-h-screen bg-gray-50 pb-12">
+      {/* Floating button "Add Action" just for admin */}
+      {user?.role === 'admin' && (
+        <Link
+          to="/dodaj-akciju"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#b6c93d] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
+          title="Dodaj novu akciju"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+        </Link>
       )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-8 md:mb-12" style={{ color: '#41ac53' }}>
+          Akcije
+        </h2>
+
+        {akcije.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+            <p className="text-gray-600 text-lg">Trenutno nema dostupnih akcija.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {akcije.map((akcija) => (
+              <div
+                key={akcija.id}
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+              >
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{akcija.naziv}</h3>
+                  <p className="text-gray-600 mb-1"><strong>Vrh:</strong> {akcija.vrh}</p>
+                  <p className="text-gray-600 mb-1"><strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                  {akcija.opis && (
+                    <p className="text-gray-700 mt-3 text-sm line-clamp-3">{akcija.opis}</p>
+                  )}
+                  <span
+                    className={`inline-block px-3 py-1 mt-4 rounded-full text-sm font-medium ${
+                      akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
+                      akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {akcija.tezina}
+                  </span>
+                </div>
+
+                <div className="px-6 pb-6">
+                  {prijavljeneAkcije.has(akcija.id) ? (
+                    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
+                      Prijavljen ✓
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
+                      className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
+                      style={{ backgroundColor: '#41ac53' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3a9a48'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
+                    >
+                      Pridruži se
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
