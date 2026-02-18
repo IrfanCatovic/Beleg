@@ -54,7 +54,7 @@ func main() {
 
 	fmt.Println("Uspješno povezan sa bazom!")
 
-	// AutoMigrate – kreira ili ažurira tabele
+	// AutoMigrate kreira ili ažurira tabele
 	err = db.AutoMigrate(
 		&models.Akcija{},
 		&models.Prijava{},
@@ -71,10 +71,6 @@ func main() {
 	})
 
 	// Public rute
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Pong from Adri Sentinel backend!"})
-	})
-
 	r.POST("/login", func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -122,11 +118,11 @@ func main() {
 		})
 	})
 
-	// PROTECTED RUTE – SVE UNUTAR JEDNOG BLOKA
+	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		// GET /api/akcije – lista akcija iz baze
+		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
 			dbAny, exists := c.Get("db")
 			if !exists {
@@ -146,7 +142,7 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"akcije": akcije})
 		})
 
-		// POST /api/akcije/:id/prijavi – prijava na akciju
+		// POST /api/akcije/:id/prijavi prijava na akciju
 		protected.POST("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
 			id, err := strconv.Atoi(idStr)
@@ -192,7 +188,7 @@ func main() {
 			})
 		})
 
-		// GET /api/moje-prijave – lista ID-ova akcija na koje je korisnik prijavljen
+		// GET /api/moje-prijave lista ID-ova akcija na koje je korisnik prijavljen
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
@@ -217,6 +213,5 @@ func main() {
 		})
 	}
 
-	// OVO MORA BITI NA KRAJU – NIKAKO ISPOD!
 	r.Run(":8080")
 }

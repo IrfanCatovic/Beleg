@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Finance from './pages/Finance'
 import Actions from './pages/Actions'
 import ProtectedRoute from './components/ProtectedRoute'
+import Profil from './pages/Profil'
 
 const router = createBrowserRouter([
   {
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
           { path: '/home', element: <Home /> },
           { path: '/akcije', element: <Actions /> },
           { path: '/finansije', element: <Finance /> },
+          { path: '/profil', element: <Profil /> },
         ],
       },
     ],

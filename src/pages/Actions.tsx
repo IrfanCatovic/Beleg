@@ -26,11 +26,11 @@ export default function Actions() {
         const fetchData = async () => {
           setLoading(true)
           try {
-            // 1. Fetch sve akcije
+            // Fetch sve akcije
             const akcijeRes = await api.get('/api/akcije')
             setAkcije(akcijeRes.data.akcije || [])
 
-            // 2. Fetch moje prijave (ID-ovi akcija na koje sam prijavljen)
+            // Fetch moje prijave (ID-ovi akcija na koje sam prijavljen)
             const mojeRes = await api.get('/api/moje-prijave')
             const ids = mojeRes.data.prijavljeneAkcije || []
             setPrijavljeneAkcije(new Set(ids))
@@ -54,7 +54,7 @@ export default function Actions() {
           setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         } catch (err: any) {
           alert(err.response?.data?.error || 'Greška pri prijavi')
-          // Ako je greška "Već ste prijavljeni" – možemo i tu dodati ID u Set
+          // Ako je greška "Već ste prijavljeni" možemo i tu dodati ID u Set
           if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
             setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
           }
