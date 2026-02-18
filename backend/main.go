@@ -188,7 +188,38 @@ func main() {
 			})
 		})
 
-		// GET /api/moje-prijave lista ID-ova akcija na koje je korisnik prijavljen
+		// GET /api/moje-akcije lista akcija na koje je korisnik prijavljen sa detaljima za profil page
+		protected.GET("/moje-akcije-profil", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			korisnik := username.(string)
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var mojePrijave []struct {
+				AkcijaID     uint
+				Naziv        string
+				Vrh          string
+				Datum        time.Time
+				Opis         string
+				Tezina       string
+				PrijavljenAt time.Time
+			}
+
+			db.Table("prijave").
+				Joins("JOIN akcije ON prijave.akcija_id = akcije.id").
+				Where("prijave.korisnik = ?", korisnik).
+				Select("prijave.akcija_id, akcije.naziv, akcije.vrh, akcije.datum, akcije.opis, akcije.tezina, prijave.prijavljen_at").
+				Scan(&mojePrijave)
+
+			c.JSON(http.StatusOK, gin.H{"prijave": mojePrijave})
+		})
+
+		// GET /api/mojeprijave list of IDs of ackije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {

@@ -2,49 +2,43 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
-interface Akcija {
-  id: number
-  naziv: string
-  vrh: string
-  datum: string
-  opis?: string
-  tezina?: string
-}
-
-interface Prijava {
-  akcijaId: number
-  akcija: Akcija // ako backend vrati spojene podatke
-  prijavljenAt: string
+interface MojaPrijava {
+  AkcijaID: number
+  Naziv: string
+  Vrh: string
+  Datum: string
+  Opis?: string
+  Tezina?: string
+  PrijavljenAt: string
 }
 
 export default function Profil() {
   const { isLoggedIn, user } = useAuth()
-  const [prijave, setPrijave] = useState<Prijava[]>([])
   const [loading, setLoading] = useState(true)
+  const [prijave, setPrijave] = useState<MojaPrijava[]>([])
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!isLoggedIn) return
+        useEffect(() => {
+            if (!isLoggedIn) return
 
-    const fetchMojePrijave = async () => {
-      try {
-        const res = await api.get('/api/moje-prijave')
-        const ids = res.data.prijavljeneAkcije || []
+            const fetchMojePrijave = async () => {
+                setLoading(true)
+                try {
+                const res = await api.get('/api/moje-akcije-profil') 
+                console.log("Backend odgovor za Profil:", res.data) 
 
-        // Ako imaš spojene podatke – možeš fetch-ovati detalje
-        // Za sada koristimo samo IDs – kasnije spojimo sa akcijama
-        // Primer: ako backend vrati spojene podatke – setPrijave(res.data.prijave)
-        // Za sad – placeholder
-        setPrijave([]) // zameni kasnije sa pravim podacima
-      } catch (err: any) {
-        setError('Greška pri učitavanju tvojih prijava')
-      } finally {
-        setLoading(false)
-      }
-    }
+                const mojePrijave = res.data?.prijave || [] 
+                setPrijave(mojePrijave)
+                } catch (err: any) {
+                console.error("Greška:", err)
+                setError(err.response?.data?.error || 'Greška pri učitavanju tvojih prijava')
+                } finally {
+                setLoading(false)
+                }
+            }
 
-    fetchMojePrijave()
-  }, [isLoggedIn])
+            fetchMojePrijave()
+        }, [isLoggedIn])
 
   if (!isLoggedIn) {
     return <div className="text-center py-10">Morate se ulogovati da biste vidjeli profil.</div>
@@ -63,20 +57,35 @@ export default function Profil() {
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <h3 className="text-xl font-semibold mb-4">Tvoje prijave na akcije</h3>
 
-        {prijave.length === 0 ? (
-          <p className="text-gray-600">Još nisi se prijavio ni na jednu akciju. Vidi listu akcija i pridruži se!</p>
+       {prijave.length === 0 ? (
+        <p className="text-gray-600">Još nisi se prijavio ni na jednu akciju.</p>
         ) : (
-          <div className="space-y-4">
-            {prijave.map((p) => (
-              <div key={p.akcijaId} className="border-b pb-4">
-                <h4 className="font-medium">{p.akcija?.naziv || `Akcija ID: ${p.akcijaId}`}</h4>
-                <p className="text-sm text-gray-600">
-                  Prijavljen: {new Date(p.prijavljenAt).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-6">
+            {prijave.length === 0 ? (
+            <p className="text-gray-600">Još nisi se prijavio ni na jednu akciju.</p>
+            ) : (
+            <div className="space-y-6">
+                {prijave.map((p) => (
+                <div key={p.AkcijaID} className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-xl font-semibold mb-2">{p.Naziv}</h3>
+                    <p className="text-gray-700 mb-1"><strong>Vrh:</strong> {p.Vrh}</p>
+                    <p className="text-gray-600 mb-1"><strong>Datum akcije:</strong> {new Date(p.Datum).toLocaleDateString('sr-RS')}</p>
+                    <p className="text-gray-600 mb-1"><strong>Prijavljen:</strong> {new Date(p.PrijavljenAt).toLocaleString('sr-RS', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                    <p className="text-gray-500 text-sm">{p.Opis}</p>
+                    <span className={`inline-block px-3 py-1 mt-3 rounded-full text-sm font-medium ${
+                    p.Tezina === 'lako' ? 'bg-green-100 text-green-800' :
+                    p.Tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                    }`}>
+                    {p.Tezina}
+                    </span>
+                </div>
+                ))}
+            </div>
+            )}
+        </div>
         )}
+
       </div>
     </div>
   )

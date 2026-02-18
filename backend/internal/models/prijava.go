@@ -8,3 +8,7 @@ type Prijava struct {
 	Korisnik     string    `json:"korisnik"`              // username za sada
 	PrijavljenAt time.Time `gorm:"autoCreateTime" json:"prijavljenAt"`
 }
+
+func (Prijava) TableName() string {
+	return "prijave" // tačno ime tvoje tabele
+}
