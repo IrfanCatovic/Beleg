@@ -8,6 +8,7 @@ import Finance from './pages/Finance'
 import Actions from './pages/Actions'
 import ProtectedRoute from './components/ProtectedRoute'
 import Profil from './pages/Profil'
+import AddAction from './pages/AddAction'
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
           { path: '/akcije', element: <Actions /> },
           { path: '/finansije', element: <Finance /> },
           { path: '/profil', element: <Profil /> },
+          { path: '/dodaj-akciju', element: <AddAction /> },
         ],
       },
     ],

@@ -11,6 +11,7 @@ type Akcija struct {
 	Tezina    string    `json:"tezina,omitempty"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
+	SlikaURL  string    `json:"slikaUrl,omitempty"`
 }
 
 // TableName specifies the table name for the Akcija model
