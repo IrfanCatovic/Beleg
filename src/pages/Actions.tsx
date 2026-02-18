@@ -90,7 +90,8 @@ export default function Actions() {
                   <span className="font-medium">Vrh:</span> {akcija.vrh}
                 </p>
                 <p className="text-gray-600 mb-3">
-                  <span className="font-medium">Datum:</span> {akcija.datum}
+
+                  <span className="text-gray-600 mb-1">Datum:</span> {new Date(akcija.datum).toLocaleDateString('sr-RS')} 
                 </p>
                 {akcija.opis && (
                   <p className="text-gray-500 mb-4 text-sm">{akcija.opis}</p>
