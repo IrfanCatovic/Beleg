@@ -24,7 +24,7 @@ export default function AddAction() {
     return <div className="text-center py-10 text-red-600">Samo admin može da dodaje akcije.</div>
   }
 
-        const handleSubmit = async (e: React.FormEvent) => {
+      const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError('')
@@ -66,7 +66,7 @@ export default function AddAction() {
             setLoading(false)
             navigate('/akcije') 
         }
-        }
+      }
 
 
   return (

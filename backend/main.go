@@ -14,11 +14,10 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-var jwtSecret = []byte("super-secret-key-adri-sentinel-9876543210")
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -36,6 +35,13 @@ type LoginResponse struct {
 
 func main() {
 	r := gin.Default()
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("GREŠKA: .env fajl NIJE UČITAN! Razlog:", err)
+	} else {
+		log.Println("OK: .env fajl je učitan")
+		log.Println("DB_PASSWORD iz env:", os.Getenv("DB_PASSWORD")) // vidiš li lozinku?
+	}
 
 	// CORS middleware
 	r.Use(cors.New(cors.Config{
@@ -46,9 +52,20 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_SSLMODE"),
+		os.Getenv("DB_TIMEZONE"),
+	)
 
 	// Konekcija na bazu
-	dsn := "host=localhost user=postgres password=novatajna123 dbname=adri_sentinel port=5432 sslmode=disable TimeZone=Europe/Belgrade"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Ne mogu da se povežem sa bazom:", err)
@@ -181,6 +198,8 @@ func main() {
 					return
 				}
 			}
+
+			//QlyxC5QeXyoK3F4MrgNsYYdylV8
 
 			// photo upload handling
 			slikaURL := ""
