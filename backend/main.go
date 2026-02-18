@@ -346,5 +346,6 @@ func main() {
 		})
 	}
 
+	r.Static("/uploads", "./uploads")
 	r.Run(":8080")
 }

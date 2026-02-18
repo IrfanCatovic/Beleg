@@ -27,6 +27,7 @@ export default function Actions() {
       setLoading(true)
       try {
         const akcijeRes = await api.get('/api/akcije')
+        console.log("Akcije iz baze:", akcijeRes.data.akcije)
         setAkcije(akcijeRes.data.akcije || [])
 
         const mojeRes = await api.get('/api/moje-prijave')
@@ -125,13 +126,14 @@ export default function Actions() {
                 {/* Slika – responsive visina */}
                 <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden flex-shrink-0">
                   <img
-                    src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                    alt={akcija.naziv || 'Akcija'}
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                    }}
-                  />
+                  src={akcija.slikaUrl ? `http://localhost:8080${akcija.slikaUrl}` : 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                  alt={akcija.naziv || 'Akcija'}
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                    e.currentTarget.onerror = null // spreči ponavljanje
+                  }}
+                />
                 </div>
 
                 {/* Sadržaj kartice */}
