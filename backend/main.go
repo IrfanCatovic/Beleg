@@ -4,8 +4,10 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -140,6 +142,106 @@ func main() {
 			}
 
 			c.JSON(http.StatusOK, gin.H{"akcije": akcije})
+		})
+
+		// POST /api/akcije adding new action, only for admin
+		protected.POST("/akcije", func(c *gin.Context) {
+			// check role
+			role, exists := c.Get("role")
+			if !exists || role.(string) != "admin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može da dodaje akcije"})
+				return
+			}
+
+			// parse multipart form (text + file) max 32MB
+			if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format forme"})
+				return
+			}
+
+			// extract form values
+			naziv := c.PostForm("naziv")
+			vrh := c.PostForm("vrh")
+			datumStr := c.PostForm("datum")
+			opis := c.PostForm("opis")
+			tezina := c.PostForm("tezina")
+
+			// check required fields
+			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nedostaju obavezna polja"})
+				return
+			}
+
+			// parse date we expect either "2024-07-01T10:00:00Z" or "2024-07-01"
+			datum, err := time.Parse("2006-01-02T15:04:05Z", datumStr)
+			if err != nil {
+				datum, err = time.Parse("2006-01-02", datumStr)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format datuma"})
+					return
+				}
+			}
+
+			// photo upload handling
+			slikaURL := ""
+			file, header, err := c.Request.FormFile("slika") // "slika" je ime polja iz FormData
+			if err == nil {
+				// create uploads directory if it doesn't exist
+				uploadDir := "uploads/akcije"
+				if err := os.MkdirAll(uploadDir, 0755); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju foldera"})
+					return
+				}
+
+				// generate unique filename to avoid collisions
+				filename := fmt.Sprintf("%d-%s", time.Now().Unix(), header.Filename)
+				filepath := uploadDir + "/" + filename
+
+				// save file to disk
+				out, err := os.Create(filepath)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju slike"})
+					return
+				}
+				defer out.Close()
+
+				if _, err := io.Copy(out, file); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju slike"})
+					return
+				}
+
+				// URL which can be used to access the image, assuming static files are served from root
+				slikaURL = "/" + filepath
+			}
+
+			// create object to save in database
+			novaAkcija := models.Akcija{
+				Naziv:    naziv,
+				Vrh:      vrh,
+				Datum:    datum,
+				Opis:     opis,
+				Tezina:   tezina,
+				SlikaURL: slikaURL,
+			}
+
+			// db write
+			dbAny, exists := c.Get("db")
+			if !exists {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+				return
+			}
+			db := dbAny.(*gorm.DB)
+
+			if err := db.Create(&novaAkcija).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju akcije"})
+				return
+			}
+
+			// return success response with created akcija
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Akcija uspešno dodata!",
+				"akcija":  novaAkcija,
+			})
 		})
 
 		// POST /api/akcije/:id/prijavi prijava na akciju

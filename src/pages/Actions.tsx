@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext' // pretpostavljam da koristiš ovo za user i role
+import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
 interface Akcija {
@@ -10,6 +10,7 @@ interface Akcija {
   datum: string
   opis?: string
   tezina?: string
+  slikaUrl?: string // ovo je polje za sliku iz baze
 }
 
 export default function Actions() {
@@ -25,7 +26,6 @@ export default function Actions() {
     const fetchData = async () => {
       setLoading(true)
       try {
-
         const akcijeRes = await api.get('/api/akcije')
         setAkcije(akcijeRes.data.akcije || [])
 
@@ -52,10 +52,6 @@ export default function Actions() {
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       alert(err.response?.data?.error || 'Greška pri prijavi')
-      // if user is already registered for this action, we can optimistically 
-      // add it to the prijavljeneAkcije set to update the UI, since the backend will 
-      // return an error in that case. This way, even if the user tries to register again,
-      // they will see that they are already registered without needing to refresh the page.
       if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
       }
@@ -96,12 +92,12 @@ export default function Actions() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-50 pb-12">
-      {/* Floating button "Add Action" just for admin */}
+    <div className="relative min-h-screen bg-gray-50 pb-16 md:pb-12">
+      {/* Floating button "Add Action" – samo za admina */}
       {user?.role === 'admin' && (
         <Link
           to="/dodaj-akciju"
-          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#b6c93d] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
           title="Dodaj novu akciju"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,42 +120,62 @@ export default function Actions() {
             {akcije.map((akcija) => (
               <div
                 key={akcija.id}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
               >
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{akcija.naziv}</h3>
-                  <p className="text-gray-600 mb-1"><strong>Vrh:</strong> {akcija.vrh}</p>
-                  <p className="text-gray-600 mb-1"><strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                {/* Slika – responsive visina */}
+                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden flex-shrink-0">
+                  <img
+                    src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                    alt={akcija.naziv || 'Akcija'}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                    }}
+                  />
+                </div>
+
+                {/* Sadržaj kartice */}
+                <div className="p-5 sm:p-6 flex flex-col flex-grow">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {akcija.naziv}
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 mb-1">
+                    <strong>Vrh:</strong> {akcija.vrh}
+                  </p>
+                  <p className="text-sm sm:text-base text-gray-600 mb-1">
+                    <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+                  </p>
                   {akcija.opis && (
-                    <p className="text-gray-700 mt-3 text-sm line-clamp-3">{akcija.opis}</p>
+                    <p className="text-sm text-gray-700 mt-3 line-clamp-3 flex-grow">
+                      {akcija.opis}
+                    </p>
                   )}
                   <span
-                    className={`inline-block px-3 py-1 mt-4 rounded-full text-sm font-medium ${
+                    className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
                       akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
                       akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-red-100 text-red-800'
                     }`}
                   >
-                    {akcija.tezina}
+                    {akcija.tezina || 'Nije definisano'}
                   </span>
-                </div>
 
-                <div className="px-6 pb-6">
-                  {prijavljeneAkcije.has(akcija.id) ? (
-                    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
-                      Prijavljen ✓
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
-                      className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200"
-                      style={{ backgroundColor: '#41ac53' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3a9a48'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#41ac53'}
-                    >
-                      Pridruži se
-                    </button>
-                  )}
+                  {/* Dugme na dnu kartice */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    {prijavljeneAkcije.has(akcija.id) ? (
+                      <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
+                        Prijavljen ✓
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
+                        className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200 hover:bg-[#3a9a48]"
+                        style={{ backgroundColor: '#41ac53' }}
+                      >
+                        Pridruži se
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
