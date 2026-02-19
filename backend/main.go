@@ -3,6 +3,7 @@ package main
 import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -166,14 +169,12 @@ func main() {
 
 		// POST /api/akcije adding new action, only for admin
 		protected.POST("/akcije", func(c *gin.Context) {
-			// Samo admin
 			role, _ := c.Get("role")
 			if role != "admin" {
 				c.JSON(403, gin.H{"error": "Samo admin može dodavati akcije"})
 				return
 			}
 
-			// Parsiraj form-data
 			form, err := c.MultipartForm()
 			if err != nil {
 				c.JSON(400, gin.H{"error": "Nevažeća forma"})
@@ -203,23 +204,54 @@ func main() {
 				Datum:    datum,
 				Opis:     opis,
 				Tezina:   tezina,
-				SlikaURL: "", // za sad prazno – Cloudinary će ga popuniti
+				SlikaURL: "",
 			}
 
 			db := c.MustGet("db").(*gorm.DB)
 
 			if err := db.Create(&akcija).Error; err != nil {
-				c.JSON(500, gin.H{"error": "Greška pri čuvanju"})
+				c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
 				return
 			}
 
-			// Slika (ako postoji)
+			// Upload slika na Cloudinary (ako postoji)
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
-				log.Println("Primljena slika:", file.Filename, file.Size)
-				// Ovde ide Cloudinary upload – sledeći korak
-				akcija.SlikaURL = "https://test-url.com/" + file.Filename // privremeno
+
+				// Otvori fajl
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri čitanju fajla"})
+					return
+				}
+				defer f.Close()
+
+				// Cloudinary upload
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:   "adri-sentinel",
+				}
+
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
+					return
+				}
+
+				// Sačuvaj Cloudinary URL u bazi
+				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}
 

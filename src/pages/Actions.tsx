@@ -14,6 +14,7 @@ interface Akcija {
 }
 
 export default function Actions() {
+
   const { isLoggedIn, user } = useAuth()
   const [akcije, setAkcije] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
@@ -124,20 +125,20 @@ export default function Actions() {
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
               >
                 {/* Slika – responsive visina */}
-                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden flex-shrink-0">
+                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
                   <img
-                  src={akcija.slikaUrl ? `http://localhost:8080${akcija.slikaUrl}` : 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                  alt={akcija.naziv || 'Akcija'}
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                    e.currentTarget.onerror = null // spreči ponavljanje
-                  }}
-                />
+                    src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                    alt={akcija.naziv || 'Akcija'}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                      e.currentTarget.onerror = null
+                    }}
+                  />
                 </div>
 
                 {/* Sadržaj kartice */}
-                <div className="p-5 sm:p-6 flex flex-col flex-grow">
+                <div className="p-5 sm:p-6 flex flex-col grow">
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
                     {akcija.naziv}
                   </h3>
@@ -148,7 +149,7 @@ export default function Actions() {
                     <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
                   </p>
                   {akcija.opis && (
-                    <p className="text-sm text-gray-700 mt-3 line-clamp-3 flex-grow">
+                    <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
                       {akcija.opis}
                     </p>
                   )}
