@@ -99,7 +99,7 @@ export default function Actions() {
       {user?.role === 'admin' && (
         <Link
           to="/dodaj-akciju"
-          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#90995d] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
           title="Dodaj novu akciju"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -172,8 +172,13 @@ export default function Actions() {
                     ) : (
                       <button
                         onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
-                        className="w-full rounded-lg py-3 font-medium text-white transition-colors duration-200 hover:bg-[#3a9a48]"
-                        style={{ backgroundColor: '#41ac53' }}
+                        className={`
+                          w-full rounded-lg py-3 font-medium text-white
+                          bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]
+                          transition-all duration-150 ease-in-out
+                          shadow-sm hover:shadow-md active:shadow-sm
+                          focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2
+                        `}
                       >
                         Pridruži se
                       </button>
