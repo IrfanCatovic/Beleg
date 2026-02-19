@@ -4,8 +4,8 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
 export default function AddAction() {
-    const { user } = useAuth()
-    const navigate = useNavigate()
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
   // State za formu
   const [naziv, setNaziv] = useState('')
@@ -13,61 +13,53 @@ export default function AddAction() {
   const [datum, setDatum] = useState('')
   const [opis, setOpis] = useState('')
   const [tezina, setTezina] = useState('')
-  const [slika, setSlika] = useState<File | null>(null) 
+  const [slika, setSlika] = useState<File | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
 
   if (user?.role !== 'admin') {
     return <div className="text-center py-10 text-red-600">Samo admin može da dodaje akcije.</div>
   }
 
       const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError('')
-        setSuccess('')
+          e.preventDefault()
+          setLoading(true)
+          setError('')
+          setSuccess('')
 
-        try {
-            // Koristi FormData za sliku + tekst
+          // Validacija datuma
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
+            setError('Datum mora biti u formatu YYYY-MM-DD')
+            setLoading(false)
+            return
+          }
+
+          try {
             const formData = new FormData()
             formData.append('naziv', naziv)
             formData.append('vrh', vrh)
-            formData.append('datum', datum + 'T00:00:00Z') // dodaje vreme da Go razume
+            formData.append('datum', datum)  // ← SAMO OVO! bez T00:00:00Z
             formData.append('opis', opis)
             formData.append('tezina', tezina)
-
-            // if photo is selected, append it to formData
             if (slika) {
-            formData.append('slika', slika) 
+              formData.append('slika', slika)
             }
 
             const res = await api.post('/api/akcije', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
+              headers: { 'Content-Type': 'multipart/form-data' }
             })
 
             setSuccess('Akcija uspešno dodata! ID: ' + res.data.akcija.id)
-
-            // Reset forme
-            setNaziv('')
-            setVrh('')
-            setDatum('')
-            setOpis('')
-            setTezina('')
-            setSlika(null)
-        } catch (err: any) {
+            navigate('/akcije')
+          } catch (err: any) {
             setError(err.response?.data?.error || 'Greška pri dodavanju akcije')
             console.error('Greška:', err)
-        } finally {
+          } finally {
             setLoading(false)
-            navigate('/akcije') 
-        }
+          }
       }
-
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">

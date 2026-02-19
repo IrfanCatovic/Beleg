@@ -4,7 +4,6 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -69,6 +68,10 @@ func main() {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Ne mogu da se povežem sa bazom:", err)
+	} else {
+		log.Println("Uspješno povezan sa bazom!")
+		log.Print(".env je ucitan")
+		log.Println("Cloud name:", os.Getenv("CLOUDINARY_CLOUD_NAME"))
 	}
 
 	fmt.Println("Uspješno povezan sa bazom!")
@@ -163,103 +166,66 @@ func main() {
 
 		// POST /api/akcije adding new action, only for admin
 		protected.POST("/akcije", func(c *gin.Context) {
-			// check role
-			role, exists := c.Get("role")
-			if !exists || role.(string) != "admin" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može da dodaje akcije"})
+			// Samo admin
+			role, _ := c.Get("role")
+			if role != "admin" {
+				c.JSON(403, gin.H{"error": "Samo admin može dodavati akcije"})
 				return
 			}
 
-			// parse multipart form (text + file) max 32MB
-			if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format forme"})
+			// Parsiraj form-data
+			form, err := c.MultipartForm()
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeća forma"})
 				return
 			}
 
-			// extract form values
 			naziv := c.PostForm("naziv")
 			vrh := c.PostForm("vrh")
 			datumStr := c.PostForm("datum")
 			opis := c.PostForm("opis")
 			tezina := c.PostForm("tezina")
 
-			// check required fields
 			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nedostaju obavezna polja"})
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike"})
 				return
 			}
 
-			// parse date we expect either "2024-07-01T10:00:00Z" or "2024-07-01"
-			datum, err := time.Parse("2006-01-02T15:04:05Z", datumStr)
+			datum, err := time.Parse("2006-01-02", datumStr)
 			if err != nil {
-				datum, err = time.Parse("2006-01-02", datumStr)
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format datuma"})
-					return
-				}
+				c.JSON(400, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+				return
 			}
 
-			//QlyxC5QeXyoK3F4MrgNsYYdylV8
-
-			// photo upload handling
-			slikaURL := ""
-			file, header, err := c.Request.FormFile("slika") // "slika" je ime polja iz FormData
-			if err == nil {
-				// create uploads directory if it doesn't exist
-				uploadDir := "uploads/akcije"
-				if err := os.MkdirAll(uploadDir, 0755); err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju foldera"})
-					return
-				}
-
-				// generate unique filename to avoid collisions
-				filename := fmt.Sprintf("%d-%s", time.Now().Unix(), header.Filename)
-				filepath := uploadDir + "/" + filename
-
-				// save file to disk
-				out, err := os.Create(filepath)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju slike"})
-					return
-				}
-				defer out.Close()
-
-				if _, err := io.Copy(out, file); err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju slike"})
-					return
-				}
-
-				// URL which can be used to access the image, assuming static files are served from root
-				slikaURL = "/" + filepath
-			}
-
-			// create object to save in database
-			novaAkcija := models.Akcija{
+			akcija := models.Akcija{
 				Naziv:    naziv,
 				Vrh:      vrh,
 				Datum:    datum,
 				Opis:     opis,
 				Tezina:   tezina,
-				SlikaURL: slikaURL,
+				SlikaURL: "", // za sad prazno – Cloudinary će ga popuniti
 			}
 
-			// db write
-			dbAny, exists := c.Get("db")
-			if !exists {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
-				return
-			}
-			db := dbAny.(*gorm.DB)
+			db := c.MustGet("db").(*gorm.DB)
 
-			if err := db.Create(&novaAkcija).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju akcije"})
+			if err := db.Create(&akcija).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri čuvanju"})
 				return
 			}
 
-			// return success response with created akcija
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Akcija uspešno dodata!",
-				"akcija":  novaAkcija,
+			// Slika (ako postoji)
+			files := form.File["slika"]
+			if len(files) > 0 {
+				file := files[0]
+				log.Println("Primljena slika:", file.Filename, file.Size)
+				// Ovde ide Cloudinary upload – sledeći korak
+				akcija.SlikaURL = "https://test-url.com/" + file.Filename // privremeno
+				db.Save(&akcija)
+			}
+
+			c.JSON(201, gin.H{
+				"message": "Akcija dodata",
+				"akcija":  akcija,
 			})
 		})
 
