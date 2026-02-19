@@ -83,6 +83,7 @@ func main() {
 	err = db.AutoMigrate(
 		&models.Akcija{},
 		&models.Prijava{},
+		&models.Korisnik{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
@@ -254,7 +255,6 @@ func main() {
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}
-
 			c.JSON(201, gin.H{
 				"message": "Akcija dodata",
 				"akcija":  akcija,
