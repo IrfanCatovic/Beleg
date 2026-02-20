@@ -12,6 +12,7 @@ import AddAction from './pages/AddAction'
 import Users from './pages/Users'
 import UserProfile from './pages/UserProfil'
 import ActionDetails from './pages/ActionDetails'
+import AddUser from './pages/AddUser'
 
 const router = createBrowserRouter([
   {
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
           { path: '/profil', element: <Profil /> },
           { path: '/dodaj-akciju', element: <AddAction /> },
           {path: '/users', element: <Users /> },
+          {path: `/dodaj-korisnika`, element: <AddUser />},
           {path: '/users/:id', element: <UserProfile /> },
           {path: '/akcije/:id', element: <ActionDetails /> },
         ],
