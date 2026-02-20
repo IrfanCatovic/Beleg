@@ -7,7 +7,7 @@ type Korisnik struct {
 	Username  string    `gorm:"unique" json:"username"`
 	Password  string    `json:"-"`
 	FullName  string    `json:"fullName"`
-	Role      string    `json:"role"`
+	Role      string    `gorm:"type:varchar(20);not null" json:"role"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }

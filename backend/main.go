@@ -373,6 +373,27 @@ func main() {
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})
 
+		// GET /api/akcije/:id detalji o akciji
+		protected.GET("/akcije/:id", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var akcija models.Akcija
+			if err := db.First(&akcija, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+
+			c.JSON(200, akcija)
+		})
+
 		// GET /api/mojeprijave list of IDs of ackije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
