@@ -120,6 +120,11 @@ export default function Actions() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {akcije.map((akcija) => (
+              <Link
+                key={akcija.id}
+                to={`/akcije/${akcija.id}`}  // ← ovo vodi na detalje
+                className="block hover:no-underline"  // block čini da cela kartica bude klikabilna
+              >
               <div
                 key={akcija.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
@@ -186,7 +191,9 @@ export default function Actions() {
                   </div>
                 </div>
               </div>
+            </Link>
             ))}
+            
           </div>
         )}
       </div>
