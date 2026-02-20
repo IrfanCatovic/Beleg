@@ -158,14 +158,25 @@ func main() {
 
 			gormDb := dbAny.(*gorm.DB)
 
-			var akcije []models.Akcija
-			result := gormDb.Find(&akcije)
-			if result.Error != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju akcija"})
+			var aktivne []models.Akcija
+			var zavrsene []models.Akcija
+
+			// Aktivne akcije (is_completed = false)
+			if err := gormDb.Where("is_completed = ?", false).Find(&aktivne).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{"akcije": akcije})
+			// Završene akcije (is_completed = true)
+			if err := gormDb.Where("is_completed = ?", true).Find(&zavrsene).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"aktivne":  aktivne,
+				"zavrsene": zavrsene,
+			})
 		})
 
 		// POST /api/akcije adding new action, only for admin

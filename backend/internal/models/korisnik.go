@@ -9,7 +9,6 @@ type Korisnik struct {
 	FullName  string    `json:"fullName"`
 	Role      string    `gorm:"type:varchar(20);not null" json:"role"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
 func (Korisnik) TableName() string {

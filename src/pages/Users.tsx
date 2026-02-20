@@ -95,7 +95,7 @@ export default function Korisnici() {
                 className="block"  
               >
               <div 
-                key={k.id} 
+                key={k.username} 
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
                 duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
               >

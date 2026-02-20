@@ -55,9 +55,7 @@ export default function UserProfile() {
             <p className="text-gray-500 mt-4">
               Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
-            <p className="text-gray-500">
-              Poslednja izmena: {new Date(korisnik.updatedAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+            
           </div>
         </div>
 

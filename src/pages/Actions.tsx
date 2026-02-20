@@ -10,13 +10,14 @@ interface Akcija {
   datum: string
   opis?: string
   tezina?: string
-  slikaUrl?: string // ovo je polje za sliku iz baze
+  slikaUrl?: string
+  isCompleted: boolean 
 }
 
 export default function Actions() {
-
   const { isLoggedIn, user } = useAuth()
-  const [akcije, setAkcije] = useState<Akcija[]>([])
+  const [aktivneAkcije, setAktivneAkcije] = useState<Akcija[]>([])
+  const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -27,9 +28,11 @@ export default function Actions() {
     const fetchData = async () => {
       setLoading(true)
       try {
+        // ← NOVO: dohvata dve liste iz backend-a
         const akcijeRes = await api.get('/api/akcije')
-        console.log("Akcije iz baze:", akcijeRes.data.akcije)
-        setAkcije(akcijeRes.data.akcije || [])
+        console.log("Akcije iz baze:", akcijeRes.data)
+        setAktivneAkcije(akcijeRes.data.aktivne || [])
+        setZavrseneAkcije(akcijeRes.data.zavrsene || [])
 
         const mojeRes = await api.get('/api/moje-prijave')
         const ids = mojeRes.data.prijavljeneAkcije || []
@@ -61,22 +64,21 @@ export default function Actions() {
   }
 
   const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
-  if (!confirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)) return
+    if (!confirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)) return
 
-  try {
-    await api.delete(`/api/akcije/${akcijaId}/prijavi`)
-    alert('Uspešno ste otkazali prijavu!')
+    try {
+      await api.delete(`/api/akcije/${akcijaId}/prijavi`)
+      alert('Uspešno ste otkazali prijavu!')
 
-    // Odmah ukloni iz lokalnog Set-a da badge nestane bez refresh-a
-    setPrijavljeneAkcije(prev => {
-      const newSet = new Set(prev)
-      newSet.delete(akcijaId)
-      return newSet
-    })
-  } catch (err: any) {
-    alert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
+      setPrijavljeneAkcije(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(akcijaId)
+        return newSet
+      })
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
+    }
   }
-}
 
   if (!isLoggedIn) {
     return (
@@ -113,11 +115,11 @@ export default function Actions() {
 
   return (
     <div className="relative min-h-screen bg-gray-50 pb-16 md:pb-12">
-      {/* Floating button "Add Action" – samo za admina */}
+      {/* Floating button "Add Action" samo za admina */}
       {user?.role === 'admin' && (
         <Link
           to="/dodaj-akciju"
-          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#90995d] text-white shadow-xl hover:bg-[#3a9a48] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53] text-white shadow-xl hover:bg-[#3a9a4a] active:scale-95 transition-all duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41ac53]"
           title="Dodaj novu akciju"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -131,98 +133,176 @@ export default function Actions() {
           Akcije
         </h2>
 
-        {akcije.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-            <p className="text-gray-600 text-lg">Trenutno nema dostupnih akcija.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {akcije.map((akcija) => (
-              <Link
-                key={akcija.id}
-                to={`/akcije/${akcija.id}`}  // ← ovo vodi na detalje
-                className="block hover:no-underline"  // block čini da cela kartica bude klikabilna
-              >
-              <div
-                key={akcija.id}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
-              >
-                {/* Slika – responsive visina */}
-                <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
-                  <img
-                    src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                    alt={akcija.naziv || 'Akcija'}
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                      e.currentTarget.onerror = null
-                    }}
-                  />
-                </div>
+        {/*  Aktivne akcije */}
+        <section className="mb-16">
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Aktivne akcije</h3>
+          {aktivneAkcije.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+              <p className="text-gray-600 text-lg">Trenutno nema aktivnih akcija.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {aktivneAkcije.map((akcija) => (
+                <Link
+                  key={akcija.id}
+                  to={`/akcije/${akcija.id}`}
+                  className="block hover:no-underline"
+                >
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+                    <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
+                      <img
+                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                        alt={akcija.naziv || 'Akcija'}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                          e.currentTarget.onerror = null
+                        }}
+                      />
+                    </div>
 
-                {/* Sadržaj kartice */}
-                <div className="p-5 sm:p-6 flex flex-col grow">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {akcija.naziv}
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 mb-1">
-                    <strong>Vrh:</strong> {akcija.vrh}
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-600 mb-1">
-                    <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
-                  </p>
-                  {akcija.opis && (
-                    <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
-                      {akcija.opis}
-                    </p>
-                  )}
-                  <span
-                    className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
-                      akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
-                      akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {akcija.tezina || 'Nije definisano'}
-                  </span>
+                    <div className="p-5 sm:p-6 flex flex-col grow">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {akcija.naziv}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 mb-1">
+                        <strong>Vrh:</strong> {akcija.vrh}
+                      </p>
+                      <p className="text-sm sm:text-base text-gray-600 mb-1">
+                        <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+                      </p>
+                      {akcija.opis && (
+                        <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
+                          {akcija.opis}
+                        </p>
+                      )}
+                      <span
+                        className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
+                          akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
+                          akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {akcija.tezina || 'Nije definisano'}
+                      </span>
 
-                  {/* Dugme na dnu kartice */}
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    {prijavljeneAkcije.has(akcija.id) ? (
-                      <button
-                        onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
-                        className={`
-                          w-full rounded-lg py-3 font-medium text-white
-                          bg-red-600 hover:bg-red-700 active:bg-red-800
-                          transition-all duration-150 ease-in-out
-                          shadow-sm hover:shadow-md active:shadow-sm
-                          focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
-                        `}
-                      >
-                        Otkaži prijavu ✕
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
-                        className={`
-                          w-full rounded-lg py-3 font-medium text-white
-                          bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]
-                          transition-all duration-150 ease-in-out
-                          shadow-sm hover:shadow-md active:shadow-sm
-                          focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2
-                        `}
-                      >
-                        Pridruži se
-                      </button>
-                    )}
+                      <div className="mt-6 pt-4 border-t border-gray-100">
+                        {prijavljeneAkcije.has(akcija.id) ? (
+                          <button
+                            onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
+                            className={`
+                              w-full rounded-lg py-3 font-medium text-white
+                              bg-red-600 hover:bg-red-700 active:bg-red-800
+                              transition-all duration-150 ease-in-out
+                              shadow-sm hover:shadow-md active:shadow-sm
+                              focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
+                            `}
+                          >
+                            Otkaži prijavu ✕
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
+                            className={`
+                              w-full rounded-lg py-3 font-medium text-white
+                              bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]
+                              transition-all duration-150 ease-in-out
+                              shadow-sm hover:shadow-md active:shadow-sm
+                              focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2
+                            `}
+                          >
+                            Pridruži se
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </Link>
-            ))}
-            
-          </div>
-        )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Završene akcije */}
+        <section>
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Završene akcije</h3>
+          {zavrseneAkcije.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+              <p className="text-gray-600 text-lg">Trenutno nema završenih akcija.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {zavrseneAkcije.map((akcija) => (
+                <Link
+                  key={akcija.id}
+                  to={`/akcije/${akcija.id}`}
+                  className="block hover:no-underline"
+                >
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col opacity-90">
+                    <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
+                      <img
+                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                        alt={akcija.naziv || 'Akcija'}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                          e.currentTarget.onerror = null
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-5 sm:p-6 flex flex-col grow">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {akcija.naziv}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 mb-1">
+                        <strong>Vrh:</strong> {akcija.vrh}
+                      </p>
+                      <p className="text-sm sm:text-base text-gray-600 mb-1">
+                        <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+                      </p>
+                      {akcija.opis && (
+                        <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
+                          {akcija.opis}
+                        </p>
+                      )}
+                      <span
+                        className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
+                          akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
+                          akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {akcija.tezina || 'Nije definisano'}
+                      </span>
+
+                      <div className="mt-6 pt-4 border-t border-gray-100">
+                        {prijavljeneAkcije.has(akcija.id) ? (
+                          <button
+                            onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
+                            className={`
+                              w-full rounded-lg py-3 font-medium text-white
+                              bg-red-600 hover:bg-red-700 active:bg-red-800
+                              transition-all duration-150 ease-in-out
+                              shadow-sm hover:shadow-md active:shadow-sm
+                              focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
+                            `}
+                          >
+                            Otkaži prijavu ✕
+                          </button>
+                        ) : (
+                          <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
+                            Prijavljen ✓
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   )
