@@ -60,6 +60,24 @@ export default function Actions() {
     }
   }
 
+  const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
+  if (!confirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)) return
+
+  try {
+    await api.delete(`/api/akcije/${akcijaId}/prijavi`)
+    alert('Uspešno ste otkazali prijavu!')
+
+    // Odmah ukloni iz lokalnog Set-a da badge nestane bez refresh-a
+    setPrijavljeneAkcije(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(akcijaId)
+      return newSet
+    })
+  } catch (err: any) {
+    alert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
+  }
+}
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -171,9 +189,18 @@ export default function Actions() {
                   {/* Dugme na dnu kartice */}
                   <div className="mt-6 pt-4 border-t border-gray-100">
                     {prijavljeneAkcije.has(akcija.id) ? (
-                      <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
-                        Prijavljen ✓
-                      </div>
+                      <button
+                        onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
+                        className={`
+                          w-full rounded-lg py-3 font-medium text-white
+                          bg-red-600 hover:bg-red-700 active:bg-red-800
+                          transition-all duration-150 ease-in-out
+                          shadow-sm hover:shadow-md active:shadow-sm
+                          focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
+                        `}
+                      >
+                        Otkaži prijavu ✕
+                      </button>
                     ) : (
                       <button
                         onClick={() => handlePrijavi(akcija.id, akcija.naziv)}

@@ -307,6 +307,39 @@ func main() {
 			})
 		})
 
+		// DELETE /api/akcije/:id/prijavi otkazivanje prijave na akciju
+		protected.DELETE("/akcije/:id/prijavi", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			korisnik := username.(string)
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			// Nađi i obriši prijavu
+			result := db.Where("akcija_id = ? AND korisnik = ?", id, korisnik).Delete(&models.Prijava{})
+			if result.Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju"})
+				return
+			}
+			if result.RowsAffected == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Niste bili prijavljeni na ovu akciju"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Uspešno ste otkazali prijavu"})
+		})
+
 		// GET /api/moje-akcije lista akcija na koje je korisnik prijavljen sa detaljima za profil page
 		protected.GET("/moje-akcije-profil", func(c *gin.Context) {
 			username, exists := c.Get("username")
