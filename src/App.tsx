@@ -9,6 +9,7 @@ import Actions from './pages/Actions'
 import ProtectedRoute from './components/ProtectedRoute'
 import Profil from './pages/Profil'
 import AddAction from './pages/AddAction'
+import Users from './pages/Users'
 
 const router = createBrowserRouter([
   {
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
           { path: '/finansije', element: <Finance /> },
           { path: '/profil', element: <Profil /> },
           { path: '/dodaj-akciju', element: <AddAction /> },
+          {path: '/korisnici', element: <Users /> },
         ],
       },
     ],

@@ -338,6 +338,20 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"prijave": mojePrijave})
 		})
 
+		// GET /api/korisnici list of all users
+		protected.GET("/korisnici", func(c *gin.Context) {
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnici []models.Korisnik
+			if err := db.Find(&korisnici).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
+				return
+			}
+
+			c.JSON(200, gin.H{"korisnici": korisnici})
+		})
+
 		// GET /api/mojeprijave list of IDs of ackije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")

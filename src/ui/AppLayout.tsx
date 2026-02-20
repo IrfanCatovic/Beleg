@@ -50,8 +50,14 @@ export default function AppLayout() {
               <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Actions
               </Link>
+
               <Link to="/profil" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Profil
+              </Link>
+
+              <Link to="/korisnici" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
+              >
+                Users
               </Link>
 
               {/* Finansije just for admin role*/}
@@ -92,8 +98,14 @@ export default function AppLayout() {
               >
                 Actions
               </Link>
-              <Link to="/profil" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30">
+              <Link to="/profil" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
+              onClick={() => setIsMenuOpen(false)}>
                 Profil
+              </Link>
+
+              <Link to="/korisnici" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
+              onClick={() => setIsMenuOpen(false)}>
+                Users
               </Link>
 
               {/* Finansije page, check if role is admin and let him in */}
