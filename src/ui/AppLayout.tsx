@@ -55,7 +55,7 @@ export default function AppLayout() {
                 Profil
               </Link>
 
-              <Link to="/korisnici" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
+              <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               >
                 Users
               </Link>
@@ -103,7 +103,7 @@ export default function AppLayout() {
                 Profil
               </Link>
 
-              <Link to="/korisnici" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
+              <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               onClick={() => setIsMenuOpen(false)}>
                 Users
               </Link>

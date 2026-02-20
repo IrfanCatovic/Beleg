@@ -338,6 +338,27 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"prijave": mojePrijave})
 		})
 
+		// GET /api/korisnici/:id detalji o korisniku
+		protected.GET("/korisnici/:id", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			c.JSON(200, korisnik)
+		})
+
 		// GET /api/korisnici list of all users
 		protected.GET("/korisnici", func(c *gin.Context) {
 			dbAny, _ := c.Get("db")

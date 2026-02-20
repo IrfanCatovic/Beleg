@@ -51,7 +51,7 @@ export default function Profil() {
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
       <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-        <h2>{user?.fullName} (@{user?.username})</h2>
+        {user?.fullName} (@{user?.username})
       </h2>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">

@@ -90,6 +90,10 @@ export default function Korisnici() {
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {filteredKorisnici.map((k) => (
+              <Link
+                to={`/users/${k.id}`}  
+                className="block"  
+              >
               <div 
                 key={k.id} 
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
@@ -97,43 +101,44 @@ export default function Korisnici() {
               >
                 <div className="p-6">
                   <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] 
-                    flex items-center justify-center text-white font-bold text-xl">
-                      {k.fullName.charAt(0).toUpperCase()}
+                      {/* Avatar */}
+                      <div className="w-14 h-14 rounded-full bg-linear-to-br from-[#41ac53] to-[#2e8b4a] 
+                      flex items-center justify-center text-white font-bold text-xl">
+                        {k.fullName.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {k.fullName}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          @{k.username}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {k.fullName}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        @{k.username}
-                      </p>
-                    </div>
-                  </div>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          k.role === 'admin' 
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        }`}>
+                          {k.role === 'admin' ? 'Admin' : 'Član'}
+                        </span>
+                      </div>
 
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        k.role === 'admin' 
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      }`}>
-                        {k.role === 'admin' ? 'Admin' : 'Član'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      Pridružio se: {new Date(k.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Pridružio se: {new Date(k.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
