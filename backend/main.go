@@ -438,6 +438,62 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
+		// POST /api/prijave/:id/status update status of prijava
+		protected.POST("/prijave/:id/status", func(c *gin.Context) {
+			// Samo admin ili vodič može menjati status
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodjac" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može menjati status"})
+				return
+			}
+
+			idStr := c.Param("id")
+			prijavaID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prijave"})
+				return
+			}
+
+			var req struct {
+				Status string `json:"status" binding:"required"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći status"})
+				return
+			}
+
+			validStatuses := map[string]bool{
+				"prijavljen": true,
+				"popeo se":   true,
+				"nije uspeo": true,
+				"otkazano":   true,
+			}
+			if !validStatuses[req.Status] {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći status"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var prijava models.Prijava
+			if err := db.First(&prijava, prijavaID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
+				return
+			}
+
+			prijava.Status = req.Status
+			if err := db.Save(&prijava).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statusa"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Status ažuriran",
+				"prijava": prijava,
+			})
+		})
+
 		// GET /api/mojeprijave list of IDs of ackije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
