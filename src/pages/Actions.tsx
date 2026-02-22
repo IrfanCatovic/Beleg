@@ -187,34 +187,41 @@ export default function Actions() {
                       </span>
 
                       <div className="mt-6 pt-4 border-t border-gray-100">
-                        {prijavljeneAkcije.has(akcija.id) ? (
-                          <button
-                            onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
-                            className={`
-                              w-full rounded-lg py-3 font-medium text-white
-                              bg-red-600 hover:bg-red-700 active:bg-red-800
-                              transition-all duration-150 ease-in-out
-                              shadow-sm hover:shadow-md active:shadow-sm
-                              focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
-                            `}
-                          >
-                            Otkaži prijavu ✕
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
-                            className={`
-                              w-full rounded-lg py-3 font-medium text-white
-                              bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]
-                              transition-all duration-150 ease-in-out
-                              shadow-sm hover:shadow-md active:shadow-sm
-                              focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2
-                            `}
-                          >
-                            Pridruži se
-                          </button>
-                        )}
-                      </div>
+  {akcija.isCompleted ? (
+    // Akcija je završena – ne prikazuj nikakvo dugme za akciju
+    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-gray-500 cursor-default">
+      Akcija završena
+    </div>
+  ) : prijavljeneAkcije.has(akcija.id) ? (
+    // Akcija je aktivna + korisnik je prijavljen → vidi dugme za otkazivanje
+    <button
+      onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
+      className={`
+        w-full rounded-lg py-3 font-medium text-white
+        bg-red-600 hover:bg-red-700 active:bg-red-800
+        transition-all duration-150 ease-in-out
+        shadow-sm hover:shadow-md active:shadow-sm
+        focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
+      `}
+    >
+      Otkaži prijavu ✕
+    </button>
+  ) : (
+    // Akcija je aktivna + korisnik nije prijavljen → vidi dugme za prijavu
+    <button
+      onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
+      className={`
+        w-full rounded-lg py-3 font-medium text-white
+        bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]
+        transition-all duration-150 ease-in-out
+        shadow-sm hover:shadow-md active:shadow-sm
+        focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2
+      `}
+    >
+      Pridruži se
+    </button>
+  )}
+</div>
                     </div>
                   </div>
                 </Link>
@@ -225,84 +232,72 @@ export default function Actions() {
 
         {/* Završene akcije */}
         <section>
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">Završene akcije</h3>
-          {zavrseneAkcije.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-              <p className="text-gray-600 text-lg">Trenutno nema završenih akcija.</p>
+  <h3 className="text-2xl font-bold text-gray-800 mb-6">Završene akcije</h3>
+  
+  {zavrseneAkcije.length === 0 ? (
+    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+      <p className="text-gray-600 text-lg">Trenutno nema završenih akcija.</p>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+      {zavrseneAkcije.map((akcija) => (
+        <Link
+          key={akcija.id}
+          to={`/akcije/${akcija.id}`}
+          className="block hover:no-underline"
+        >
+          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col opacity-90">
+            {/* isti sadržaj kartice kao gore, ali bez dugmadi za prijavu/otkazivanje */}
+            <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
+              <img
+                src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                alt={akcija.naziv || 'Akcija'}
+                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                  e.currentTarget.onerror = null
+                }}
+              />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {zavrseneAkcije.map((akcija) => (
-                <Link
-                  key={akcija.id}
-                  to={`/akcije/${akcija.id}`}
-                  className="block hover:no-underline"
-                >
-                  <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col opacity-90">
-                    <div className="relative w-full h-48 sm:h-56 md:h-64 overflow-hidden shrink-0">
-                      <img
-                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                        alt={akcija.naziv || 'Akcija'}
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                          e.currentTarget.onerror = null
-                        }}
-                      />
-                    </div>
 
-                    <div className="p-5 sm:p-6 flex flex-col grow">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {akcija.naziv}
-                      </h3>
-                      <p className="text-sm sm:text-base text-gray-600 mb-1">
-                        <strong>Vrh:</strong> {akcija.vrh}
-                      </p>
-                      <p className="text-sm sm:text-base text-gray-600 mb-1">
-                        <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
-                      </p>
-                      {akcija.opis && (
-                        <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
-                          {akcija.opis}
-                        </p>
-                      )}
-                      <span
-                        className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
-                          akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
-                          akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {akcija.tezina || 'Nije definisano'}
-                      </span>
+            <div className="p-5 sm:p-6 flex flex-col grow">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                {akcija.naziv}
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-1">
+                <strong>Vrh:</strong> {akcija.vrh}
+              </p>
+              <p className="text-sm sm:text-base text-gray-600 mb-1">
+                <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+              </p>
+              {akcija.opis && (
+                <p className="text-sm text-gray-700 mt-3 line-clamp-3 grow">
+                  {akcija.opis}
+                </p>
+              )}
+              <span
+                className={`inline-block px-3 py-1 mt-4 rounded-full text-xs sm:text-sm font-medium self-start ${
+                  akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
+                  akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}
+              >
+                {akcija.tezina || 'Nije definisano'}
+              </span>
 
-                      <div className="mt-6 pt-4 border-t border-gray-100">
-                        {prijavljeneAkcije.has(akcija.id) ? (
-                          <button
-                            onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
-                            className={`
-                              w-full rounded-lg py-3 font-medium text-white
-                              bg-red-600 hover:bg-red-700 active:bg-red-800
-                              transition-all duration-150 ease-in-out
-                              shadow-sm hover:shadow-md active:shadow-sm
-                              focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2
-                            `}
-                          >
-                            Otkaži prijavu ✕
-                          </button>
-                        ) : (
-                          <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-green-600 cursor-default">
-                            Prijavljen ✓
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+              {/* ← Završena akcija – nema dugmadi */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-gray-500 cursor-default">
+                  Akcija završena
+                </div>
+              </div>
             </div>
-          )}
-        </section>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )}
+</section>
       </div>
     </div>
   )

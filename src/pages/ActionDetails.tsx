@@ -14,6 +14,7 @@ interface Akcija {
   slikaUrl: string
   createdAt: string
   updatedAt: string
+  isCompleted: boolean
 }
 
 interface Prijava {
@@ -90,10 +91,25 @@ export default function ActionDetails() {
         }
       }
 
-  const handleCompleteAction = () => {
-    if (!window.confirm('Da li želiš da završiš akciju? Ovo će sakriti dugmad za izmene.')) return
-    setIsCompleted(true)
-  }
+      const handleZavrsiAkciju = async () => {
+
+
+        if (!window.confirm('Da li zaista želiš da završiš ovu akciju? Posle ovoga niko više neće moći da menja prijave ili status.')) {
+
+          return
+        }
+
+        console.log('Confirm potvrđen – šaljem POST request')
+
+        try {
+          const res = await api.post(`/api/akcije/${id}/zavrsi`)
+          alert('Akcija je uspešno završena!')
+          setAkcija(res.data.akcija) // osvježi akciju
+        } catch (err: any) {
+          console.error('Greška pri završavanju akcije:', err)
+          alert(err.response?.data?.error || 'Greška pri završavanju akcije')
+        }
+      }
 
   if (loading) return <div className="text-center py-20">Učitavanje akcije...</div>
   if (error || !akcija) return <div className="text-center py-20 text-red-600">{error || 'Akcija nije pronađena'}</div>
@@ -177,19 +193,18 @@ export default function ActionDetails() {
             </div>
 
             {/* Dugme Završi akciju (samo admin/vodič, ako je akcija još aktivna) */}
-            {user && ['admin', 'vodic'].includes(user.role) && !isCompleted && (
-              <div className="mt-10 mb-5 flex justify-center">
+            {user && ['admin', 'vodjac'].includes(user?.role) && !akcija.isCompleted && (
+              <div className="mt-10 flex justify-center">
                 <button
-                  onClick={handleCompleteAction}
-                  className="px-8 py-4 bg-[#41ac53] text-white rounded-xl font-medium hover:bg-[#3a9a4a] transition-colors shadow-md hover:shadow-lg"
+                  onClick={handleZavrsiAkciju}
+                  className="px-10 py-4 bg-[#41ac53] hover:bg-[#3a9a4a] text-white rounded-xl font-medium transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2"
                 >
                   Završi akciju
                 </button>
               </div>
-
             )}
             {/* Dugmad za edit i delete – samo za admina/vodiča */}
-              {user && ['admin', 'vodjac'].includes(user?.role) && (
+              {user && ['admin', 'vodjac'].includes(user?.role) && !akcija.isCompleted && (
                 <div className="mt-8 mb-10 flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     onClick={handleEdit}
