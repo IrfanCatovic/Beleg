@@ -45,7 +45,7 @@ func main() {
 		log.Println("DB_PASSWORD iz env:", os.Getenv("DB_PASSWORD")) // vidiš li lozinku?
 	}
 
-	// CORS middleware
+	// CORS middlewareF
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -318,7 +318,69 @@ func main() {
 			})
 		})
 
-		// DELETE /api/akcije/:id/prijavi otkazivanje prijave na akciju
+		// GET /api/akcije/:id/prijave lista prijava za akciju koristimo za ActionDetails page vidi ko je prijavljen i menja status
+		protected.GET("/akcije/:id/prijave", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var prijave []models.Prijava
+			if err := db.Where("akcija_id = ?", id).Find(&prijave).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri čitanju prijava"})
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"prijave": prijave,
+			})
+		})
+
+		// POST /api/akcije/:id/zavrsi oznaci akciju kao zavrsenu, samo admin ili vodic
+		protected.POST("/akcije/:id/zavrsi", func(c *gin.Context) {
+			// Samo admin ili vodič
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodjac" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može završiti akciju"})
+				return
+			}
+
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var akcija models.Akcija
+			if err := db.First(&akcija, id).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+
+			if akcija.IsCompleted {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
+				return
+			}
+
+			akcija.IsCompleted = true
+			if err := db.Save(&akcija).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju akcije"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno završena", "akcija": akcija})
+		})
+
+		// DELETE /api/akcije/:id/prijavi izbrisi prijave na akciju
 		protected.DELETE("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
 			id, err := strconv.Atoi(idStr)

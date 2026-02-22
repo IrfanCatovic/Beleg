@@ -71,11 +71,12 @@ export default function ActionDetails() {
       setError('Greška pri brisanju akcije')
     }
   }
+        //edit action
+        const handleEdit = () => {
+          navigate(`/akcije/${id}/izmeni`)
+        }
 
-  const handleEdit = () => {
-    navigate(`/akcije/${id}/izmeni`)
-  }
-
+      //handle status update when finish action
       const handleUpdateStatus = async (prijavaId: number, newStatus: string) => {
         try {
           await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
@@ -152,7 +153,7 @@ export default function ActionDetails() {
                         </span>
 
                         {/* Dugmad samo za admin/vodič i ako je prijavljen */}
-                        {user && ['admin', 'vodja'].includes(user.role) && p.status=== 'prijavljen' && (
+                        {user && ['admin', 'vodic'].includes(user.role) && p.status=== 'prijavljen' && (
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleUpdateStatus(p.id, 'popeo se')}
@@ -176,8 +177,8 @@ export default function ActionDetails() {
             </div>
 
             {/* Dugme Završi akciju (samo admin/vodič, ako je akcija još aktivna) */}
-            {user && ['admin', 'vodjac'].includes(user.role) && !isCompleted && (
-              <div className="mt-10 flex justify-center">
+            {user && ['admin', 'vodic'].includes(user.role) && !isCompleted && (
+              <div className="mt-10 mb-5 flex justify-center">
                 <button
                   onClick={handleCompleteAction}
                   className="px-8 py-4 bg-[#41ac53] text-white rounded-xl font-medium hover:bg-[#3a9a4a] transition-colors shadow-md hover:shadow-lg"
@@ -185,8 +186,28 @@ export default function ActionDetails() {
                   Završi akciju
                 </button>
               </div>
+
             )}
+            {/* Dugmad za edit i delete – samo za admina/vodiča */}
+              {user && ['admin', 'vodjac'].includes(user?.role) && (
+                <div className="mt-8 mb-10 flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={handleEdit}
+                    className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
+                  >
+                    Izmeni akciju
+                  </button>
+
+                  <button
+                    onClick={handleDelete}
+                    className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2"
+                  >
+                    Izbriši akciju
+                  </button>
+                </div>
+)}
       </div>
+
     </div>
   )
 }
