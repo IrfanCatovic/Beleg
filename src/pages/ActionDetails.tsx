@@ -169,18 +169,12 @@ export default function ActionDetails() {
                         </span>
 
                         {/* Dugmad samo za admin/vodič i ako je prijavljen */}
-                        {user && ['admin', 'vodic'].includes(user.role) && p.status=== 'prijavljen' && (
+                        {user && ['admin', 'vodjac'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => handleUpdateStatus(p.id, 'popeo se')}
-                              className="px-4 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                            >
+                            <button onClick={() => handleUpdateStatus(p.id, 'popeo se')} className="px-4 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                               Popeo se
                             </button>
-                            <button
-                              onClick={() => handleUpdateStatus(p.id, 'nije uspeo')}
-                              className="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                            >
+                            <button onClick={() => handleUpdateStatus(p.id, 'nije uspeo')} className="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
                               Nije uspeo
                             </button>
                           </div>

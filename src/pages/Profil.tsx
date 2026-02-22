@@ -111,3 +111,13 @@ export default function Profil() {
     </div>
   )
 }
+
+
+
+// Početnik → Svetlo siva-bež (#E0D9C9) 0-200km do 5000m uspona
+// Istraživač → Maslinasto zelena (#556B2F) 200-900km do 20.000m uspona
+// Sedlar → Rđavo narandžasta (#B7410E) – boja starih staza i gvožđa  900-3.500km do 60.000m uspona
+// Osvajač → Duboko crvena (#8B0000) – krv, trud, strast 3.500-10.000km do 140.000m uspona
+// Oblakolovac → Ledeno tirkizna (#00CED1) – visoki sneg i nebo 10.000-25.000km do 300.000m uspona
+// Legenda stijena → Crno-zlatna (#000000 + #FFD700) ili Tamno purpurna sa zlatom (#4B0082 + zlatni obrub) 25.000+km do 300.000m uspona (ili npr. osvojeno 100+ vrhova ili svi preko 2000m u regionu)
+
