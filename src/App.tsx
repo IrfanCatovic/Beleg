@@ -55,9 +55,3 @@ function App() {
 
 export default App
 
-
-//TODO: VODIC: pravi akcije i verifikuje ko se popeo
-//todo: Blagajnik samo finansije
-//todo: sekretar upravlja users
-//todo: za opremu i prostorije, mozda napraviti posebnu stranicu, ili ih staviti pod akcije
-//todo: role za opremu zove se menadzer opreme

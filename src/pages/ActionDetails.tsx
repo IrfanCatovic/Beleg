@@ -20,7 +20,7 @@ interface Prijava {
   id: number
   korisnik: string  // username
   prijavljenAt: string
-  status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano' // pretpostavljam da si dodao status u model Prijava
+  status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
 }
 
 export default function ActionDetails() {
@@ -49,7 +49,7 @@ export default function ActionDetails() {
       try {
         const res = await api.get(`/api/akcije/${id}/prijave`)
         setPrijave(res.data.prijave || [])
-        // Proveri da li su sve prijave označene – ako da, smatraj akciju završenom
+        // Proveri da li su sve prijave označene ako da, smatraj akciju završenom
         const allMarked = res.data.prijave.every((p: Prijava) => p.status !== 'prijavljen')
         setIsCompleted(allMarked)
       } catch (err: any) {
@@ -76,18 +76,18 @@ export default function ActionDetails() {
     navigate(`/akcije/${id}/izmeni`)
   }
 
-  const handleUpdateStatus = async (prijavaId: number, newStatus: 'popeo se' | 'nije uspeo') => {
-    try {
-      await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
-      // Ponovo učitaj prijave da osvježi listu
-      const res = await api.get(`/api/akcije/${id}/prijave`)
-      setPrijave(res.data.prijave || [])
-      const allMarked = res.data.prijave.every((p: Prijava) => p.status !== 'prijavljen')
-      setIsCompleted(allMarked)
-    } catch (err: any) {
-      console.error('Greška pri ažuriranju statusa:', err)
-    }
-  }
+      const handleUpdateStatus = async (prijavaId: number, newStatus: string) => {
+        try {
+          await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
+          // Osvježi listu
+          const res = await api.get(`/api/akcije/${id}/prijave`)
+          setPrijave(res.data.prijave || [])
+          const allMarked = res.data.prijave.every((p: Prijava) => p.status !== 'prijavljen')
+          setIsCompleted(allMarked)
+        } catch (err: any) {
+          alert('Greška pri ažuriranju statusa')
+        }
+      }
 
   const handleCompleteAction = () => {
     if (!window.confirm('Da li želiš da završiš akciju? Ovo će sakriti dugmad za izmene.')) return
@@ -115,105 +115,77 @@ export default function ActionDetails() {
         </div>
 
         {/* Detalji */}
-        <div className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>Informacije</h3>
-              <p className="text-gray-700 mb-2"><strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
-              <p className="text-gray-700 mb-2"><strong>Težina:</strong> <span className="font-medium">{akcija.tezina}</span></p>
-              <p className="text-gray-700"><strong>Opis:</strong> {akcija.opis || 'Nema opisa'}</p>
+        <div className="mt-12">
+              <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>
+                Prijavljeni članovi ({prijave.length})
+              </h3>
+
+              {prijave.length === 0 ? (
+                <p className="text-gray-600">Još nema prijavljenih članova za ovu akciju.</p>
+              ) : (
+                <div className="space-y-4">
+                  {prijave.map((p) => (
+                    <div 
+                      key={p.id} 
+                      className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold">
+                          {p.korisnik.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium">{p.korisnik}</p>
+                          <p className="text-sm text-gray-500">
+                            Prijavljen: {new Date(p.prijavljenAt).toLocaleString('sr-RS')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 sm:mt-0 flex items-center gap-3">
+                        <span className={`px-4 py-1 rounded-full text-sm font-medium ${
+                          p.status === 'popeo se' ? 'bg-green-100 text-green-800' :
+                          p.status === 'nije uspeo' ? 'bg-red-100 text-red-800' :
+                          p.status === 'otkazano' ? 'bg-gray-100 text-gray-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {p.status}
+                        </span>
+
+                        {/* Dugmad samo za admin/vodič i ako je prijavljen */}
+                        {user && ['admin', 'vodja'].includes(user.role) && p.status=== 'prijavljen' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUpdateStatus(p.id, 'popeo se')}
+                              className="px-4 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                            >
+                              Popeo se
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(p.id, 'nije uspeo')}
+                              className="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                            >
+                              Nije uspeo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div>
-              <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>Dodatno</h3>
-              <p className="text-gray-500">Kreirano: {new Date(akcija.createdAt).toLocaleDateString('sr-RS')}</p>
-              <p className="text-gray-500">Poslednja izmena: {new Date(akcija.updatedAt).toLocaleDateString('sr-RS')}</p>
-            </div>
-          </div>
-
-          {/* Lista prijavljenih članova */}
-          <div className="mt-12">
-            <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>Prijavljeni članovi</h3>
-            {prijave.length === 0 ? (
-              <p className="text-gray-600">Još nema prijavljenih članova za ovu akciju.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Član</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prijavljen</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Akcije (samo admin)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {prijave.map((p) => (
-                      <tr key={p.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.korisnik}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(p.prijavljenAt).toLocaleDateString('sr-RS')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            p.status === 'popeo se' ? 'bg-green-100 text-green-800' :
-                            p.status === 'nije uspeo' ? 'bg-red-100 text-red-800' :
-                            p.status === 'otkazano' ? 'bg-gray-100 text-gray-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {user?.role === 'admin' && p.status === 'prijavljen' && !isCompleted && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleUpdateStatus(p.id, 'popeo se')}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                              >
-                                Završio
-                              </button>
-                              <button
-                                onClick={() => handleUpdateStatus(p.id, 'nije uspeo')}
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                              >
-                                Nije uspeo
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* Dugme Završi akciju (samo admin/vodič, ako je akcija još aktivna) */}
+            {user && ['admin', 'vodjac'].includes(user.role) && !isCompleted && (
+              <div className="mt-10 flex justify-center">
+                <button
+                  onClick={handleCompleteAction}
+                  className="px-8 py-4 bg-[#41ac53] text-white rounded-xl font-medium hover:bg-[#3a9a4a] transition-colors shadow-md hover:shadow-lg"
+                >
+                  Završi akciju
+                </button>
               </div>
             )}
-          </div>
-
-          {/* Dugmad za admin */}
-          {user?.role === 'admin' && !isCompleted && (
-            <div className="mt-8 flex gap-4">
-              <button
-                onClick={handleDelete}
-                className="px-8 py-4 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
-              >
-                Izbriši akciju
-              </button>
-              <button
-                onClick={handleEdit}
-                className="px-8 py-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
-              >
-                Izmeni akciju
-              </button>
-              <button
-                onClick={handleCompleteAction}
-                className="px-8 py-4 bg-[#41ac53] text-white rounded-xl font-medium hover:bg-[#3a9a4a] transition-colors"
-              >
-                Završi akciju
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )

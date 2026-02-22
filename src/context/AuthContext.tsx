@@ -3,8 +3,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 interface User {
     username: string;
     fullName: string;
-    role: 'admin' | `clan`
+    role: 'admin' | `clan` | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme';
 }
+
 
 interface AuthContextType {
   isLoggedIn: boolean;
