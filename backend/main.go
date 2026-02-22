@@ -198,9 +198,11 @@ func main() {
 			datumStr := c.PostForm("datum")
 			opis := c.PostForm("opis")
 			tezina := c.PostForm("tezina")
+			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
+			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
 
-			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" {
-				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike"})
+			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
 				return
 			}
 
@@ -210,13 +212,28 @@ func main() {
 				return
 			}
 
+			kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
+			if err != nil || kumulativniUsponM < 0 {
+				c.JSON(400, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
+				return
+			}
+
+			duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
+			if err != nil || duzinaStazeKm < 0 {
+				c.JSON(400, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
+				return
+			}
+
 			akcija := models.Akcija{
-				Naziv:    naziv,
-				Vrh:      vrh,
-				Datum:    datum,
-				Opis:     opis,
-				Tezina:   tezina,
-				SlikaURL: "",
+				Naziv:             naziv,
+				Vrh:               vrh,
+				Datum:             datum,
+				Opis:              opis,
+				Tezina:            tezina,
+				KumulativniUsponM: kumulativniUsponM,
+				DuzinaStazeKm:     duzinaStazeKm,
+				SlikaURL:          "",
+				IsCompleted:       false,
 			}
 
 			db := c.MustGet("db").(*gorm.DB)
@@ -231,7 +248,6 @@ func main() {
 			if len(files) > 0 {
 				file := files[0]
 
-				// Otvori fajl
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(500, gin.H{"error": "Greška pri čitanju fajla"})
@@ -239,7 +255,6 @@ func main() {
 				}
 				defer f.Close()
 
-				// Cloudinary upload
 				cld, err := cloudinary.NewFromParams(
 					os.Getenv("CLOUDINARY_CLOUD_NAME"),
 					os.Getenv("CLOUDINARY_API_KEY"),
@@ -262,10 +277,10 @@ func main() {
 					return
 				}
 
-				// Sačuvaj Cloudinary URL u bazi
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}
+
 			c.JSON(201, gin.H{
 				"message": "Akcija dodata",
 				"akcija":  akcija,
