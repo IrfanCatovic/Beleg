@@ -14,6 +14,8 @@ export default function AddAction() {
   const [opis, setOpis] = useState('')
   const [tezina, setTezina] = useState('')
   const [slika, setSlika] = useState<File | null>(null)
+  const [kumulativniUsponM, setKumulativniUsponM] = useState('')
+  const [duzinaStazeKm, setDuzinaStazeKm] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -43,6 +45,8 @@ export default function AddAction() {
             formData.append('datum', datum)  // ← SAMO OVO! bez T00:00:00Z
             formData.append('opis', opis)
             formData.append('tezina', tezina)
+            formData.append('kumulativniUsponM', kumulativniUsponM)
+            formData.append('duzinaStazeKm', duzinaStazeKm)
             if (slika) {
               formData.append('slika', slika)
             }
@@ -124,6 +128,32 @@ export default function AddAction() {
             <option value="srednje">Srednje</option>
             <option value="teško">Teško</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Kumulativni uspon (u metrima)</label>
+          <input
+            type="number"
+            value={kumulativniUsponM}
+            onChange={(e) => setKumulativniUsponM(e.target.value)}
+            placeholder="npr. 1250"
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            min="0"
+            step="1"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Dužina staze (u km)</label>
+          <input
+            type="number"
+            value={duzinaStazeKm}
+            onChange={(e) => setDuzinaStazeKm(e.target.value)}
+            placeholder="npr. 14.5"
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            min="0"
+            step="0.1"
+          />
         </div>
 
         <div>
