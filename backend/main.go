@@ -500,6 +500,34 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
+		// GET /api/moje-prijave lista akcija na koje se korisnik popeo, za profil page
+		protected.GET("/moje-popeo-se", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			korisnik := username.(string)
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var prijave []models.Prijava
+			if err := db.Where("korisnik = ? AND status = ?", korisnik, "popeo se").Preload("Akcija").Find(&prijave).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju uspešnih akcija"})
+				return
+			}
+
+			var uspesneAkcije []models.Akcija
+			for _, p := range prijave {
+				uspesneAkcije = append(uspesneAkcije, p.Akcija)
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"uspesneAkcije": uspesneAkcije,
+			})
+		})
+
 		// POST /api/prijave/:id/status update status of prijava
 		protected.POST("/prijave/:id/status", func(c *gin.Context) {
 			// Samo admin ili vodič može menjati status

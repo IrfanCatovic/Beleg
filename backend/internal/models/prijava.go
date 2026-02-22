@@ -8,6 +8,7 @@ type Prijava struct {
 	Korisnik     string    `json:"korisnik"`
 	Status       string    `gorm:"default:'prijavljen'" json:"status"`
 	PrijavljenAt time.Time `gorm:"autoCreateTime" json:"prijavljenAt"`
+	Akcija       Akcija    `gorm:"foreignKey:AkcijaID"`
 }
 
 func (Prijava) TableName() string {
