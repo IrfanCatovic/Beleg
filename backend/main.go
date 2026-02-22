@@ -515,7 +515,7 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
-		// GET /api/moje-prijave lista akcija na koje se korisnik popeo, za profil page
+		// GET /api/moje-popeo-se lista akcija na koje se korisnik popeo, za profil page
 		protected.GET("/moje-popeo-se", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
@@ -545,17 +545,16 @@ func main() {
 
 		// POST /api/prijave/:id/status update status of prijava
 		protected.POST("/prijave/:id/status", func(c *gin.Context) {
-			// Samo admin ili vodič može menjati status
 			role, _ := c.Get("role")
 			if role != "admin" && role != "vodjac" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može menjati status"})
+				c.JSON(403, gin.H{"error": "Samo admin ili vodič može menjati status"})
 				return
 			}
 
 			idStr := c.Param("id")
 			prijavaID, err := strconv.Atoi(idStr)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prijave"})
+				c.JSON(400, gin.H{"error": "Nevažeći ID prijave"})
 				return
 			}
 
@@ -563,9 +562,12 @@ func main() {
 				Status string `json:"status" binding:"required"`
 			}
 			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći status"})
+				c.JSON(400, gin.H{"error": "Nevažeći status"})
 				return
 			}
+
+			log.Printf("Primljen status (raw): '%q'", req.Status) // %q pokazuje skrivene karaktere
+			log.Printf("Dužina stringa: %d", len(req.Status))
 
 			validStatuses := map[string]bool{
 				"prijavljen": true,
@@ -574,7 +576,7 @@ func main() {
 				"otkazano":   true,
 			}
 			if !validStatuses[req.Status] {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći status"})
+				c.JSON(400, gin.H{"error": "Nevažeći status"})
 				return
 			}
 
@@ -582,18 +584,36 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var prijava models.Prijava
-			if err := db.First(&prijava, prijavaID).Error; err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
+			if err := db.Preload("Akcija").First(&prijava, prijavaID).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Prijava nije pronađena"})
 				return
+			}
+
+			// Ako menjamo status na 'popeo se' – dodaj statistiku korisniku
+			if req.Status == "popeo se" && prijava.Status != "popeo se" {
+				var korisnik models.Korisnik
+				if err := db.Where("username = ?", prijava.Korisnik).First(&korisnik).Error; err != nil {
+					c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+					return
+				}
+
+				korisnik.UkupnoKm += prijava.Akcija.DuzinaStazeKm
+				korisnik.UkupnoMetaraUspona += prijava.Akcija.KumulativniUsponM
+				korisnik.BrojPopeoSe += 1
+
+				if err := db.Save(&korisnik).Error; err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
+					return
+				}
 			}
 
 			prijava.Status = req.Status
 			if err := db.Save(&prijava).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statusa"})
+				c.JSON(500, gin.H{"error": "Greška pri ažuriranju statusa"})
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(200, gin.H{
 				"message": "Status ažuriran",
 				"prijava": prijava,
 			})
