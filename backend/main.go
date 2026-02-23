@@ -515,6 +515,67 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
+		// GET /api/korisnici/:id/popeo-se lista akcija na koje se korisnik popeo, za user profil page
+		protected.GET("/korisnici/:id/popeo-se", func(c *gin.Context) {
+
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(401, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var prijave []models.Prijava
+			err := db.Where("korisnik = ? AND status = ?", username, "popeo se").
+				Preload("Akcija").
+				Find(&prijave).Error
+
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
+				return
+			}
+
+			var uspesneAkcije []models.Akcija
+			for _, p := range prijave {
+				if p.Akcija.ID != 0 {
+					uspesneAkcije = append(uspesneAkcije, p.Akcija)
+				}
+			}
+
+			c.JSON(200, gin.H{
+				"uspesneAkcije": uspesneAkcije,
+			})
+		})
+
+		// GET /api/korisnici/:id/statistika statistika korisnika za user profil page
+		protected.GET("/korisnici/:id/statistika", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"statistika": map[string]interface{}{
+					"ukupnoKm":           korisnik.UkupnoKmKorisnik,
+					"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
+					"brojPopeoSe":        korisnik.BrojPopeoSe,
+				},
+			})
+		})
+
 		// GET /api/moje-popeo-se lista akcija na koje se korisnik popeo, za profil page
 		protected.GET("/moje-popeo-se", func(c *gin.Context) {
 			username, exists := c.Get("username")
