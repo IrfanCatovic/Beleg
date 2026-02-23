@@ -9,9 +9,9 @@ type Korisnik struct {
 	FullName                   string    `json:"fullName"`
 	Role                       string    `gorm:"type:varchar(20);not null" json:"role"`
 	CreatedAt                  time.Time `gorm:"autoCreateTime" json:"createdAt"`
-	UkupnoKmKorisnik           float64   `json:"ukupnoKm"`
-	UkupnoMetaraUsponaKorisnik int       `json:"ukupnoMetaraUspona"`
-	BrojPopeoSe                int       `json:"brojPopeoSe"`
+	UkupnoKmKorisnik           float64   `gorm:"default:0" json:"ukupnoKm"`
+	UkupnoMetaraUsponaKorisnik int       `gorm:"default:0" json:"ukupnoMetaraUspona"`
+	BrojPopeoSe                int       `gorm:"default:0" json:"brojPopeoSe"`
 }
 
 func (Korisnik) TableName() string {
