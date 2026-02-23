@@ -12,8 +12,8 @@ interface UspesnaAkcija {
   slikaUrl?: string
   createdAt: string
   updatedAt: string
-  ukupnoKm?: number           // ← DODATO da TS ne baca grešku
-  ukupnoMetaraUspona?: number // ← DODATO da TS ne baca grešku
+  duzinaStazeKm?: number           // ← DODATO da TS ne baca grešku
+  kumulativniUsponM?: number // ← DODATO da TS ne baca grešku
 }
 
 interface KorisnikStatistika {
@@ -23,6 +23,7 @@ interface KorisnikStatistika {
 }
 
 export default function Profil() {
+  
   const { isLoggedIn, user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [uspesneAkcije, setUspesneAkcije] = useState<UspesnaAkcija[]>([])
@@ -87,6 +88,7 @@ export default function Profil() {
   if (loading) return <div className="text-center py-10">Učitavanje profila...</div>
 
   if (error) return <div className="text-center py-10 text-red-600">{error}</div>
+
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
@@ -179,10 +181,10 @@ export default function Profil() {
                     <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
                   </p>
                   <p className="text-sm text-gray-600 mb-1">
-                    <strong>Dužina staze:</strong> {akcija.ukupnoKm?.toFixed(1) || '0.0'} km
+                    <strong>Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km
                   </p>
                   <p className="text-sm text-gray-600 mb-1">
-                    <strong>Uspon:</strong> {akcija.ukupnoMetaraUspona?.toLocaleString('sr-RS') || '0'} m
+                    <strong>Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
                   </p>
                   <span className={`inline-block px-3 py-1 mt-3 rounded-full text-xs font-medium ${
                     akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :

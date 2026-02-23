@@ -225,15 +225,15 @@ func main() {
 			}
 
 			akcija := models.Akcija{
-				Naziv:              naziv,
-				Vrh:                vrh,
-				Datum:              datum,
-				Opis:               opis,
-				Tezina:             tezina,
-				UkupnoMetaraUspona: kumulativniUsponM,
-				UkupnoKm:           duzinaStazeKm,
-				SlikaURL:           "",
-				IsCompleted:        false,
+				Naziv:                    naziv,
+				Vrh:                      vrh,
+				Datum:                    datum,
+				Opis:                     opis,
+				Tezina:                   tezina,
+				UkupnoMetaraUsponaAkcija: kumulativniUsponM,
+				UkupnoKmAkcija:           duzinaStazeKm,
+				SlikaURL:                 "",
+				IsCompleted:              false,
 			}
 
 			db := c.MustGet("db").(*gorm.DB)
@@ -540,8 +540,8 @@ func main() {
 
 			for _, p := range prijave {
 				uspesneAkcije = append(uspesneAkcije, p.Akcija)
-				ukupnoKm += p.Akcija.UkupnoKm
-				ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUspona
+				ukupnoKm += p.Akcija.UkupnoKmAkcija
+				ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
 				brojPopeoSe++
 			}
 
@@ -609,8 +609,8 @@ func main() {
 					return
 				}
 
-				korisnik.UkupnoKm += prijava.Akcija.UkupnoKm
-				korisnik.UkupnoMetaraUspona += prijava.Akcija.UkupnoMetaraUspona
+				korisnik.UkupnoKmKorisnik += prijava.Akcija.UkupnoKmAkcija
+				korisnik.UkupnoMetaraUsponaKorisnik += prijava.Akcija.UkupnoMetaraUsponaAkcija
 				korisnik.BrojPopeoSe += 1
 
 				if err := db.Save(&korisnik).Error; err != nil {
