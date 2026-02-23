@@ -225,15 +225,15 @@ func main() {
 			}
 
 			akcija := models.Akcija{
-				Naziv:             naziv,
-				Vrh:               vrh,
-				Datum:             datum,
-				Opis:              opis,
-				Tezina:            tezina,
-				KumulativniUsponM: kumulativniUsponM,
-				DuzinaStazeKm:     duzinaStazeKm,
-				SlikaURL:          "",
-				IsCompleted:       false,
+				Naziv:              naziv,
+				Vrh:                vrh,
+				Datum:              datum,
+				Opis:               opis,
+				Tezina:             tezina,
+				UkupnoMetaraUspona: kumulativniUsponM,
+				UkupnoKm:           duzinaStazeKm,
+				SlikaURL:           "",
+				IsCompleted:        false,
 			}
 
 			db := c.MustGet("db").(*gorm.DB)
@@ -529,17 +529,29 @@ func main() {
 
 			var prijave []models.Prijava
 			if err := db.Where("korisnik = ? AND status = ?", korisnik, "popeo se").Preload("Akcija").Find(&prijave).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju uspešnih akcija"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju"})
 				return
 			}
 
 			var uspesneAkcije []models.Akcija
+			var ukupnoKm float64
+			var ukupnoMetaraUspona int
+			var brojPopeoSe int
+
 			for _, p := range prijave {
 				uspesneAkcije = append(uspesneAkcije, p.Akcija)
+				ukupnoKm += p.Akcija.UkupnoKm
+				ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUspona
+				brojPopeoSe++
 			}
 
 			c.JSON(http.StatusOK, gin.H{
 				"uspesneAkcije": uspesneAkcije,
+				"statistika": map[string]interface{}{
+					"ukupnoKm":           ukupnoKm,
+					"ukupnoMetaraUspona": ukupnoMetaraUspona,
+					"brojPopeoSe":        brojPopeoSe,
+				},
 			})
 		})
 
@@ -597,8 +609,8 @@ func main() {
 					return
 				}
 
-				korisnik.UkupnoKm += prijava.Akcija.DuzinaStazeKm
-				korisnik.UkupnoMetaraUspona += prijava.Akcija.KumulativniUsponM
+				korisnik.UkupnoKm += prijava.Akcija.UkupnoKm
+				korisnik.UkupnoMetaraUspona += prijava.Akcija.UkupnoMetaraUspona
 				korisnik.BrojPopeoSe += 1
 
 				if err := db.Save(&korisnik).Error; err != nil {

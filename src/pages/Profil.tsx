@@ -12,6 +12,8 @@ interface UspesnaAkcija {
   slikaUrl?: string
   createdAt: string
   updatedAt: string
+  ukupnoKm?: number           // ← DODATO da TS ne baca grešku
+  ukupnoMetaraUspona?: number // ← DODATO da TS ne baca grešku
 }
 
 interface KorisnikStatistika {
@@ -38,16 +40,15 @@ export default function Profil() {
     const fetchProfilData = async () => {
       setLoading(true)
       try {
-        // Dohvatanje uspešnih akcija
-        const resAkcije = await api.get('/api/moje-popeo-se')
-        setUspesneAkcije(resAkcije.data.uspesneAkcije || [])
+        const res = await api.get('/api/moje-popeo-se')
+        setUspesneAkcije(res.data.uspesneAkcije || [])
 
-
-        // Privremeno koristimo hardkod ili user ako ima
+        // Statistika iz baze (ne iz user objekta)
+        const stats = res.data.statistika || {}
         setStatistika({
-          ukupnoKm: user?.ukupnoKm || 0,
-          ukupnoMetaraUspona: user?.ukupnoMetaraUspona || 0,
-          brojPopeoSe: user?.brojPopeoSe || 0,
+          ukupnoKm: stats.ukupnoKm || 0,
+          ukupnoMetaraUspona: stats.ukupnoMetaraUspona || 0,
+          brojPopeoSe: stats.brojPopeoSe || 0,
         })
       } catch (err: any) {
         console.error("Greška:", err)
@@ -58,14 +59,14 @@ export default function Profil() {
     }
 
     fetchProfilData()
-  }, [isLoggedIn, user])
+  }, [isLoggedIn])
 
   // Računanje ranka na osnovu statistike
   useEffect(() => {
     const { ukupnoKm, ukupnoMetaraUspona } = statistika
 
     if (ukupnoKm <= 200 && ukupnoMetaraUspona <= 5000) {
-      setRank({ naziv: 'Početnik', boja: '#E0D9C9' })
+      setRank({ naziv: 'Početnik', boja: '#ccc4b1' })
     } else if (ukupnoKm <= 900 && ukupnoMetaraUspona <= 20000) {
       setRank({ naziv: 'Istraživač', boja: '#556B2F' })
     } else if (ukupnoKm <= 3500 && ukupnoMetaraUspona <= 60000) {
@@ -75,7 +76,7 @@ export default function Profil() {
     } else if (ukupnoKm <= 25000 && ukupnoMetaraUspona <= 300000) {
       setRank({ naziv: 'Oblakolovac', boja: '#00CED1' })
     } else {
-      setRank({ naziv: 'Legenda stijena', boja: '#000000' }) // možeš dodati zlatni obrub u CSS
+      setRank({ naziv: 'Legenda stijena', boja: '#000000' }) 
     }
   }, [statistika])
 
@@ -176,6 +177,12 @@ export default function Profil() {
                   </p>
                   <p className="text-sm text-gray-600 mb-1">
                     <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    <strong>Dužina staze:</strong> {akcija.ukupnoKm?.toFixed(1) || '0.0'} km
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    <strong>Uspon:</strong> {akcija.ukupnoMetaraUspona?.toLocaleString('sr-RS') || '0'} m
                   </p>
                   <span className={`inline-block px-3 py-1 mt-3 rounded-full text-xs font-medium ${
                     akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :

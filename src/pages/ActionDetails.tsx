@@ -132,7 +132,7 @@ export default function ActionDetails() {
         </div>
 
         {/* Detalji */}
-        <div className="mt-12">
+        <div className="m-12">
               <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>
                 Prijavljeni članovi ({prijave.length})
               </h3>
