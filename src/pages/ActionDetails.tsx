@@ -148,10 +148,10 @@ export default function ActionDetails() {
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold">
-                          {p.korisnik.charAt(0).toUpperCase()}
+                          {(p.korisnik || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium">{p.korisnik}</p>
+                          <p className="font-medium">{p.korisnik || 'Nepoznat korisnik'}</p>
                           <p className="text-sm text-gray-500">
                             Prijavljen: {new Date(p.prijavljenAt).toLocaleString('sr-RS')}
                           </p>

@@ -342,6 +342,7 @@ func main() {
 		})
 
 		// GET /api/akcije/:id/prijave lista prijava za akciju koristimo za ActionDetails page vidi ko je prijavljen i menja status
+		// GET /api/akcije/:id/prijave
 		protected.GET("/akcije/:id/prijave", func(c *gin.Context) {
 			idStr := c.Param("id")
 			id, err := strconv.Atoi(idStr)
@@ -354,13 +355,32 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var prijave []models.Prijava
-			if err := db.Where("akcija_id = ?", id).Find(&prijave).Error; err != nil {
+			// BITNO: preload korisnika da imamo username
+			if err := db.Preload("Korisnik").Where("akcija_id = ?", id).Find(&prijave).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Greška pri čitanju prijava"})
 				return
 			}
 
+			// DTO koji frontend očekuje
+			type PrijavaDTO struct {
+				ID           uint      `json:"id"`
+				Korisnik     string    `json:"korisnik"`
+				PrijavljenAt time.Time `json:"prijavljenAt"`
+				Status       string    `json:"status"`
+			}
+
+			var out []PrijavaDTO
+			for _, p := range prijave {
+				out = append(out, PrijavaDTO{
+					ID:           p.ID,
+					Korisnik:     p.Korisnik.Username, 
+					PrijavljenAt: p.PrijavljenAt,
+					Status:       p.Status,
+				})
+			}
+
 			c.JSON(200, gin.H{
-				"prijave": prijave,
+				"prijave": out,
 			})
 		})
 
@@ -722,14 +742,13 @@ func main() {
 			})
 		})
 
-		// GET /api/mojeprijave list of IDs of ackije that user is signed up for, for quick check on frontend for ACTIONS PAGE
+		// GET /api/moje-prijave list of IDs of akcije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 				return
 			}
-			korisnik := username.(string)
 
 			dbAny, exists := c.Get("db")
 			if !exists {
@@ -738,9 +757,16 @@ func main() {
 			}
 			db := dbAny.(*gorm.DB)
 
+			// Pronađi korisnika po username-u da dobijemo njegov ID
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username.(string)).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
 			var prijavljene []uint
 			db.Model(&models.Prijava{}).
-				Where("korisnik = ?", korisnik).
+				Where("korisnik_id = ?", korisnik.ID).
 				Pluck("akcija_id", &prijavljene)
 
 			c.JSON(http.StatusOK, gin.H{"prijavljeneAkcije": prijavljene})
