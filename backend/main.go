@@ -97,6 +97,20 @@ func main() {
 	})
 
 	// Public rute
+
+	// GET /api/setup/status proveri da li već postoje korisnici u bazi
+	r.GET("/api/setup/status", func(c *gin.Context) {
+		var count int64
+		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri stanja setup-a"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"hasUsers": count > 0,
+		})
+	})
+
 	r.POST("/login", func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {

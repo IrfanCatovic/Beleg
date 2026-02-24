@@ -7,6 +7,9 @@ type Korisnik struct {
 	Username                   string    `gorm:"unique" json:"username"`
 	Password                   string    `json:"-"`
 	FullName                   string    `json:"fullName"`
+	Email                      string    `json:"email"`
+	Adresa                     string    `json:"adresa"`
+	Telefon                    string    `json:"telefon"`
 	Role                       string    `gorm:"type:varchar(20);not null" json:"role"`
 	CreatedAt                  time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UkupnoKmKorisnik           float64   `gorm:"default:0" json:"ukupnoKm"`
