@@ -3,30 +3,36 @@ import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function AppLayout() {
-  const { logout, user } = useAuth() 
+  const { user, logout, isLoggedIn } = useAuth() // ← dodaj isLoggedIn ako ga imaš u context-u
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogout = () => {
-    logout() 
-    navigate('/', { replace: true }) 
-    setIsMenuOpen(false) 
+    logout()
+    navigate('/login', { replace: true })
+    setIsMenuOpen(false)
   }
 
+  // Ako nije ulogovan ne prikazuj header uopšte
+  if (!isLoggedIn) {
+    return <Outlet /> 
+  }
+
+  // Ako je ulogovan prikaži header
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header samo za ulogovane */}
       <header className="bg-[#41ac53] text-white shadow-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <div className="shrink-0">
+            <div className="flex-shrink-0">
               <Link to="/home" className="text-xl font-bold sm:text-2xl">
                 Adri Sentinel
               </Link>
             </div>
 
-            {/* hamburger for phone*/}
+            {/* Hamburger za telefon */}
             <div className="md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -42,29 +48,35 @@ export default function AppLayout() {
               </button>
             </div>
 
-            {/* Desktop menu visible only in 768+ resolution */}
+            {/* Desktop meni samo za ulogovane */}
             <nav className="hidden md:flex md:space-x-8">
               <Link to="/home" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                Home
+                Početna
               </Link>
+
               <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                Actions
+                Akcije
               </Link>
 
               <Link to="/profil" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Profil
               </Link>
 
-              <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
-              >
-                Users
-              </Link>
-
-              {/* Finansije just for admin role*/}
+              {/* Admin-only linkovi */}
               {user?.role === 'admin' && (
-                <Link to="/finansije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                  Finance
-                </Link>
+                <>
+                  <Link to="/finansije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
+                    Finansije
+                  </Link>
+
+                  <Link to="/users" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
+                    Korisnici
+                  </Link>
+
+                  <Link to="/dodaj-korisnika" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
+                    Dodaj korisnika
+                  </Link>
+                </>
               )}
 
               {/* Logout */}
@@ -72,14 +84,13 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition"
               >
-                Logout
+                Odjavi se
               </button>
             </nav>
           </div>
         </div>
 
-
-        {/* Mobile menu */}
+        {/* Mobilni meni samo za ulogovane */}
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="space-y-1 px-2 pb-3 pt-2">
@@ -88,7 +99,7 @@ export default function AppLayout() {
                 className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Home
+                Početna
               </Link>
 
               <Link
@@ -96,27 +107,44 @@ export default function AppLayout() {
                 className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Actions
+                Akcije
               </Link>
-              <Link to="/profil" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
-              onClick={() => setIsMenuOpen(false)}>
+
+              <Link
+                to="/profil"
+                className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Profil
               </Link>
 
-              <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
-              onClick={() => setIsMenuOpen(false)}>
-                Users
-              </Link>
-
-              {/* Finansije page, check if role is admin and let him in */}
+              {/* Admin-only u mobilnom meniju */}
               {user?.role === 'admin' && (
-                <Link
-                  to="/finansije"
-                  className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Finance
-                </Link>
+                <>
+                  <Link
+                    to="/finansije"
+                    className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Finansije
+                  </Link>
+
+                  <Link
+                    to="/users"
+                    className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Korisnici
+                  </Link>
+
+                  <Link
+                    to="/dodaj-korisnika"
+                    className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dodaj korisnika
+                  </Link>
+                </>
               )}
 
               {/* Logout */}
@@ -124,14 +152,14 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="block w-full rounded-md px-3 py-2 text-left text-base font-medium hover:bg-[#fed74c]/30"
               >
-                Logout
+                Odjavi se
               </button>
             </div>
           </div>
         )}
       </header>
 
-      {/* Main outlet */}
+      {/* Glavni sadržaj */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <Outlet />
       </main>
