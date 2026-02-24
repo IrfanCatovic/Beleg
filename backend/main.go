@@ -166,13 +166,13 @@ func main() {
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Admin korisnik uspešno kreiran",
 			"korisnik": gin.H{
-				"id":       korisnik.ID,
-				"username": korisnik.Username,
-				"fullName": korisnik.FullName,
-				"email":    korisnik.Email,
-				"adresa":   korisnik.Adresa,
-				"telefon":  korisnik.Telefon,
-				"role":     korisnik.Role,
+				"id":        korisnik.ID,
+				"username":  korisnik.Username,
+				"fullName":  korisnik.FullName,
+				"email":     korisnik.Email,
+				"adresa":    korisnik.Adresa,
+				"telefon":   korisnik.Telefon,
+				"role":      korisnik.Role,
 				"createdAt": korisnik.CreatedAt,
 			},
 		})
@@ -454,7 +454,7 @@ func main() {
 			for _, p := range prijave {
 				out = append(out, PrijavaDTO{
 					ID:           p.ID,
-					Korisnik:     p.Korisnik.Username, 
+					Korisnik:     p.Korisnik.Username,
 					PrijavljenAt: p.PrijavljenAt,
 					Status:       p.Status,
 				})
