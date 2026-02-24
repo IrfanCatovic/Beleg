@@ -4,11 +4,14 @@ import "time"
 
 type Prijava struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
-	AkcijaID     uint      `gorm:"index" json:"akcijaId"` //akcija id i korisnk username se vezu tipa na jendu akciju moze biti vise prijava
-	Korisnik     string    `json:"korisnik"`
+	AkcijaID     uint      `gorm:"index" json:"akcijaId"`
+	KorisnikID   uint      `gorm:"index" json:"korisnikId"`
 	Status       string    `gorm:"default:'prijavljen'" json:"status"`
 	PrijavljenAt time.Time `gorm:"autoCreateTime" json:"prijavljenAt"`
-	Akcija       Akcija    `gorm:"foreignKey:AkcijaID"`
+
+	// Relacije za GORM Preload
+	Akcija   Akcija   `gorm:"foreignKey:AkcijaID"`
+	Korisnik Korisnik `gorm:"foreignKey:KorisnikID"`
 }
 
 func (Prijava) TableName() string {

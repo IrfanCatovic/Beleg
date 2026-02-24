@@ -290,7 +290,7 @@ func main() {
 		// POST /api/akcije/:id/prijavi prijava na akciju
 		protected.POST("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
+			akcijaID, err := strconv.Atoi(idStr)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
 				return
@@ -301,14 +301,21 @@ func main() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 				return
 			}
-			korisnik := username.(string)
 
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
+			// 1. Pronađi ID korisnika po username-u
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			// 2. Proveri da li već postoji prijava
 			var count int64
 			db.Model(&models.Prijava{}).
-				Where("akcija_id = ? AND korisnik = ?", id, korisnik).
+				Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).
 				Count(&count)
 
 			if count > 0 {
@@ -316,19 +323,20 @@ func main() {
 				return
 			}
 
+			// 3. Kreiraj prijavu sa KorisnikID (broj)
 			prijava := models.Prijava{
-				AkcijaID: uint(id),
-				Korisnik: korisnik,
+				AkcijaID:   uint(akcijaID),
+				KorisnikID: korisnik.ID, // ← ovde koristimo ID iz baze
 			}
 
 			if err := db.Create(&prijava).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prijavi"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prijavi", "details": err.Error()})
 				return
 			}
 
 			c.JSON(http.StatusOK, gin.H{
 				"message":      "Uspešno ste se prijavili!",
-				"akcijaId":     id,
+				"akcijaId":     akcijaID,
 				"prijavljenAt": prijava.PrijavljenAt,
 			})
 		})
@@ -360,7 +368,7 @@ func main() {
 		protected.POST("/akcije/:id/zavrsi", func(c *gin.Context) {
 			// Samo admin ili vodič
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodjac" {
+			if role != "admin" && role != "vodic" {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može završiti akciju"})
 				return
 			}
@@ -426,37 +434,6 @@ func main() {
 			}
 
 			c.JSON(http.StatusOK, gin.H{"message": "Uspešno ste otkazali prijavu"})
-		})
-
-		// GET /api/moje-akcije lista akcija na koje je korisnik prijavljen sa detaljima za profil page
-		protected.GET("/moje-akcije-profil", func(c *gin.Context) {
-			username, exists := c.Get("username")
-			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-				return
-			}
-			korisnik := username.(string)
-
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			var mojePrijave []struct {
-				AkcijaID     uint
-				Naziv        string
-				Vrh          string
-				Datum        time.Time
-				Opis         string
-				Tezina       string
-				PrijavljenAt time.Time
-			}
-
-			db.Table("prijave").
-				Joins("JOIN akcije ON prijave.akcija_id = akcije.id").
-				Where("prijave.korisnik = ?", korisnik).
-				Select("prijave.akcija_id, akcije.naziv, akcije.vrh, akcije.datum, akcije.opis, akcije.tezina, prijave.prijavljen_at").
-				Scan(&mojePrijave)
-
-			c.JSON(http.StatusOK, gin.H{"prijave": mojePrijave})
 		})
 
 		// GET /api/korisnici/:id detalji o korisniku
@@ -549,33 +526,6 @@ func main() {
 			})
 		})
 
-		// GET /api/korisnici/:id/statistika statistika korisnika za user profil page
-		protected.GET("/korisnici/:id/statistika", func(c *gin.Context) {
-			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-				return
-			}
-
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			var korisnik models.Korisnik
-			if err := db.First(&korisnik, id).Error; err != nil {
-				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-				return
-			}
-
-			c.JSON(200, gin.H{
-				"statistika": map[string]interface{}{
-					"ukupnoKm":           korisnik.UkupnoKmKorisnik,
-					"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
-					"brojPopeoSe":        korisnik.BrojPopeoSe,
-				},
-			})
-		})
-
 		// GET /api/moje-popeo-se lista akcija na koje se korisnik popeo, za profil page
 		protected.GET("/moje-popeo-se", func(c *gin.Context) {
 			username, exists := c.Get("username")
@@ -616,10 +566,37 @@ func main() {
 			})
 		})
 
+		// GET /api/korisnici/:id/statistika statistika korisnika za user profil page
+		protected.GET("/korisnici/:id/statistika", func(c *gin.Context) {
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"statistika": map[string]interface{}{
+					"ukupnoKm":           korisnik.UkupnoKmKorisnik,
+					"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
+					"brojPopeoSe":        korisnik.BrojPopeoSe,
+				},
+			})
+		})
+
 		// POST /api/prijave/:id/status update status of prijava
 		protected.POST("/prijave/:id/status", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodjac" {
+			if role != "admin" && role != "vodic" {
 				c.JSON(403, gin.H{"error": "Samo admin ili vodič može menjati status"})
 				return
 			}
@@ -662,7 +639,7 @@ func main() {
 				return
 			}
 
-			// Ako menjamo status na 'popeo se' – dodaj statistiku korisniku
+			// Ako menjamo status na 'popeo se' dodaj statistiku korisniku
 			if req.Status == "popeo se" && prijava.Status != "popeo se" {
 				var korisnik models.Korisnik
 				if err := db.Where("username = ?", prijava.Korisnik).First(&korisnik).Error; err != nil {
