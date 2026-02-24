@@ -12,8 +12,8 @@ interface UspesnaAkcija {
   slikaUrl?: string
   createdAt: string
   updatedAt: string
-  duzinaStazeKm?: number           // ← DODATO da TS ne baca grešku
-  kumulativniUsponM?: number // ← DODATO da TS ne baca grešku
+  duzinaStazeKm?: number           
+  kumulativniUsponM?: number 
 }
 
 interface KorisnikStatistika {
@@ -44,8 +44,8 @@ export default function Profil() {
         const res = await api.get('/api/moje-popeo-se')
         setUspesneAkcije(res.data.uspesneAkcije || [])
 
-        // Statistika iz baze (ne iz user objekta)
         const stats = res.data.statistika || {}
+        // Statistika iz baze (ne iz user objekta)
         setStatistika({
           ukupnoKm: stats.ukupnoKm || 0,
           ukupnoMetaraUspona: stats.ukupnoMetaraUspona || 0,

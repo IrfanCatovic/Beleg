@@ -492,37 +492,76 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
-		// GET /api/korisnici/:id/popeo-se lista akcija na koje se korisnik popeo, za user profil page
+		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se, i statistika ukupno km, metara uspona i broj popeo se
 		protected.GET("/korisnici/:id/popeo-se", func(c *gin.Context) {
-
-			username, exists := c.Get("username")
-			if !exists {
-				c.JSON(401, gin.H{"error": "Niste ulogovani"})
+			// 1. Dohvati ID korisnika čiji profil gledamo
+			idStr := c.Param("id")
+			targetID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID korisnika"})
 				return
 			}
+
+			// 2. Dohvati ulogovanog korisnika (za proveru dozvole)
+			loggedUsername, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			loggedRole, _ := c.Get("role")
 
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
+			// 3. Dohvati ulogovanog korisnika da proverimo ID i role
+			var loggedKorisnik models.Korisnik
+			if err := db.Where("username = ?", loggedUsername).First(&loggedKorisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dohvatanju ulogovanog korisnika", "details": err.Error()})
+				return
+			}
+
+			// 4. Provera dozvole
+			isSelf := loggedKorisnik.ID == uint(targetID)
+			isAdminOrVodic := loggedRole == "admin" || loggedRole == "vodic"
+
+			if !isSelf && !isAdminOrVodic {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Nemate dozvolu da vidite tuđe uspešne akcije"})
+				return
+			}
+
+			// 5. Dohvati prijave za target korisnika po korisnik_id (broj!)
 			var prijave []models.Prijava
-			err := db.Where("korisnik = ? AND status = ?", username, "popeo se").
+			err = db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
 				Preload("Akcija").
 				Find(&prijave).Error
 
 			if err != nil {
-				c.JSON(500, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
 				return
 			}
 
+			// 6. Pripremi listu akcija i statistiku
 			var uspesneAkcije []models.Akcija
+			var ukupnoKm float64
+			var ukupnoMetaraUspona int
+			var brojPopeoSe int
+
 			for _, p := range prijave {
 				if p.Akcija.ID != 0 {
 					uspesneAkcije = append(uspesneAkcije, p.Akcija)
+					ukupnoKm += p.Akcija.UkupnoKmAkcija
+					ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
+					brojPopeoSe++
 				}
 			}
 
-			c.JSON(200, gin.H{
+			c.JSON(http.StatusOK, gin.H{
 				"uspesneAkcije": uspesneAkcije,
+				"statistika": map[string]interface{}{
+					"ukupnoKm":           ukupnoKm,
+					"ukupnoMetaraUspona": ukupnoMetaraUspona,
+					"brojPopeoSe":        brojPopeoSe,
+				},
 			})
 		})
 
@@ -533,27 +572,41 @@ func main() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 				return
 			}
-			korisnik := username.(string)
 
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
-			var prijave []models.Prijava
-			if err := db.Where("korisnik = ? AND status = ?", korisnik, "popeo se").Preload("Akcija").Find(&prijave).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju"})
+			// 1. Pronađi ID ulogovanog korisnika po username-u
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Korisnik nije pronađen", "details": err.Error()})
 				return
 			}
 
+			// 2. Dohvati prijave po korisnik_id (broj)
+			var prijave []models.Prijava
+			err := db.Where("korisnik_id = ? AND status = ?", korisnik.ID, "popeo se").
+				Preload("Akcija").
+				Find(&prijave).Error
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
+				return
+			}
+
+			// 3. Pripremi akcije i statistiku
 			var uspesneAkcije []models.Akcija
 			var ukupnoKm float64
 			var ukupnoMetaraUspona int
 			var brojPopeoSe int
 
 			for _, p := range prijave {
-				uspesneAkcije = append(uspesneAkcije, p.Akcija)
-				ukupnoKm += p.Akcija.UkupnoKmAkcija
-				ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
-				brojPopeoSe++
+				if p.Akcija.ID != 0 {
+					uspesneAkcije = append(uspesneAkcije, p.Akcija)
+					ukupnoKm += p.Akcija.UkupnoKmAkcija
+					ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
+					brojPopeoSe++
+				}
 			}
 
 			c.JSON(http.StatusOK, gin.H{
