@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -108,6 +109,72 @@ func main() {
 
 		c.JSON(http.StatusOK, gin.H{
 			"hasUsers": count > 0,
+		})
+	})
+
+	// POST /api/setup/admin kreiranje prvog admin korisnika (dozvoljeno samo dok nema korisnika u bazi)
+	r.POST("/api/setup/admin", func(c *gin.Context) {
+		//  Proveri da li već postoje korisnici
+		var count int64
+		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri stanja korisnika"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Inicijalni admin je već kreiran"})
+			return
+		}
+
+		//  Bind body
+		var req struct {
+			Username string `json:"username" binding:"required"`
+			Password string `json:"password" binding:"required"`
+			FullName string `json:"fullName" binding:"required"`
+			Email    string `json:"email" binding:"required"`
+			Adresa   string `json:"adresa" binding:"required"`
+			Telefon  string `json:"telefon" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći podaci za registraciju"})
+			return
+		}
+
+		// Hash lozinke
+		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri obradi lozinke"})
+			return
+		}
+
+		// Kreiraj admin korisnika (role se forsira na 'admin')
+		korisnik := models.Korisnik{
+			Username: req.Username,
+			Password: string(hashed),
+			FullName: req.FullName,
+			Email:    req.Email,
+			Adresa:   req.Adresa,
+			Telefon:  req.Telefon,
+			Role:     "admin",
+		}
+
+		if err := db.Create(&korisnik).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju admin korisnika"})
+			return
+		}
+
+		// Vrati osnovne podatke (bez lozinke)
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "Admin korisnik uspešno kreiran",
+			"korisnik": gin.H{
+				"id":       korisnik.ID,
+				"username": korisnik.Username,
+				"fullName": korisnik.FullName,
+				"email":    korisnik.Email,
+				"adresa":   korisnik.Adresa,
+				"telefon":  korisnik.Telefon,
+				"role":     korisnik.Role,
+				"createdAt": korisnik.CreatedAt,
+			},
 		})
 	})
 
