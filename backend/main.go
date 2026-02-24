@@ -512,9 +512,11 @@ func main() {
 			c.JSON(200, akcija)
 		})
 
-		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se, i statistika ukupno km, metara uspona i broj popeo se
+		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se,
+		// i statistika ukupno km, metara uspona i broj popeo se.
+		// Ovaj endpoint je vidljiv svim ulogovanim korisnicima (nema provere da li gledaš svoj ili tuđ profil).
 		protected.GET("/korisnici/:id/popeo-se", func(c *gin.Context) {
-			// 1. Dohvati ID korisnika čiji profil gledamo
+			// 1. ID korisnika čiji profil gledamo
 			idStr := c.Param("id")
 			targetID, err := strconv.Atoi(idStr)
 			if err != nil {
@@ -522,34 +524,11 @@ func main() {
 				return
 			}
 
-			// 2. Dohvati ulogovanog korisnika (za proveru dozvole)
-			loggedUsername, exists := c.Get("username")
-			if !exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-				return
-			}
-			loggedRole, _ := c.Get("role")
-
+			// 2. Baza
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
-			// 3. Dohvati ulogovanog korisnika da proverimo ID i role
-			var loggedKorisnik models.Korisnik
-			if err := db.Where("username = ?", loggedUsername).First(&loggedKorisnik).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dohvatanju ulogovanog korisnika", "details": err.Error()})
-				return
-			}
-
-			// 4. Provera dozvole
-			isSelf := loggedKorisnik.ID == uint(targetID)
-			isAdminOrVodic := loggedRole == "admin" || loggedRole == "vodic"
-
-			if !isSelf && !isAdminOrVodic {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Nemate dozvolu da vidite tuđe uspešne akcije"})
-				return
-			}
-
-			// 5. Dohvati prijave za target korisnika po korisnik_id (broj!)
+			// 3. Dohvati prijave za target korisnika po korisnik_id (broj!)
 			var prijave []models.Prijava
 			err = db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
 				Preload("Akcija").
@@ -560,7 +539,7 @@ func main() {
 				return
 			}
 
-			// 6. Pripremi listu akcija i statistiku
+			// 4. Pripremi listu akcija i statistiku
 			var uspesneAkcije []models.Akcija
 			var ukupnoKm float64
 			var ukupnoMetaraUspona int
@@ -715,7 +694,8 @@ func main() {
 			// Ako menjamo status na 'popeo se' dodaj statistiku korisniku
 			if req.Status == "popeo se" && prijava.Status != "popeo se" {
 				var korisnik models.Korisnik
-				if err := db.Where("username = ?", prijava.Korisnik).First(&korisnik).Error; err != nil {
+				// sada koristimo KorisnikID iz prijave umesto starog username polja
+				if err := db.First(&korisnik, prijava.KorisnikID).Error; err != nil {
 					c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 					return
 				}
