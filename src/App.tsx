@@ -1,12 +1,13 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
+
+// Pages
+import Login from './pages/Login'
 import AppLayout from './ui/AppLayout'
 import ErrorPage from './pages/ErrorPage'
 import Home from './pages/Home'
-import Login from './pages/Login'
-import Finance from './pages/Finance'
 import Actions from './pages/Actions'
-import ProtectedRoute from './components/ProtectedRoute'
+import Finance from './pages/Finance'
 import Profil from './pages/Profil'
 import AddAction from './pages/AddAction'
 import Users from './pages/Users'
@@ -14,44 +15,64 @@ import UserProfile from './pages/UserProfil'
 import ActionDetails from './pages/ActionDetails'
 import AddUser from './pages/AddUser'
 
+//routes
+import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
+import Welcome from './pages/Welcome'
+
+
 const router = createBrowserRouter([
+  // Početna – Welcome (setup flow)
   {
-    path: '/',                    
+    path: '/',
+    element: <Welcome />,
+    errorElement: <ErrorPage />,
+  },
+
+  // Login
+  {
+    path: '/login',
     element: <Login />,
     errorElement: <ErrorPage />,
   },
+
+  // Glavni layout sa header-om
   {
-    element: <AppLayout />,     
+    element: <AppLayout />,
     errorElement: <ErrorPage />,
     children: [
+      { path: '/home', element: <Home /> },
+
       {
-       element: <ProtectedRoute />, //This will prevent access to child routes if not authenticated
+        element: <ProtectedRoute />,
         children: [
-          { path: '/home', element: <Home /> },
           { path: '/akcije', element: <Actions /> },
-          { path: '/finansije', element: <Finance /> },
+          { path: '/akcije/:id', element: <ActionDetails /> },
           { path: '/profil', element: <Profil /> },
-          { path: '/dodaj-akciju', element: <AddAction /> },
-          {path: '/users', element: <Users /> },
-          {path: `/dodaj-korisnika`, element: <AddUser />},
-          {path: '/users/:id', element: <UserProfile /> },
-          {path: '/akcije/:id', element: <ActionDetails /> },
+
+          // Ove dve su vidljive svima ulogovanima
+          { path: '/users', element: <Users /> },
+          { path: '/users/:id', element: <UserProfile /> },
+
+          // SAMO ADMIN vidi ove
+          {
+            element: <AdminRoute />,
+            children: [
+              { path: '/finansije', element: <Finance /> },
+              { path: '/dodaj-akciju', element: <AddAction /> },
+              { path: '/dodaj-korisnika', element: <AddUser /> },
+            ],
+          },
         ],
       },
     ],
   },
-  {
-    path: '*', 
-    element: <ErrorPage />,
-  },
+
+  { path: '*', element: <ErrorPage /> },
 ])
 
 function App() {
-
-  return <div>
-    <RouterProvider router={router} />
-    </div>
+  return <RouterProvider router={router} />
 }
 
 export default App
-
