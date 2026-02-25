@@ -19,6 +19,7 @@ import AddUser from './pages/AddUser'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import Welcome from './pages/Welcome'
+import RegisterAdmin from './pages/RegisterAdmin'
 
 
 const router = createBrowserRouter([
@@ -61,6 +62,7 @@ const router = createBrowserRouter([
               { path: '/finansije', element: <Finance /> },
               { path: '/dodaj-akciju', element: <AddAction /> },
               { path: '/dodaj-korisnika', element: <AddUser /> },
+              { path: '/register', element: <RegisterAdmin />},
             ],
           },
         ],
