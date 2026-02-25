@@ -1,9 +1,39 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import api from '../services/api'
 
 export default function Welcome() {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        const res = await api.get('/api/setup/status')
+        if (res.data.hasUsers) { 
+          navigate('/', { replace: true })
+        }
+      } catch (err) {
+        console.error('Greška pri proveri statusa', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSetup()
+  }, [navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">Proveravam stanje...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-50 px-4 py-12">
-      {/* Lagani pozadinski efekat planinski osećaj */}
+      {/* Lagani pozadinski efekat */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,#41ac53_0%,transparent_60%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,#fed74c_0%,transparent_60%)]" />
@@ -13,7 +43,7 @@ export default function Welcome() {
       <div className="relative z-10 max-w-3xl text-center">
         <h1 
           className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 leading-tight"
-          style={{ color: '#2e8b45' }}
+          style={{ color: '#41ac53' }}
         >
           Adri Sentinel
         </h1>
@@ -29,7 +59,7 @@ export default function Welcome() {
         </p>
 
         <Link
-          to="/adminregister"
+          to="/setup/admin"
           className="inline-block px-12 py-5 text-xl sm:text-2xl font-bold text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl focus:outline-none focus:ring-4 focus:ring-emerald-400/50"
           style={{ background: 'linear-gradient(135deg, #41ac53 0%, #2e8b45 100%)' }}
         >

@@ -1,4 +1,4 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
@@ -13,21 +13,24 @@ export default function Login() {
 
 
   useEffect(() => {
-    const checkSetup = async () => {
-      try {
-        const res = await api.get('/api/setup/status')
-        const { setupCompleted } = res.data  // true ako postoji bar jedan korisnik
+  const checkSetup = async () => {
+    try {
+      const res = await api.get('/api/setup/status')
 
-        if (!setupCompleted) {
-          navigate('/', { replace: true }) // ← ako nema korisnika, idi na Welcome
-        }
-      } catch (err) {
-        console.error('Greška pri proveri statusa', err)
+
+      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
+
+      if (!setupCompleted) {
+        navigate('/welcome', { replace: true })
       }
-    }
+    } catch (err) {
+      console.error('Greška pri proveri statusa', err)
 
-    checkSetup()
-  }, [navigate])
+        }
+      }
+
+      checkSetup()
+    }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
