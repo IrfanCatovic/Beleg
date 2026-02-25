@@ -23,17 +23,20 @@ import RegisterAdmin from './pages/RegisterAdmin'
 
 
 const router = createBrowserRouter([
-  // Početna – Welcome (setup flow)
+
   {
-    path: '/',
+    path: '/',                    
+    element: <Login />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/welcome',         
     element: <Welcome />,
     errorElement: <ErrorPage />,
   },
-
-  // Login
   {
-    path: '/login',
-    element: <Login />,
+    path: '/adminregister',        
+    element: <RegisterAdmin />,
     errorElement: <ErrorPage />,
   },
 
@@ -62,7 +65,7 @@ const router = createBrowserRouter([
               { path: '/finansije', element: <Finance /> },
               { path: '/dodaj-akciju', element: <AddAction /> },
               { path: '/dodaj-korisnika', element: <AddUser /> },
-              { path: '/register', element: <RegisterAdmin />},
+
             ],
           },
         ],

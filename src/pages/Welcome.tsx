@@ -29,7 +29,7 @@ export default function Welcome() {
         </p>
 
         <Link
-          to="/register"
+          to="/adminregister"
           className="inline-block px-12 py-5 text-xl sm:text-2xl font-bold text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl focus:outline-none focus:ring-4 focus:ring-emerald-400/50"
           style={{ background: 'linear-gradient(135deg, #41ac53 0%, #2e8b45 100%)' }}
         >

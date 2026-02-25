@@ -1,5 +1,5 @@
 // src/pages/RegisterAdmin.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
@@ -15,6 +15,26 @@ export default function RegisterAdmin() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Proveri da li baza već ima korisnika (blokira ručni pristup posle setup-a)
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        const res = await api.get('/api/setup/status')
+        if (res.data.setupCompleted) {
+          // Ako već postoji korisnik → ne dozvoljavaj pristup stranici
+          navigate('/', { replace: true })
+        }
+      } catch (err) {
+        console.error('Greška pri proveri statusa', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSetup()
+  }, [navigate])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -27,10 +47,19 @@ export default function RegisterAdmin() {
     try {
       await api.post('/api/setup/admin', form)
       setSuccess(true)
-      setTimeout(() => navigate('/login'), 2000)
+      // Posle uspeha → odmah na /
+      setTimeout(() => navigate('/', { replace: true }), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Greška pri kreiranju administratora')
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">Proveravam stanje aplikacije...</div>
+      </div>
+    )
   }
 
   return (
@@ -133,10 +162,10 @@ export default function RegisterAdmin() {
             />
           </div>
 
-          {/* Role –vidljivo ali disabled */}
+          {/* Role – vidljivo ali disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Uloga 
+              Uloga (automatski postavljeno)
             </label>
             <input
               name="role"
