@@ -1,8 +1,9 @@
+// src/pages/RegisterAdmin.tsx
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
-export default function Register() {
+export default function RegisterAdmin() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     username: '',
@@ -24,25 +25,24 @@ export default function Register() {
     setError('')
 
     try {
-      const res = await api.post('/api/register', form)
+      await api.post('/api/setup/admin', form)
       setSuccess(true)
-      alert(res.data.message)
-      setTimeout(() => navigate('/login'), 1500)
+      setTimeout(() => navigate('/login'), 2000)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri registraciji')
+      setError(err.response?.data?.error || 'Greška pri kreiranju administratora')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl">
-        <h2 className="text-3xl font-bold text-center mb-8 text-[#41ac53]">
-          Registracija novog člana
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
+      <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl border border-emerald-100">
+        <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
+          Kreiranje prvog administratora
         </h2>
 
         {success && (
-          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center">
-            Registracija uspešna! Preusmeravam na login...
+          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
+            Administrator uspešno kreiran! Preusmeravam na login...
           </div>
         )}
 
@@ -53,65 +53,110 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            name="username"
-            placeholder="Korisničko ime"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Lozinka (min 8 karaktera)"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
-          <input
-            name="fullName"
-            placeholder="Puno ime"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
-          <input
-            name="adresa"
-            placeholder="Adresa"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
-          <input
-            name="telefon"
-            placeholder="Telefon"
-            onChange={handleChange}
-            required
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53]"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Korisničko ime
+            </label>
+            <input
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Lozinka
+            </label>
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Puno ime
+            </label>
+            <input
+              name="fullName"
+              value={form.fullName}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Adresa
+            </label>
+            <input
+              name="adresa"
+              value={form.adresa}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telefon
+            </label>
+            <input
+              name="telefon"
+              value={form.telefon}
+              onChange={handleChange}
+              required
+              className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]"
+            />
+          </div>
+
+          {/* Role –vidljivo ali disabled */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Uloga 
+            </label>
+            <input
+              name="role"
+              value="admin"
+              disabled
+              className="w-full p-4 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+            />
+          </div>
 
           <button
             type="submit"
-            className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45]"
+            className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50"
             style={{ backgroundColor: '#41ac53' }}
           >
-            Registruj se
+            Kreiraj prvog administratora
           </button>
         </form>
 
-        <p className="mt-6 text-center text-gray-600">
-          Već imate nalog?{' '}
-          <Link to="/login" className="text-[#41ac53] font-medium hover:underline">
-            Ulogujte se
-          </Link>
+        <p className="mt-8 text-center text-sm text-gray-500">
+          Ovo je jednokratna registracija za prvog administratora aplikacije.
         </p>
       </div>
     </div>
