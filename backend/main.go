@@ -112,41 +112,37 @@ func main() {
 		})
 	})
 
-	// POST /api/setup/admin kreiranje prvog admin korisnika (dozvoljeno samo dok nema korisnika u bazi)
-	r.POST("/api/setup/admin", func(c *gin.Context) {
-		//  Proveri da li već postoje korisnici
-		var count int64
-		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri stanja korisnika"})
-			return
-		}
-		if count > 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Inicijalni admin je već kreiran"})
-			return
-		}
-
-		//  Bind body
+	// POST /api/register registracija novog korisnika, prvi korisnik postaje admin
+	r.POST("/api/register", func(c *gin.Context) {
 		var req struct {
 			Username string `json:"username" binding:"required"`
-			Password string `json:"password" binding:"required"`
+			Password string `json:"password" binding:"required,min=8"`
 			FullName string `json:"fullName" binding:"required"`
-			Email    string `json:"email" binding:"required"`
+			Email    string `json:"email" binding:"required,email"`
 			Adresa   string `json:"adresa" binding:"required"`
 			Telefon  string `json:"telefon" binding:"required"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći podaci za registraciju"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+
+		// Proveri da li je ovo prvi korisnik
+		var count int64
+		db.Model(&models.Korisnik{}).Count(&count)
+
+		role := "clan" // default za obične registracije
+		if count == 0 {
+			role = "admin" // prvi korisnik automatski admin
 		}
 
 		// Hash lozinke
 		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri obradi lozinke"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
 			return
 		}
 
-		// Kreiraj admin korisnika (role se forsira na 'admin')
 		korisnik := models.Korisnik{
 			Username: req.Username,
 			Password: string(hashed),
@@ -154,27 +150,17 @@ func main() {
 			Email:    req.Email,
 			Adresa:   req.Adresa,
 			Telefon:  req.Telefon,
-			Role:     "admin",
+			Role:     role,
 		}
 
 		if err := db.Create(&korisnik).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju admin korisnika"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username/email već postoji"})
 			return
 		}
 
-		// Vrati osnovne podatke (bez lozinke)
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Admin korisnik uspešno kreiran",
-			"korisnik": gin.H{
-				"id":        korisnik.ID,
-				"username":  korisnik.Username,
-				"fullName":  korisnik.FullName,
-				"email":     korisnik.Email,
-				"adresa":    korisnik.Adresa,
-				"telefon":   korisnik.Telefon,
-				"role":      korisnik.Role,
-				"createdAt": korisnik.CreatedAt,
-			},
+			"message": "Registracija uspešna",
+			"role":    role,
 		})
 	})
 
