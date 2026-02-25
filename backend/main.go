@@ -113,7 +113,7 @@ func main() {
 	})
 
 	// POST /api/register registracija novog korisnika, prvi korisnik postaje admin
-	r.POST("/api/register", func(c *gin.Context) {
+	r.POST("/api/setup/admin", func(c *gin.Context) {
 		var req struct {
 			Username string `json:"username" binding:"required"`
 			Password string `json:"password" binding:"required,min=8"`
