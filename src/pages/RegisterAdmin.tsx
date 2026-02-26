@@ -17,25 +17,26 @@ export default function RegisterAdmin() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Proveri da li baza već ima korisnika (blokira ručni pristup posle setup-a)
   useEffect(() => {
-    const checkSetup = async () => {
-      try {
-        const res = await api.get('/api/setup/status')
-        if (res.data.setupCompleted) {
-          // Ako već postoji korisnik → ne dozvoljavaj pristup stranici
-          navigate('/', { replace: true })
-        }
-      } catch (err) {
-        console.error('Greška pri proveri statusa', err)
-      } finally {
-        setLoading(false)
+  const checkSetup = async () => {
+    try {
+      const res = await api.get('/api/setup/status')
+
+      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
+      if (setupCompleted) {
+        navigate('/', { replace: true })
       }
-    }
+    } catch (err) {
+      console.error('Greška pri proveri statusa', err)
+        }
+        finally {
+          setLoading(false)
+        }
+      }
 
-    checkSetup()
-  }, [navigate])
-
+      checkSetup()
+    }, [navigate])
+    
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
