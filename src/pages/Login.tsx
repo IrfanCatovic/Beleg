@@ -30,7 +30,7 @@ export default function Login() {
       }
 
       checkSetup()
-    }, [navigate])
+    }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,6 +61,7 @@ export default function Login() {
     )
   }
 
+  console.log('Token sačuvan:', localStorage.getItem('token'))
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
 

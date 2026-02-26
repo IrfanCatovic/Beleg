@@ -164,49 +164,53 @@ func main() {
 		})
 	})
 
+	// POST /login login korisnika i dobijanje JWT tokena
 	r.POST("/login", func(c *gin.Context) {
-		var req LoginRequest
+		var req struct {
+			Username string `json:"username" binding:"required"`
+			Password string `json:"password" binding:"required"`
+		}
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 			return
 		}
 
-		var role string
-		var fullName string
-
-		if req.Username == "admin" && req.Password == "admin123" {
-			role = "admin"
-			fullName = "Admin Adri"
-		} else if req.Username == "clan1" && req.Password == "clan123" {
-			role = "clan"
-			fullName = "Pera Perić"
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		var korisnik models.Korisnik
+		if err := db.Where("username = ?", req.Username).First(&korisnik).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Pogrešno korisničko ime ili lozinka"})
 			return
 		}
 
+		// Proveri lozinku
+		if err := bcrypt.CompareHashAndPassword([]byte(korisnik.Password), []byte(req.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Pogrešno korisničko ime ili lozinka"})
+			return
+		}
+
+		// Generiši JWT token
 		claims := jwt.MapClaims{
-			"username": req.Username,
-			"role":     role,
+			"username": korisnik.Username,
+			"role":     korisnik.Role,
 			"exp":      time.Now().Add(time.Hour * 24).Unix(),
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		tokenString, err := token.SignedString(jwtSecret)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju tokena"})
 			return
 		}
 
+		// Vrati odgovor
 		c.JSON(http.StatusOK, LoginResponse{
 			Token: tokenString,
-			Role:  role,
+			Role:  korisnik.Role,
 			User: struct {
 				Username string `json:"username"`
 				FullName string `json:"fullName"`
 			}{
-				Username: req.Username,
-				FullName: fullName,
+				Username: korisnik.Username,
+				FullName: korisnik.FullName,
 			},
 		})
 	})
