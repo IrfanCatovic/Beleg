@@ -49,12 +49,12 @@ const handleSubmit = async (e: React.FormEvent) => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
       <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl border border-emerald-100">
         <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-          Kreiranje prvog administratora
+          Registracija novog člana
         </h2>
 
         {success && (
           <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
-            Administrator uspešno kreiran! Preusmeravam na login...
+            Član uspešno registrovan! Preusmeravam na login...
           </div>
         )}
 
@@ -177,12 +177,12 @@ const handleSubmit = async (e: React.FormEvent) => {
             className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50"
             style={{ backgroundColor: '#41ac53' }}
           >
-            Kreiraj prvog administratora
+            Kreiraj novog člana
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-500">
-          Ovo je jednokratna registracija za prvog administratora aplikacije.
+          Ovo je registracija za novog člana aplikacije.
         </p>
       </div>
     </div>
