@@ -79,7 +79,7 @@ export default function RegisterAdmin() {
       formData.append('adresa', form.adresa)
       formData.append('telefon', form.telefon)
 
-      // Ako je izabrana slika – dodaj je
+      // Ako je izabrana slika dodaj je u formData
       if (avatarFile) {
         formData.append('avatar', avatarFile)
       }
@@ -205,7 +205,7 @@ export default function RegisterAdmin() {
             />
           </div>
 
-          {/* Profilna slika – opciono */}
+          {/* Profilna slika opciono */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Profilna slika (opciono)
@@ -227,7 +227,7 @@ export default function RegisterAdmin() {
             )}
           </div>
 
-          {/* Role – disabled */}
+          {/* Role disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Uloga (automatski postavljeno)

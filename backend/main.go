@@ -250,8 +250,8 @@ func main() {
 			})
 		})
 
-		// POST /api/register – registracija novog korisnika (samo admin ili sekretar)
-		r.POST("/api/register", middleware.AuthMiddleware(), func(c *gin.Context) {
+		// POST /api/register registracija novog korisnika (samo admin ili sekretar)
+		r.POST("/api/register", middleware.AuthMiddleware(jwtSecret), func(c *gin.Context) {
 			// Proveri da li je korisnik admin ili sekretar
 			role, exists := c.Get("role")
 			if !exists || (role != "admin" && role != "sekretar") {
