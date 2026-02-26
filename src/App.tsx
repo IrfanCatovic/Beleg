@@ -13,7 +13,7 @@ import AddAction from './pages/AddAction'
 import Users from './pages/Users'
 import UserProfile from './pages/UserProfil'
 import ActionDetails from './pages/ActionDetails'
-import AddUser from './pages/AddUser'
+import RegisterUser from './pages/RegisterUser'
 
 //routes
 import ProtectedRoute from './components/ProtectedRoute'
@@ -64,7 +64,7 @@ const router = createBrowserRouter([
             children: [
               { path: '/finansije', element: <Finance /> },
               { path: '/dodaj-akciju', element: <AddAction /> },
-              { path: '/dodaj-korisnika', element: <AddUser /> },
+              { path: '/dodaj-korisnika', element: <RegisterUser /> },
 
             ],
           },

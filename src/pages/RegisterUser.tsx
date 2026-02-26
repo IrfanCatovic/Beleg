@@ -1,9 +1,8 @@
-// src/pages/RegisterAdmin.tsx
-import { useState, useEffect } from 'react'
+import { useState} from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
-export default function RegisterAdmin() {
+export default function RegisterUser() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     username: '',
@@ -12,36 +11,17 @@ export default function RegisterAdmin() {
     email: '',
     adresa: '',
     telefon: '',
+    role: 'clan'
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-  const checkSetup = async () => {
-    try {
-      const res = await api.get('/api/setup/status')
-
-      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
-      if (setupCompleted) {
-        navigate('/', { replace: true })
-      }
-    } catch (err) {
-      console.error('Greška pri proveri statusa', err)
-        }
-        finally {
-          setLoading(false)
-        }
-      }
-
-      checkSetup()
-    }, [navigate])
-    
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -163,14 +143,13 @@ export default function RegisterAdmin() {
             />
           </div>
 
-          {/* Role vidljivo ali disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Uloga (automatski postavljeno)
+              Uloga 
             </label>
             <input
               name="role"
-              value="admin"
+              value={form.role}
               disabled
               className="w-full p-4 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
             />

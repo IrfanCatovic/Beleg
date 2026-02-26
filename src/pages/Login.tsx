@@ -14,6 +14,8 @@ export default function Login() {
 
   useEffect(() => {
   const checkSetup = async () => {
+
+    setLoading(true)
     try {
       const res = await api.get('/api/setup/status')
 
@@ -27,6 +29,8 @@ export default function Login() {
       console.error('Greška pri proveri statusa', err)
 
         }
+        finally {
+          setLoading(false)}
       }
 
       checkSetup()
