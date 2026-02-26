@@ -217,7 +217,7 @@ func main() {
 
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
-	protected.Use(middleware.AuthMiddleware())
+	protected.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {

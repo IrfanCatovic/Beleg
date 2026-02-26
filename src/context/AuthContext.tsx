@@ -10,10 +10,16 @@ interface User {
 }
 
 
+export interface LoginResponse {
+  token: string;
+  role: string;
+  user: { username: string; fullName: string };
+}
+
 interface AuthContextType {
   isLoggedIn: boolean;
-  user: User | null
-  login: (username: string, password: string) => void;
+  user: User | null;
+  login: (data: LoginResponse) => void;
   logout: () => void;
 }
 
@@ -35,49 +41,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
         useEffect(() => {
-            if(isLoggedIn) {
-            localStorage.setItem('isLoggedIn', 'true') //when user log in, it sets the item isLoggedIn to true in localStorage
-            } else {   
-                localStorage.removeItem('isLoggedIn') //when user log out, it removes the item isLoggedIn from localStorage
+            if (isLoggedIn) {
+                localStorage.setItem('isLoggedIn', 'true')
+            } else {
+                localStorage.removeItem('isLoggedIn')
                 localStorage.removeItem('user')
+                localStorage.removeItem('token')
             }
         }, [isLoggedIn])
 
-            const login = (username: string, password: string) => {
-                // Current simulated login logic, replace with real API call in production
-                let simulatedUser: User | null = null
-
-                if (username === 'admin' && password === 'admin123') {
-                simulatedUser = {
-                    username: 'admin',
-                    fullName: 'Admin Beleg',
-                    role: 'admin'
+            const login = (data: LoginResponse) => {
+                const userData: User = {
+                    username: data.user.username,
+                    fullName: data.user.fullName,
+                    role: data.role as User['role'],
                 }
-                } else if (username === 'clan1' && password === 'clan123') {
-                simulatedUser = {
-                    username: 'clan1',
-                    fullName: 'Pera Perić',
-                    role: 'clan'
-                }
-             }
-
-                if (simulatedUser) {
-                setUser(simulatedUser)
-                localStorage.setItem('user', JSON.stringify(simulatedUser))
+                setUser(userData)
+                localStorage.setItem('user', JSON.stringify(userData))
+                localStorage.setItem('token', data.token)
                 setIsLoggedIn(true)
-                } else {
-                alert('Pogrešno korisničko ime ili lozinka!')
-                }
             }
-            
+
             const logout = () => {
-            setIsLoggedIn(false)
-            setUser(null)
+                setIsLoggedIn(false)
+                setUser(null)
+                localStorage.removeItem('token')
             }
 
         return (
             <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
-            {children}
+                {children}
             </AuthContext.Provider>
         );
         }

@@ -37,15 +37,12 @@ export default function Login() {
     setError('') // Clear previous error
     setLoading(true)
 
-    try{
-      const response = await api.post('/login', { username, password }) // Call the backend login endpoint
-      const { token, role, user } = response.data
-      localStorage.setItem('token', token) // Save token in localStorage
-      login(username, password) 
-      navigate('/home') 
-    } 
-     catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.') // Show error message from backend or a generic one
+    try {
+      const response = await api.post('/login', { username, password })
+      login(response.data)
+      navigate('/home')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Pogrešno korisničko ime ili lozinka.')
     }
     finally {
       setLoading(false)
@@ -61,7 +58,6 @@ export default function Login() {
     )
   }
 
-  console.log('Token sačuvan:', localStorage.getItem('token'))
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
 
@@ -79,6 +75,12 @@ export default function Login() {
             User login
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-7">
 
