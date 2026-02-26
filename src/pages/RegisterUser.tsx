@@ -1,8 +1,10 @@
 import { useState} from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 export default function RegisterUser() {
+    const { user } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     username: '',
@@ -11,13 +13,13 @@ export default function RegisterUser() {
     email: '',
     adresa: '',
     telefon: '',
-    role: 'clan'
+    role: '',
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -35,13 +37,13 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Proveravam stanje aplikacije...</div>
-      </div>
-    )
-  }
+  const roleOptions = user?.role === 'admin' ? [
+  'admin', 'clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme'
+] : [
+  'clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme' // bez admina
+]
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
@@ -143,17 +145,32 @@ const handleSubmit = async (e: React.FormEvent) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Uloga 
-            </label>
-            <input
-              name="role"
-              value={form.role}
-              disabled
-              className="w-full p-4 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
-            />
-          </div>
+            <div>
+                <label 
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                    Uloga
+                </label>
+                <select
+                    name="role"
+                    value={form.role}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53] bg-white text-gray-900 text-base transition-colors duration-200 hover:border-[#41ac53]/70 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <option value="" disabled>
+                    Izaberite ulogu
+                    </option>
+                    {roleOptions.map((role) => (
+                    <option 
+                        key={role} 
+                        value={role}
+                    >
+                        {role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' ')}
+                    </option>
+                    ))}
+                </select>
+                </div>
 
           <button
             type="submit"
