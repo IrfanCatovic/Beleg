@@ -13,43 +13,85 @@ export default function RegisterAdmin() {
     adresa: '',
     telefon: '',
   })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // Proveri da li baza već ima korisnika (blokira ručni pristup posle setup-a)
   useEffect(() => {
-  const checkSetup = async () => {
-    try {
-      const res = await api.get('/api/setup/status')
-
-      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
-      if (setupCompleted) {
-        navigate('/', { replace: true })
-      }
-    } catch (err) {
-      console.error('Greška pri proveri statusa', err)
+    const checkSetup = async () => {
+      try {
+        const res = await api.get('/api/setup/status')
+        if (res.data.hasUsers) {
+          navigate('/', { replace: true })
         }
-        finally {
-          setLoading(false)
-        }
+      } catch (err) {
+        console.error('Greška pri proveri statusa', err)
+      } finally {
+        setLoading(false)
       }
+    }
 
-      checkSetup()
-    }, [navigate])
-    
+    checkSetup()
+  }, [navigate])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Proveri da li je slika
+    if (!file.type.startsWith('image/')) {
+      setError('Dozvoljene su samo slike (jpg, png, gif...)')
+      return
+    }
+
+    // Proveri veličinu (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Slika je prevelika (maksimum 5 MB)')
+      return
+    }
+
+    setError('') // očisti eventualnu grešku
+    setAvatarFile(file)
+
+    // Kreiraj preview
+    const previewUrl = URL.createObjectURL(file)
+    setAvatarPreview(previewUrl)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess(false)
 
     try {
-      await api.post('/api/setup/admin', form)
+      const formData = new FormData()
+      formData.append('username', form.username)
+      formData.append('password', form.password)
+      formData.append('fullName', form.fullName)
+      formData.append('email', form.email)
+      formData.append('adresa', form.adresa)
+      formData.append('telefon', form.telefon)
+
+      // Ako je izabrana slika – dodaj je
+      if (avatarFile) {
+        formData.append('avatar', avatarFile)
+      }
+
+      await api.post('/api/setup/admin', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
       setSuccess(true)
-      // Posle uspeha → odmah na /
-      setTimeout(() => navigate('/', { replace: true }), 1500)
+      setTimeout(() => navigate('/', { replace: true }), 2000)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Greška pri kreiranju administratora')
     }
@@ -163,7 +205,29 @@ export default function RegisterAdmin() {
             />
           </div>
 
-          {/* Role vidljivo ali disabled */}
+          {/* Profilna slika – opciono */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profilna slika (opciono)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#41ac53]/10 file:text-[#41ac53] hover:file:bg-[#41ac53]/20 cursor-pointer"
+            />
+            {avatarPreview && (
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={avatarPreview}
+                  alt="Preview profilne slike"
+                  className="w-32 h-32 object-cover rounded-full border-4 border-[#41ac53]/30 shadow-md"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Role – disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Uloga (automatski postavljeno)

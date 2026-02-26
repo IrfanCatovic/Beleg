@@ -7,6 +7,7 @@ type Korisnik struct {
 	Username                   string    `gorm:"unique" json:"username"`
 	Password                   string    `json:"-"`
 	FullName                   string    `json:"fullName"`
+	AvatarURL                  string    `gorm:"type:varchar(500)" json:"avatar_url"`
 	Email                      string    `json:"email"`
 	Adresa                     string    `json:"adresa"`
 	Telefon                    string    `json:"telefon"`

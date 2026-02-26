@@ -250,6 +250,57 @@ func main() {
 			})
 		})
 
+		// POST /api/register – registracija novog korisnika (samo admin ili sekretar)
+		r.POST("/api/register", middleware.AuthMiddleware(), func(c *gin.Context) {
+			// Proveri da li je korisnik admin ili sekretar
+			role, exists := c.Get("role")
+			if !exists || (role != "admin" && role != "sekretar") {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da kreiraju nove korisnike"})
+				return
+			}
+
+			var req struct {
+				Username string `json:"username" binding:"required"`
+				Password string `json:"password" binding:"required,min=8"`
+				FullName string `json:"fullName" binding:"required"`
+				Email    string `json:"email" binding:"required,email"`
+				Adresa   string `json:"adresa" binding:"required"`
+				Telefon  string `json:"telefon" binding:"required"`
+				Role     string `json:"role" binding:"required,oneof=admin clan vodic blagajnik sekretar menadzer-opreme"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			// Hash lozinke
+			hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
+				return
+			}
+
+			korisnik := models.Korisnik{
+				Username: req.Username,
+				Password: string(hashed),
+				FullName: req.FullName,
+				Email:    req.Email,
+				Adresa:   req.Adresa,
+				Telefon:  req.Telefon,
+				Role:     req.Role,
+			}
+
+			if err := db.Create(&korisnik).Error; err != nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username/email već postoji"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, gin.H{
+				"message": "Korisnik uspešno kreiran",
+				"role":    req.Role,
+			})
+		})
+
 		// POST /api/akcije adding new action, only for admin
 		protected.POST("/akcije", func(c *gin.Context) {
 			role, _ := c.Get("role")

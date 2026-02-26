@@ -42,7 +42,7 @@ export default function AddAction() {
             const formData = new FormData()
             formData.append('naziv', naziv)
             formData.append('vrh', vrh)
-            formData.append('datum', datum)  // ← SAMO OVO! bez T00:00:00Z
+            formData.append('datum', datum)  
             formData.append('opis', opis)
             formData.append('tezina', tezina)
             formData.append('kumulativniUsponM', kumulativniUsponM)
