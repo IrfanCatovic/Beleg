@@ -28,6 +28,8 @@ interface Korisnik {
   username: string
   fullName: string
   avatar_url?: string
+  email?: string
+  telefon?: string
   role: 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
   createdAt: string
   updatedAt: string
@@ -152,13 +154,29 @@ export default function UserProfile() {
               }`}>
                 {korisnik.role === 'admin' ? 'Admin' : 'Član'}
               </span>
-              <p className="text-gray-500 mt-4">
-                Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+            <p className="text-gray-500 mt-4">
+              Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            {korisnik.email && (
+              <p className="text-gray-600 mt-2 text-sm">
+                <span className="font-medium">Email:</span>{' '}
+                <a href={`mailto:${korisnik.email}`} className="text-[#41ac53] hover:underline">
+                  {korisnik.email}
+                </a>
               </p>
-            </div>
+            )}
+            {korisnik.telefon && (
+              <p className="text-gray-600 mt-1 text-sm">
+                <span className="font-medium">Telefon:</span>{' '}
+                <a href={`tel:${korisnik.telefon}`} className="text-[#41ac53] hover:underline">
+                  {korisnik.telefon}
+                </a>
+              </p>
+            )}
           </div>
+        </div>
 
-          {/* Rank desno, mobile friendly */}
+        {/* Rank desno, mobile friendly */}
           <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end">
             <div
               className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"

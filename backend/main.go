@@ -617,6 +617,115 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"message": "Uspešno ste otkazali prijavu"})
 		})
 
+		// GET /api/me — trenutno ulogovani korisnik (pun profil za prikaz i podešavanja)
+		protected.GET("/me", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			c.JSON(200, korisnik)
+		})
+
+		// PATCH /api/me — ažuriranje profila (fullName, email, adresa, telefon, opciono avatar). Ne menja username, role; čuva km i uspon.
+		protected.PATCH("/me", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			// Parsiranje multipart forme (kao setup/admin)
+			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+				return
+			}
+
+			fullName := c.PostForm("fullName")
+			email := c.PostForm("email")
+			adresa := c.PostForm("adresa")
+			telefon := c.PostForm("telefon")
+
+			if fullName != "" {
+				korisnik.FullName = fullName
+			}
+			if email != "" {
+				korisnik.Email = email
+			}
+			if adresa != "" {
+				korisnik.Adresa = adresa
+			}
+			if telefon != "" {
+				korisnik.Telefon = telefon
+			}
+
+			// Opciono: novi avatar na Cloudinary
+			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
+				file := files[0]
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+					return
+				}
+				defer f.Close()
+
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("avatari/%s-%d", korisnik.Username, time.Now().Unix()),
+					Folder:   "adri-sentinel",
+				}
+
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
+					return
+				}
+				korisnik.AvatarURL = uploadResult.SecureURL
+			}
+
+			// Sačuvaj samo izmenjena polja; ne diraj password, role, ukupno_km, ukupno_metara_uspona, broj_popeo_se
+			updates := map[string]interface{}{
+				"full_name": korisnik.FullName,
+				"email":     korisnik.Email,
+				"adresa":    korisnik.Adresa,
+				"telefon":   korisnik.Telefon,
+			}
+			if korisnik.AvatarURL != "" {
+				updates["avatar_url"] = korisnik.AvatarURL
+			}
+			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
+				return
+			}
+
+			c.JSON(200, gin.H{"message": "Profil ažuriran", "korisnik": korisnik})
+		})
+
 		// GET /api/korisnici/:id detalji o korisniku
 		protected.GET("/korisnici/:id", func(c *gin.Context) {
 			idStr := c.Param("id")

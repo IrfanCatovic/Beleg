@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import Welcome from './pages/Welcome'
 import RegisterAdmin from './pages/RegisterAdmin'
+import ProfileSettings from './pages/ProfileSettings'
 
 
 const router = createBrowserRouter([
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
           { path: '/akcije', element: <Actions /> },
           { path: '/akcije/:id', element: <ActionDetails /> },
           { path: '/profil', element: <Profil /> },
+          { path: '/profil/podesavanja', element: <ProfileSettings /> },
 
           // Ove dve su vidljive svima ulogovanima
           { path: '/users', element: <Users /> },
