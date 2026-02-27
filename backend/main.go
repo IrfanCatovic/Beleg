@@ -112,18 +112,21 @@ func main() {
 		})
 	})
 
-	// POST /api/register registracija novog korisnika, prvi korisnik postaje admin
+	// POST /api/setup/admin — kreiranje prvog admina (multipart: polja + opciono avatar)
 	r.POST("/api/setup/admin", func(c *gin.Context) {
-		var req struct {
-			Username string `json:"username" binding:"required"`
-			Password string `json:"password" binding:"required,min=8"`
-			FullName string `json:"fullName" binding:"required"`
-			Email    string `json:"email" binding:"required,email"`
-			Adresa   string `json:"adresa" binding:"required"`
-			Telefon  string `json:"telefon" binding:"required"`
+		username := c.PostForm("username")
+		password := c.PostForm("password")
+		fullName := c.PostForm("fullName")
+		email := c.PostForm("email")
+		adresa := c.PostForm("adresa")
+		telefon := c.PostForm("telefon")
+
+		if username == "" || password == "" || fullName == "" || email == "" || adresa == "" || telefon == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna (username, password, fullName, email, adresa, telefon)"})
+			return
 		}
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if len(password) < 8 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
 			return
 		}
 
@@ -137,20 +140,56 @@ func main() {
 		}
 
 		// Hash lozinke
-		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
 			return
 		}
 
+		avatarURL := ""
+		// Opciono: upload avatara na Cloudinary
+		if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
+			file := files[0]
+			f, err := file.Open()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+				return
+			}
+			defer f.Close()
+
+			cld, err := cloudinary.NewFromParams(
+				os.Getenv("CLOUDINARY_CLOUD_NAME"),
+				os.Getenv("CLOUDINARY_API_KEY"),
+				os.Getenv("CLOUDINARY_API_SECRET"),
+			)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+				return
+			}
+
+			ctx := context.Background()
+			uploadParams := uploader.UploadParams{
+				PublicID: fmt.Sprintf("avatari/setup-%s-%d", username, time.Now().Unix()),
+				Folder:   "adri-sentinel",
+			}
+
+			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
+				return
+			}
+			avatarURL = uploadResult.SecureURL
+		}
+
 		korisnik := models.Korisnik{
-			Username: req.Username,
-			Password: string(hashed),
-			FullName: req.FullName,
-			Email:    req.Email,
-			Adresa:   req.Adresa,
-			Telefon:  req.Telefon,
-			Role:     role,
+			Username:  username,
+			Password:  string(hashed),
+			FullName:  fullName,
+			Email:     email,
+			Adresa:    adresa,
+			Telefon:   telefon,
+			Role:      role,
+			AvatarURL: avatarURL,
 		}
 
 		if err := db.Create(&korisnik).Error; err != nil {
