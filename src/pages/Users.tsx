@@ -7,6 +7,7 @@ interface Korisnik {
   id: number
   username: string
   fullName: string
+  avatar_url?: string
   role: 'admin' | 'clan'
   createdAt: string
 }
@@ -16,7 +17,8 @@ export default function Korisnici() {
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [searchTerm, setSearchTerm] = useState('') // ← NOVO: stanje za pretragu
+  const [searchTerm, setSearchTerm] = useState('')
+  const [avatarFailed, setAvatarFailed] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     if (!user) return
@@ -101,10 +103,19 @@ export default function Korisnici() {
               >
                 <div className="p-6">
                   <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div className="w-14 h-14 rounded-full bg-linear-to-br from-[#41ac53] to-[#2e8b4a] 
-                      flex items-center justify-center text-white font-bold text-xl">
-                        {k.fullName.charAt(0).toUpperCase()}
+                      {/* Slika profila ili inicijal */}
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                        {k.avatar_url && !avatarFailed[k.id] ? (
+                          <img
+                            src={k.avatar_url}
+                            alt={k.fullName}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
+                          />
+                        ) : null}
+                        <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
+                          {k.fullName.charAt(0).toUpperCase()}
+                        </span>
                       </div>
 
                       <div>

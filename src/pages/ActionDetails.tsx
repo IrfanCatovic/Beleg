@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -50,7 +50,6 @@ export default function ActionDetails() {
       try {
         const res = await api.get(`/api/akcije/${id}/prijave`)
         setPrijave(res.data.prijave || [])
-        // Proveri da li su sve prijave označene ako da, smatraj akciju završenom
         const allMarked = res.data.prijave.every((p: Prijava) => p.status !== 'prijavljen')
         setIsCompleted(allMarked)
       } catch (err: any) {
@@ -59,8 +58,8 @@ export default function ActionDetails() {
     }
 
     fetchAkcija()
-    fetchPrijave()
-  }, [id])
+    if (user) fetchPrijave()
+  }, [id, user])
 
   const handleDelete = async () => {
     if (!window.confirm('Da li si siguran da želiš da obrišeš ovu akciju?')) return
@@ -133,6 +132,14 @@ export default function ActionDetails() {
 
         {/* Detalji */}
         <div className="m-12">
+          {!user && (
+            <p className="mb-6 p-4 bg-gray-50 rounded-xl text-gray-600 text-center">
+              <Link to="/" className="text-[#41ac53] font-medium hover:underline">Prijavite se</Link> da vidite ko je prijavljen i da se prijavite na akciju.
+            </p>
+          )}
+
+          {user && (
+            <>
               <h3 className="text-2xl font-semibold mb-4" style={{ color: '#41ac53' }}>
                 Prijavljeni članovi ({prijave.length})
               </h3>
@@ -169,7 +176,7 @@ export default function ActionDetails() {
                         </span>
 
                         {/* Dugmad samo za admin/vodič i ako je prijavljen */}
-                        {user && ['admin', 'vodjac'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
+                        {user && ['admin', 'vodic'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
                           <div className="flex gap-2">
                             <button onClick={() => handleUpdateStatus(p.id, 'popeo se')} className="px-4 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
                               Popeo se
@@ -184,10 +191,12 @@ export default function ActionDetails() {
                   ))}
                 </div>
               )}
+            </>
+          )}
             </div>
 
             {/* Dugme Završi akciju (samo admin/vodič, ako je akcija još aktivna) */}
-            {user && ['admin', 'vodjac'].includes(user?.role) && !akcija.isCompleted && (
+            {user && ['admin', 'vodic'].includes(user?.role) && !akcija.isCompleted && (
               <div className="mt-10 flex justify-center">
                 <button
                   onClick={handleZavrsiAkciju}
@@ -198,7 +207,7 @@ export default function ActionDetails() {
               </div>
             )}
             {/* Dugmad za edit i delete – samo za admina/vodiča */}
-              {user && ['admin', 'vodjac'].includes(user?.role) && !akcija.isCompleted && (
+              {user && ['admin', 'vodic'].includes(user?.role) && !akcija.isCompleted && (
                 <div className="mt-8 mb-10 flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     onClick={handleEdit}

@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
+
+interface Korisnik {
+  id: number
+  username: string
+  fullName: string
+  role: string
+}
 
 export default function AddAction() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // State za formu
+  const [vodici, setVodici] = useState<Korisnik[]>([])
   const [naziv, setNaziv] = useState('')
   const [vrh, setVrh] = useState('')
   const [datum, setDatum] = useState('')
@@ -16,10 +23,26 @@ export default function AddAction() {
   const [slika, setSlika] = useState<File | null>(null)
   const [kumulativniUsponM, setKumulativniUsponM] = useState('')
   const [duzinaStazeKm, setDuzinaStazeKm] = useState('')
+  const [vodicId, setVodicId] = useState('')
+  const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
+  const [drugiVodicIme, setDrugiVodicIme] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    const fetchVodici = async () => {
+      try {
+        const res = await api.get('/api/korisnici')
+        const korisnici = res.data.korisnici || []
+        setVodici(korisnici.filter((k: Korisnik) => k.role === 'vodic'))
+      } catch {
+        setVodici([])
+      }
+    }
+    fetchVodici()
+  }, [])
 
   if (user?.role !== 'admin') {
     return <div className="text-center py-10 text-red-600">Samo admin može da dodaje akcije.</div>
@@ -47,6 +70,8 @@ export default function AddAction() {
             formData.append('tezina', tezina)
             formData.append('kumulativniUsponM', kumulativniUsponM)
             formData.append('duzinaStazeKm', duzinaStazeKm)
+            if (vodicId) formData.append('vodic_id', vodicId)
+            if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
             if (slika) {
               formData.append('slika', slika)
             }
@@ -114,6 +139,47 @@ export default function AddAction() {
             rows={4}
           />
         </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Vodič</label>
+          <select
+            value={vodicId}
+            onChange={(e) => setVodicId(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+          >
+            <option value="">Izaberi vodiča</option>
+            {vodici.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.fullName} (@{v.username})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="drugi-vodic"
+            checked={drugiVodicCheck}
+            onChange={(e) => setDrugiVodicCheck(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-[#41ac53] focus:ring-[#41ac53]"
+          />
+          <label htmlFor="drugi-vodic" className="text-gray-700 font-medium">
+            Drugi vodič
+          </label>
+        </div>
+        {drugiVodicCheck && (
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">Upišite ime vodiča</label>
+            <input
+              type="text"
+              value={drugiVodicIme}
+              onChange={(e) => setDrugiVodicIme(e.target.value)}
+              placeholder="Ime i prezime drugog vodiča"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            />
+          </div>
+        )}
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">Težina</label>

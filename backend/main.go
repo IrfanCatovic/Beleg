@@ -269,6 +269,24 @@ func main() {
 		})
 	})
 
+	// Javna ruta — detalji akcije (za deljenje linka; i neulogovani mogu da vide)
+	r.GET("/api/akcije/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Nevažeći ID akcije"})
+			return
+		}
+		dbAny, _ := c.Get("db")
+		db := dbAny.(*gorm.DB)
+		var akcija models.Akcija
+		if err := db.First(&akcija, id).Error; err != nil {
+			c.JSON(404, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		c.JSON(200, akcija)
+	})
+
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
@@ -376,6 +394,8 @@ func main() {
 			tezina := c.PostForm("tezina")
 			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			vodicIDStr := c.PostForm("vodic_id")
+			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
 			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
@@ -400,6 +420,13 @@ func main() {
 				return
 			}
 
+			var vodicID uint
+			if vodicIDStr != "" {
+				if vID, err := strconv.ParseUint(vodicIDStr, 10, 32); err == nil {
+					vodicID = uint(vID)
+				}
+			}
+
 			akcija := models.Akcija{
 				Naziv:                    naziv,
 				Vrh:                      vrh,
@@ -410,6 +437,8 @@ func main() {
 				UkupnoKmAkcija:           duzinaStazeKm,
 				SlikaURL:                 "",
 				IsCompleted:              false,
+				VodicID:                  vodicID,
+				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 			}
 
 			db := c.MustGet("db").(*gorm.DB)
@@ -776,26 +805,7 @@ func main() {
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})
 
-		// GET /api/akcije/:id detalji o akciji
-		protected.GET("/akcije/:id", func(c *gin.Context) {
-			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "Nevažeći ID akcije"})
-				return
-			}
-
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			var akcija models.Akcija
-			if err := db.First(&akcija, id).Error; err != nil {
-				c.JSON(404, gin.H{"error": "Akcija nije pronađena"})
-				return
-			}
-
-			c.JSON(200, akcija)
-		})
+		// GET /api/akcije/:id — detalji su javni (ruta registrovana iznad, van protected)
 
 		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se,
 		// i statistika ukupno km, metara uspona i broj popeo se.

@@ -15,6 +15,8 @@ type Akcija struct {
 	IsCompleted              bool      `gorm:"default:false" json:"isCompleted"`
 	UkupnoMetaraUsponaAkcija int       `json:"kumulativniUsponM"`
 	UkupnoKmAkcija           float64   `json:"duzinaStazeKm"`
+	VodicID                  uint      `gorm:"default:0" json:"vodicId"`           // ID korisnika (vodiča) koji vodi akciju
+	DrugiVodicIme            string    `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
 }
 
 // TableName specifies the table name for the Akcija model

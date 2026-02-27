@@ -48,11 +48,13 @@ const router = createBrowserRouter([
     children: [
       { path: '/home', element: <Home /> },
 
+      // Javno: detalji akcije (bez logina, za deljenje na društvene mreže)
+      { path: '/akcije/:id', element: <ActionDetails /> },
+
       {
         element: <ProtectedRoute />,
         children: [
           { path: '/akcije', element: <Actions /> },
-          { path: '/akcije/:id', element: <ActionDetails /> },
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
 
