@@ -27,6 +27,7 @@ interface Korisnik {
   id: number
   username: string
   fullName: string
+  avatar_url?: string
   role: 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
   createdAt: string
   updatedAt: string
@@ -50,6 +51,7 @@ export default function UserProfile() {
   const [rank, setRank] = useState({ naziv: 'Početnik', boja: '#E0D9C9' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
 
   useEffect(() => {
     const fetchProfilData = async () => {
@@ -80,6 +82,10 @@ export default function UserProfile() {
     }
 
     fetchProfilData()
+  }, [id])
+
+  useEffect(() => {
+    setAvatarLoadFailed(false)
   }, [id])
 
   // Računanje ranka
@@ -121,23 +127,45 @@ export default function UserProfile() {
       )}
 
       <div className="bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex flex-col md:flex-row items-center gap-8">
-          {/* Avatar */}
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-5xl">
-            {korisnik.fullName.charAt(0).toUpperCase()}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Avatar ili slika profila */}
+            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-5xl flex-shrink-0">
+              {korisnik.avatar_url && !avatarLoadFailed ? (
+                <img
+                  src={korisnik.avatar_url}
+                  alt={korisnik.fullName}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={() => setAvatarLoadFailed(true)}
+                />
+              ) : null}
+              <span className={korisnik.avatar_url && !avatarLoadFailed ? 'invisible' : ''}>
+                {korisnik.fullName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+
+            <div className="text-center md:text-left">
+              <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName}</h1>
+              <p className="text-xl text-gray-600 mt-2">@{korisnik.username}</p>
+              <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${
+                korisnik.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+              }`}>
+                {korisnik.role === 'admin' ? 'Admin' : 'Član'}
+              </span>
+              <p className="text-gray-500 mt-4">
+                Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
           </div>
 
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName}</h1>
-            <p className="text-xl text-gray-600 mt-2">@{korisnik.username}</p>
-            <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${
-              korisnik.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-            }`}>
-              {korisnik.role === 'admin' ? 'Admin' : 'Član'}
-            </span>
-            <p className="text-gray-500 mt-4">
-              Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+          {/* Rank desno, mobile friendly */}
+          <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end">
+            <div
+              className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
+              style={{ backgroundColor: rank.boja, color: rank.boja === '#000000' ? '#FFD700' : 'white' }}
+            >
+              {rank.naziv}
+            </div>
           </div>
         </div>
 
@@ -168,16 +196,6 @@ export default function UserProfile() {
               </p>
               <p className="text-sm text-gray-600 mt-1">Akcija popeo se</p>
             </div>
-          </div>
-        </div>
-
-        {/* Rank */}
-        <div className="text-center mt-8">
-          <div 
-            className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
-            style={{ backgroundColor: rank.boja, color: rank.boja === '#000000' ? '#FFD700' : 'white' }}
-          >
-            {rank.naziv}
           </div>
         </div>
 
