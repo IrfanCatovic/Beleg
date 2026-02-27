@@ -15,6 +15,9 @@ interface Akcija {
   createdAt: string
   updatedAt: string
   isCompleted: boolean
+  drugiVodicIme?: string
+  vodic?: { fullName: string; username: string }
+  addedBy?: { fullName: string; username: string }
 }
 
 interface Prijava {
@@ -132,6 +135,28 @@ export default function ActionDetails() {
 
         {/* Detalji */}
         <div className="m-12">
+          {/* Vodič i ko je dodao akciju */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-2">
+            {akcija.vodic && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Vodič:</span>{' '}
+                {akcija.vodic.fullName} (@{akcija.vodic.username})
+              </p>
+            )}
+            {akcija.drugiVodicIme && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Drugi vodič:</span>{' '}
+                {akcija.drugiVodicIme}
+              </p>
+            )}
+            {akcija.addedBy && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Dodao/la akciju:</span>{' '}
+                {akcija.addedBy.fullName} (@{akcija.addedBy.username})
+              </p>
+            )}
+          </div>
+
           {!user && (
             <p className="mb-6 p-4 bg-gray-50 rounded-xl text-gray-600 text-center">
               <Link to="/" className="text-[#41ac53] font-medium hover:underline">Prijavite se</Link> da vidite ko je prijavljen i da se prijavite na akciju.

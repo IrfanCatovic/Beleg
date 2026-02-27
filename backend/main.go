@@ -269,7 +269,7 @@ func main() {
 		})
 	})
 
-	// Javna ruta — detalji akcije (za deljenje linka; i neulogovani mogu da vide)
+	// Javna ruta — detalji akcije (za deljenje linka; vraća i vodiča i ko je dodao)
 	r.GET("/api/akcije/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -284,7 +284,27 @@ func main() {
 			c.JSON(404, gin.H{"error": "Akcija nije pronađena"})
 			return
 		}
-		c.JSON(200, akcija)
+		resp := gin.H{
+			"id": akcija.ID, "naziv": akcija.Naziv, "vrh": akcija.Vrh, "datum": akcija.Datum,
+			"opis": akcija.Opis, "tezina": akcija.Tezina, "slikaUrl": akcija.SlikaURL,
+			"createdAt": akcija.CreatedAt, "updatedAt": akcija.UpdatedAt,
+			"isCompleted": akcija.IsCompleted, "kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
+			"duzinaStazeKm": akcija.UkupnoKmAkcija, "vodicId": akcija.VodicID,
+			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
+		}
+		if akcija.VodicID > 0 {
+			var v models.Korisnik
+			if db.First(&v, akcija.VodicID).Error == nil {
+				resp["vodic"] = gin.H{"fullName": v.FullName, "username": v.Username}
+			}
+		}
+		if akcija.AddedByID > 0 {
+			var a models.Korisnik
+			if db.First(&a, akcija.AddedByID).Error == nil {
+				resp["addedBy"] = gin.H{"fullName": a.FullName, "username": a.Username}
+			}
+		}
+		c.JSON(200, resp)
 	})
 
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
@@ -380,6 +400,13 @@ func main() {
 				c.JSON(403, gin.H{"error": "Samo admin može dodavati akcije"})
 				return
 			}
+			username, _ := c.Get("username")
+			db := c.MustGet("db").(*gorm.DB)
+			var currentUser models.Korisnik
+			if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
 
 			form, err := c.MultipartForm()
 			if err != nil {
@@ -439,9 +466,8 @@ func main() {
 				IsCompleted:              false,
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
+				AddedByID:                currentUser.ID,
 			}
-
-			db := c.MustGet("db").(*gorm.DB)
 
 			if err := db.Create(&akcija).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
