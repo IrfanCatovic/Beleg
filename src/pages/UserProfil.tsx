@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -185,10 +186,8 @@ export default function UserProfile() {
             <div className="text-center md:text-left">
               <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName || korisnik.username}</h1>
               <p className="text-xl text-gray-600 mt-2">@{korisnik.username}</p>
-              <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${
-                korisnik.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}>
-                {korisnik.role === 'admin' ? 'Admin' : 'Član'}
+              <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${getRoleStyle(korisnik.role)}`}>
+                {getRoleLabel(korisnik.role)}
               </span>
             <p className="text-gray-500 mt-4">
               Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}

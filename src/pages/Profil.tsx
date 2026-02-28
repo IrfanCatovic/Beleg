@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -134,7 +135,7 @@ export default function Profil() {
                 />
               ) : null}
               <span className={me.avatar_url && !avatarLoadFailed ? 'invisible' : ''}>
-                {displayName.charAt(0).toUpperCase()}
+                {(displayName || displayUsername || '?').charAt(0).toUpperCase()}
               </span>
             </div>
 
@@ -142,11 +143,9 @@ export default function Profil() {
               <h1 className="text-4xl font-bold text-gray-900">{displayName}</h1>
               <p className="text-xl text-gray-600 mt-2">@{displayUsername}</p>
               <span
-                className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${
-                  me.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                }`}
+                className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${getRoleStyle(me.role)}`}
               >
-                {me.role === 'admin' ? 'Admin' : 'Član'}
+                {getRoleLabel(me.role)}
               </span>
               <p className="text-gray-500 mt-4">
                 Pridružio se:{' '}

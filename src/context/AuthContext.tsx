@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import api from "../services/api";
 
 interface User {
     username: string;
@@ -21,6 +22,7 @@ interface AuthContextType {
   user: User | null;
   login: (data: LoginResponse) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,8 +69,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                 localStorage.removeItem('token')
             }
 
+            const refreshUser = useCallback(async () => {
+                if (!localStorage.getItem('token')) return
+                try {
+                    const res = await api.get<{ username: string; fullName: string; role: string }>('/api/me')
+                    const data = res.data
+                    const userData: User = {
+                        username: data.username,
+                        fullName: data.fullName,
+                        role: data.role as User['role'],
+                    }
+                    setUser(userData)
+                    localStorage.setItem('user', JSON.stringify(userData))
+                } catch {
+                    // Token može biti istekao – ignorišemo
+                }
+            }, [])
+
+        useEffect(() => {
+            if (isLoggedIn && localStorage.getItem('token')) {
+                refreshUser()
+            }
+        }, [isLoggedIn, refreshUser])
+
         return (
-            <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+            <AuthContext.Provider value={{ isLoggedIn, user, login, logout, refreshUser }}>
                 {children}
             </AuthContext.Provider>
         );

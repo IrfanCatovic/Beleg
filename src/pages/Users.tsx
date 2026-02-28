@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { Link } from 'react-router-dom'
 
 interface Korisnik {
@@ -131,12 +132,8 @@ export default function Korisnici() {
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          k.role === 'admin' 
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        }`}>
-                          {k.role === 'admin' ? 'Admin' : 'Član'}
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
+                          {getRoleLabel(k.role)}
                         </span>
                       </div>
 
