@@ -10,13 +10,18 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_STYLES: Record<string, string> = {
-  admin: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  clan: 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
-  vodic: 'bg-orange-100 text-orange-900 dark:bg-orange-950/40 dark:text-orange-200',
-  blagajnik: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
-  sekretar: 'bg-yellow-100 text-yellow-900 dark:bg-yellow-950/40 dark:text-yellow-200',
-  'menadzer-opreme': 'bg-slate-200 text-slate-900 dark:bg-slate-800/60 dark:text-slate-200',
-}
+  admin: 'bg-red-600 text-white dark:bg-red-700 dark:text-white',
+
+  clan: 'bg-blue-600 text-white dark:bg-blue-700 dark:text-white',
+
+  vodic: 'bg-orange-600 text-white dark:bg-orange-700 dark:text-white',
+
+  blagajnik: 'bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white',
+
+  sekretar: 'bg-yellow-500 text-black dark:bg-yellow-600 dark:text-black',
+
+  'menadzer-opreme': 'bg-slate-600 text-white dark:bg-slate-700 dark:text-white',
+};
 
 export function getRoleLabel(role: string): string {
   return ROLE_LABELS[role] ?? role

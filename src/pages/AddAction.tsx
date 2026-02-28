@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 
 interface Korisnik {
   id: number
@@ -92,10 +93,13 @@ export default function AddAction() {
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-        Dodaj novu akciju
-      </h2>
-
+      <div className="flex flex-row items-center justify-between gap-4 mb-8">
+        <BackButton />
+        <h2 className="text-3xl font-bold flex-1 text-center" style={{ color: '#41ac53' }}>
+          Dodaj novu akciju
+        </h2>
+        <div className="w-14" aria-hidden />
+      </div>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-6">
         <div>
           <label className="block text-gray-700 font-medium mb-2">Naziv akcije</label>
