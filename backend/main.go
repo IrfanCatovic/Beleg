@@ -750,7 +750,7 @@ func main() {
 			c.JSON(200, korisnik)
 		})
 
-		// PATCH /api/me — ažuriranje profila (fullName, email, adresa, telefon, opciono avatar). Ne menja username, role; čuva km i uspon.
+		// PATCH /api/me — ažuriranje profila (sva polja kao pri registraciji). Ne menja role (samo admin može); username se može promeniti ako nije zauzet.
 		protected.PATCH("/me", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
@@ -766,28 +766,50 @@ func main() {
 				return
 			}
 
-			// Parsiranje multipart forme (kao setup/admin)
 			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 				return
 			}
 
-			fullName := c.PostForm("fullName")
-			email := c.PostForm("email")
-			adresa := c.PostForm("adresa")
-			telefon := c.PostForm("telefon")
+			post := func(k string) string { return strings.TrimSpace(c.PostForm(k)) }
 
-			if fullName != "" {
-				korisnik.FullName = fullName
+			// Username: ako je poslat i različit od trenutnog, provera jedinstvenosti
+			newUsername := post("username")
+			if newUsername == "" {
+				newUsername = korisnik.Username
 			}
-			if email != "" {
-				korisnik.Email = email
+			if newUsername != korisnik.Username {
+				var existing models.Korisnik
+				if err := db.Where("username = ?", newUsername).First(&existing).Error; err == nil {
+					c.JSON(http.StatusConflict, gin.H{"error": "Korisničko ime je već zauzeto"})
+					return
+				}
 			}
-			if adresa != "" {
-				korisnik.Adresa = adresa
+
+			fullName := post("fullName")
+			imeRoditelja := post("imeRoditelja")
+			pol := post("pol")
+			drzavljanstvo := post("drzavljanstvo")
+			adresa := post("adresa")
+			telefon := post("telefon")
+			email := post("email")
+			brojLicnogDokumenta := post("brojLicnogDokumenta")
+			brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije")
+			brojPlaninarskeMarkice := post("brojPlaninarskeMarkice")
+			izreceneDisciplinskeKazne := post("izreceneDisciplinskeKazne")
+			izborUOrganeSportskogUdruzenja := post("izborUOrganeSportskogUdruzenja")
+			napomene := post("napomene")
+
+			var datumRodjenja, datumUclanjenja *time.Time
+			if s := post("datumRodjenja"); s != "" {
+				if t, err := time.Parse("2006-01-02", s); err == nil {
+					datumRodjenja = &t
+				}
 			}
-			if telefon != "" {
-				korisnik.Telefon = telefon
+			if s := post("datumUclanjenja"); s != "" {
+				if t, err := time.Parse("2006-01-02", s); err == nil {
+					datumUclanjenja = &t
+				}
 			}
 
 			// Opciono: novi avatar na Cloudinary
@@ -812,7 +834,7 @@ func main() {
 
 				ctx := context.Background()
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("avatari/%s-%d", korisnik.Username, time.Now().Unix()),
+					PublicID: fmt.Sprintf("avatari/%s-%d", newUsername, time.Now().Unix()),
 					Folder:   "adri-sentinel",
 				}
 
@@ -824,12 +846,24 @@ func main() {
 				korisnik.AvatarURL = uploadResult.SecureURL
 			}
 
-			// Sačuvaj samo izmenjena polja; ne diraj password, role, ukupno_km, ukupno_metara_uspona, broj_popeo_se
+			// Ažuriraj sva dozvoljena polja (ne diraj role, password, statistiku)
 			updates := map[string]interface{}{
-				"full_name": korisnik.FullName,
-				"email":     korisnik.Email,
-				"adresa":    korisnik.Adresa,
-				"telefon":   korisnik.Telefon,
+				"username":                         newUsername,
+				"full_name":                        fullName,
+				"ime_roditelja":                     imeRoditelja,
+				"pol":                              pol,
+				"drzavljanstvo":                    drzavljanstvo,
+				"adresa":                           adresa,
+				"telefon":                          telefon,
+				"email":                            email,
+				"broj_licnog_dokumenta":            brojLicnogDokumenta,
+				"broj_planinarske_legitimacije":     brojPlaninarskeLegitimacije,
+				"broj_planinarske_markice":         brojPlaninarskeMarkice,
+				"izrecene_disciplinske_kazne":      izreceneDisciplinskeKazne,
+				"izbor_u_organe_sportskog_udruzenja": izborUOrganeSportskogUdruzenja,
+				"napomene":                         napomene,
+				"datum_rodjenja":                   datumRodjenja,
+				"datum_uclanjenja":                 datumUclanjenja,
 			}
 			if korisnik.AvatarURL != "" {
 				updates["avatar_url"] = korisnik.AvatarURL
@@ -839,7 +873,29 @@ func main() {
 				return
 			}
 
-			c.JSON(200, gin.H{"message": "Profil ažuriran", "korisnik": korisnik})
+			// Učitaj ažuriranog korisnika (da vratimo role, statistiku itd.)
+			if err := db.Where("id = ?", korisnik.ID).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju profila"})
+				return
+			}
+
+			resp := gin.H{"message": "Profil ažuriran", "korisnik": korisnik}
+			// Ako je promenjeno korisničko ime, vrati novi JWT da klijent može da ga sačuva (inače sledeći zahtev bi tražio starim username-om)
+			if newUsername != username.(string) {
+				claims := jwt.MapClaims{
+					"username": korisnik.Username,
+					"role":     korisnik.Role,
+					"exp":      time.Now().Add(time.Hour * 24).Unix(),
+				}
+				token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+				tokenString, err := token.SignedString(jwtSecret)
+				if err == nil {
+					resp["token"] = tokenString
+					resp["role"] = korisnik.Role
+					resp["user"] = gin.H{"username": korisnik.Username, "fullName": korisnik.FullName}
+				}
+			}
+			c.JSON(200, resp)
 		})
 
 		// GET /api/korisnici/:id detalji o korisniku
@@ -878,7 +934,6 @@ func main() {
 		})
 
 		// GET /api/akcije/:id — detalji su javni (ruta registrovana iznad, van protected)
-
 		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se,
 		// i statistika ukupno km, metara uspona i broj popeo se.
 		// Ovaj endpoint je vidljiv svim ulogovanim korisnicima (nema provere da li gledaš svoj ili tuđ profil).
