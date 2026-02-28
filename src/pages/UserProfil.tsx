@@ -26,7 +26,7 @@ interface KorisnikStatistika {
 interface Korisnik {
   id: number
   username: string
-  fullName: string
+  fullName?: string
   avatar_url?: string
   email?: string
   telefon?: string
@@ -122,13 +122,14 @@ export default function UserProfile() {
     currentUser?.username === korisnik.username ? '/profil/podesavanja' : `/profil/podesavanja/${id}`
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative">
+    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative">
       {/* Podešavanja profila – samo admin ili vlasnik profila; Dodaj staru akciju – admin/vodič */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      {/* Gear ikona – na bijeloj površini u desnom gornjem cosku (mobile) */}
+      <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
         {showSettings && (
           <Link
             to={settingsLink}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
             title="Podešavanja profila"
             aria-label="Podešavanja profila"
           >
@@ -138,17 +139,32 @@ export default function UserProfile() {
             </svg>
           </Link>
         )}
+        {/* Desktop: puno dugme sa tekstom */}
         {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
           <button
             onClick={handleDodajStaruAkciju}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            className="hidden md:inline-flex px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           >
             Dodaj staru akciju
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8">
+      {/* Mobile FAB – plavo dugme sa plusom, fixno u desnom donjem cosku */}
+      {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
+        <button
+          onClick={handleDodajStaruAkciju}
+          className="md:hidden fixed bottom-6 right-6 z-20 w-14 h-14 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          title="Dodaj staru akciju"
+          aria-label="Dodaj staru akciju"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-xl pt-10 px-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Avatar ili slika profila */}
@@ -156,18 +172,18 @@ export default function UserProfile() {
               {korisnik.avatar_url && !avatarLoadFailed ? (
                 <img
                   src={korisnik.avatar_url}
-                  alt={korisnik.fullName}
+                  alt={korisnik.fullName || korisnik.username || ''}
                   className="absolute inset-0 w-full h-full object-cover"
                   onError={() => setAvatarLoadFailed(true)}
                 />
               ) : null}
               <span className={korisnik.avatar_url && !avatarLoadFailed ? 'invisible' : ''}>
-                {korisnik.fullName.charAt(0).toUpperCase()}
+                {(korisnik.fullName || korisnik.username || '?').charAt(0).toUpperCase()}
               </span>
             </div>
 
             <div className="text-center md:text-left">
-              <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName}</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName || korisnik.username}</h1>
               <p className="text-xl text-gray-600 mt-2">@{korisnik.username}</p>
               <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${
                 korisnik.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'

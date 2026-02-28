@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 interface Korisnik {
   id: number
   username: string
-  fullName: string
+  fullName?: string
   avatar_url?: string
   role: 'admin' | 'clan'
   createdAt: string
@@ -43,8 +43,8 @@ export default function Korisnici() {
 
     const lowerSearch = searchTerm.toLowerCase()
     return korisnici.filter(k =>
-      k.username.toLowerCase().includes(lowerSearch) ||
-      k.fullName.toLowerCase().includes(lowerSearch)
+      (k.username || '').toLowerCase().includes(lowerSearch) ||
+      (k.fullName || '').toLowerCase().includes(lowerSearch)
     )
   }, [korisnici, searchTerm])
 
@@ -93,11 +93,11 @@ export default function Korisnici() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {filteredKorisnici.map((k) => (
               <Link
+                key={k.id}
                 to={`/users/${k.id}`}  
                 className="block"  
               >
               <div 
-                key={k.username} 
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
                 duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
               >
@@ -108,19 +108,19 @@ export default function Korisnici() {
                         {k.avatar_url && !avatarFailed[k.id] ? (
                           <img
                             src={k.avatar_url}
-                            alt={k.fullName}
+                            alt={k.fullName || k.username || ''}
                             className="absolute inset-0 w-full h-full object-cover"
                             onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
                           />
                         ) : null}
                         <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
-                          {k.fullName.charAt(0).toUpperCase()}
+                          {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
                         </span>
                       </div>
 
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {k.fullName}
+                          {k.fullName || k.username}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           @{k.username}
