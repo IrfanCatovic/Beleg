@@ -127,17 +127,19 @@ func main() {
 		})
 	})
 
-	// POST /api/setup/admin — kreiranje prvog admina (multipart: polja + opciono avatar)
+	// POST /api/setup/admin (RegisterAdmin) — kreiranje prvog admina prema modelu Korisnik
+	// Obavezno: username, password. Ostalo opciono (multipart/form-data + opciono avatar).
 	r.POST("/api/setup/admin", func(c *gin.Context) {
-		username := c.PostForm("username")
-		password := c.PostForm("password")
-		fullName := c.PostForm("fullName")
-		email := c.PostForm("email")
-		adresa := c.PostForm("adresa")
-		telefon := c.PostForm("telefon")
+		if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+			return
+		}
 
-		if username == "" || password == "" || fullName == "" || email == "" || adresa == "" || telefon == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna (username, password, fullName, email, adresa, telefon)"})
+		username := strings.TrimSpace(c.PostForm("username"))
+		password := c.PostForm("password")
+
+		if username == "" || password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username i password (prema modelu Korisnik)"})
 			return
 		}
 		if len(password) < 8 {
@@ -145,13 +147,15 @@ func main() {
 			return
 		}
 
-		// Proveri da li je ovo prvi korisnik
+		// Samo ako nema korisnika — prvi korisnik mora biti admin
 		var count int64
-		db.Model(&models.Korisnik{}).Count(&count)
-
-		role := "clan" // default za obične registracije
-		if count == 0 {
-			role = "admin" // prvi korisnik automatski admin
+		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri baze"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Registracija prvog admina nije dozvoljena — već postoje korisnici. Koristite /api/register sa admin/sekretar nalogom."})
+			return
 		}
 
 		// Hash lozinke
@@ -161,8 +165,31 @@ func main() {
 			return
 		}
 
+		// Opciona polja iz modela Korisnik
+		fullName := strings.TrimSpace(c.PostForm("fullName"))
+		imeRoditelja := strings.TrimSpace(c.PostForm("imeRoditelja"))
+		pol := strings.TrimSpace(c.PostForm("pol"))
+		drzavljanstvo := strings.TrimSpace(c.PostForm("drzavljanstvo"))
+		adresa := strings.TrimSpace(c.PostForm("adresa"))
+		telefon := strings.TrimSpace(c.PostForm("telefon"))
+		email := strings.TrimSpace(c.PostForm("email"))
+		brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
+		brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
+		brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
+
+		var datumRodjenja, datumUclanjenja *time.Time
+		if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
+			if t, err := time.Parse("2006-01-02", s); err == nil {
+				datumRodjenja = &t
+			}
+		}
+		if s := strings.TrimSpace(c.PostForm("datumUclanjenja")); s != "" {
+			if t, err := time.Parse("2006-01-02", s); err == nil {
+				datumUclanjenja = &t
+			}
+		}
+
 		avatarURL := ""
-		// Opciono: upload avatara na Cloudinary
 		if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 			file := files[0]
 			f, err := file.Open()
@@ -197,24 +224,37 @@ func main() {
 		}
 
 		korisnik := models.Korisnik{
-			Username:  username,
-			Password:  string(hashed),
-			FullName:  fullName,
-			Email:     email,
-			Adresa:    adresa,
-			Telefon:   telefon,
-			Role:      role,
-			AvatarURL: avatarURL,
+			Username:                    username,
+			Password:                    string(hashed),
+			FullName:                    fullName,
+			ImeRoditelja:                imeRoditelja,
+			Pol:                         pol,
+			DatumRodjenja:               datumRodjenja,
+			Drzavljanstvo:               drzavljanstvo,
+			Adresa:                      adresa,
+			Telefon:                     telefon,
+			Email:                       email,
+			BrojLicnogDokumenta:         brojLicnogDokumenta,
+			BrojPlaninarskeLegitimacije: brojPlaninarskeLegitimacije,
+			BrojPlaninarskeMarkice:      brojPlaninarskeMarkice,
+			DatumUclanjenja:             datumUclanjenja,
+			AvatarURL:                   avatarURL,
+			Role:                        "admin",
 		}
 
 		if err := db.Create(&korisnik).Error; err != nil {
-			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username/email već postoji"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 			return
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Registracija uspešna",
-			"role":    role,
+			"message": "Admin uspešno registrovan",
+			"role":    "admin",
+			"user": gin.H{
+				"id":       korisnik.ID,
+				"username": korisnik.Username,
+				"fullName": korisnik.FullName,
+			},
 		})
 	})
 
