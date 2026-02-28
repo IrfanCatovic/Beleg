@@ -44,7 +44,7 @@ func main() {
 		log.Println("GREŠKA: .env fajl NIJE UČITAN! Razlog:", err)
 	} else {
 		log.Println("OK: .env fajl je učitan")
-		log.Println("DB_PASSWORD iz env:", os.Getenv("DB_PASSWORD")) // vidiš li lozinku?
+		log.Println("DB_PASSWORD iz env:", os.Getenv("DB_PASSWORD")) 
 	}
 
 	
@@ -127,7 +127,7 @@ func main() {
 		})
 	})
 
-	// POST /api/setup/admin (RegisterAdmin) — kreiranje prvog admina prema modelu Korisnik
+	// POST /api/setup/admin (RegisterAdmin) kreiranje prvog admina prema modelu Korisnik
 	// Obavezno: username, password. Ostalo opciono (multipart/form-data + opciono avatar).
 	r.POST("/api/setup/admin", func(c *gin.Context) {
 		if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
@@ -147,7 +147,7 @@ func main() {
 			return
 		}
 
-		// Samo ako nema korisnika — prvi korisnik mora biti admin
+		// Samo ako nema korisnika  prvi korisnik mora biti admin
 		var count int64
 		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri baze"})
@@ -920,11 +920,15 @@ func main() {
 			c.JSON(200, resp)
 		})
 
-		// PATCH /api/korisnici/:id — admin ažurira korisnika (samo role, disciplinske kazne, izbor u organe, napomene). Lozinka se ne vidi ni ne menja.
+		// PATCH /api/korisnici/:id  admin ažurira korisnika (role, disciplinske kazne, izbor u organe, napomene).
+		// Admin i sekretar mogu postaviti novu lozinku (samo ako je korisnik zaboravio).
 		protected.PATCH("/korisnici/:id", func(c *gin.Context) {
 			roleVal, _ := c.Get("role")
-			if roleVal != "admin" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može menjati korisnika"})
+			roleStr, _ := roleVal.(string)
+			isAdmin := roleStr == "admin"
+			isSekretar := roleStr == "sekretar"
+			if !isAdmin && !isSekretar {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu menjati korisnika"})
 				return
 			}
 			idStr := c.Param("id")
@@ -945,8 +949,34 @@ func main() {
 				IzreceneDisciplinskeKazne     string `json:"izreceneDisciplinskeKazne"`
 				IzborUOrganeSportskogUdruzenja string `json:"izborUOrganeSportskogUdruzenja"`
 				Napomene                      string `json:"napomene"`
+				NewPassword                   string `json:"newPassword"`
 			}
 			_ = c.ShouldBindJSON(&body) // opciono
+
+			// Sekretar može samo da postavi lozinku (zaboravljena lozinka)
+			if isSekretar {
+				if body.NewPassword == "" {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Sekretar može samo da postavi novu lozinku korisniku (slučaj zaboravljene lozinke)"})
+					return
+				}
+				if len(body.NewPassword) < 8 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+					return
+				}
+				hashed, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
+					return
+				}
+				if err := db.Model(&korisnik).Update("password", string(hashed)).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
+					return
+				}
+				c.JSON(200, gin.H{"message": "Lozinka uspešno postavljena"})
+				return
+			}
+
+			// Admin: puna izmena + opciono nova lozinka
 			if body.Role == "" {
 				body.Role = korisnik.Role
 			}
@@ -962,6 +992,18 @@ func main() {
 				"izrecene_disciplinske_kazne":       body.IzreceneDisciplinskeKazne,
 				"izbor_u_organe_sportskog_udruzenja": body.IzborUOrganeSportskogUdruzenja,
 				"napomene":                          body.Napomene,
+			}
+			if body.NewPassword != "" {
+				if len(body.NewPassword) < 8 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+					return
+				}
+				hashed, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
+					return
+				}
+				updates["password"] = string(hashed)
 			}
 			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju"})

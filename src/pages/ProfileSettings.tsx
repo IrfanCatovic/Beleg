@@ -42,7 +42,8 @@ export default function ProfileSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const isAdminEdit = !!id && user?.role === 'admin'
+  const isAdminEdit = !!id && (user?.role === 'admin' || user?.role === 'sekretar')
+  const isSekretarEdit = !!id && user?.role === 'sekretar'
   const canEditAdminFields = user?.role === 'admin'
 
   useEffect(() => {
@@ -50,13 +51,13 @@ export default function ProfileSettings() {
       navigate('/home', { replace: true })
       return
     }
-    // Samo admin može pristupiti /profil/podesavanja/:id
-    if (id && user?.role !== 'admin') {
+    // Admin ili sekretar mogu pristupiti /profil/podesavanja/:id
+    if (id && user?.role !== 'admin' && user?.role !== 'sekretar') {
       navigate('/profil/podesavanja', { replace: true })
       return
     }
 
-    // Admin editing another user – samo admin polja, bez lozinke
+    // Admin ili sekretar editing another user: admin vidi sva polja + lozinku, sekretar samo lozinku
     if (isAdminEdit) {
       const fetchUser = async () => {
         try {
@@ -142,16 +143,28 @@ export default function ProfileSettings() {
 
     try {
       if (isAdminEdit) {
-        if (newPassword || confirmPassword) {
-          setError('Admin ne može da menja lozinku korisnika.')
+        if (newPassword !== confirmPassword) {
+          setError('Lozinke se ne podudaraju.')
           setSaving(false)
           return
         }
-        const body = {
-          role,
-          izreceneDisciplinskeKazne: form.izreceneDisciplinskeKazne.trim(),
-          izborUOrganeSportskogUdruzenja: form.izborUOrganeSportskogUdruzenja.trim(),
-          napomene: form.napomene.trim(),
+        if (newPassword && newPassword.length < 8) {
+          setError('Lozinka mora imati najmanje 8 karaktera.')
+          setSaving(false)
+          return
+        }
+        const body: Record<string, string> = {}
+        if (canEditAdminFields) {
+          body.role = role
+          body.izreceneDisciplinskeKazne = form.izreceneDisciplinskeKazne.trim()
+          body.izborUOrganeSportskogUdruzenja = form.izborUOrganeSportskogUdruzenja.trim()
+          body.napomene = form.napomene.trim()
+        }
+        if (newPassword) body.newPassword = newPassword
+        if (isSekretarEdit && !newPassword) {
+          setError('Unesite novu lozinku korisnika.')
+          setSaving(false)
+          return
         }
         await api.patch(`/api/korisnici/${id}`, body)
         setSuccess(true)
@@ -238,14 +251,16 @@ export default function ProfileSettings() {
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold" style={{ color: '#41ac53' }}>
-            {isAdminEdit ? 'Admin: Podešavanja korisnika' : 'Podešavanja profila'}
+            {isSekretarEdit ? 'Postavi lozinku korisniku' : isAdminEdit ? 'Admin: Podešavanja korisnika' : 'Podešavanja profila'}
           </h2>
           {backLink}
         </div>
 
         <p className="text-sm text-gray-500 mb-6">
-          {isAdminEdit
-            ? 'Samo ovih polja može da menja admin. Lozinka korisnika se ne vidi niti menja.'
+          {isSekretarEdit
+            ? 'Samo možete postaviti novu lozinku korisniku — isključivo u slučaju kada je korisnik zaboravio lozinku.'
+            : isAdminEdit
+            ? 'Admin može menjati ulogu, disciplinske kazne, izbor u organe, napomene. Može i postaviti novu lozinku korisniku — samo ako je korisnik zaboravio lozinku.'
             : 'Možete menjati sva polja osim uloge i admin polja (disciplinske kazne, izbor u organe, napomene). Ulogu i ta polja može promeniti samo administrator. Možete promeniti i lozinku.'}
         </p>
 
@@ -259,9 +274,41 @@ export default function ProfileSettings() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Admin edit: samo role + disciplinske, izbor, napomene */}
+          {/* Admin edit: role + disciplinske, izbor, napomene + opciono lozinka. Sekretar: samo lozinka */}
           {isAdminEdit ? (
             <>
+              {/* Sekretar vidi samo sekciju za lozinku */}
+              {isSekretarEdit ? (
+                <div className={sectionClass}>
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
+                    Postavi novu lozinku (samo ako je korisnik zaboravio)
+                  </h3>
+                  <div className="space-y-2">
+                    <label className={labelClass}>Nova lozinka *</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={inputClass}
+                      placeholder="Min. 8 karaktera"
+                      minLength={8}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <label className={labelClass}>Ponovite lozinku *</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={inputClass}
+                      placeholder="Ponovite lozinku"
+                      required
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
               <div className={sectionClass}>
                 <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
                   Uloga
@@ -319,6 +366,31 @@ export default function ProfileSettings() {
                   </div>
                 </div>
               </div>
+              <div className={sectionClass}>
+                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
+                  Postavi novu lozinku (samo ako je korisnik zaboravio)
+                </h3>
+                <div className="space-y-2">
+                  <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Min. 8 karaktera"
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Ponovite lozinku"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
               <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
@@ -334,6 +406,25 @@ export default function ProfileSettings() {
                   Odustani
                 </Link>
               </div>
+            </>
+              )}
+              {isSekretarEdit && (
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-3 px-4 bg-[#41ac53] hover:bg-[#3a9a4a] disabled:opacity-60 text-white font-medium rounded-lg transition-colors"
+                  >
+                    {saving ? 'Čuvanje...' : 'Postavi lozinku'}
+                  </button>
+                  <Link
+                    to={`/users/${id}`}
+                    className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
+                  >
+                    Odustani
+                  </Link>
+                </div>
+              )}
             </>
           ) : (
             <>

@@ -117,7 +117,7 @@ export default function UserProfile() {
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>
 
   const showSettings =
-    currentUser && (currentUser.role === 'admin' || currentUser.username === korisnik.username)
+    currentUser && (currentUser.role === 'admin' || currentUser.role === 'sekretar' || currentUser.username === korisnik.username)
   const settingsLink =
     currentUser?.username === korisnik.username ? '/profil/podesavanja' : `/profil/podesavanja/${id}`
 
@@ -255,7 +255,7 @@ export default function UserProfile() {
 
         {/* Lista uspešnih akcija */}
         <div className="mt-12">
-          <h3 className="text-2xl font-semibold mb-6" style={{ color: '#41ac53' }}>
+          <h3 className="text-2xl font-semibold mb-6 text-center" style={{ color: '#41ac53' }}>
             Akcije na koje se popeo
           </h3>
 
