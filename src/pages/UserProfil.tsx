@@ -4,6 +4,7 @@ import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import ProfileActionButtons from '../components/ProfileActionButtons'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
+import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 
 interface UspesnaAkcija {
   id: number
@@ -127,6 +128,7 @@ export default function UserProfile() {
         userId={id!}
         isOwnProfile={!!isOwnProfile}
         currentUser={currentUser}
+        onPrintClick={() => korisnik && generateMemberPdf(korisnik as unknown as MemberPdfData)}
       >
         {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
           <button

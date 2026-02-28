@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import ProfileActionButtons from '../components/ProfileActionButtons'
+import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 
 interface UspesnaAkcija {
   id: number
@@ -113,6 +114,7 @@ export default function Profil() {
         userId={me.id}
         isOwnProfile
         currentUser={user}
+        onPrintClick={() => generateMemberPdf(me as unknown as MemberPdfData)}
       />
       <div className="bg-white rounded-2xl shadow-xl pt-10 px-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
