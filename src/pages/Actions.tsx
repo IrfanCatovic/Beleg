@@ -120,7 +120,7 @@ export default function Actions() {
         <Link
           to="/dodaj-akciju"
           className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full 
-          bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-xl hover:bg-[#3a9a4a] active:scale-95 transition-all 
+          bg-gradient-to-br from-green-600 to-emerald-500 text-white shadow-xl hover:bg-[#3a9a4a] active:scale-95 transition-all 
           duration-200 md:top-6 md:bottom-auto md:right-8 focus:outline-none focus:ring-2 
           focus:ring-offset-2 focus:ring-[#41ac53]"
           title="Dodaj novu akciju"

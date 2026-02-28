@@ -53,7 +53,7 @@ export default function Korisnici() {
   if (error) return <div className="text-center py-10 text-red-600">{error}</div>
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto">
       
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <h2 className="text-3xl font-bold" style={{ color: '#41ac53' }}>

@@ -108,7 +108,7 @@ export default function Profil() {
   const displayUsername = me.username || user?.username || ''
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="bg-white rounded-2xl shadow-xl p-8 relative">
         {/* Zupčanik – unutar bijelog polja, malo dole i lijevo */}
         <Link

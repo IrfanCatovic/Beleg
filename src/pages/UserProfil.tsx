@@ -123,9 +123,8 @@ export default function UserProfile() {
     currentUser?.username === korisnik.username ? '/profil/podesavanja' : `/profil/podesavanja/${id}`
 
   return (
-    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative">
-      {/* Podešavanja profila – samo admin ili vlasnik profila; Dodaj staru akciju – admin/vodič */}
-      {/* Gear ikona – na bijeloj površini u desnom gornjem cosku (mobile) */}
+    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+
       <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
         {showSettings && (
           <Link
@@ -151,7 +150,7 @@ export default function UserProfile() {
         )}
       </div>
 
-      {/* Mobile FAB – plavo dugme sa plusom, fixno u desnom donjem cosku */}
+      {/* Mobile FAB  plavo dugme sa plusom, fixno u desnom donjem cosku */}
       {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
         <button
           onClick={handleDodajStaruAkciju}
