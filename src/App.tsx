@@ -12,6 +12,7 @@ import Profil from './pages/Profil'
 import AddAction from './pages/AddAction'
 import Users from './pages/Users'
 import UserProfile from './pages/UserProfil'
+import UserInfo from './pages/UserInfo'
 import ActionDetails from './pages/ActionDetails'
 import RegisterUser from './pages/RegisterUser'
 
@@ -79,11 +80,12 @@ const router = createBrowserRouter([
             ],
           },
 
-          // Dodaj korisnika admin i sekretar
+          // Dodaj korisnika i pregled svih podataka o korisniku – admin i sekretar
           {
             element: <RoleRoute allowedRoles={['admin', 'sekretar']} />,
             children: [
               { path: '/dodaj-korisnika', element: <RegisterUser /> },
+              { path: '/users/:id/info', element: <UserInfo /> },
             ],
           },
         ],

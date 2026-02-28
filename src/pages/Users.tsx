@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
@@ -9,7 +10,7 @@ interface Korisnik {
   username: string
   fullName?: string
   avatar_url?: string
-  role: 'admin' | 'clan'
+  role: string
   createdAt: string
 }
 
@@ -93,18 +94,14 @@ export default function Korisnici() {
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {filteredKorisnici.map((k) => (
-              <Link
+              <div
                 key={k.id}
-                to={`/users/${k.id}`}  
-                className="block"  
-              >
-              <div 
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
                 duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
               >
                 <div className="p-6">
-                  <div className="flex items-center gap-4">
-                      {/* Slika profila ili inicijal */}
+                  <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-4">
                       <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
                         {k.avatar_url && !avatarFailed[k.id] ? (
                           <img
@@ -118,7 +115,6 @@ export default function Korisnici() {
                           {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
                         </span>
                       </div>
-
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {k.fullName || k.username}
@@ -128,7 +124,6 @@ export default function Korisnici() {
                         </p>
                       </div>
                     </div>
-
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
@@ -136,7 +131,6 @@ export default function Korisnici() {
                           {getRoleLabel(k.role)}
                         </span>
                       </div>
-
                       <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -144,9 +138,41 @@ export default function Korisnici() {
                         Pridružio se: {new Date(k.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </div>
                     </div>
+                  </Link>
+
+                  {/* Ikonice: podešavanja, lista (info), štampač */}
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
+                    {(user?.role === 'admin' || user?.role === 'sekretar' || user?.username === k.username) && (
+                      <Link
+                        to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
+                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
+                        title="Podešavanja"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Cog6ToothIcon className="w-5 h-5" />
+                      </Link>
+                    )}
+                    {(user?.role === 'admin' || user?.role === 'sekretar') && (
+                      <Link
+                        to={`/users/${k.id}/info`}
+                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
+                        title="Sve informacije o korisniku"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <InformationCircleIcon className="w-5 h-5" />
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                      title="Štampanje (uskoro)"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <PrinterIcon className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
