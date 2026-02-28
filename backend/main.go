@@ -316,6 +316,7 @@ func main() {
 	})
 
 	// Javna ruta — detalji akcije (za deljenje linka; vraća i vodiča i ko je dodao)
+	// GET /api/akcije/:id — detalji su javni (ruta registrovana iznad, van protected)
 	r.GET("/api/akcije/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -389,53 +390,146 @@ func main() {
 		})
 
 		// POST /api/register registracija novog korisnika (samo admin ili sekretar)
+		// Multipart/form-data, ista polja kao setup/admin, role se postavlja iz forme
 		r.POST("/api/register", middleware.AuthMiddleware(jwtSecret), func(c *gin.Context) {
 			// Proveri da li je korisnik admin ili sekretar
-			role, exists := c.Get("role")
-			if !exists || (role != "admin" && role != "sekretar") {
+			roleVal, exists := c.Get("role")
+			if !exists || (roleVal != "admin" && roleVal != "sekretar") {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da kreiraju nove korisnike"})
 				return
 			}
 
-			var req struct {
-				Username string `json:"username" binding:"required"`
-				Password string `json:"password" binding:"required,min=8"`
-				FullName string `json:"fullName" binding:"required"`
-				Email    string `json:"email" binding:"required,email"`
-				Adresa   string `json:"adresa" binding:"required"`
-				Telefon  string `json:"telefon" binding:"required"`
-				Role     string `json:"role" binding:"required,oneof=admin clan vodic blagajnik sekretar menadzer-opreme"`
+			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+				return
 			}
-			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+			username := strings.TrimSpace(c.PostForm("username"))
+			password := c.PostForm("password")
+			role := strings.TrimSpace(c.PostForm("role"))
+
+			if username == "" || password == "" || role == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username, password i role"})
+				return
+			}
+			if len(password) < 8 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+				return
+			}
+			validRoles := map[string]bool{"admin": true, "clan": true, "vodic": true, "blagajnik": true, "sekretar": true, "menadzer-opreme": true}
+			if !validRoles[role] {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća uloga"})
+				return
+			}
+			// Sekretar ne može da kreira admina
+			if roleVal == "sekretar" && role == "admin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Sekretar ne može da kreira administratora"})
 				return
 			}
 
 			// Hash lozinke
-			hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
 				return
 			}
 
+			// Opciona polja iz modela Korisnik (kao setup/admin)
+			fullName := strings.TrimSpace(c.PostForm("fullName"))
+			imeRoditelja := strings.TrimSpace(c.PostForm("imeRoditelja"))
+			pol := strings.TrimSpace(c.PostForm("pol"))
+			drzavljanstvo := strings.TrimSpace(c.PostForm("drzavljanstvo"))
+			adresa := strings.TrimSpace(c.PostForm("adresa"))
+			telefon := strings.TrimSpace(c.PostForm("telefon"))
+			email := strings.TrimSpace(c.PostForm("email"))
+			brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
+			brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
+			brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
+			izreceneDisciplinskeKazne := strings.TrimSpace(c.PostForm("izreceneDisciplinskeKazne"))
+			izborUOrganeSportskogUdruzenja := strings.TrimSpace(c.PostForm("izborUOrganeSportskogUdruzenja"))
+			napomene := strings.TrimSpace(c.PostForm("napomene"))
+
+			var datumRodjenja, datumUclanjenja *time.Time
+			if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
+				if t, err := time.Parse("2006-01-02", s); err == nil {
+					datumRodjenja = &t
+				}
+			}
+			if s := strings.TrimSpace(c.PostForm("datumUclanjenja")); s != "" {
+				if t, err := time.Parse("2006-01-02", s); err == nil {
+					datumUclanjenja = &t
+				}
+			}
+
+			avatarURL := ""
+			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
+				file := files[0]
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+					return
+				}
+				defer f.Close()
+
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("avatari/register-%s-%d", username, time.Now().Unix()),
+					Folder:   "adri-sentinel",
+				}
+
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
+					return
+				}
+				avatarURL = uploadResult.SecureURL
+			}
+
 			korisnik := models.Korisnik{
-				Username: req.Username,
-				Password: string(hashed),
-				FullName: req.FullName,
-				Email:    req.Email,
-				Adresa:   req.Adresa,
-				Telefon:  req.Telefon,
-				Role:     req.Role,
+				Username:                         username,
+				Password:                         string(hashed),
+				FullName:                         fullName,
+				ImeRoditelja:                     imeRoditelja,
+				Pol:                              pol,
+				DatumRodjenja:                    datumRodjenja,
+				Drzavljanstvo:                    drzavljanstvo,
+				Adresa:                           adresa,
+				Telefon:                          telefon,
+				Email:                            email,
+				BrojLicnogDokumenta:              brojLicnogDokumenta,
+				BrojPlaninarskeLegitimacije:      brojPlaninarskeLegitimacije,
+				BrojPlaninarskeMarkice:           brojPlaninarskeMarkice,
+				DatumUclanjenja:                  datumUclanjenja,
+				IzreceneDisciplinskeKazne:        izreceneDisciplinskeKazne,
+				IzborUOrganeSportskogUdruzenja:   izborUOrganeSportskogUdruzenja,
+				Napomene:                         napomene,
+				AvatarURL:                        avatarURL,
+				Role:                             role,
 			}
 
 			if err := db.Create(&korisnik).Error; err != nil {
-				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username/email već postoji"})
+				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 				return
 			}
 
 			c.JSON(http.StatusCreated, gin.H{
 				"message": "Korisnik uspešno kreiran",
-				"role":    req.Role,
+				"role":    role,
+				"user": gin.H{
+					"id":       korisnik.ID,
+					"username": korisnik.Username,
+					"fullName": korisnik.FullName,
+				},
 			})
 		})
 
@@ -1051,7 +1145,7 @@ func main() {
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})
 
-		// GET /api/akcije/:id — detalji su javni (ruta registrovana iznad, van protected)
+
 		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se,
 		// i statistika ukupno km, metara uspona i broj popeo se.
 		// Ovaj endpoint je vidljiv svim ulogovanim korisnicima (nema provere da li gledaš svoj ili tuđ profil).
