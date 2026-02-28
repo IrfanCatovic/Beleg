@@ -1,8 +1,8 @@
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import ProfileActionButtons from '../components/ProfileActionButtons'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 
 interface UspesnaAkcija {
@@ -118,44 +118,16 @@ export default function UserProfile() {
   if (loading) return <div className="text-center py-20">Učitavanje profila...</div>
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>
 
-  const showSettings =
-    currentUser && (currentUser.role === 'admin' || currentUser.role === 'sekretar' || currentUser.username === korisnik.username)
-  const settingsLink =
-    currentUser?.username === korisnik.username ? '/profil/podesavanja' : `/profil/podesavanja/${id}`
+  const isOwnProfile = currentUser?.username === korisnik.username
 
   return (
     <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
 
-      <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
-        {showSettings && (
-          <Link
-            to={settingsLink}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
-            title="Podešavanja profila"
-            aria-label="Podešavanja profila"
-          >
-            <Cog6ToothIcon className="w-6 h-6" />
-          </Link>
-        )}
-        {(currentUser?.role === 'admin' || currentUser?.role === 'sekretar') && id && (
-          <Link
-            to={`/users/${id}/info`}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
-            title="Sve informacije o korisniku"
-            aria-label="Sve informacije o korisniku"
-          >
-            <InformationCircleIcon className="w-6 h-6" />
-          </Link>
-        )}
-        <button
-          type="button"
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
-          title="Štampanje (uskoro)"
-          aria-label="Štampanje"
-        >
-          <PrinterIcon className="w-6 h-6" />
-        </button>
-        {/* Desktop: puno dugme sa tekstom */}
+      <ProfileActionButtons
+        userId={id!}
+        isOwnProfile={!!isOwnProfile}
+        currentUser={currentUser}
+      >
         {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
           <button
             onClick={handleDodajStaruAkciju}
@@ -164,7 +136,7 @@ export default function UserProfile() {
             Dodaj staru akciju
           </button>
         )}
-      </div>
+      </ProfileActionButtons>
 
       {/* Mobile FAB  plavo dugme sa plusom, fixno u desnom donjem cosku */}
       {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (

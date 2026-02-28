@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
+import ProfileActionButtons from '../components/ProfileActionButtons'
 
 interface UspesnaAkcija {
   id: number
@@ -108,20 +108,13 @@ export default function Profil() {
   const displayUsername = me.username || user?.username || ''
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl p-8 relative">
-        {/* Zupčanik – unutar bijelog polja, malo dole i lijevo */}
-        <Link
-          to="/profil/podesavanja"
-          className="absolute top-6 right-6 z-10 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
-          title="Podešavanja profila"
-          aria-label="Podešavanja profila"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </Link>
+    <div className="pt-4 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+      <ProfileActionButtons
+        userId={me.id}
+        isOwnProfile
+        currentUser={user}
+      />
+      <div className="bg-white rounded-2xl shadow-xl pt-10 px-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Avatar ili slika profila */}

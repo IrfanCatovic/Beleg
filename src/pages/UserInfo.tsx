@@ -37,12 +37,21 @@ function formatDate(value: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  if (value === undefined || value === null || value === '') return null
+function formatPol(pol: string | undefined): string {
+  if (!pol) return '—'
+  if (pol === 'M') return 'Muški'
+  if (pol === 'Ž') return 'Ženski'
+  return pol
+}
+
+function InfoRow({ label, value, alwaysShow = false }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) {
+  const isEmpty = value === undefined || value === null || value === ''
+  if (!alwaysShow && isEmpty) return null
+  const displayValue = isEmpty ? '—' : value
   return (
-    <div className="flex flex-wrap gap-2 py-2 border-b border-gray-100 last:border-0">
-      <span className="font-medium text-gray-600 min-w-[180px]">{label}</span>
-      <span className="text-gray-900">{value}</span>
+    <div className="flex flex-wrap gap-2 py-2.5 border-b border-gray-100 last:border-0">
+      <span className="font-medium text-gray-600 min-w-[200px] shrink-0">{label}</span>
+      <span className="text-gray-900">{displayValue}</span>
     </div>
   )
 }
@@ -114,13 +123,14 @@ export default function UserInfo() {
               Osnovni podaci
             </h2>
             <div className="bg-gray-50 rounded-xl p-4">
-              <InfoRow label="Ime i prezime" value={korisnik.fullName} />
-              <InfoRow label="Korisničko ime" value={korisnik.username} />
-              <InfoRow label="Email" value={korisnik.email ? <a href={`mailto:${korisnik.email}`} className="text-[#41ac53] hover:underline">{korisnik.email}</a> : undefined} />
-              <InfoRow label="Telefon" value={korisnik.telefon ? <a href={`tel:${korisnik.telefon}`} className="text-[#41ac53] hover:underline">{korisnik.telefon}</a> : undefined} />
-              <InfoRow label="Uloga" value={getRoleLabel(korisnik.role)} />
-              <InfoRow label="Datum registracije" value={formatDate(korisnik.createdAt)} />
-              <InfoRow label="Poslednja izmena" value={formatDate(korisnik.updatedAt)} />
+              <InfoRow label="ID korisnika" value={korisnik.id} alwaysShow />
+              <InfoRow label="Ime i prezime" value={korisnik.fullName} alwaysShow />
+              <InfoRow label="Korisničko ime" value={korisnik.username} alwaysShow />
+              <InfoRow label="Email" value={korisnik.email ? <a href={`mailto:${korisnik.email}`} className="text-[#41ac53] hover:underline">{korisnik.email}</a> : undefined} alwaysShow />
+              <InfoRow label="Telefon" value={korisnik.telefon ? <a href={`tel:${korisnik.telefon}`} className="text-[#41ac53] hover:underline">{korisnik.telefon}</a> : undefined} alwaysShow />
+              <InfoRow label="Uloga" value={getRoleLabel(korisnik.role)} alwaysShow />
+              <InfoRow label="Datum registracije" value={formatDate(korisnik.createdAt)} alwaysShow />
+              <InfoRow label="Poslednja izmena" value={formatDate(korisnik.updatedAt)} alwaysShow />
             </div>
           </section>
 
@@ -129,12 +139,12 @@ export default function UserInfo() {
               Lični podaci
             </h2>
             <div className="bg-gray-50 rounded-xl p-4">
-              <InfoRow label="Ime roditelja" value={korisnik.ime_roditelja} />
-              <InfoRow label="Pol" value={korisnik.pol} />
-              <InfoRow label="Datum rođenja" value={formatDate(korisnik.datum_rodjenja ?? undefined)} />
-              <InfoRow label="Državljanstvo" value={korisnik.drzavljanstvo} />
-              <InfoRow label="Adresa" value={korisnik.adresa} />
-              <InfoRow label="Broj ličnog dokumenta" value={korisnik.broj_licnog_dokumenta} />
+              <InfoRow label="Ime roditelja" value={korisnik.ime_roditelja} alwaysShow />
+              <InfoRow label="Pol" value={formatPol(korisnik.pol)} alwaysShow />
+              <InfoRow label="Datum rođenja" value={formatDate(korisnik.datum_rodjenja ?? undefined)} alwaysShow />
+              <InfoRow label="Državljanstvo" value={korisnik.drzavljanstvo} alwaysShow />
+              <InfoRow label="Adresa" value={korisnik.adresa} alwaysShow />
+              <InfoRow label="Broj ličnog dokumenta" value={korisnik.broj_licnog_dokumenta} alwaysShow />
             </div>
           </section>
 
@@ -143,12 +153,12 @@ export default function UserInfo() {
               Planinarski podaci
             </h2>
             <div className="bg-gray-50 rounded-xl p-4">
-              <InfoRow label="Broj planinarske legitimacije" value={korisnik.broj_planinarske_legitimacije} />
-              <InfoRow label="Broj planinarske markice" value={korisnik.broj_planinarske_markice} />
-              <InfoRow label="Datum učlanjenja" value={formatDate(korisnik.datum_uclanjenja ?? undefined)} />
-              <InfoRow label="Ukupno km" value={korisnik.ukupnoKm != null ? `${Number(korisnik.ukupnoKm).toFixed(1)} km` : undefined} />
-              <InfoRow label="Ukupno metara uspona" value={korisnik.ukupnoMetaraUspona != null ? `${korisnik.ukupnoMetaraUspona.toLocaleString('sr-RS')} m` : undefined} />
-              <InfoRow label="Broj akcija (popeo se)" value={korisnik.brojPopeoSe} />
+              <InfoRow label="Broj planinarske legitimacije" value={korisnik.broj_planinarske_legitimacije} alwaysShow />
+              <InfoRow label="Broj planinarske markice" value={korisnik.broj_planinarske_markice} alwaysShow />
+              <InfoRow label="Datum učlanjenja" value={formatDate(korisnik.datum_uclanjenja ?? undefined)} alwaysShow />
+              <InfoRow label="Ukupno km" value={korisnik.ukupnoKm != null ? `${Number(korisnik.ukupnoKm).toFixed(1)} km` : undefined} alwaysShow />
+              <InfoRow label="Ukupno metara uspona" value={korisnik.ukupnoMetaraUspona != null ? `${korisnik.ukupnoMetaraUspona.toLocaleString('sr-RS')} m` : undefined} alwaysShow />
+              <InfoRow label="Broj akcija (popeo se)" value={korisnik.brojPopeoSe != null ? String(korisnik.brojPopeoSe) : undefined} alwaysShow />
             </div>
           </section>
 
@@ -157,9 +167,9 @@ export default function UserInfo() {
               Napomene i ostalo
             </h2>
             <div className="bg-gray-50 rounded-xl p-4">
-              <InfoRow label="Izrečene disciplinske kazne" value={korisnik.izrecene_disciplinske_kazne} />
-              <InfoRow label="Izbor u organe sportskog udruženja" value={korisnik.izbor_u_organe_sportskog_udruzenja} />
-              <InfoRow label="Napomene" value={korisnik.napomene} />
+              <InfoRow label="Izrečene disciplinske kazne" value={korisnik.izrecene_disciplinske_kazne} alwaysShow />
+              <InfoRow label="Izbor u organe sportskog udruženja" value={korisnik.izbor_u_organe_sportskog_udruzenja} alwaysShow />
+              <InfoRow label="Napomene" value={korisnik.napomene} alwaysShow />
             </div>
           </section>
         </div>
