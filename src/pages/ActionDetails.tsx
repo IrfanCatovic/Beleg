@@ -157,6 +157,14 @@ export default function ActionDetails() {
             )}
           </div>
 
+          {/* Opis akcije vidljiv svima (ulogovanim i neulogovanim) */}
+          {akcija.opis && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Opis akcije</h3>
+              <p className="text-gray-700 whitespace-pre-wrap">{akcija.opis}</p>
+            </div>
+          )}
+
           {!user && (
             <p className="mb-6 p-4 bg-gray-50 rounded-xl text-gray-600 text-center">
               <Link to="/" className="text-[#41ac53] font-medium hover:underline">Prijavite se</Link> da vidite ko je prijavljen i da se prijavite na akciju.

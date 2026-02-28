@@ -17,7 +17,7 @@ import RegisterUser from './pages/RegisterUser'
 
 //routes
 import ProtectedRoute from './components/ProtectedRoute'
-import AdminRoute from './components/AdminRoute'
+import RoleRoute from './components/RoleRoute'
 import Welcome from './pages/Welcome'
 import RegisterAdmin from './pages/RegisterAdmin'
 import ProfileSettings from './pages/ProfileSettings'
@@ -48,28 +48,41 @@ const router = createBrowserRouter([
     children: [
       { path: '/home', element: <Home /> },
 
-      // Javno: detalji akcije (bez logina, za deljenje na društvene mreže)
+      // Javno: detalji akcije i user profil (bez logina, za deljenje na društvene mreže)
       { path: '/akcije/:id', element: <ActionDetails /> },
+      { path: '/users/:id', element: <UserProfile /> },
 
       {
         element: <ProtectedRoute />,
         children: [
-          { path: '/akcije', element: <Actions /> },
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
 
-          // Ove dve su vidljive svima ulogovanima
+          // Lista korisnika  svi ulogovani
           { path: '/users', element: <Users /> },
-          { path: '/users/:id', element: <UserProfile /> },
 
-          // SAMO ADMIN vidi ove
+          // Finansije, uplata, isplata admin i blagajnik
           {
-            element: <AdminRoute />,
+            element: <RoleRoute allowedRoles={['admin', 'blagajnik']} />,
             children: [
               { path: '/finansije', element: <Finance /> },
-              { path: '/dodaj-akciju', element: <AddAction /> },
-              { path: '/dodaj-korisnika', element: <RegisterUser /> },
+            ],
+          },
 
+          // Akcije i dodaj-akciju admin i vodič
+          {
+            element: <RoleRoute allowedRoles={['admin', 'vodic']} />,
+            children: [
+              { path: '/akcije', element: <Actions /> },
+              { path: '/dodaj-akciju', element: <AddAction /> },
+            ],
+          },
+
+          // Dodaj korisnika admin i sekretar
+          {
+            element: <RoleRoute allowedRoles={['admin', 'sekretar']} />,
+            children: [
+              { path: '/dodaj-korisnika', element: <RegisterUser /> },
             ],
           },
         ],

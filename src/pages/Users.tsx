@@ -73,7 +73,7 @@ export default function Korisnici() {
           </svg>
         </div>
 
-        {user?.role === 'admin' && (
+        {(user?.role === 'admin' || user?.role === 'sekretar') && (
           <Link
             to="/dodaj-korisnika"
             className="px-6 py-3 bg-[#41ac53] text-white rounded-lg font-medium hover:bg-[#3a9a4a] 

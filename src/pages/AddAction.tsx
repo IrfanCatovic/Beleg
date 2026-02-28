@@ -44,8 +44,8 @@ export default function AddAction() {
     fetchVodici()
   }, [])
 
-  if (user?.role !== 'admin') {
-    return <div className="text-center py-10 text-red-600">Samo admin može da dodaje akcije.</div>
+  if (!user || !['admin', 'vodic'].includes(user.role)) {
+    return <div className="text-center py-10 text-red-600">Samo admin ili vodič mogu da dodaju akcije.</div>
   }
 
       const handleSubmit = async (e: React.FormEvent) => {

@@ -47,9 +47,12 @@ export default function AppLayout() {
               <Link to="/home" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Home
               </Link>
-              <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                Actions
-              </Link>
+              {/* Akcije – admin i vodič */}
+              {(user?.role === 'admin' || user?.role === 'vodic') && (
+                <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
+                  Actions
+                </Link>
+              )}
 
               <Link to="/profil" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Profil
@@ -60,8 +63,8 @@ export default function AppLayout() {
                 Users
               </Link>
 
-              {/* Finansije just for admin role*/}
-              {user?.role === 'admin' && (
+              {/* Finansije – admin i blagajnik */}
+              {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                 <Link to="/finansije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                   Finance
                 </Link>
@@ -91,13 +94,15 @@ export default function AppLayout() {
                 Home
               </Link>
 
-              <Link
-                to="/akcije"
-                className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Actions
-              </Link>
+              {(user?.role === 'admin' || user?.role === 'vodic') && (
+                <Link
+                  to="/akcije"
+                  className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Actions
+                </Link>
+              )}
               <Link to="/profil" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               onClick={() => setIsMenuOpen(false)}>
                 Profil
@@ -108,8 +113,7 @@ export default function AppLayout() {
                 Users
               </Link>
 
-              {/* Finansije page, check if role is admin and let him in */}
-              {user?.role === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                 <Link
                   to="/finansije"
                   className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
