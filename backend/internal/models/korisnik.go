@@ -22,6 +22,11 @@ type Korisnik struct {
 	BrojPlaninarskeMarkice     string    `gorm:"type:varchar(50)" json:"broj_planinarske_markice,omitempty"`
 	DatumUclanjenja            *time.Time `json:"datum_uclanjenja,omitempty"`
 
+	// Opciona tekstualna polja
+	IzreceneDisciplinskeKazne  string    `gorm:"type:text" json:"izrecene_disciplinske_kazne,omitempty"`
+	IzborUOrganeSportskogUdruzenja string `gorm:"type:text" json:"izbor_u_organe_sportskog_udruzenja,omitempty"`
+	Napomene                   string    `gorm:"type:text" json:"napomene,omitempty"`
+
 	// Slika (opciono)
 	AvatarURL                  string    `gorm:"type:varchar(500)" json:"avatar_url,omitempty"`
 	// Role i status

@@ -176,6 +176,9 @@ func main() {
 		brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
 		brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
 		brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
+		izreceneDisciplinskeKazne := strings.TrimSpace(c.PostForm("izreceneDisciplinskeKazne"))
+		izborUOrganeSportskogUdruzenja := strings.TrimSpace(c.PostForm("izborUOrganeSportskogUdruzenja"))
+		napomene := strings.TrimSpace(c.PostForm("napomene"))
 
 		var datumRodjenja, datumUclanjenja *time.Time
 		if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
@@ -238,6 +241,9 @@ func main() {
 			BrojPlaninarskeLegitimacije: brojPlaninarskeLegitimacije,
 			BrojPlaninarskeMarkice:      brojPlaninarskeMarkice,
 			DatumUclanjenja:             datumUclanjenja,
+			IzreceneDisciplinskeKazne:   izreceneDisciplinskeKazne,
+			IzborUOrganeSportskogUdruzenja: izborUOrganeSportskogUdruzenja,
+			Napomene:                    napomene,
 			AvatarURL:                   avatarURL,
 			Role:                        "admin",
 		}

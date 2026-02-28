@@ -18,6 +18,9 @@ const initialForm = {
   brojPlaninarskeLegitimacije: '',
   brojPlaninarskeMarkice: '',
   datumUclanjenja: '',
+  izreceneDisciplinskeKazne: '',
+  izborUOrganeSportskogUdruzenja: '',
+  napomene: '',
 }
 
 export default function RegisterAdmin() {
@@ -45,7 +48,7 @@ export default function RegisterAdmin() {
     checkSetup()
   }, [navigate])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -82,6 +85,7 @@ export default function RegisterAdmin() {
         'fullName', 'imeRoditelja', 'pol', 'datumRodjenja', 'drzavljanstvo',
         'adresa', 'telefon', 'email', 'brojLicnogDokumenta',
         'brojPlaninarskeLegitimacije', 'brojPlaninarskeMarkice', 'datumUclanjenja',
+        'izreceneDisciplinskeKazne', 'izborUOrganeSportskogUdruzenja', 'napomene',
       ]
       optional.forEach((key) => {
         const val = form[key]?.trim()
@@ -300,6 +304,48 @@ export default function RegisterAdmin() {
                   value={form.datumUclanjenja}
                   onChange={handleChange}
                   className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Disciplinske kazne, izbor u organe, napomene */}
+          <div className={sectionClass}>
+            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
+              Disciplinske kazne, izbor u organe, napomene (opciono)
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Izrečene disciplinske kazne</label>
+                <textarea
+                  name="izreceneDisciplinskeKazne"
+                  value={form.izreceneDisciplinskeKazne}
+                  onChange={handleChange}
+                  rows={3}
+                  className={inputClass}
+                  placeholder="Tekst o izrečenim disciplinskim kaznama..."
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                <textarea
+                  name="izborUOrganeSportskogUdruzenja"
+                  value={form.izborUOrganeSportskogUdruzenja}
+                  onChange={handleChange}
+                  rows={3}
+                  className={inputClass}
+                  placeholder="Tekst o izboru u organe..."
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Napomene</label>
+                <textarea
+                  name="napomene"
+                  value={form.napomene}
+                  onChange={handleChange}
+                  rows={3}
+                  className={inputClass}
+                  placeholder="Dodatne napomene..."
                 />
               </div>
             </div>
