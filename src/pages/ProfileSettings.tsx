@@ -205,9 +205,7 @@ export default function ProfileSettings() {
         formData.append('napomene', form.napomene.trim())
       }
 
-      const res = await api.patch('/api/me', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const res = await api.patch('/api/me', formData)
 
       if (res.data?.token && res.data?.role && res.data?.user) {
         login({

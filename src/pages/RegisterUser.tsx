@@ -82,12 +82,10 @@ export default function RegisterUser() {
 
       if (avatarFile) formData.append('avatar', avatarFile)
 
-      await api.post('/api/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await api.post('/api/register', formData)
 
       setSuccess(true)
-      setTimeout(() => navigate('/', { replace: true }), 2000)
+      setTimeout(() => navigate('/users', { replace: true }), 2000)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Greška pri kreiranju korisnika')
     }
