@@ -26,7 +26,7 @@ export default function ProfileActionButtons({
   const infoLink = `/users/${userId}/info`
 
   return (
-    <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
+    <div className="absolute top-6 right-12 z-10 flex items-center gap-2">
       {showSettings && <ProfileSettingsButton to={settingsLink} />}
       {showInfo && <ProfileInfoButton to={infoLink} />}
       <ProfilePrintButton onClick={onPrintClick} />

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { Link } from 'react-router-dom'
+import BackButton from '../components/BackButton'
 
 interface Korisnik {
   id: number
@@ -91,8 +92,11 @@ export default function Korisnici() {
           {searchTerm ? `Nema članova za pretragu "${searchTerm}"` : 'Još nema registrovanih članova.'}
         </p>
       ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
+          <div className="absolute top-4 right-4 z-10 [&_button]:mb-0">
+            <BackButton />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 pt-20">
             {filteredKorisnici.map((k) => (
               <div
                 key={k.id}
