@@ -57,6 +57,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
+          { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },
 
           // Lista korisnika  svi ulogovani
           { path: '/users', element: <Users /> },

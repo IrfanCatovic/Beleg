@@ -772,6 +772,25 @@ func main() {
 			}
 
 			post := func(k string) string { return strings.TrimSpace(c.PostForm(k)) }
+			roleVal, _ := c.Get("role")
+			isAdmin := roleVal == "admin"
+
+			// Opciono: promena lozinke (samo korisnik može da promeni svoju)
+			if newPassword := post("newPassword"); newPassword != "" {
+				if len(newPassword) < 8 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+					return
+				}
+				hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
+					return
+				}
+				if err := db.Model(&korisnik).Update("password", string(hashed)).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
+					return
+				}
+			}
 
 			// Username: ako je poslat i različit od trenutnog, provera jedinstvenosti
 			newUsername := post("username")
@@ -846,24 +865,27 @@ func main() {
 				korisnik.AvatarURL = uploadResult.SecureURL
 			}
 
-			// Ažuriraj sva dozvoljena polja (ne diraj role, password, statistiku)
+			// Ažuriraj dozvoljena polja. Role, disciplinske kazne, izbor u organe, napomene — samo admin (PATCH /korisnici/:id)
 			updates := map[string]interface{}{
-				"username":                         newUsername,
-				"full_name":                        fullName,
-				"ime_roditelja":                     imeRoditelja,
-				"pol":                              pol,
-				"drzavljanstvo":                    drzavljanstvo,
-				"adresa":                           adresa,
-				"telefon":                          telefon,
-				"email":                            email,
-				"broj_licnog_dokumenta":            brojLicnogDokumenta,
-				"broj_planinarske_legitimacije":     brojPlaninarskeLegitimacije,
-				"broj_planinarske_markice":         brojPlaninarskeMarkice,
-				"izrecene_disciplinske_kazne":      izreceneDisciplinskeKazne,
-				"izbor_u_organe_sportskog_udruzenja": izborUOrganeSportskogUdruzenja,
-				"napomene":                         napomene,
-				"datum_rodjenja":                   datumRodjenja,
-				"datum_uclanjenja":                 datumUclanjenja,
+				"username":                     newUsername,
+				"full_name":                    fullName,
+				"ime_roditelja":                imeRoditelja,
+				"pol":                          pol,
+				"drzavljanstvo":                drzavljanstvo,
+				"adresa":                       adresa,
+				"telefon":                      telefon,
+				"email":                        email,
+				"broj_licnog_dokumenta":        brojLicnogDokumenta,
+				"broj_planinarske_legitimacije": brojPlaninarskeLegitimacije,
+				"broj_planinarske_markice":     brojPlaninarskeMarkice,
+				"datum_rodjenja":               datumRodjenja,
+				"datum_uclanjenja":             datumUclanjenja,
+			}
+			// Samo admin može menjati disciplinske kazne, izbor u organe, napomene
+			if isAdmin {
+				updates["izrecene_disciplinske_kazne"] = izreceneDisciplinskeKazne
+				updates["izbor_u_organe_sportskog_udruzenja"] = izborUOrganeSportskogUdruzenja
+				updates["napomene"] = napomene
 			}
 			if korisnik.AvatarURL != "" {
 				updates["avatar_url"] = korisnik.AvatarURL
@@ -896,6 +918,60 @@ func main() {
 				}
 			}
 			c.JSON(200, resp)
+		})
+
+		// PATCH /api/korisnici/:id — admin ažurira korisnika (samo role, disciplinske kazne, izbor u organe, napomene). Lozinka se ne vidi ni ne menja.
+		protected.PATCH("/korisnici/:id", func(c *gin.Context) {
+			roleVal, _ := c.Get("role")
+			if roleVal != "admin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može menjati korisnika"})
+				return
+			}
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			var body struct {
+				Role                           string `json:"role"`
+				IzreceneDisciplinskeKazne     string `json:"izreceneDisciplinskeKazne"`
+				IzborUOrganeSportskogUdruzenja string `json:"izborUOrganeSportskogUdruzenja"`
+				Napomene                      string `json:"napomene"`
+			}
+			_ = c.ShouldBindJSON(&body) // opciono
+			if body.Role == "" {
+				body.Role = korisnik.Role
+			}
+			if body.Role != "" && body.Role != korisnik.Role {
+				validRoles := map[string]bool{"admin": true, "clan": true, "vodic": true, "blagajnik": true, "sekretar": true, "menadzer-opreme": true}
+				if !validRoles[body.Role] {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća uloga"})
+					return
+				}
+			}
+			updates := map[string]interface{}{
+				"role":                              body.Role,
+				"izrecene_disciplinske_kazne":       body.IzreceneDisciplinskeKazne,
+				"izbor_u_organe_sportskog_udruzenja": body.IzborUOrganeSportskogUdruzenja,
+				"napomene":                          body.Napomene,
+			}
+			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju"})
+				return
+			}
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju"})
+				return
+			}
+			c.JSON(200, gin.H{"message": "Korisnik ažuriran", "korisnik": korisnik})
 		})
 
 		// GET /api/korisnici/:id detalji o korisniku

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
@@ -28,10 +28,13 @@ const initialForm = {
 }
 
 export default function ProfileSettings() {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, isLoggedIn, login } = useAuth()
   const [form, setForm] = useState(initialForm)
   const [role, setRole] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -39,12 +42,44 @@ export default function ProfileSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const isAdminEdit = !!id && user?.role === 'admin'
+  const canEditAdminFields = user?.role === 'admin'
+
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/home', { replace: true })
       return
     }
+    // Samo admin može pristupiti /profil/podesavanja/:id
+    if (id && user?.role !== 'admin') {
+      navigate('/profil/podesavanja', { replace: true })
+      return
+    }
 
+    // Admin editing another user – samo admin polja, bez lozinke
+    if (isAdminEdit) {
+      const fetchUser = async () => {
+        try {
+          const res = await api.get(`/api/korisnici/${id}`)
+          const k = res.data
+          setForm({
+            ...initialForm,
+            izreceneDisciplinskeKazne: k.izrecene_disciplinske_kazne || '',
+            izborUOrganeSportskogUdruzenja: k.izbor_u_organe_sportskog_udruzenja || '',
+            napomene: k.napomene || '',
+          })
+          setRole(k.role || '')
+        } catch (err: any) {
+          setError(err.response?.data?.error || 'Greška pri učitavanju profila')
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchUser()
+      return
+    }
+
+    // Uobičajeno: korisnik menja svoj profil
     const fetchMe = async () => {
       try {
         const res = await api.get('/api/me')
@@ -77,7 +112,7 @@ export default function ProfileSettings() {
     }
 
     fetchMe()
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn, navigate, id, isAdminEdit])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -106,6 +141,35 @@ export default function ProfileSettings() {
     setSaving(true)
 
     try {
+      if (isAdminEdit) {
+        if (newPassword || confirmPassword) {
+          setError('Admin ne može da menja lozinku korisnika.')
+          setSaving(false)
+          return
+        }
+        const body = {
+          role,
+          izreceneDisciplinskeKazne: form.izreceneDisciplinskeKazne.trim(),
+          izborUOrganeSportskogUdruzenja: form.izborUOrganeSportskogUdruzenja.trim(),
+          napomene: form.napomene.trim(),
+        }
+        await api.patch(`/api/korisnici/${id}`, body)
+        setSuccess(true)
+        setTimeout(() => navigate(`/users/${id}`, { replace: true }), 1500)
+        return
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError('Lozinke se ne podudaraju.')
+        setSaving(false)
+        return
+      }
+      if (newPassword && newPassword.length < 8) {
+        setError('Lozinka mora imati najmanje 8 karaktera.')
+        setSaving(false)
+        return
+      }
+
       const formData = new FormData()
       formData.append('username', form.username.trim())
       formData.append('fullName', form.fullName.trim())
@@ -118,18 +182,20 @@ export default function ProfileSettings() {
       formData.append('brojLicnogDokumenta', form.brojLicnogDokumenta.trim())
       formData.append('brojPlaninarskeLegitimacije', form.brojPlaninarskeLegitimacije.trim())
       formData.append('brojPlaninarskeMarkice', form.brojPlaninarskeMarkice.trim())
-      formData.append('izreceneDisciplinskeKazne', form.izreceneDisciplinskeKazne.trim())
-      formData.append('izborUOrganeSportskogUdruzenja', form.izborUOrganeSportskogUdruzenja.trim())
-      formData.append('napomene', form.napomene.trim())
       if (form.datumRodjenja) formData.append('datumRodjenja', form.datumRodjenja)
       if (form.datumUclanjenja) formData.append('datumUclanjenja', form.datumUclanjenja)
+      if (newPassword) formData.append('newPassword', newPassword)
       if (avatarFile) formData.append('avatar', avatarFile)
+      if (canEditAdminFields) {
+        formData.append('izreceneDisciplinskeKazne', form.izreceneDisciplinskeKazne.trim())
+        formData.append('izborUOrganeSportskogUdruzenja', form.izborUOrganeSportskogUdruzenja.trim())
+        formData.append('napomene', form.napomene.trim())
+      }
 
       const res = await api.patch('/api/me', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      // Ako je promenjeno korisničko ime, backend vraća novi JWT – osvežimo token i korisnika
       if (res.data?.token && res.data?.role && res.data?.user) {
         login({
           token: res.data.token,
@@ -147,6 +213,8 @@ export default function ProfileSettings() {
     }
   }
 
+  const disabledInputClass =
+    'w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed'
   const inputClass =
     'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
@@ -155,21 +223,30 @@ export default function ProfileSettings() {
   if (!isLoggedIn) return null
   if (loading) return <div className="text-center py-20">Učitavanje...</div>
 
+  const backLink = isAdminEdit ? (
+    <Link to={`/users/${id}`} className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+      ← Nazad na profil korisnika
+    </Link>
+  ) : (
+    <Link to="/profil" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+      ← Nazad na profil
+    </Link>
+  )
+
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold" style={{ color: '#41ac53' }}>
-            Podešavanja profila
+            {isAdminEdit ? 'Admin: Podešavanja korisnika' : 'Podešavanja profila'}
           </h2>
-          <Link to="/profil" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-            ← Nazad na profil
-          </Link>
+          {backLink}
         </div>
 
         <p className="text-sm text-gray-500 mb-6">
-          Možete menjati sva polja osim uloge (role). Ulogu može promeniti samo administrator. Ako promenite
-          korisničko ime, mora biti jedinstveno.
+          {isAdminEdit
+            ? 'Samo ovih polja može da menja admin. Lozinka korisnika se ne vidi niti menja.'
+            : 'Možete menjati sva polja osim uloge i admin polja (disciplinske kazne, izbor u organe, napomene). Ulogu i ta polja može promeniti samo administrator. Možete promeniti i lozinku.'}
         </p>
 
         {success && (
@@ -182,6 +259,84 @@ export default function ProfileSettings() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Admin edit: samo role + disciplinske, izbor, napomene */}
+          {isAdminEdit ? (
+            <>
+              <div className={sectionClass}>
+                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
+                  Uloga
+                </h3>
+                <div>
+                  <label className={labelClass}>Uloga (samo admin menja)</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="clan">clan</option>
+                    <option value="admin">admin</option>
+                    <option value="vodic">vodic</option>
+                    <option value="blagajnik">blagajnik</option>
+                    <option value="sekretar">sekretar</option>
+                    <option value="menadzer-opreme">menadzer-opreme</option>
+                  </select>
+                </div>
+              </div>
+              <div className={sectionClass}>
+                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
+                  Disciplinske kazne, izbor u organe, napomene
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Izrečene disciplinske kazne</label>
+                    <textarea
+                      name="izreceneDisciplinskeKazne"
+                      value={form.izreceneDisciplinskeKazne}
+                      onChange={handleChange}
+                      rows={3}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                    <textarea
+                      name="izborUOrganeSportskogUdruzenja"
+                      value={form.izborUOrganeSportskogUdruzenja}
+                      onChange={handleChange}
+                      rows={3}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Napomene</label>
+                    <textarea
+                      name="napomene"
+                      value={form.napomene}
+                      onChange={handleChange}
+                      rows={3}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 px-4 bg-[#41ac53] hover:bg-[#3a9a4a] disabled:opacity-60 text-white font-medium rounded-lg transition-colors"
+                >
+                  {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
+                </button>
+                <Link
+                  to={`/users/${id}`}
+                  className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
+                >
+                  Odustani
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
           {/* Korisničko ime i uloga */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
@@ -204,7 +359,28 @@ export default function ProfileSettings() {
                 value={role}
                 readOnly
                 disabled
-                className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                className={disabledInputClass}
+              />
+            </div>
+            {/* Promena lozinke – samo kod sopstvenog profila, admin ne vidi ni lozinku */}
+            <div className="space-y-2 mt-4">
+              <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={inputClass}
+                placeholder="Min. 8 karaktera"
+                minLength={8}
+                autoComplete="new-password"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={inputClass}
+                placeholder="Ponovite lozinku"
+                autoComplete="new-password"
               />
             </div>
           </div>
@@ -315,40 +491,52 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          {/* Disciplinske kazne, izbor u organe, napomene */}
+          {/* Disciplinske kazne, izbor u organe, napomene – samo admin može da menja */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
               Disciplinske kazne, izbor u organe, napomene
             </h3>
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>Izrečene disciplinske kazne</label>
+                <label className={labelClass}>
+                  Izrečene disciplinske kazne {!canEditAdminFields && '(samo admin)'}
+                </label>
                 <textarea
                   name="izreceneDisciplinskeKazne"
                   value={form.izreceneDisciplinskeKazne}
                   onChange={handleChange}
                   rows={3}
-                  className={inputClass}
+                  readOnly={!canEditAdminFields}
+                  disabled={!canEditAdminFields}
+                  className={canEditAdminFields ? inputClass : disabledInputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                <label className={labelClass}>
+                  Izbor u organe sportskog udruženja {!canEditAdminFields && '(samo admin)'}
+                </label>
                 <textarea
                   name="izborUOrganeSportskogUdruzenja"
                   value={form.izborUOrganeSportskogUdruzenja}
                   onChange={handleChange}
                   rows={3}
-                  className={inputClass}
+                  readOnly={!canEditAdminFields}
+                  disabled={!canEditAdminFields}
+                  className={canEditAdminFields ? inputClass : disabledInputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Napomene</label>
+                <label className={labelClass}>
+                  Napomene {!canEditAdminFields && '(samo admin)'}
+                </label>
                 <textarea
                   name="napomene"
                   value={form.napomene}
                   onChange={handleChange}
                   rows={3}
-                  className={inputClass}
+                  readOnly={!canEditAdminFields}
+                  disabled={!canEditAdminFields}
+                  className={canEditAdminFields ? inputClass : disabledInputClass}
                 />
               </div>
             </div>
@@ -391,6 +579,8 @@ export default function ProfileSettings() {
               Odustani
             </Link>
           </div>
+          </>
+          )}
         </form>
       </div>
     </div>
