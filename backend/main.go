@@ -537,11 +537,11 @@ func main() {
 			})
 		})
 
-		// POST /api/akcije adding new action, only for admin
+		// POST /api/akcije adding new action — admin i vodič
 		protected.POST("/akcije", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" {
-				c.JSON(403, gin.H{"error": "Samo admin može dodavati akcije"})
+			if role != "admin" && role != "vodic" {
+				c.JSON(403, gin.H{"error": "Samo admin ili vodič mogu dodavati akcije"})
 				return
 			}
 			username, _ := c.Get("username")
@@ -861,19 +861,25 @@ func main() {
 				return
 			}
 
-			// DTO koji frontend očekuje
+			// DTO koji frontend očekuje (korisnik = username, fullName za štampu formulara)
 			type PrijavaDTO struct {
 				ID           uint      `json:"id"`
 				Korisnik     string    `json:"korisnik"`
+				FullName     string    `json:"fullName"`
 				PrijavljenAt time.Time `json:"prijavljenAt"`
 				Status       string    `json:"status"`
 			}
 
 			var out []PrijavaDTO
 			for _, p := range prijave {
+				fullName := ""
+				if p.Korisnik.ID != 0 {
+					fullName = p.Korisnik.FullName
+				}
 				out = append(out, PrijavaDTO{
 					ID:           p.ID,
 					Korisnik:     p.Korisnik.Username,
+					FullName:     fullName,
 					PrijavljenAt: p.PrijavljenAt,
 					Status:       p.Status,
 				})

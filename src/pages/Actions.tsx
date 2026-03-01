@@ -29,9 +29,9 @@ export default function Actions() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // ← NOVO: dohvata dve liste iz backend-a
+
         const akcijeRes = await api.get('/api/akcije')
-        console.log("Akcije iz baze:", akcijeRes.data)
+
         setAktivneAkcije(akcijeRes.data.aktivne || [])
         setZavrseneAkcije(akcijeRes.data.zavrsene || [])
 

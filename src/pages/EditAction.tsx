@@ -201,28 +201,35 @@ export default function EditAction() {
           />
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">Vodič</label>
-          <select
-            value={vodicId}
-            onChange={(e) => setVodicId(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-          >
-            <option value="">Izaberi vodiča</option>
-            {vodici.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.fullName} (@{v.username})
-              </option>
-            ))}
-          </select>
-        </div>
+        {!drugiVodicCheck && (
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">Vodič</label>
+            <select
+              value={vodicId}
+              onChange={(e) => setVodicId(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            >
+              <option value="">Izaberi vodiča</option>
+              {vodici.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.fullName} (@{v.username})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
             id="drugi-vodic"
             checked={drugiVodicCheck}
-            onChange={(e) => setDrugiVodicCheck(e.target.checked)}
+            onChange={(e) => {
+              const checked = e.target.checked
+              setDrugiVodicCheck(checked)
+              if (checked) setVodicId('')
+              else setDrugiVodicIme('')
+            }}
             className="w-4 h-4 rounded border-gray-300 text-[#41ac53] focus:ring-[#41ac53]"
           />
           <label htmlFor="drugi-vodic" className="text-gray-700 font-medium">

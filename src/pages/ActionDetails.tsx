@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../utils/generateActionPdf'
 
 interface Akcija {
   id: number
@@ -23,7 +24,8 @@ interface Akcija {
 
 interface Prijava {
   id: number
-  korisnik: string  // username
+  korisnik: string
+  fullName?: string
   prijavljenAt: string
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
 }
@@ -119,6 +121,40 @@ export default function ActionDetails() {
 
   if (loading) return <div className="text-center py-20">Učitavanje akcije...</div>
   if (error || !akcija) return <div className="text-center py-20 text-red-600">{error || 'Akcija nije pronađena'}</div>
+
+  const vodicIme = [akcija.vodic?.fullName, akcija.drugiVodicIme].filter(Boolean).join(', ')
+  const imenaPolaznika = prijave.map((p) => (p.fullName && p.fullName.trim() ? p.fullName : p.korisnik)).join(', ')
+  const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
+  const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName && p.fullName.trim() ? p.fullName : p.korisnik)).join(', ')
+
+  const handlePrintPrePolaska = () => {
+    generateActionPdfPrePolaska({
+      naziv: akcija.naziv,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      opis: akcija.opis || '',
+      tezina: akcija.tezina || '',
+      vodicIme,
+      addedBy: akcija.addedBy?.fullName || '',
+      brojPolaznika: prijave.length,
+      imenaPolaznika,
+    })
+  }
+
+  const handlePrintZavrsena = () => {
+    generateActionPdfZavrsena({
+      naziv: akcija.naziv,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      opis: akcija.opis || '',
+      tezina: akcija.tezina || '',
+      vodicIme,
+      addedBy: akcija.addedBy?.fullName || '',
+      brojPrijavljenih: prijave.length,
+      brojUspesnoPopeli: uspesnoPopeli.length,
+      imenaUspesnoPopeli,
+    })
+  }
 
   return (
     <div className="py-10 px-4 max-w-5xl mx-auto">
@@ -238,7 +274,7 @@ export default function ActionDetails() {
             {user && ['admin', 'vodic'].includes(user?.role) && (
               <div className="mt-12 mb-10 p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 text-center">Upravljanje akcijom</h4>
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
                   {!akcija.isCompleted && (
                     <>
                       <button
@@ -258,6 +294,41 @@ export default function ActionDetails() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
                         Izmeni akciju
+                      </button>
+                    </>
+                  )}
+                  {!akcija.isCompleted ? (
+                    <button
+                      onClick={handlePrintPrePolaska}
+                      className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-500 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:ring-offset-2"
+                      title="Štampaj formular pre polaska"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      Štampaj
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handlePrintPrePolaska}
+                        className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-500 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:ring-offset-2"
+                        title="Štampaj formular pre polaska"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Štampaj – pre polaska
+                      </button>
+                      <button
+                        onClick={handlePrintZavrsena}
+                        className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-500 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:ring-offset-2"
+                        title="Štampaj formular završene akcije"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Štampaj – završena
                       </button>
                     </>
                   )}
