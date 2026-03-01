@@ -10,6 +10,7 @@ import Actions from './pages/Actions'
 import Finance from './pages/Finance'
 import Profil from './pages/Profil'
 import AddAction from './pages/AddAction'
+import AddPastAction from './pages/AddPastAction'
 import Users from './pages/Users'
 import UserProfile from './pages/UserProfil'
 import UserInfo from './pages/UserInfo'
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
             element: <RoleRoute allowedRoles={['admin', 'vodic']} />,
             children: [
               { path: '/dodaj-akciju', element: <AddAction /> },
+              { path: '/profil/dodaj-proslu-akciju', element: <AddPastAction /> },
               { path: '/akcije/:id/izmeni', element: <EditAction /> },
             ],
           },

@@ -1382,6 +1382,154 @@ func main() {
 			})
 		})
 
+		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
+		protected.POST("/korisnici/:id/dodaj-proslu-akciju", func(c *gin.Context) {
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodic" {
+				c.JSON(403, gin.H{"error": "Samo admin ili vodič mogu da dodaju prošlu akciju"})
+				return
+			}
+
+			idStr := c.Param("id")
+			korisnikID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+
+			username, _ := c.Get("username")
+			db := c.MustGet("db").(*gorm.DB)
+			var currentUser models.Korisnik
+			if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, korisnikID).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			form, err := c.MultipartForm()
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeća forma"})
+				return
+			}
+
+			naziv := c.PostForm("naziv")
+			vrh := c.PostForm("vrh")
+			datumStr := c.PostForm("datum")
+			opis := c.PostForm("opis")
+			tezina := c.PostForm("tezina")
+			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
+			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			vodicIDStr := c.PostForm("vodic_id")
+			drugiVodicIme := c.PostForm("drugi_vodic_ime")
+
+			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
+				return
+			}
+
+			datum, err := time.Parse("2006-01-02", datumStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+				return
+			}
+
+			kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
+			if err != nil || kumulativniUsponM < 0 {
+				c.JSON(400, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
+				return
+			}
+
+			duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
+			if err != nil || duzinaStazeKm < 0 {
+				c.JSON(400, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
+				return
+			}
+
+			var vodicID uint
+			if vodicIDStr != "" {
+				if vID, err := strconv.ParseUint(vodicIDStr, 10, 32); err == nil {
+					vodicID = uint(vID)
+				}
+			}
+
+			akcija := models.Akcija{
+				Naziv:                    naziv,
+				Vrh:                      vrh,
+				Datum:                    datum,
+				Opis:                     opis,
+				Tezina:                   tezina,
+				UkupnoMetaraUsponaAkcija: kumulativniUsponM,
+				UkupnoKmAkcija:           duzinaStazeKm,
+				SlikaURL:                 "",
+				IsCompleted:               true,
+				VodicID:                  vodicID,
+				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
+				AddedByID:                currentUser.ID,
+			}
+
+			if err := db.Create(&akcija).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
+				return
+			}
+
+			files := form.File["slika"]
+			if len(files) > 0 {
+				file := files[0]
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri čitanju fajla"})
+					return
+				}
+				defer f.Close()
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:   "adri-sentinel",
+				}
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
+					return
+				}
+				akcija.SlikaURL = uploadResult.SecureURL
+				db.Save(&akcija)
+			}
+
+			prijava := models.Prijava{
+				AkcijaID:   akcija.ID,
+				KorisnikID: uint(korisnikID),
+				Status:     "popeo se",
+			}
+			if err := db.Create(&prijava).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri dodavanju prijave"})
+				return
+			}
+
+			korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
+			korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
+			korisnik.BrojPopeoSe += 1
+			if err := db.Save(&korisnik).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
+				return
+			}
+
+			c.JSON(200, gin.H{"message": "Prošla akcija dodata", "korisnikId": korisnik.ID})
+		})
+
 		// GET /api/moje-popeo-se lista akcija na koje se korisnik popeo, za profil page
 		protected.GET("/moje-popeo-se", func(c *gin.Context) {
 			username, exists := c.Get("username")

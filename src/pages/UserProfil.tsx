@@ -112,10 +112,6 @@ export default function UserProfile() {
     }
   }, [statistika])
 
-  const handleDodajStaruAkciju = () => {
-    navigate(`/korisnici/${id}/dodaj-starju-akciju`)
-  }
-
   if (loading) return <div className="text-center py-20">Učitavanje profila...</div>
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>
 
@@ -130,29 +126,9 @@ export default function UserProfile() {
         currentUser={currentUser}
         onPrintClick={() => korisnik && generateMemberPdf(korisnik as unknown as MemberPdfData)}
       >
-        {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
-          <button
-            onClick={handleDodajStaruAkciju}
-            className="hidden md:inline-flex px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          >
-            Dodaj staru akciju
-          </button>
-        )}
+
       </ProfileActionButtons>
 
-      {/* Mobile FAB  plavo dugme sa plusom, fixno u desnom donjem cosku */}
-      {currentUser && ['admin', 'vodic'].includes(currentUser?.role) && (
-        <button
-          onClick={handleDodajStaruAkciju}
-          className="md:hidden fixed bottom-6 right-6 z-20 w-14 h-14 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          title="Dodaj staru akciju"
-          aria-label="Dodaj staru akciju"
-        >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      )}
 
       <div className="bg-white rounded-2xl shadow-xl pt-10 px-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
@@ -242,60 +218,62 @@ export default function UserProfile() {
         </div>
 
         {/* Lista uspešnih akcija */}
-        <div className="mt-12">
-          <h3 className="text-2xl font-semibold mb-6 text-center" style={{ color: '#41ac53' }}>
-            Akcije na koje se popeo
-          </h3>
+        <div className="mt-12 sm:mt-14">
+          <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-[#41ac53]" aria-hidden />
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight" style={{ color: '#41ac53' }}>
+              Akcije na koje se popeo
+            </h3>
+            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-[#41ac53]" aria-hidden />
+          </div>
 
           {uspesneAkcije.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">
-              Još nije označen kao uspešno završen ni na jednoj akciji.
-            </p>
+            <div className="text-center py-14 sm:py-16 bg-gray-50 rounded-2xl border border-gray-200/80">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53]/10 text-[#41ac53] mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 011.414-1.414L21 7.5" />
+                </svg>
+              </div>
+              <p className="text-gray-600 text-base sm:text-lg font-medium">Još nije označen kao uspešno završen ni na jednoj akciji.</p>
+              <p className="text-gray-500 text-sm mt-1">Kada se popne na akciju, ovde će se prikazati.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
               {uspesneAkcije.map((akcija) => (
-                <div 
+                <div
                   key={akcija.id}
-                  className="relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  className="group relative bg-white rounded-2xl border border-gray-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-[#41ac53]/30 transition-all duration-300 ease-out"
                 >
-                  {/* Slika */}
-                  <div className="relative w-full h-48 sm:h-56 overflow-hidden">
+                  <div className="relative w-full h-44 sm:h-52 overflow-hidden">
                     <img
                       src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
                       alt={akcija.naziv}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
                         e.currentTarget.onerror = null
                       }}
                     />
-                    {/* Zeleni badge */}
-                    <div className="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-md">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#41ac53] text-white shadow-lg">
                       Popeo ✓
                     </div>
                   </div>
 
-                  {/* Sadržaj */}
-                  <div className="p-5">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                  <div className="p-4 sm:p-5">
+                    <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                       {akcija.naziv}
                     </h4>
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Vrh:</strong> {akcija.vrh}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km
-                    </p>
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
-                    </p>
-                    <span className={`inline-block px-3 py-1 mt-3 rounded-full text-xs font-medium ${
-                      akcija.tezina === 'lako' ? 'bg-green-100 text-green-800' :
-                      akcija.tezina === 'srednje' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
+                      <p><strong className="text-gray-700">Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                      <p><strong className="text-gray-700">Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km</p>
+                      <p><strong className="text-gray-700">Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m</p>
+                    </div>
+                    <span className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
+                      akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
+                      akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
+                      'bg-rose-100 text-rose-800'
                     }`}>
                       {akcija.tezina || 'Nije definisano'}
                     </span>
