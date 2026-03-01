@@ -351,6 +351,10 @@ func main() {
 				resp["addedBy"] = gin.H{"fullName": a.FullName, "username": a.Username}
 			}
 		}
+		// Broj prijavljenih – javno, za neulogovane (vidi samo broj, ne listu)
+		var prijaveCount int64
+		db.Model(&models.Prijava{}).Where("akcija_id = ?", id).Count(&prijaveCount)
+		resp["prijaveCount"] = prijaveCount
 		c.JSON(200, resp)
 	})
 
