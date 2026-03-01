@@ -19,6 +19,7 @@ export default function Actions() {
   const [aktivneAkcije, setAktivneAkcije] = useState<Akcija[]>([])
   const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
+  const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -36,7 +37,9 @@ export default function Actions() {
 
         const mojeRes = await api.get('/api/moje-prijave')
         const ids = mojeRes.data.prijavljeneAkcije || []
+        const otkaziveIds = mojeRes.data.otkaziveAkcije || []
         setPrijavljeneAkcije(new Set(ids))
+        setOtkaziveAkcije(new Set(otkaziveIds))
       } catch (err: any) {
         setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
       } finally {
@@ -55,10 +58,12 @@ export default function Actions() {
       alert(response.data.message)
 
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+      setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       alert(err.response?.data?.error || 'Greška pri prijavi')
       if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
+        setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
       }
     }
   }
@@ -71,6 +76,11 @@ export default function Actions() {
       alert('Uspešno ste otkazali prijavu!')
 
       setPrijavljeneAkcije(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(akcijaId)
+        return newSet
+      })
+      setOtkaziveAkcije(prev => {
         const newSet = new Set(prev)
         newSet.delete(akcijaId)
         return newSet
@@ -195,10 +205,10 @@ export default function Actions() {
     <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-gray-500 cursor-default">
       Akcija završena
     </div>
-  ) : prijavljeneAkcije.has(akcija.id) ? (
-    // Akcija je aktivna + korisnik je prijavljen → vidi dugme za otkazivanje
+  ) : otkaziveAkcije.has(akcija.id) ? (
+    // Akcija je aktivna + korisnik može otkazati (status = prijavljen) → vidi dugme za otkazivanje
     <button
-      onClick={() => handleOtkaziPrijavu(akcija.id, akcija.naziv)}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv); }}
       className={`
         w-full rounded-lg py-3 font-medium text-white
         bg-red-600 hover:bg-red-700 active:bg-red-800
@@ -209,10 +219,15 @@ export default function Actions() {
     >
       Otkaži prijavu ✕
     </button>
+  ) : prijavljeneAkcije.has(akcija.id) ? (
+    // Akcija je aktivna + korisnik je prijavljen ali admin je već označio (popeo se / nije uspeo) – ne može otkazati
+    <div className="w-full rounded-lg py-3 text-center font-medium text-white bg-emerald-600 cursor-default">
+      Uspešno popeo!
+    </div>
   ) : (
     // Akcija je aktivna + korisnik nije prijavljen → vidi dugme za prijavu
     <button
-      onClick={() => handlePrijavi(akcija.id, akcija.naziv)}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv); }}
       className={`
         w-full rounded-lg py-3 font-medium text-white
         bg-[#41ac53] hover:bg-[#3a9a48] active:bg-[#358c43]

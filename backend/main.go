@@ -798,7 +798,7 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno završena", "akcija": akcija})
 		})
 
-		// DELETE /api/akcije/:id/prijavi izbrisi prijave na akciju
+		// DELETE /api/akcije/:id/prijavi izbrisi prijave na akciju (samo ako je status "prijavljen")
 		protected.DELETE("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
 			id, err := strconv.Atoi(idStr)
@@ -812,19 +812,30 @@ func main() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 				return
 			}
-			korisnik := username.(string)
 
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
-			// Nađi i obriši prijavu
-			result := db.Where("akcija_id = ? AND korisnik = ?", id, korisnik).Delete(&models.Prijava{})
-			if result.Error != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju"})
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username.(string)).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
-			if result.RowsAffected == 0 {
+
+			var prijava models.Prijava
+			if err := db.Where("akcija_id = ? AND korisnik_id = ?", id, korisnik.ID).First(&prijava).Error; err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Niste bili prijavljeni na ovu akciju"})
+				return
+			}
+
+			// Ne dozvoli otkazivanje ako admin je već označio "popeo se" ili "nije uspeo"
+			if prijava.Status != "prijavljen" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh"})
+				return
+			}
+
+			if err := db.Delete(&prijava).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju"})
 				return
 			}
 
@@ -1361,6 +1372,8 @@ func main() {
 		})
 
 		// GET /api/moje-prijave list of IDs of akcije that user is signed up for, for quick check on frontend for ACTIONS PAGE
+		// prijavljeneAkcije = sve akcije gde je korisnik prijavljen (bilo koji status)
+		// otkaziveAkcije = samo gde je status "prijavljen" (korisnik može otkazati)
 		protected.GET("/moje-prijave", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
@@ -1387,7 +1400,15 @@ func main() {
 				Where("korisnik_id = ?", korisnik.ID).
 				Pluck("akcija_id", &prijavljene)
 
-			c.JSON(http.StatusOK, gin.H{"prijavljeneAkcije": prijavljene})
+			var otkazive []uint
+			db.Model(&models.Prijava{}).
+				Where("korisnik_id = ? AND status = ?", korisnik.ID, "prijavljen").
+				Pluck("akcija_id", &otkazive)
+
+			c.JSON(http.StatusOK, gin.H{
+				"prijavljeneAkcije": prijavljene,
+				"otkaziveAkcije":    otkazive,
+			})
 		})
 	}
 
