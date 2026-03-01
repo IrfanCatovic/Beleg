@@ -1,10 +1,11 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { useEffect, useState, useMemo, useRef } from 'react'
+import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { Link } from 'react-router-dom'
 import BackButton from '../components/BackButton'
+import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 
 interface Korisnik {
   id: number
@@ -21,7 +22,11 @@ export default function Korisnici() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('')
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false)
+  const roleDropdownRef = useRef<HTMLDivElement>(null)
   const [avatarFailed, setAvatarFailed] = useState<Record<number, boolean>>({})
+  const [printingId, setPrintingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -41,15 +46,75 @@ export default function Korisnici() {
   }, [user])
 
   
-  const filteredKorisnici = useMemo(() => {
-    if (!searchTerm.trim()) return korisnici
+  const roleOptions: { value: string; label: string }[] = [
+    { value: '', label: 'Sve uloge' },
+    { value: 'clan', label: 'Član' },
+    { value: 'vodic', label: 'Vodič' },
+    { value: 'blagajnik', label: 'Blagajnik' },
+    { value: 'sekretar', label: 'Sekretar' },
+    { value: 'menadzer-opreme', label: 'Menadžer opreme' },
+    { value: 'admin', label: 'Admin' },
+  ]
 
-    const lowerSearch = searchTerm.toLowerCase()
-    return korisnici.filter(k =>
-      (k.username || '').toLowerCase().includes(lowerSearch) ||
-      (k.fullName || '').toLowerCase().includes(lowerSearch)
-    )
-  }, [korisnici, searchTerm])
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target as Node)) {
+        setRoleDropdownOpen(false)
+      }
+    }
+    if (roleDropdownOpen) document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [roleDropdownOpen])
+
+  const filteredKorisnici = useMemo(() => {
+    let result = korisnici
+
+    if (roleFilter) {
+      result = result.filter(k => k.role === roleFilter)
+    }
+
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase()
+      result = result.filter(k =>
+        (k.username || '').toLowerCase().includes(lowerSearch) ||
+        (k.fullName || '').toLowerCase().includes(lowerSearch)
+      )
+    }
+
+    return result
+  }, [korisnici, searchTerm, roleFilter])
+
+  const handlePrint = async (k: Korisnik) => {
+    if (printingId) return
+    setPrintingId(k.id)
+    try {
+      const res = await api.get(`/api/korisnici/${k.id}`)
+      const data = res.data as Record<string, unknown>
+      const pdfData: MemberPdfData = {
+        clubName: undefined,
+        fullName: (data.fullName as string) || k.username,
+        ime_roditelja: data.ime_roditelja as string | undefined,
+        pol: data.pol as string | undefined,
+        datum_rodjenja: data.datum_rodjenja as string | null | undefined,
+        drzavljanstvo: data.drzavljanstvo as string | undefined,
+        adresa: data.adresa as string | undefined,
+        telefon: data.telefon as string | undefined,
+        email: data.email as string | undefined,
+        datum_uclanjenja: data.datum_uclanjenja as string | null | undefined,
+        broj_licnog_dokumenta: data.broj_licnog_dokumenta as string | undefined,
+        broj_planinarske_legitimacije: data.broj_planinarske_legitimacije as string | undefined,
+        broj_planinarske_markice: data.broj_planinarske_markice as string | undefined,
+        izrecene_disciplinske_kazne: data.izrecene_disciplinske_kazne as string | undefined,
+        izbor_u_organe_sportskog_udruzenja: data.izbor_u_organe_sportskog_udruzenja as string | undefined,
+        napomene: data.napomene as string | undefined,
+      }
+      generateMemberPdf(pdfData)
+    } catch (err: unknown) {
+      console.error('Greška pri generisanju PDF-a:', err)
+    } finally {
+      setPrintingId(null)
+    }
+  }
 
   if (loading) return <div className="text-center py-10">Učitavanje korisnika...</div>
   if (error) return <div className="text-center py-10 text-red-600">{error}</div>
@@ -62,18 +127,53 @@ export default function Korisnici() {
           Članovi kluba
         </h2>
 
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            placeholder="Pretraži po imenu ili username-u..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-[#41ac53] focus:ring-2
-             focus:ring-[#41ac53]/30 outline-none transition-all duration-200"
-          />
-          <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:max-w-2xl -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="relative flex-1 min-w-0">
+            <input
+              type="text"
+              placeholder="Pretraži po imenu ili username-u..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-[#41ac53] focus:ring-2
+               focus:ring-[#41ac53]/30 outline-none transition-all duration-200"
+            />
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div ref={roleDropdownRef} className="relative w-full sm:w-auto sm:min-w-[180px]">
+            <button
+              type="button"
+              onClick={() => setRoleDropdownOpen(v => !v)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#41ac53] focus:ring-2
+               focus:ring-[#41ac53]/30 outline-none transition-all duration-200 bg-white
+               flex items-center justify-between gap-2 text-left"
+            >
+              <span>{roleOptions.find(o => o.value === roleFilter)?.label ?? 'Sve uloge'}</span>
+              <ChevronDownIcon className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${roleDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {roleDropdownOpen && (
+              <div
+                className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-gray-200 bg-white shadow-lg z-50
+                 w-full min-w-[120px] sm:min-w-full"
+              >
+                {roleOptions.map(opt => (
+                  <button
+                    key={opt.value || '_all'}
+                    type="button"
+                    onClick={() => {
+                      setRoleFilter(opt.value)
+                      setRoleDropdownOpen(false)
+                    }}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 transition-colors first:rounded-t-[10px] last:rounded-b-[10px]
+                     ${opt.value === roleFilter ? 'bg-[#41ac53]/10 text-[#41ac53] font-medium' : ''}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {(user?.role === 'admin' || user?.role === 'sekretar') && (
@@ -89,7 +189,11 @@ export default function Korisnici() {
 
       {filteredKorisnici.length === 0 ? (
         <p className="text-gray-600 text-center">
-          {searchTerm ? `Nema članova za pretragu "${searchTerm}"` : 'Još nema registrovanih članova.'}
+          {searchTerm
+            ? `Nema članova za pretragu "${searchTerm}"${roleFilter ? ` sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}` : ''}`
+            : roleFilter
+              ? `Nema članova sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}.`
+              : 'Još nema registrovanih članova.'}
         </p>
       ) : (
         <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
@@ -168,11 +272,15 @@ export default function Korisnici() {
                     )}
                     <button
                       type="button"
-                      className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
-                      title="Štampanje (uskoro)"
-                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Štampanje evidencije člana"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handlePrint(k)
+                      }}
+                      disabled={printingId === k.id}
                     >
-                      <PrinterIcon className="w-5 h-5" />
+                      <PrinterIcon className={`w-5 h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
                     </button>
                   </div>
                 </div>
