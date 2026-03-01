@@ -248,9 +248,9 @@ export default function Korisnici() {
                     </div>
                   </Link>
 
-                  {/* Ikonice: podešavanja, lista (info), štampač */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
-                    {(user?.role === 'admin' || user?.role === 'sekretar' || user?.username === k.username) && (
+                  {/* Ikonice: podešavanja, info, štampač – samo admin i sekretar na /users listi */}
+                  {(user?.role === 'admin' || user?.role === 'sekretar') && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
                       <Link
                         to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
                         className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
@@ -259,8 +259,6 @@ export default function Korisnici() {
                       >
                         <Cog6ToothIcon className="w-5 h-5" />
                       </Link>
-                    )}
-                    {(user?.role === 'admin' || user?.role === 'sekretar') && (
                       <Link
                         to={`/users/${k.id}/info`}
                         className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
@@ -269,20 +267,20 @@ export default function Korisnici() {
                       >
                         <InformationCircleIcon className="w-5 h-5" />
                       </Link>
-                    )}
-                    <button
-                      type="button"
-                      className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Štampanje evidencije člana"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handlePrint(k)
-                      }}
-                      disabled={printingId === k.id}
-                    >
-                      <PrinterIcon className={`w-5 h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Štampanje evidencije člana"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePrint(k)
+                        }}
+                        disabled={printingId === k.id}
+                      >
+                        <PrinterIcon className={`w-5 h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

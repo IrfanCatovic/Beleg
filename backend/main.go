@@ -662,6 +662,131 @@ func main() {
 			})
 		})
 
+		// PATCH /api/akcije/:id — ažuriraj akciju (samo admin ili vodič)
+		protected.PATCH("/akcije/:id", func(c *gin.Context) {
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodic" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može izmeniti akciju"})
+				return
+			}
+
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			db := c.MustGet("db").(*gorm.DB)
+			var akcija models.Akcija
+			if err := db.First(&akcija, id).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+
+			form, err := c.MultipartForm()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća forma"})
+				return
+			}
+
+			naziv := c.PostForm("naziv")
+			vrh := c.PostForm("vrh")
+			datumStr := c.PostForm("datum")
+			opis := c.PostForm("opis")
+			tezina := c.PostForm("tezina")
+			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
+			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			vodicIDStr := c.PostForm("vodic_id")
+			drugiVodicIme := c.PostForm("drugi_vodic_ime")
+
+			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
+				return
+			}
+
+			datum, err := time.Parse("2006-01-02", datumStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+				return
+			}
+
+			kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
+			if err != nil || kumulativniUsponM < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
+				return
+			}
+
+			duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
+			if err != nil || duzinaStazeKm < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
+				return
+			}
+
+			var vodicID uint
+			if vodicIDStr != "" {
+				if vID, err := strconv.ParseUint(vodicIDStr, 10, 32); err == nil {
+					vodicID = uint(vID)
+				}
+			}
+
+			akcija.Naziv = naziv
+			akcija.Vrh = vrh
+			akcija.Datum = datum
+			akcija.Opis = opis
+			akcija.Tezina = tezina
+			akcija.UkupnoMetaraUsponaAkcija = kumulativniUsponM
+			akcija.UkupnoKmAkcija = duzinaStazeKm
+			akcija.VodicID = vodicID
+			akcija.DrugiVodicIme = strings.TrimSpace(drugiVodicIme)
+
+			if err := db.Save(&akcija).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
+				return
+			}
+
+			files := form.File["slika"]
+			if len(files) > 0 {
+				file := files[0]
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+					return
+				}
+				defer f.Close()
+
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:   "adri-sentinel",
+				}
+
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
+					return
+				}
+
+				akcija.SlikaURL = uploadResult.SecureURL
+				db.Save(&akcija)
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Akcija uspešno ažurirana",
+				"akcija":  akcija,
+			})
+		})
+
 		// POST /api/akcije/:id/prijavi prijava na akciju
 		protected.POST("/akcije/:id/prijavi", func(c *gin.Context) {
 			idStr := c.Param("id")
@@ -796,6 +921,44 @@ func main() {
 			}
 
 			c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno završena", "akcija": akcija})
+		})
+
+		// DELETE /api/akcije/:id — obriši akciju (samo admin ili vodič)
+		protected.DELETE("/akcije/:id", func(c *gin.Context) {
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodic" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može obrisati akciju"})
+				return
+			}
+
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var akcija models.Akcija
+			if err := db.First(&akcija, id).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+
+			// Obriši prvo sve prijave vezane za akciju
+			if err := db.Where("akcija_id = ?", id).Delete(&models.Prijava{}).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju prijava"})
+				return
+			}
+
+			if err := db.Delete(&akcija).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju akcije"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno obrisana"})
 		})
 
 		// DELETE /api/akcije/:id/prijavi izbrisi prijave na akciju (samo ako je status "prijavljen")

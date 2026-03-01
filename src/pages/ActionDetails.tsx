@@ -67,13 +67,14 @@ export default function ActionDetails() {
   }, [id, user])
 
   const handleDelete = async () => {
-    if (!window.confirm('Da li si siguran da želiš da obrišeš ovu akciju?')) return
+    if (!window.confirm('Da li si siguran da želiš da obrišeš ovu akciju? Ova akcija će biti trajno obrisana.')) return
 
     try {
       await api.delete(`/api/akcije/${id}`)
+      alert('Akcija je uspešno obrisana.')
       navigate('/akcije')
     } catch (err: any) {
-      setError('Greška pri brisanju akcije')
+      alert(err.response?.data?.error || 'Greška pri brisanju akcije')
     }
   }
         //edit action
@@ -214,11 +215,13 @@ export default function ActionDetails() {
                         {/* Dugmad samo za admin/vodič i ako je prijavljen */}
                         {user && ['admin', 'vodic'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
                           <div className="flex gap-2">
-                            <button onClick={() => handleUpdateStatus(p.id, 'popeo se')} className="px-4 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                              Popeo se
+                            <button onClick={() => handleUpdateStatus(p.id, 'popeo se')} className="px-4 py-1 sm:px-4 sm:py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center" title="Popeo se">
+                              <span className="sm:hidden">✓</span>
+                              <span className="hidden sm:inline">Popeo se</span>
                             </button>
-                            <button onClick={() => handleUpdateStatus(p.id, 'nije uspeo')} className="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                              Nije uspeo
+                            <button onClick={() => handleUpdateStatus(p.id, 'nije uspeo')} className="px-4 py-1 sm:px-4 sm:py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center" title="Nije uspeo">
+                              <span className="sm:hidden">✕</span>
+                              <span className="hidden sm:inline">Nije uspeo</span>
                             </button>
                           </div>
                         )}
@@ -231,29 +234,33 @@ export default function ActionDetails() {
           )}
             </div>
 
-            {/* Admin/Vodič akcije – Završi, Izmeni, Izbriši */}
-            {user && ['admin', 'vodic'].includes(user?.role) && !akcija.isCompleted && (
+            {/* Admin/Vodič – Upravljanje akcijom */}
+            {user && ['admin', 'vodic'].includes(user?.role) && (
               <div className="mt-12 mb-10 p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 text-center">Upravljanje akcijom</h4>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center">
-                  <button
-                    onClick={handleZavrsiAkciju}
-                    className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-[#41ac53] hover:bg-[#2e8b4a] text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50 focus:ring-offset-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Završi akciju
-                  </button>
-                  <button
-                    onClick={handleEdit}
-                    className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:ring-offset-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Izmeni akciju
-                  </button>
+                  {!akcija.isCompleted && (
+                    <>
+                      <button
+                        onClick={handleZavrsiAkciju}
+                        className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-[#41ac53] hover:bg-[#2e8b4a] text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50 focus:ring-offset-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Završi akciju
+                      </button>
+                      <button
+                        onClick={handleEdit}
+                        className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:ring-offset-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Izmeni akciju
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={handleDelete}
                     className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2"

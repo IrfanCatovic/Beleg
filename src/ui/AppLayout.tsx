@@ -47,26 +47,23 @@ export default function AppLayout() {
               <Link to="/home" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Home
               </Link>
-              {/* Akcije – admin i vodič */}
-              {(user?.role === 'admin' || user?.role === 'vodic') && (
-                <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                  Actions
-                </Link>
-              )}
-
+              {/* Akcije  svi ulogovani */}
+              <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
+                Akcije
+              </Link>
               <Link to="/profil" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Profil
               </Link>
 
               <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               >
-                Users
+                Korisnici
               </Link>
 
-              {/* Finansije – admin i blagajnik */}
+              {/* Finansije  admin i blagajnik */}
               {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                 <Link to="/finansije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
-                  Finance
+                  Finansije
                 </Link>
               )}
 
@@ -75,7 +72,7 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition"
               >
-                Logout
+                Odjava
               </button>
             </nav>
           </div>
@@ -94,15 +91,13 @@ export default function AppLayout() {
                 Home
               </Link>
 
-              {(user?.role === 'admin' || user?.role === 'vodic') && (
-                <Link
-                  to="/akcije"
-                  className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Actions
-                </Link>
-              )}
+              <Link
+                to="/akcije"
+                className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Akcije
+              </Link>
               <Link to="/profil" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               onClick={() => setIsMenuOpen(false)}>
                 Profil
@@ -110,7 +105,7 @@ export default function AppLayout() {
 
               <Link to="/users" className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30" 
               onClick={() => setIsMenuOpen(false)}>
-                Users
+                Korisnici
               </Link>
 
               {(user?.role === 'admin' || user?.role === 'blagajnik') && (
@@ -119,7 +114,7 @@ export default function AppLayout() {
                   className="block rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Finance
+                  Finansije
                 </Link>
               )}
 
@@ -128,7 +123,7 @@ export default function AppLayout() {
                 onClick={handleLogout}
                 className="block w-full rounded-md px-3 py-2 text-left text-base font-medium hover:bg-[#fed74c]/30"
               >
-                Logout
+                Odjava
               </button>
             </div>
           </div>

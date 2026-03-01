@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import BackButton from '../components/BackButton'
 
@@ -58,18 +59,27 @@ function InfoRow({ label, value, alwaysShow = false }: { label: string; value: R
 
 export default function UserInfo() {
   const { id } = useParams<{ id: string }>()
+  const { user: currentUser } = useAuth()
   const [korisnik, setKorisnik] = useState<KorisnikInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !currentUser) return
     const fetchData = async () => {
       setLoading(true)
+      setError('')
       try {
         const res = await api.get(`/api/korisnici/${id}`)
-        setKorisnik(res.data)
+        const data = res.data as KorisnikInfo
+        const isAdminOrSekretar = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
+        const isOwnProfile = data.username === currentUser?.username
+        if (!isAdminOrSekretar && !isOwnProfile) {
+          setError('Nemate pristup ovim podacima')
+          return
+        }
+        setKorisnik(data)
       } catch (err: any) {
         setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
       } finally {
@@ -77,7 +87,7 @@ export default function UserInfo() {
       }
     }
     fetchData()
-  }, [id])
+  }, [id, currentUser])
 
   if (loading) return <div className="text-center py-20">Učitavanje...</div>
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>

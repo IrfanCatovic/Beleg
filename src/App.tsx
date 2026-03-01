@@ -14,6 +14,7 @@ import Users from './pages/Users'
 import UserProfile from './pages/UserProfil'
 import UserInfo from './pages/UserInfo'
 import ActionDetails from './pages/ActionDetails'
+import EditAction from './pages/EditAction'
 import RegisterUser from './pages/RegisterUser'
 
 //routes
@@ -63,6 +64,12 @@ const router = createBrowserRouter([
           // Lista korisnika  svi ulogovani
           { path: '/users', element: <Users /> },
 
+          // Info stranica – admin/sekretar vide sve; ostali samo svoj profil
+          { path: '/users/:id/info', element: <UserInfo /> },
+
+          // Akcije – svi ulogovani vide listu i detalje, prijavljuju se
+          { path: '/akcije', element: <Actions /> },
+
           // Finansije, uplata, isplata admin i blagajnik
           {
             element: <RoleRoute allowedRoles={['admin', 'blagajnik']} />,
@@ -71,21 +78,20 @@ const router = createBrowserRouter([
             ],
           },
 
-          // Akcije i dodaj-akciju admin i vodič
+          // Dodaj/izmeni akciju – samo admin i vodič
           {
             element: <RoleRoute allowedRoles={['admin', 'vodic']} />,
             children: [
-              { path: '/akcije', element: <Actions /> },
               { path: '/dodaj-akciju', element: <AddAction /> },
+              { path: '/akcije/:id/izmeni', element: <EditAction /> },
             ],
           },
 
-          // Dodaj korisnika i pregled svih podataka o korisniku – admin i sekretar
+          // Dodaj korisnika – admin i sekretar
           {
             element: <RoleRoute allowedRoles={['admin', 'sekretar']} />,
             children: [
               { path: '/dodaj-korisnika', element: <RegisterUser /> },
-              { path: '/users/:id/info', element: <UserInfo /> },
             ],
           },
         ],

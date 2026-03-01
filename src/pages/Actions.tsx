@@ -225,7 +225,7 @@ export default function Actions() {
       Uspešno popeo!
     </div>
   ) : (
-    // Akcija je aktivna + korisnik nije prijavljen → vidi dugme za prijavu
+    // Akcija je aktivna + korisnik nije prijavljen vidi dugme za prijavu
     <button
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv); }}
       className={`
