@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { formatDateShort } from '../utils/dateUtils'
 
 interface Akcija {
   id: number
@@ -60,8 +61,9 @@ export default function Actions() {
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
       setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri prijavi')
-      if (err.response?.data?.error?.includes("Već ste prijavljeni")) {
+      const errMsg = err.response?.data?.error
+      alert(typeof errMsg === 'string' ? errMsg : 'Greška pri prijavi')
+      if (typeof errMsg === 'string' && errMsg.includes('Već ste prijavljeni')) {
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
       }
@@ -202,7 +204,7 @@ export default function Actions() {
                       </h3>
                       <div className="space-y-1 text-sm text-gray-600">
                         <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                        <p><strong className="text-gray-700">Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                        <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
                       {akcija.opis && (
                         <p className="text-sm text-gray-600 mt-3 line-clamp-3 grow">
@@ -300,7 +302,7 @@ export default function Actions() {
                       </h3>
                       <div className="space-y-1 text-sm text-gray-600">
                         <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                        <p><strong className="text-gray-700">Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                        <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
                       {akcija.opis && (
                         <p className="text-sm text-gray-600 mt-3 line-clamp-3 grow">

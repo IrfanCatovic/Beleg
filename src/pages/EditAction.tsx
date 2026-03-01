@@ -79,7 +79,7 @@ export default function EditAction() {
         setVrh(a.vrh || '')
         setDatum(datumStr)
         setOpis(a.opis || '')
-        setTezina(a.tezina || '')
+        setTezina((a.tezina === 'teško' ? 'tesko' : a.tezina) || '')
         setKumulativniUsponM(a.kumulativniUsponM != null ? String(a.kumulativniUsponM) : '')
         setDuzinaStazeKm(a.duzinaStazeKm != null ? String(a.duzinaStazeKm) : '')
         setVodicId(a.vodicId ? String(a.vodicId) : '')
@@ -260,7 +260,7 @@ export default function EditAction() {
             <option value="">Izaberi težinu</option>
             <option value="lako">Lako</option>
             <option value="srednje">Srednje</option>
-            <option value="teško">Teško</option>
+            <option value="tesko">Teško</option>
           </select>
         </div>
 

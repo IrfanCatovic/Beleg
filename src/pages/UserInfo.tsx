@@ -4,6 +4,7 @@ import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import BackButton from '../components/BackButton'
+import { formatDate } from '../utils/dateUtils'
 
 interface KorisnikInfo {
   id: number
@@ -30,12 +31,6 @@ interface KorisnikInfo {
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
   brojPopeoSe?: number
-}
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const d = new Date(value)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function formatPol(pol: string | undefined): string {

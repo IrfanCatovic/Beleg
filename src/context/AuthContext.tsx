@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import api from "../services/api";
+import api, { setUnauthorizedHandler } from "../services/api";
 
 interface User {
     username: string;
@@ -63,11 +63,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                 setIsLoggedIn(true)
             }
 
-            const logout = () => {
+            const logout = useCallback(() => {
                 setIsLoggedIn(false)
                 setUser(null)
                 localStorage.removeItem('token')
-            }
+            }, [])
 
             const refreshUser = useCallback(async () => {
                 if (!localStorage.getItem('token')) return
@@ -91,6 +91,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                 refreshUser()
             }
         }, [isLoggedIn, refreshUser])
+
+        useEffect(() => {
+            setUnauthorizedHandler(logout)
+            return () => setUnauthorizedHandler(null)
+        }, [logout])
 
         return (
             <AuthContext.Provider value={{ isLoggedIn, user, login, logout, refreshUser }}>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
+import { formatDate, formatDateShort } from '../utils/dateUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -30,9 +32,9 @@ interface MeKorisnik {
   username: string
   fullName: string
   avatar_url?: string
-  email: string
-  adresa: string
-  telefon: string
+  email?: string
+  adresa?: string
+  telefon?: string
   role: string
   createdAt: string
 }
@@ -143,12 +145,7 @@ export default function Profil() {
                 {getRoleLabel(me.role)}
               </span>
               <p className="text-gray-500 mt-4">
-                Pridružio se:{' '}
-                {new Date(me.createdAt).toLocaleDateString('sr-RS', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                Pridružio se: {formatDate(me.createdAt)}
               </p>
               {me.email && (
                 <p className="text-gray-600 mt-2 text-sm">
@@ -226,9 +223,10 @@ export default function Profil() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {uspesneAkcije.map((akcija) => (
-                <div
+                <Link
                   key={akcija.id}
-                  className="relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  to={`/akcije/${akcija.id}`}
+                  className="block relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 hover:no-underline"
                 >
                   <div className="relative w-full h-48 sm:h-56 overflow-hidden">
                     <img
@@ -253,8 +251,7 @@ export default function Profil() {
                       <strong>Vrh:</strong> {akcija.vrh}
                     </p>
                     <p className="text-sm text-gray-600 mb-1">
-                      <strong>Datum:</strong>{' '}
-                      {new Date(akcija.datum).toLocaleDateString('sr-RS')}
+                      <strong>Datum:</strong> {formatDateShort(akcija.datum)}
                     </p>
                     <p className="text-sm text-gray-600 mb-1">
                       <strong>Dužina staze:</strong>{' '}
@@ -276,7 +273,7 @@ export default function Profil() {
                       {akcija.tezina || 'Nije definisano'}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

@@ -4,7 +4,7 @@ import { PDF_CLUB_NAME } from './generateMemberPdf'
 function formatDate(value: string | null | undefined): string {
   if (!value) return ''
   const d = new Date(value)
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('sr-Latn-RS', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function val(value: string | null | undefined): string {
@@ -49,6 +49,9 @@ const pdfStyles = `
   .pdf-wrap .section-table td { padding: 6px 0; vertical-align: top; border-bottom: 1px solid #f0f0f0; }
   .pdf-wrap .section-table td.label { font-weight: bold; width: 240px; color: #333; }
   .pdf-wrap .section-table td.value { color: #111; padding-left: 16px; }
+  .pdf-wrap .signature-block { margin-top: 32px; text-align: right; }
+  .pdf-wrap .signature-label { font-size: 10pt; color: #333; margin-bottom: 8px; }
+  .pdf-wrap .signature-line { border-bottom: 1px solid #333; width: 180px; height: 28px; margin-left: auto; display: block; }
 `
 
 export interface ActionPdfPrePolaskaData {
@@ -130,6 +133,10 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
         ${row('Broj polaznika', String(data.brojPolaznika))}
         ${row('Imena polaznika', val(data.imenaPolaznika))}
       `)}
+      <div class="signature-block">
+        <div class="signature-label">Tačnost podataka overava PSO / Klub (potpis i pečat)</div>
+        <span class="signature-line"></span>
+      </div>
     </div>
   `
   const wrapper = document.createElement('div')
@@ -160,6 +167,10 @@ export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
         ${row('Uspešno popeli / Broj prijavljenih', `${data.brojUspesnoPopeli} / ${data.brojPrijavljenih}`)}
         ${row('Imena uspešno popeli', val(data.imenaUspesnoPopeli))}
       `)}
+      <div class="signature-block">
+        <div class="signature-label">Tačnost podataka overava PSO / Klub (potpis i pečat)</div>
+        <span class="signature-line"></span>
+      </div>
     </div>
   `
   const wrapper = document.createElement('div')

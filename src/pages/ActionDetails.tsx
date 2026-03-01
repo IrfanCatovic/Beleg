@@ -1,9 +1,9 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../utils/generateActionPdf'
+import { formatDateTime } from '../utils/dateUtils'
 
 interface Akcija {
   id: number
@@ -38,7 +38,6 @@ export default function ActionDetails() {
   const [prijave, setPrijave] = useState<Prijava[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [isCompleted, setIsCompleted] = useState(false) // stanje da li je akcija završena (admin klikne "Završi akciju")
 
   useEffect(() => {
     const fetchAkcija = async () => {
@@ -57,8 +56,6 @@ export default function ActionDetails() {
         const res = await api.get(`/api/akcije/${id}/prijave`)
         const prijaveList = res.data.prijave || []
         setPrijave(prijaveList)
-        const allMarked = prijaveList.every((p: Prijava) => p.status !== 'prijavljen')
-        setIsCompleted(allMarked)
       } catch (err: any) {
         console.error('Greška pri učitavanju prijava:', err)
       }
@@ -92,8 +89,6 @@ export default function ActionDetails() {
           const res = await api.get(`/api/akcije/${id}/prijave`)
           const prijaveList = res.data.prijave || []
           setPrijave(prijaveList)
-          const allMarked = prijaveList.every((p: Prijava) => p.status !== 'prijavljen')
-          setIsCompleted(allMarked)
         } catch (err: any) {
           alert('Greška pri ažuriranju statusa')
         }
@@ -107,12 +102,15 @@ export default function ActionDetails() {
           return
         }
 
-        console.log('Confirm potvrđen – šaljem POST request')
-
         try {
           const res = await api.post(`/api/akcije/${id}/zavrsi`)
           alert('Akcija je uspešno završena!')
-          setAkcija(res.data.akcija) // osvježi akciju
+          const updated = res.data?.akcija
+          if (updated) {
+            setAkcija(updated)
+          } else {
+            setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
+          }
         } catch (err: any) {
           console.error('Greška pri završavanju akcije:', err)
           alert(err.response?.data?.error || 'Greška pri završavanju akcije')
@@ -233,7 +231,7 @@ export default function ActionDetails() {
                         <div>
                           <p className="font-medium">{p.korisnik || 'Nepoznat korisnik'}</p>
                           <p className="text-sm text-gray-500">
-                            Prijavljen: {new Date(p.prijavljenAt).toLocaleString('sr-RS')}
+                            Prijavljen: {formatDateTime(p.prijavljenAt)}
                           </p>
                         </div>
                       </div>

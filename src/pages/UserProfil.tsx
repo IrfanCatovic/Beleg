@@ -1,10 +1,11 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import ProfileActionButtons from '../components/ProfileActionButtons'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
+import { formatDate, formatDateShort } from '../utils/dateUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -44,7 +45,6 @@ interface Korisnik {
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>()
   const { user: currentUser } = useAuth()
-  const navigate = useNavigate()
 
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null)
   const [uspesneAkcije, setUspesneAkcije] = useState<UspesnaAkcija[]>([])
@@ -121,7 +121,7 @@ export default function UserProfile() {
     <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
 
       <ProfileActionButtons
-        userId={id!}
+        userId={String(korisnik.id)}
         isOwnProfile={!!isOwnProfile}
         currentUser={currentUser}
         onPrintClick={() => korisnik && generateMemberPdf(korisnik as unknown as MemberPdfData)}
@@ -155,7 +155,7 @@ export default function UserProfile() {
                 {getRoleLabel(korisnik.role)}
               </span>
             <p className="text-gray-500 mt-4">
-              Pridružio se: {new Date(korisnik.createdAt).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+              Pridružio se: {formatDate(korisnik.createdAt)}
             </p>
             {korisnik.email && (
               <p className="text-gray-600 mt-2 text-sm">
@@ -240,9 +240,10 @@ export default function UserProfile() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
               {uspesneAkcije.map((akcija) => (
-                <div
+                <Link
                   key={akcija.id}
-                  className="group relative bg-white rounded-2xl border border-gray-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-[#41ac53]/30 transition-all duration-300 ease-out"
+                  to={`/akcije/${akcija.id}`}
+                  className="block group relative bg-white rounded-2xl border border-gray-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-[#41ac53]/30 transition-all duration-300 ease-out hover:no-underline"
                 >
                   <div className="relative w-full h-44 sm:h-52 overflow-hidden">
                     <img
@@ -266,7 +267,7 @@ export default function UserProfile() {
                     </h4>
                     <div className="space-y-1 text-sm text-gray-600">
                       <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                      <p><strong className="text-gray-700">Datum:</strong> {new Date(akcija.datum).toLocaleDateString('sr-RS')}</p>
+                      <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       <p><strong className="text-gray-700">Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km</p>
                       <p><strong className="text-gray-700">Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m</p>
                     </div>
@@ -278,7 +279,7 @@ export default function UserProfile() {
                       {akcija.tezina || 'Nije definisano'}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
