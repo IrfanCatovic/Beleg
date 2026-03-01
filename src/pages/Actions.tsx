@@ -128,47 +128,38 @@ export default function Actions() {
   return (
     <div className="relative min-h-screen bg-gray-50 pb-16 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 md:mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center sm:text-left order-2 sm:order-1" style={{ color: '#41ac53' }}>
-            Akcije
-          </h2>
-          {isAdminOrVodic && (
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 order-1 sm:order-2">
-              <Link
-                to="/dodaj-akciju"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                  bg-white border border-gray-200 text-gray-700 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5
-                  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
-                title="Dodaj novu akciju"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Nova akcija</span>
-              </Link>
-              <Link
-                to="/profil/dodaj-proslu-akciju"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                  bg-white border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-800 hover:bg-gray-50
-                  transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
-                title="Dodaj prošlu akciju (upis za člana)"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Prošla akcija</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
         {/* Aktivne akcije */}
         <section className="mb-14 sm:mb-20">
-          <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-[#41ac53]" aria-hidden />
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Aktivne akcije
-            </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
+            {isAdminOrVodic && (
+              <div className="flex flex-wrap items-center justify-center sm:justify-end order-1 sm:order-2 gap-2">
+                <Link
+                  to="/dodaj-akciju"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
+                  title="Dodaj novu akciju"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Nova akcija</span>
+                </Link>
+                <Link
+                  to="/profil/dodaj-proslu-akciju"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
+                  title="Dodaj prošlu akciju (upis za člana)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Prošla akcija</span>
+                </Link>
+              </div>
+            )}
+            <div className="flex justify-center sm:justify-start order-2 sm:order-1">
+              <h3 className="inline-flex items-center px-4 py-2 rounded-lg bg-[#41ac53]/10 text-gray-900 text-xl sm:text-2xl font-bold tracking-tight">
+                Aktivne akcije
+              </h3>
+            </div>
           </div>
           {aktivneAkcije.length === 0 ? (
             <div className="text-center py-14 sm:py-16 bg-white/80 backdrop-blur rounded-2xl border border-gray-200/80 shadow-sm">
@@ -263,9 +254,8 @@ export default function Actions() {
 
         {/* Završene akcije */}
         <section>
-          <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-gray-400" aria-hidden />
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">
+          <div className="mb-6 sm:mb-8 flex justify-center sm:justify-start">
+            <h3 className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-100 text-gray-800 text-xl sm:text-2xl font-bold tracking-tight">
               Završene akcije
             </h3>
           </div>
