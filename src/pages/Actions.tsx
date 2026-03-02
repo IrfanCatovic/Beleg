@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { formatDateShort } from '../utils/dateUtils'
 import { generateAnnualReportPdf } from '../utils/generateAnnualReportPdf'
+import {
+  computeCountsForParticipants,
+  type AnnualReportRow,
+  type ParticipantForReport,
+} from '../utils/annualReportUtils'
 
 interface Akcija {
   id: number
@@ -25,6 +30,9 @@ export default function Actions() {
   const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showAnnualReportModal, setShowAnnualReportModal] = useState(false)
+  const [selectedYear, setSelectedYear] = useState<number | ''>('')
+  const [loadingReport, setLoadingReport] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -52,6 +60,122 @@ export default function Actions() {
 
     fetchData()
   }, [isLoggedIn])
+
+  const yearsWithCompleted = useMemo(() => {
+    const years = new Set<number>()
+    zavrseneAkcije.forEach((a) => {
+      if (a.datum) {
+        const y = new Date(a.datum).getFullYear()
+        if (!isNaN(y)) years.add(y)
+      }
+    })
+    return Array.from(years).sort((a, b) => b - a)
+  }, [zavrseneAkcije])
+
+  const handleOpenAnnualReport = () => {
+    if (zavrseneAkcije.length === 0) {
+      alert('Nema završenih akcija. Godišnji izveštaj se pravi samo za godine u kojima ima završenih akcija.')
+      return
+    }
+    setSelectedYear(yearsWithCompleted[0] ?? '')
+    setShowAnnualReportModal(true)
+  }
+
+  const handleGenerateAnnualReportPdf = async () => {
+    if (selectedYear === '') {
+      alert('Izaberite godinu.')
+      return
+    }
+    setLoadingReport(true)
+    try {
+      const actionsInYear = zavrseneAkcije.filter((a) => {
+        if (!a.datum) return false
+        const y = new Date(a.datum).getFullYear()
+        return !isNaN(y) && y === selectedYear
+      })
+      if (actionsInYear.length === 0) {
+        alert(`Nema završenih akcija za ${selectedYear}. godinu.`)
+        setLoadingReport(false)
+        return
+      }
+      const sorted = [...actionsInYear].sort(
+        (a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime()
+      )
+
+      const korisniciRes = await api.get('/api/korisnici')
+      const korisniciList = korisniciRes.data.korisnici || []
+      const usernameToId: Record<string, number> = {}
+      korisniciList.forEach((k: { id: number; username: string }) => {
+        if (k.username) usernameToId[k.username] = k.id
+      })
+
+      const userCache: Record<number, { datum_rodjenja?: string | null; pol?: string }> = {}
+      const getUser = async (userId: number) => {
+        if (userCache[userId]) return userCache[userId]
+        try {
+          const res = await api.get(`/api/korisnici/${userId}`)
+          const u = res.data
+          userCache[userId] = {
+            datum_rodjenja: u.datum_rodjenja ?? null,
+            pol: u.pol,
+          }
+          return userCache[userId]
+        } catch {
+          return {}
+        }
+      }
+
+      const rows: AnnualReportRow[] = []
+      for (let i = 0; i < sorted.length; i++) {
+        const akcija = sorted[i]
+        const nazivIMesto = [akcija.naziv, akcija.planina, akcija.vrh].filter(Boolean).join(', ')
+        let prijave: Array<{
+          korisnik: string
+          userId?: number
+          status: string
+          datum_rodjenja?: string | null
+          pol?: string
+        }> = []
+        try {
+          const res = await api.get(`/api/akcije/${akcija.id}/prijave`)
+          prijave = res.data.prijave || []
+        } catch {
+          // skip
+        }
+        const uspesnoPopeli = prijave.filter((p: { status: string }) => p.status === 'popeo se')
+        const participants: ParticipantForReport[] = []
+        for (const p of uspesnoPopeli) {
+          const userId = p.userId ?? usernameToId[p.korisnik]
+          if (userId != null) {
+            const u = await getUser(userId)
+            participants.push({
+              datum_rodjenja: p.datum_rodjenja ?? u.datum_rodjenja,
+              pol: p.pol ?? u.pol,
+            })
+          } else if (p.datum_rodjenja != null || p.pol != null) {
+            participants.push({
+              datum_rodjenja: p.datum_rodjenja,
+              pol: p.pol,
+            })
+          }
+        }
+        const counts = computeCountsForParticipants(participants, akcija.datum)
+        rows.push({
+          rb: i + 1,
+          nazivIMesto,
+          datum: akcija.datum,
+          counts,
+        })
+      }
+      generateAnnualReportPdf(rows)
+      setShowAnnualReportModal(false)
+    } catch (err: unknown) {
+      console.error(err)
+      alert('Greška pri pripremi podataka za godišnji izveštaj. Proverite da li backend u prijavama vraća userId (ili datum_rodjenja i pol) za učesnike.')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
 
   const handlePrijavi = async (akcijaId: number, naziv: string) => {
     if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
@@ -159,7 +283,7 @@ export default function Actions() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => generateAnnualReportPdf()}
+                  onClick={handleOpenAnnualReport}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
                   title="Preuzmi godišnji izveštaj o aktivnostima (Образац бр. 3)"
                 >
@@ -350,6 +474,43 @@ export default function Actions() {
             </div>
           )}
         </section>
+
+        {/* Modal: izbor godine za godišnji izveštaj */}
+        {showAnnualReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !loadingReport && setShowAnnualReportModal(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Godišnji izveštaj (PDF)</h3>
+              <p className="text-sm text-gray-600 mb-4">Izaberite godinu za koju želite izveštaj (samo godine sa završenim akcijama).</p>
+              <select
+                value={selectedYear === '' ? '' : String(selectedYear)}
+                onChange={(e) => setSelectedYear(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#41ac53]/40 focus:border-[#41ac53]"
+              >
+                <option value="">— Izaberite godinu —</option>
+                {yearsWithCompleted.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <div className="mt-6 flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => !loadingReport && setShowAnnualReportModal(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Otkaži
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateAnnualReportPdf}
+                  disabled={loadingReport || selectedYear === ''}
+                  className="px-4 py-2 rounded-lg bg-[#41ac53] text-white font-medium hover:bg-[#358c43] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingReport ? 'Priprema…' : 'Štampaj'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

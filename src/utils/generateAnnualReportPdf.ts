@@ -1,4 +1,5 @@
 import html2pdf from 'html2pdf.js'
+import type { AnnualReportRow } from './annualReportUtils'
 
 const pdfStyles = `
   .ar-pdf { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; color: #000; background: #fff; padding: 5mm 6mm 10mm 6mm; box-sizing: border-box; }
@@ -22,24 +23,36 @@ const pdfStyles = `
   .ar-table th, .ar-table td { border: 0.7px solid #000; padding: 8px 5px; vertical-align: middle; min-height: 32px; }
   .ar-table th { font-weight: bold; text-align: center; background: #fafafa; }
   .ar-table th.narrow { width: 30px; }
-  .ar-table th.date { width: 62px; }
-  .ar-table th.name { width: 28%; text-align: left; min-width: 72px; }
+  .ar-table th.date { width: 72px; }
+  .ar-table th.name { width: 25%; min-width: 64px; }
   .ar-table th.num { width: 24px; }
   .ar-table td:nth-child(1) { width: 30px; }
-  .ar-table td:nth-child(2) { width: 28%; }
-  .ar-table td:nth-child(3) { width: 62px; }
+  .ar-table td:nth-child(2) { width: 25%; }
+  .ar-table td:nth-child(3) { width: 72px; }
   .ar-table td:nth-child(n+4):not(:last-child) { width: 24px; }
   .ar-table th.total-col { width: 50px; line-height: 1.35; font-size: 9pt; }
   .ar-table td:last-child { width: 50px; }
-  .ar-table td { min-height: 32px; }
-  .ar-table .row-num { text-align: center; }
+  .ar-table td { min-height: 32px; text-align: center; }
+  .ar-table th.name, .ar-table td:nth-child(2) { text-align: center; }
   .ar-signature { margin-top: 16px; text-align: right; }
-  .ar-signature-line { display: inline-block; width: 180px; border-bottom: 1px solid #000; height: 24px; margin-bottom: 4px; }
-  .ar-signature-text { font-size: 9pt; color: #333; }
+  .ar-signature-text { font-size: 9pt; color: #333; margin-bottom: 14px; }
+  .ar-signature-line { display: inline-block; width: 180px; border-bottom: 1px solid #000; height: 24px; }
 `
 
-/** Broj praznih redova u tabeli – dovoljno da se sadržaj pruži na dva lista. */
+/** Broj praznih redova kada se ne prosleđuju podaci (prazan obrazac). */
 const EMPTY_ROW_COUNT = 42
+
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+function formatDatum(value: string): string {
+  if (!value) return ''
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('sr-RS')
+}
 
 function emptyRowsHtml(): string {
   const rows: string[] = []
@@ -58,12 +71,31 @@ function emptyRowsHtml(): string {
   return rows.join('')
 }
 
+function dataRowsHtml(rows: AnnualReportRow[]): string {
+  return rows
+    .map((r) => {
+      const c = r.counts
+      return `
+      <tr>
+        <td class="row-num">${escapeHtml(String(r.rb))}</td>
+        <td>${escapeHtml(r.nazivIMesto)}</td>
+        <td>${escapeHtml(formatDatum(r.datum))}</td>
+        <td>${c.mPodmladak}</td><td>${c.mJuniori}</td><td>${c.mSeniori}</td><td>${c.mVeterani}</td><td>${c.mUkupno}</td>
+        <td>${c.zPodmladak}</td><td>${c.zJuniori}</td><td>${c.zSeniori}</td><td>${c.zVeterani}</td><td>${c.zUkupno}</td>
+        <td>${c.ukupno}</td>
+      </tr>
+    `
+    })
+    .join('')
+}
+
 /**
- * Generiše PDF godišnjeg izveštaja o aktivnostima (Образац бр. 3)
- * – identičan izgled obrascu PSS, bez podataka iz baze.
- * Logo se učitava iz /psslogo.png (public folder).
+ * Generiše PDF godišnjeg izveštaja o aktivnostima (Образац бр. 3).
+ * Ako je prosleđen niz redova, tabela se puni tim podacima (R.Б. 1, 2, …); inače se štampa prazan obrazac.
+ * Logo: /psslogo.png (public folder).
  */
-export function generateAnnualReportPdf(): void {
+export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
+  const tbodyContent = rows && rows.length > 0 ? dataRowsHtml(rows) : emptyRowsHtml()
   const content = `
     <style>${pdfStyles}</style>
     <div class="ar-pdf">
@@ -81,8 +113,8 @@ export function generateAnnualReportPdf(): void {
       <div class="ar-fields">
         <div class="ar-fields-between">
           <div class="ar-fields-row">
-            <div style="flex: 1;"><span class="label">ПСО / Клуб:</span></div>
-            <div style="flex: 1;"><span class="label">Место:</span></div>
+            <div style="flex: 1;"><span class="label">ПСО / Клуб:</span> Beleg</div>
+            <div style="flex: 1;"><span class="label">Место:</span> Tutin</div>
           </div>
         </div>
       </div>
@@ -91,7 +123,7 @@ export function generateAnnualReportPdf(): void {
       <table class="ar-table">
         <thead>
           <tr>
-            <th rowspan="2" class="narrow">П.б.</th>
+            <th rowspan="2" class="narrow">R.Б.</th>
             <th rowspan="2" class="name">Назив и место одржавања акције</th>
             <th rowspan="2" class="date">Датум:</th>
             <th colspan="5">Број учесника – Мушкарци</th>
@@ -112,13 +144,13 @@ export function generateAnnualReportPdf(): void {
           </tr>
         </thead>
         <tbody>
-          ${emptyRowsHtml()}
+          ${tbodyContent}
         </tbody>
       </table>
 
       <div class="ar-signature">
-        <div class="ar-signature-line"></div>
         <div class="ar-signature-text">Тачност података оверава председник клуба (Потпис и печат)</div>
+        <div class="ar-signature-line"></div>
       </div>
     </div>
   `
