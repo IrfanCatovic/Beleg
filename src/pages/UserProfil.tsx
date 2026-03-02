@@ -10,6 +10,7 @@ import { formatDate, formatDateShort } from '../utils/dateUtils'
 interface UspesnaAkcija {
   id: number
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis?: string
@@ -266,6 +267,9 @@ export default function UserProfile() {
                       {akcija.naziv}
                     </h4>
                     <div className="space-y-1 text-sm text-gray-600">
+                      {akcija.planina && (
+                        <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
+                      )}
                       <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
                       <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       <p><strong className="text-gray-700">Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km</p>

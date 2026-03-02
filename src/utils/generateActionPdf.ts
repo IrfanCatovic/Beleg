@@ -57,6 +57,7 @@ const pdfStyles = `
 export interface ActionPdfPrePolaskaData {
   clubName?: string
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis: string
@@ -70,6 +71,7 @@ export interface ActionPdfPrePolaskaData {
 export interface ActionPdfZavrsenaData {
   clubName?: string
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis: string
@@ -124,6 +126,7 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
       </div>
       ${section('Podaci o akciji', `
         ${row('Naziv', val(data.naziv))}
+        ${data.planina ? row('Planina', val(data.planina)) : ''}
         ${row('Vrh', val(data.vrh))}
         ${row('Datum', formatDate(data.datum))}
         ${row('Opis', val(data.opis))}
@@ -158,6 +161,7 @@ export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
       </div>
       ${section('Podaci o akciji', `
         ${row('Naziv', val(data.naziv))}
+        ${data.planina ? row('Planina', val(data.planina)) : ''}
         ${row('Vrh', val(data.vrh))}
         ${row('Datum', formatDate(data.datum))}
         ${row('Opis', val(data.opis))}

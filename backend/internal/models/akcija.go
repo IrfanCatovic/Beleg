@@ -5,6 +5,7 @@ import "time"
 type Akcija struct {
 	ID                       uint      `gorm:"primaryKey" json:"id"`
 	Naziv                    string    `json:"naziv"`
+	Planina                  string    `json:"planina"` // Ime planine
 	Vrh                      string    `json:"vrh"`
 	Datum                    time.Time `json:"datum"`
 	Opis                     string    `json:"opis,omitempty"`

@@ -17,6 +17,7 @@ export default function AddAction() {
 
   const [vodici, setVodici] = useState<Korisnik[]>([])
   const [naziv, setNaziv] = useState('')
+  const [planina, setPlanina] = useState('')
   const [vrh, setVrh] = useState('')
   const [datum, setDatum] = useState('')
   const [opis, setOpis] = useState('')
@@ -65,6 +66,7 @@ export default function AddAction() {
           try {
             const formData = new FormData()
             formData.append('naziv', naziv)
+            formData.append('planina', planina.trim())
             formData.append('vrh', vrh)
             formData.append('datum', datum)  
             formData.append('opis', opis)
@@ -108,6 +110,18 @@ export default function AddAction() {
             value={naziv}
             onChange={(e) => setNaziv(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Ime planine</label>
+          <input
+            type="text"
+            value={planina}
+            onChange={(e) => setPlanina(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            placeholder="npr. Kopaonik, Stara planina"
             required
           />
         </div>

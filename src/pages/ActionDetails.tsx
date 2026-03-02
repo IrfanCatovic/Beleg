@@ -8,6 +8,7 @@ import { formatDateTime } from '../utils/dateUtils'
 interface Akcija {
   id: number
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis: string
@@ -128,6 +129,7 @@ export default function ActionDetails() {
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
       naziv: akcija.naziv,
+      planina: akcija.planina || '',
       vrh: akcija.vrh,
       datum: akcija.datum,
       opis: akcija.opis || '',
@@ -142,6 +144,7 @@ export default function ActionDetails() {
   const handlePrintZavrsena = () => {
     generateActionPdfZavrsena({
       naziv: akcija.naziv,
+      planina: akcija.planina || '',
       vrh: akcija.vrh,
       datum: akcija.datum,
       opis: akcija.opis || '',
@@ -167,13 +170,24 @@ export default function ActionDetails() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           <div className="absolute bottom-6 left-6 text-white">
             <h1 className="text-4xl md:text-5xl font-bold">{akcija.naziv}</h1>
-            <p className="text-xl mt-2">{akcija.vrh}</p>
+            {akcija.planina && <p className="text-xl mt-2">Planina: {akcija.planina}</p>}
+            <p className="text-xl mt-1">{akcija.vrh}</p>
           </div>
         </div>
 
         {/* Detalji */}
         <div className="m-12">
-          {/* Vodič i ko je dodao akciju */}
+          {/* Planina i vrh */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-1">
+            {akcija.planina && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Planina:</span> {akcija.planina}
+              </p>
+            )}
+            <p className="text-gray-700">
+              <span className="font-medium text-gray-900">Vrh:</span> {akcija.vrh}
+            </p>
+          </div>
           <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-2">
             {akcija.vodic && (
               <p className="text-gray-700">

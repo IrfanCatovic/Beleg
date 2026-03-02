@@ -332,7 +332,7 @@ func main() {
 			return
 		}
 		resp := gin.H{
-			"id": akcija.ID, "naziv": akcija.Naziv, "vrh": akcija.Vrh, "datum": akcija.Datum,
+			"id": akcija.ID, "naziv": akcija.Naziv, "planina": akcija.Planina, "vrh": akcija.Vrh, "datum": akcija.Datum,
 			"opis": akcija.Opis, "tezina": akcija.Tezina, "slikaUrl": akcija.SlikaURL,
 			"createdAt": akcija.CreatedAt, "updatedAt": akcija.UpdatedAt,
 			"isCompleted": akcija.IsCompleted, "kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
@@ -559,6 +559,7 @@ func main() {
 			}
 
 			naziv := c.PostForm("naziv")
+			planina := strings.TrimSpace(c.PostForm("planina"))
 			vrh := c.PostForm("vrh")
 			datumStr := c.PostForm("datum")
 			opis := c.PostForm("opis")
@@ -568,8 +569,8 @@ func main() {
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
-			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
+			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
 
@@ -600,6 +601,7 @@ func main() {
 
 			akcija := models.Akcija{
 				Naziv:                    naziv,
+				Planina:                  planina,
 				Vrh:                      vrh,
 				Datum:                    datum,
 				Opis:                     opis,
@@ -691,6 +693,7 @@ func main() {
 			}
 
 			naziv := c.PostForm("naziv")
+			planina := strings.TrimSpace(c.PostForm("planina"))
 			vrh := c.PostForm("vrh")
 			datumStr := c.PostForm("datum")
 			opis := c.PostForm("opis")
@@ -700,8 +703,8 @@ func main() {
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
-			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
+			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
 
@@ -731,6 +734,7 @@ func main() {
 			}
 
 			akcija.Naziv = naziv
+			akcija.Planina = planina
 			akcija.Vrh = vrh
 			akcija.Datum = datum
 			akcija.Opis = opis
@@ -1418,6 +1422,7 @@ func main() {
 			}
 
 			naziv := c.PostForm("naziv")
+			planina := strings.TrimSpace(c.PostForm("planina"))
 			vrh := c.PostForm("vrh")
 			datumStr := c.PostForm("datum")
 			opis := c.PostForm("opis")
@@ -1427,8 +1432,8 @@ func main() {
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
-			if naziv == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (uspon i dužina staze su obavezni)"})
+			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
 
@@ -1459,6 +1464,7 @@ func main() {
 
 			akcija := models.Akcija{
 				Naziv:                    naziv,
+				Planina:                  planina,
 				Vrh:                      vrh,
 				Datum:                    datum,
 				Opis:                     opis,

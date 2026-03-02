@@ -10,6 +10,7 @@ import { formatDate, formatDateShort } from '../utils/dateUtils'
 interface UspesnaAkcija {
   id: number
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis?: string
@@ -247,6 +248,11 @@ export default function Profil() {
                     <h4 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                       {akcija.naziv}
                     </h4>
+                    {akcija.planina && (
+                      <p className="text-sm text-gray-600 mb-1">
+                        <strong>Planina:</strong> {akcija.planina}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600 mb-1">
                       <strong>Vrh:</strong> {akcija.vrh}
                     </p>

@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { formatDateShort } from '../utils/dateUtils'
+import { generateAnnualReportPdf } from '../utils/generateAnnualReportPdf'
 
 interface Akcija {
   id: number
   naziv: string
+  planina?: string
   vrh: string
   datum: string
   opis?: string
@@ -155,6 +157,17 @@ export default function Actions() {
                   </svg>
                   <span>Prošla akcija</span>
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => generateAnnualReportPdf()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
+                  title="Preuzmi godišnji izveštaj o aktivnostima (Образац бр. 3)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Godišnji izveštaj (PDF)</span>
+                </button>
               </div>
             )}
             <div className="flex justify-center sm:justify-start order-2 sm:order-1">
@@ -203,7 +216,10 @@ export default function Actions() {
                         {akcija.naziv}
                       </h3>
                       <div className="space-y-1 text-sm text-gray-600">
-                        <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
+                        {akcija.planina && (
+                          <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
+                        )}
+                        <p><strong className="text-gray-700"></strong>Vrh: {akcija.vrh}</p>
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
                       {akcija.opis && (
@@ -301,6 +317,9 @@ export default function Actions() {
                         {akcija.naziv}
                       </h3>
                       <div className="space-y-1 text-sm text-gray-600">
+                        {akcija.planina && (
+                          <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
+                        )}
                         <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>

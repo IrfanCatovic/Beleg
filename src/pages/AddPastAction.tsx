@@ -18,6 +18,7 @@ export default function AddPastAction() {
   const [vodici, setVodici] = useState<Korisnik[]>([])
   const [korisnikId, setKorisnikId] = useState('')
   const [naziv, setNaziv] = useState('')
+  const [planina, setPlanina] = useState('')
   const [vrh, setVrh] = useState('')
   const [datum, setDatum] = useState('')
   const [opis, setOpis] = useState('')
@@ -67,6 +68,7 @@ export default function AddPastAction() {
     try {
       const formData = new FormData()
       formData.append('naziv', naziv)
+      formData.append('planina', planina.trim())
       formData.append('vrh', vrh)
       formData.append('datum', datum)
       formData.append('opis', opis)
@@ -142,6 +144,18 @@ export default function AddPastAction() {
             value={naziv}
             onChange={(e) => setNaziv(e.target.value)}
             className={inputClass}
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Ime planine</label>
+          <input
+            type="text"
+            value={planina}
+            onChange={(e) => setPlanina(e.target.value)}
+            className={inputClass}
+            placeholder="npr. Kopaonik, Stara planina"
             required
           />
         </div>
