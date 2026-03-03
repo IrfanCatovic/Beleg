@@ -161,6 +161,7 @@ func CreateTransakcija(c *gin.Context) {
 }
 
 // GetClanarine vraća listu korisnika sa statusom članarine za datu godinu.
+// Status "platio" = postoji uplata u toj godini; za novu godinu svi su početno neplaćeni (nema transakcija).
 // Query: godina=2025 (default: tekuća godina)
 func GetClanarine(c *gin.Context) {
 	if !checkFinanceRole(c) {

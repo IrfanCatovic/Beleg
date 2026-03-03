@@ -535,6 +535,9 @@ export default function Finance() {
 
       {tab === 'clanarine' && (
         <div className="space-y-4 sm:space-y-6">
+          <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-200">
+            Status članarine računa se posebno za svaku godinu. Kada nastupi nova godina, svi članovi su za narednu godinu početno neplaćeni, uplate se evidentiraju tek kada član plati za tu godinu.
+          </p>
           <div className="flex flex-wrap gap-3 sm:gap-4 items-center">
             <label className="flex items-center gap-2">
               <span className="text-gray-600 text-sm sm:text-base">Godina:</span>

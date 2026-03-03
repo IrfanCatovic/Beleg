@@ -460,14 +460,14 @@ func main() {
 			var aktivne []models.Akcija
 			var zavrsene []models.Akcija
 
-			// Aktivne akcije (is_completed = false)
-			if err := gormDb.Where("is_completed = ?", false).Find(&aktivne).Error; err != nil {
+			// Aktivne akcije (is_completed = false), samo one u istoriji kluba (NULL = stari redovi = uključi)
+			if err := gormDb.Where("is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?)", false, true).Find(&aktivne).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 				return
 			}
 
-			// Završene akcije (is_completed = true)
-			if err := gormDb.Where("is_completed = ?", true).Find(&zavrsene).Error; err != nil {
+			// Završene akcije (is_completed = true), samo one u istoriji kluba (NULL = stari redovi = uključi)
+			if err := gormDb.Where("is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?)", true, true).Find(&zavrsene).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
 				return
 			}
@@ -1443,6 +1443,8 @@ func main() {
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
+			// Checkbox: samo ako je eksplicitno "false" → samo profil; inače i u istoriju kluba (podrazumevano true)
+			dodajUIstorijuKluba := strings.TrimSpace(strings.ToLower(c.PostForm("dodaj_u_istoriju_kluba"))) != "false"
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
@@ -1488,6 +1490,7 @@ func main() {
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 				AddedByID:                currentUser.ID,
+				UIstorijiKluba:           dodajUIstorijuKluba,
 			}
 
 			if err := db.Create(&akcija).Error; err != nil {

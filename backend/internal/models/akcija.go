@@ -18,7 +18,8 @@ type Akcija struct {
 	UkupnoKmAkcija           float64   `json:"duzinaStazeKm"`
 	VodicID                  uint      `gorm:"default:0" json:"vodicId"`           // ID korisnika (vodiča) koji vodi akciju
 	DrugiVodicIme            string    `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
-	AddedByID                uint      `gorm:"default:0" json:"addedById"`        // ID korisnika koji je dodao akciju
+	AddedByID                uint      `gorm:"default:0" json:"addedById"` // ID korisnika koji je dodao akciju
+	UIstorijiKluba           bool      `gorm:"column:u_istoriji_kluba;default:true" json:"uIstorijiKluba"` // false = samo na profilu člana, ne u listi akcija kluba
 }
 
 // TableName specifies the table name for the Akcija model

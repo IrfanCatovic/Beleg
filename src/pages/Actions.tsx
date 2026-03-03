@@ -21,7 +21,9 @@ interface Akcija {
   opis?: string
   tezina?: string
   slikaUrl?: string
-  isCompleted: boolean 
+  isCompleted: boolean
+  /** false = samo na profilu člana, ne u listi akcija kluba ni u godišnjem PDF-u */
+  uIstorijiKluba?: boolean
 }
 
 export default function Actions() {
@@ -44,9 +46,9 @@ export default function Actions() {
       try {
 
         const akcijeRes = await api.get('/api/akcije')
-
-        setAktivneAkcije(akcijeRes.data.aktivne || [])
-        setZavrseneAkcije(akcijeRes.data.zavrsene || [])
+        const uIstoriji = (a: Akcija) => a.uIstorijiKluba !== false
+        setAktivneAkcije((akcijeRes.data.aktivne || []).filter(uIstoriji))
+        setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(uIstoriji))
 
         const mojeRes = await api.get('/api/moje-prijave')
         const ids = mojeRes.data.prijavljeneAkcije || []
@@ -92,6 +94,7 @@ export default function Actions() {
     try {
       const actionsInYear = zavrseneAkcije.filter((a) => {
         if (!a.datum) return false
+        if (a.uIstorijiKluba === false) return false
         const y = new Date(a.datum).getFullYear()
         return !isNaN(y) && y === selectedYear
       })

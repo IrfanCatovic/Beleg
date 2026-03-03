@@ -29,6 +29,7 @@ export default function AddPastAction() {
   const [vodicId, setVodicId] = useState('')
   const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
   const [drugiVodicIme, setDrugiVodicIme] = useState('')
+  const [dodajUIstorijuKluba, setDodajUIstorijuKluba] = useState(true)
   const [slika, setSlika] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -82,6 +83,7 @@ export default function AddPastAction() {
       formData.append('duzinaStazeKm', duzinaStazeKm)
       if (vodicId) formData.append('vodic_id', vodicId)
       if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
+      formData.append('dodaj_u_istoriju_kluba', dodajUIstorijuKluba ? 'true' : 'false')
       if (slika) formData.append('slika', slika)
 
       await api.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
@@ -295,6 +297,22 @@ export default function AddPastAction() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
+
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
+          <input
+            type="checkbox"
+            id="dodaj-u-istoriju"
+            checked={dodajUIstorijuKluba}
+            onChange={(e) => setDodajUIstorijuKluba(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-[#41ac53] focus:ring-[#41ac53]"
+          />
+          <label htmlFor="dodaj-u-istoriju" className="text-gray-700 font-medium">
+            Dodaj u istoriju akcija kluba
+          </label>
+        </div>
+        <p className="text-sm text-gray-500 -mt-2">
+          Ako nije čekirano, akcija će se upisati samo na profil člana (progress) i neće se pojaviti u listi završenih akcija kluba.
+        </p>
 
         <div className="flex gap-3 pt-2">
           <button
