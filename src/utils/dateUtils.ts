@@ -1,4 +1,14 @@
 /**
+ * Datum u formatu YYYY-MM-DD (lokalna vremenska zona, bez UTC pomaka).
+ */
+export function dateToYMD(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
  * Formatira datum za prikaz (npr. "15. januar 2025.").
  * Za nevažeći datum vraća fallback (podrazumevano "—").
  */
