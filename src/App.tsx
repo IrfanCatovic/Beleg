@@ -48,9 +48,7 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     errorElement: <ErrorPage />,
-    children: [
-      { path: '/home', element: <Home /> },
-
+      children: [
       // Javno: detalji akcije i user profil (bez logina, za deljenje na društvene mreže)
       { path: '/akcije/:id', element: <ActionDetails /> },
       { path: '/users/:id', element: <UserProfile /> },
@@ -58,6 +56,7 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          { path: '/home', element: <Home /> },
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
           { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },

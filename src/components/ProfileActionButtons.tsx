@@ -29,7 +29,7 @@ export default function ProfileActionButtons({
   const showInfo = currentUser && canSeeProfileActions && (currentUser.role === 'admin' || currentUser.role === 'sekretar' || isOwnProfile)
   const infoLink = `/users/${userId}/info`
 
-  const showPrint = canSeeProfileActions && onPrintClick
+  const showPrint = currentUser && canSeeProfileActions && onPrintClick
 
   return (
     <div className="absolute top-2 right-4 md:top-6 md:right-12 z-10 flex items-center gap-2 flex-wrap">

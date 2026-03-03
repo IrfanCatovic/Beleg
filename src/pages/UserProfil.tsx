@@ -158,7 +158,7 @@ export default function UserProfile() {
             <p className="text-gray-500 mt-4">
               Pridružio se: {formatDate(korisnik.createdAt)}
             </p>
-            {korisnik.email && (
+            {currentUser && korisnik.email && (
               <p className="text-gray-600 mt-2 text-sm">
                 <span className="font-medium">Email:</span>{' '}
                 <a href={`mailto:${korisnik.email}`} className="text-[#41ac53] hover:underline">
@@ -166,7 +166,7 @@ export default function UserProfile() {
                 </a>
               </p>
             )}
-            {korisnik.telefon && (
+            {currentUser && korisnik.telefon && (
               <p className="text-gray-600 mt-1 text-sm">
                 <span className="font-medium">Telefon:</span>{' '}
                 <a href={`tel:${korisnik.telefon}`} className="text-[#41ac53] hover:underline">

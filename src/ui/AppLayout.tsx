@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function AppLayout() {
-  const { logout, user } = useAuth() 
+  const { logout, user, isLoggedIn } = useAuth() 
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -15,7 +15,8 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - prikazan samo kada je korisnik ulogovan */}
+      {isLoggedIn && (
       <header className="bg-[#41ac53] text-white shadow-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -129,6 +130,7 @@ export default function AppLayout() {
           </div>
         )}
       </header>
+      )}
 
       {/* Main outlet */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
