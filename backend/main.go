@@ -684,6 +684,7 @@ func main() {
 				}
 			}
 
+			// Nova akcija za klub (AddAction) — uvek u istoriji kluba; ne čitamo iz forme
 			akcija := models.Akcija{
 				Naziv:                    naziv,
 				Planina:                  planina,
@@ -695,7 +696,7 @@ func main() {
 				UkupnoKmAkcija:           duzinaStazeKm,
 				SlikaURL:                 "",
 				IsCompleted:              false,
-				UIstorijiKluba:           true,
+				UIstorijiKluba:           true, // nova akcija za klub = uvek true (AddPastAction ima checkbox)
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 				AddedByID:                currentUser.ID,
