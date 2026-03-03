@@ -45,6 +45,7 @@ export default function Finance() {
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
+  const todayYmd = dateToYMD(new Date())
   const [currentPage, setCurrentPage] = useState(1)
   const PAGE_SIZE = 5
   const currentYear = new Date().getFullYear()
@@ -112,6 +113,10 @@ export default function Finance() {
       setError('Unesite validan iznos.')
       return
     }
+     if (transakcijaDatum > todayYmd) {
+       setError('Datum ne može biti u budućnosti.')
+       return
+     }
     const opis = [transakcijaUplatilac.trim(), transakcijaOpis.trim()].filter(Boolean).join(' – ') || undefined
     setTransakcijaSubmitting(true)
     setError('')
@@ -499,6 +504,7 @@ export default function Finance() {
                   value={transakcijaDatum}
                   onChange={setTransakcijaDatum}
                   placeholder="Izaberite datum"
+                  maxDate={todayYmd}
                   fullWidth
                   aria-label="Datum transakcije"
                 />
