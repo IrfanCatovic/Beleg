@@ -42,14 +42,17 @@ export default function Finance() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const currentYear = new Date().getFullYear()
-  const [fromDate, setFromDate] = useState(`${currentYear}-01-01`)
-  const [toDate, setToDate] = useState(`${currentYear}-12-31`)
+  const toYMD = (d: Date) => d.toISOString().slice(0, 10)
+  const firstDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
+  const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  const [fromDate, setFromDate] = useState(() => toYMD(new Date(currentYear, 0, 1)))
+  const [toDate, setToDate] = useState(() => toYMD(new Date(currentYear, 11, 31)))
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
   const [clanarineLoading, setClanarineLoading] = useState(false)
-  const [clanarineGodina, setClanarineGodina] = useState(new Date().getFullYear())
+  const [clanarineGodina, setClanarineGodina] = useState(Math.max(2026, new Date().getFullYear()))
   const [platiLoading, setPlatiLoading] = useState<number | null>(null)
-  const [clanarinaIznos, setClanarinaIznos] = useState(500)
+  const [clanarinaIznos, setClanarinaIznos] = useState(2320)
   const [error, setError] = useState('')
 
   const fetchDashboard = async () => {
@@ -57,9 +60,7 @@ export default function Finance() {
     setDashboardLoading(true)
     setError('')
     try {
-      const params = new URLSearchParams()
-      if (fromDate) params.set('from', fromDate)
-      if (toDate) params.set('to', toDate)
+      const params = new URLSearchParams({ from: fromDate, to: toDate })
       const res = await api.get(`/api/finansije/dashboard?${params}`)
       setDashboardData(res.data)
     } catch (err: unknown) {
@@ -152,8 +153,42 @@ export default function Finance() {
 
       {tab === 'dashboard' && (
         <div className="space-y-6">
-          {/* Period filter */}
+          {/* Brzi filteri + ručni period */}
           <div className="flex flex-wrap gap-4 items-center">
+            <span className="text-gray-600 font-medium">Period:</span>
+            <button
+              type="button"
+              onClick={() => {
+                const t = new Date()
+                setFromDate(toYMD(t))
+                setToDate(toYMD(t))
+              }}
+              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+            >
+              Danas
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const t = new Date()
+                setFromDate(toYMD(firstDayOfMonth(t)))
+                setToDate(toYMD(lastDayOfMonth(t)))
+              }}
+              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+            >
+              Ovaj mesec
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFromDate(`${currentYear}-01-01`)
+                setToDate(`${currentYear}-12-31`)
+              }}
+              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+            >
+              Ova godina
+            </button>
+            <span className="text-gray-400 hidden sm:inline">|</span>
             <label className="flex items-center gap-2">
               <span className="text-gray-600">Od:</span>
               <input
@@ -253,9 +288,11 @@ export default function Finance() {
                 onChange={(e) => setClanarineGodina(Number(e.target.value))}
                 className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
               >
-                {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map((y) => (
-                  <option key={y} value={y}>{y}.</option>
-                ))}
+                {Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
+                  .sort((a, b) => b - a)
+                  .map((y) => (
+                    <option key={y} value={y}>{y}.</option>
+                  ))}
               </select>
             </label>
             <label className="flex items-center gap-2">
