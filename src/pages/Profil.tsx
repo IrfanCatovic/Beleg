@@ -6,6 +6,7 @@ import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
+import Loader from '../components/Loader'
 
 interface UspesnaAkcija {
   id: number
@@ -104,7 +105,7 @@ export default function Profil() {
     return <div className="text-center py-10">Morate se ulogovati da biste vidjeli profil.</div>
   }
 
-  if (loading) return <div className="text-center py-20">Učitavanje profila...</div>
+  if (loading) return <Loader />
   if (error) return <div className="text-center py-20 text-red-600">{error}</div>
   if (!me) return null
 

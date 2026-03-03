@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
-import BackButton from '../components/BackButton'
 import { formatDateShort } from '../utils/dateUtils'
 
-type Tab = 'dashboard' | 'clanarine'
+type Tab = 'dashboard' | 'clanarine' | 'transakcije'
+type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
 
 interface Transakcija {
   id: number
@@ -47,6 +47,9 @@ export default function Finance() {
   const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
   const [fromDate, setFromDate] = useState(() => toYMD(new Date(currentYear, 0, 1)))
   const [toDate, setToDate] = useState(() => toYMD(new Date(currentYear, 11, 31)))
+  const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
+  const filterDropdownRef = useRef<HTMLDivElement>(null)
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
   const [clanarineLoading, setClanarineLoading] = useState(false)
@@ -54,6 +57,14 @@ export default function Finance() {
   const [platiLoading, setPlatiLoading] = useState<number | null>(null)
   const [clanarinaIznos, setClanarinaIznos] = useState(2320)
   const [error, setError] = useState('')
+
+  // Form za novu transakciju (tab Transakcije)
+  const [transakcijaTip, setTransakcijaTip] = useState<'uplata' | 'isplata'>('uplata')
+  const [transakcijaIznos, setTransakcijaIznos] = useState('')
+  const [transakcijaDatum, setTransakcijaDatum] = useState(() => toYMD(new Date()))
+  const [transakcijaUplatilac, setTransakcijaUplatilac] = useState('')
+  const [transakcijaOpis, setTransakcijaOpis] = useState('')
+  const [transakcijaSubmitting, setTransakcijaSubmitting] = useState(false)
 
   const fetchDashboard = async () => {
     if (!user) return
@@ -88,8 +99,54 @@ export default function Finance() {
 
   useEffect(() => {
     if (tab === 'dashboard') fetchDashboard()
-    else fetchClanarine()
+    else if (tab === 'clanarine') fetchClanarine()
   }, [tab, fromDate, toDate, clanarineGodina])
+
+  useEffect(() => {
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
+        setFilterDropdownOpen(false)
+      }
+    }
+    if (filterDropdownOpen) {
+      document.addEventListener('mousedown', close)
+      document.addEventListener('touchstart', close, { passive: true })
+    }
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('touchstart', close)
+    }
+  }, [filterDropdownOpen])
+
+  const handleNovaTransakcija = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const iznos = Number(transakcijaIznos?.replace(/,/g, '.'))
+    if (!iznos || iznos <= 0) {
+      setError('Unesite validan iznos.')
+      return
+    }
+    const opis = [transakcijaUplatilac.trim(), transakcijaOpis.trim()].filter(Boolean).join(' – ') || undefined
+    setTransakcijaSubmitting(true)
+    setError('')
+    try {
+      await api.post('/api/finansije', {
+        tip: transakcijaTip,
+        iznos,
+        datum: transakcijaDatum,
+        opis: opis || '',
+      })
+      setTransakcijaIznos('')
+      setTransakcijaOpis('')
+      setTransakcijaUplatilac('')
+      setTransakcijaDatum(toYMD(new Date()))
+      await fetchDashboard()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri čuvanju'
+      setError(msg)
+    } finally {
+      setTransakcijaSubmitting(false)
+    }
+  }
 
   const handlePlati = async (korisnikId: number) => {
     setPlatiLoading(korisnikId)
@@ -112,21 +169,19 @@ export default function Finance() {
 
   if (!user) return null
 
-  return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 className="text-3xl font-bold" style={{ color: '#41ac53' }}>
-          Finansije
-        </h2>
-        <BackButton />
-      </div>
+  const filteredTransakcije = dashboardData?.transakcije.filter((t) => {
+    if (transakcijaFilter === 'sve') return true
+    return t.tip === transakcijaFilter
+  }) ?? []
 
-      {/* Tabovi */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+  return (
+    <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Tabovi – mobil: scroll ili wrap */}
+      <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto sm:overflow-visible pb-px scrollbar-thin">
         <button
           type="button"
           onClick={() => setTab('dashboard')}
-          className={`px-4 py-2 font-medium rounded-t-lg transition-colors ${
+          className={`flex-shrink-0 px-3 sm:px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
             tab === 'dashboard'
               ? 'bg-[#41ac53] text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -137,13 +192,24 @@ export default function Finance() {
         <button
           type="button"
           onClick={() => setTab('clanarine')}
-          className={`px-4 py-2 font-medium rounded-t-lg transition-colors ${
+          className={`flex-shrink-0 px-3 sm:px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
             tab === 'clanarine'
               ? 'bg-[#41ac53] text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
           Članarine
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('transakcije')}
+          className={`flex-shrink-0 px-3 sm:px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+            tab === 'transakcije'
+              ? 'bg-[#41ac53] text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Uplate / Isplate
         </button>
       </div>
 
@@ -152,10 +218,10 @@ export default function Finance() {
       )}
 
       {tab === 'dashboard' && (
-        <div className="space-y-6">
-          {/* Brzi filteri + ručni period */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <span className="text-gray-600 font-medium">Period:</span>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Brzi filteri + ručni period + filter tipa – na telefonu sve centrirano */}
+          <div className="flex flex-wrap gap-3 sm:gap-4 items-center justify-center sm:justify-start">
+            <span className="text-gray-600 font-medium w-full text-center sm:w-auto sm:text-left">Period:</span>
             <button
               type="button"
               onClick={() => {
@@ -189,7 +255,7 @@ export default function Finance() {
               Ova godina
             </button>
             <span className="text-gray-400 hidden sm:inline">|</span>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 justify-center sm:justify-start">
               <span className="text-gray-600">Od:</span>
               <input
                 type="date"
@@ -198,15 +264,52 @@ export default function Finance() {
                 className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
               />
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 justify-center sm:justify-start">
               <span className="text-gray-600">Do:</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] w-full sm:w-auto min-w-0"
               />
             </label>
+            <span className="text-gray-400 hidden sm:inline">|</span>
+            <div ref={filterDropdownRef} className="relative w-fit max-w-full flex justify-center sm:justify-start">
+              <span className="sr-only">Filter:</span>
+              <button
+                type="button"
+                onClick={() => setFilterDropdownOpen((o) => !o)}
+                className="w-full min-w-[200px] sm:min-w-0 sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-gray-700 hover:bg-gray-50 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] focus:outline-none flex items-center justify-between gap-2"
+              >
+                <span className="truncate">
+                  {transakcijaFilter === 'sve' && 'Sve transakcije'}
+                  {transakcijaFilter === 'uplata' && 'Samo uplate'}
+                  {transakcijaFilter === 'isplata' && 'Samo isplate'}
+                </span>
+                <svg className={`w-4 h-4 flex-shrink-0 transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {filterDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 w-full min-w-[200px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                  {(['sve', 'uplata', 'isplata'] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setTransakcijaFilter(value)
+                        setFilterDropdownOpen(false)
+                      }}
+                      className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${transakcijaFilter === value ? 'bg-green-50 text-[#41ac53] font-medium' : 'text-gray-700'}`}
+                    >
+                      {value === 'sve' && 'Sve transakcije'}
+                      {value === 'uplata' && 'Samo uplate'}
+                      {value === 'isplata' && 'Samo isplate'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {dashboardLoading ? (
@@ -214,62 +317,81 @@ export default function Finance() {
           ) : dashboardData ? (
             <>
               {/* Karticice: saldo, uplate, isplate */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl shadow p-6 border-l-4" style={{ borderLeftColor: '#41ac53' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4" style={{ borderLeftColor: '#41ac53' }}>
                   <p className="text-sm text-gray-600">Saldo</p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: dashboardData.saldo >= 0 ? '#41ac53' : '#dc2626' }}>
+                  <p className="text-xl sm:text-2xl font-bold mt-1 break-all" style={{ color: dashboardData.saldo >= 0 ? '#41ac53' : '#dc2626' }}>
                     {dashboardData.saldo.toLocaleString('sr-RS')} RSD
                   </p>
                 </div>
-                <div className="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
+                <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4 border-green-500">
                   <p className="text-sm text-gray-600">Uplate</p>
-                  <p className="text-2xl font-bold mt-1 text-green-600">
+                  <p className="text-xl sm:text-2xl font-bold mt-1 text-green-600 break-all">
                     {dashboardData.uplate.toLocaleString('sr-RS')} RSD
                   </p>
                 </div>
-                <div className="bg-white rounded-xl shadow p-6 border-l-4 border-red-500">
+                <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4 border-red-500">
                   <p className="text-sm text-gray-600">Isplate</p>
-                  <p className="text-2xl font-bold mt-1 text-red-600">
+                  <p className="text-xl sm:text-2xl font-bold mt-1 text-red-600 break-all">
                     {dashboardData.isplate.toLocaleString('sr-RS')} RSD
                   </p>
                 </div>
               </div>
 
-              {/* Lista transakcija */}
+              {/* Lista transakcija – desktop tabela, mobil kartice */}
               <div className="bg-white rounded-xl shadow overflow-hidden">
-                <h3 className="px-6 py-4 bg-gray-50 font-semibold text-gray-800">Transakcije u periodu</h3>
-                {dashboardData.transakcije.length === 0 ? (
-                  <p className="p-6 text-gray-500">Nema transakcija za izabrani period.</p>
+                <h3 className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 font-semibold text-gray-800 text-sm sm:text-base">Transakcije u periodu</h3>
+                {filteredTransakcije.length === 0 ? (
+                  <p className="p-4 sm:p-6 text-gray-500 text-sm sm:text-base">Nema transakcija za izabrani period i filter.</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Iznos</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opis</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {dashboardData.transakcije.map((t) => (
-                          <tr key={t.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-3 text-sm text-gray-700">{formatDateShort(t.datum)}</td>
-                            <td className="px-6 py-3">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {t.tip}
-                              </span>
-                              {t.clanarinaKorisnik && (
-                                <span className="ml-2 text-xs text-gray-500">({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-3 text-sm font-medium">{t.iznos.toLocaleString('sr-RS')} RSD</td>
-                            <td className="px-6 py-3 text-sm text-gray-600">{t.opis || '—'}</td>
+                  <>
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Iznos</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Opis</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {filteredTransakcije.map((t) => (
+                            <tr key={t.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-3 text-sm text-gray-700">{formatDateShort(t.datum)}</td>
+                              <td className="px-6 py-3">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                  {t.tip}
+                                </span>
+                                {t.clanarinaKorisnik && (
+                                  <span className="ml-2 text-xs text-gray-500">({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-3 text-sm font-medium">{t.iznos.toLocaleString('sr-RS')} RSD</td>
+                              <td className="px-6 py-3 text-sm text-gray-600">{t.opis || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="sm:hidden divide-y divide-gray-200">
+                      {filteredTransakcije.map((t) => (
+                        <div key={t.id} className="p-4 hover:bg-gray-50">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {t.tip}
+                            </span>
+                            <span className="text-sm font-medium whitespace-nowrap">{t.iznos.toLocaleString('sr-RS')} RSD</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{formatDateShort(t.datum)}</p>
+                          <p className="text-sm text-gray-700 mt-1">{t.opis || '—'}</p>
+                          {t.clanarinaKorisnik && (
+                            <p className="text-xs text-gray-500 mt-0.5">({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </>
@@ -277,16 +399,90 @@ export default function Finance() {
         </div>
       )}
 
+      {tab === 'transakcije' && (
+        <div className="flex justify-center">
+          <div className="space-y-4 sm:space-y-6 max-w-xl w-full">
+            <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Nova transakcija</h3>
+            <form onSubmit={handleNovaTransakcija} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tip</label>
+                <select
+                  value={transakcijaTip}
+                  onChange={(e) => setTransakcijaTip(e.target.value as 'uplata' | 'isplata')}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                >
+                  <option value="uplata">Uplata</option>
+                  <option value="isplata">Isplata</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {transakcijaTip === 'uplata' ? 'Ko je uplatio (opciono)' : 'Kome / za šta (opciono)'}
+                </label>
+                <input
+                  type="text"
+                  value={transakcijaUplatilac}
+                  onChange={(e) => setTransakcijaUplatilac(e.target.value)}
+                  placeholder={transakcijaTip === 'uplata' ? 'npr. Ime prezime' : 'npr. Dobavljač, svrha'}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Iznos (RSD) *</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={transakcijaIznos}
+                  onChange={(e) => setTransakcijaIznos(e.target.value.replace(/[^0-9,.]/g, ''))}
+                  placeholder="npr. 5000"
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Datum *</label>
+                <input
+                  type="date"
+                  value={transakcijaDatum}
+                  onChange={(e) => setTransakcijaDatum(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Opis (opciono)</label>
+                <input
+                  type="text"
+                  value={transakcijaOpis}
+                  onChange={(e) => setTransakcijaOpis(e.target.value)}
+                  placeholder="npr. Članarina, kupovina opreme..."
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={transakcijaSubmitting}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-white font-medium transition-colors disabled:opacity-60"
+                style={{ backgroundColor: '#41ac53' }}
+              >
+                {transakcijaSubmitting ? 'Čuvanje...' : 'Sačuvaj transakciju'}
+              </button>
+            </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab === 'clanarine' && (
-        <div className="space-y-6">
-          {/* Godina + iznos članarine */}
-          <div className="flex flex-wrap gap-4 items-center">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-wrap gap-3 sm:gap-4 items-center">
             <label className="flex items-center gap-2">
-              <span className="text-gray-600">Godina:</span>
+              <span className="text-gray-600 text-sm sm:text-base">Godina:</span>
               <select
                 value={clanarineGodina}
                 onChange={(e) => setClanarineGodina(Number(e.target.value))}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] w-full sm:w-auto min-w-0"
               >
                 {Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
                   .sort((a, b) => b - a)
@@ -295,14 +491,14 @@ export default function Finance() {
                   ))}
               </select>
             </label>
-            <label className="flex items-center gap-2">
-              <span className="text-gray-600">Iznos članarine (RSD):</span>
+            <label className="flex items-center gap-2 flex-1 sm:flex-initial min-w-0">
+              <span className="text-gray-600 text-sm sm:text-base whitespace-nowrap">Iznos članarine (RSD):</span>
               <input
                 type="number"
                 min={1}
                 value={clanarinaIznos}
                 onChange={(e) => setClanarinaIznos(Number(e.target.value) || 0)}
-                className="w-24 rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                className="w-20 sm:w-24 rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
               />
             </label>
           </div>
@@ -311,7 +507,7 @@ export default function Finance() {
             <div className="text-center py-12 text-gray-500">Učitavanje...</div>
           ) : (
             <div className="bg-white rounded-xl shadow overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -346,8 +542,33 @@ export default function Finance() {
                   </tbody>
                 </table>
               </div>
+              <div className="sm:hidden divide-y divide-gray-200">
+                {clanarine.map((row) => (
+                  <div key={row.id} className="p-4 flex justify-between items-center gap-3">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900 block truncate">{row.fullName || row.username}</span>
+                      {row.fullName && <span className="text-sm text-gray-500">@{row.username}</span>}
+                    </div>
+                    <div className="flex-shrink-0">
+                      {row.platio ? (
+                        <span className="text-green-600 font-medium">Platio</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handlePlati(row.id)}
+                          disabled={platiLoading === row.id}
+                          className="px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-60 text-sm"
+                          style={{ backgroundColor: '#41ac53' }}
+                        >
+                          {platiLoading === row.id ? '...' : 'Plati'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
               {clanarine.length === 0 && !clanarineLoading && (
-                <p className="p-6 text-gray-500 text-center">Nema korisnika.</p>
+                <p className="p-4 sm:p-6 text-gray-500 text-center text-sm sm:text-base">Nema korisnika.</p>
               )}
             </div>
           )}
