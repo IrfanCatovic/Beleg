@@ -213,9 +213,11 @@ export default function Profil() {
 
         {/* Lista uspešnih akcija */}
         <div className="mt-12">
-          <h3 className="text-2xl font-semibold mb-6" style={{ color: '#41ac53' }}>
-            Akcije na koje si se popeo
-          </h3>
+        <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight" style={{ color: '#41ac53' }}>
+              Akcije na koje si se popeo
+            </h3>
+          </div>
 
           {uspesneAkcije.length === 0 ? (
             <p className="text-gray-600 text-center py-8">

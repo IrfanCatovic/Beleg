@@ -282,7 +282,7 @@ export default function ActionDetails() {
           )}
             </div>
 
-            {/* Admin/Vodič – Upravljanje akcijom */}
+            {/* Admin/Vodič  Upravljanje akcijom */}
             {user && ['admin', 'vodic'].includes(user?.role) && (
               <div className="mt-12 mb-10 p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 text-center">Upravljanje akcijom</h4>

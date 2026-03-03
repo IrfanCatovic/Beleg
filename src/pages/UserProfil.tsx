@@ -221,11 +221,9 @@ export default function UserProfile() {
         {/* Lista uspešnih akcija */}
         <div className="mt-12 sm:mt-14">
           <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
-            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-[#41ac53]" aria-hidden />
             <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight" style={{ color: '#41ac53' }}>
               Akcije na koje se popeo
             </h3>
-            <span className="flex h-1 w-10 sm:w-12 rounded-full bg-[#41ac53]" aria-hidden />
           </div>
 
           {uspesneAkcije.length === 0 ? (

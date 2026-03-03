@@ -358,6 +358,87 @@ func main() {
 		c.JSON(200, resp)
 	})
 
+	// Javne rute — profil korisnika (za deljenje linka; bez logina)
+	// GET /api/korisnici/:id — detalji korisnika javni
+	r.GET("/api/korisnici/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+			return
+		}
+		dbAny, _ := c.Get("db")
+		db := dbAny.(*gorm.DB)
+		var korisnik models.Korisnik
+		if err := db.First(&korisnik, id).Error; err != nil {
+			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+			return
+		}
+		c.JSON(200, korisnik)
+	})
+	// GET /api/korisnici/:id/statistika — statistika javna
+	r.GET("/api/korisnici/:id/statistika", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+			return
+		}
+		dbAny, _ := c.Get("db")
+		db := dbAny.(*gorm.DB)
+		var korisnik models.Korisnik
+		if err := db.First(&korisnik, id).Error; err != nil {
+			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+			return
+		}
+		c.JSON(200, gin.H{
+			"statistika": map[string]interface{}{
+				"ukupnoKm":           korisnik.UkupnoKmKorisnik,
+				"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
+				"brojPopeoSe":        korisnik.BrojPopeoSe,
+			},
+		})
+	})
+	// GET /api/korisnici/:id/popeo-se — lista uspešnih akcija javna
+	r.GET("/api/korisnici/:id/popeo-se", func(c *gin.Context) {
+		idStr := c.Param("id")
+		targetID, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+			return
+		}
+		dbAny, _ := c.Get("db")
+		db := dbAny.(*gorm.DB)
+		var prijave []models.Prijava
+		err = db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
+			Preload("Akcija").
+			Find(&prijave).Error
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
+			return
+		}
+		var uspesneAkcije []models.Akcija
+		var ukupnoKm float64
+		var ukupnoMetaraUspona int
+		var brojPopeoSe int
+		for _, p := range prijave {
+			if p.Akcija.ID != 0 {
+				uspesneAkcije = append(uspesneAkcije, p.Akcija)
+				ukupnoKm += p.Akcija.UkupnoKmAkcija
+				ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
+				brojPopeoSe++
+			}
+		}
+		c.JSON(200, gin.H{
+			"uspesneAkcije": uspesneAkcije,
+			"statistika": map[string]interface{}{
+				"ukupnoKm":           ukupnoKm,
+				"ukupnoMetaraUspona": ukupnoMetaraUspona,
+				"brojPopeoSe":        brojPopeoSe,
+			},
+		})
+	})
+
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
@@ -1298,27 +1379,6 @@ func main() {
 			c.JSON(200, gin.H{"message": "Korisnik ažuriran", "korisnik": korisnik})
 		})
 
-		// GET /api/korisnici/:id detalji o korisniku
-		protected.GET("/korisnici/:id", func(c *gin.Context) {
-			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-				return
-			}
-
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			var korisnik models.Korisnik
-			if err := db.First(&korisnik, id).Error; err != nil {
-				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-				return
-			}
-
-			c.JSON(200, korisnik)
-		})
-
 		// GET /api/korisnici list of all users
 		protected.GET("/korisnici", func(c *gin.Context) {
 			dbAny, _ := c.Get("db")
@@ -1333,58 +1393,6 @@ func main() {
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})
 
-
-		// GET /api/korisnici/:id/popeo-se lista akcija koje je korisnik popeo se,
-		// i statistika ukupno km, metara uspona i broj popeo se.
-		// Ovaj endpoint je vidljiv svim ulogovanim korisnicima (nema provere da li gledaš svoj ili tuđ profil).
-		protected.GET("/korisnici/:id/popeo-se", func(c *gin.Context) {
-			// 1. ID korisnika čiji profil gledamo
-			idStr := c.Param("id")
-			targetID, err := strconv.Atoi(idStr)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID korisnika"})
-				return
-			}
-
-			// 2. Baza
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			// 3. Dohvati prijave za target korisnika po korisnik_id (broj!)
-			var prijave []models.Prijava
-			err = db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
-				Preload("Akcija").
-				Find(&prijave).Error
-
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
-				return
-			}
-
-			// 4. Pripremi listu akcija i statistiku
-			var uspesneAkcije []models.Akcija
-			var ukupnoKm float64
-			var ukupnoMetaraUspona int
-			var brojPopeoSe int
-
-			for _, p := range prijave {
-				if p.Akcija.ID != 0 {
-					uspesneAkcije = append(uspesneAkcije, p.Akcija)
-					ukupnoKm += p.Akcija.UkupnoKmAkcija
-					ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
-					brojPopeoSe++
-				}
-			}
-
-			c.JSON(http.StatusOK, gin.H{
-				"uspesneAkcije": uspesneAkcije,
-				"statistika": map[string]interface{}{
-					"ukupnoKm":           ukupnoKm,
-					"ukupnoMetaraUspona": ukupnoMetaraUspona,
-					"brojPopeoSe":        brojPopeoSe,
-				},
-			})
-		})
 
 		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
 		protected.POST("/korisnici/:id/dodaj-proslu-akciju", func(c *gin.Context) {
@@ -1586,33 +1594,6 @@ func main() {
 					"ukupnoKm":           ukupnoKm,
 					"ukupnoMetaraUspona": ukupnoMetaraUspona,
 					"brojPopeoSe":        brojPopeoSe,
-				},
-			})
-		})
-
-		// GET /api/korisnici/:id/statistika statistika korisnika za user profil page
-		protected.GET("/korisnici/:id/statistika", func(c *gin.Context) {
-			idStr := c.Param("id")
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-				return
-			}
-
-			dbAny, _ := c.Get("db")
-			db := dbAny.(*gorm.DB)
-
-			var korisnik models.Korisnik
-			if err := db.First(&korisnik, id).Error; err != nil {
-				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-				return
-			}
-
-			c.JSON(200, gin.H{
-				"statistika": map[string]interface{}{
-					"ukupnoKm":           korisnik.UkupnoKmKorisnik,
-					"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
-					"brojPopeoSe":        korisnik.BrojPopeoSe,
 				},
 			})
 		})
