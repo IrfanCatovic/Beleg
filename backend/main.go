@@ -2,6 +2,7 @@ package main
 
 import (
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/routes"
 	"beleg-app/backend/middleware"
 	"context"
 	"fmt"
@@ -100,11 +101,12 @@ func main() {
 		&models.Akcija{},
 		&models.Prijava{},
 		&models.Korisnik{},
+		&models.Transakcija{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
-	log.Println("Tabele 'akcije' i 'prijave' su migrirane")
+	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije)")
 
 	// Inject db u Gin context
 	r.Use(func(c *gin.Context) {
@@ -443,6 +445,8 @@ func main() {
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
 	{
+		routes.RegisterFinanceRoutes(protected)
+
 		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
 			dbAny, exists := c.Get("db")
