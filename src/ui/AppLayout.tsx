@@ -15,7 +15,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - prikazan samo kada je korisnik ulogovan */}
+      {/* Header prikazan samo kada je korisnik ulogovan */}
       {isLoggedIn && (
       <header className="bg-[#41ac53] text-white shadow-md">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -48,7 +48,7 @@ export default function AppLayout() {
               <Link to="/home" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Home
               </Link>
-              {/* Akcije  svi ulogovani */}
+              {/* Akcije svi ulogovani */}
               <Link to="/akcije" className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition">
                 Akcije
               </Link>

@@ -83,7 +83,7 @@ export function generateMemberPdf(data: MemberPdfData): void {
     <div class="pdf-wrap">
       <div class="header">
         <h1>EVIDENCIJA ČLANA</h1>
-        <p>Planinarsko društvo ${escapeHtml(data.clubName || PDF_CLUB_NAME)}</p>
+        <p>Planinarsko društvo Beleg</p>
       </div>
 
       ${section('Lični podaci', `

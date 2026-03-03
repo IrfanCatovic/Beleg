@@ -4,7 +4,7 @@ import './index.css'
 // Pages
 import Login from './pages/Login'
 import AppLayout from './ui/AppLayout'
-import ErrorPage from './pages/ErrorPage'
+import ErrorPage from './ui/ErrorPage'
 import Home from './pages/Home'
 import Actions from './pages/Actions'
 import Finance from './pages/Finance'
@@ -67,7 +67,7 @@ const router = createBrowserRouter([
           // Info stranica – admin/sekretar vide sve; ostali samo svoj profil
           { path: '/users/:id/info', element: <UserInfo /> },
 
-          // Akcije – svi ulogovani vide listu i detalje, prijavljuju se
+          // Akcije svi ulogovani vide listu i detalje, prijavljuju se
           { path: '/akcije', element: <Actions /> },
 
           // Finansije, uplata, isplata admin i blagajnik
@@ -78,7 +78,7 @@ const router = createBrowserRouter([
             ],
           },
 
-          // Dodaj/izmeni akciju – samo admin i vodič
+          // Dodaj/izmeni akciju samo admin i vodič
           {
             element: <RoleRoute allowedRoles={['admin', 'vodic']} />,
             children: [
@@ -88,7 +88,7 @@ const router = createBrowserRouter([
             ],
           },
 
-          // Dodaj korisnika – admin i sekretar
+          // Dodaj korisnika admin i sekretar
           {
             element: <RoleRoute allowedRoles={['admin', 'sekretar']} />,
             children: [
