@@ -45,6 +45,8 @@ export default function Finance() {
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 5
   const currentYear = new Date().getFullYear()
   const firstDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
   const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
@@ -158,6 +160,13 @@ export default function Finance() {
     if (transakcijaFilter === 'sve') return true
     return t.tip === transakcijaFilter
   }) ?? []
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransakcije.length / PAGE_SIZE))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedTransakcije = filteredTransakcije.slice(
+    (safeCurrentPage - 1) * PAGE_SIZE,
+    safeCurrentPage * PAGE_SIZE
+  )
 
   return (
     <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -327,9 +336,13 @@ export default function Finance() {
 
               {/* Lista transakcija – desktop tabela, mobil kartice */}
               <div className="bg-white rounded-xl shadow overflow-hidden">
-                <h3 className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 font-semibold text-gray-800 text-sm sm:text-base">Transakcije u periodu</h3>
+                <h3 className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 font-semibold text-gray-800 text-sm sm:text-base">
+                  Transakcije u periodu
+                </h3>
                 {filteredTransakcije.length === 0 ? (
-                  <p className="p-4 sm:p-6 text-gray-500 text-sm sm:text-base">Nema transakcija za izabrani period i filter.</p>
+                  <p className="p-4 sm:p-6 text-gray-500 text-sm sm:text-base">
+                    Nema transakcija za izabrani period i filter.
+                  </p>
                 ) : (
                   <>
                     <div className="hidden sm:block overflow-x-auto">
@@ -343,18 +356,26 @@ export default function Finance() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {filteredTransakcije.map((t) => (
+                          {paginatedTransakcije.map((t) => (
                             <tr key={t.id} className="hover:bg-gray-50">
                               <td className="px-6 py-3 text-sm text-gray-700">{formatDateShort(t.datum)}</td>
                               <td className="px-6 py-3">
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium ${
+                                    t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  }`}
+                                >
                                   {t.tip}
                                 </span>
                                 {t.clanarinaKorisnik && (
-                                  <span className="ml-2 text-xs text-gray-500">({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})</span>
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    ({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})
+                                  </span>
                                 )}
                               </td>
-                              <td className="px-6 py-3 text-sm font-medium">{t.iznos.toLocaleString('sr-RS')} RSD</td>
+                              <td className="px-6 py-3 text-sm font-medium">
+                                {t.iznos.toLocaleString('sr-RS')} RSD
+                              </td>
                               <td className="px-6 py-3 text-sm text-gray-600">{t.opis || '—'}</td>
                             </tr>
                           ))}
@@ -362,22 +383,66 @@ export default function Finance() {
                       </table>
                     </div>
                     <div className="sm:hidden divide-y divide-gray-200">
-                      {filteredTransakcije.map((t) => (
+                      {paginatedTransakcije.map((t) => (
                         <div key={t.id} className="p-4 hover:bg-gray-50">
                           <div className="flex justify-between items-start gap-2">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                t.tip === 'uplata' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}
+                            >
                               {t.tip}
                             </span>
-                            <span className="text-sm font-medium whitespace-nowrap">{t.iznos.toLocaleString('sr-RS')} RSD</span>
+                            <span className="text-sm font-medium whitespace-nowrap">
+                              {t.iznos.toLocaleString('sr-RS')} RSD
+                            </span>
                           </div>
                           <p className="text-xs text-gray-500 mt-1">{formatDateShort(t.datum)}</p>
                           <p className="text-sm text-gray-700 mt-1">{t.opis || '—'}</p>
                           {t.clanarinaKorisnik && (
-                            <p className="text-xs text-gray-500 mt-0.5">({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              ({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})
+                            </p>
                           )}
                         </div>
                       ))}
                     </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t border-gray-200 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={safeCurrentPage === 1}
+                          className="px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          Prethodne
+                        </button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              type="button"
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-md text-sm font-medium ${
+                                page === safeCurrentPage
+                                  ? 'bg-[#41ac53] text-white'
+                                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safeCurrentPage === totalPages}
+                          className="px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          Sledeće
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
