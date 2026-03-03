@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import Dropdown from '../components/Dropdown'
 import { formatDateShort } from '../utils/dateUtils'
 
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
@@ -48,8 +49,6 @@ export default function Finance() {
   const [fromDate, setFromDate] = useState(() => toYMD(new Date(currentYear, 0, 1)))
   const [toDate, setToDate] = useState(() => toYMD(new Date(currentYear, 11, 31)))
   const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
-  const filterDropdownRef = useRef<HTMLDivElement>(null)
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
   const [clanarineLoading, setClanarineLoading] = useState(false)
@@ -101,22 +100,6 @@ export default function Finance() {
     if (tab === 'dashboard') fetchDashboard()
     else if (tab === 'clanarine') fetchClanarine()
   }, [tab, fromDate, toDate, clanarineGodina])
-
-  useEffect(() => {
-    const close = (e: MouseEvent | TouchEvent) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
-        setFilterDropdownOpen(false)
-      }
-    }
-    if (filterDropdownOpen) {
-      document.addEventListener('mousedown', close)
-      document.addEventListener('touchstart', close, { passive: true })
-    }
-    return () => {
-      document.removeEventListener('mousedown', close)
-      document.removeEventListener('touchstart', close)
-    }
-  }, [filterDropdownOpen])
 
   const handleNovaTransakcija = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -274,41 +257,18 @@ export default function Finance() {
               />
             </label>
             <span className="text-gray-400 hidden sm:inline">|</span>
-            <div ref={filterDropdownRef} className="relative w-fit max-w-full flex justify-center sm:justify-start">
-              <span className="sr-only">Filter:</span>
-              <button
-                type="button"
-                onClick={() => setFilterDropdownOpen((o) => !o)}
-                className="w-full min-w-[200px] sm:min-w-0 sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-gray-700 hover:bg-gray-50 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] focus:outline-none flex items-center justify-between gap-2"
-              >
-                <span className="truncate">
-                  {transakcijaFilter === 'sve' && 'Sve transakcije'}
-                  {transakcijaFilter === 'uplata' && 'Samo uplate'}
-                  {transakcijaFilter === 'isplata' && 'Samo isplate'}
-                </span>
-                <svg className={`w-4 h-4 flex-shrink-0 transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {filterDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 w-full min-w-[200px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                  {(['sve', 'uplata', 'isplata'] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => {
-                        setTransakcijaFilter(value)
-                        setFilterDropdownOpen(false)
-                      }}
-                      className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${transakcijaFilter === value ? 'bg-green-50 text-[#41ac53] font-medium' : 'text-gray-700'}`}
-                    >
-                      {value === 'sve' && 'Sve transakcije'}
-                      {value === 'uplata' && 'Samo uplate'}
-                      {value === 'isplata' && 'Samo isplate'}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="flex justify-center sm:justify-start">
+              <Dropdown
+                aria-label="Filter transakcija"
+                options={[
+                  { value: 'sve', label: 'Sve transakcije' },
+                  { value: 'uplata', label: 'Samo uplate' },
+                  { value: 'isplata', label: 'Samo isplate' },
+                ]}
+                value={transakcijaFilter}
+                onChange={(v) => setTransakcijaFilter(v as TransakcijaFilter)}
+                minTriggerWidth="200px"
+              />
             </div>
           </div>
 
@@ -407,14 +367,15 @@ export default function Finance() {
             <form onSubmit={handleNovaTransakcija} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tip</label>
-                <select
+                <Dropdown
+                  options={[
+                    { value: 'uplata', label: 'Uplata' },
+                    { value: 'isplata', label: 'Isplata' },
+                  ]}
                   value={transakcijaTip}
-                  onChange={(e) => setTransakcijaTip(e.target.value as 'uplata' | 'isplata')}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
-                >
-                  <option value="uplata">Uplata</option>
-                  <option value="isplata">Isplata</option>
-                </select>
+                  onChange={(v) => setTransakcijaTip(v as 'uplata' | 'isplata')}
+                  fullWidth
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
