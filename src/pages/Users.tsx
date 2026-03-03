@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate } from '../utils/dateUtils'
+import Loader from '../components/Loader'
 
 interface Korisnik {
   id: number
@@ -117,7 +118,7 @@ export default function Korisnici() {
     }
   }
 
-  if (loading) return <div className="text-center py-10">Učitavanje korisnika...</div>
+  if (loading) return <Loader />
   if (error) return <div className="text-center py-10 text-red-600">{error}</div>
 
   return (

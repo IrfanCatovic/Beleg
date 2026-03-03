@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import Dropdown from '../components/Dropdown'
+import CalendarDropdown from '../components/CalendarDropdown'
 import { formatDateShort } from '../utils/dateUtils'
 
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
@@ -238,22 +239,26 @@ export default function Finance() {
               Ova godina
             </button>
             <span className="text-gray-400 hidden sm:inline">|</span>
-            <label className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="text-gray-600">Od:</span>
-              <input
-                type="date"
+            <label className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start">
+              <span className="text-gray-600 text-sm">Od:</span>
+              <CalendarDropdown
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                onChange={setFromDate}
+                placeholder="Od datuma"
+                maxDate={toDate}
+                aria-label="Period od"
+                className="min-w-[140px] sm:min-w-[160px]"
               />
             </label>
-            <label className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="text-gray-600">Do:</span>
-              <input
-                type="date"
+            <label className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start">
+              <span className="text-gray-600 text-sm">Do:</span>
+              <CalendarDropdown
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] w-full sm:w-auto min-w-0"
+                onChange={setToDate}
+                placeholder="Do datuma"
+                minDate={fromDate}
+                aria-label="Period do"
+                className="min-w-[140px] sm:min-w-[160px]"
               />
             </label>
             <span className="text-gray-400 hidden sm:inline">|</span>
@@ -403,12 +408,12 @@ export default function Finance() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Datum *</label>
-                <input
-                  type="date"
+                <CalendarDropdown
                   value={transakcijaDatum}
-                  onChange={(e) => setTransakcijaDatum(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53]"
+                  onChange={setTransakcijaDatum}
+                  placeholder="Izaberite datum"
+                  fullWidth
+                  aria-label="Datum transakcije"
                 />
               </div>
               <div>
