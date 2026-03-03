@@ -695,6 +695,7 @@ func main() {
 				UkupnoKmAkcija:           duzinaStazeKm,
 				SlikaURL:                 "",
 				IsCompleted:              false,
+				UIstorijiKluba:           true,
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 				AddedByID:                currentUser.ID,

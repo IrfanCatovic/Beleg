@@ -20,7 +20,7 @@ type Akcija struct {
 	DrugiVodicIme            string    `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
 	AddedByID                uint      `gorm:"default:0" json:"addedById"` // ID korisnika koji je dodao akciju
 	// false = samo na profilu člana, ne u listi akcija kluba
-	UIstorijiKluba           bool      `gorm:"column:u_istoriji_kluba;not null" json:"uIstorijiKluba"`
+	UIstorijiKluba           bool      `gorm:"column:u_istoriji_kluba;not null;default:true" json:"uIstorijiKluba"`
 }
 
 // TableName specifies the table name for the Akcija model
