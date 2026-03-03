@@ -1444,7 +1444,9 @@ func main() {
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 			// Checkbox: samo ako je eksplicitno "false" → samo profil; inače i u istoriju kluba (podrazumevano true)
-			dodajUIstorijuKluba := strings.TrimSpace(strings.ToLower(c.PostForm("dodaj_u_istoriju_kluba"))) != "false"
+			rawDodaj := c.PostForm("dodaj_u_istoriju_kluba")
+			dodajUIstorijuKluba := strings.TrimSpace(strings.ToLower(rawDodaj)) != "false"
+			log.Printf("AddPastAction: dodaj_u_istoriju_kluba='%s' → parsed=%v", rawDodaj, dodajUIstorijuKluba)
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
