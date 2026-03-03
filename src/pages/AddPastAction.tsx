@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import BackButton from '../components/BackButton'
+import Dropdown from '../components/Dropdown'
 
 interface Korisnik {
   id: number
@@ -63,6 +64,10 @@ export default function AddPastAction() {
       setError('Datum mora biti u formatu YYYY-MM-DD')
       return
     }
+    if (!tezina.trim()) {
+      setError('Izaberite težinu.')
+      return
+    }
     setError('')
     setSubmitting(true)
     try {
@@ -120,21 +125,20 @@ export default function AddPastAction() {
         )}
 
         <div>
-          <label htmlFor="korisnik" className={labelClass}>Korisnik</label>
-          <select
-            id="korisnik"
+          <label className={labelClass}>Korisnik</label>
+          <Dropdown
+            aria-label="Izaberi korisnika"
+            options={[
+              { value: '', label: '— Izaberite korisnika —' },
+              ...korisnici.map((k) => ({
+                value: String(k.id),
+                label: `${k.fullName || k.username} (@${k.username})`,
+              })),
+            ]}
             value={korisnikId}
-            onChange={(e) => setKorisnikId(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">— Izaberite korisnika —</option>
-            {korisnici.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.fullName || k.username} (@{k.username})
-              </option>
-            ))}
-          </select>
+            onChange={setKorisnikId}
+            fullWidth
+          />
         </div>
 
         <div>
@@ -195,18 +199,19 @@ export default function AddPastAction() {
         {!drugiVodicCheck && (
           <div>
             <label className={labelClass}>Vodič</label>
-            <select
+            <Dropdown
+              aria-label="Izaberi vodiča"
+              options={[
+                { value: '', label: '— Opciono —' },
+                ...vodici.map((v) => ({
+                  value: String(v.id),
+                  label: `${v.fullName || v.username} (@${v.username})`,
+                })),
+              ]}
               value={vodicId}
-              onChange={(e) => setVodicId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">— Opciono —</option>
-              {vodici.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.fullName || v.username} (@{v.username})
-                </option>
-              ))}
-            </select>
+              onChange={setVodicId}
+              fullWidth
+            />
           </div>
         )}
         <div className="flex items-center gap-3">
@@ -239,17 +244,18 @@ export default function AddPastAction() {
 
         <div>
           <label className={labelClass}>Težina</label>
-          <select
+          <Dropdown
+            aria-label="Izaberi težinu"
+            options={[
+              { value: '', label: '— Izaberite —' },
+              { value: 'lako', label: 'Lako' },
+              { value: 'srednje', label: 'Srednje' },
+              { value: 'teško', label: 'Teško' },
+            ]}
             value={tezina}
-            onChange={(e) => setTezina(e.target.value)}
-            className={inputClass}
-            required
-          >
-            <option value="">— Izaberite —</option>
-            <option value="lako">Lako</option>
-            <option value="srednje">Srednje</option>
-            <option value="teško">Teško</option>
-          </select>
+            onChange={setTezina}
+            fullWidth
+          />
         </div>
 
         <div>

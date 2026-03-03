@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import Dropdown from '../components/Dropdown'
 
 const dateOnly = (s: string | undefined): string => {
   if (!s) return ''
@@ -313,18 +314,20 @@ export default function ProfileSettings() {
                 </h3>
                 <div>
                   <label className={labelClass}>Uloga (samo admin menja)</label>
-                  <select
+                  <Dropdown
+                    aria-label="Uloga"
+                    options={[
+                      { value: 'clan', label: 'Clan' },
+                      { value: 'admin', label: 'Admin' },
+                      { value: 'vodic', label: 'Vodic' },
+                      { value: 'blagajnik', label: 'Blagajnik' },
+                      { value: 'sekretar', label: 'Sekretar' },
+                      { value: 'menadzer-opreme', label: 'Menadzer opreme' },
+                    ]}
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="clan">clan</option>
-                    <option value="admin">admin</option>
-                    <option value="vodic">vodic</option>
-                    <option value="blagajnik">blagajnik</option>
-                    <option value="sekretar">sekretar</option>
-                    <option value="menadzer-opreme">menadzer-opreme</option>
-                  </select>
+                    onChange={setRole}
+                    fullWidth
+                  />
                 </div>
               </div>
               <div className={sectionClass}>
@@ -490,11 +493,17 @@ export default function ProfileSettings() {
               </div>
               <div>
                 <label className={labelClass}>Pol</label>
-                <select name="pol" value={form.pol} onChange={handleChange} className={inputClass}>
-                  <option value="">— izaberi —</option>
-                  <option value="M">M</option>
-                  <option value="Ž">Ž</option>
-                </select>
+                <Dropdown
+                  aria-label="Pol"
+                  options={[
+                    { value: '', label: '— izaberi —' },
+                    { value: 'M', label: 'Muški' },
+                    { value: 'Ž', label: 'Ženski' },
+                  ]}
+                  value={form.pol}
+                  onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+                  fullWidth
+                />
               </div>
               <div>
                 <label className={labelClass}>Datum rođenja</label>

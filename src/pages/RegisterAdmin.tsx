@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import Dropdown from '../components/Dropdown'
 
 const initialForm = {
   username: '',
@@ -193,16 +194,17 @@ export default function RegisterAdmin() {
               </div>
               <div>
                 <label className={labelClass}>Pol</label>
-                <select
-                  name="pol"
+                <Dropdown
+                  aria-label="Pol"
+                  options={[
+                    { value: '', label: '— izaberi —' },
+                    { value: 'M', label: 'Muški' },
+                    { value: 'Ž', label: 'Ženski' },
+                  ]}
                   value={form.pol}
-                  onChange={handleChange}
-                  className={inputClass}
-                >
-                  <option value="">— izaberi —</option>
-                  <option value="M">M</option>
-                  <option value="Ž">Ž</option>
-                </select>
+                  onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+                  fullWidth
+                />
               </div>
               <div>
                 <label className={labelClass}>Datum rođenja</label>

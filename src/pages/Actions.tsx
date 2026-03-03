@@ -10,6 +10,7 @@ import {
   type ParticipantForReport,
 } from '../utils/annualReportUtils'
 import Loader from '../components/Loader'
+import Dropdown from '../components/Dropdown'
 
 interface Akcija {
   id: number
@@ -475,16 +476,16 @@ export default function Actions() {
             <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-gray-900 mb-3">Godišnji izveštaj (PDF)</h3>
               <p className="text-sm text-gray-600 mb-4">Izaberite godinu za koju želite izveštaj (samo godine sa završenim akcijama).</p>
-              <select
+              <Dropdown
+                aria-label="Izaberi godinu"
+                options={[
+                  { value: '', label: '— Izaberite godinu —' },
+                  ...yearsWithCompleted.map((y) => ({ value: String(y), label: String(y) })),
+                ]}
                 value={selectedYear === '' ? '' : String(selectedYear)}
-                onChange={(e) => setSelectedYear(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:ring-2 focus:ring-[#41ac53]/40 focus:border-[#41ac53]"
-              >
-                <option value="">— Izaberite godinu —</option>
-                {yearsWithCompleted.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+                onChange={(v) => setSelectedYear(v === '' ? '' : Number(v))}
+                fullWidth
+              />
               <div className="mt-6 flex gap-3 justify-end">
                 <button
                   type="button"

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import BackButton from '../components/BackButton'
+import Dropdown from '../components/Dropdown'
 
 interface Korisnik {
   id: number
@@ -59,6 +60,11 @@ export default function AddAction() {
           // Validacija datuma
           if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
             setError('Datum mora biti u formatu YYYY-MM-DD')
+            setLoading(false)
+            return
+          }
+          if (!tezina.trim()) {
+            setError('Izaberite težinu.')
             setLoading(false)
             return
           }
@@ -161,18 +167,19 @@ export default function AddAction() {
         {!drugiVodicCheck && (
           <div>
             <label className="block text-gray-700 font-medium mb-2">Vodič</label>
-            <select
+            <Dropdown
+              aria-label="Izaberi vodiča"
+              options={[
+                { value: '', label: 'Izaberi vodiča' },
+                ...vodici.map((v) => ({
+                  value: String(v.id),
+                  label: `${v.fullName} (@${v.username})`,
+                })),
+              ]}
               value={vodicId}
-              onChange={(e) => setVodicId(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-            >
-              <option value="">Izaberi vodiča</option>
-              {vodici.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.fullName} (@{v.username})
-                </option>
-              ))}
-            </select>
+              onChange={setVodicId}
+              fullWidth
+            />
           </div>
         )}
 
@@ -208,17 +215,18 @@ export default function AddAction() {
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">Težina</label>
-          <select
+          <Dropdown
+            aria-label="Izaberi težinu"
+            options={[
+              { value: '', label: 'Izaberi težinu' },
+              { value: 'lako', label: 'Lako' },
+              { value: 'srednje', label: 'Srednje' },
+              { value: 'teško', label: 'Teško' },
+            ]}
             value={tezina}
-            onChange={(e) => setTezina(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-            required
-          >
-            <option value="">Izaberi težinu</option>
-            <option value="lako">Lako</option>
-            <option value="srednje">Srednje</option>
-            <option value="teško">Teško</option>
-          </select>
+            onChange={setTezina}
+            fullWidth
+          />
         </div>
 
         <div>

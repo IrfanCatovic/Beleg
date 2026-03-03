@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../components/BackButton'
+import Dropdown from '../components/Dropdown'
 
 interface Korisnik {
   id: number
@@ -114,6 +115,11 @@ export default function EditAction() {
       setLoading(false)
       return
     }
+    if (!tezina.trim()) {
+      setError('Izaberite težinu.')
+      setLoading(false)
+      return
+    }
 
     try {
       const formData = new FormData()
@@ -220,18 +226,19 @@ export default function EditAction() {
         {!drugiVodicCheck && (
           <div>
             <label className="block text-gray-700 font-medium mb-2">Vodič</label>
-            <select
+            <Dropdown
+              aria-label="Izaberi vodiča"
+              options={[
+                { value: '', label: 'Izaberi vodiča' },
+                ...vodici.map((v) => ({
+                  value: String(v.id),
+                  label: `${v.fullName} (@${v.username})`,
+                })),
+              ]}
               value={vodicId}
-              onChange={(e) => setVodicId(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-            >
-              <option value="">Izaberi vodiča</option>
-              {vodici.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.fullName} (@{v.username})
-                </option>
-              ))}
-            </select>
+              onChange={setVodicId}
+              fullWidth
+            />
           </div>
         )}
 
@@ -267,17 +274,18 @@ export default function EditAction() {
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">Težina</label>
-          <select
+          <Dropdown
+            aria-label="Izaberi težinu"
+            options={[
+              { value: '', label: 'Izaberi težinu' },
+              { value: 'lako', label: 'Lako' },
+              { value: 'srednje', label: 'Srednje' },
+              { value: 'tesko', label: 'Teško' },
+            ]}
             value={tezina}
-            onChange={(e) => setTezina(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-            required
-          >
-            <option value="">Izaberi težinu</option>
-            <option value="lako">Lako</option>
-            <option value="srednje">Srednje</option>
-            <option value="tesko">Teško</option>
-          </select>
+            onChange={setTezina}
+            fullWidth
+          />
         </div>
 
         <div>

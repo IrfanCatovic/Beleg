@@ -440,17 +440,15 @@ export default function Finance() {
           <div className="flex flex-wrap gap-3 sm:gap-4 items-center">
             <label className="flex items-center gap-2">
               <span className="text-gray-600 text-sm sm:text-base">Godina:</span>
-              <select
-                value={clanarineGodina}
-                onChange={(e) => setClanarineGodina(Number(e.target.value))}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] w-full sm:w-auto min-w-0"
-              >
-                {Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
+              <Dropdown
+                aria-label="Godina članarine"
+                options={Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
                   .sort((a, b) => b - a)
-                  .map((y) => (
-                    <option key={y} value={y}>{y}.</option>
-                  ))}
-              </select>
+                  .map((y) => ({ value: String(y), label: `${y}.` }))}
+                value={String(clanarineGodina)}
+                onChange={(v) => setClanarineGodina(Number(v))}
+                minTriggerWidth="120px"
+              />
             </label>
             <label className="flex items-center gap-2 flex-1 sm:flex-initial min-w-0">
               <span className="text-gray-600 text-sm sm:text-base whitespace-nowrap">Iznos članarine (RSD):</span>

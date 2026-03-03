@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import Dropdown from '../components/Dropdown'
 
 const initialForm = {
   username: '',
@@ -60,7 +61,10 @@ export default function RegisterUser() {
     e.preventDefault()
     setError('')
     setSuccess(false)
-
+    if (!form.role.trim()) {
+      setError('Izaberite ulogu.')
+      return
+    }
     try {
       const formData = new FormData()
       formData.append('username', form.username.trim())
@@ -149,20 +153,19 @@ export default function RegisterUser() {
             </div>
             <div>
               <label className={labelClass}>Uloga *</label>
-              <select
-                name="role"
+              <Dropdown
+                aria-label="Uloga"
+                options={[
+                  { value: '', label: '— izaberi —' },
+                  ...roleOptions.map((role) => ({
+                    value: role,
+                    label: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
+                  })),
+                ]}
                 value={form.role}
-                onChange={handleChange}
-                required
-                className={inputClass}
-              >
-                <option value="">— izaberi —</option>
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' ')}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
+                fullWidth
+              />
             </div>
           </div>
 
@@ -192,16 +195,17 @@ export default function RegisterUser() {
               </div>
               <div>
                 <label className={labelClass}>Pol</label>
-                <select
-                  name="pol"
+                <Dropdown
+                  aria-label="Pol"
+                  options={[
+                    { value: '', label: '— izaberi —' },
+                    { value: 'M', label: 'Muški' },
+                    { value: 'Ž', label: 'Ženski' },
+                  ]}
                   value={form.pol}
-                  onChange={handleChange}
-                  className={inputClass}
-                >
-                  <option value="">— izaberi —</option>
-                  <option value="M">M</option>
-                  <option value="Ž">Ž</option>
-                </select>
+                  onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+                  fullWidth
+                />
               </div>
               <div>
                 <label className={labelClass}>Datum rođenja</label>
