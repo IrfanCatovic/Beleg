@@ -29,6 +29,8 @@ export default function AddAction() {
   const [vodicId, setVodicId] = useState('')
   const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
   const [drugiVodicIme, setDrugiVodicIme] = useState('')
+  const [visinaVrhM, setVisinaVrhM] = useState('')
+  const [zimskiUspon, setZimskiUspon] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -74,11 +76,13 @@ export default function AddAction() {
             formData.append('naziv', naziv)
             formData.append('planina', planina.trim())
             formData.append('vrh', vrh)
-            formData.append('datum', datum)  
+            formData.append('datum', datum)
             formData.append('opis', opis)
             formData.append('tezina', tezina)
             formData.append('kumulativniUsponM', kumulativniUsponM)
             formData.append('duzinaStazeKm', duzinaStazeKm)
+            formData.append('visinaVrhM', visinaVrhM)
+            formData.append('zimskiUspon', String(zimskiUspon))
             if (vodicId) formData.append('vodic_id', vodicId)
             if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
             if (slika) {
@@ -253,6 +257,32 @@ export default function AddAction() {
             min="0"
             step="0.1"
           />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Visina vrha (u metrima)</label>
+          <input
+            type="number"
+            value={visinaVrhM}
+            onChange={(e) => setVisinaVrhM(e.target.value)}
+            placeholder="npr. 2017"
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
+            min="0"
+            step="1"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="zimski-uspon"
+            checked={zimskiUspon}
+            onChange={(e) => setZimskiUspon(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-[#41ac53] focus:ring-[#41ac53]"
+          />
+          <label htmlFor="zimski-uspon" className="text-gray-700 font-medium">
+            Zimski uspon
+          </label>
         </div>
 
         <div>

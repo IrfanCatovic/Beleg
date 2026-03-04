@@ -20,6 +20,8 @@ interface Akcija {
   datum: string
   opis?: string
   tezina?: string
+  visinaVrhM?: number
+  zimskiUspon?: boolean
   slikaUrl?: string
   isCompleted: boolean
   /** false = samo na profilu člana, ne u listi akcija kluba ni u godišnjem PDF-u */
@@ -341,7 +343,13 @@ export default function Actions() {
                         {akcija.planina && (
                           <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
                         )}
-                        <p><strong className="text-gray-700"></strong>Vrh: {akcija.vrh}</p>
+                        <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
+                        {akcija.visinaVrhM != null && (
+                          <p><strong className="text-gray-700">Visina vrha:</strong> {akcija.visinaVrhM} m</p>
+                        )}
+                        {akcija.zimskiUspon && (
+                          <p className="text-blue-700 font-semibold">Zimski uspon</p>
+                        )}
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
                       {akcija.opis && (

@@ -17,6 +17,8 @@ interface Akcija {
   createdAt: string
   updatedAt: string
   isCompleted: boolean
+  visinaVrhM?: number
+  zimskiUspon?: boolean
   drugiVodicIme?: string
   vodic?: { fullName: string; username: string }
   addedBy?: { fullName: string; username: string }
@@ -177,7 +179,7 @@ export default function ActionDetails() {
 
         {/* Detalji */}
         <div className="m-12">
-          {/* Planina i vrh */}
+          {/* Planina, vrh, visina, tip uspona */}
           <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-1">
             {akcija.planina && (
               <p className="text-gray-700">
@@ -187,6 +189,16 @@ export default function ActionDetails() {
             <p className="text-gray-700">
               <span className="font-medium text-gray-900">Vrh:</span> {akcija.vrh}
             </p>
+            {akcija.visinaVrhM != null && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Visina vrha:</span> {akcija.visinaVrhM} m
+              </p>
+            )}
+            {akcija.zimskiUspon && (
+              <p className="text-gray-700">
+                <span className="font-medium text-gray-900">Tip uspona:</span> Zimski uspon
+              </p>
+            )}
           </div>
           <div className="mb-6 p-4 bg-gray-50 rounded-xl space-y-2">
             {akcija.vodic && (

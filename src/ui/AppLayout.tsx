@@ -68,12 +68,15 @@ export default function AppLayout() {
                 </Link>
               )}
 
-              {/* Logout */}
+              {/* Logout – samo ikonica na PC */}
               <button
                 onClick={handleLogout}
-                className="rounded-md px-3 py-2 text-base font-medium hover:bg-[#fed74c]/30 transition"
+                title="Odjava"
+                className="rounded-md p-2 text-base font-medium hover:bg-[#fed74c]/30 transition inline-flex items-center justify-center"
               >
-                Odjava
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </button>
             </nav>
           </div>
