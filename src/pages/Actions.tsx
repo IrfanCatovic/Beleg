@@ -486,8 +486,8 @@ export default function Actions() {
                         {akcija.tezina || 'Nije definisano'}
                       </span>
 
-                      <div className="mt-5 pt-4 border-t border-gray-100">
-                        <div className="w-full rounded-xl py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default shadow-sm">
+                      <div className="mt-5 pt-4 border-t border-gray-100 w-full">
+                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default">
                           Akcija završena
                         </div>
                       </div>
