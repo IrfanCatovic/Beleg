@@ -335,7 +335,7 @@ export default function Actions() {
                       </span>
                     </div>
 
-                    <div className="p-4 sm:p-5 flex flex-col grow">
+                    <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
@@ -361,32 +361,31 @@ export default function Actions() {
                       >
                         {akcija.tezina || 'Nije definisano'}
                       </span>
-
-                      <div className="mt-5 pt-4 border-t border-gray-100">
-                        {akcija.isCompleted ? (
-                          <div className="w-full rounded-xl py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default">
-                            Akcija završena
-                          </div>
-                        ) : otkaziveAkcije.has(akcija.id) ? (
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv); }}
-                            className="w-full rounded-xl py-3 font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2"
-                          >
-                            Otkaži prijavu ✕
-                          </button>
-                        ) : prijavljeneAkcije.has(akcija.id) ? (
-                          <div className="w-full rounded-xl py-3 text-center font-semibold text-white bg-emerald-600 cursor-default shadow-sm">
-                            Uspešno popeo!
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv); }}
-                            className="w-full rounded-xl py-3 font-semibold text-white bg-[#41ac53] hover:bg-[#358c43] active:bg-[#2e7a3a] transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2"
-                          >
-                            Pridruži se
-                          </button>
-                        )}
-                      </div>
+                    </div>
+                    <div className="mt-auto border-t border-gray-100">
+                      {akcija.isCompleted ? (
+                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default">
+                          Akcija završena
+                        </div>
+                      ) : otkaziveAkcije.has(akcija.id) ? (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv); }}
+                          className="w-full rounded-none py-3 font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2"
+                        >
+                          Otkaži prijavu ✕
+                        </button>
+                      ) : prijavljeneAkcije.has(akcija.id) ? (
+                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-emerald-600 cursor-default shadow-sm">
+                          Uspešno popeo!
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv); }}
+                          className="w-full rounded-none py-3 font-semibold text-white bg-[#41ac53] hover:bg-[#358c43] active:bg-[#2e7a3a] transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2"
+                        >
+                          Pridruži se
+                        </button>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -437,7 +436,7 @@ export default function Actions() {
                       </span>
                     </div>
 
-                    <div className="p-4 sm:p-5 flex flex-col grow">
+                    <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
