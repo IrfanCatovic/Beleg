@@ -338,7 +338,8 @@ func main() {
 			"opis": akcija.Opis, "tezina": akcija.Tezina, "slikaUrl": akcija.SlikaURL,
 			"createdAt": akcija.CreatedAt, "updatedAt": akcija.UpdatedAt,
 			"isCompleted": akcija.IsCompleted, "kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
-			"duzinaStazeKm": akcija.UkupnoKmAkcija, "vodicId": akcija.VodicID,
+			"duzinaStazeKm": akcija.UkupnoKmAkcija, "visinaVrhM": akcija.VisinaVrhM, "zimskiUspon": akcija.ZimskiUspon,
+			"vodicId": akcija.VodicID,
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
 		}
 		if akcija.VodicID > 0 {
@@ -651,11 +652,13 @@ func main() {
 			tezina := c.PostForm("tezina")
 			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			visinaVrhMStr := c.PostForm("visinaVrhM")
+			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
 
@@ -677,6 +680,17 @@ func main() {
 				return
 			}
 
+			var visinaVrhM int
+			if strings.TrimSpace(visinaVrhMStr) != "" {
+				visinaVrhM, err = strconv.Atoi(visinaVrhMStr)
+				if err != nil || visinaVrhM < 0 {
+					c.JSON(400, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+					return
+				}
+			}
+
+			zimskiUspon := strings.ToLower(strings.TrimSpace(zimskiUsponStr)) == "true"
+
 			var vodicID uint
 			if vodicIDStr != "" {
 				if vID, err := strconv.ParseUint(vodicIDStr, 10, 32); err == nil {
@@ -694,6 +708,8 @@ func main() {
 				Tezina:                   tezina,
 				UkupnoMetaraUsponaAkcija: kumulativniUsponM,
 				UkupnoKmAkcija:           duzinaStazeKm,
+				VisinaVrhM:               visinaVrhM,
+				ZimskiUspon:              zimskiUspon,
 				SlikaURL:                 "",
 				IsCompleted:              false,
 				UIstorijiKluba:           true, // nova akcija za klub = uvek true (AddPastAction ima checkbox)
@@ -787,11 +803,13 @@ func main() {
 			tezina := c.PostForm("tezina")
 			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			visinaVrhMStr := c.PostForm("visinaVrhM")
+			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa i slike (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
 
@@ -811,6 +829,19 @@ func main() {
 			if err != nil || duzinaStazeKm < 0 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
 				return
+			}
+
+			if strings.TrimSpace(visinaVrhMStr) != "" {
+				visinaVrhM, err := strconv.Atoi(visinaVrhMStr)
+				if err != nil || visinaVrhM < 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+					return
+				}
+				akcija.VisinaVrhM = visinaVrhM
+			}
+
+			if strings.TrimSpace(zimskiUsponStr) != "" {
+				akcija.ZimskiUspon = strings.ToLower(strings.TrimSpace(zimskiUsponStr)) == "true"
 			}
 
 			var vodicID uint

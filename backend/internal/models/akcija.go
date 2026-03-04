@@ -16,6 +16,8 @@ type Akcija struct {
 	IsCompleted              bool      `gorm:"default:false" json:"isCompleted"`
 	UkupnoMetaraUsponaAkcija int       `json:"kumulativniUsponM"`
 	UkupnoKmAkcija           float64   `json:"duzinaStazeKm"`
+	VisinaVrhM               int       `json:"visinaVrhM"`                     // Visina vrha u metrima
+	ZimskiUspon              bool      `gorm:"default:false" json:"zimskiUspon"` // Da li je akcija zimski uspon
 	VodicID                  uint      `gorm:"default:0" json:"vodicId"`           // ID korisnika (vodiča) koji vodi akciju
 	DrugiVodicIme            string    `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
 	AddedByID                uint      `gorm:"default:0" json:"addedById"` // ID korisnika koji je dodao akciju
