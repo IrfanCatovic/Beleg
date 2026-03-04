@@ -7,7 +7,7 @@ import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { useRanking } from '../hooks/useRanking'
-import { computeMMRForAkcija } from '../utils/rankingUtils'
+import { computeMMRForAkcija, computeRank } from '../utils/rankingUtils'
 import Loader from '../components/Loader'
 
 interface UspesnaAkcija {
@@ -62,6 +62,7 @@ export default function Profil() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
+  const [legendLevel, setLegendLevel] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -93,6 +94,47 @@ export default function Profil() {
 
     fetchProfilData()
   }, [isLoggedIn])
+
+  useEffect(() => {
+    const loadLegendLevel = async () => {
+      if (!me || rank.glavniRank !== 6) {
+        setLegendLevel(null)
+        return
+      }
+      try {
+        const res = await api.get('/api/korisnici')
+        const lista = (res.data.korisnici || []) as Array<{
+          id: number
+          ukupnoKm?: number
+          ukupnoMetaraUspona?: number
+        }>
+        const withRank = lista
+          .map((k) => ({
+            ...k,
+            rank: computeRank({
+              ukupnoKm: k.ukupnoKm ?? 0,
+              ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            }),
+          }))
+          .filter((k) => k.rank.glavniRank === 6)
+          .sort((a, b) => b.rank.mmr - a.rank.mmr)
+
+        const index = withRank.findIndex((k) => k.id === me.id)
+        if (index === -1 || index >= 30) {
+          setLegendLevel(null)
+          return
+        }
+        const level = 30 - index
+        setLegendLevel(level)
+      } catch {
+        setLegendLevel(null)
+      }
+    }
+
+    if (isLoggedIn) {
+      loadLegendLevel()
+    }
+  }, [isLoggedIn, me, rank.glavniRank])
 
   if (!isLoggedIn) {
     return <div className="text-center py-10">Morate se ulogovati da biste vidjeli profil.</div>
@@ -171,7 +213,11 @@ export default function Profil() {
                   color: rank.boja === '#000000' ? '#FFD700' : 'white',
                 }}
               >
-                <span className="text-base tracking-wide">{rank.naziv}</span>
+                <span className="text-base tracking-wide">
+                  {rank.glavniRank === 6 && legendLevel
+                    ? `Legenda stijena ${legendLevel}`
+                    : rank.naziv}
+                </span>
                 <span className="mt-0.5 text-xs opacity-90">
                   MMR {rank.mmr}
                 </span>

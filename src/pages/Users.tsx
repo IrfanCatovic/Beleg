@@ -89,6 +89,20 @@ export default function Korisnici() {
     return result
   }, [korisnici, searchTerm, roleFilter])
 
+  const rankingKorisnici = useMemo(
+    () =>
+      korisnici
+        .map((k) => {
+          const rank = computeRank({
+            ukupnoKm: k.ukupnoKm ?? 0,
+            ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+          })
+          return { ...k, rank }
+        })
+        .sort((a, b) => b.rank.mmr - a.rank.mmr),
+    [korisnici]
+  )
+
   const handlePrint = async (k: Korisnik) => {
     if (printingId) return
     setPrintingId(k.id)
@@ -232,8 +246,8 @@ export default function Korisnici() {
                 : 'Još nema registrovanih članova.'}
           </p>
         ) : (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 ">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-5 md:p-6 ">
               {filteredKorisnici.map((k) => {
                 const rank = computeRank({
                   ukupnoKm: k.ukupnoKm ?? 0,
@@ -243,14 +257,13 @@ export default function Korisnici() {
                 return (
                 <div
                   key={k.id}
-                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
-                  duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
+                  className="group bg-gradient-to-b from-gray-50/90 via-white to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-2xl overflow-hidden border border-gray-100/80 dark:border-gray-700/80 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
                 >
-                  <div className="p-6">
+                  <div className="p-5 md:p-6">
                     <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                          <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm">
                             {k.avatar_url && !avatarFailed[k.id] ? (
                               <img
                                 src={k.avatar_url}
@@ -264,7 +277,7 @@ export default function Korisnici() {
                             </span>
                           </div>
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                               {k.fullName || k.username}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -273,13 +286,12 @@ export default function Korisnici() {
                           </div>
                         </div>
                         <div
-                          className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-2 text-right"
-                          style={{ backgroundColor: `${rank.boja}20` }}
+                          className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-1.5 text-right bg-white/70 dark:bg-gray-900/40 border border-gray-100/80 dark:border-gray-700/80"
                         >
-                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-900">
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900 dark:text-gray-50">
                             {rank.naziv}
                           </span>
-                          <span className="text-[11px] text-gray-700">
+                          <span className="text-[10px] text-gray-600 dark:text-gray-300">
                             MMR {rank.mmr}
                           </span>
                         </div>
@@ -288,7 +300,7 @@ export default function Korisnici() {
                         <div className="flex items-center justify-between gap-2 text-sm">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role)}`}>
                               {getRoleLabel(k.role)}
                             </span>
                           </div>
@@ -304,7 +316,7 @@ export default function Korisnici() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 dark:text-gray-400">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
@@ -352,9 +364,76 @@ export default function Korisnici() {
           </div>
         )
       ) : (
-        <div className="rounded-2xl bg-white shadow-md border border-dashed border-gray-300 px-6 py-10 text-center text-gray-600">
-          Rang lista 30 najboljih članova biće dodata uskoro.
-        </div>
+        <section className="rounded-2xl bg-white shadow-sm border border-gray-100 p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Ukupna rang lista članova
+            </h3>
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+              {rankingKorisnici.length} članova
+            </span>
+          </div>
+          {rankingKorisnici.length === 0 ? (
+            <p className="text-sm text-gray-600">
+              Još nema dovoljno podataka za rang listu.
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {rankingKorisnici.map((k, index) => (
+                <li
+                  key={k.id}
+                  className="flex items-center gap-3 py-3 sm:py-3.5 bg-white"
+                >
+                  <span className="w-7 text-sm font-semibold text-gray-500 text-right">
+                    {index + 1}.
+                  </span>
+                  <Link
+                    to={`/users/${k.id}`}
+                    className="flex flex-1 items-center gap-3 sm:gap-4 hover:no-underline"
+                  >
+                    <div className="relative h-10 w-10 rounded-2xl overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-semibold text-lg">
+                      {k.avatar_url && !avatarFailed[k.id] ? (
+                        <img
+                          src={k.avatar_url}
+                          alt={k.fullName || k.username || ''}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          onError={() =>
+                            setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))
+                          }
+                        />
+                      ) : null}
+                      <span
+                        className={
+                          k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''
+                        }
+                      >
+                        {(k.fullName || k.username || '?')
+                          .charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {k.fullName || k.username}
+                      </p>
+                      <p className="truncate text-xs text-gray-500">
+                        @{k.username}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-700">
+                        {k.rank.naziv}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-800">
+                        {k.rank.mmr} MMR
+                      </span>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </div>
   )
