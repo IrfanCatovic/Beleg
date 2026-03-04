@@ -160,7 +160,7 @@ export function computeRank(statistika: {
   return getRankFromMMR(mmr)
 }
 
-/** Objekat akcije kao iz API-ja (uspesneAkcije) – polja potrebna za MMR. */
+/** Objekat akcije kao iz API-ja (uspesneAkcije)  polja potrebna za MMR. */
 export interface AkcijaZaRanking {
   duzinaStazeKm?: number
   kumulativniUsponM?: number

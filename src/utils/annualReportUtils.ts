@@ -93,7 +93,10 @@ export function computeCountsForParticipants(
       else if (cat === 'veterani') c.zVeterani += 1
     }
   }
-  c.ukupno = c.mUkupno + c.zUkupno
+  // Uvek broj sve učesnike u poslednjoj koloni (M+Ž),
+  // čak i ako nemamo unet pol ili datum rođenja za preciznu raspodelu.
+  // Ovo obezbeđuje da se u godišnjem izveštaju vidi makar ukupan broj uspešno popelih.
+  c.ukupno = participants.length
   return c
 }
 
