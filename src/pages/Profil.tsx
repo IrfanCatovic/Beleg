@@ -6,6 +6,7 @@ import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
+import { useRanking } from '../hooks/useRanking'
 import Loader from '../components/Loader'
 
 interface UspesnaAkcija {
@@ -21,6 +22,8 @@ interface UspesnaAkcija {
   updatedAt: string
   duzinaStazeKm?: number
   kumulativniUsponM?: number
+  visinaVrhM?: number
+  zimskiUspon?: boolean
 }
 
 interface KorisnikStatistika {
@@ -50,7 +53,11 @@ export default function Profil() {
     ukupnoMetaraUspona: 0,
     brojPopeoSe: 0,
   })
-  const [rank, setRank] = useState({ naziv: 'Početnik', boja: '#E0D9C9' })
+  const rank = useRanking({
+    uspesneAkcije,
+    ukupnoKm: statistika.ukupnoKm,
+    ukupnoMetaraUspona: statistika.ukupnoMetaraUspona,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
@@ -83,23 +90,6 @@ export default function Profil() {
 
     fetchProfilData()
   }, [isLoggedIn])
-
-  useEffect(() => {
-    const { ukupnoKm, ukupnoMetaraUspona } = statistika
-    if (ukupnoKm <= 200 && ukupnoMetaraUspona <= 5000) {
-      setRank({ naziv: 'Početnik', boja: '#ccc4b1' })
-    } else if (ukupnoKm <= 900 && ukupnoMetaraUspona <= 20000) {
-      setRank({ naziv: 'Istraživač', boja: '#556B2F' })
-    } else if (ukupnoKm <= 3500 && ukupnoMetaraUspona <= 60000) {
-      setRank({ naziv: 'Sedlar', boja: '#B7410E' })
-    } else if (ukupnoKm <= 10000 && ukupnoMetaraUspona <= 140000) {
-      setRank({ naziv: 'Osvajač', boja: '#8B0000' })
-    } else if (ukupnoKm <= 25000 && ukupnoMetaraUspona <= 300000) {
-      setRank({ naziv: 'Oblakolovac', boja: '#00CED1' })
-    } else {
-      setRank({ naziv: 'Legenda stijena', boja: '#000000' })
-    }
-  }, [statistika])
 
   if (!isLoggedIn) {
     return <div className="text-center py-10">Morate se ulogovati da biste vidjeli profil.</div>
