@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { Link } from 'react-router-dom'
-import BackButton from '../components/BackButton'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate } from '../utils/dateUtils'
 import Loader from '../components/Loader'
@@ -29,6 +28,7 @@ export default function Korisnici() {
   const roleDropdownRef = useRef<HTMLDivElement>(null)
   const [avatarFailed, setAvatarFailed] = useState<Record<number, boolean>>({})
   const [printingId, setPrintingId] = useState<number | null>(null)
+  const [activeTab, setActiveTab] = useState<'all' | 'rank'>('all')
 
   useEffect(() => {
     if (!user) return
@@ -189,104 +189,136 @@ export default function Korisnici() {
         )}
       </div>
 
-      {filteredKorisnici.length === 0 ? (
-        <p className="text-gray-600 text-center">
-          {searchTerm
-            ? `Nema članova za pretragu "${searchTerm}"${roleFilter ? ` sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}` : ''}`
-            : roleFilter
-              ? `Nema članova sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}.`
-              : 'Još nema registrovanih članova.'}
-        </p>
-      ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
-          <div className="absolute top-4 right-4 z-10 [&_button]:mb-0">
-            <BackButton />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 pt-20">
-            {filteredKorisnici.map((k) => (
-              <div
-                key={k.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
-                duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
-              >
-                <div className="p-6">
-                  <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                        {k.avatar_url && !avatarFailed[k.id] ? (
-                          <img
-                            src={k.avatar_url}
-                            alt={k.fullName || k.username || ''}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
-                          />
-                        ) : null}
-                        <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
-                          {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {k.fullName || k.username}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          @{k.username}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
-                          {getRoleLabel(k.role)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Pridružio se: {formatDate(k.createdAt)}
-                      </div>
-                    </div>
-                  </Link>
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'all'
+                ? 'border-[#41ac53] text-[#41ac53]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Svi članovi
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('rank')}
+            className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'rank'
+                ? 'border-[#41ac53] text-[#41ac53]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Rang lista (Top 30)
+          </button>
+        </nav>
+      </div>
 
-                  {/* Ikonice: podešavanja, info, štampač – samo admin i sekretar na /users listi */}
-                  {(user?.role === 'admin' || user?.role === 'sekretar') && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
-                      <Link
-                        to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
-                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
-                        title="Podešavanja"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Cog6ToothIcon className="w-5 h-5" />
-                      </Link>
-                      <Link
-                        to={`/users/${k.id}/info`}
-                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
-                        title="Sve informacije o korisniku"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <InformationCircleIcon className="w-5 h-5" />
-                      </Link>
-                      <button
-                        type="button"
-                        className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Štampanje evidencije člana"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handlePrint(k)
-                        }}
-                        disabled={printingId === k.id}
-                      >
-                        <PrinterIcon className={`w-5 h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
-                      </button>
-                    </div>
-                  )}
+      {activeTab === 'all' ? (
+        filteredKorisnici.length === 0 ? (
+          <p className="text-gray-600 text-center">
+            {searchTerm
+              ? `Nema članova za pretragu "${searchTerm}"${
+                  roleFilter ? ` sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}` : ''
+                }`
+              : roleFilter
+                ? `Nema članova sa ulogom ${roleOptions.find(o => o.value === roleFilter)?.label}.`
+                : 'Još nema registrovanih članova.'}
+          </p>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 ">
+              {filteredKorisnici.map((k) => (
+                <div
+                  key={k.id}
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
+                  duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
+                >
+                  <div className="p-6">
+                    <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                          {k.avatar_url && !avatarFailed[k.id] ? (
+                            <img
+                              src={k.avatar_url}
+                              alt={k.fullName || k.username || ''}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
+                            />
+                          ) : null}
+                          <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
+                            {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {k.fullName || k.username}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            @{k.username}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
+                            {getRoleLabel(k.role)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Pridružio se: {formatDate(k.createdAt)}
+                        </div>
+                      </div>
+                    </Link>
+
+                    {(user?.role === 'admin' || user?.role === 'sekretar') && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
+                        <Link
+                          to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
+                          title="Podešavanja"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Cog6ToothIcon className="w-5 h-5" />
+                        </Link>
+                        <Link
+                          to={`/users/${k.id}/info`}
+                          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors"
+                          title="Sve informacije o korisniku"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <InformationCircleIcon className="w-5 h-5" />
+                        </Link>
+                        <button
+                          type="button"
+                          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Štampanje evidencije člana"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePrint(k)
+                          }}
+                          disabled={printingId === k.id}
+                        >
+                          <PrinterIcon className={`w-5 h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+        )
+      ) : (
+        <div className="rounded-2xl bg-white shadow-md border border-dashed border-gray-300 px-6 py-10 text-center text-gray-600">
+          Rang lista 30 najboljih članova biće dodata uskoro.
         </div>
       )}
     </div>
