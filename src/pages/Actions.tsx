@@ -339,7 +339,7 @@ export default function Actions() {
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
-                      <div className="space-y-1 text-sm text-gray-600">
+                      <div className="space-y-1 text-sm text-gray-600 grow">
                         {akcija.planina && (
                           <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
                         )}
@@ -352,11 +352,6 @@ export default function Actions() {
                         )}
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
-                      {akcija.opis && (
-                        <p className="text-sm text-gray-600 mt-3 line-clamp-3 grow">
-                          {akcija.opis}
-                        </p>
-                      )}
                       <span
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
@@ -446,18 +441,13 @@ export default function Actions() {
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
-                      <div className="space-y-1 text-sm text-gray-600">
+                      <div className="space-y-1 text-sm text-gray-600 grow">
                         {akcija.planina && (
                           <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
                         )}
                         <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
-                      {akcija.opis && (
-                        <p className="text-sm text-gray-600 mt-3 line-clamp-3 grow">
-                          {akcija.opis}
-                        </p>
-                      )}
                       <span
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :

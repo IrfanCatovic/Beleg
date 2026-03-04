@@ -654,8 +654,6 @@ func main() {
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
 			visinaVrhMStr := c.PostForm("visinaVrhM")
 			zimskiUsponStr := c.PostForm("zimskiUspon")
-			visinaVrhMStr := c.PostForm("visinaVrhM")
-			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 
@@ -1476,6 +1474,8 @@ func main() {
 			tezina := c.PostForm("tezina")
 			kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
 			duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+			visinaVrhMStr := c.PostForm("visinaVrhM")
+			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
 			// Checkbox: samo ako je eksplicitno "false" → samo profil; inače i u istoriju kluba (podrazumevano true)

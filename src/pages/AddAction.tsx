@@ -4,6 +4,7 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import BackButton from '../components/BackButton'
 import Dropdown from '../components/Dropdown'
+import CalendarDropdown from '../components/CalendarDropdown'
 
 interface Korisnik {
   id: number
@@ -36,6 +37,14 @@ export default function AddAction() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const todayYmd = (() => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  })()
+
   useEffect(() => {
     const fetchVodici = async () => {
       try {
@@ -62,6 +71,11 @@ export default function AddAction() {
           // Validacija datuma
           if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
             setError('Datum mora biti u formatu YYYY-MM-DD')
+            setLoading(false)
+            return
+          }
+          if (datum < todayYmd) {
+            setError('Datum ne može biti u prošlosti.')
             setLoading(false)
             return
           }
@@ -149,12 +163,12 @@ export default function AddAction() {
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">Datum akcije</label>
-          <input
-            type="date"
+          <CalendarDropdown
+            aria-label="Izaberi datum akcije"
             value={datum}
-            onChange={(e) => setDatum(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-[#41ac53]"
-            required
+            onChange={setDatum}
+            minDate={todayYmd}
+            fullWidth
           />
         </div>
 
