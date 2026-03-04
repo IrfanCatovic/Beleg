@@ -7,6 +7,7 @@ import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { useRanking } from '../hooks/useRanking'
+import { computeMMRForAkcija } from '../utils/rankingUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -226,7 +227,17 @@ export default function UserProfile() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-              {uspesneAkcije.map((akcija) => (
+              {uspesneAkcije.map((akcija) => {
+                const mmrZaAkciju = computeMMRForAkcija({
+                  duzinaStazeKm: akcija.duzinaStazeKm,
+                  kumulativniUsponM: akcija.kumulativniUsponM,
+                  visinaVrhM: akcija.visinaVrhM,
+                  zimskiUspon: akcija.zimskiUspon,
+                  tezina: akcija.tezina,
+                  datum: akcija.datum,
+                })
+
+                return (
                 <Link
                   key={akcija.id}
                   to={`/akcije/${akcija.id}`}
@@ -260,6 +271,7 @@ export default function UserProfile() {
                       <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       <p><strong className="text-gray-700">Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km</p>
                       <p><strong className="text-gray-700">Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m</p>
+                      <p><strong className="text-gray-700">MMR sa ove akcije:</strong> <span className="font-semibold">{mmrZaAkciju}</span></p>
                     </div>
                     <span className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                       akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
@@ -270,7 +282,7 @@ export default function UserProfile() {
                     </span>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           )}
         </div>

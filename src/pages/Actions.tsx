@@ -11,6 +11,7 @@ import {
 } from '../utils/annualReportUtils'
 import Loader from '../components/Loader'
 import Dropdown from '../components/Dropdown'
+import { computeMMRForAkcija, type AkcijaZaRanking } from '../utils/rankingUtils'
 
 interface Akcija {
   id: number
@@ -312,7 +313,17 @@ export default function Actions() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-              {aktivneAkcije.map((akcija) => (
+              {aktivneAkcije.map((akcija) => {
+                const mmrZaAkciju = computeMMRForAkcija({
+                  duzinaStazeKm: (akcija as Akcija & { duzinaStazeKm?: number }).duzinaStazeKm,
+                  kumulativniUsponM: (akcija as Akcija & { kumulativniUsponM?: number }).kumulativniUsponM,
+                  visinaVrhM: akcija.visinaVrhM,
+                  zimskiUspon: akcija.zimskiUspon,
+                  tezina: akcija.tezina,
+                  datum: akcija.datum,
+                })
+
+                return (
                 <Link
                   key={akcija.id}
                   to={`/akcije/${akcija.id}`}
@@ -352,6 +363,10 @@ export default function Actions() {
                         )}
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
+                      <p className="mt-3 text-sm text-gray-700">
+                        <strong>MMR sa ove akcije:</strong>{' '}
+                        <span className="font-semibold">{mmrZaAkciju}</span>
+                      </p>
                       <span
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
@@ -389,7 +404,7 @@ export default function Actions() {
                     </div>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           )}
         </section>
@@ -413,7 +428,17 @@ export default function Actions() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-              {zavrseneAkcije.map((akcija) => (
+              {zavrseneAkcije.map((akcija) => {
+                const mmrZaAkciju = computeMMRForAkcija({
+                  duzinaStazeKm: (akcija as Akcija & { duzinaStazeKm?: number }).duzinaStazeKm,
+                  kumulativniUsponM: (akcija as Akcija & { kumulativniUsponM?: number }).kumulativniUsponM,
+                  visinaVrhM: akcija.visinaVrhM,
+                  zimskiUspon: akcija.zimskiUspon,
+                  tezina: akcija.tezina,
+                  datum: akcija.datum,
+                })
+
+                return (
                 <Link
                   key={akcija.id}
                   to={`/akcije/${akcija.id}`}
@@ -447,6 +472,10 @@ export default function Actions() {
                         <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
                         <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
                       </div>
+                      <p className="mt-3 text-sm text-gray-700">
+                        <strong>MMR sa ove akcije:</strong>{' '}
+                        <span className="font-semibold">{mmrZaAkciju}</span>
+                      </p>
                       <span
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
@@ -465,7 +494,7 @@ export default function Actions() {
                     </div>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           )}
         </section>

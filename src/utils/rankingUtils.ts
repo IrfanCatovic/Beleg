@@ -60,6 +60,11 @@ export function computeMMR(ture: Tura[]): number {
   return ture.reduce((sum, t) => sum + mmrJedneTure(t), 0)
 }
 
+/** MMR samo za jednu turu (izvezeno za prikaz po akciji). */
+export function computeMMRForTura(t: Tura): number {
+  return mmrJedneTure(t)
+}
+
 /** Boje po glavnom ranku (1–6). */
 export const RANK_COLORS: Record<number, string> = {
   1: '#ccc4b1',
@@ -186,4 +191,10 @@ export function mapAkcijaToTura(a: AkcijaZaRanking): Tura {
     visinaVrha: a.visinaVrhM ?? 0,
     datum: a.datum,
   }
+}
+
+/** Računa MMR koji se dobija iz jedne akcije iz API-ja. */
+export function computeMMRForAkcija(a: AkcijaZaRanking): number {
+  const tura = mapAkcijaToTura(a)
+  return computeMMRForTura(tura)
 }

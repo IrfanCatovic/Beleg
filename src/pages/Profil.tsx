@@ -7,6 +7,7 @@ import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { useRanking } from '../hooks/useRanking'
+import { computeMMRForAkcija } from '../utils/rankingUtils'
 import Loader from '../components/Loader'
 
 interface UspesnaAkcija {
@@ -159,15 +160,20 @@ export default function Profil() {
           </div>
 
           {/* Rank desno */}
-          <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end">
-            <div
-              className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
-              style={{
-                backgroundColor: rank.boja,
-                color: rank.boja === '#000000' ? '#FFD700' : 'white',
-              }}
-            >
-              {rank.naziv}
+          <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end text-center md:text-right">
+            <div>
+              <div
+                className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
+                style={{
+                  backgroundColor: rank.boja,
+                  color: rank.boja === '#000000' ? '#FFD700' : 'white',
+                }}
+              >
+                {rank.naziv}
+              </div>
+              <p className="mt-2 text-sm text-gray-700">
+                MMR: <span className="font-semibold">{rank.mmr}</span>
+              </p>
             </div>
           </div>
         </div>
@@ -216,7 +222,17 @@ export default function Profil() {
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uspesneAkcije.map((akcija) => (
+              {uspesneAkcije.map((akcija) => {
+                const mmrZaAkciju = computeMMRForAkcija({
+                  duzinaStazeKm: akcija.duzinaStazeKm,
+                  kumulativniUsponM: akcija.kumulativniUsponM,
+                  visinaVrhM: akcija.visinaVrhM,
+                  zimskiUspon: akcija.zimskiUspon,
+                  tezina: akcija.tezina,
+                  datum: akcija.datum,
+                })
+
+                return (
                 <Link
                   key={akcija.id}
                   to={`/akcije/${akcija.id}`}
@@ -260,6 +276,10 @@ export default function Profil() {
                       <strong>Uspon:</strong>{' '}
                       {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
                     </p>
+                    <p className="text-sm text-gray-700 mb-1">
+                      <strong>MMR sa ove akcije:</strong>{' '}
+                      <span className="font-semibold">{mmrZaAkciju}</span>
+                    </p>
                     <span
                       className={`inline-block px-3 py-1 mt-3 rounded-full text-xs font-medium ${
                         akcija.tezina === 'lako'
@@ -273,7 +293,7 @@ export default function Profil() {
                     </span>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           )}
         </div>
