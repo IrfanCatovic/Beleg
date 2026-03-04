@@ -75,12 +75,14 @@ export default function Profil() {
         ])
         setMe(resMe.data)
         setUspesneAkcije(resPopeo.data.uspesneAkcije || [])
-        const stats = resPopeo.data.statistika || {}
-        setStatistika({
-          ukupnoKm: stats.ukupnoKm || 0,
-          ukupnoMetaraUspona: stats.ukupnoMetaraUspona || 0,
-          brojPopeoSe: stats.brojPopeoSe || 0,
-        })
+
+        const statsFromMe = {
+          ukupnoKm: (resMe.data as any).ukupnoKm ?? 0,
+          ukupnoMetaraUspona: (resMe.data as any).ukupnoMetaraUspona ?? 0,
+          brojPopeoSe: (resMe.data as any).brojPopeoSe ?? 0,
+        }
+
+        setStatistika(statsFromMe)
       } catch (err: any) {
         console.error('Greška:', err)
         setError(err.response?.data?.error || 'Greška pri učitavanju profila')
@@ -163,17 +165,17 @@ export default function Profil() {
           <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end text-center md:text-right">
             <div>
               <div
-                className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
+                className="inline-flex flex-col items-center px-7 py-3 rounded-full text-sm font-semibold shadow-md"
                 style={{
                   backgroundColor: rank.boja,
                   color: rank.boja === '#000000' ? '#FFD700' : 'white',
                 }}
               >
-                {rank.naziv}
+                <span className="text-base tracking-wide">{rank.naziv}</span>
+                <span className="mt-0.5 text-xs opacity-90">
+                  MMR {rank.mmr}
+                </span>
               </div>
-              <p className="mt-2 text-sm text-gray-700">
-                MMR: <span className="font-semibold">{rank.mmr}</span>
-              </p>
             </div>
           </div>
         </div>

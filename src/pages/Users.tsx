@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate } from '../utils/dateUtils'
 import Loader from '../components/Loader'
+import { computeRank } from '../utils/rankingUtils'
 
 interface Korisnik {
   id: number
@@ -15,6 +16,8 @@ interface Korisnik {
   avatar_url?: string
   role: string
   createdAt: string
+  ukupnoKm?: number
+  ukupnoMetaraUspona?: number
 }
 
 export default function Korisnici() {
@@ -231,7 +234,13 @@ export default function Korisnici() {
         ) : (
           <div className="bg-white rounded-xl shadow-md overflow-hidden relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 ">
-              {filteredKorisnici.map((k) => (
+              {filteredKorisnici.map((k) => {
+                const rank = computeRank({
+                  ukupnoKm: k.ukupnoKm ?? 0,
+                  ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+                })
+
+                return (
                 <div
                   key={k.id}
                   className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all 
@@ -239,35 +248,61 @@ export default function Korisnici() {
                 >
                   <div className="p-6">
                     <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-4">
-                        <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                          {k.avatar_url && !avatarFailed[k.id] ? (
-                            <img
-                              src={k.avatar_url}
-                              alt={k.fullName || k.username || ''}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
-                            />
-                          ) : null}
-                          <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
-                            {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
-                          </span>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                            {k.avatar_url && !avatarFailed[k.id] ? (
+                              <img
+                                src={k.avatar_url}
+                                alt={k.fullName || k.username || ''}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={() => setAvatarFailed((prev) => ({ ...prev, [k.id]: true }))}
+                              />
+                            ) : null}
+                            <span className={k.avatar_url && !avatarFailed[k.id] ? 'invisible' : ''}>
+                              {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {k.fullName || k.username}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              @{k.username}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {k.fullName || k.username}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            @{k.username}
-                          </p>
+                        <div
+                          className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-2 text-right"
+                          style={{ backgroundColor: `${rank.boja}20` }}
+                        >
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-900">
+                            {rank.naziv}
+                          </span>
+                          <span className="text-[11px] text-gray-700">
+                            MMR {rank.mmr}
+                          </span>
                         </div>
                       </div>
                       <div className="mt-4 space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
-                            {getRoleLabel(k.role)}
-                          </span>
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Uloga:</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleStyle(k.role)}`}>
+                              {getRoleLabel(k.role)}
+                            </span>
+                          </div>
+                          <div
+                            className="sm:hidden inline-flex flex-col items-end rounded-xl px-2.5 py-1 text-right bg-gray-50"
+                            style={{ borderLeft: `3px solid ${rank.boja}` }}
+                          >
+                            <span className="text-[11px] font-semibold text-gray-800">
+                              {rank.naziv}
+                            </span>
+                            <span className="text-[10px] text-gray-500">
+                              MMR {rank.mmr}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,7 +347,7 @@ export default function Korisnici() {
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         )

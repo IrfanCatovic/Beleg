@@ -144,7 +144,8 @@ export function getRankFromMMR(mmr: number): RankResult {
 
 /**
  * Računa rank iz objekta statistike koji sadrži niz tura.
- * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback (jedna "sintetička" tura bez bonusa).
+ * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback 
+ * (jedna "sintetička" tura bez bonusa).
  */
 export function computeRank(statistika: {
   ture?: Tura[]
