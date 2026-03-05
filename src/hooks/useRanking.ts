@@ -10,7 +10,7 @@ import {
 export interface StatistikaZaRanking {
   /** Niz tura (ako već imaš mapirane) */
   ture?: Tura[]
-  /** Niz akcija iz API-ja (npr. uspesneAkcije) – mapira se u ture ako nema ture */
+  /** Niz akcija iz API-ja (npr. uspesneAkcije)  mapira se u ture ako nema ture */
   uspesneAkcije?: AkcijaZaRanking[]
   ukupnoKm?: number
   ukupnoMetaraUspona?: number

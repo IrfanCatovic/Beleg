@@ -8,13 +8,14 @@ interface User {
     ukupnoKm?: number;
     ukupnoMetaraUspona?: number;
     brojPopeoSe?: number;
+    avatarUrl?: string;
 }
 
 
 export interface LoginResponse {
   token: string;
   role: string;
-  user: { username: string; fullName: string };
+  user: { username: string; fullName: string; avatar_url?: string };
 }
 
 interface AuthContextType {
@@ -56,6 +57,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                     username: data.user.username,
                     fullName: data.user.fullName,
                     role: data.role as User['role'],
+                    avatarUrl: data.user.avatar_url,
                 }
                 setUser(userData)
                 localStorage.setItem('user', JSON.stringify(userData))
@@ -72,12 +74,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             const refreshUser = useCallback(async () => {
                 if (!localStorage.getItem('token')) return
                 try {
-                    const res = await api.get<{ username: string; fullName: string; role: string }>('/api/me')
+                    const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string }>('/api/me')
                     const data = res.data
                     const userData: User = {
                         username: data.username,
                         fullName: data.fullName,
                         role: data.role as User['role'],
+                        avatarUrl: data.avatar_url,
                     }
                     setUser(userData)
                     localStorage.setItem('user', JSON.stringify(userData))

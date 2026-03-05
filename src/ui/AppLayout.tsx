@@ -65,13 +65,21 @@ export default function AppLayout() {
                     <button
                       type="button"
                       onClick={() => setIsProfileMenuOpen((v) => !v)}
-                      className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-semibold uppercase text-white shadow-sm hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-semibold uppercase text-white shadow-sm hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/40 overflow-hidden"
                     >
-                      <span>
-                        {(user.fullName || user.username || '?')
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.fullName || user.username}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>
+                          {(user.fullName || user.username || '?')
+                            .charAt(0)
+                            .toUpperCase()}
+                        </span>
+                      )}
                     </button>
                     {isProfileMenuOpen && (
                       <div className="absolute right-0 top-11 w-44 rounded-xl bg-white py-1 shadow-lg ring-1 ring-black/5 z-50">
@@ -139,16 +147,6 @@ export default function AppLayout() {
             <div className="border-t border-white/20 bg-[#358c43]/50 backdrop-blur-sm px-4 pb-4 pt-3">
               <div className="flex flex-col gap-1">
                 <NavLink
-                  to="/home"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-base font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/15'}`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                  end
-                >
-                  Home
-                </NavLink>
-                <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
                     `rounded-xl px-4 py-3 text-base font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/15'}`
@@ -196,30 +194,135 @@ export default function AppLayout() {
         <Outlet />
       </main>
       {isLoggedIn && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur md:hidden">
-          <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2.5">
-            <button
-              type="button"
-              onClick={() => navigate('/profil')}
-              className="flex flex-col items-center justify-center text-xs font-medium text-gray-700"
-            >
-              <span className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#41ac53]/10 text-[#41ac53]">
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                    d="M5.121 17.804A9 9 0 0112 15a9 9 0 016.879 2.804M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </span>
-              Profil
-            </button>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#2e8b4a] bg-[#41ac53] text-white backdrop-blur md:hidden">
+          <div className="mx-auto flex max-w-7xl items-center px-2 py-3">
+            {/* Home */}
+            <div className="flex-1 flex justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/home')}
+                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                aria-label="Home"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/40 text-white shadow-sm">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.8}
+                      d="M3 11l9-7 9 7v8a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4H9v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-8z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            {/* Obaveštenja */}
+            <div className="flex-1 flex justify-center">
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                aria-label="Obaveštenja"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/40 text-white shadow-sm">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.8}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            {/* Poruke (chat) */}
+            <div className="flex-1 flex justify-center">
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                aria-label="Poruke"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/40 text-white shadow-sm">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.8}
+                      d="M8 10h8M8 14h4m-8 4l2.5-2.5A2 2 0 017.914 15H18a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            {/* Pretraga */}
+            <div className="flex-1 flex justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/search')}
+                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                aria-label="Pretraga"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/40 text-white shadow-sm">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.8}
+                      d="M11 5a6 6 0 104.472 10.03L19 18.5 18.5 19l-3.528-3.47A6 6 0 1011 5z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            {/* Profil */}
+            <div className="flex-1 flex justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/profil')}
+                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                aria-label="Profil"
+              >
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/80 text-[#41ac53] shadow-sm overflow-hidden">
+                  {user?.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName || user.username}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-semibold">
+                      {(user?.fullName || user?.username || '?')
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

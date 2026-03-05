@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import Actions from './pages/Actions'
 import Finance from './pages/Finance'
 import Profil from './pages/Profil'
+import Search from './pages/Search'
 import AddAction from './pages/AddAction'
 import AddPastAction from './pages/AddPastAction'
 import Users from './pages/Users'
@@ -57,6 +58,7 @@ const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: '/home', element: <Home /> },
+          { path: '/search', element: <Search /> },
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
           { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },
