@@ -316,11 +316,24 @@ export default function AppLayout() {
                 <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-base font-medium transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/15'}`
+                    `rounded-xl px-4 py-3 text-base font-medium transition-colors ${
+                      isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/15'
+                    }`
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Akcije
+                </NavLink>
+                <NavLink
+                  to="/zadaci"
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-base font-medium transition-colors ${
+                      isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/15'
+                    }`
+                  }
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Zadaci
                 </NavLink>
                 <NavLink
                   to="/users"

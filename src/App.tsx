@@ -8,6 +8,7 @@ import ErrorPage from './ui/ErrorPage'
 import Home from './pages/Home'
 import Actions from './pages/Actions'
 import Finance from './pages/Finance'
+import Zadaci from './pages/Zadaci'
 import Profil from './pages/Profil'
 import Search from './pages/Search'
 import AddAction from './pages/AddAction'
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
 
           // Akcije svi ulogovani vide listu i detalje, prijavljuju se
           { path: '/akcije', element: <Actions /> },
+          { path: '/zadaci', element: <Zadaci /> },
 
           // Finansije, uplata, isplata admin i blagajnik
           {
