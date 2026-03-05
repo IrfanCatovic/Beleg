@@ -43,40 +43,41 @@ export default function AppLayout() {
         <header className="sticky top-0 z-40 bg-[#41ac53] text-white shadow-lg shadow-[#41ac53]/20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center gap-4">
-              <div className="flex items-center gap-6">
+              <div className="flex items-center">
                 <Link
                   to="/home"
                   className="shrink-0 text-lg font-bold tracking-tight sm:text-xl md:text-2xl text-white hover:text-white/95 transition-colors"
                 >
                   Adri Sentinel
                 </Link>
-
-                <nav className="hidden md:flex md:items-center md:gap-1">
-                  <NavLink to="/home" className={navLinkClass} end>
-                    Home
-                  </NavLink>
-                  <NavLink to="/akcije" className={navLinkClass}>
-                    Akcije
-                  </NavLink>
-                  <NavLink to="/users" className={navLinkClass}>
-                    Članovi
-                  </NavLink>
-                  {(user?.role === 'admin' || user?.role === 'blagajnik') && (
-                    <NavLink to="/finansije" className={navLinkClass}>
-                      Finansije
-                    </NavLink>
-                  )}
-                </nav>
               </div>
 
-              <div className="hidden lg:flex flex-1 items-center justify-center px-4">
+              <nav className="hidden md:flex flex-1 items-center justify-center md:gap-1">
+                <NavLink to="/akcije" className={navLinkClass}>
+                  Akcije
+                </NavLink>
+                <NavLink to="/zadaci" className={navLinkClass}>
+                  Zadaci
+                </NavLink>
+                <NavLink to="/users" className={navLinkClass}>
+                  Članovi
+                </NavLink>
+                {(user?.role === 'admin' || user?.role === 'blagajnik') && (
+                  <NavLink to="/finansije" className={navLinkClass}>
+                    Finansije
+                  </NavLink>
+                )}
+              </nav>
+
+              <div className="ml-auto hidden md:flex md:items-center md:gap-3 relative">
                 <button
                   type="button"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="group flex w-full max-w-xl items-center gap-3 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 shadow-sm ring-1 ring-white/20 hover:bg-white/15 hover:ring-white/40 transition-all"
+                  onClick={() => setIsSearchOpen((v) => !v)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+                  aria-label="Pretraga"
                 >
                   <svg
-                    className="h-4 w-4 text-white/80"
+                    className="h-5 w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -85,21 +86,11 @@ export default function AppLayout() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={1.8}
-                      d="M11 5a6 6 0 104.472 10.03L19 18.5 18.5 19l-3.528-3.47A6 6 0 1011 5z"
+                      d="M10.5 4.5a6 6 0 014.615 9.847l3.769 3.768-1.414 1.415-3.768-3.769A6 6 0 1110.5 4.5z"
                     />
                   </svg>
-                  <span className="flex-1 text-left text-xs sm:text-sm text-white/80">
-                    Pretraži članove, akcije, finansije...
-                  </span>
-                  <span className="hidden sm:flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/80 border border-white/20">
-                    <span className="font-mono">Ctrl</span>
-                    <span>+</span>
-                    <span className="font-mono">K</span>
-                  </span>
                 </button>
-              </div>
 
-              <div className="ml-auto hidden md:flex md:items-center md:gap-3 relative">
                 <button
                   type="button"
                   onClick={() => setIsNotificationsOpen((v) => !v)}
@@ -295,7 +286,7 @@ export default function AppLayout() {
                 )}
               </div>
 
-              <div className="md:hidden flex items-center gap-1">
+              <div className="md:hidden flex items-center gap-1 ml-auto">
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/30"
@@ -366,149 +357,154 @@ export default function AppLayout() {
         </header>
       )}
 
-      <main className="mx-auto max-w-7xl px-4 pt-6 pb-20 sm:px-6 lg:px-8">
-        <Outlet />
-      </main>
-
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-24 sm:pt-28">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
-            <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
-              <svg
-                className="h-5 w-5 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.8}
-                  d="M11 5a6 6 0 104.472 10.03L19 18.5 18.5 19l-3.528-3.47A6 6 0 1011 5z"
+      {isLoggedIn && isSearchOpen && (
+        <div className="hidden md:block border-b border-gray-100 bg-white/95 shadow-sm">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+            <div className="mx-auto w-full max-w-3xl flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M10.5 4.5a6 6 0 014.615 9.847l3.769 3.768-1.414 1.415-3.768-3.769A6 6 0 1110.5 4.5z"
+                  />
+                </svg>
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Pretraži članove, akcije, finansije, transakcije..."
+                  className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#41ac53] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 transition-all"
                 />
-              </svg>
-              <input
-                autoFocus
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Pretraži članove, akcije, finansije, transakcije..."
-                className="flex-1 border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(false)}
-                className="text-xs text-gray-400 hover:text-gray-600"
-              >
-                Esc
-              </button>
-            </div>
-            <div className="max-h-80 overflow-y-auto px-2 py-2">
-              <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Brzi linkovi
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSearchOpen(false)
-                  navigate('/users')
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
-              >
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#41ac53]/10 text-[#41ac53]">
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.8}
-                      d="M17 20h5V4H2v16h5m10 0V10m0 10h-4m4 0h4M7 20v-6m0 6H3m4 0h4"
-                    />
-                  </svg>
-                </span>
-                <span>
-                  <span className="block text-xs font-medium text-gray-900">
-                    Lista članova
-                  </span>
-                  <span className="block text-[11px] text-gray-500">
-                    Prikaži sve članove i profile
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSearchOpen(false)
-                  navigate('/akcije')
-                }}
-                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
-              >
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.8}
-                      d="M12 8v8m-4-4h8m5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </span>
-                <span>
-                  <span className="block text-xs font-medium text-gray-900">
-                    Akcije i događaji
-                  </span>
-                  <span className="block text-[11px] text-gray-500">
-                    Otvori pregled svih akcija
-                  </span>
-                </span>
-              </button>
-              {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsSearchOpen(false)
-                    navigate('/finansije')
-                  }}
-                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                  onClick={() => setIsSearchOpen(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.8}
-                        d="M12 8c-1.657 0-3 .843-3 2s1.343 2 3 2 3 .843 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.6 1M12 8V6m0 10v2m8-10a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </span>
-                  <span>
-                    <span className="block text-xs font-medium text-gray-900">
-                      Finansije i transakcije
-                    </span>
-                    <span className="block text-[11px] text-gray-500">
-                      Upravljaj uplatama, rashodima i izvještajima
-                    </span>
-                  </span>
+                  Zatvori
                 </button>
-              )}
+              </div>
+
+              <div className="max-h-72 overflow-y-auto">
+                <p className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                  Brzi linkovi
+                </p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      navigate('/users')
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#41ac53]/10 text-[#41ac53]">
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.8}
+                          d="M17 20h5V4H2v16h5m10 0V10m0 10h-4m4 0h4M7 20v-6m0 6H3m4 0h4"
+                        />
+                      </svg>
+                    </span>
+                    <span>
+                      <span className="block text-xs font-medium text-gray-900">
+                        Lista članova
+                      </span>
+                      <span className="block text-[11px] text-gray-500">
+                        Prikaži sve članove i profile
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      navigate('/akcije')
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.8}
+                          d="M12 8v8m-4-4h8m5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </span>
+                    <span>
+                      <span className="block text-xs font-medium text-gray-900">
+                        Akcije i događaji
+                      </span>
+                      <span className="block text-[11px] text-gray-500">
+                        Otvori pregled svih akcija
+                      </span>
+                    </span>
+                  </button>
+                  {(user?.role === 'admin' || user?.role === 'blagajnik') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSearchOpen(false)
+                        navigate('/finansije')
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
+                    >
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M12 8c-1.657 0-3 .843-3 2s1.343 2 3 2 3 .843 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.6 1M12 8V6m0 10v2m8-10a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </span>
+                      <span>
+                        <span className="block text-xs font-medium text-gray-900">
+                          Finansije i transakcije
+                        </span>
+                        <span className="block text-[11px] text-gray-500">
+                          Upravljaj uplatama, rashodima i izvještajima
+                        </span>
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      <main className="mx-auto max-w-7xl px-4 pt-6 pb-20 sm:px-6 lg:px-8">
+        <Outlet />
+      </main>
       {isLoggedIn && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#2e8b4a] bg-[#41ac53] text-white backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-7xl items-center px-2 py-3">
