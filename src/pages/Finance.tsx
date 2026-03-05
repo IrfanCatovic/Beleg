@@ -53,6 +53,7 @@ export default function Finance() {
   const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
   const [fromDate, setFromDate] = useState(() => dateToYMD(new Date(currentYear, 0, 1)))
   const [toDate, setToDate] = useState(() => dateToYMD(new Date(currentYear, 11, 31)))
+  const [periodPreset, setPeriodPreset] = useState<'danas' | 'mesec' | 'godina'>('godina')
   const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
@@ -175,8 +176,8 @@ export default function Finance() {
 
   return (
     <div className="py-4 sm:py-8 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Tabovi – mobil: scroll ili wrap */}
-      <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto sm:overflow-visible pb-px scrollbar-thin">
+      {/* Tabovi – mobil: centrirani, desktop: poravnati levo */}
+      <div className="flex justify-center sm:justify-start gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto sm:overflow-visible pb-px scrollbar-thin">
         <button
           type="button"
           onClick={() => setTab('dashboard')}
@@ -218,98 +219,116 @@ export default function Finance() {
 
       {tab === 'dashboard' && (
         <div className="space-y-4 sm:space-y-6">
-          {/* Jedan red: period + Od + Do (na mobilu wrap) */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-gray-600 font-medium text-sm">Period:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const t = new Date()
-                  setFromDate(dateToYMD(t))
-                  setToDate(dateToYMD(t))
-                }}
-                className="inline-flex items-center justify-center min-h-[44px] px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all"
-              >
-                Danas
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const t = new Date()
-                  setFromDate(dateToYMD(firstDayOfMonth(t)))
-                  setToDate(dateToYMD(lastDayOfMonth(t)))
-                }}
-                className="inline-flex items-center justify-center min-h-[44px] px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all"
-              >
-                Ovaj mesec
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFromDate(`${currentYear}-01-01`)
-                  setToDate(`${currentYear}-12-31`)
-                }}
-                className="inline-flex items-center justify-center min-h-[44px] px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all"
-              >
-                Ova godina
-              </button>
-              <span className="text-gray-400 hidden sm:inline">|</span>
-              <span className="text-gray-600 font-medium text-sm">Od:</span>
-              <CalendarDropdown
-                value={fromDate}
-                onChange={setFromDate}
-                placeholder="Od datuma"
-                maxDate={toDate}
-                aria-label="Period od"
-                minTriggerWidth="180px"
-                className="min-w-[180px] w-full sm:w-auto"
-              />
-              <span className="text-gray-600 font-medium text-sm">Do:</span>
-              <CalendarDropdown
-                value={toDate}
-                onChange={setToDate}
-                placeholder="Do datuma"
-                minDate={fromDate}
-                aria-label="Period do"
-                minTriggerWidth="180px"
-                className="min-w-[180px] w-full sm:w-auto"
-              />
+          {/* Kontrole za period, filter i štampu – u jednoj kartici */}
+          <div className="bg-white rounded-2xl shadow p-4 sm:p-5 border border-gray-100">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">Podešavanje prikaza</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Izaberi period, filter transakcija i po želji odštampaj PDF izveštaj.
+                </p>
+              </div>
+              {/* Filter + štampa – uvijek gore, poravnato jedno do drugog */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <Dropdown
+                  aria-label="Filter transakcija"
+                  options={[
+                    { value: 'sve', label: 'Sve transakcije' },
+                    { value: 'uplata', label: 'Samo uplate' },
+                    { value: 'isplata', label: 'Samo isplate' },
+                  ]}
+                  value={transakcijaFilter}
+                  onChange={(v) => setTransakcijaFilter(v as TransakcijaFilter)}
+                  minTriggerWidth="180px"
+                  className="[&_button]:min-h-[40px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
+                />
+                {dashboardData && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      generateFinanceReportPdf({
+                        from: fromDate,
+                        to: toDate,
+                        transakcije: dashboardData.transakcije,
+                        uplate: dashboardData.uplate,
+                        isplate: dashboardData.isplate,
+                        saldo: dashboardData.saldo,
+                      })
+                    }
+                    title="Štampa PDF izveštaj za period"
+                    aria-label="Štampa PDF izveštaj"
+                    className="inline-flex items-center justify-center min-h-[40px] min-w-[44px] rounded-xl border border-gray-200 bg-gray-50 text-gray-600 shadow-sm hover:bg-gray-100 hover:border-gray-300 hover:text-gray-800 active:scale-[0.98] transition-all"
+                  >
+                    <PrinterIcon className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
-            {/* Filter + štampa */}
-            <div className="flex gap-2 items-center flex-wrap">
-              <Dropdown
-                aria-label="Filter transakcija"
-                options={[
-                  { value: 'sve', label: 'Sve transakcije' },
-                  { value: 'uplata', label: 'Samo uplate' },
-                  { value: 'isplata', label: 'Samo isplate' },
-                ]}
-                value={transakcijaFilter}
-                onChange={(v) => setTransakcijaFilter(v as TransakcijaFilter)}
-                minTriggerWidth="160px"
-                className="[&_button]:min-h-[44px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
-              />
-              {dashboardData && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    generateFinanceReportPdf({
-                      from: fromDate,
-                      to: toDate,
-                      transakcije: dashboardData.transakcije,
-                      uplate: dashboardData.uplate,
-                      isplate: dashboardData.isplate,
-                      saldo: dashboardData.saldo,
-                    })
-                  }
-                  title="Štampa PDF izveštaj za period"
-                  aria-label="Štampa PDF izveštaj"
-                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 active:scale-[0.98] transition-all"
-                >
-                  <PrinterIcon className="w-5 h-5" />
-                </button>
-              )}
+
+            {/* Period + ručni datumi ispod kontrola */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+              {/* Period kao dropdown (danas / mesec / godina) */}
+              <div className="space-y-1.5">
+                <span className="block text-gray-600 font-medium text-xs">Period</span>
+                <Dropdown
+                  aria-label="Period finansijskog izveštaja"
+                  options={[
+                    { value: 'danas', label: 'Danas' },
+                    { value: 'mesec', label: 'Ovaj mesec' },
+                    { value: 'godina', label: 'Ova godina' },
+                  ]}
+                  value={periodPreset}
+                  onChange={(v) => {
+                    const value = v as 'danas' | 'mesec' | 'godina'
+                    setPeriodPreset(value)
+                    const now = new Date()
+                    if (value === 'danas') {
+                      const ymd = dateToYMD(now)
+                      setFromDate(ymd)
+                      setToDate(ymd)
+                    } else if (value === 'mesec') {
+                      setFromDate(dateToYMD(firstDayOfMonth(now)))
+                      setToDate(dateToYMD(lastDayOfMonth(now)))
+                    } else {
+                      setFromDate(`${currentYear}-01-01`)
+                      setToDate(`${currentYear}-12-31`)
+                    }
+                  }}
+                  minTriggerWidth="180px"
+                  className="[&_button]:min-h-[40px] [&_button]:w-full [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
+                />
+              </div>
+
+              {/* Od / Do */}
+              <div className="space-y-1.5 lg:col-span-2">
+                <span className="block text-gray-600 font-medium text-xs">Ručni odabir datuma</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] text-gray-500">Od</span>
+                    <CalendarDropdown
+                      value={fromDate}
+                      onChange={setFromDate}
+                      placeholder="Od datuma"
+                      maxDate={toDate}
+                      aria-label="Period od"
+                      minTriggerWidth="160px"
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] text-gray-500">Do</span>
+                    <CalendarDropdown
+                      value={toDate}
+                      onChange={setToDate}
+                      placeholder="Do datuma"
+                      minDate={fromDate}
+                      aria-label="Period do"
+                      minTriggerWidth="160px"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

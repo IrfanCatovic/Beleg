@@ -42,7 +42,7 @@ export default function AppLayout() {
                   Akcije
                 </NavLink>
                 <NavLink to="/users" className={navLinkClass}>
-                  Korisnici
+                  Članovi
                 </NavLink>
                 {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                   <NavLink to="/finansije" className={navLinkClass}>
@@ -162,7 +162,7 @@ export default function AppLayout() {
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Korisnici
+                  Članovi
                 </NavLink>
                 {(user?.role === 'admin' || user?.role === 'blagajnik') && (
                   <NavLink
