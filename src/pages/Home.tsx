@@ -73,14 +73,13 @@ export default function Home() {
     return [...aktivneAkcije]
       .filter((a) => (a.datum ? new Date(a.datum) >= now : true))
       .sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
-      .slice(0, 3)
   }, [aktivneAkcije])
 
   const nedavneZavrsene = useMemo(
     () =>
-      [...zavrseneAkcije]
-        .sort((a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime())
-        .slice(0, 3),
+      [...zavrseneAkcije].sort(
+        (a, b) => new Date(b.datum).getTime() - new Date(a.datum).getTime()
+      ),
     [zavrseneAkcije]
   )
 
@@ -185,7 +184,7 @@ export default function Home() {
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-10">
           {/* Sledeće akcije */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6">
-            <div className="flex items-center justify-between mb  -4">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Sledeće akcije kluba</h2>
               <Link
                 to="/akcije"
@@ -197,15 +196,15 @@ export default function Home() {
 
             {sledeceAkcije.length === 0 ? (
               <p className="text-gray-600 mt-4">
-                Trenutno nema zakazanih akcija. Proveri uskoro ili pogeldaj završene ture.
+                Trenutno nema zakazanih akcija. Proveri uskoro ili pogledaj završene ture.
               </p>
             ) : (
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 overflow-y-auto max-h-[280px] pr-1 space-y-4 rounded-lg -mr-1">
                 {sledeceAkcije.map((akcija) => (
                   <Link
                     key={akcija.id}
                     to={`/akcije/${akcija.id}`}
-                    className="block rounded-xl border border-gray-100 hover:border-[#41ac53] shadow-sm hover:shadow-md transition-all bg-white p-4 sm:p-5"
+                    className="block rounded-xl border border-gray-100 hover:border-[#41ac53] shadow-sm hover:shadow-md transition-all bg-white p-4 sm:p-5 shrink-0"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
@@ -254,9 +253,9 @@ export default function Home() {
                 pojaviti novosti.
               </p>
             ) : (
-              <ul className="space-y-4">
+              <ul className="space-y-4 overflow-y-auto max-h-[240px] pr-1 rounded-lg -mr-1">
                 {nedavneZavrsene.map((akcija) => (
-                  <li key={akcija.id} className="border-b border-gray-100 pb-3 last:border-0">
+                  <li key={akcija.id} className="border-b border-gray-100 pb-3 last:border-0 shrink-0">
                     <Link
                       to={`/akcije/${akcija.id}`}
                       className="block hover:no-underline hover:text-inherit"

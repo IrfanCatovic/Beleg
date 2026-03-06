@@ -6,10 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterZadatakRoutes registruje rute za zadatke na datu grupu.
-// Grupa mora biti zaštićena AuthMiddleware-om (npr. protected = /api).
-// GET /api/zadaci — lista zadataka; POST /api/zadaci — kreiranje (samo admin/sekretar).
 func RegisterZadatakRoutes(g *gin.RouterGroup) {
 	g.GET("/zadaci", handlers.GetZadaci)
 	g.POST("/zadaci", handlers.CreateZadatak)
+	g.POST("/zadaci/:id/preuzmi", handlers.PreuzmiZadatak)
+	g.PATCH("/zadaci/:id", handlers.UpdateZadatak)
+	g.POST("/zadaci/:id/zavrsi", handlers.ZavrsiZadatak)
+	g.DELETE("/zadaci/:id", handlers.DeleteZadatak)
 }

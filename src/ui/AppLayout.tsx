@@ -42,8 +42,8 @@ export default function AppLayout() {
       {isLoggedIn && (
         <header className="sticky top-0 z-40 bg-[#41ac53] text-white shadow-lg shadow-[#41ac53]/20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-14 sm:h-16 items-center gap-4">
-              <div className="flex items-center">
+            <div className="grid grid-cols-[1fr_auto_1fr] h-14 sm:h-16 items-center gap-4">
+              <div className="flex items-center min-w-0">
                 <Link
                   to="/home"
                   className="shrink-0 text-lg font-bold tracking-tight sm:text-xl md:text-2xl text-white hover:text-white/95 transition-colors"
@@ -52,7 +52,7 @@ export default function AppLayout() {
                 </Link>
               </div>
 
-              <nav className="hidden md:flex flex-1 items-center justify-center md:gap-1">
+              <nav className="hidden md:flex items-center justify-center md:gap-1">
                 <NavLink to="/akcije" className={navLinkClass}>
                   Akcije
                 </NavLink>
@@ -69,7 +69,8 @@ export default function AppLayout() {
                 )}
               </nav>
 
-              <div className="ml-auto hidden md:flex md:items-center md:gap-3 relative">
+              <div className="flex items-center justify-end gap-3 relative">
+                <div className="hidden md:flex md:items-center md:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen((v) => !v)}
@@ -284,9 +285,8 @@ export default function AppLayout() {
                     )}
                   </>
                 )}
-              </div>
-
-              <div className="md:hidden flex items-center gap-1 ml-auto">
+                </div>
+                <div className="md:hidden flex items-center gap-1">
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/30"
@@ -301,6 +301,7 @@ export default function AppLayout() {
                     )}
                   </svg>
                 </button>
+                </div>
               </div>
             </div>
           </div>

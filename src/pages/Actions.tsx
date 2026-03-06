@@ -347,21 +347,33 @@ export default function Actions() {
                     </div>
 
                     <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
-                      <div className="space-y-1 text-sm text-gray-600 grow">
-                        {akcija.planina && (
-                          <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
-                        )}
-                        <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                        {akcija.visinaVrhM != null && (
-                          <p><strong className="text-gray-700">Visina vrha:</strong> {akcija.visinaVrhM} m</p>
-                        )}
-                        {akcija.zimskiUspon && (
-                          <p className="text-blue-700 font-semibold">Zimski uspon</p>
-                        )}
-                        <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
+                      <div className="w-full grow rounded-xl bg-gray-50/80 border border-gray-100 px-3 py-2.5 text-left">
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm items-baseline">
+                          {akcija.planina && (
+                            <>
+                              <span className="text-gray-500 font-medium">Planina</span>
+                              <span className="text-gray-800 truncate">{akcija.planina}</span>
+                            </>
+                          )}
+                          <span className="text-gray-500 font-medium">Vrh</span>
+                          <span className="text-gray-800 truncate">{akcija.vrh}</span>
+                          {akcija.visinaVrhM != null && (
+                            <>
+                              <span className="text-gray-500 font-medium">Visina</span>
+                              <span className="text-gray-800">{akcija.visinaVrhM} m</span>
+                            </>
+                          )}
+                          <span className="text-gray-500 font-medium">Datum</span>
+                          <span className="text-gray-800">{formatDateShort(akcija.datum)}</span>
+                          {akcija.zimskiUspon && (
+                            <>
+                              <span className="col-span-2 text-blue-700 font-semibold text-center py-0.5">Zimski uspon</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <p className="mt-3 text-sm text-gray-700">
                         <strong>MMR sa ove akcije:</strong>{' '}
@@ -462,15 +474,22 @@ export default function Actions() {
                     </div>
 
                     <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 line-clamp-2 leading-tight">
                         {akcija.naziv}
                       </h3>
-                      <div className="space-y-1 text-sm text-gray-600 grow">
-                        {akcija.planina && (
-                          <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
-                        )}
-                        <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                        <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
+                      <div className="w-full grow rounded-xl bg-gray-50/80 border border-gray-100 px-3 py-2.5 text-left">
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm items-baseline">
+                          {akcija.planina && (
+                            <>
+                              <span className="text-gray-500 font-medium">Planina</span>
+                              <span className="text-gray-800 truncate">{akcija.planina}</span>
+                            </>
+                          )}
+                          <span className="text-gray-500 font-medium">Vrh</span>
+                          <span className="text-gray-800 truncate">{akcija.vrh}</span>
+                          <span className="text-gray-500 font-medium">Datum</span>
+                          <span className="text-gray-800">{formatDateShort(akcija.datum)}</span>
+                        </div>
                       </div>
                       <p className="mt-3 text-sm text-gray-700">
                         <strong>MMR sa ove akcije:</strong>{' '}
