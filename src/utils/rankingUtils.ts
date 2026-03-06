@@ -24,11 +24,11 @@ const TEZINA_BONUS: Record<TezinaKategorija, number> = {
 }
 
 function getVisinaVrhaBonus(visinaVrha: number): number {
-  if (visinaVrha < 2000) return 0
+  if (visinaVrha < 2000) return 0.01
   if (visinaVrha < 2500) return 0.02
   if (visinaVrha < 3000) return 0.04
   if (visinaVrha < 3500) return 0.06
-  return 0.08
+  return 0.1
 }
 
 /** Računa MMR za jednu turu. */

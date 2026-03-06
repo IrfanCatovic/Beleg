@@ -449,6 +449,7 @@ func main() {
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		routes.RegisterFinanceRoutes(protected)
+		routes.RegisterZadatakRoutes(protected)
 
 		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
