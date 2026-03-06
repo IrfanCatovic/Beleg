@@ -102,11 +102,13 @@ func main() {
 		&models.Prijava{},
 		&models.Korisnik{},
 		&models.Transakcija{},
+		&models.Zadatak{},
+		&models.ZadatakKorisnik{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
-	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije)")
+	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici)")
 
 	// Inject db u Gin context
 	r.Use(func(c *gin.Context) {

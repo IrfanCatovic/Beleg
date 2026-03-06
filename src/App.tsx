@@ -112,3 +112,9 @@ function App() {
 }
 
 export default App
+
+
+
+//todo: search za korisnike, akcije, zadaci, finansije
+//todo: obavesetenja kao se rade i za sta sve treba da se pushuje i da se prikaze
+//todo: chat

@@ -358,7 +358,7 @@ export default function Finance() {
                 </div>
               </div>
 
-              {/* Lista transakcija – desktop tabela, mobil kartice */}
+              {/* Lista transakcija desktop tabela, mobil kartice */}
               <div className="bg-white rounded-xl shadow overflow-hidden">
                 <h3 className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 font-semibold text-gray-800 text-sm sm:text-base">
                   Transakcije u periodu
