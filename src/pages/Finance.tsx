@@ -51,9 +51,10 @@ export default function Finance() {
   const currentYear = new Date().getFullYear()
   const firstDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
   const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
-  const [fromDate, setFromDate] = useState(() => dateToYMD(new Date(currentYear, 0, 1)))
+  const prevYear = currentYear - 1
+  const [fromDate, setFromDate] = useState(() => dateToYMD(new Date(prevYear, 0, 1)))
   const [toDate, setToDate] = useState(() => dateToYMD(new Date(currentYear, 11, 31)))
-  const [periodPreset, setPeriodPreset] = useState<'danas' | 'mesec' | 'godina'>('godina')
+  const [periodPreset, setPeriodPreset] = useState<'danas' | 'mesec' | 'godina' | 'dveGodine'>('dveGodine')
   const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
@@ -78,7 +79,11 @@ export default function Finance() {
     try {
       const params = new URLSearchParams({ from: fromDate, to: toDate })
       const res = await api.get(`/api/finansije/dashboard?${params}`)
-      setDashboardData(res.data)
+      const data = res.data as DashboardData
+      setDashboardData({
+        ...data,
+        transakcije: Array.isArray(data?.transakcije) ? data.transakcije : [],
+      })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri učitavanju'
       setError(msg)
@@ -276,10 +281,11 @@ export default function Finance() {
                     { value: 'danas', label: 'Danas' },
                     { value: 'mesec', label: 'Ovaj mesec' },
                     { value: 'godina', label: 'Ova godina' },
+                    { value: 'dveGodine', label: 'Prošla + ova godina' },
                   ]}
                   value={periodPreset}
                   onChange={(v) => {
-                    const value = v as 'danas' | 'mesec' | 'godina'
+                    const value = v as 'danas' | 'mesec' | 'godina' | 'dveGodine'
                     setPeriodPreset(value)
                     const now = new Date()
                     if (value === 'danas') {
@@ -289,8 +295,11 @@ export default function Finance() {
                     } else if (value === 'mesec') {
                       setFromDate(dateToYMD(firstDayOfMonth(now)))
                       setToDate(dateToYMD(lastDayOfMonth(now)))
-                    } else {
+                    } else if (value === 'godina') {
                       setFromDate(`${currentYear}-01-01`)
+                      setToDate(`${currentYear}-12-31`)
+                    } else {
+                      setFromDate(`${prevYear}-01-01`)
                       setToDate(`${currentYear}-12-31`)
                     }
                   }}
@@ -336,13 +345,14 @@ export default function Finance() {
             <div className="text-center py-12 text-gray-500">Učitavanje...</div>
           ) : dashboardData ? (
             <>
-              {/* Karticice: saldo, uplate, isplate */}
+              {/* Trenutno stanje = sve uplate − sve isplate (ono što ostane), ne ukupan promet */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4" style={{ borderLeftColor: '#41ac53' }}>
-                  <p className="text-sm text-gray-600">Saldo</p>
+                  <p className="text-sm text-gray-600">Trenutno stanje</p>
                   <p className="text-xl sm:text-2xl font-bold mt-1 break-all" style={{ color: dashboardData.saldo >= 0 ? '#41ac53' : '#dc2626' }}>
                     {dashboardData.saldo.toLocaleString('sr-RS')} RSD
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">sve uplate − sve isplate</p>
                 </div>
                 <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4 border-green-500">
                   <p className="text-sm text-gray-600">Uplate</p>

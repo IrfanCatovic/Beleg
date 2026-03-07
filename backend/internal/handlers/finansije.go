@@ -42,11 +42,14 @@ func GetDashboard(c *gin.Context) {
 		toStr = time.Date(year, 12, 31, 23, 59, 59, 0, time.UTC).Format("2006-01-02")
 	}
 	from, errFrom := time.Parse("2006-01-02", fromStr)
-	to, errTo := time.Parse("2006-01-02", toStr)
+	toParsed, errTo := time.Parse("2006-01-02", toStr)
 	if errFrom != nil || errTo != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format datuma (očekuje se YYYY-MM-DD)"})
 		return
 	}
+	// Kraj dana za "do" da uključi sve transakcije tog dana
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+	to := time.Date(toParsed.Year(), toParsed.Month(), toParsed.Day(), 23, 59, 59, 999999999, time.UTC)
 	if from.After(to) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datum 'od' mora biti pre datuma 'do'"})
 		return
@@ -70,6 +73,7 @@ func GetDashboard(c *gin.Context) {
 			ukupnoIsplate += t.Iznos
 		}
 	}
+	// Trenutno stanje = sve uplate sabrane minus sve isplate (ono što ostane na računu)
 	saldo := ukupnoUplate - ukupnoIsplate
 
 	c.JSON(http.StatusOK, gin.H{

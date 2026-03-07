@@ -42,6 +42,8 @@ const pdfStyles = `
   .fin-pdf .total-row { font-weight: bold; background: #f9f9f9; }
   .fin-pdf .saldo-row { font-weight: bold; font-size: 11pt; background: #e8f5e9; }
   .fin-pdf .saldo-negative { background: #ffebee; color: #b91c1c; }
+  .fin-pdf .totals-wrapper { page-break-inside: avoid; break-inside: avoid; }
+  .fin-pdf .totals-wrapper table { width: 100%; }
 `
 
 export function generateFinanceReportPdf(data: FinanceReportData): void {
@@ -85,6 +87,11 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
         </thead>
         <tbody>
           ${rows || '<tr><td colspan="4">Nema transakcija u periodu.</td></tr>'}
+        </tbody>
+      </table>
+      <div class="totals-wrapper">
+      <table>
+        <tbody>
           <tr class="total-row">
             <td colspan="2">Ukupno uplate</td>
             <td class="num uplata">${escapeHtml(uplateStr)}</td>
@@ -96,11 +103,12 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
             <td class="num isplata">${escapeHtml(isplateStr)}</td>
           </tr>
           <tr class="${saldoClass}">
-            <td colspan="2">Konačna suma (saldo)</td>
+            <td colspan="2">Trenutno stanje (uplate − isplate)</td>
             <td class="num" colspan="2">${escapeHtml(saldoStr)} RSD</td>
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   `
 
