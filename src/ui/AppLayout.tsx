@@ -42,7 +42,7 @@ export default function AppLayout() {
       {isLoggedIn && (
         <header className="sticky top-0 z-40 bg-[#41ac53] text-white shadow-lg shadow-[#41ac53]/20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-[1fr_auto_1fr] h-14 sm:h-16 items-center gap-4">
+            <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] h-14 sm:h-16 items-center gap-4">
               <div className="flex items-center min-w-0">
                 <Link
                   to="/home"
