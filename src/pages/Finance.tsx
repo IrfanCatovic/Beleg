@@ -345,23 +345,21 @@ export default function Finance() {
             <div className="text-center py-12 text-gray-500">Učitavanje...</div>
           ) : dashboardData ? (
             <>
-              {/* Trenutno stanje = sve uplate − sve isplate (ono što ostane), ne ukupan promet */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4" style={{ borderLeftColor: '#41ac53' }}>
                   <p className="text-sm text-gray-600">Trenutno stanje</p>
                   <p className="text-xl sm:text-2xl font-bold mt-1 break-all" style={{ color: dashboardData.saldo >= 0 ? '#41ac53' : '#dc2626' }}>
                     {dashboardData.saldo.toLocaleString('sr-RS')} RSD
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">sve uplate − sve isplate</p>
                 </div>
                 <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4 border-green-500">
-                  <p className="text-sm text-gray-600">Uplate</p>
+                  <p className="text-sm text-gray-600">Ukupne uplate</p>
                   <p className="text-xl sm:text-2xl font-bold mt-1 text-green-600 break-all">
                     {dashboardData.uplate.toLocaleString('sr-RS')} RSD
                   </p>
                 </div>
                 <div className="bg-white rounded-xl shadow p-4 sm:p-6 border-l-4 border-red-500">
-                  <p className="text-sm text-gray-600">Isplate</p>
+                  <p className="text-sm text-gray-600">Ukupne isplate</p>
                   <p className="text-xl sm:text-2xl font-bold mt-1 text-red-600 break-all">
                     {dashboardData.isplate.toLocaleString('sr-RS')} RSD
                   </p>

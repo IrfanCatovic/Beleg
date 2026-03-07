@@ -73,16 +73,16 @@ func GetDashboard(c *gin.Context) {
 			ukupnoIsplate += t.Iznos
 		}
 	}
-	// Trenutno stanje = sve uplate sabrane minus sve isplate (ono što ostane na računu)
-	saldo := ukupnoUplate - ukupnoIsplate
+	// Trenutno stanje = uplate − isplate
+	saldo := ukupnoUplate + ukupnoIsplate
 
 	c.JSON(http.StatusOK, gin.H{
-		"saldo":     saldo,
-		"uplate":    ukupnoUplate,
-		"isplate":   ukupnoIsplate,
+		"saldo":       saldo,
+		"uplate":     ukupnoUplate,
+		"isplate":    ukupnoIsplate,
 		"transakcije": transakcije,
-		"from":      fromStr,
-		"to":        toStr,
+		"from":       fromStr,
+		"to":         toStr,
 	})
 }
 

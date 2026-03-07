@@ -93,17 +93,17 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
       <table>
         <tbody>
           <tr class="total-row">
-            <td colspan="2">Ukupno uplate</td>
+            <td colspan="2">Ukupne uplate</td>
             <td class="num uplata">${escapeHtml(uplateStr)}</td>
             <td class="num"></td>
           </tr>
           <tr class="total-row">
-            <td colspan="2">Ukupno isplate</td>
+            <td colspan="2">Ukupne isplate</td>
             <td class="num"></td>
             <td class="num isplata">${escapeHtml(isplateStr)}</td>
           </tr>
           <tr class="${saldoClass}">
-            <td colspan="2">Trenutno stanje (uplate − isplate)</td>
+            <td colspan="2">Trenutno stanje</td>
             <td class="num" colspan="2">${escapeHtml(saldoStr)} RSD</td>
           </tr>
         </tbody>
