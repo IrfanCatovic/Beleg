@@ -334,10 +334,14 @@ export default function Profil() {
                           ? 'bg-green-100 text-green-800'
                           : akcija.tezina === 'srednje'
                             ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
+                            : akcija.tezina === 'tesko' || akcija.tezina === 'teško'
+                              ? 'bg-red-100 text-red-800'
+                              : akcija.tezina === 'alpinizam'
+                                ? 'bg-violet-100 text-violet-800'
+                                : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {akcija.tezina || 'Nije definisano'}
+                      {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
                     </span>
                   </div>
                 </Link>

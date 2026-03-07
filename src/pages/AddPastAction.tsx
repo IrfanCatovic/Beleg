@@ -71,6 +71,11 @@ export default function AddPastAction() {
       setError('Izaberite težinu.')
       return
     }
+    const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
+    if (!dozvoljeneTezine.includes(tezina.trim().toLowerCase())) {
+      setError('Izaberi težinu od ponuđenih.')
+      return
+    }
     setError('')
     setSubmitting(true)
     try {
@@ -256,7 +261,8 @@ export default function AddPastAction() {
               { value: '', label: '— Izaberite —' },
               { value: 'lako', label: 'Lako' },
               { value: 'srednje', label: 'Srednje' },
-              { value: 'teško', label: 'Teško' },
+              { value: 'tesko', label: 'Teško' },
+              { value: 'alpinizam', label: 'Alpinizam' },
             ]}
             value={tezina}
             onChange={setTezina}

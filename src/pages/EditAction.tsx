@@ -120,6 +120,12 @@ export default function EditAction() {
       setLoading(false)
       return
     }
+    const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
+    if (!dozvoljeneTezine.includes(tezina.trim().toLowerCase())) {
+      setError('Izaberi težinu od ponuđenih.')
+      setLoading(false)
+      return
+    }
 
     try {
       const formData = new FormData()
@@ -281,6 +287,7 @@ export default function EditAction() {
               { value: 'lako', label: 'Lako' },
               { value: 'srednje', label: 'Srednje' },
               { value: 'tesko', label: 'Teško' },
+              { value: 'alpinizam', label: 'Alpinizam' },
             ]}
             value={tezina}
             onChange={setTezina}

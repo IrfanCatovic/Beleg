@@ -38,6 +38,12 @@ type LoginResponse struct {
 	} `json:"user"`
 }
 
+var allowedTezine = map[string]bool{"lako": true, "srednje": true, "tesko": true, "alpinizam": true}
+
+func isValidTezina(tezina string) bool {
+	return allowedTezine[strings.TrimSpace(strings.ToLower(tezina))]
+}
+
 func main() {
 	r := gin.Default()
 	err := godotenv.Load()
@@ -664,6 +670,10 @@ func main() {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
 				return
 			}
+			if !isValidTezina(tezina) {
+				c.JSON(400, gin.H{"error": "Izaberi težinu od ponuđenih"})
+				return
+			}
 
 			datum, err := time.Parse("2006-01-02", datumStr)
 			if err != nil {
@@ -813,6 +823,10 @@ func main() {
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+				return
+			}
+			if !isValidTezina(tezina) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberi težinu od ponuđenih"})
 				return
 			}
 
@@ -1488,6 +1502,10 @@ func main() {
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+				return
+			}
+			if !isValidTezina(tezina) {
+				c.JSON(400, gin.H{"error": "Izaberi težinu od ponuđenih"})
 				return
 			}
 

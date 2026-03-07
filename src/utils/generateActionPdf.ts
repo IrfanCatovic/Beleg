@@ -12,6 +12,15 @@ function val(value: string | null | undefined): string {
   return s || ''
 }
 
+function formatTezinaLabel(tezina: string | null | undefined): string {
+  const t = (tezina ?? '').toLowerCase().trim()
+  if (t === 'lako') return 'Lako'
+  if (t === 'srednje') return 'Srednje'
+  if (t === 'tesko' || t === 'teško') return 'Teško'
+  if (t === 'alpinizam') return 'Alpinizam'
+  return val(tezina)
+}
+
 function escapeHtml(text: string): string {
   const div = document.createElement('div')
   div.textContent = text
@@ -130,7 +139,7 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
         ${row('Vrh', val(data.vrh))}
         ${row('Datum', formatDate(data.datum))}
         ${row('Opis', val(data.opis))}
-        ${row('Težina', val(data.tezina))}
+        ${row('Težina', formatTezinaLabel(data.tezina))}
         ${row('Vodič / drugi vodič', val(data.vodicIme))}
         ${row('Dodao/la akciju', val(data.addedBy))}
         ${row('Broj polaznika', String(data.brojPolaznika))}
@@ -165,7 +174,7 @@ export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
         ${row('Vrh', val(data.vrh))}
         ${row('Datum', formatDate(data.datum))}
         ${row('Opis', val(data.opis))}
-        ${row('Težina', val(data.tezina))}
+        ${row('Težina', formatTezinaLabel(data.tezina))}
         ${row('Vodič / drugi vodič', val(data.vodicIme))}
         ${row('Dodao/la akciju', val(data.addedBy))}
         ${row('Uspešno popeli / Broj prijavljenih', `${data.brojUspesnoPopeli} / ${data.brojPrijavljenih}`)}

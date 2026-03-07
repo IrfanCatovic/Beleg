@@ -171,7 +171,7 @@ export default function ActionDetails() {
     })
   }
 
-  const tezinaLabel = akcija.tezina === 'lako' ? 'Lako' : akcija.tezina === 'srednje' ? 'Srednje' : akcija.tezina === 'teško' ? 'Teško' : akcija.tezina || '—'
+  const tezinaLabel = akcija.tezina === 'lako' ? 'Lako' : akcija.tezina === 'srednje' ? 'Srednje' : (akcija.tezina === 'tesko' || akcija.tezina === 'teško') ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || '—'
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">

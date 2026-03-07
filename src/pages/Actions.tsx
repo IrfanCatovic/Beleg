@@ -383,10 +383,12 @@ export default function Actions() {
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
                           akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
-                          'bg-rose-100 text-rose-800'
+                          akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'bg-rose-100 text-rose-800' :
+                          akcija.tezina === 'alpinizam' ? 'bg-violet-100 text-violet-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {akcija.tezina || 'Nije definisano'}
+                        {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
                       </span>
                     </div>
                     <div className="mt-auto border-t border-gray-100">
@@ -499,10 +501,12 @@ export default function Actions() {
                         className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
                           akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
                           akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
-                          'bg-rose-100 text-rose-800'
+                          akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'bg-rose-100 text-rose-800' :
+                          akcija.tezina === 'alpinizam' ? 'bg-violet-100 text-violet-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {akcija.tezina || 'Nije definisano'}
+                        {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
                       </span>
 
                       <div className="mt-5 pt-4 border-t border-gray-100 w-full">
