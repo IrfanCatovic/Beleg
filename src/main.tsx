@@ -1,11 +1,14 @@
 
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
-import { AuthProvider } from './context/AuthContext.tsx' // ← ovaj import
+import { AuthProvider } from './context/AuthContext.tsx'
+import { ModalProvider } from './context/ModalContext.tsx'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
-      <AuthProvider>             
-        <App />
-      </AuthProvider>
+  <AuthProvider>
+    <ModalProvider>
+      <App />
+    </ModalProvider>
+  </AuthProvider>
 )

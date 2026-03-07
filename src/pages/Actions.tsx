@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useModal } from '../context/ModalContext'
 import api from '../services/api'
 import { formatDateShort } from '../utils/dateUtils'
 import { generateAnnualReportPdf } from '../utils/generateAnnualReportPdf'
@@ -31,6 +32,7 @@ interface Akcija {
 
 export default function Actions() {
   const { isLoggedIn, user } = useAuth()
+  const { showAlert, showConfirm } = useModal()
   const [aktivneAkcije, setAktivneAkcije] = useState<Akcija[]>([])
   const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
@@ -81,7 +83,7 @@ export default function Actions() {
 
   const handleOpenAnnualReport = () => {
     if (zavrseneAkcije.length === 0) {
-      alert('Nema završenih akcija. Godišnji izveštaj se pravi samo za godine u kojima ima završenih akcija.')
+      showAlert('Nema završenih akcija. Godišnji izveštaj se pravi samo za godine u kojima ima završenih akcija.')
       return
     }
     setSelectedYear(yearsWithCompleted[0] ?? '')
@@ -90,7 +92,7 @@ export default function Actions() {
 
   const handleGenerateAnnualReportPdf = async () => {
     if (selectedYear === '') {
-      alert('Izaberite godinu.')
+      await showAlert('Izaberite godinu.')
       return
     }
     setLoadingReport(true)
@@ -102,7 +104,7 @@ export default function Actions() {
         return !isNaN(y) && y === selectedYear
       })
       if (actionsInYear.length === 0) {
-        alert(`Nema završenih akcija za ${selectedYear}. godinu.`)
+        await showAlert(`Nema završenih akcija za ${selectedYear}. godinu.`)
         setLoadingReport(false)
         return
       }
@@ -179,24 +181,25 @@ export default function Actions() {
       setShowAnnualReportModal(false)
     } catch (err: unknown) {
       console.error(err)
-      alert('Greška pri pripremi podataka za godišnji izveštaj. Proverite da li backend u prijavama vraća userId (ili datum_rodjenja i pol) za učesnike.')
+      await showAlert('Greška pri pripremi podataka za godišnji izveštaj. Proverite da li backend u prijavama vraća userId (ili datum_rodjenja i pol) za učesnike.')
     } finally {
       setLoadingReport(false)
     }
   }
 
   const handlePrijavi = async (akcijaId: number, naziv: string) => {
-    if (!confirm(`Da li želite da se prijavite za "${naziv}"?`)) return
+    const confirmed = await showConfirm(`Da li želite da se prijavite za "${naziv}"?`)
+    if (!confirmed) return
 
     try {
       const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
-      alert(response.data.message)
+      await showAlert(response.data.message)
 
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
       setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       const errMsg = err.response?.data?.error
-      alert(typeof errMsg === 'string' ? errMsg : 'Greška pri prijavi')
+      await showAlert(typeof errMsg === 'string' ? errMsg : 'Greška pri prijavi')
       if (typeof errMsg === 'string' && errMsg.includes('Već ste prijavljeni')) {
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
@@ -205,11 +208,12 @@ export default function Actions() {
   }
 
   const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
-    if (!confirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)) return
+    const confirmed = await showConfirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)
+    if (!confirmed) return
 
     try {
       await api.delete(`/api/akcije/${akcijaId}/prijavi`)
-      alert('Uspešno ste otkazali prijavu!')
+      await showAlert('Uspešno ste otkazali prijavu!')
 
       setPrijavljeneAkcije(prev => {
         const newSet = new Set(prev)
@@ -222,7 +226,7 @@ export default function Actions() {
         return newSet
       })
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
+      await showAlert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
     }
   }
 
