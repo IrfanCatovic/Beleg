@@ -70,11 +70,12 @@ func GetDashboard(c *gin.Context) {
 		if t.Tip == "uplata" {
 			ukupnoUplate += t.Iznos
 		} else {
-			ukupnoIsplate += t.Iznos
+			// Isplate su u bazi upisane kao negativan iznos
+			ukupnoIsplate += -t.Iznos
 		}
 	}
-	// Trenutno stanje = uplate − isplate
-	saldo := ukupnoUplate + ukupnoIsplate
+	// Trenutno stanje = uplate − isplate (u bazi su isplate negativne)
+	saldo := ukupnoUplate - ukupnoIsplate
 
 	c.JSON(http.StatusOK, gin.H{
 		"saldo":       saldo,
@@ -150,9 +151,13 @@ func CreateTransakcija(c *gin.Context) {
 		return
 	}
 
+	iznos := body.Iznos
+	if body.Tip == "isplata" {
+		iznos = -body.Iznos
+	}
 	t := models.Transakcija{
 		Tip:        body.Tip,
-		Iznos:      body.Iznos,
+		Iznos:      iznos,
 		Opis:       body.Opis,
 		Datum:      datum,
 		KorisnikID: ulogovan.ID,

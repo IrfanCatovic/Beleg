@@ -53,7 +53,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
   const rows = data.transakcije.map((t) => {
     const opis = [t.opis, t.clanarinaKorisnik?.fullName || t.clanarinaKorisnik?.username].filter(Boolean).join(' – ') || '—'
     const uplata = t.tip === 'uplata' ? t.iznos.toLocaleString('sr-RS') : ''
-    const isplata = t.tip === 'isplata' ? t.iznos.toLocaleString('sr-RS') : ''
+    const isplata = t.tip === 'isplata' ? Math.abs(t.iznos).toLocaleString('sr-RS') : ''
     return `
       <tr>
         <td>${escapeHtml(formatDateShort(t.datum))}</td>
