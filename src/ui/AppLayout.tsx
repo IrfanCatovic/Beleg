@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
@@ -18,12 +18,17 @@ export default function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const searchPanelRef = useRef<HTMLDivElement>(null)
+  const searchButtonRef = useRef<HTMLButtonElement>(null)
+  const notificationsBlockRef = useRef<HTMLDivElement>(null)
+  const profileBlockRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isCmdK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
       if (isCmdK) {
         event.preventDefault()
+        setIsNotificationsOpen(false)
         setIsSearchOpen(true)
       }
     }
@@ -31,6 +36,22 @@ export default function AppLayout() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      const insideSearch = searchPanelRef.current?.contains(target) || searchButtonRef.current?.contains(target)
+      if (isSearchOpen && !insideSearch) setIsSearchOpen(false)
+      if (isNotificationsOpen && notificationsBlockRef.current && !notificationsBlockRef.current.contains(target)) {
+        setIsNotificationsOpen(false)
+      }
+      if (isProfileMenuOpen && profileBlockRef.current && !profileBlockRef.current.contains(target)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen])
 
   const handleLogout = () => {
     logout()
@@ -73,8 +94,13 @@ export default function AppLayout() {
               <div className="flex items-center justify-end gap-3 relative">
                 <div className="hidden md:flex md:items-center md:gap-3">
                 <button
+                  ref={searchButtonRef}
                   type="button"
-                  onClick={() => setIsSearchOpen((v) => !v)}
+                  onClick={() => {
+                    setIsNotificationsOpen(false)
+                    setIsProfileMenuOpen(false)
+                    setIsSearchOpen((v) => !v)
+                  }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
                   aria-label="Pretraga"
                 >
@@ -93,9 +119,14 @@ export default function AppLayout() {
                   </svg>
                 </button>
 
+                <div ref={notificationsBlockRef} className="relative">
                 <button
                   type="button"
-                  onClick={() => setIsNotificationsOpen((v) => !v)}
+                  onClick={() => {
+                    setIsSearchOpen(false)
+                    setIsProfileMenuOpen(false)
+                    setIsNotificationsOpen((v) => !v)
+                  }}
                   className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
                   aria-label="Obaveštenja"
                 >
@@ -220,9 +251,10 @@ export default function AppLayout() {
                     </div>
                   </div>
                 )}
+                </div>
 
                 {user && (
-                  <>
+                  <div ref={profileBlockRef} className="flex items-center gap-2">
                     <div className="text-right hidden sm:block">
                       <p className="text-xs font-medium text-white/95 leading-tight">
                         {user.fullName || user.username}
@@ -233,7 +265,11 @@ export default function AppLayout() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setIsProfileMenuOpen((v) => !v)}
+                      onClick={() => {
+                        setIsSearchOpen(false)
+                        setIsNotificationsOpen(false)
+                        setIsProfileMenuOpen((v) => !v)
+                      }}
                       className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-semibold uppercase text-white shadow-sm hover:bg_white/25 hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/40 overflow-hidden"
                     >
                       {user.avatarUrl ? (
@@ -284,7 +320,7 @@ export default function AppLayout() {
                         </button>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
                 </div>
                 <div className="md:hidden flex items-center gap-1">
@@ -373,7 +409,7 @@ export default function AppLayout() {
       )}
 
       {isLoggedIn && isSearchOpen && (
-        <div className="hidden md:block border-b border-gray-100 bg-white/95 shadow-sm">
+        <div ref={searchPanelRef} className="hidden md:block border-b border-gray-100 bg-white/95 shadow-sm">
           <GlobalSearchPanel
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
