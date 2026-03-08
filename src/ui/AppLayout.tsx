@@ -37,6 +37,8 @@ export default function AppLayout() {
   const searchPanelRef = useRef<HTMLDivElement>(null)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const notificationsBlockRef = useRef<HTMLDivElement>(null)
+  const mobileNotificationsPanelRef = useRef<HTMLDivElement>(null)
+  const mobileNotificationsButtonRef = useRef<HTMLButtonElement>(null)
   const profileBlockRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,9 +60,11 @@ export default function AppLayout() {
       const target = event.target as Node
       const insideSearch = searchPanelRef.current?.contains(target) || searchButtonRef.current?.contains(target)
       if (isSearchOpen && !insideSearch) setIsSearchOpen(false)
-      if (isNotificationsOpen && notificationsBlockRef.current && !notificationsBlockRef.current.contains(target)) {
-        setIsNotificationsOpen(false)
-      }
+      const insideNotifications =
+        notificationsBlockRef.current?.contains(target) ||
+        mobileNotificationsPanelRef.current?.contains(target) ||
+        mobileNotificationsButtonRef.current?.contains(target)
+      if (isNotificationsOpen && !insideNotifications) setIsNotificationsOpen(false)
       if (isProfileMenuOpen && profileBlockRef.current && !profileBlockRef.current.contains(target)) {
         setIsProfileMenuOpen(false)
       }
@@ -459,8 +463,14 @@ export default function AppLayout() {
             {/* Obaveštenja */}
             <div className="flex-1 flex justify-center">
               <button
+                ref={mobileNotificationsButtonRef}
                 type="button"
-                className="flex flex-col items-center justify-center text-xs font-medium text-white/90"
+                onClick={() => {
+                  setIsSearchOpen(false)
+                  setIsProfileMenuOpen(false)
+                  setIsNotificationsOpen((v) => !v)
+                }}
+                className="relative flex flex-col items-center justify-center text-xs font-medium text-white/90"
                 aria-label="Obaveštenja"
               >
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 border border-white/40 text-white shadow-sm">
@@ -469,15 +479,18 @@ export default function AppLayout() {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.8}
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4"
-                    />
+                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                   </svg>
                 </span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-1/4 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -520,13 +533,11 @@ export default function AppLayout() {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.8}
-                      d="M11 5a6 6 0 104.472 10.03L19 18.5 18.5 19l-3.528-3.47A6 6 0 1011 5z"
-                    />
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </span>
               </button>
@@ -555,6 +566,92 @@ export default function AppLayout() {
                     </span>
                   )}
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile notifications overlay */}
+      {isLoggedIn && isNotificationsOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" ref={mobileNotificationsPanelRef}>
+          <div
+            className="absolute inset-0 bg-black/40"
+            aria-hidden
+            onClick={() => setIsNotificationsOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl bg-white shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-800">Obaveštenja</p>
+              <button
+                type="button"
+                onClick={() => setIsNotificationsOpen(false)}
+                className="p-2 -m-2 rounded-full text-gray-500 hover:bg-gray-100"
+                aria-label="Zatvori"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0">
+              {notificationsLoading ? (
+                <p className="px-4 py-6 text-sm text-gray-500">Učitavanje...</p>
+              ) : notifications.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-gray-500">Nema obaveštenja.</p>
+              ) : (
+                <div className="py-1">
+                  {notifications.map((n) => {
+                    const iconClass =
+                      n.type === 'uplata'
+                        ? 'bg-green-100 text-green-600'
+                        : n.type === 'akcija'
+                          ? 'bg-blue-100 text-blue-600'
+                          : n.type === 'zadatak'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : n.type === 'broadcast'
+                              ? 'bg-violet-100 text-violet-600'
+                              : 'bg-gray-100 text-gray-600'
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(n)}
+                        className={`flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 ${!n.readAt ? 'bg-green-50/50' : ''}`}
+                      >
+                        <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
+                          </svg>
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                          {n.body && <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">{n.body}</p>}
+                          <p className="mt-0.5 text-xs text-gray-400">{formatRelativeTime(n.createdAt)}</p>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between bg-gray-50 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate('/obavestenja')
+                  setIsNotificationsOpen(false)
+                }}
+                className="text-sm font-medium text-[#41ac53] hover:text-[#2f7e3d]"
+              >
+                Prikaži sva obaveštenja
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsNotificationsOpen(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Zatvori
               </button>
             </div>
           </div>
