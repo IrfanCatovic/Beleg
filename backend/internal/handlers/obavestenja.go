@@ -126,6 +126,35 @@ func MarkRead(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Označeno kao pročitano"})
 }
 
+// MarkAllRead označava sva obaveštenja trenutnog korisnika kao pročitana (npr. kada otvori meni).
+func MarkAllRead(c *gin.Context) {
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username := usernameVal.(string)
+
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	now := time.Now()
+	res := db.Model(&models.Obavestenje{}).
+		Where("user_id = ? AND read_at IS NULL", korisnik.ID).
+		Update("read_at", now)
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Sva obaveštenja označena kao pročitana", "count": res.RowsAffected})
+}
+
 // BroadcastRequest body za slanje obaveštenja svima (samo admin).
 type BroadcastRequest struct {
 	Title string `json:"title" binding:"required"`

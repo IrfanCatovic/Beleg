@@ -75,15 +75,17 @@ export default function AppLayout() {
     api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
   }, [isLoggedIn])
 
-  // Kada se otvori dropdown, učitaj listu obaveštenja
+  // Kada se otvori dropdown: označi sva kao pročitana (meni se spusti = vidjena), pa učitaj listu
   useEffect(() => {
     if (!isLoggedIn || !isNotificationsOpen) return
     setNotificationsLoading(true)
-    api.get('/api/obavestenja', { params: { limit: 20 } })
+    setUnreadCount(0)
+    api
+      .patch('/api/obavestenja/read-all')
+      .then(() => api.get('/api/obavestenja', { params: { limit: 20 } }))
       .then((r) => setNotifications(r.data.obavestenja ?? []))
       .catch(() => setNotifications([]))
       .finally(() => setNotificationsLoading(false))
-    api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
   }, [isLoggedIn, isNotificationsOpen])
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
