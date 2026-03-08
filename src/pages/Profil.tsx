@@ -7,7 +7,7 @@ import ProfileActionButtons from '../components/ProfileActionButtons'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { useRanking } from '../hooks/useRanking'
-import { computeMMRForAkcija, computeRank } from '../utils/rankingUtils'
+import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../utils/rankingUtils'
 import Loader from '../components/Loader'
 
 interface UspesnaAkcija {
@@ -96,8 +96,8 @@ export default function Profil() {
   }, [isLoggedIn])
 
   useEffect(() => {
-    const loadLegendLevel = async () => {
-      if (!me || rank.glavniRank !== 6) {
+    const loadTop30Position = async () => {
+      if (!me) {
         setLegendLevel(null)
         return
       }
@@ -108,7 +108,7 @@ export default function Profil() {
           ukupnoKm?: number
           ukupnoMetaraUspona?: number
         }>
-        const withRank = lista
+        const sorted = lista
           .map((k) => ({
             ...k,
             rank: computeRank({
@@ -116,25 +116,22 @@ export default function Profil() {
               ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
             }),
           }))
-          .filter((k) => k.rank.glavniRank === 6)
           .sort((a, b) => b.rank.mmr - a.rank.mmr)
-
-        const index = withRank.findIndex((k) => k.id === me.id)
-        if (index === -1 || index >= 30) {
+        const index = sorted.findIndex((k) => k.id === me.id)
+        if (index >= 0 && index < 30) {
+          setLegendLevel(index + 1)
+        } else {
           setLegendLevel(null)
-          return
         }
-        const level = 30 - index
-        setLegendLevel(level)
       } catch {
         setLegendLevel(null)
       }
     }
 
     if (isLoggedIn) {
-      loadLegendLevel()
+      loadTop30Position()
     }
-  }, [isLoggedIn, me, rank.glavniRank])
+  }, [isLoggedIn, me])
 
   if (!isLoggedIn) {
     return <div className="text-center py-10">Morate se ulogovati da biste vidjeli profil.</div>
@@ -214,9 +211,7 @@ export default function Profil() {
                 }}
               >
                 <span className="text-base tracking-wide">
-                  {rank.glavniRank === 6 && legendLevel
-                    ? `Legenda stijena ${legendLevel}`
-                    : rank.naziv}
+                  {formatRankDisplayName(rank, legendLevel)}
                 </span>
                 <span className="mt-0.5 text-xs opacity-90">
                   MMR {rank.mmr}

@@ -29,22 +29,19 @@ import {
 export type ModalType = 'alert' | 'confirm'
 
 export interface ConfirmOptions {
-  /** Pitanje ili poruka u modalu */
   message: string
-  /** Opciono: naslov iznad poruke */
   title?: string
-  /** Tekst na dugmetu za potvrdu (default: "Da") */
+
   confirmLabel?: string
-  /** Tekst na dugmetu za otkazivanje (default: "Ne") */
+
   cancelLabel?: string
-  /** "danger" = crveno dugme za potvrdu (npr. brisanje), inače zelena */
+
   variant?: 'default' | 'danger'
 }
 
 export interface AlertOptions {
   message: string
   title?: string
-  /** Tekst na OK dugmetu (default: "U redu") */
   okLabel?: string
 }
 
@@ -57,22 +54,12 @@ interface ModalState {
   cancelLabel: string
   okLabel: string
   variant: 'default' | 'danger'
-  /** Resolve callback: za confirm (true/false), za alert (bilo šta – samo zatvara) */
   resolveRef: { current: ((value?: boolean) => void) | null }
 }
 
 interface ModalContextType {
-  /** Prikaži obaveštenje (samo poruka + OK). Vraća Promise koji se resolve kada korisnik klikne OK. */
   showAlert: (message: string, title?: string) => Promise<void>
-  /** Prikaži obaveštenje sa opcijama (title, okLabel). */
   showAlertOptions: (options: AlertOptions) => Promise<void>
-  /**
-   * Prikaži pitanje Da/Ne. Vraća Promise<boolean>:
-   * - true = korisnik je kliknuo "Da" (confirm)
-   * - false = korisnik je kliknuo "Ne" ili zatvorio modal (cancel)
-   *
-   * Primer: if (await showConfirm('Da li želite da se prijavite?')) { await api.post(...) }
-   */
   showConfirm: (message: string, options?: Partial<ConfirmOptions>) => Promise<boolean>
 }
 

@@ -7,7 +7,7 @@ import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { useRanking } from '../hooks/useRanking'
-import { computeMMRForAkcija } from '../utils/rankingUtils'
+import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../utils/rankingUtils'
 
 interface UspesnaAkcija {
   id: number
@@ -66,6 +66,7 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
+  const [top30Position, setTop30Position] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchProfilData = async () => {
@@ -101,6 +102,41 @@ export default function UserProfile() {
   useEffect(() => {
     setAvatarLoadFailed(false)
   }, [id])
+
+  useEffect(() => {
+    const loadTop30Position = async () => {
+      if (!korisnik?.id) {
+        setTop30Position(null)
+        return
+      }
+      try {
+        const res = await api.get('/api/korisnici')
+        const lista = (res.data.korisnici || []) as Array<{
+          id: number
+          ukupnoKm?: number
+          ukupnoMetaraUspona?: number
+        }>
+        const sorted = lista
+          .map((k) => ({
+            ...k,
+            rank: computeRank({
+              ukupnoKm: k.ukupnoKm ?? 0,
+              ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            }),
+          }))
+          .sort((a, b) => b.rank.mmr - a.rank.mmr)
+        const index = sorted.findIndex((k) => k.id === korisnik.id)
+        if (index >= 0 && index < 30) {
+          setTop30Position(index + 1)
+        } else {
+          setTop30Position(null)
+        }
+      } catch {
+        setTop30Position(null)
+      }
+    }
+    loadTop30Position()
+  }, [korisnik?.id])
 
   if (loading) return <div className="text-center py-20">Učitavanje profila...</div>
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>
@@ -172,7 +208,7 @@ export default function UserProfile() {
               className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
               style={{ backgroundColor: rank.boja, color: rank.boja === '#000000' ? '#FFD700' : 'white' }}
             >
-              {rank.naziv}
+              {formatRankDisplayName(rank, top30Position)}
             </div>
           </div>
         </div>

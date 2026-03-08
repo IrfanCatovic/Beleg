@@ -98,6 +98,20 @@ export interface RankResult {
 }
 
 /**
+ * Vraća prikazni naziv ranga. Za Legenda stijena u top 30 vraća "Legenda stijena[1]" .. "Legenda stijena[30]",
+ * inače vraća rank.naziv.
+ */
+export function formatRankDisplayName(
+  rank: RankResult,
+  top30Position: number | null | undefined
+): string {
+  if (rank.glavniRank === 6 && top30Position != null && top30Position >= 1 && top30Position <= 30) {
+    return `Legenda stijena[${top30Position}]`
+  }
+  return rank.naziv
+}
+
+/**
  * Za dati ukupni MMR vraća glavni rank (1–6), segment (1–5 za rank 1–5; 0 za rank 6),
  * pun naziv (npr. "Početnik III") i boju.
  */
@@ -142,10 +156,17 @@ export function getRankFromMMR(mmr: number): RankResult {
   }
 }
 
+/** Broj dana neaktivnosti posle kojeg se primenjuje kazna (mesec dana). */
+const INACTIVITY_DAYS = 30
+
+/** MMR kazna ako nema uspešne akcije u poslednjih INACTIVITY_DAYS dana. */
+const INACTIVITY_PENALTY_MMR = 35
+
 /**
  * Računa rank iz objekta statistike koji sadrži niz tura.
- * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback 
+ * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback
  * (jedna "sintetička" tura bez bonusa).
+ * Ako u poslednjih 30 dana nije bilo nijedne uspešne akcije, oduzima se 35 MMR.
  */
 export function computeRank(statistika: {
   ture?: Tura[]
@@ -157,6 +178,17 @@ export function computeRank(statistika: {
 
   if (ture.length > 0) {
     mmr = computeMMR(ture)
+
+    const danas = new Date()
+    danas.setHours(0, 0, 0, 0)
+    const granica = new Date(danas)
+    granica.setDate(granica.getDate() - INACTIVITY_DAYS)
+    const poslednjiDatumMs = Math.max(
+      ...ture.map((t) => new Date(t.datum).getTime())
+    )
+    if (poslednjiDatumMs < granica.getTime()) {
+      mmr -= INACTIVITY_PENALTY_MMR
+    }
   } else {
     const km = statistika.ukupnoKm ?? 0
     const uspon = statistika.ukupnoMetaraUspona ?? 0

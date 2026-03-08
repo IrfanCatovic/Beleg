@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
 import { formatDate } from '../utils/dateUtils'
 import Loader from '../components/Loader'
-import { computeRank } from '../utils/rankingUtils'
+import { computeRank, formatRankDisplayName } from '../utils/rankingUtils'
 
 interface Korisnik {
   id: number
@@ -102,6 +102,14 @@ export default function Korisnici() {
         .sort((a, b) => b.rank.mmr - a.rank.mmr),
     [korisnici]
   )
+
+  const top30PositionByUserId = useMemo(() => {
+    const map: Record<number, number> = {}
+    rankingKorisnici.slice(0, 30).forEach((k, i) => {
+      map[k.id] = i + 1
+    })
+    return map
+  }, [rankingKorisnici])
 
   const handlePrint = async (k: Korisnik) => {
     if (printingId) return
@@ -289,7 +297,7 @@ export default function Korisnici() {
                           className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-1.5 text-right bg-white/70 dark:bg-gray-900/40 border border-gray-100/80 dark:border-gray-700/80"
                         >
                           <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900 dark:text-gray-50">
-                            {rank.naziv}
+                            {formatRankDisplayName(rank, top30PositionByUserId[k.id])}
                           </span>
                           <span className="text-[10px] text-gray-600 dark:text-gray-300">
                             MMR {rank.mmr}
@@ -309,7 +317,7 @@ export default function Korisnici() {
                             style={{ borderLeft: `3px solid ${rank.boja}` }}
                           >
                             <span className="text-[11px] font-semibold text-gray-800">
-                              {rank.naziv}
+                              {formatRankDisplayName(rank, top30PositionByUserId[k.id])}
                             </span>
                             <span className="text-[10px] text-gray-500">
                               MMR {rank.mmr}
@@ -422,7 +430,7 @@ export default function Korisnici() {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-700">
-                        {k.rank.naziv}
+                        {formatRankDisplayName(k.rank, top30PositionByUserId[k.id])}
                       </span>
                       <span className="text-xs font-semibold text-gray-800">
                         {k.rank.mmr} MMR
