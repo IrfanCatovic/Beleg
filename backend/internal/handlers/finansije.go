@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -166,6 +167,10 @@ func CreateTransakcija(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju transakcije"})
 		return
 	}
+	// Obaveštenje za admin i blagajnik
+	var adminBlagajnikIDs []uint
+	db.Model(&models.Korisnik{}).Where("role IN ?", []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
+	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Nova transakcija", body.Opis, "/finansije")
 	c.JSON(http.StatusCreated, t)
 }
 
@@ -276,5 +281,9 @@ func PostClanarinaPlati(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju članarine"})
 		return
 	}
+	// Obaveštenje za admin i blagajnik
+	var adminBlagajnikIDs []uint
+	db.Model(&models.Korisnik{}).Where("role IN ?", []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
+	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Evidentirana nova uplata članarine", "Članarina – "+clan.FullName, "/finansije")
 	c.JSON(http.StatusCreated, t)
 }

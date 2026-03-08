@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -130,6 +131,14 @@ func CreateZadatak(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju zadatka"})
 		return
 	}
+	// Obaveštenje onima koji mogu da vide zadatak (AllowAll = svi, inače po ulogama)
+	var recipientIDs []uint
+	if zadatak.AllowAll {
+		db.Model(&models.Korisnik{}).Pluck("id", &recipientIDs)
+	} else {
+		db.Model(&models.Korisnik{}).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
+	}
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci")
 	c.JSON(http.StatusCreated, gin.H{"zadatak": buildZadatakResponse(zadatak)})
 }
 

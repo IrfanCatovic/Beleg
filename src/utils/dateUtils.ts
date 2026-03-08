@@ -44,3 +44,23 @@ export function formatDateTime(
   const d = value instanceof Date ? value : new Date(value)
   return isNaN(d.getTime()) ? fallback : d.toLocaleString('sr-RS')
 }
+
+/**
+ * Relativno vreme za obaveštenja (npr. "Pre 5 minuta", "Pre 1 sat", "Juče").
+ */
+export function formatRelativeTime(value: string | number | Date | null | undefined): string {
+  if (value == null) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  if (isNaN(d.getTime())) return '—'
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffH = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  if (diffMin < 1) return 'Upravo'
+  if (diffMin < 60) return `Pre ${diffMin} minuta`
+  if (diffH < 24) return diffH === 1 ? 'Pre 1 sat' : `Pre ${diffH} sati`
+  if (diffDays === 1) return 'Juče'
+  if (diffDays < 7) return `Pre ${diffDays} dana`
+  return formatDateShort(d)
+}

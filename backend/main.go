@@ -2,6 +2,7 @@ package main
 
 import (
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
 	"beleg-app/backend/middleware"
 	"context"
@@ -110,11 +111,12 @@ func main() {
 		&models.Transakcija{},
 		&models.Zadatak{},
 		&models.ZadatakKorisnik{},
+		&models.Obavestenje{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
-	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici)")
+	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja)")
 
 	// Inject db u Gin context
 	r.Use(func(c *gin.Context) {
@@ -456,6 +458,7 @@ func main() {
 	{
 		routes.RegisterFinanceRoutes(protected)
 		routes.RegisterZadatakRoutes(protected)
+		routes.RegisterObavestenjaRoutes(protected)
 
 		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
@@ -735,6 +738,11 @@ func main() {
 				c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
 				return
 			}
+
+			// Obaveštenje svima: nova akcija u kalendaru
+			var allUserIDs []uint
+			db.Model(&models.Korisnik{}).Pluck("id", &allUserIDs)
+			notifications.NotifyUsers(db, allUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)))
 
 			// Upload slika na Cloudinary (ako postoji)
 			files := form.File["slika"]

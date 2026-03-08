@@ -26,6 +26,7 @@ import RoleRoute from './components/RoleRoute'
 import Welcome from './pages/Welcome'
 import RegisterAdmin from './pages/RegisterAdmin'
 import ProfileSettings from './pages/ProfileSettings'
+import Obavestenja from './pages/Obavestenja'
 
 
 const router = createBrowserRouter([
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/home', element: <Home /> },
           { path: '/search', element: <Search /> },
+          { path: '/obavestenja', element: <Obavestenja /> },
           { path: '/profil', element: <Profil /> },
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
           { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },

@@ -2,6 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
+import api from '../services/api'
+import { formatRelativeTime } from '../utils/dateUtils'
+
+interface ObavestenjeItem {
+  id: number
+  userId: number
+  type: string
+  title: string
+  body?: string
+  link?: string
+  readAt?: string | null
+  createdAt: string
+}
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
@@ -18,6 +31,9 @@ export default function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [notifications, setNotifications] = useState<ObavestenjeItem[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const searchPanelRef = useRef<HTMLDivElement>(null)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const notificationsBlockRef = useRef<HTMLDivElement>(null)
@@ -52,6 +68,31 @@ export default function AppLayout() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen])
+
+  // Broj nepročitanih obaveštenja (badge)
+  useEffect(() => {
+    if (!isLoggedIn) return
+    api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
+  }, [isLoggedIn])
+
+  // Kada se otvori dropdown, učitaj listu obaveštenja
+  useEffect(() => {
+    if (!isLoggedIn || !isNotificationsOpen) return
+    setNotificationsLoading(true)
+    api.get('/api/obavestenja', { params: { limit: 20 } })
+      .then((r) => setNotifications(r.data.obavestenja ?? []))
+      .catch(() => setNotifications([]))
+      .finally(() => setNotificationsLoading(false))
+    api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
+  }, [isLoggedIn, isNotificationsOpen])
+
+  const handleNotificationClick = (n: ObavestenjeItem) => {
+    if (!n.readAt) {
+      api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
+    }
+    if (n.link) navigate(n.link)
+    setIsNotificationsOpen(false)
+  }
 
   const handleLogout = () => {
     logout()
@@ -143,100 +184,61 @@ export default function AppLayout() {
                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4"
                     />
                   </svg>
-                  <span className="absolute -top-1 -right-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm">
-                    3
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
 
                 {isNotificationsOpen && (
                   <div className="absolute right-0 top-11 w-80 rounded-2xl bg-white py-2 shadow-xl ring-1 ring-black/5 z-40">
                     <div className="flex items-center justify-between px-3 pb-2 border-b border-gray-100">
                       <p className="text-xs font-semibold text-gray-800">Obaveštenja</p>
-                      <span className="text-[11px] text-gray-400">Danas</span>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-50"
-                      >
-                        <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600">
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.8}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </span>
-                        <span className="flex-1">
-                          <p className="text-xs font-medium text-gray-900">
-                            Uspješno evidentirana nova uplata članarine.
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-gray-500">Prije 5 minuta</p>
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-50"
-                      >
-                        <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.8}
-                              d="M13 16h-1v-4h-1m1-4h.01M12 21a9 9 0 110-18 9 9 0 010 18z"
-                            />
-                          </svg>
-                        </span>
-                        <span className="flex-1">
-                          <p className="text-xs font-medium text-gray-900">
-                            Nova akcija je dodata u kalendar.
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-gray-500">Prije 1 sat</p>
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-50"
-                      >
-                        <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100 text-yellow-700">
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.8}
-                              d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 5a7 7 0 017 7c0 1.657-.6 3.176-1.6 4.356M5.6 16.356A6.97 6.97 0 015 12a7 7 0 017-7"
-                            />
-                          </svg>
-                        </span>
-                        <span className="flex-1">
-                          <p className="text-xs font-medium text-gray-900">
-                            Podsjetnik: rok za uplatu kotizacije ističe sutra.
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-gray-500">Prije 3 sata</p>
-                        </span>
-                      </button>
+                      {notificationsLoading ? (
+                        <p className="px-3 py-4 text-xs text-gray-500">Učitavanje...</p>
+                      ) : notifications.length === 0 ? (
+                        <p className="px-3 py-4 text-xs text-gray-500">Nema obaveštenja.</p>
+                      ) : (
+                        notifications.map((n) => {
+                          const iconClass =
+                            n.type === 'uplata'
+                              ? 'bg-green-100 text-green-600'
+                              : n.type === 'akcija'
+                                ? 'bg-blue-100 text-blue-600'
+                                : n.type === 'zadatak'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : n.type === 'broadcast'
+                                    ? 'bg-violet-100 text-violet-600'
+                                    : 'bg-gray-100 text-gray-600'
+                          return (
+                            <button
+                              key={n.id}
+                              type="button"
+                              onClick={() => handleNotificationClick(n)}
+                              className={`flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-50 ${!n.readAt ? 'bg-green-50/50' : ''}`}
+                            >
+                              <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
+                                </svg>
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-900 truncate">{n.title}</p>
+                                {n.body && <p className="mt-0.5 text-[11px] text-gray-500 line-clamp-2">{n.body}</p>}
+                                <p className="mt-0.5 text-[11px] text-gray-400">{formatRelativeTime(n.createdAt)}</p>
+                              </span>
+                            </button>
+                          )
+                        })
+                      )}
                     </div>
                     <div className="mt-1 border-t border-gray-100 px-3 pt-2 pb-1.5 flex items-center justify-between">
                       <button
                         type="button"
+                        onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false); }}
                         className="text-[11px] font-medium text-[#41ac53] hover:text-[#2f7e3d]"
                       >
                         Prikaži sva obaveštenja
