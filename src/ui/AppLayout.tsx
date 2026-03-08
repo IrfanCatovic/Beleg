@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import GlobalSearchPanel from '../components/GlobalSearchPanel'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
@@ -373,146 +374,13 @@ export default function AppLayout() {
 
       {isLoggedIn && isSearchOpen && (
         <div className="hidden md:block border-b border-gray-100 bg-white/95 shadow-sm">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-            <div className="mx-auto w-full max-w-3xl flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                    d="M10.5 4.5a6 6 0 014.615 9.847l3.769 3.768-1.414 1.415-3.768-3.769A6 6 0 1110.5 4.5z"
-                  />
-                </svg>
-                <input
-                  autoFocus
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Pretraži članove, akcije, finansije, transakcije..."
-                  className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#41ac53] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setIsSearchOpen(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                >
-                  Zatvori
-                </button>
-              </div>
-
-              <div className="max-h-72 overflow-y-auto">
-                <p className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                  Brzi linkovi
-                </p>
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSearchOpen(false)
-                      navigate('/users')
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
-                  >
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#41ac53]/10 text-[#41ac53]">
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.8}
-                          d="M17 20h5V4H2v16h5m10 0V10m0 10h-4m4 0h4M7 20v-6m0 6H3m4 0h4"
-                        />
-                      </svg>
-                    </span>
-                    <span>
-                      <span className="block text-xs font-medium text-gray-900">
-                        Lista članova
-                      </span>
-                      <span className="block text-[11px] text-gray-500">
-                        Prikaži sve članove i profile
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSearchOpen(false)
-                      navigate('/akcije')
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
-                  >
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.8}
-                          d="M12 8v8m-4-4h8m5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </span>
-                    <span>
-                      <span className="block text-xs font-medium text-gray-900">
-                        Akcije i događaji
-                      </span>
-                      <span className="block text-[11px] text-gray-500">
-                        Otvori pregled svih akcija
-                      </span>
-                    </span>
-                  </button>
-                  {(user?.role === 'admin' || user?.role === 'blagajnik') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSearchOpen(false)
-                        navigate('/finansije')
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-50"
-                    >
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.8}
-                            d="M12 8c-1.657 0-3 .843-3 2s1.343 2 3 2 3 .843 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.6 1M12 8V6m0 10v2m8-10a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </span>
-                      <span>
-                        <span className="block text-xs font-medium text-gray-900">
-                          Finansije i transakcije
-                        </span>
-                        <span className="block text-[11px] text-gray-500">
-                          Upravljaj uplatama, rashodima i izvještajima
-                        </span>
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <GlobalSearchPanel
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onClose={() => setIsSearchOpen(false)}
+            canSeeFinances={user?.role === 'admin' || user?.role === 'blagajnik' || false}
+            embedded
+          />
         </div>
       )}
 
