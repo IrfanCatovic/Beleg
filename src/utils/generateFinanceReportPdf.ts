@@ -28,6 +28,9 @@ function formatDateShort(value: string): string {
   return isNaN(d.getTime()) ? value : d.toLocaleDateString('sr-RS')
 }
 
+/** Broj redova tabele po stranici – cela tabela se zatvara i na novoj stranici počinje nova da se red ne prekida. */
+const ROWS_PER_PAGE = 26
+
 const pdfStyles = `
   .fin-pdf { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 10pt; color: #111; line-height: 1.4; padding: 20px; background: white; }
   .fin-pdf .header { text-align: center; margin-bottom: 20px; }
@@ -44,13 +47,15 @@ const pdfStyles = `
   .fin-pdf .saldo-negative { background: #ffebee; color: #b91c1c; }
   .fin-pdf .totals-wrapper { page-break-inside: avoid; break-inside: avoid; }
   .fin-pdf .totals-wrapper table { width: 100%; }
+  .fin-pdf .table-chunk { page-break-inside: avoid; break-inside: avoid; }
+  .fin-pdf .table-chunk.page-break-before { page-break-before: always; break-before: page; }
 `
 
-export function generateFinanceReportPdf(data: FinanceReportData): void {
-  const fromStr = formatDateShort(data.from)
-  const toStr = formatDateShort(data.to)
-
-  const rows = data.transakcije.map((t) => {
+function buildTransactionRows(transakcije: FinanceReportTransakcija[]): string {
+  if (transakcije.length === 0) {
+    return '<tr><td colspan="4">Nema transakcija u periodu.</td></tr>'
+  }
+  return transakcije.map((t) => {
     const opis = [t.opis, t.clanarinaKorisnik?.fullName || t.clanarinaKorisnik?.username].filter(Boolean).join(' – ') || '—'
     const uplata = t.tip === 'uplata' ? t.iznos.toLocaleString('sr-RS') : ''
     const isplata = t.tip === 'isplata' ? Math.abs(t.iznos).toLocaleString('sr-RS') : ''
@@ -61,6 +66,44 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
         <td class="num uplata">${escapeHtml(uplata)}</td>
         <td class="num isplata">${escapeHtml(isplata)}</td>
       </tr>
+    `
+  }).join('')
+}
+
+const TABLE_HEADER = `
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Opis</th>
+            <th class="num">Uplata (RSD)</th>
+            <th class="num">Isplata (RSD)</th>
+          </tr>
+        </thead>
+`
+
+export function generateFinanceReportPdf(data: FinanceReportData): void {
+  const fromStr = formatDateShort(data.from)
+  const toStr = formatDateShort(data.to)
+
+  const chunks: FinanceReportTransakcija[][] = []
+  for (let i = 0; i < data.transakcije.length; i += ROWS_PER_PAGE) {
+    chunks.push(data.transakcije.slice(i, i + ROWS_PER_PAGE))
+  }
+  if (chunks.length === 0) {
+    chunks.push([])
+  }
+
+  const tablesHtml = chunks.map((chunk, index) => {
+    const chunkClass = index === 0 ? 'table-chunk' : 'table-chunk page-break-before'
+    return `
+      <div class="${chunkClass}">
+        <table>
+          ${TABLE_HEADER}
+          <tbody>
+            ${buildTransactionRows(chunk)}
+          </tbody>
+        </table>
+      </div>
     `
   }).join('')
 
@@ -76,19 +119,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
         <h1>Finansijski izveštaj</h1>
         <p class="period">Period: ${escapeHtml(fromStr)} – ${escapeHtml(toStr)}</p>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Opis</th>
-            <th class="num">Uplata (RSD)</th>
-            <th class="num">Isplata (RSD)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows || '<tr><td colspan="4">Nema transakcija u periodu.</td></tr>'}
-        </tbody>
-      </table>
+      ${tablesHtml}
       <div class="totals-wrapper">
       <table>
         <tbody>
