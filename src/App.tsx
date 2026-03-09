@@ -19,6 +19,7 @@ import UserInfo from './pages/UserInfo'
 import ActionDetails from './pages/ActionDetails'
 import EditAction from './pages/EditAction'
 import RegisterUser from './pages/RegisterUser'
+import Landing from './pages/Landing'
 
 //routes
 import ProtectedRoute from './components/ProtectedRoute'
@@ -33,6 +34,11 @@ const router = createBrowserRouter([
 
   {
     path: '/',                    
+    element: <Landing />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/navrhu',
     element: <Login />,
     errorElement: <ErrorPage />,
   },

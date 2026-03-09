@@ -73,10 +73,10 @@ export default function Login() {
             className="text-3xl sm:text-4xl font-bold"
             style={{ color: '#41ac53' }}
           >
-            Adri Sentinel
+            na vrhu
           </h2>
           <p className="mt-2 text-base sm:text-lg text-gray-600">
-            User login
+            Prijava u aplikaciju
           </p>
         </div>
 

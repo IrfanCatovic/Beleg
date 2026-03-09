@@ -5,10 +5,9 @@ interface RoleRouteProps {
   allowedRoles: string[]
 }
 
-/** Dozvoljava pristup samo korisnicima čija je rola u allowedRoles (npr. admin uvek vidi sve). */
 export default function RoleRoute({ allowedRoles }: RoleRouteProps) {
   const { user } = useAuth()
-
+//check if user is logged in and if user role is in allowedRoles
   if (!user || !allowedRoles.includes(user.role)) {
     return <Navigate to="/home" replace />
   }

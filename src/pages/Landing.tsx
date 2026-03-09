@@ -1,0 +1,552 @@
+import { Link } from 'react-router-dom'
+
+import heroImage from '../../public/hero.png'
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen flex flex-col bg-white text-gray-900">
+      {/* Hero */}
+      <header className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,#41ac53_0%,transparent_55%)] opacity-20" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25" />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20 lg:pt-12 lg:pb-28">
+          <nav className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 sm:mb-10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-xl">n</span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold tracking-tight" style={{ color: '#1f2933' }}>
+                  na vrhu
+                </p>
+                <p className="text-xs text-gray-500">
+                  Digitalno srce planinarskog društva
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 text-sm">
+              <a href="#features" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                Funkcionalnosti
+              </a>
+              <a href="#how-it-works" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                Kako funkcioniše
+              </a>
+              <a href="#for-whom" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                Za koga
+              </a>
+              <Link
+                to="/navrhu"
+                className="inline-flex items-center rounded-full border border-emerald-600 px-4 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+              >
+                Prijava u aplikaciju
+              </Link>
+            </div>
+          </nav>
+
+          <div className="space-y-8">
+            {/* Naslov levo, slika desno */}
+            <div className="grid gap-6 md:gap-8 lg:grid-cols-[minmax(0,1.2fr),minmax(0,1fr)] items-center">
+              <div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
+                  na vrhu –{' '}
+                  <span style={{ color: '#41ac53' }}>
+                    digitalno srce tvog planinarskog društva
+                  </span>
+                </h1>
+              </div>
+
+              {/* Hero image */}
+              <div className="relative flex justify-center lg:justify-end">
+                <div className="relative max-w-sm sm:max-w-md">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-100 opacity-60" />
+                  <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-yellow-100 opacity-70" />
+                  <img
+                    src={heroImage}
+                    alt="na vrhu – prikaz aplikacije na laptopu i telefonu"
+                    className="relative rounded-3xl shadow-2xl w-full h-auto object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Opis ispod naslova i slike */}
+            <div className="max-w-2xl">
+              <p className="text-lg sm:text-xl text-gray-700">
+                Upravljanje članovima, akcijama, finansijama i obaveštenjima na jednom mestu.
+                Uštedi i preko <span className="font-semibold text-emerald-700">200 sati godišnje</span> na
+                formularima, ručnom prepisivanju i haosu u tabelama.
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-600 max-w-xl">
+              Za predsednike, sekretare, vodiče i blagajnike koji žele manje administracije, a više vremena na stazi.
+            </p>
+
+            <div className="flex flex-wrap gap-4 items-center">
+              <a
+                href="#cta"
+                className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all"
+                style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
+              >
+                Zakaži prezentaciju
+              </a>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-gray-300 text-gray-800 hover:border-emerald-500 hover:text-emerald-700 transition-all bg-white/70 backdrop-blur"
+              >
+                Pogledaj kako radi
+              </a>
+            </div>
+
+            <p className="text-xs sm:text-sm text-gray-500">
+              Bez obaveze i bez pritiska – za 30 minuta pokazujemo kako navrhu rešava vaše svakodnevne glavobolje.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Problemi -> Rešenja */}
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+                Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+                <p className="text-sm font-semibold mb-3">
+                  Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama – niko nema kompletnu sliku.
+                </p>
+                <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs text-gray-600">
+                    Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
+                    (legitimacije, markice, disciplinske mere, izbor u organe).
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+                <p className="text-sm font-semibold mb-3">
+                  Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.
+                </p>
+                <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs text-gray-600">
+                    Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja – svaki ulogovani vidi ono što
+                    mu treba; vodiči, admini i blagajnici imaju posebna ovlašćenja.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+                <p className="text-sm font-semibold mb-3">
+                  Administracija troši sate i dane godišnje.
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji – sve se radi od nule.
+                </p>
+                <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs text-gray-600">
+                    Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
+                    ušteda preko <span className="font-semibold">200 sati godišnje</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Ključne funkcionalnosti */}
+        <section id="features" className="py-16 sm:py-20 bg-emerald-50/60">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
+                Sve što planinarskom društvu treba – od prvog učlanjenja do poslednjeg izvještaja blagajne.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Upravljanje članovima</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Detaljni profili članova sa ličnim podacima, kontaktima, planinarskim dokumentima,
+                  disciplinskim merama i izborima u organe.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Više uloga (admin, sekretar, vodič, blagajnik, član) – svako vidi ono što mu je potrebno.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Akcije i zadaci</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Kreiranje, uređivanje i praćenje planinarskih akcija, prijave članova i zadaci za vodiče
+                  i organizatore.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Jasan pregled prošlih akcija, istorije prisustva i angažmana članova.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Finansije (admin i blagajnik)</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Evidencija uplata i isplata, povezivanje sa članovima ili akcijama i pregled istorije plaćanja.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Transparentan rad blagajnika i lakše pravdanje finansija prema upravnom odboru.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Obaveštenja u realnom vremenu</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Interni sistem notifikacija za akcije, uplate, zadatke i važna saopštenja.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Admin jednim klikom šalje obaveštenje svim članovima ili ciljanim grupama.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Zaštita pristupa (role-based)</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Posebne rute i prava za admina, sekretara, vodiča, blagajnika i člana.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Sistem je siguran i kontrolisan – svako ima pristup samo onome što mu je zaista potrebno.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
+                <h3 className="text-sm font-semibold mb-2">Centralni login i web pristup</h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Jedan sistem – svi članovi i saradnici na istom mestu.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Kako funkcioniše */}
+        <section id="how-it-works" className="py-16 sm:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše na vrhu</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+                Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-4">
+              {[
+                {
+                  title: 'Kreiramo administratora i strukturu',
+                  text: 'Zajedno postavljamo prvog admina, osnovne postavke društva i interne uloge.',
+                  step: '01',
+                },
+                {
+                  title: 'Unos postojećih članova',
+                  text: 'Pomažemo kod migracije sa papira i Excela – uvoz postojećih podataka.',
+                  step: '02',
+                },
+                {
+                  title: 'Planiranje akcija i zadataka',
+                  text: 'Vodiči i admini prave nove akcije, zadatke i rasporede u sistemu.',
+                  step: '03',
+                },
+                {
+                  title: 'Dnevni rad preko navrhu',
+                  text: 'Članovi se prijavljuju, dobijaju obaveštenja, blagajnik prati uplate, rukovodstvo ima uvid.',
+                  step: '04',
+                },
+              ].map(({ title, text, step }) => (
+                <div
+                  key={step}
+                  className="relative rounded-2xl border border-gray-100 p-5 shadow-sm bg-white"
+                >
+                  <div className="absolute -top-3 left-4 inline-flex items-center justify-center h-7 px-3 rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-800">
+                    Korak {step}
+                  </div>
+                  <h3 className="mt-3 mb-2 text-sm font-semibold">{title}</h3>
+                  <p className="text-xs text-gray-600">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Komunitet i podrška */}
+        <section className="py-16 sm:py-20 bg-slate-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)] items-center">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera – partner za društvo</h2>
+                <p className="text-sm sm:text-base text-gray-600 mb-6">
+                  na vrhu razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
+                  je da vam damo više vremena na stazi, a manje za stolom.
+                </p>
+
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
+                    <p className="text-xs text-gray-600">
+                      Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
+                    <p className="text-xs text-gray-600">
+                      E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
+                    <p className="text-xs text-gray-600">
+                      Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slika / tim placeholder */}
+              <div className="relative">
+                <div className="rounded-3xl bg-white border border-slate-100 shadow-md p-6 sm:p-8">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                    Slika tima (placeholder)
+                  </p>
+                  <p className="text-xs text-gray-600 mb-4">
+                    Ovdje ubaciti fotografiju ili ilustraciju tima, ili screenshot online sastanka sa planinarskim
+                    društvom – da komunikacija deluje lično i poverljivo.
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-3 text-[11px]">
+                    <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
+                      <p className="font-semibold text-emerald-800 mb-1">Lokalna podrška</p>
+                      <p className="text-emerald-900/90">Na jeziku kojim vaši članovi govore.</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                      <p className="font-semibold text-slate-800 mb-1">Sigurnost</p>
+                      <p className="text-slate-900/90">Redovne sigurnosne nadogradnje.</p>
+                    </div>
+                    <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-3">
+                      <p className="font-semibold text-yellow-900 mb-1">Community</p>
+                      <p className="text-yellow-900/90">Mreža društava na istom sistemu.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Brojevi i benefiti */}
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+                Jasne, merljive koristi koje vaše društvo dobija prelaskom na na vrhu.
+              </p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-center">
+                <p className="text-xs font-semibold text-emerald-800 mb-1">Ušteda vremena</p>
+                <p className="text-2xl font-extrabold text-emerald-700 mb-1">200+</p>
+                <p className="text-[11px] text-emerald-900/80">sati godišnje manje na administraciji</p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
+                <p className="text-xs font-semibold text-slate-800 mb-1">Manje grešaka</p>
+                <p className="text-2xl font-extrabold text-slate-800 mb-1">↓</p>
+                <p className="text-[11px] text-slate-900/80">
+                  preciznija evidencija članova, uplata i prisustva
+                </p>
+              </div>
+              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4 text-center">
+                <p className="text-xs font-semibold text-yellow-900 mb-1">Brža komunikacija</p>
+                <p className="text-2xl font-extrabold text-yellow-900 mb-1">x3</p>
+                <p className="text-[11px] text-yellow-900/90">
+                  sve informacije i obaveštenja na jednom mestu
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-center">
+                <p className="text-xs font-semibold text-emerald-800 mb-1">Transparentnost</p>
+                <p className="text-2xl font-extrabold text-emerald-700 mb-1">100%</p>
+                <p className="text-[11px] text-emerald-900/80">
+                  bolji pregled rada rukovodstva i blagajne
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Za koga je */}
+        <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je na vrhu</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
+                Jedna aplikacija, različiti pogledi – svaka uloga u društvu dobija jasne benefite.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
+                <p className="text-xs font-semibold text-emerald-700 mb-1">Predsednik društva</p>
+                <p className="text-sm font-semibold mb-2">
+                  Sve na jednom mestu, bez iznenađenja.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Jasan pregled članova, akcija, finansija i obaveštenja. Manji rizik, manje haosa.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
+                <p className="text-xs font-semibold text-emerald-700 mb-1">Sekretar</p>
+                <p className="text-sm font-semibold mb-2">
+                  Manje papira, više reda.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke, manje manuelnog rada.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
+                <p className="text-xs font-semibold text-emerald-700 mb-1">Vodič</p>
+                <p className="text-sm font-semibold mb-2">
+                  Jasne prijave i komunikacija.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
+                <p className="text-xs font-semibold text-emerald-700 mb-1">Blagajnik</p>
+                <p className="text-sm font-semibold mb-2">
+                  Čista evidencija finansija.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Jasna evidencija uplata i isplata, lakše pravdanje finansija pred članovima i upravom.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* UI preview */}
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Pogled u interfejs</h2>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                  UI mockup (placeholder)
+                </p>
+                <p className="text-xs text-gray-600 mb-4">
+                  Ovdje ubaciti mockup interfejsa – dashboard sa listom akcija, obaveštenjima sa strane, menijem za
+                  finansije i korisnike.
+                </p>
+                <div className="h-40 rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[11px] text-gray-500">
+                  Veliki screenshot dashboard-a (placeholder)
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
+                    Mobilni prikaz
+                  </div>
+                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
+                    Tablet prikaz
+                  </div>
+                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
+                    Detalji akcije
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA pri dnu */}
+        <section id="cta" className="py-16 sm:py-20 bg-gradient-to-br from-emerald-700 via-emerald-800 to-slate-900 text-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+              Spremni da svom društvu vratite vrijeme, a sebi mir?
+            </h2>
+            <p className="text-sm sm:text-base text-emerald-50 mb-8">
+              Pokažemo vam na vrhu u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
+              može da olakša rad.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center mb-4">
+              <a
+                href="mailto:info@navrhu.app?subject=Prezentacija%20za%20na%20vrhu&body=Pozdrav%2C%0A%0Aželeli%20bismo%20da%20zakažemo%20prezentaciju%20za%20na%20vrhu%20za%20naše%20planinarsko%20društvo.%0A%0AIme%20društva%3A%0AKontakt%20osoba%3A%0ATermin%20koji%20vam%20odgovara%3A%0A%0AHvala!"
+                className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
+              >
+                Zakaži prezentaciju
+              </a>
+              <a
+                href="mailto:info@navrhu.app?subject=Upit%20za%20na%20vrhu"
+                className="inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
+              >
+                Pošalji upit
+              </a>
+            </div>
+            <p className="text-[11px] text-emerald-100/80">
+              Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-slate-900 text-slate-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-xs text-slate-300 text-center sm:text-left">
+            Adri Sentinel – za planinarska društva koja žele više vremena na stazi, a manje za stolom.
+          </div>
+          <div className="flex flex-wrap gap-4 text-[11px] text-slate-400 justify-center sm:justify-end">
+            <a href="#hero" className="hover:text-white transition-colors">
+              O nama
+            </a>
+            <a href="#features" className="hover:text-white transition-colors">
+              Funkcionalnosti
+            </a>
+            <a href="#cta" className="hover:text-white transition-colors">
+              Kontakt
+            </a>
+            <span className="text-slate-500">•</span>
+            <button
+              type="button"
+              className="hover:text-white transition-colors"
+            >
+              Politika privatnosti
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+

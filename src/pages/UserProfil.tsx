@@ -151,12 +151,9 @@ export default function UserProfile() {
         isOwnProfile={!!isOwnProfile}
         currentUser={currentUser}
         onPrintClick={() => korisnik && generateMemberPdf(korisnik as unknown as MemberPdfData)}
-      >
+      />
 
-      </ProfileActionButtons>
-
-
-      <div className="bg-white rounded-2xl shadow-xl pt-10 px-8 pb-12">
+      <div className="bg-white rounded-2xl shadow-xl pt-10 px-4 sm:px-8 pb-12 -mt-4 sm:mt-2 -mx-2 sm:mx-0">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Avatar ili slika profila */}

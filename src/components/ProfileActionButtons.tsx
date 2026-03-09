@@ -32,7 +32,7 @@ export default function ProfileActionButtons({
   const showPrint = currentUser && canSeeProfileActions && onPrintClick
 
   return (
-    <div className="absolute top-2 right-4 md:top-6 md:right-12 z-10 flex items-center gap-2 flex-wrap">
+    <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-10 flex items-center gap-2 flex-wrap">
       {showSettings && <ProfileSettingsButton to={settingsLink} />}
       {showInfo && <ProfileInfoButton to={infoLink} />}
       {showPrint && <ProfilePrintButton onClick={onPrintClick} />}
