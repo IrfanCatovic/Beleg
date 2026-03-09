@@ -12,7 +12,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20 lg:pt-12 lg:pb-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
           <nav className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 sm:mb-10">
             <div className="flex items-center justify-between gap-3">
               <div className="h-9 w-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md">
@@ -47,72 +47,72 @@ export default function Landing() {
             </div>
           </nav>
 
-          <div className="space-y-8">
-            {/* Naslov levo, slika desno */}
-            <div className="grid gap-6 md:gap-8 lg:grid-cols-[minmax(0,1.2fr),minmax(0,1fr)] items-center">
-              <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
-                  na vrhu –{' '}
+          <div className="space-y-10">
+            {/* Naslov + opis + CTA (levo) i slika (desno) */}
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-10">
+              {/* Leva kolona: tekst */}
+              <div className="flex-[1.1] flex flex-col items-start gap-4">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug max-w-2xl">
+                  Na vrhu{' '}
                   <span style={{ color: '#41ac53' }}>
                     digitalno srce tvog planinarskog društva
                   </span>
                 </h1>
+
+                <p className="text-base sm:text-lg text-gray-700 max-w-2xl">
+                  Upravljanje članovima, akcijama, finansijama i obaveštenjima na jednom mestu.
+                  Uštedi i preko <span className="font-semibold text-emerald-700">200 sati godišnje</span> na
+                  formularima, ručnom prepisivanju i haosu u tabelama.
+                </p>
+
+                <p className="text-sm text-gray-600 max-w-xl">
+                  Za predsednike, sekretare, vodiče i blagajnike koji žele manje administracije, a više vremena na stazi.
+                </p>
+
+                <div className="flex flex-wrap gap-4 items-center">
+                  <a
+                    href="#cta"
+                    className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all"
+                    style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
+                  >
+                    Zakaži prezentaciju
+                  </a>
+                  <a
+                    href="#how-it-works"
+                    className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-gray-300 text-gray-800 hover:border-emerald-500 hover:text-emerald-700 transition-all bg-white/70 backdrop-blur"
+                  >
+                    Pogledaj kako radi
+                  </a>
+                </div>
+
+                <p className="text-xs sm:text-sm text-gray-500">
+                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako na vrhu rešava vaše svakodnevne glavobolje.
+                </p>
               </div>
 
-              {/* Hero image */}
-              <div className="relative flex justify-center lg:justify-end">
-                <div className="relative max-w-sm sm:max-w-md">
-                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-100 opacity-60" />
-                  <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-yellow-100 opacity-70" />
+              {/* Desna kolona: slika */}
+              <div className="flex-[0.9] flex justify-center lg:justify-end">
+                <div className="max-w-sm sm:max-w-md">
                   <img
                     src={heroImage}
                     alt="na vrhu – prikaz aplikacije na laptopu i telefonu"
-                    className="relative rounded-3xl shadow-2xl w-full h-auto object-contain"
+                    className="rounded-3xl w-full h-auto object-contain"
                   />
                 </div>
               </div>
             </div>
-
-            {/* Opis ispod naslova i slike */}
-            <div className="max-w-2xl">
-              <p className="text-lg sm:text-xl text-gray-700">
-                Upravljanje članovima, akcijama, finansijama i obaveštenjima na jednom mestu.
-                Uštedi i preko <span className="font-semibold text-emerald-700">200 sati godišnje</span> na
-                formularima, ručnom prepisivanju i haosu u tabelama.
-              </p>
-            </div>
-
-            <p className="text-sm text-gray-600 max-w-xl">
-              Za predsednike, sekretare, vodiče i blagajnike koji žele manje administracije, a više vremena na stazi.
-            </p>
-
-            <div className="flex flex-wrap gap-4 items-center">
-              <a
-                href="#cta"
-                className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all"
-                style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
-              >
-                Zakaži prezentaciju
-              </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-gray-300 text-gray-800 hover:border-emerald-500 hover:text-emerald-700 transition-all bg-white/70 backdrop-blur"
-              >
-                Pogledaj kako radi
-              </a>
-            </div>
-
-            <p className="text-xs sm:text-sm text-gray-500">
-              Bez obaveze i bez pritiska – za 30 minuta pokazujemo kako navrhu rešava vaše svakodnevne glavobolje.
-            </p>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
         {/* Problemi -> Rešenja */}
-        <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-16 sm:py-20 bg-white relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 opacity-40">
+            <div className="absolute -left-32 top-10 h-64 w-64 rounded-full bg-emerald-50" />
+            <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-yellow-50" />
+          </div>
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -127,7 +127,7 @@ export default function Landing() {
                   Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama – niko nema kompletnu sliku.
+                  Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
@@ -149,8 +149,8 @@ export default function Landing() {
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
                   <p className="text-xs text-gray-600">
-                    Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja – svaki ulogovani vidi ono što
-                    mu treba; vodiči, admini i blagajnici imaju posebna ovlašćenja.
+                    Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
+                    mu treba. Vodiči, admini i blagajnici imaju posebna ovlašćenja.
                   </p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function Landing() {
                   Administracija troši sate i dane godišnje.
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji – sve se radi od nule.
+                  Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji, sve se radi od nule.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
@@ -176,8 +176,12 @@ export default function Landing() {
         </section>
 
         {/* Ključne funkcionalnosti */}
-        <section id="features" className="py-16 sm:py-20 bg-emerald-50/60">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="features" className="py-16 sm:py-20 bg-emerald-50/60 relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 opacity-50">
+            <div className="absolute -right-24 -top-10 h-56 w-56 rounded-full bg-white/60" />
+            <div className="absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-emerald-100/70" />
+          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
@@ -253,7 +257,7 @@ export default function Landing() {
 
         {/* Kako funkcioniše */}
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše na vrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -301,7 +305,7 @@ export default function Landing() {
 
         {/* Komunitet i podrška */}
         <section className="py-16 sm:py-20 bg-slate-50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)] items-center">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera – partner za društvo</h2>
@@ -363,8 +367,12 @@ export default function Landing() {
         </section>
 
         {/* Brojevi i benefiti */}
-        <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-16 sm:py-20 bg-white relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 opacity-40">
+            <div className="absolute -left-28 top-16 h-52 w-52 rounded-full bg-emerald-50" />
+            <div className="absolute -right-24 bottom-10 h-60 w-60 rounded-full bg-slate-50" />
+          </div>
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -405,7 +413,7 @@ export default function Landing() {
 
         {/* Za koga je */}
         <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je na vrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
