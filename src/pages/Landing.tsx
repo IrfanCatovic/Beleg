@@ -2,6 +2,45 @@ import { Link } from 'react-router-dom'
 
 import heroImage from '../../public/hero.png'
 
+function IconCheck(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4 text-emerald-600"
+      {...props}
+    >
+      <path
+        d="M20 7L10 17L4 11"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconSparkles(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4 text-yellow-500"
+      {...props}
+    >
+      <path
+        d="M5 3L6.5 7.5L11 9L6.5 10.5L5 15L3.5 10.5L-1 9L3.5 7.5L5 3Z"
+        transform="translate(8 1)"
+        fill="currentColor"
+      />
+      <circle cx="6" cy="6" r="1" fill="currentColor" />
+      <circle cx="18" cy="8" r="1.2" fill="currentColor" />
+    </svg>
+  )
+}
+
 export default function Landing() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
@@ -13,36 +52,40 @@ export default function Landing() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
-          <nav className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 sm:mb-10">
-            <div className="flex items-center justify-between gap-3">
-              <div className="h-9 w-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md">
+          <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
+            {/* Logo + naziv */}
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/40">
                 <span className="text-white font-bold text-xl">n</span>
               </div>
-              <div>
-                <p className="text-lg font-semibold tracking-tight" style={{ color: '#1f2933' }}>
+              <div className="leading-tight">
+                <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
                   na vrhu
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-[10px] sm:text-xs text-gray-500">
                   Digitalno srce planinarskog društva
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 text-sm">
-              <a href="#features" className="text-gray-700 hover:text-emerald-700 transition-colors">
-                Funkcionalnosti
-              </a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-emerald-700 transition-colors">
-                Kako funkcioniše
-              </a>
-              <a href="#for-whom" className="text-gray-700 hover:text-emerald-700 transition-colors">
-                Za koga
-              </a>
+            {/* Linkovi + CTA */}
+            <div className="flex items-center gap-3 text-xs sm:text-sm">
+              <div className="hidden sm:flex items-center gap-3 pr-3 border-r border-emerald-100/70">
+                <a href="#features" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                  Funkcionalnosti
+                </a>
+                <a href="#how-it-works" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                  Kako funkcioniše
+                </a>
+                <a href="#for-whom" className="text-gray-700 hover:text-emerald-700 transition-colors">
+                  Za koga je
+                </a>
+              </div>
               <Link
                 to="/navrhu"
-                className="inline-flex items-center rounded-full border border-emerald-600 px-4 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+                className="inline-flex items-center rounded-full bg-emerald-600 px-4 sm:px-5 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-emerald-500/40 transition-colors hover:bg-emerald-700"
               >
-                Prijava u aplikaciju
+                Prijavi se
               </Link>
             </div>
           </nav>
@@ -53,7 +96,7 @@ export default function Landing() {
               {/* Leva kolona: tekst */}
               <div className="flex-[1.1] flex flex-col items-start gap-4">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug max-w-2xl">
-                  Na vrhu{' '}
+                  NaVrhu{' '}
                   <span style={{ color: '#41ac53' }}>
                     digitalno srce tvog planinarskog društva
                   </span>
@@ -86,7 +129,7 @@ export default function Landing() {
                 </div>
 
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako na vrhu rešava vaše svakodnevne glavobolje.
+                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako NaVrhu rešava vaše svakodnevne glavobolje.
                 </p>
               </div>
 
@@ -130,7 +173,7 @@ export default function Landing() {
                   Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
                   <p className="text-xs text-gray-600">
                     Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
                     (legitimacije, markice, disciplinske mere, izbor u organe).
@@ -147,7 +190,7 @@ export default function Landing() {
                   Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
                   <p className="text-xs text-gray-600">
                     Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
                     mu treba. Vodiči, admini i blagajnici imaju posebna ovlašćenja.
@@ -164,11 +207,101 @@ export default function Landing() {
                   Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji, sve se radi od nule.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u na vrhu</p>
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
                   <p className="text-xs text-gray-600">
                     Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
                     ušteda preko <span className="font-semibold">200 sati godišnje</span>.
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Ranking i mini takmičenja */}
+        <section className="py-16 sm:py-20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+            <div className="flex flex-col gap-10">
+              <div className="max-w-3xl">
+                <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 mb-3">
+                  <IconSparkles className="h-3.5 w-3.5 text-emerald-300" />
+                  Ranking i mini takmičenja
+                </p>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+                  Pretvorite svaku akciju u mali izazov
+                </h2>
+                <p className="text-sm sm:text-base text-slate-200 mb-4 max-w-xl">
+                  NaVrhu vodi detaljnu statistiku za svakog člana nakon uspešne akcije, broj pređenih kilometara,
+                  ukupni uspon i osvojen rank. Društvo dobija motivacioni sistem koji nagrađuje aktivnost, a članovi
+                  jasnu sliku o svom napretku.
+                </p>
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-200">
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
+                    <span>
+                      Personalizovani ranking za svakog člana na osnovu učestvovanja na akcijama i pređene kilometraže.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
+                    <span>
+                      Beleženje ključnih metrika posle svake akcije: broj kilometara, ukupan uspon, broj dana na terenu.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
+                    <span>
+                      Unutrašnja mini takmičenja po sezoni ili godini, ko je najaktivniji, ko je skupio najviše uspona.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
+                    <span>
+                      Deljenje profila na društvenim mrežama, članovi mogu da pokažu svoj planinarski CV
+                      prijateljima i zajednici.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Vizuelni preview rankinga široka kartica ispod teksta */}
+              <div className="flex justify-center">
+                <div className="w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-slate-900/60 p-4 sm:p-5 shadow-2xl shadow-black/40">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Profil člana</p>
+                      <p className="text-sm font-semibold text-slate-50">Pera Perić</p>
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
+                      Rank: Legenda stijena
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                    <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
+                      <p className="text-[10px] text-slate-400 mb-1">Ukupno km</p>
+                      <p className="text-sm font-semibold text-slate-50">182</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
+                      <p className="text-[10px] text-slate-400 mb-1">Ukupan uspon</p>
+                      <p className="text-sm font-semibold text-slate-50">6 450 m</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
+                      <p className="text-[10px] text-slate-400 mb-1">Akcije</p>
+                      <p className="text-sm font-semibold text-slate-50">24</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-800/80 px-3 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] text-slate-400">Mini takmičenje, prolećna sezona</p>
+                      <p className="text-xs text-slate-100">Trenutni plasman: 3. mesto u društvu</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ml-3 inline-flex items-center rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-emerald-400 transition-colors"
+                    >
+                      Podeli profil
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -259,7 +392,7 @@ export default function Landing() {
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše na vrhu</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše NaVrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
                 Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.
               </p>
@@ -308,9 +441,9 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)] items-center">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera – partner za društvo</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera - partner za društvo</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
-                  na vrhu razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
+                  NaVrhu razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
                   je da vam damo više vremena na stazi, a manje za stolom.
                 </p>
 
@@ -376,7 +509,7 @@ export default function Landing() {
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Jasne, merljive koristi koje vaše društvo dobija prelaskom na na vrhu.
+                Jasne, merljive koristi koje vaše društvo dobija prelaskom na NaVrhu.
               </p>
             </div>
 
@@ -415,7 +548,7 @@ export default function Landing() {
         <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je na vrhu</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je NaVrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
                 Jedna aplikacija, različiti pogledi – svaka uloga u društvu dobija jasne benefite.
               </p>
@@ -504,18 +637,18 @@ export default function Landing() {
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam na vrhu u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
+              Pokažemo vam NaVrhu u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
               može da olakša rad.
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-4">
               <a
-                href="mailto:info@navrhu.app?subject=Prezentacija%20za%20na%20vrhu&body=Pozdrav%2C%0A%0Aželeli%20bismo%20da%20zakažemo%20prezentaciju%20za%20na%20vrhu%20za%20naše%20planinarsko%20društvo.%0A%0AIme%20društva%3A%0AKontakt%20osoba%3A%0ATermin%20koji%20vam%20odgovara%3A%0A%0AHvala!"
+                href="mailto:catovicc84@gmail.com?subject=Prezentacija%20za%20na%20vrhu&body=Pozdrav%2C%0A%0Aželeli%20bismo%20da%20zakažemo%20prezentaciju%20za%20na%20vrhu%20za%20naše%20planinarsko%20društvo.%0A%0AIme%20društva%3A%0AKontakt%20osoba%3A%0ATermin%20koji%20vam%20odgovara%3A%0A%0AHvala!"
                 className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
               >
                 Zakaži prezentaciju
               </a>
               <a
-                href="mailto:info@navrhu.app?subject=Upit%20za%20na%20vrhu"
+                href="mailto:catovicc84@gmail.com?subject=Upit%20za%20na%20vrhu"
                 className="inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
               >
                 Pošalji upit
