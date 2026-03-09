@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import heroImage from '../../public/hero.png'
+import teamImage from '../../public/team.jpg'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -60,7 +61,7 @@ export default function Landing() {
               </div>
               <div className="leading-tight">
                 <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
-                  na vrhu
+                  NaVrhu
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-500">
                   Digitalno srce planinarskog društva
@@ -221,8 +222,9 @@ export default function Landing() {
         {/* Ranking i mini takmičenja */}
         <section className="py-16 sm:py-20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
-            <div className="flex flex-col gap-10">
-              <div className="max-w-3xl">
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
+              {/* Tekst levo */}
+              <div className="flex-[1.1] max-w-3xl">
                 <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 mb-3">
                   <IconSparkles className="h-3.5 w-3.5 text-emerald-300" />
                   Ranking i mini takmičenja
@@ -264,9 +266,9 @@ export default function Landing() {
                 </ul>
               </div>
 
-              {/* Vizuelni preview rankinga široka kartica ispod teksta */}
-              <div className="flex justify-center">
-                <div className="w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-slate-900/60 p-4 sm:p-5 shadow-2xl shadow-black/40">
+              {/* Kartica profila desno (hero slaganje) */}
+              <div className="flex-[0.9] flex justify-center lg:justify-end">
+                <div className="w-full max-w-sm md:max-w-md rounded-3xl border border-emerald-500/20 bg-slate-900/60 p-4 sm:p-5 shadow-2xl shadow-black/40">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Profil člana</p>
@@ -330,7 +332,7 @@ export default function Landing() {
                   disciplinskim merama i izborima u organe.
                 </p>
                 <p className="text-xs text-gray-500">
-                  Više uloga (admin, sekretar, vodič, blagajnik, član) – svako vidi ono što mu je potrebno.
+                  Više uloga (admin, sekretar, vodič, blagajnik, član) svako vidi ono što mu je potrebno.
                 </p>
               </div>
 
@@ -341,7 +343,7 @@ export default function Landing() {
                   i organizatore.
                 </p>
                 <p className="text-xs text-gray-500">
-                  Jasan pregled prošlih akcija, istorije prisustva i angažmana članova.
+                  Jasan pregled aktivnih iprošlih akcija, istorije prisustva i angažmana članova.
                 </p>
               </div>
 
@@ -366,22 +368,23 @@ export default function Landing() {
               </div>
 
               <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Zaštita pristupa (role-based)</h3>
+                <h3 className="text-sm font-semibold mb-2">Automatski PDF izveštaji</h3>
                 <p className="text-xs text-gray-600 mb-3">
-                  Posebne rute i prava za admina, sekretara, vodiča, blagajnika i člana.
+                  NaVrhu za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
                 </p>
                 <p className="text-xs text-gray-500">
-                  Sistem je siguran i kontrolisan – svako ima pristup samo onome što mu je zaista potrebno.
+                  Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
+                  finansijski izveštaji nastaju iz sistema jednim klikom, bez dodatnog kucanja i prepisivanja.
                 </p>
               </div>
 
               <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
                 <h3 className="text-sm font-semibold mb-2">Centralni login i web pristup</h3>
                 <p className="text-xs text-gray-600 mb-3">
-                  Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona.
-                </p>
+                  Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona uz podršku tima developera.
+,                </p>
                 <p className="text-xs text-gray-500">
-                  Jedan sistem – svi članovi i saradnici na istom mestu.
+                  Jedan sistem, svi članovi i saradnici na istom mestu.
                 </p>
               </div>
             </div>
@@ -407,7 +410,7 @@ export default function Landing() {
                 },
                 {
                   title: 'Unos postojećih članova',
-                  text: 'Pomažemo kod migracije sa papira i Excela – uvoz postojećih podataka.',
+                  text: 'Pomažemo kod migracije sa papira unosa već postojećih korisnika, pružamo podršku za unos u sistem.',
                   step: '02',
                 },
                 {
@@ -439,8 +442,9 @@ export default function Landing() {
         {/* Komunitet i podrška */}
         <section className="py-16 sm:py-20 bg-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)] items-center">
-              <div>
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
+              {/* Tekst levo */}
+              <div className="flex-[1.1]">
                 <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera - partner za društvo</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
                   NaVrhu razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
@@ -451,48 +455,35 @@ export default function Landing() {
                   <div>
                     <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
                     <p className="text-xs text-gray-600">
-                      Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena.
+                      Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena, uz
+                      brz odaziv na prijavljene bagove i probleme u radu.
                     </p>
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
                     <p className="text-xs text-gray-600">
-                      E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja.
+                      E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja, sa
+                      fokusom na brz response time i jasne, konkretne odgovore.
                     </p>
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
                     <p className="text-xs text-gray-600">
-                      Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije.
+                      Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije,
+                      a naše izdanje prati realne potrebe i predloge iz te zajednice.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Slika / tim placeholder */}
-              <div className="relative">
-                <div className="rounded-3xl bg-white border border-slate-100 shadow-md p-6 sm:p-8">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                    Slika tima (placeholder)
-                  </p>
-                  <p className="text-xs text-gray-600 mb-4">
-                    Ovdje ubaciti fotografiju ili ilustraciju tima, ili screenshot online sastanka sa planinarskim
-                    društvom – da komunikacija deluje lično i poverljivo.
-                  </p>
-                  <div className="mt-2 grid grid-cols-3 gap-3 text-[11px]">
-                    <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
-                      <p className="font-semibold text-emerald-800 mb-1">Lokalna podrška</p>
-                      <p className="text-emerald-900/90">Na jeziku kojim vaši članovi govore.</p>
-                    </div>
-                    <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                      <p className="font-semibold text-slate-800 mb-1">Sigurnost</p>
-                      <p className="text-slate-900/90">Redovne sigurnosne nadogradnje.</p>
-                    </div>
-                    <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-3">
-                      <p className="font-semibold text-yellow-900 mb-1">Community</p>
-                      <p className="text-yellow-900/90">Mreža društava na istom sistemu.</p>
-                    </div>
-                  </div>
+              {/* Slika tima desno */}
+              <div className="flex-[0.9] flex justify-center lg:justify-end">
+                <div className="w-full max-w-sm rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
+                  <img
+                    src={teamImage}
+                    alt="Tim na vrhu u online sastanku sa planinarskim društvom"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </div>
