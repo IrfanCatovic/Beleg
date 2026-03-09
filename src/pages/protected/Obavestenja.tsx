@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import { formatRelativeTime, formatDateTime } from '../utils/dateUtils'
+import { useAuth } from '../../context/AuthContext'
+import api from '../../services/api'
+import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
 
 interface ObavestenjeItem {
   id: number

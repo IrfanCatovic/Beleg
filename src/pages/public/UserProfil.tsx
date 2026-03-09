@@ -1,13 +1,13 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api from '../services/api'
-import { useAuth } from '../context/AuthContext'
-import ProfileActionButtons from '../components/ProfileActionButtons'
-import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
-import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
-import { formatDate, formatDateShort } from '../utils/dateUtils'
-import { useRanking } from '../hooks/useRanking'
-import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../utils/rankingUtils'
+import api from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
+import ProfileActionButtons from '../../components/ProfileActionButtons'
+import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
+import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
+import { formatDate, formatDateShort } from '../../utils/dateUtils'
+import { useRanking } from '../../hooks/useRanking'
+import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 
 interface UspesnaAkcija {
   id: number

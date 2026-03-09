@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
-import BackButton from '../components/BackButton'
-import Dropdown from '../components/Dropdown'
-import CalendarDropdown from '../components/CalendarDropdown'
+import BackButton from '../../../components/BackButton'
+import Dropdown from '../../../components/Dropdown'
+import CalendarDropdown from '../../../components/CalendarDropdown'
 
 interface Korisnik {
   id: number

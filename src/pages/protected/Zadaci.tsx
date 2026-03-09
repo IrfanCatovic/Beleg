@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import Loader from '../components/Loader'
-import { formatDateShort } from '../utils/dateUtils'
-import { getRoleLabel } from '../utils/roleUtils'
-import NewTaskModal, { type Role } from '../components/NewTaskModal'
-import EditTaskModal, { type TaskForEdit } from '../components/EditTaskModal'
+import { useAuth } from '../../context/AuthContext'
+import api from '../../services/api'
+import Loader from '../../components/Loader'
+import { formatDateShort } from '../../utils/dateUtils'
+import { getRoleLabel } from '../../utils/roleUtils'
+import NewTaskModal, { type Role } from '../../components/NewTaskModal'
+import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
 
 interface TaskAssignee {
   username: string

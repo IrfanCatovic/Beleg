@@ -1,4 +1,4 @@
-import MarketingNavbar from '../components/MarketingNavbar'
+import MarketingNavbar from '../../components/MarketingNavbar'
 
 export default function Kontakt() {
   return (

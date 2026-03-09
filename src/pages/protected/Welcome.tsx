@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api from '../services/api'
-import Loader from '../components/Loader'
+import api from '../../services/api'
+import Loader from '../../components/Loader'
 
 export default function Welcome() {
   const navigate = useNavigate()

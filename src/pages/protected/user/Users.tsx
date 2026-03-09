@@ -1,13 +1,13 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../services/api'
+import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
-import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
-import { formatDate } from '../utils/dateUtils'
-import Loader from '../components/Loader'
-import { computeRank, formatRankDisplayName } from '../utils/rankingUtils'
+import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
+import { formatDate } from '../../../utils/dateUtils'
+import Loader from '../../../components/Loader'
+import { computeRank, formatRankDisplayName } from '../../../utils/rankingUtils'
 
 interface Korisnik {
   id: number

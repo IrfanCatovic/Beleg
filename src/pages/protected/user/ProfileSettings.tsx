@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import Dropdown from '../components/Dropdown'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../services/api'
+import Dropdown from '../../../components/Dropdown'
 
 const dateOnly = (s: string | undefined): string => {
   if (!s) return ''

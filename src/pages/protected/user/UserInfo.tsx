@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api from '../services/api'
-import { useAuth } from '../context/AuthContext'
-import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
-import BackButton from '../components/BackButton'
-import { formatDate } from '../utils/dateUtils'
+import api from '../../../services/api'
+import { useAuth } from '../../../context/AuthContext'
+import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
+import BackButton from '../../../components/BackButton'
+import { formatDate } from '../../../utils/dateUtils'
 
 interface KorisnikInfo {
   id: number

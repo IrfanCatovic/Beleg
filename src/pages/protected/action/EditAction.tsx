@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../services/api'
 import { useNavigate, useParams } from 'react-router-dom'
-import BackButton from '../components/BackButton'
-import Dropdown from '../components/Dropdown'
+import BackButton from '../../../components/BackButton'
+import Dropdown from '../../../components/Dropdown'
 
 interface Korisnik {
   id: number

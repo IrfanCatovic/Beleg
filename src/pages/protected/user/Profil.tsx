@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import { getRoleLabel, getRoleStyle } from '../utils/roleUtils'
-import ProfileActionButtons from '../components/ProfileActionButtons'
-import { generateMemberPdf, type MemberPdfData } from '../utils/generateMemberPdf'
-import { formatDate, formatDateShort } from '../utils/dateUtils'
-import { useRanking } from '../hooks/useRanking'
-import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../utils/rankingUtils'
-import Loader from '../components/Loader'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../services/api'
+import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
+import ProfileActionButtons from '../../../components/ProfileActionButtons'
+import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
+import { formatDate, formatDateShort } from '../../../utils/dateUtils'
+import { useRanking } from '../../../hooks/useRanking'
+import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../../utils/rankingUtils'
+import Loader from '../../../components/Loader'
 
 interface UspesnaAkcija {
   id: number

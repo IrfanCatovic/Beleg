@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import MarketingNavbar from '../components/MarketingNavbar'
+import MarketingNavbar from '../../components/MarketingNavbar'
 
 const EMAIL = 'catovicc84@gmail.com'
 const EUR_TO_RSD = 117

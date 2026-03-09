@@ -1,10 +1,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
-import { formatDateShort } from '../utils/dateUtils'
-import Loader from '../components/Loader'
+import { useAuth } from '../../context/AuthContext'
+import api from '../../services/api'
+import { formatDateShort } from '../../utils/dateUtils'
+import Loader from '../../components/Loader'
 
 interface Akcija {
   id: number

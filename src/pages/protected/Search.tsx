@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import GlobalSearchPanel from '../components/GlobalSearchPanel'
+import { useAuth } from '../../context/AuthContext'
+import GlobalSearchPanel from '../../components/GlobalSearchPanel'
 
 export default function Search() {
   const { isLoggedIn, user } = useAuth()

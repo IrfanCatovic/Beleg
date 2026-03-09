@@ -1,9 +1,8 @@
-// src/pages/RegisterUser.tsx
-import { useState } from 'react'
+// src/pages/RegisterAdmin.tsx
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
-import { useAuth } from '../context/AuthContext'
-import Dropdown from '../components/Dropdown'
+import api from '../../../services/api'
+import Dropdown from '../../../components/Dropdown'
 
 const initialForm = {
   username: '',
@@ -23,17 +22,32 @@ const initialForm = {
   izreceneDisciplinskeKazne: '',
   izborUOrganeSportskogUdruzenja: '',
   napomene: '',
-  role: '',
 }
 
-export default function RegisterUser() {
-  const { user } = useAuth()
+export default function RegisterAdmin() {
   const navigate = useNavigate()
   const [form, setForm] = useState(initialForm)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        const res = await api.get('/api/setup/status')
+        if (res.data.hasUsers) {
+          navigate('/', { replace: true })
+        }
+      } catch (err) {
+        console.error('Greška pri proveri statusa', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    checkSetup()
+  }, [navigate])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -61,15 +75,11 @@ export default function RegisterUser() {
     e.preventDefault()
     setError('')
     setSuccess(false)
-    if (!form.role.trim()) {
-      setError('Izaberite ulogu.')
-      return
-    }
+
     try {
       const formData = new FormData()
       formData.append('username', form.username.trim())
       formData.append('password', form.password)
-      formData.append('role', form.role)
 
       // Opciona polja – dodaj samo ako nisu prazna
       const optional: (keyof typeof form)[] = [
@@ -79,19 +89,20 @@ export default function RegisterUser() {
         'izreceneDisciplinskeKazne', 'izborUOrganeSportskogUdruzenja', 'napomene',
       ]
       optional.forEach((key) => {
-        if (key === 'role') return
         const val = form[key]?.trim()
         if (val) formData.append(key, val)
       })
 
       if (avatarFile) formData.append('avatar', avatarFile)
 
-      await api.post('/api/register', formData)
+      await api.post('/api/setup/admin', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
 
       setSuccess(true)
-      setTimeout(() => navigate('/users', { replace: true }), 2000)
+      setTimeout(() => navigate('/', { replace: true }), 2000)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri kreiranju korisnika')
+      setError(err.response?.data?.error || 'Greška pri kreiranju administratora')
     }
   }
 
@@ -100,20 +111,24 @@ export default function RegisterUser() {
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
   const sectionClass = 'space-y-4'
 
-  const roleOptions = user?.role === 'admin'
-    ? ['admin', 'clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme']
-    : ['clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme']
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">Proveravam stanje aplikacije...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
       <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-emerald-100">
         <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-          Registracija novog člana
+          Kreiranje prvog administratora
         </h2>
 
         {success && (
           <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
-            Član uspešno registrovan! Preusmeravam...
+            Administrator uspešno kreiran! Preusmeravam na login...
           </div>
         )}
 
@@ -149,22 +164,6 @@ export default function RegisterUser() {
                 required
                 minLength={8}
                 className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Uloga *</label>
-              <Dropdown
-                aria-label="Uloga"
-                options={[
-                  { value: '', label: '— izaberi —' },
-                  ...roleOptions.map((role) => ({
-                    value: role,
-                    label: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
-                  })),
-                ]}
-                value={form.role}
-                onChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
-                fullWidth
               />
             </div>
           </div>
@@ -376,17 +375,27 @@ export default function RegisterUser() {
             )}
           </div>
 
+          <div>
+            <label className={labelClass}>Uloga (automatski postavljeno)</label>
+            <input
+              name="role"
+              value="admin"
+              disabled
+              className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50"
             style={{ backgroundColor: '#41ac53' }}
           >
-            Kreiraj novog člana
+            Kreiraj prvog administratora
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-500">
-          Obavezna su samo korisničko ime, lozinka i uloga. Ostala polja možete popuniti kasnije.
+          Obavezna su samo korisničko ime i lozinka. Ostala polja možete popuniti posle prijave.
         </p>
       </div>
     </div>
