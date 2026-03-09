@@ -39,7 +39,7 @@ export default function ErrorPage() {
 
         {/* Mali footer */}
         <p className="mt-16 text-sm sm:text-base text-gray-500">
-          na vrhu • Nema vrha koji se ne može osvojiti... osim ove stranice 😅
+          NaVrhu • Nema vrha koji se ne može osvojiti... osim ove stranice 😅
         </p>
       </div>
     </div>

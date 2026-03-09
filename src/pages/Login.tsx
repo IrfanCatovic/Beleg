@@ -73,7 +73,7 @@ export default function Login() {
             className="text-3xl sm:text-4xl font-bold"
             style={{ color: '#41ac53' }}
           >
-            na vrhu
+            NaVrhu
           </h2>
           <p className="mt-2 text-base sm:text-lg text-gray-600">
             Prijava u aplikaciju

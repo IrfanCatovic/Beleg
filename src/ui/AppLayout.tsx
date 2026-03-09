@@ -117,7 +117,7 @@ export default function AppLayout() {
                   to="/home"
                   className="shrink-0 text-lg font-bold tracking-tight sm:text-xl md:text-2xl text-white hover:text-white/95 transition-colors"
                 >
-                  na vrhu
+                  NaVrhu
                 </Link>
               </div>
 
