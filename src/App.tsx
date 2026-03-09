@@ -19,15 +19,17 @@ import UserInfo from './pages/UserInfo'
 import ActionDetails from './pages/ActionDetails'
 import EditAction from './pages/EditAction'
 import RegisterUser from './pages/RegisterUser'
-import Landing from './pages/Landing'
 
 //routes
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleRoute from './components/RoleRoute'
-import Welcome from './pages/Welcome'
 import RegisterAdmin from './pages/RegisterAdmin'
 import ProfileSettings from './pages/ProfileSettings'
 import Obavestenja from './pages/Obavestenja'
+import Landing from './pages/Landing'
+import Kontakt from './pages/Kontakt'
+import Cena from './pages/Cena'
+import Welcome from './pages/Welcome'
 
 
 const router = createBrowserRouter([
@@ -38,7 +40,7 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
   },
   {
-    path: '/navrhu',
+    path: '/login',
     element: <Login />,
     errorElement: <ErrorPage />,
   },
@@ -50,6 +52,16 @@ const router = createBrowserRouter([
   {
     path: '/adminregister',        
     element: <RegisterAdmin />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/kontakt',
+    element: <Kontakt />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/cena',
+    element: <Cena />,
     errorElement: <ErrorPage />,
   },
 
