@@ -1,8 +1,7 @@
-import { Link } from 'react-router-dom'
-
 import heroImage from '../../public/hero.png'
 import teamImage from '../../public/team.jpg'
 import segmentImage from '../../public/segment1.jpeg'
+import MarketingNavbar from '../components/MarketingNavbar'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -54,51 +53,7 @@ export default function Landing() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
-          <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
-            {/* Logo + home */}
-            <Link
-              to="/"
-              className="flex items-center gap-3 group"
-              aria-label="Početna – NaVrhu"
-            >
-              <div className="h-9 w-9 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/40 group-hover:scale-105 transition-transform">
-                <span className="text-white font-bold text-xl">n</span>
-              </div>
-              <div className="leading-tight">
-                <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
-                  NaVrhu
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500">
-                  Aplikacija za planinarska društva
-                </p>
-              </div>
-            </Link>
-
-            {/* Linkovi na stranice */}
-            <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <div className="flex items-center gap-2 sm:gap-3 rounded-full bg-emerald-50/80 px-2 py-1 sm:px-3 sm:py-1.5">
-                <Link
-                  to="/cena"
-                  className="rounded-full px-3 py-1 text-xs sm:text-sm font-medium text-emerald-800 hover:bg-white hover:text-emerald-900 transition-colors"
-                >
-                  Cene
-                </Link>
-                <Link
-                  to="/kontakt"
-                  className="rounded-full px-3 py-1 text-xs sm:text-sm font-medium text-emerald-800 hover:bg-white hover:text-emerald-900 transition-colors"
-                >
-                  Kontakt
-                </Link>
-              </div>
-              <Link
-                to="/login"
-                className="hidden sm:inline-flex items-center rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-md transition-colors"
-                style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
-              >
-                Ulaz za članove
-              </Link>
-            </div>
-          </nav>
+          <MarketingNavbar />
 
           <div className="space-y-10">
             {/* Naslov + opis + CTA (levo) i slika (desno) */}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import MarketingNavbar from '../components/MarketingNavbar'
 
 const EMAIL = 'catovicc84@gmail.com'
 const EUR_TO_RSD = 117
@@ -100,9 +101,12 @@ export default function Cena() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-emerald-50 px-4 py-10">
-      <div className="mx-auto max-w-5xl space-y-10">
-        <div className="text-center">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-emerald-50">
+      <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6">
+        <MarketingNavbar />
+      </header>
+      <div className="mx-auto max-w-5xl px-4 pb-10 space-y-10">
+        <div className="text-center mt-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Paketi i cene</h1>
           <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
             Izaberite paket, dodajte po potrebi više korisnika i pošaljite nam poruku – odgovaramo sa detaljnom ponudom
