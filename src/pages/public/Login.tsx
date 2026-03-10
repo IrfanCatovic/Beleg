@@ -13,28 +13,28 @@ export default function Login() {
 
 
   useEffect(() => {
-  const checkSetup = async () => {
-
-    setLoading(true)
-    try {
-      const res = await api.get('/api/setup/status')
-
-
-      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
-
-      if (!setupCompleted) {
-        navigate('/welcome', { replace: true })
-      }
-    } catch (err) {
-      console.error('Greška pri proveri statusa', err)
-
+    const checkSetup = async () => {
+      setLoading(true)
+      try {
+        const res = await api.get('/api/setup/status')
+  
+        if (res.data.needsSuperadmin) {
+          navigate('/register-superadmin', { replace: true })
+          return
         }
-        finally {
-          setLoading(false)}
+  
+        const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false
+        if (!setupCompleted) {
+          navigate('/welcome', { replace: true })
+        }
+      } catch (err) {
+        console.error('Greška pri proveri statusa', err)
+      } finally {
+        setLoading(false)
       }
-
-      checkSetup()
-    }, [])
+    }
+    checkSetup()
+  }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

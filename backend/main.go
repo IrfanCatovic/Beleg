@@ -129,14 +129,22 @@ func main() {
 
 	// GET /api/setup/status proveri da li već postoje korisnici u bazi
 	r.GET("/api/setup/status", func(c *gin.Context) {
-		var count int64
-		if err := db.Model(&models.Korisnik{}).Count(&count).Error; err != nil {
+		var total int64
+		if err := db.Model(&models.Korisnik{}).Count(&total).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri stanja setup-a"})
 			return
 		}
-
+		var superCount int64
+		if err := db.Model(&models.Korisnik{}).Where("role = ?", "superadmin").Count(&superCount).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri superadmin-a"})
+			return
+		}
+		// Dok ne postoji bar jedan superadmin, smatramo da je potreban setup
+		needsSuperadmin := superCount == 0
 		c.JSON(http.StatusOK, gin.H{
-			"hasUsers": count > 0,
+			"hasUsers":       total > 0,
+			"hasSuperadmin":  superCount > 0,
+			"needsSuperadmin": needsSuperadmin,
 		})
 	})
 

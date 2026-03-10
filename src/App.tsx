@@ -30,6 +30,7 @@ import Landing from './pages/public/Landing'
 import Kontakt from './pages/public/Kontakt'
 import Cena from './pages/public/Cena'
 import Welcome from './pages/protected/Welcome'
+import RegisterSuperAdmin from './pages/public/RegisterSuperAdmin'
 
 
 const router = createBrowserRouter([
@@ -37,6 +38,11 @@ const router = createBrowserRouter([
   {
     path: '/',                    
     element: <Landing />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/register-superadmin',
+    element: <RegisterSuperAdmin />,
     errorElement: <ErrorPage />,
   },
   {
