@@ -1,6 +1,7 @@
 import heroImage from '../../../public/hero.png'
 import teamImage from '../../../public/team.jpg'
 import segmentImage from '../../../public/segment1.jpeg'
+import planinarImage from '../../../public/planinar.jpg'
 import MarketingNavbar from '../../components/MarketingNavbar'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -426,7 +427,7 @@ export default function Landing() {
                   title: 'Akcije, zadaci i uloge u sistemu',
                   text: 'Vodiči i admini u aplikaciji planiraju akcije, definišu zadatke za tim, dodeljuju odgovorne osobe i prate prijave članova i to sve na jednom mestu.',
                   step: '03',
-                }, e
+                }, 
                 {
                   title: 'Svakodnevni rad celog društva',
                   text: 'Članovi se prijavljuju na akcije i prate svoj napredak, vodiči šalju obaveštenja, blagajnik vidi sve uplate, a rukovodstvo ima jasan uvid u članove, akcije i finansije. NaVrhu postaje digitalno „mesto susreta“ celog društva.',
@@ -496,6 +497,51 @@ export default function Landing() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Planinar band segment sa porukom */}
+        <section className="relative w-full bg-slate-900 text-white">
+          <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
+            <img
+              src={planinarImage}
+              alt="Planinar na stazi"
+              className="w-full h-full object-cover filter blur-[1px] scale-105"
+              style={{ objectPosition: 'center 65%' }}
+            />
+
+            {/* Tamni overlay za čitljiv tekst */}
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/40 to-slate-900/90" />
+
+            {/* Tekst preko slike */}
+            <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="max-w-3xl text-center">
+                <p className="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-emerald-200 mb-3">
+                  Članovi u centru sistema
+                </p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 leading-snug">
+                  Svaki član vidi svoj put na planini
+                </h2>
+                <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto">
+                  NaVrhu čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i
+                  vođenja tura. Društvo dobija urednu evidenciju, a članovi lični motiv da budu još aktivniji.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Donji cik-cak border prema sledećem belom segmentu */}
+          <div className="absolute -bottom-6 left-0 right-0 h-6 overflow-hidden text-white">
+            <svg
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
+              className="w-full h-full"
+            >
+              <polygon
+                fill="white"
+                points="0,0 0,10 5,5 10,10 15,5 20,10 25,5 30,10 35,5 40,10 45,5 50,10 55,5 60,10 65,5 70,10 75,5 80,10 85,5 90,10 95,5 100,10 100,0"
+              />
+            </svg>
           </div>
         </section>
 
