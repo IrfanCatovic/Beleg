@@ -39,6 +39,7 @@ interface MeKorisnik {
   fullName: string
   avatar_url?: string
   cover_image_url?: string
+  cover_position_y?: number
   email?: string
   adresa?: string
   telefon?: string
@@ -80,6 +81,9 @@ export default function Profil() {
   const [legendLevel, setLegendLevel] = useState<number | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [coverError, setCoverError] = useState('')
+  const [showCoverPositioning, setShowCoverPositioning] = useState(false)
+  const [coverPositionY, setCoverPositionY] = useState(0.5)
+  const [savingCoverPosition, setSavingCoverPosition] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -218,6 +222,26 @@ export default function Profil() {
   const displayName = me.fullName || user?.fullName || ''
   const displayUsername = me.username || user?.username || ''
   const hasCover = me.cover_image_url && !coverLoadFailed
+  const effectiveCoverPositionY = showCoverPositioning ? coverPositionY : (me.cover_position_y ?? 0.5)
+
+  const handleCoverDoubleClick = () => {
+    if (!hasCover) return
+    setCoverPositionY(me.cover_position_y ?? 0.5)
+    setShowCoverPositioning(true)
+  }
+
+  const handleSaveCoverPosition = async () => {
+    setSavingCoverPosition(true)
+    try {
+      await api.patch('/api/me/cover-position', { coverPositionY: coverPositionY })
+      setMe((prev) => prev ? { ...prev, cover_position_y: coverPositionY } : prev)
+      setShowCoverPositioning(false)
+    } catch (err) {
+      console.error('Save cover position:', err)
+    } finally {
+      setSavingCoverPosition(false)
+    }
+  }
 
   return (
     <div className="pt-2 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative">
@@ -231,18 +255,60 @@ export default function Profil() {
       {/* ═══════ Hero card ═══════ */}
       <div className="rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden bg-white">
         {/* Cover / banner — standalone, nothing overlaps it */}
-        <div className="relative h-44 sm:h-56">
+        <div
+          className="relative h-44 sm:h-56 select-none"
+          onDoubleClick={handleCoverDoubleClick}
+        >
           {hasCover ? (
             <img
               src={me.cover_image_url}
               alt="Cover"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-center transition-[object-position] duration-150"
+              style={{ objectPosition: `center ${effectiveCoverPositionY * 100}%` }}
               onError={() => setCoverLoadFailed(true)}
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
+
+          {/* Positioning overlay */}
+          {showCoverPositioning && hasCover && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-sm p-4" onDoubleClick={(e) => e.stopPropagation()}>
+              <p className="text-white text-sm font-medium">Pomeri cover gore ili dole</p>
+              <div className="w-full max-w-xs flex flex-col items-center gap-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(coverPositionY * 100)}
+                  onChange={(e) => setCoverPositionY(Number(e.target.value) / 100)}
+                  className="w-full h-2 rounded-full appearance-none bg-white/30 accent-emerald-500 cursor-pointer"
+                />
+                <div className="flex justify-between w-full text-[10px] text-white/80">
+                  <span>Vrh</span>
+                  <span>Dno</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCoverPositioning(false)}
+                  className="px-4 py-2 rounded-lg bg-white/20 text-white text-sm font-medium hover:bg-white/30"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCoverPosition}
+                  disabled={savingCoverPosition}
+                  className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-60"
+                >
+                  {savingCoverPosition ? 'Čuvam...' : 'Sačuvaj'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Cover upload — top-left corner */}
           <input
@@ -255,6 +321,7 @@ export default function Profil() {
           <button
             type="button"
             onClick={() => coverInputRef.current?.click()}
+            onDoubleClick={(e) => e.stopPropagation()}
             disabled={uploadingCover}
             className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-md text-white text-xs font-medium hover:bg-black/60 transition-colors duration-150 cursor-pointer"
           >

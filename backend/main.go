@@ -1504,6 +1504,17 @@ func main() {
 			if korisnik.CoverImageURL != "" {
 				updates["cover_image_url"] = korisnik.CoverImageURL
 			}
+			if coverPosStr := post("coverPositionY"); coverPosStr != "" {
+				if pos, err := strconv.ParseFloat(coverPosStr, 64); err == nil {
+					if pos < 0 {
+						pos = 0
+					}
+					if pos > 1 {
+						pos = 1
+					}
+					updates["cover_position_y"] = pos
+				}
+			}
 			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
 				return
@@ -1532,6 +1543,43 @@ func main() {
 				}
 			}
 			c.JSON(200, resp)
+		})
+
+		// PATCH /api/me/cover-position — samo pozicija cover slike (JSON: { "coverPositionY": 0–1 })
+		protected.PATCH("/me/cover-position", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
+			var body struct {
+				CoverPositionY *float64 `json:"coverPositionY"`
+			}
+			if err := c.ShouldBindJSON(&body); err != nil || body.CoverPositionY == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Očekuje se JSON: { coverPositionY: number (0–1) }"})
+				return
+			}
+			pos := *body.CoverPositionY
+			if pos < 0 {
+				pos = 0
+			}
+			if pos > 1 {
+				pos = 1
+			}
+			if err := db.Model(&korisnik).Update("cover_position_y", pos).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju pozicije"})
+				return
+			}
+			c.JSON(200, gin.H{"message": "Pozicija sačuvana", "coverPositionY": pos})
 		})
 
 		// PATCH /api/korisnici/:id  admin ažurira korisnika (role, disciplinske kazne, izbor u organe, napomene).
