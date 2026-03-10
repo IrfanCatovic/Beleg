@@ -27,8 +27,9 @@ type Korisnik struct {
 	IzborUOrganeSportskogUdruzenja string `gorm:"type:text" json:"izbor_u_organe_sportskog_udruzenja,omitempty"`
 	Napomene                   string    `gorm:"type:text" json:"napomene,omitempty"`
 
-	// Slika (opciono)
+	// Slike (opciono)
 	AvatarURL                  string    `gorm:"type:varchar(500)" json:"avatar_url,omitempty"`
+	CoverImageURL              string    `gorm:"type:varchar(500)" json:"cover_image_url,omitempty"`
 	// Role i status
 	Role                       string    `gorm:"type:varchar(20);not null;default:'clan'" json:"role"`
 	// Statistika (opciono, default 0)

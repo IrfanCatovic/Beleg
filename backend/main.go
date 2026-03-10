@@ -1444,7 +1444,40 @@ func main() {
 				korisnik.AvatarURL = uploadResult.SecureURL
 			}
 
-			// Ažuriraj dozvoljena polja. Role, disciplinske kazne, izbor u organe, napomene — samo admin (PATCH /korisnici/:id)
+			// Opciono: cover image na Cloudinary
+			if files := c.Request.MultipartForm.File["coverImage"]; len(files) > 0 {
+				file := files[0]
+				f, err := file.Open()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju cover slike"})
+					return
+				}
+				defer f.Close()
+
+				cld, err := cloudinary.NewFromParams(
+					os.Getenv("CLOUDINARY_CLOUD_NAME"),
+					os.Getenv("CLOUDINARY_API_KEY"),
+					os.Getenv("CLOUDINARY_API_SECRET"),
+				)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+					return
+				}
+
+				ctx := context.Background()
+				uploadParams := uploader.UploadParams{
+					PublicID: fmt.Sprintf("covers/%s-%d", newUsername, time.Now().Unix()),
+					Folder:   "adri-sentinel",
+				}
+
+				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u cover slike: " + err.Error()})
+					return
+				}
+				korisnik.CoverImageURL = uploadResult.SecureURL
+			}
+
 			updates := map[string]interface{}{
 				"username":                     newUsername,
 				"full_name":                    fullName,
@@ -1460,7 +1493,6 @@ func main() {
 				"datum_rodjenja":               datumRodjenja,
 				"datum_uclanjenja":             datumUclanjenja,
 			}
-			// Samo admin može menjati disciplinske kazne, izbor u organe, napomene
 			if isAdmin {
 				updates["izrecene_disciplinske_kazne"] = izreceneDisciplinskeKazne
 				updates["izbor_u_organe_sportskog_udruzenja"] = izborUOrganeSportskogUdruzenja
@@ -1468,6 +1500,9 @@ func main() {
 			}
 			if korisnik.AvatarURL != "" {
 				updates["avatar_url"] = korisnik.AvatarURL
+			}
+			if korisnik.CoverImageURL != "" {
+				updates["cover_image_url"] = korisnik.CoverImageURL
 			}
 			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
