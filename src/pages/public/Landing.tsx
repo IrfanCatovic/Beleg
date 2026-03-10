@@ -414,22 +414,22 @@ export default function Landing() {
               {[
                 {
                   title: 'Kreiramo administratora i strukturu',
-                  text: 'Zajedno postavljamo prvog admina, osnovne postavke društva i interne uloge.',
+                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo prvog admina i dogovaramo strukturu: sekcije, vodiče, blagajnika, upravni odbor i ostale uloge.',
                   step: '01',
                 },
                 {
-                  title: 'Unos postojećih članova',
-                  text: 'Pomažemo kod migracije sa papira unosa već postojećih korisnika, pružamo podršku za unos u sistem.',
+                  title: 'Unos postojećih članova i podataka',
+                  text: 'Pomažemo da postojeće članove sa papira i iz tabela postepeno unesete u NaVrhu uz naše šablone i podršku tima',
                   step: '02',
                 },
                 {
-                  title: 'Planiranje akcija i zadataka',
-                  text: 'Vodiči i admini prave nove akcije, zadatke i rasporede u sistemu.',
+                  title: 'Akcije, zadaci i uloge u sistemu',
+                  text: 'Vodiči i admini u aplikaciji planiraju akcije, definišu zadatke za tim, dodeljuju odgovorne osobe i prate prijave članova i to sve na jednom mestu.',
                   step: '03',
-                },
+                }, e
                 {
-                  title: 'Dnevni rad preko navrhu',
-                  text: 'Članovi se prijavljuju, dobijaju obaveštenja, blagajnik prati uplate, rukovodstvo ima uvid.',
+                  title: 'Svakodnevni rad celog društva',
+                  text: 'Članovi se prijavljuju na akcije i prate svoj napredak, vodiči šalju obaveštenja, blagajnik vidi sve uplate, a rukovodstvo ima jasan uvid u članove, akcije i finansije. NaVrhu postaje digitalno „mesto susreta“ celog društva.',
                   step: '04',
                 },
               ].map(({ title, text, step }) => (
@@ -637,7 +637,7 @@ export default function Landing() {
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam NaVrhu u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
+              Pokažemo vam NaVrhu u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
               može da olakša rad.
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-4">
