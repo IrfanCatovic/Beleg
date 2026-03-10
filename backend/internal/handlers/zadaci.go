@@ -45,7 +45,7 @@ type zadatakResponse struct {
 func checkZadatakCreateRole(c *gin.Context) bool {
 	roleVal, _ := c.Get("role")
 	role, _ := roleVal.(string)
-	return role == "admin" || role == "sekretar"
+	return role == "admin" || role == "superadmin" || role == "sekretar"
 }
 
 func buildZadatakResponse(z models.Zadatak) zadatakResponse {

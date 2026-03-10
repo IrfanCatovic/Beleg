@@ -161,11 +161,11 @@ type BroadcastRequest struct {
 	Body  string `json:"body"`
 }
 
-// Broadcast šalje jedno obaveštenje svim korisnicima. Samo admin.
+// Broadcast šalje jedno obaveštenje svim korisnicima. Samo admin ili superadmin.
 func Broadcast(c *gin.Context) {
 	roleVal, _ := c.Get("role")
-	if roleVal != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može da pošalje obaveštenje svima"})
+	if roleVal != "admin" && roleVal != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili superadmin može da pošalje obaveštenje svima"})
 		return
 	}
 

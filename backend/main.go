@@ -660,8 +660,8 @@ func main() {
 				return
 			}
 			roleVal, _ := claims["role"].(string)
-			if roleVal != "admin" && roleVal != "sekretar" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da kreiraju nove korisnike"})
+			if roleVal != "admin" && roleVal != "sekretar" && roleVal != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili sekretar mogu da kreiraju nove korisnike"})
 				return
 			}
 
@@ -789,11 +789,11 @@ func main() {
 			})
 		})
 
-		// POST /api/akcije adding new action — admin i vodič
+		// POST /api/akcije adding new action — admin, superadmin i vodič
 		protected.POST("/akcije", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(403, gin.H{"error": "Samo admin ili vodič mogu dodavati akcije"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(403, gin.H{"error": "Samo admin, superadmin ili vodič mogu dodavati akcije"})
 				return
 			}
 			username, _ := c.Get("username")
@@ -942,11 +942,11 @@ func main() {
 			})
 		})
 
-		// PATCH /api/akcije/:id — ažuriraj akciju (samo admin ili vodič)
+		// PATCH /api/akcije/:id — ažuriraj akciju (samo admin, superadmin ili vodič)
 		protected.PATCH("/akcije/:id", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može izmeniti akciju"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može izmeniti akciju"})
 				return
 			}
 
@@ -1191,12 +1191,12 @@ func main() {
 			})
 		})
 
-		// POST /api/akcije/:id/zavrsi oznaci akciju kao zavrsenu, samo admin ili vodic
+		// POST /api/akcije/:id/zavrsi oznaci akciju kao zavrsenu, samo admin, superadmin ili vodic
 		protected.POST("/akcije/:id/zavrsi", func(c *gin.Context) {
-			// Samo admin ili vodič
+			// Samo admin, superadmin ili vodič
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može završiti akciju"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može završiti akciju"})
 				return
 			}
 
@@ -1230,11 +1230,11 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno završena", "akcija": akcija})
 		})
 
-		// DELETE /api/akcije/:id — obriši akciju (samo admin ili vodič)
+		// DELETE /api/akcije/:id — obriši akciju (samo admin, superadmin ili vodič)
 		protected.DELETE("/akcije/:id", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič može obrisati akciju"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može obrisati akciju"})
 				return
 			}
 
@@ -1610,11 +1610,11 @@ func main() {
 		})
 
 
-		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
+		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/superadmin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
 		protected.POST("/korisnici/:id/dodaj-proslu-akciju", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(403, gin.H{"error": "Samo admin ili vodič mogu da dodaju prošlu akciju"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(403, gin.H{"error": "Samo admin, superadmin ili vodič mogu da dodaju prošlu akciju"})
 				return
 			}
 
@@ -1838,11 +1838,11 @@ func main() {
 			})
 		})
 
-		// POST /api/prijave/:id/status update status of prijava
+		// POST /api/prijave/:id/status update status of prijava (admin, superadmin ili vodič)
 		protected.POST("/prijave/:id/status", func(c *gin.Context) {
 			role, _ := c.Get("role")
-			if role != "admin" && role != "vodic" {
-				c.JSON(403, gin.H{"error": "Samo admin ili vodič može menjati status"})
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(403, gin.H{"error": "Samo admin, superadmin ili vodič može menjati status"})
 				return
 			}
 

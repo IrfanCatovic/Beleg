@@ -1,6 +1,7 @@
-export type RoleType = 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
+export type RoleType = 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
 
 const ROLE_LABELS: Record<string, string> = {
+  superadmin: 'Superadmin',
   admin: 'Admin',
   clan: 'Član',
   vodic: 'Vodič',
@@ -10,6 +11,8 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_STYLES: Record<string, string> = {
+  superadmin: 'bg-purple-700 text-white dark:bg-purple-800 dark:text-white',
+
   admin: 'bg-red-600 text-white dark:bg-red-700 dark:text-white',
 
   clan: 'bg-blue-600 text-white dark:bg-blue-700 dark:text-white',

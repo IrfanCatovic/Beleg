@@ -11,11 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// checkFinanceRole vraća true ako je admin ili blagajnik.
+// checkFinanceRole vraća true ako je admin, superadmin ili blagajnik.
 func checkFinanceRole(c *gin.Context) bool {
 	roleVal, _ := c.Get("role")
 	role, _ := roleVal.(string)
-	return role == "admin" || role == "blagajnik"
+	return role == "admin" || role == "superadmin" || role == "blagajnik"
 }
 
 // GetDashboard vraća saldo, uplate, isplate i transakcije za zadati period.

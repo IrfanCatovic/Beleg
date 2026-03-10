@@ -18,15 +18,15 @@ export default function ProfileActionButtons({
   children,
 }: ProfileActionButtonsProps) {
   // Na tuđim profilima samo admin i sekretar vide ova 3 dugmeta (info, gear, štampaj); ostali ih ne vide
-  const canSeeProfileActions = !currentUser || isOwnProfile || currentUser.role === 'admin' || currentUser.role === 'sekretar'
+  const canSeeProfileActions = !currentUser || isOwnProfile || currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'sekretar'
 
   const showSettings =
     currentUser &&
     canSeeProfileActions &&
-    (currentUser.role === 'admin' || currentUser.role === 'sekretar' || isOwnProfile)
+    (currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'sekretar' || isOwnProfile)
   const settingsLink = isOwnProfile ? '/profil/podesavanja' : `/profil/podesavanja/${userId}`
 
-  const showInfo = currentUser && canSeeProfileActions && (currentUser.role === 'admin' || currentUser.role === 'sekretar' || isOwnProfile)
+  const showInfo = currentUser && canSeeProfileActions && (currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'sekretar' || isOwnProfile)
   const infoLink = `/users/${userId}/info`
 
   const showPrint = currentUser && canSeeProfileActions && onPrintClick
