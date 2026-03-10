@@ -4,7 +4,7 @@ import api, { setUnauthorizedHandler } from "../services/api";
 interface User {
     username: string;
     fullName: string;
-    role: 'admin' | `clan` | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme';
+    role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme';
     ukupnoKm?: number;
     ukupnoMetaraUspona?: number;
     brojPopeoSe?: number;

@@ -66,7 +66,7 @@ export default function Zadaci() {
   }
 
   const isClan = user.role === 'clan'
-  const isAdminOrSekretar = user.role === 'admin' || user.role === 'sekretar'
+  const isAdminOrSekretar = user.role === 'superadmin' || user.role === 'admin' || user.role === 'sekretar'
 
   const canSeeTask = (task: Task) => {
     if (!isClan) return true

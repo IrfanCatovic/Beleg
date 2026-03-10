@@ -43,9 +43,9 @@ export default function ProfileSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const isAdminEdit = !!id && (user?.role === 'admin' || user?.role === 'sekretar')
+  const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar')
   const isSekretarEdit = !!id && user?.role === 'sekretar'
-  const canEditAdminFields = user?.role === 'admin'
+  const canEditAdminFields = user?.role === 'superadmin' || user?.role === 'admin'
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -53,7 +53,7 @@ export default function ProfileSettings() {
       return
     }
     // Admin ili sekretar mogu pristupiti /profil/podesavanja/:id
-    if (id && user?.role !== 'admin' && user?.role !== 'sekretar') {
+    if (id && user?.role !== 'superadmin' && user?.role !== 'admin' && user?.role !== 'sekretar') {
       navigate('/profil/podesavanja', { replace: true })
       return
     }

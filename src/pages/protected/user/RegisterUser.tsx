@@ -100,7 +100,7 @@ export default function RegisterUser() {
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
   const sectionClass = 'space-y-4'
 
-  const roleOptions = user?.role === 'admin'
+  const roleOptions = (user?.role === 'superadmin' || user?.role === 'admin')
     ? ['admin', 'clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme']
     : ['clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme']
 

@@ -99,7 +99,7 @@ export default function EditAction() {
     fetchAkcija()
   }, [id])
 
-  if (!user || !['admin', 'vodic'].includes(user.role)) {
+  if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
     return <div className="text-center py-10 text-red-600">Samo admin ili vodič mogu da izmene akcije.</div>
   }
 

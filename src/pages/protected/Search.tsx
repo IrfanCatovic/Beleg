@@ -33,7 +33,7 @@ export default function Search() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onClose={() => {}}
-          canSeeFinances={user?.role === 'admin' || user?.role === 'blagajnik' || false}
+          canSeeFinances={user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik' || false}
           embedded={false}
           showDetailButton={false}
         />

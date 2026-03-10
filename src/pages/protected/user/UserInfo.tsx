@@ -68,7 +68,7 @@ export default function UserInfo() {
       try {
         const res = await api.get(`/api/korisnici/${id}`)
         const data = res.data as KorisnikInfo
-        const isAdminOrSekretar = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
+        const isAdminOrSekretar = currentUser?.role === 'superadmin' || currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
         const isOwnProfile = data.username === currentUser?.username
         if (!isAdminOrSekretar && !isOwnProfile) {
           setError('Nemate pristup ovim podacima')

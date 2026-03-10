@@ -1352,7 +1352,7 @@ func main() {
 
 			post := func(k string) string { return strings.TrimSpace(c.PostForm(k)) }
 			roleVal, _ := c.Get("role")
-			isAdmin := roleVal == "admin"
+			isAdmin := roleVal == "admin" || roleVal == "superadmin"
 
 			// Opciono: promena lozinke (samo korisnik može da promeni svoju)
 			if newPassword := post("newPassword"); newPassword != "" {
@@ -1587,7 +1587,7 @@ func main() {
 		protected.PATCH("/korisnici/:id", func(c *gin.Context) {
 			roleVal, _ := c.Get("role")
 			roleStr, _ := roleVal.(string)
-			isAdmin := roleStr == "admin"
+			isAdmin := roleStr == "admin" || roleStr == "superadmin"
 			isSekretar := roleStr == "sekretar"
 			if !isAdmin && !isSekretar {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu menjati korisnika"})

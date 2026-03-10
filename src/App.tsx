@@ -102,7 +102,7 @@ const router = createBrowserRouter([
 
           // Finansije, uplata, isplata admin i blagajnik
           {
-            element: <RoleRoute allowedRoles={['admin', 'blagajnik']} />,
+            element: <RoleRoute allowedRoles={['superadmin', 'admin', 'blagajnik']} />,
             children: [
               { path: '/finansije', element: <Finance /> },
             ],
@@ -120,7 +120,7 @@ const router = createBrowserRouter([
 
           // Dodaj korisnika admin i sekretar
           {
-            element: <RoleRoute allowedRoles={['admin', 'sekretar']} />,
+            element: <RoleRoute allowedRoles={['superadmin', 'admin', 'sekretar']} />,
             children: [
               { path: '/dodaj-korisnika', element: <RegisterUser /> },
             ],

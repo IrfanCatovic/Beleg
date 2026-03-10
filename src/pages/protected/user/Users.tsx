@@ -206,7 +206,7 @@ export default function Korisnici() {
         </div>
 
         <div className="flex-shrink-0 md:w-1/4 flex justify-end">
-          {(user?.role === 'admin' || user?.role === 'sekretar') && (
+          {(user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar') && (
             <Link
               to="/dodaj-korisnika"
               className="px-6 py-3 bg-[#41ac53] text-white rounded-lg font-medium hover:bg-[#3a9a4a] 
@@ -337,7 +337,7 @@ export default function Korisnici() {
                       </div>
                     </Link>
 
-                    {(user?.role === 'admin' || user?.role === 'sekretar') && (
+                    {(user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar') && (
                       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-2">
                         <Link
                           to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}

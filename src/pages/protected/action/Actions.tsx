@@ -256,7 +256,7 @@ export default function Actions() {
     )
   }
 
-  const isAdminOrVodic = user?.role === 'admin' || user?.role === 'vodic'
+  const isAdminOrVodic = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'vodic'
 
   return (
     <div className="relative min-h-screen bg-gray-50 pb-16 md:pb-12">

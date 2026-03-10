@@ -333,7 +333,7 @@ export default function ActionDetails() {
                       }`}>
                         {p.status}
                       </span>
-                      {user && ['admin', 'vodic'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
+                      {user && ['superadmin', 'admin', 'vodic'].includes(user?.role) && p.status === 'prijavljen' && !akcija.isCompleted && (
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateStatus(p.id, 'popeo se')}
@@ -360,7 +360,7 @@ export default function ActionDetails() {
         </div>
 
         {/* Upravljanje akcijom */}
-        {user && ['admin', 'vodic'].includes(user?.role) && (
+        {user && ['superadmin', 'admin', 'vodic'].includes(user?.role) && (
           <div className="mt-8 p-6 sm:p-8 bg-white rounded-2xl shadow-lg border border-gray-200/80">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 text-center">Upravljanje akcijom</h3>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center">
