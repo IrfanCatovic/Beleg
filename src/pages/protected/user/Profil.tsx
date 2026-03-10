@@ -79,6 +79,7 @@ export default function Profil() {
   const [coverLoadFailed, setCoverLoadFailed] = useState(false)
   const [legendLevel, setLegendLevel] = useState<number | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverError, setCoverError] = useState('')
   const coverInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -153,21 +154,52 @@ export default function Profil() {
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !me) return
-    if (!file.type.startsWith('image/')) return
-    if (file.size > 5 * 1024 * 1024) return
+    if (!file.type.startsWith('image/')) {
+      setCoverError('Izaberite sliku (jpg, png, gif).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCoverError('Slika može imati najviše 5 MB.')
+      return
+    }
 
+    setCoverError('')
     setUploadingCover(true)
     try {
       const formData = new FormData()
       formData.append('coverImage', file)
+      // Backend očekuje sva polja; inače prepisuje praznim vrednostima
+      const m = me as unknown as Record<string, unknown>
       formData.append('username', me.username)
+      formData.append('fullName', String(m.fullName ?? ''))
+      formData.append('imeRoditelja', String(m.ime_roditelja ?? ''))
+      formData.append('pol', String(m.pol ?? ''))
+      formData.append('drzavljanstvo', String(m.drzavljanstvo ?? ''))
+      formData.append('adresa', String(m.adresa ?? ''))
+      formData.append('telefon', String(m.telefon ?? ''))
+      formData.append('email', String(m.email ?? ''))
+      formData.append('brojLicnogDokumenta', String(m.broj_licnog_dokumenta ?? ''))
+      formData.append('brojPlaninarskeLegitimacije', String(m.broj_planinarske_legitimacije ?? ''))
+      formData.append('brojPlaninarskeMarkice', String(m.broj_planinarske_markice ?? ''))
+      formData.append('izreceneDisciplinskeKazne', String(m.izrecene_disciplinske_kazne ?? ''))
+      formData.append('izborUOrganeSportskogUdruzenja', String(m.izbor_u_organe_sportskog_udruzenja ?? ''))
+      formData.append('napomene', String(m.napomene ?? ''))
+      const datumRodjenja = m.datum_rodjenja
+      if (datumRodjenja) formData.append('datumRodjenja', typeof datumRodjenja === 'string' ? datumRodjenja.slice(0, 10) : '')
+      const datumUclanjenja = m.datum_uclanjenja
+      if (datumUclanjenja) formData.append('datumUclanjenja', typeof datumUclanjenja === 'string' ? datumUclanjenja.slice(0, 10) : '')
+
       const res = await api.patch('/api/me', formData)
-      const updated = res.data.korisnik
-      if (updated?.cover_image_url) {
+      const updated = res.data?.korisnik
+      if (updated?.cover_image_url != null) {
         setMe((prev) => prev ? { ...prev, cover_image_url: updated.cover_image_url } : prev)
         setCoverLoadFailed(false)
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
+        ? String((err.response.data as { error: string }).error)
+        : 'Greška pri upload-u cover slike.'
+      setCoverError(msg)
       console.error('Cover upload error:', err)
     } finally {
       setUploadingCover(false)
@@ -199,7 +231,7 @@ export default function Profil() {
       {/* ═══════ Hero card ═══════ */}
       <div className="rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden bg-white">
         {/* Cover / banner — standalone, nothing overlaps it */}
-        <div className="relative h-36 sm:h-44">
+        <div className="relative h-44 sm:h-56">
           {hasCover ? (
             <img
               src={me.cover_image_url}
@@ -236,6 +268,11 @@ export default function Profil() {
             )}
             {uploadingCover ? 'Upload...' : hasCover ? 'Promeni cover' : 'Dodaj cover'}
           </button>
+          {coverError && (
+            <p className="absolute bottom-3 left-3 right-3 z-20 text-xs font-medium text-white bg-red-500/90 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+              {coverError}
+            </p>
+          )}
         </div>
 
         {/* Profile info — completely below cover, no overlap */}
