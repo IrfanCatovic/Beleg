@@ -7,7 +7,7 @@ export default function ProtectedRoute() {
 
 
   if (!isLoggedIn) {
-    return <Navigate to="/navrhu" replace />
+    return <Navigate to="/login" replace />
   }
 
   return <Outlet />
