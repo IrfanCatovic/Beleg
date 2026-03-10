@@ -37,14 +37,29 @@ interface Korisnik {
   username: string
   fullName?: string
   avatar_url?: string
+  cover_image_url?: string
+  cover_position_y?: number
   email?: string
   telefon?: string
-  role: 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
+  role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
   createdAt: string
   updatedAt: string
   ukupnoKm: number
   ukupnoMetaraUspona: number
   brojPopeoSe: number
+}
+
+const tezinaConfig: Record<string, { bg: string; text: string; label: string; border: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Lako' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Srednje' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
+  'teško': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', label: 'Alpinizam' },
+}
+
+function getTezinaStyle(tezina?: string) {
+  if (!tezina) return { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Nepoznato' }
+  return tezinaConfig[tezina.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: tezina }
 }
 
 export default function UserProfile() {
@@ -72,11 +87,9 @@ export default function UserProfile() {
     const fetchProfilData = async () => {
       setLoading(true)
       try {
-        // 1. Osnovni podaci korisnika
         const resKorisnik = await api.get(`/api/korisnici/${id}`)
         setKorisnik(resKorisnik.data)
 
-        // 2. Statistika
         const resStats = await api.get(`/api/korisnici/${id}/statistika`)
         const stats = resStats.data.statistika || {}
         setStatistika({
@@ -85,7 +98,6 @@ export default function UserProfile() {
           brojPopeoSe: stats.brojPopeoSe || 0,
         })
 
-        // 3. Osvojeni vrhovi
         const resAkcije = await api.get(`/api/korisnici/${id}/popeo-se`)
         setUspesneAkcije(resAkcije.data.uspesneAkcije || [])
       } catch (err: any) {
@@ -142,10 +154,11 @@ export default function UserProfile() {
   if (error || !korisnik) return <div className="text-center py-20 text-red-600">{error || 'Korisnik nije pronađen'}</div>
 
   const isOwnProfile = currentUser?.username === korisnik.username
+  const hasCover = !!korisnik.cover_image_url
+  const effectiveCoverPositionY = korisnik.cover_position_y ?? 0.5
 
   return (
-    <div className="pt-4 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
-
+    <div className="pt-2 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative">
       <ProfileActionButtons
         userId={String(korisnik.id)}
         isOwnProfile={!!isOwnProfile}
@@ -153,113 +166,192 @@ export default function UserProfile() {
         onPrintClick={() => korisnik && generateMemberPdf(korisnik as unknown as MemberPdfData)}
       />
 
-      <div className="bg-white rounded-2xl shadow-xl pt-10 px-4 sm:px-8 pb-12 -mt-4 sm:mt-2 -mx-2 sm:mx-0">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Avatar ili slika profila */}
-            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-5xl flex-shrink-0">
-              {korisnik.avatar_url && !avatarLoadFailed ? (
-                <img
-                  src={korisnik.avatar_url}
-                  alt={korisnik.fullName || korisnik.username || ''}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={() => setAvatarLoadFailed(true)}
-                />
-              ) : null}
-              <span className={korisnik.avatar_url && !avatarLoadFailed ? 'invisible' : ''}>
-                {(korisnik.fullName || korisnik.username || '?').charAt(0).toUpperCase()}
-              </span>
+      {/* Hero card, isti stil kao /profil */}
+      <div className="rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden bg-white">
+        {/* Cover (bez editovanja, samo prikaz) */}
+        <div className="relative h-44 sm:h-56 select-none">
+          {hasCover ? (
+            <img
+              src={korisnik.cover_image_url}
+              alt="Cover"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              style={{ objectPosition: `center ${effectiveCoverPositionY * 100}%` }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
+        </div>
+
+        {/* Info ispod covera */}
+        <div className="px-5 sm:px-8 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+            {/* Avatar + ime */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4">
+              <div className="relative w-20 h-20 sm:w-[88px] sm:h-[88px] rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-3xl ring-[3px] ring-gray-100 shadow-md flex-shrink-0">
+                {korisnik.avatar_url && !avatarLoadFailed ? (
+                  <img
+                    src={korisnik.avatar_url}
+                    alt={korisnik.fullName || korisnik.username || ''}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : null}
+                <span className={korisnik.avatar_url && !avatarLoadFailed ? 'invisible' : ''}>
+                  {(korisnik.fullName || korisnik.username || '?').charAt(0).toUpperCase()}
+                </span>
+              </div>
+
+              <div className="text-center sm:text-left">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                  {korisnik.fullName || korisnik.username}
+                </h1>
+                <p className="text-sm text-gray-400 mt-0.5 font-medium">@{korisnik.username}</p>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wide uppercase ${getRoleStyle(korisnik.role)}`}>
+                    {getRoleLabel(korisnik.role)}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    Član od {formatDate(korisnik.createdAt)}
+                  </span>
+                </div>
+
+                {currentUser && (korisnik.email || korisnik.telefon) && (
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
+                    {korisnik.email && (
+                      <a
+                        href={`mailto:${korisnik.email}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-gray-50 to-gray-50/50 border border-gray-100 hover:border-emerald-200 hover:from-emerald-50/50 hover:to-emerald-50/30 text-xs text-gray-600 hover:text-emerald-700 font-medium transition-all duration-200"
+                      >
+                        <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                        </svg>
+                        {korisnik.email}
+                      </a>
+                    )}
+                    {korisnik.telefon && (
+                      <a
+                        href={`tel:${korisnik.telefon}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-gray-50 to-gray-50/50 border border-gray-100 hover:border-emerald-200 hover:from-emerald-50/50 hover:to-emerald-50/30 text-xs text-gray-600 hover:text-emerald-700 font-medium transition-all duration-200"
+                      >
+                        <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                        </svg>
+                        {korisnik.telefon}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="text-center md:text-left">
-              <h1 className="text-4xl font-bold text-gray-900">{korisnik.fullName || korisnik.username}</h1>
-              <p className="text-xl text-gray-600 mt-2">@{korisnik.username}</p>
-              <span className={`inline-block mt-4 px-4 py-1 rounded-full text-sm font-medium ${getRoleStyle(korisnik.role)}`}>
-                {getRoleLabel(korisnik.role)}
-              </span>
-            <p className="text-gray-500 mt-4">
-              Pridružio se: {formatDate(korisnik.createdAt)}
-            </p>
-            {currentUser && korisnik.email && (
-              <p className="text-gray-600 mt-2 text-sm">
-                <span className="font-medium">Email:</span>{' '}
-                <a href={`mailto:${korisnik.email}`} className="text-[#41ac53] hover:underline">
-                  {korisnik.email}
-                </a>
-              </p>
-            )}
-            {currentUser && korisnik.telefon && (
-              <p className="text-gray-600 mt-1 text-sm">
-                <span className="font-medium">Telefon:</span>{' '}
-                <a href={`tel:${korisnik.telefon}`} className="text-[#41ac53] hover:underline">
-                  {korisnik.telefon}
-                </a>
-              </p>
-            )}
+            {/* Rank badge desno */}
+            <div className="flex justify-center sm:justify-end">
+              <div
+                className="relative flex flex-col items-center px-5 py-2.5 rounded-xl text-sm font-bold shadow-md overflow-hidden"
+                style={{
+                  backgroundColor: rank.boja,
+                  color: rank.boja === '#000000' ? '#FFD700' : 'white',
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                <span className="relative text-sm tracking-wide leading-tight">
+                  {formatRankDisplayName(rank, top30Position)}
+                </span>
+                <span className="relative text-[10px] opacity-75 mt-0.5 font-semibold">
+                  MMR {rank.mmr}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Rank desno, mobile friendly */}
-          <div className="mt-6 md:mt-0 flex md:block justify-center md:justify-end">
-            <div
-              className="inline-block px-8 py-4 rounded-full text-xl font-bold shadow-md"
-              style={{ backgroundColor: rank.boja, color: rank.boja === '#000000' ? '#FFD700' : 'white' }}
-            >
-              {formatRankDisplayName(rank, top30Position)}
+        {/* Statistika — isti stil kartica */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-5 px-5 sm:px-8 pb-2">
+          <div className="relative overflow-hidden bg-gradient-to-br from-white to-emerald-50/40 rounded-xl border border-emerald-100/60 shadow-sm p-4 sm:p-5 text-center group hover:shadow-md hover:border-emerald-200/60 transition-all duration-200">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-emerald-100/40 to-transparent rounded-bl-[40px]" />
+            <div className="relative">
+              <div className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white mb-2.5 shadow-sm">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                </svg>
+              </div>
+              <p className="text-lg sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+                {statistika.ukupnoMetaraUspona.toLocaleString('sr-RS')}
+                <span className="text-xs sm:text-sm font-semibold text-emerald-500 ml-0.5">m</span>
+              </p>
+              <p className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider mt-1">Ukupni uspon</p>
             </div>
           </div>
-        </div>
 
-        {/* Statistička sekcija */}
-        <div className="bg-gray-50 rounded-xl p-6 mt-10">
-          <h3 className="text-xl font-semibold mb-6 text-center" style={{ color: '#41ac53' }}>
-            Planinarska statistika
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-            <div className="p-4 bg-white rounded-lg shadow-sm">
-              <p className="text-3xl font-bold text-[#41ac53]">
-                {statistika.ukupnoMetaraUspona.toLocaleString('sr-RS')} m
+          <div className="relative overflow-hidden bg-gradient-to-br from-white to-sky-50/40 rounded-xl border border-sky-100/60 shadow-sm p-4 sm:p-5 text-center group hover:shadow-md hover:border-sky-200/60 transition-all duration-200">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-sky-100/40 to-transparent rounded-bl-[40px]" />
+            <div className="relative">
+              <div className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white mb-2.5 shadow-sm">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                </svg>
+              </div>
+              <p className="text-lg sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+                {statistika.ukupnoKm.toLocaleString('sr-RS', {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}
+                <span className="text-xs sm:text-sm font-semibold text-sky-500 ml-0.5">km</span>
               </p>
-              <p className="text-sm text-gray-600 mt-1">Ukupni uspon</p>
+              <p className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider mt-1">Dužina staza</p>
             </div>
+          </div>
 
-            <div className="p-4 bg-white rounded-lg shadow-sm">
-              <p className="text-3xl font-bold text-[#41ac53]">
-                {statistika.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Ukupna dužina staza</p>
-            </div>
-
-            <div className="p-4 bg-white rounded-lg shadow-sm">
-              <p className="text-3xl font-bold text-[#41ac53]">
+          <div className="relative overflow-hidden bg-gradient-to-br from-white to-amber-50/40 rounded-xl border border-amber-100/60 shadow-sm p-4 sm:p-5 text-center group hover:shadow-md hover:border-amber-200/60 transition-all duration-200">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-100/40 to-transparent rounded-bl-[40px]" />
+            <div className="relative">
+              <div className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white mb-2.5 shadow-sm">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" />
+                </svg>
+              </div>
+              <p className="text-lg sm:text-2xl font-extrabold text-gray-900 tracking-tight">
                 {statistika.brojPopeoSe}
               </p>
-              <p className="text-sm text-gray-600 mt-1">Akcija popeo se</p>
+              <p className="text-[10px] sm:text-xs text-gray-400 font-semibold uppercase tracking-wider mt-1">Osvojenih</p>
             </div>
           </div>
         </div>
 
-        {/* Lista uspešnih akcija */}
-        <div className="mt-12 sm:mt-14">
-          <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight" style={{ color: '#41ac53' }}>
+        {/* Akcije */}
+        <div className="mt-10 px-5 sm:px-8 pb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-1.5 h-7 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
               Akcije na koje se popeo
-            </h3>
+            </h2>
+            {uspesneAkcije.length > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                {uspesneAkcije.length}
+              </span>
+            )}
           </div>
 
           {uspesneAkcije.length === 0 ? (
-            <div className="text-center py-14 sm:py-16 bg-gray-50 rounded-2xl border border-gray-200/80">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53]/10 text-[#41ac53] mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 011.414-1.414L21 7.5" />
-                </svg>
+            <div className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-emerald-50/50 to-transparent rounded-br-[60px]" />
+              <div className="relative">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 mb-4">
+                  <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
+                  </svg>
+                </div>
+                <p className="text-gray-400 text-sm font-medium">
+                  Još nije označen kao uspešno završen ni na jednoj akciji.
+                </p>
               </div>
-              <p className="text-gray-600 text-base sm:text-lg font-medium">Još nije označen kao uspešno završen ni na jednoj akciji.</p>
-              <p className="text-gray-500 text-sm mt-1">Kada se popne na akciju, ovde će se prikazati.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {uspesneAkcije.map((akcija) => {
                 const mmrZaAkciju = computeMMRForAkcija({
                   duzinaStazeKm: akcija.duzinaStazeKm,
@@ -269,55 +361,80 @@ export default function UserProfile() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
+                const tz = getTezinaStyle(akcija.tezina)
 
                 return (
-                <Link
-                  key={akcija.id}
-                  to={`/akcije/${akcija.id}`}
-                  className="block group relative bg-white rounded-2xl border border-gray-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-[#41ac53]/30 transition-all duration-300 ease-out hover:no-underline"
-                >
-                  <div className="relative w-full h-44 sm:h-52 overflow-hidden">
-                    <img
-                      src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                      alt={akcija.naziv}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                        e.currentTarget.onerror = null
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#41ac53] text-white shadow-lg">
-                      Popeo ✓
+                  <Link
+                    key={akcija.id}
+                    to={`/akcije/${akcija.id}`}
+                    className="group relative bg-white rounded-xl border border-gray-100/80 shadow-sm overflow-hidden hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 hover:no-underline"
+                  >
+                    <div className="relative w-full h-40 sm:h-44 overflow-hidden bg-gray-100">
+                      <img
+                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                        alt={akcija.naziv}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
+                          e.currentTarget.onerror = null
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                      <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between">
+                        <span className="text-white/90 text-[11px] font-semibold bg-white/15 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+                          {formatDateShort(akcija.datum)}
+                        </span>
+                        <span className="text-white text-[11px] font-bold bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1 rounded-lg shadow-sm">
+                          +{mmrZaAkciju} MMR
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4 sm:p-5">
-                    <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
-                      {akcija.naziv}
-                    </h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {akcija.planina && (
-                        <p><strong className="text-gray-700">Planina:</strong> {akcija.planina}</p>
-                      )}
-                      <p><strong className="text-gray-700">Vrh:</strong> {akcija.vrh}</p>
-                      <p><strong className="text-gray-700">Datum:</strong> {formatDateShort(akcija.datum)}</p>
-                      <p><strong className="text-gray-700">Dužina staze:</strong> {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km</p>
-                      <p><strong className="text-gray-700">Uspon:</strong> {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m</p>
-                      <p><strong className="text-gray-700">MMR sa ove akcije:</strong> <span className="font-semibold">{mmrZaAkciju}</span></p>
+                    <div className="p-4">
+                      <h4 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-emerald-600 transition-colors duration-200">
+                        {akcija.naziv}
+                      </h4>
+
+                      <div className="space-y-1 text-[11px] text-gray-400 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3 h-3 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                          </svg>
+                          <span className="truncate">{akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                            {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km
+                          </span>
+                          <span className="w-0.5 h-3 bg-gray-200 rounded-full" />
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                            </svg>
+                            {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${tz.bg} ${tz.text} ${tz.border}`}>
+                          {tz.label}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Popeo se
+                        </span>
+                      </div>
                     </div>
-                    <span className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
-                      akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
-                      akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
-                      akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'bg-rose-100 text-rose-800' :
-                      akcija.tezina === 'alpinizam' ? 'bg-violet-100 text-violet-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
-                    </span>
-                  </div>
-                </Link>
-              )})}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>
