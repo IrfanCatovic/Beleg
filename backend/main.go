@@ -127,7 +127,6 @@ func main() {
 
 	// Public rute
 
-	// GET /api/setup/status proveri da li već postoje korisnici u bazi
 	r.GET("/api/setup/status", func(c *gin.Context) {
 		var total int64
 		if err := db.Model(&models.Korisnik{}).Count(&total).Error; err != nil {
@@ -136,15 +135,14 @@ func main() {
 		}
 		var superCount int64
 		if err := db.Model(&models.Korisnik{}).Where("role = ?", "superadmin").Count(&superCount).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri superadmin-a"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri superadmin naloga"})
 			return
 		}
-		// Dok ne postoji bar jedan superadmin, smatramo da je potreban setup
-		needsSuperadmin := superCount == 0
 		c.JSON(http.StatusOK, gin.H{
-			"hasUsers":       total > 0,
-			"hasSuperadmin":  superCount > 0,
-			"needsSuperadmin": needsSuperadmin,
+			"hasUsers":        total > 0,
+			"hasSuperadmin":   superCount > 0,
+			// dok god nema nijednog superadmin-a, frontend treba da ide na /register-superadmin
+			"needsSuperadmin": superCount == 0,
 		})
 	})
 
@@ -503,15 +501,11 @@ func main() {
 			})
 		})
 
-		// POST /api/register registracija novog korisnika (samo admin ili sekretar)
-		// Multipart/form-data, ista polja kao setup/admin, role se postavlja iz forme
-		r.POST("/api/register", middleware.AuthMiddleware(jwtSecret), func(c *gin.Context) {
-			// Proveri da li je korisnik admin ili sekretar
-			roleVal, exists := c.Get("role")
-			if !exists || (roleVal != "admin" && roleVal != "sekretar") {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da kreiraju nove korisnike"})
-				return
-			}
+		// POST /api/register — kreiranje korisnika (uključujući superadmin)
+		// Ako se šalje role=superadmin: dozvoljeno samo kada nema nijednog superadmina (bez auth-a).
+		// Za ostale role: obavezan auth (admin ili sekretar), multipart/form-data, role iz forme.
+		r.POST("/api/register", func(c *gin.Context) {
+			db := c.MustGet("db").(*gorm.DB)
 
 			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
@@ -521,6 +515,155 @@ func main() {
 			username := strings.TrimSpace(c.PostForm("username"))
 			password := c.PostForm("password")
 			role := strings.TrimSpace(c.PostForm("role"))
+
+			// ——— Kreiranje superadmina (samo ako još nema nijednog, bez auth-a) ———
+			if role == "superadmin" {
+				if username == "" || password == "" {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username i password"})
+					return
+				}
+				if len(password) < 8 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+					return
+				}
+				var superCount int64
+				if err := db.Model(&models.Korisnik{}).Where("role = ?", "superadmin").Count(&superCount).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri superadmin naloga"})
+					return
+				}
+				if superCount > 0 {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Superadmin već postoji"})
+					return
+				}
+				hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
+					return
+				}
+				fullName := strings.TrimSpace(c.PostForm("fullName"))
+				imeRoditelja := strings.TrimSpace(c.PostForm("imeRoditelja"))
+				pol := strings.TrimSpace(c.PostForm("pol"))
+				drzavljanstvo := strings.TrimSpace(c.PostForm("drzavljanstvo"))
+				adresa := strings.TrimSpace(c.PostForm("adresa"))
+				telefon := strings.TrimSpace(c.PostForm("telefon"))
+				email := strings.TrimSpace(c.PostForm("email"))
+				brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
+				brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
+				brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
+				izreceneDisciplinskeKazne := strings.TrimSpace(c.PostForm("izreceneDisciplinskeKazne"))
+				izborUOrganeSportskogUdruzenja := strings.TrimSpace(c.PostForm("izborUOrganeSportskogUdruzenja"))
+				napomene := strings.TrimSpace(c.PostForm("napomene"))
+				var datumRodjenja, datumUclanjenja *time.Time
+				if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
+					if t, err := time.Parse("2006-01-02", s); err == nil {
+						datumRodjenja = &t
+					}
+				}
+				if s := strings.TrimSpace(c.PostForm("datumUclanjenja")); s != "" {
+					if t, err := time.Parse("2006-01-02", s); err == nil {
+						datumUclanjenja = &t
+					}
+				}
+				avatarURL := ""
+				if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
+					file := files[0]
+					f, err := file.Open()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+						return
+					}
+					defer f.Close()
+					cld, err := cloudinary.NewFromParams(
+						os.Getenv("CLOUDINARY_CLOUD_NAME"),
+						os.Getenv("CLOUDINARY_API_KEY"),
+						os.Getenv("CLOUDINARY_API_SECRET"),
+					)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+						return
+					}
+					ctx := context.Background()
+					uploadParams := uploader.UploadParams{
+						PublicID: fmt.Sprintf("avatari/register-superadmin-%s-%d", username, time.Now().Unix()),
+						Folder:   "adri-sentinel",
+					}
+					uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
+						return
+					}
+					avatarURL = uploadResult.SecureURL
+				}
+				korisnik := models.Korisnik{
+					Username:                         username,
+					Password:                         string(hashed),
+					FullName:                         fullName,
+					ImeRoditelja:                     imeRoditelja,
+					Pol:                              pol,
+					DatumRodjenja:                    datumRodjenja,
+					Drzavljanstvo:                    drzavljanstvo,
+					Adresa:                           adresa,
+					Telefon:                          telefon,
+					Email:                            email,
+					BrojLicnogDokumenta:              brojLicnogDokumenta,
+					BrojPlaninarskeLegitimacije:      brojPlaninarskeLegitimacije,
+					BrojPlaninarskeMarkice:           brojPlaninarskeMarkice,
+					DatumUclanjenja:                  datumUclanjenja,
+					IzreceneDisciplinskeKazne:        izreceneDisciplinskeKazne,
+					IzborUOrganeSportskogUdruzenja:   izborUOrganeSportskogUdruzenja,
+					Napomene:                         napomene,
+					AvatarURL:                        avatarURL,
+					Role:                             "superadmin",
+				}
+				if err := db.Create(&korisnik).Error; err != nil {
+					c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
+					return
+				}
+				c.JSON(http.StatusCreated, gin.H{
+					"message": "Superadmin uspešno kreiran",
+					"role":    "superadmin",
+					"user": gin.H{
+						"id":       korisnik.ID,
+						"username": korisnik.Username,
+						"fullName": korisnik.FullName,
+					},
+				})
+				return
+			}
+
+			// ——— Ostale uloge: obavezan auth (admin ili sekretar) ———
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+				return
+			}
+			authHeader = strings.TrimSpace(authHeader)
+			if !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
+				return
+			}
+			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			tokenStr = strings.TrimSpace(tokenStr)
+			if len(tokenStr) < 10 {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+				return
+			}
+			claims := jwt.MapClaims{}
+			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, jwt.ErrSignatureInvalid
+				}
+				return jwtSecret, nil
+			})
+			if err != nil || !token.Valid {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+				return
+			}
+			roleVal, _ := claims["role"].(string)
+			if roleVal != "admin" && roleVal != "sekretar" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da kreiraju nove korisnike"})
+				return
+			}
 
 			if username == "" || password == "" || role == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username, password i role"})
@@ -535,7 +678,6 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća uloga"})
 				return
 			}
-			// Sekretar ne može da kreira admina
 			if roleVal == "sekretar" && role == "admin" {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Sekretar ne može da kreira administratora"})
 				return
