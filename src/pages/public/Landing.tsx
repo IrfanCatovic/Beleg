@@ -1,6 +1,6 @@
-import heroImage from '../../public/hero.png'
-import teamImage from '../../public/team.jpg'
-import segmentImage from '../../public/segment1.jpeg'
+import heroImage from '../../../public/hero.png'
+import teamImage from '../../../public/team.jpg'
+import segmentImage from '../../../public/segment1.jpeg'
 import MarketingNavbar from '../../components/MarketingNavbar'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {

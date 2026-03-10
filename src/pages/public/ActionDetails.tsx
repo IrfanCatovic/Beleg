@@ -1,9 +1,9 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import api from '../services/api'
-import { useAuth } from '../context/AuthContext'
-import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../utils/generateActionPdf'
-import { formatDateTime, formatDate } from '../utils/dateUtils'
+import api from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
+import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
+import { formatDateTime, formatDate } from '../../utils/dateUtils'
 
 interface Akcija {
   id: number

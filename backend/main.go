@@ -1,6 +1,7 @@
 package main
 
 import (
+	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
@@ -58,18 +59,18 @@ func main() {
 	
 	corsOrigins := os.Getenv("CORS_ORIGINS")
 	if corsOrigins == "" {
-		corsOrigins = "http://localhost:5173"
+		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173"
 	}
+	originSet := map[string]bool{"http://localhost:5173": true, "http://127.0.0.1:5173": true}
 	var origins []string
 	for _, o := range strings.Split(corsOrigins, ",") {
 		o = strings.TrimSpace(o)
-		if o != "" {
+		if o != "" && !originSet[o] {
+			originSet[o] = true
 			origins = append(origins, o)
 		}
 	}
-	if len(origins) == 0 {
-		origins = []string{"http://localhost:5173"}
-	}
+	origins = append([]string{"http://localhost:5173", "http://127.0.0.1:5173"}, origins...)
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -327,8 +328,11 @@ func main() {
 		})
 	})
 
+	// POST /api/cena-zahtev — javna forma za zahtev ponude; šalje email na EMAIL_TO
+	r.POST("/api/cena-zahtev", handlers.CenaZahtev)
+
 	// Javna ruta — detalji akcije (za deljenje linka; vraća i vodiča i ko je dodao)
-	// GET /api/akcije/:id — detalji su javni (ruta registrovana iznad, van protected)
+	// GET /api/akcije/:id  detalji su javni (ruta registrovana iznad, van protected)
 	r.GET("/api/akcije/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)

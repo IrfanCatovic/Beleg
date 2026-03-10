@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { useModal } from '../context/ModalContext'
-import api from '../services/api'
-import { formatDateShort } from '../utils/dateUtils'
-import { generateAnnualReportPdf } from '../utils/generateAnnualReportPdf'
+import { useAuth } from '../../../context/AuthContext'
+import { useModal } from '../../../context/ModalContext'
+import api from '../../../services/api'
+import { formatDateShort } from '../../../utils/dateUtils'
+import { generateAnnualReportPdf } from '../../../utils/generateAnnualReportPdf'
 import {
   computeCountsForParticipants,
   type AnnualReportRow,
   type ParticipantForReport,
-} from '../utils/annualReportUtils'
-import Loader from '../components/Loader'
-import Dropdown from '../components/Dropdown'
-import { computeMMRForAkcija, type AkcijaZaRanking } from '../utils/rankingUtils'
+} from '../../../utils/annualReportUtils'
+import Loader from '../../../components/Loader'
+import Dropdown from '../../../components/Dropdown'
+import { computeMMRForAkcija, type AkcijaZaRanking } from '../../../utils/rankingUtils'
 
 interface Akcija {
   id: number

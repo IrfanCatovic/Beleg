@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import MarketingNavbar from '../../components/MarketingNavbar'
-
-const EMAIL = 'catovicc84@gmail.com'
+import api from '../../services/api'
 const EUR_TO_RSD = 117
 const ADMIN_PRICE_EUR = 5
 const ADMIN_PRICE_RSD = ADMIN_PRICE_EUR * EUR_TO_RSD
@@ -56,6 +55,12 @@ export default function Cena() {
   const [extraUsers, setExtraUsers] = useState(0)
   const [extraAdmins, setExtraAdmins] = useState(0)
   const [note, setNote] = useState('')
+  const [imeKluba, setImeKluba] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [fieldError, setFieldError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const selected = PAKETI[selectedPaket]
 
@@ -72,32 +77,52 @@ export default function Cena() {
     }
   }, [extraUsers, extraAdmins, basePriceRsd, extraPricePerUserRsd])
 
-  const handleSendEmail = () => {
-    const subject = encodeURIComponent(`NaVrhu – interesovanje za paket ${selected.name}`)
-    const bodyLines = [
-      'Dobar dan,',
-      '',
-      `interesuje me paket ${selected.name}.`,
-      '',
-      `Osnovna cena paketa: ${basePriceRsd.toLocaleString('sr-RS')} din / mesec`,
-      `U paketu uključeno korisnika: ${selected.includedUsers}`,
-      `Broj dodatnih korisnika: ${extraUsers}`,
-      `Cena dodatnog korisnika: ${Math.round(extraPricePerUserRsd).toLocaleString('sr-RS')} din`,
-      `Ukupno za dodatne korisnike: ${Math.round(extraUsersCostRsd).toLocaleString('sr-RS')} din / mesec`,
-      '',
-      `Broj dodatnih admin naloga: ${extraAdmins}`,
-      `Cena dodatnog admin naloga: ${ADMIN_PRICE_RSD.toLocaleString('sr-RS')} din`,
-      `Ukupno za dodatne admine: ${Math.round(extraAdminsCostRsd).toLocaleString('sr-RS')} din / mesec`,
-      '',
-      `UKUPNO (paket + dodatni korisnici + dodatni admini): ${Math.round(totalMonthlyRsd).toLocaleString(
-        'sr-RS'
-      )} din / mesec`,
-      '',
-      note ? `Dodatne napomene:\n${note}\n` : '',
-      'Hvala!',
-    ]
-    const body = encodeURIComponent(bodyLines.join('\n'))
-    window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${body}`
+  const handleSendEmail = async () => {
+    const club = imeKluba.trim()
+    const phone = contactPhone.trim()
+    const email = contactEmail.trim()
+    setFieldError('')
+    setSubmitMessage(null)
+    if (!club) {
+      setFieldError('Obavezno unesite ime kluba.')
+      return
+    }
+    if (!phone) {
+      setFieldError('Obavezno unesite broj telefona.')
+      return
+    }
+    if (!email) {
+      setFieldError('Obavezno unesite email.')
+      return
+    }
+
+    setSending(true)
+    try {
+      await api.post('/api/cena-zahtev', {
+        paket: selected.name,
+        extraUsers,
+        extraAdmins,
+        note: note.trim(),
+        imeKluba: club,
+        contactEmail: email,
+        contactPhone: phone,
+        basePriceRsd: Math.round(basePriceRsd),
+        extraUsersCostRsd: Math.round(extraUsersCostRsd),
+        extraAdminsCostRsd: Math.round(extraAdminsCostRsd),
+        totalMonthlyRsd: Math.round(totalMonthlyRsd),
+      })
+      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javit ćemo vam se uskoro.' })
+      setNote('')
+      setImeKluba('')
+      setContactPhone('')
+      setContactEmail('')
+    } catch (err: unknown) {
+      const res = err && typeof err === 'object' && 'response' in err ? (err as { response?: { data?: { error?: string } } }).response : null
+      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      setSubmitMessage({ type: 'error', text: msg })
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -287,8 +312,67 @@ export default function Cena() {
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="ime-kluba" className="text-xs font-medium text-gray-600">
+              Ime kluba <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="ime-kluba"
+              type="text"
+              value={imeKluba}
+              onChange={(e) => {
+                setImeKluba(e.target.value)
+                setFieldError('')
+              }}
+              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+              }`}
+              placeholder="npr. Planinarsko društvo Javor"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="contact-phone" className="text-xs font-medium text-gray-600">
+                Kontakt telefon <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="contact-phone"
+                type="tel"
+                value={contactPhone}
+                onChange={(e) => {
+                  setContactPhone(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder="+381 6x xxx xxxx"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="contact-email" className="text-xs font-medium text-gray-600">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="contact-email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => {
+                  setContactEmail(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder="vas@email.rs"
+              />
+            </div>
+          </div>
+          {fieldError && <p className="text-xs text-red-600">{fieldError}</p>}
+
+          <div className="space-y-2">
             <label htmlFor="note" className="text-xs font-medium text-gray-600">
-              Dodatne napomene (npr. specifične potrebe, broj vodiča, prelazak sa postojećeg sistema…)
+              Dodatne napomene <span className="text-gray-400">(opciono)</span>
             </label>
             <textarea
               id="note"
@@ -300,17 +384,27 @@ export default function Cena() {
             />
           </div>
 
+          {submitMessage && (
+            <p
+              className={`text-sm font-medium ${
+                submitMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'
+              }`}
+            >
+              {submitMessage.text}
+            </p>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <p className="text-xs text-gray-500">
-              Klikom na „Pošalji poruku“ otvoriće se vaš e-mail klijent sa popunjenom porukom. Možete je dodatno
-              izmeniti pre slanja.
+              Klikom na „Pošalji zahtev“ poruka će biti poslata direktno na našu adresu. Javićemo vam se uskoro.
             </p>
             <button
               type="button"
               onClick={handleSendEmail}
-              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors"
+              disabled={sending}
+              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
-              Pošalji poruku
+              {sending ? 'Slanje…' : 'Pošalji zahtev'}
             </button>
           </div>
         </div>
