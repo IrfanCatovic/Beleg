@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
@@ -62,6 +62,7 @@ function getTezinaStyle(tezina?: string) {
 
 export default function Profil() {
   const { isLoggedIn, user } = useAuth()
+  const navigate = useNavigate()
   const [me, setMe] = useState<MeKorisnik | null>(null)
   const [uspesneAkcije, setUspesneAkcije] = useState<UspesnaAkcija[]>([])
   const [statistika, setStatistika] = useState<KorisnikStatistika>({
@@ -116,6 +117,13 @@ export default function Profil() {
 
     fetchProfilData()
   }, [isLoggedIn])
+
+  // Kada se profil učita, automatski preusmjeri na javni profil /korisnik/:username
+  useEffect(() => {
+    if (isLoggedIn && me?.username) {
+      navigate(`/korisnik/${me.username}`, { replace: true })
+    }
+  }, [isLoggedIn, me?.username, navigate])
 
   useEffect(() => {
     const loadTop30Position = async () => {

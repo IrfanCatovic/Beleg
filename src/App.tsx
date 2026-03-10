@@ -79,6 +79,7 @@ const router = createBrowserRouter([
       // Javno: detalji akcije i user profil (bez logina, za deljenje na društvene mreže)
       { path: '/akcije/:id', element: <ActionDetails /> },
       { path: '/users/:id', element: <UserProfile /> },
+      { path: '/korisnik/:username', element: <UserProfile /> },
 
       {
         element: <ProtectedRoute />,

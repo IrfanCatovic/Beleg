@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -63,8 +63,9 @@ function getTezinaStyle(tezina?: string) {
 }
 
 export default function UserProfile() {
-  const { id } = useParams<{ id: string }>()
+  const { id, username } = useParams<{ id?: string; username?: string }>()
   const { user: currentUser } = useAuth()
+  const navigate = useNavigate()
 
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null)
   const [uspesneAkcije, setUspesneAkcije] = useState<UspesnaAkcija[]>([])
@@ -83,14 +84,43 @@ export default function UserProfile() {
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
   const [top30Position, setTop30Position] = useState<number | null>(null)
 
+  // Učitaj profil na osnovu ID-ja ili username-a (za /users/:id i /korisnik/:username)
   useEffect(() => {
-    const fetchProfilData = async () => {
+    const effectiveLoad = async () => {
       setLoading(true)
+      setError('')
       try {
-        const resKorisnik = await api.get(`/api/korisnici/${id}`)
-        setKorisnik(resKorisnik.data)
+        let effectiveId = id
 
-        const resStats = await api.get(`/api/korisnici/${id}/statistika`)
+        // Ako je ruta /korisnik/:username – prvo nađi ID po username-u
+        if (!effectiveId && username) {
+          const resAll = await api.get<{ korisnici: Korisnik[] }>('/api/korisnici')
+          const list = resAll.data.korisnici || []
+          const found = list.find((k) => k.username === username)
+          if (!found) {
+            setError('Korisnik nije pronađen')
+            setLoading(false)
+            return
+          }
+          effectiveId = String(found.id)
+        }
+
+        if (!effectiveId) {
+          setError('Korisnik nije pronađen')
+          setLoading(false)
+          return
+        }
+
+        const resKorisnik = await api.get(`/api/korisnici/${effectiveId}`)
+        const k = resKorisnik.data as Korisnik
+        setKorisnik(k)
+
+        // Ako smo došli preko /users/:id, a znamo username, preusmjeri na /korisnik/:username (lepši URL)
+        if (!username && k.username) {
+          navigate(`/korisnik/${k.username}`, { replace: true })
+        }
+
+        const resStats = await api.get(`/api/korisnici/${effectiveId}/statistika`)
         const stats = resStats.data.statistika || {}
         setStatistika({
           ukupnoKm: stats.ukupnoKm || 0,
@@ -98,7 +128,7 @@ export default function UserProfile() {
           brojPopeoSe: stats.brojPopeoSe || 0,
         })
 
-        const resAkcije = await api.get(`/api/korisnici/${id}/popeo-se`)
+        const resAkcije = await api.get(`/api/korisnici/${effectiveId}/popeo-se`)
         setUspesneAkcije(resAkcije.data.uspesneAkcije || [])
       } catch (err: any) {
         console.error('Greška pri učitavanju profila:', err)
@@ -108,12 +138,12 @@ export default function UserProfile() {
       }
     }
 
-    fetchProfilData()
-  }, [id])
+    effectiveLoad()
+  }, [id, username, navigate])
 
   useEffect(() => {
     setAvatarLoadFailed(false)
-  }, [id])
+  }, [id, username])
 
   useEffect(() => {
     const loadTop30Position = async () => {

@@ -33,7 +33,7 @@ function ResultListClanovi({
           <button
             type="button"
             onClick={() => {
-              navigate(`/users/${k.id}`)
+              navigate(`/korisnik/${k.username}`)
               onPick()
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors"

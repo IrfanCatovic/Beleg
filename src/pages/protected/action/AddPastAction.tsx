@@ -98,7 +98,12 @@ export default function AddPastAction() {
       await api.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      navigate(`/users/${korisnikId}`, { replace: true })
+      const selected = korisnici.find((k) => String(k.id) === korisnikId)
+      if (selected?.username) {
+        navigate(`/korisnik/${selected.username}`, { replace: true })
+      } else {
+        navigate('/users', { replace: true })
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Greška pri dodavanju prošle akcije.')
       setSubmitting(false)

@@ -272,7 +272,7 @@ export default function Korisnici() {
                   className="group bg-gradient-to-b from-gray-50/90 via-white to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-2xl overflow-hidden border border-gray-100/80 dark:border-gray-700/80 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
                 >
                   <div className="p-5 md:p-6">
-                    <Link to={`/users/${k.id}`} className="block" onClick={(e) => e.stopPropagation()}>
+                    <Link to={`/korisnik/${k.username}`} className="block" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-sm">
@@ -400,7 +400,7 @@ export default function Korisnici() {
                     {index + 1}.
                   </span>
                   <Link
-                    to={`/users/${k.id}`}
+                    to={`/korisnik/${k.username}`}
                     className="flex flex-1 items-center gap-3 sm:gap-4 hover:no-underline"
                   >
                     <div className="relative h-10 w-10 rounded-2xl overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-semibold text-lg">

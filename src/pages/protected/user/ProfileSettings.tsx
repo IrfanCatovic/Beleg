@@ -167,9 +167,11 @@ export default function ProfileSettings() {
           setSaving(false)
           return
         }
+        const res = await api.get(`/api/korisnici/${id}`)
+        const k = res.data as { username: string }
         await api.patch(`/api/korisnici/${id}`, body)
         setSuccess(true)
-        setTimeout(() => navigate(`/users/${id}`, { replace: true }), 1500)
+        setTimeout(() => navigate(`/korisnik/${k.username}`, { replace: true }), 1500)
         return
       }
 
@@ -217,7 +219,7 @@ export default function ProfileSettings() {
       }
 
       setSuccess(true)
-      setTimeout(() => navigate('/profil', { replace: true }), 1500)
+      setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Greška pri čuvanju profila')
     } finally {
@@ -236,7 +238,7 @@ export default function ProfileSettings() {
   if (loading) return <div className="text-center py-20">Učitavanje...</div>
 
   const backLink = isAdminEdit ? (
-    <Link to={`/users/${id}`} className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+    <Link to={id ? `/users/${id}` : '/users'} className="text-gray-600 hover:text-gray-900 text-sm font-medium">
       ← Nazad na profil korisnika
     </Link>
   ) : (
@@ -401,7 +403,7 @@ export default function ProfileSettings() {
                   {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
                 </button>
                 <Link
-                  to={`/users/${id}`}
+                  to={id ? `/users/${id}` : '/users'}
                   className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
                 >
                   Odustani
@@ -419,7 +421,7 @@ export default function ProfileSettings() {
                     {saving ? 'Čuvanje...' : 'Postavi lozinku'}
                   </button>
                   <Link
-                    to={`/users/${id}`}
+                    to={id ? `/users/${id}` : '/users'}
                     className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
                   >
                     Odustani

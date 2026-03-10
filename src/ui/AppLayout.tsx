@@ -293,7 +293,10 @@ export default function AppLayout() {
                           <div className="py-1">
                             <button
                               type="button"
-                              onClick={() => { setIsProfileMenuOpen(false); navigate('/profil') }}
+                              onClick={() => {
+                                setIsProfileMenuOpen(false)
+                                navigate(`/korisnik/${user.username}`)
+                              }}
                               className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -501,7 +504,7 @@ export default function AppLayout() {
             <div className="flex-1 flex justify-center">
               <button
                 type="button"
-                onClick={() => navigate('/profil')}
+                onClick={() => navigate(user ? `/korisnik/${user.username}` : '/profil')}
                 className="flex flex-col items-center justify-center text-xs font-medium text-white/70"
                 aria-label="Profil"
               >

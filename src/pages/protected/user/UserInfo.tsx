@@ -93,9 +93,11 @@ export default function UserInfo() {
         <div className="p-6 sm:p-8 border-b border-gray-100">
           <div className="absolute top-6 right-6 flex flex-col items-end gap-2 [&_button]:mb-0">
             <BackButton />
-            <Link to={`/users/${id}`} className="text-sm font-medium text-[#41ac53] hover:underline">
-              Pogledaj profil
-            </Link>
+            {korisnik && (
+              <Link to={`/korisnik/${korisnik.username}`} className="text-sm font-medium text-[#41ac53] hover:underline">
+                Pogledaj profil
+              </Link>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-6 pr-32">
             <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#41ac53] to-[#2e8b4a] flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
