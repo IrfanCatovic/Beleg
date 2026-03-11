@@ -1,7 +1,4 @@
-import heroImage from '../../../public/hero.png'
-import teamImage from '../../../public/team.jpg'
-import segmentImage from '../../../public/segment1.jpeg'
-import planinarImage from '../../../public/planinar.jpg'
+// Lokalne slike zamenjene Cloudinary URL-ovima direktno u JSX
 import MarketingNavbar from '../../components/MarketingNavbar'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -103,7 +100,7 @@ export default function Landing() {
               <div className="flex-[0.9] flex justify-center lg:justify-end">
                 <div className="max-w-sm sm:max-w-md">
                   <img
-                    src={heroImage}
+                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237572/hero_rgwmwy.png"
                     alt="na vrhu – prikaz aplikacije na laptopu i telefonu"
                     className="rounded-3xl w-full h-auto object-contain"
                   />
@@ -118,7 +115,7 @@ export default function Landing() {
       <section className="relative w-full bg-slate-900 text-white">
         <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
           <img
-            src={segmentImage}
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237569/segment1_pzlff1.jpg"
             alt="Planinski pejzaž"
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center top' }}
@@ -642,7 +639,7 @@ export default function Landing() {
               <div className="flex-[0.9] flex justify-center lg:justify-end">
                 <div className="w-full max-w-sm rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
                   <img
-                    src={teamImage}
+                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237574/team_c4diuf.jpg"
                     alt="Tim na vrhu u online sastanku sa planinarskim društvom"
                     className="w-full h-full object-cover"
                   />
@@ -656,7 +653,7 @@ export default function Landing() {
         <section className="relative w-full bg-slate-900 text-white">
           <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
             <img
-              src={planinarImage}
+              src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237570/planinar_aqkntm.jpg"
               alt="Planinar na stazi"
               className="w-full h-full object-cover filter blur-[1px] scale-105"
               style={{ objectPosition: 'center 65%' }}
