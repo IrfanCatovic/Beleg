@@ -549,18 +549,32 @@ export default function Landing() {
                   text: 'Članovi se prijavljuju na akcije i prate svoj napredak, vodiči šalju obaveštenja, blagajnik vidi sve uplate, a rukovodstvo ima jasan uvid u članove, akcije i finansije. NaVrhu postaje digitalno „mesto susreta“ celog društva.',
                   step: '04',
                 },
-              ].map(({ title, text, step }) => (
-                <div
-                  key={step}
-                  className="relative rounded-2xl border border-gray-100 p-5 shadow-sm bg-white"
-                >
-                  <div className="absolute -top-3 left-4 inline-flex items-center justify-center h-7 px-3 rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-800">
-                    Korak {step}
+              ].map(({ title, text, step }, i) => {
+                const colors = [
+                  'bg-emerald-100 text-emerald-800 border-emerald-200',
+                  'bg-blue-100 text-blue-800 border-blue-200',
+                  'bg-amber-100 text-amber-800 border-amber-200',
+                  'bg-violet-100 text-violet-800 border-violet-200',
+                ]
+                const borders = [
+                  'border-emerald-100 hover:border-emerald-200',
+                  'border-blue-100 hover:border-blue-200',
+                  'border-amber-100 hover:border-amber-200',
+                  'border-violet-100 hover:border-violet-200',
+                ]
+                return (
+                  <div
+                    key={step}
+                    className={`relative rounded-2xl border p-5 shadow-sm bg-white hover:shadow-md transition-all ${borders[i]}`}
+                  >
+                    <div className={`absolute -top-3 left-4 inline-flex items-center justify-center h-7 px-3 rounded-full border text-[10px] font-semibold ${colors[i]}`}>
+                      Korak {step}
+                    </div>
+                    <h3 className="mt-3 mb-2 text-sm font-semibold">{title}</h3>
+                    <p className="text-xs text-gray-600">{text}</p>
                   </div>
-                  <h3 className="mt-3 mb-2 text-sm font-semibold">{title}</h3>
-                  <p className="text-xs text-gray-600">{text}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </section>
@@ -847,29 +861,96 @@ export default function Landing() {
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Pogled u interfejs</h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+                Kako konkretno izgleda NaVrhu za društvo, vodiče, blagajnika i članove na računaru i telefonu.
+              </p>
             </div>
 
-            <div className="space-y-6">
-              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                  UI mockup (placeholder)
-                </p>
-                <p className="text-xs text-gray-600 mb-4">
-                  Ovdje ubaciti mockup interfejsa – dashboard sa listom akcija, obaveštenjima sa strane, menijem za
-                  finansije i korisnike.
-                </p>
-                <div className="h-40 rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[11px] text-gray-500">
-                  Veliki screenshot dashboard-a (placeholder)
+            <div className="space-y-8">
+              {/* 1. Dashboard društva – PC */}
+              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                      Glavni ekran za rukovodstvo
+                    </p>
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">Dashboard društva (PC prikaz)</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
+                      Pregled ključnih stvari na jednom mestu: aktivne akcije, nove prijave, istaknute obaveze za
+                      rukovodstvo i kratki pregled finansija.
+                    </p>
+                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
+                      <li>• Lista narednih akcija sa brojem prijavljenih i statusom (otvorena / zatvorena).</li>
+                      <li>• Brzi uvid u novoupisane članove i isteke članarina/markica.</li>
+                      <li>• Kratki finansijski widget: uplate, isplate, saldo blagajne.</li>
+                    </ul>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="h-40 sm:h-48 rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[11px] text-gray-500 text-center px-4">
+                      OVDE: izdvoji screen glavnog dashboard-a za društvo (PC prikaz – širi desktop snimak ekrana)
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
-                    Mobilni prikaz
+              </div>
+
+              {/* 2. Profil člana i ranking – PC + mobilni */}
+              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                      Za članove i vodiče
+                    </p>
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">
+                      Profil člana, statistika i ranking (PC + mobilni)
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
+                      Svaki član ima svoj „planinarski CV“ – akcije, pređene kilometre, ukupni uspon i dodijeljeni rank,
+                      vidljiv i na računaru i na telefonu.
+                    </p>
+                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
+                      <li>• Detaljan profil člana sa ličnim i planinarskim podacima.</li>
+                      <li>• Statistika: broj akcija, kilometraža, ukupan uspon, sezonski ranking.</li>
+                      <li>• Brzi pregled prisustva na akcijama za vodiče i rukovodstvo.</li>
+                    </ul>
                   </div>
-                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
-                    Tablet prikaz
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      OVDE: izdvoji screen profila člana i statistike (PC prikaz)
+                    </div>
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      OVDE: izdvoji screen mobilnog prikaza profila / rang liste (telefon)
+                    </div>
                   </div>
-                  <div className="h-24 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[10px] text-gray-500">
-                    Detalji akcije
+                </div>
+              </div>
+
+              {/* 3. Akcije i finansije – PC + mobilna prijava */}
+              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                      Organizacija akcija i blagajna
+                    </p>
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">
+                      Planiranje akcija, prijave i finansije (PC + mobilna prijava)
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
+                      Jedan interfejs za vodiče i blagajnika – kreiranje akcija, praćenje prijava i povezivanje uplata sa
+                      konkretnim akcijama i članovima.
+                    </p>
+                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
+                      <li>• Ekran akcije: lista prijavljenih, statusi (prijavljen, potvrđen, platio).</li>
+                      <li>• Finansijski pregled po akciji – ko je uplatio, koliko i kada.</li>
+                      <li>• Jednostavna mobilna prijava člana na akciju direktno iz svog naloga.</li>
+                    </ul>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      OVDE: izdvoji screen detalja jedne akcije sa prijavama (PC prikaz)
+                    </div>
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      OVDE: izdvoji screen finansijskog pregleda / blagajne ili mobilne prijave na akciju (telefon)
+                    </div>
                   </div>
                 </div>
               </div>
