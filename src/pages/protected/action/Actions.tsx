@@ -26,8 +26,22 @@ interface Akcija {
   zimskiUspon?: boolean
   slikaUrl?: string
   isCompleted: boolean
-  /** false = samo na profilu člana, ne u listi akcija kluba ni u godišnjem PDF-u */
   uIstorijiKluba?: boolean
+  duzinaStazeKm?: number
+  kumulativniUsponM?: number
+}
+
+const TEZINA_STYLE: Record<string, { bg: string; text: string; label: string }> = {
+  lako:      { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Lako' },
+  srednje:   { bg: 'bg-amber-50',   text: 'text-amber-700',   label: 'Srednje' },
+  tesko:     { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
+  'teško':   { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
+  alpinizam: { bg: 'bg-violet-50',  text: 'text-violet-700',  label: 'Alpinizam' },
+}
+
+function tezinaStyle(t?: string) {
+  if (!t) return { bg: 'bg-gray-50', text: 'text-gray-500', label: 'Nepoznato' }
+  return TEZINA_STYLE[t.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', label: t }
 }
 
 export default function Actions() {
@@ -49,7 +63,6 @@ export default function Actions() {
     const fetchData = async () => {
       setLoading(true)
       try {
-
         const akcijeRes = await api.get('/api/akcije')
         const uIstoriji = (a: Akcija) => a.uIstorijiKluba !== false
         setAktivneAkcije((akcijeRes.data.aktivne || []).filter(uIstoriji))
@@ -232,26 +245,28 @@ export default function Actions() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Morate se ulogovati</h2>
-          <p className="text-gray-600">Da biste videli akcije, potrebno je da se prijavite.</p>
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
+          <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
         </div>
+        <p className="text-sm text-gray-500 font-medium">Morate se ulogovati da biste videli akcije.</p>
       </div>
     )
   }
 
-  if (loading) {
-    return <Loader />
-  }
+  if (loading) return <Loader />
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="text-center text-red-600">
-          <h2 className="text-xl font-bold mb-2">Greška</h2>
-          <p>{error}</p>
+      <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center">
+          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
         </div>
+        <p className="text-sm text-gray-500 font-medium">{error}</p>
       </div>
     )
   }
@@ -259,279 +274,306 @@ export default function Actions() {
   const isAdminOrVodic = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'vodic'
 
   return (
-    <div className="relative min-h-screen bg-gray-50 pb-16 md:pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Aktivne akcije */}
-        <section className="mb-14 sm:mb-20">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-            {isAdminOrVodic && (
-              <div className="flex flex-wrap items-center justify-center sm:justify-end order-1 sm:order-2 gap-2">
-                <Link
-                  to="/dodaj-akciju"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
-                  title="Dodaj novu akciju"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Nova akcija</span>
-                </Link>
-                <Link
-                  to="/profil/dodaj-proslu-akciju"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
-                  title="Dodaj prošlu akciju (upis za člana)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Prošla akcija</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleOpenAnnualReport}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-[#41ac53] hover:text-[#41ac53] hover:bg-[#41ac53]/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 focus:ring-offset-1"
-                  title="Preuzmi godišnji izveštaj o aktivnostima (Образац бр. 3)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Godišnji izveštaj (PDF)</span>
-                </button>
-              </div>
-            )}
-            <div className="flex justify-center sm:justify-start order-2 sm:order-1">
-              <h3 className="inline-flex items-center px-4 py-2 rounded-lg bg-[#41ac53]/10 text-gray-900 text-xl sm:text-2xl font-bold tracking-tight">
-                Aktivne akcije
-              </h3>
+    <div className="pb-16 md:pb-10">
+      <div className="max-w-[1440px] mx-auto">
+
+        {/* ══════════ PAGE HEADER ══════════ */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Akcije</h1>
             </div>
+            <p className="text-xs sm:text-sm text-gray-500 ml-3.5">
+              Prijavi se na aktivne akcije ili pogledaj završene.
+            </p>
           </div>
+
+          {isAdminOrVodic && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                to="/dodaj-akciju"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Nova akcija
+              </Link>
+              <Link
+                to="/profil/dodaj-proslu-akciju"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Prošla akcija
+              </Link>
+              <button
+                type="button"
+                onClick={handleOpenAnnualReport}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Godišnji izveštaj
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ══════════ AKTIVNE AKCIJE ══════════ */}
+        <section className="mb-12 sm:mb-16">
+          <div className="flex items-center gap-2 mb-5">
+            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Aktivne akcije</h2>
+            {aktivneAkcije.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                {aktivneAkcije.length}
+              </span>
+            )}
+          </div>
+
           {aktivneAkcije.length === 0 ? (
-            <div className="text-center py-14 sm:py-16 bg-white/80 backdrop-blur rounded-2xl border border-gray-200/80 shadow-sm">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#41ac53]/10 text-[#41ac53] mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 mb-4">
+                <svg className="w-7 h-7 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-gray-600 text-base sm:text-lg font-medium">Trenutno nema aktivnih akcija.</p>
-              <p className="text-gray-500 text-sm mt-1">Proverite ponovo uskoro.</p>
+              <p className="text-sm text-gray-500 font-medium">Trenutno nema aktivnih akcija.</p>
+              <p className="text-xs text-gray-400 mt-1">Proverite ponovo uskoro.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {aktivneAkcije.map((akcija) => {
-                const mmrZaAkciju = computeMMRForAkcija({
-                  duzinaStazeKm: (akcija as Akcija & { duzinaStazeKm?: number }).duzinaStazeKm,
-                  kumulativniUsponM: (akcija as Akcija & { kumulativniUsponM?: number }).kumulativniUsponM,
+                const mmr = computeMMRForAkcija({
+                  duzinaStazeKm: akcija.duzinaStazeKm,
+                  kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
                   zimskiUspon: akcija.zimskiUspon,
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
+                const t = tezinaStyle(akcija.tezina)
 
                 return (
-                <Link
-                  key={akcija.id}
-                  to={`/akcije/${akcija.id}`}
-                  className="block hover:no-underline group"
-                >
-                  <div className="h-full bg-white rounded-2xl overflow-hidden flex flex-col border border-gray-200/80 shadow-md hover:shadow-xl hover:border-[#41ac53]/30 transition-all duration-300 ease-out">
-                    <div className="relative w-full h-44 sm:h-52 md:h-56 overflow-hidden shrink-0">
+                  <Link
+                    key={akcija.id}
+                    to={`/akcije/${akcija.id}`}
+                    className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col"
+                  >
+                    {/* Image */}
+                    <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
                       <img
                         src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                        alt={akcija.naziv || 'Akcija'}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                          e.currentTarget.onerror = null
-                        }}
+                        alt={akcija.naziv}
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                        onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'; e.currentTarget.onerror = null }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#41ac53] text-white shadow-lg">
-                        Aktivna
-                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
+                        <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
+                          {formatDateShort(akcija.datum)}
+                        </span>
+                        <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
+                          +{mmr} MMR
+                        </span>
+                      </div>
+                      {akcija.zimskiUspon && (
+                        <span className="absolute top-2 right-2.5 text-[10px] font-bold text-white bg-sky-500/80 backdrop-blur-sm px-2 py-0.5 rounded-md">
+                          Zimski uspon
+                        </span>
+                      )}
                     </div>
 
-                    <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 line-clamp-2 leading-tight">
+                    {/* Body */}
+                    <div className="p-3.5 flex flex-col grow">
+                      <h3 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
                         {akcija.naziv}
                       </h3>
-                      <div className="w-full grow rounded-xl bg-gray-50/80 border border-gray-100 px-3 py-2.5 text-left">
-                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm items-baseline">
-                          {akcija.planina && (
-                            <>
-                              <span className="text-gray-500 font-medium">Planina</span>
-                              <span className="text-gray-800 truncate">{akcija.planina}</span>
-                            </>
-                          )}
-                          <span className="text-gray-500 font-medium">Vrh</span>
-                          <span className="text-gray-800 truncate">{akcija.vrh}</span>
-                          {akcija.visinaVrhM != null && (
-                            <>
-                              <span className="text-gray-500 font-medium">Visina</span>
-                              <span className="text-gray-800">{akcija.visinaVrhM} m</span>
-                            </>
-                          )}
-                          <span className="text-gray-500 font-medium">Datum</span>
-                          <span className="text-gray-800">{formatDateShort(akcija.datum)}</span>
-                          {akcija.zimskiUspon && (
-                            <>
-                              <span className="col-span-2 text-blue-700 font-semibold text-center py-0.5">Zimski uspon</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-700">
-                        <strong>MMR sa ove akcije:</strong>{' '}
-                        <span className="font-semibold">{mmrZaAkciju}</span>
+
+                      <p className="text-[11px] text-gray-400 font-medium truncate mb-2">
+                        {akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}
+                        {akcija.visinaVrhM != null && ` • ${akcija.visinaVrhM} m`}
                       </p>
-                      <span
-                        className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
-                          akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
-                          akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
-                          akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'bg-rose-100 text-rose-800' :
-                          akcija.tezina === 'alpinizam' ? 'bg-violet-100 text-violet-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
-                      </span>
+
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 font-medium mb-3">
+                        {akcija.duzinaStazeKm != null && (
+                          <>
+                            <span className="flex items-center gap-0.5">
+                              <svg className="w-3 h-3 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                              {akcija.duzinaStazeKm.toFixed(1)} km
+                            </span>
+                            <span className="w-px h-3 bg-gray-200" />
+                          </>
+                        )}
+                        {akcija.kumulativniUsponM != null && (
+                          <span className="flex items-center gap-0.5">
+                            <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>
+                            {akcija.kumulativniUsponM.toLocaleString('sr-RS')} m
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-gray-50">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${t.bg} ${t.text}`}>
+                          {t.label}
+                        </span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
+                          Aktivna
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-auto border-t border-gray-100">
+
+                    {/* Action button at bottom */}
+                    <div className="border-t border-gray-100">
                       {akcija.isCompleted ? (
-                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default">
+                        <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">
                           Akcija završena
                         </div>
                       ) : otkaziveAkcije.has(akcija.id) ? (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv); }}
-                          className="w-full rounded-none py-3 font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv) }}
+                          className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 transition-colors"
                         >
-                          Otkaži prijavu ✕
+                          Otkaži prijavu
                         </button>
                       ) : prijavljeneAkcije.has(akcija.id) ? (
-                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-emerald-600 cursor-default shadow-sm">
-                          Uspešno popeo!
+                        <div className="w-full py-2.5 text-center text-xs font-semibold text-emerald-600 bg-emerald-50 flex items-center justify-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          Popeo se
                         </div>
                       ) : (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv); }}
-                          className="w-full rounded-none py-3 font-semibold text-white bg-[#41ac53] hover:bg-[#358c43] active:bg-[#2e7a3a] transition-all duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-[#41ac53]/40 focus:ring-offset-2"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv) }}
+                          className="w-full py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all"
                         >
                           Pridruži se
                         </button>
                       )}
                     </div>
-                  </div>
-                </Link>
-              )})}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>
 
-        {/* Završene akcije */}
+        {/* ══════════ ZAVRŠENE AKCIJE ══════════ */}
         <section>
-          <div className="mb-6 sm:mb-8 flex justify-center sm:justify-start">
-            <h3 className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-100 text-gray-800 text-xl sm:text-2xl font-bold tracking-tight">
-              Završene akcije
-            </h3>
+          <div className="flex items-center gap-2 mb-5">
+            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Završene akcije</h2>
+            {zavrseneAkcije.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600">
+                {zavrseneAkcije.length}
+              </span>
+            )}
           </div>
+
           {zavrseneAkcije.length === 0 ? (
-            <div className="text-center py-14 sm:py-16 bg-white/80 backdrop-blur rounded-2xl border border-gray-200/80 shadow-sm">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-200 text-gray-500 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">
+                <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-gray-600 text-base sm:text-lg font-medium">Trenutno nema završenih akcija.</p>
-              <p className="text-gray-500 text-sm mt-1">Arhiva će se popunjavati kako akcije budu završavane.</p>
+              <p className="text-sm text-gray-400">Još nema završenih akcija.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {zavrseneAkcije.map((akcija) => {
-                const mmrZaAkciju = computeMMRForAkcija({
-                  duzinaStazeKm: (akcija as Akcija & { duzinaStazeKm?: number }).duzinaStazeKm,
-                  kumulativniUsponM: (akcija as Akcija & { kumulativniUsponM?: number }).kumulativniUsponM,
+                const mmr = computeMMRForAkcija({
+                  duzinaStazeKm: akcija.duzinaStazeKm,
+                  kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
                   zimskiUspon: akcija.zimskiUspon,
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
+                const t = tezinaStyle(akcija.tezina)
 
                 return (
-                <Link
-                  key={akcija.id}
-                  to={`/akcije/${akcija.id}`}
-                  className="block hover:no-underline group"
-                >
-                  <div className="h-full bg-white rounded-2xl overflow-hidden flex flex-col border border-gray-200/80 shadow-md hover:shadow-lg hover:border-gray-300/80 transition-all duration-300 ease-out opacity-95 hover:opacity-100">
-                    <div className="relative w-full h-44 sm:h-52 md:h-56 overflow-hidden shrink-0">
+                  <Link
+                    key={akcija.id}
+                    to={`/akcije/${akcija.id}`}
+                    className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col"
+                  >
+                    {/* Image */}
+                    <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
                       <img
                         src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
-                        alt={akcija.naziv || 'Akcija'}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'
-                          e.currentTarget.onerror = null
-                        }}
+                        alt={akcija.naziv}
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                        onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'; e.currentTarget.onerror = null }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-600/90 text-white shadow-lg backdrop-blur-sm">
-                        Završeno
-                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
+                        <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
+                          {formatDateShort(akcija.datum)}
+                        </span>
+                        <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
+                          +{mmr} MMR
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="p-4 sm:p-5 flex flex-col grow items-center text-center">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 line-clamp-2 leading-tight">
+                    {/* Body */}
+                    <div className="p-3.5 flex flex-col grow">
+                      <h3 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
                         {akcija.naziv}
                       </h3>
-                      <div className="w-full grow rounded-xl bg-gray-50/80 border border-gray-100 px-3 py-2.5 text-left">
-                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm items-baseline">
-                          {akcija.planina && (
-                            <>
-                              <span className="text-gray-500 font-medium">Planina</span>
-                              <span className="text-gray-800 truncate">{akcija.planina}</span>
-                            </>
-                          )}
-                          <span className="text-gray-500 font-medium">Vrh</span>
-                          <span className="text-gray-800 truncate">{akcija.vrh}</span>
-                          <span className="text-gray-500 font-medium">Datum</span>
-                          <span className="text-gray-800">{formatDateShort(akcija.datum)}</span>
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-700">
-                        <strong>MMR sa ove akcije:</strong>{' '}
-                        <span className="font-semibold">{mmrZaAkciju}</span>
-                      </p>
-                      <span
-                        className={`inline-flex items-center w-fit px-3 py-1.5 mt-4 rounded-lg text-xs font-semibold ${
-                          akcija.tezina === 'lako' ? 'bg-emerald-100 text-emerald-800' :
-                          akcija.tezina === 'srednje' ? 'bg-amber-100 text-amber-800' :
-                          akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'bg-rose-100 text-rose-800' :
-                          akcija.tezina === 'alpinizam' ? 'bg-violet-100 text-violet-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {akcija.tezina === 'tesko' || akcija.tezina === 'teško' ? 'Teško' : akcija.tezina === 'alpinizam' ? 'Alpinizam' : akcija.tezina || 'Nije definisano'}
-                      </span>
 
-                      <div className="mt-5 pt-4 border-t border-gray-100 w-full">
-                        <div className="w-full rounded-none py-3 text-center font-semibold text-white bg-gray-500/90 cursor-default">
-                          Akcija završena
-                        </div>
+                      <p className="text-[11px] text-gray-400 font-medium truncate mb-2">
+                        {akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}
+                      </p>
+
+                      <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-gray-50">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${t.bg} ${t.text}`}>
+                          {t.label}
+                        </span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
+                          Završena
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              )})}
+
+                    <div className="border-t border-gray-100">
+                      <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50/80">
+                        Akcija završena
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>
 
-        {/* Modal: izbor godine za godišnji izveštaj */}
+        {/* ══════════ MODAL: Godišnji izveštaj ══════════ */}
         {showAnnualReportModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !loadingReport && setShowAnnualReportModal(false)}>
-            <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Godišnji izveštaj (PDF)</h3>
-              <p className="text-sm text-gray-600 mb-4">Izaberite godinu za koju želite izveštaj (samo godine sa završenim akcijama).</p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => !loadingReport && setShowAnnualReportModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-50">
+                  <svg className="w-4.5 h-4.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Godišnji izveštaj (PDF)</h3>
+                  <p className="text-[11px] text-gray-500">Izaberite godinu sa završenim akcijama.</p>
+                </div>
+              </div>
+
               <Dropdown
                 aria-label="Izaberi godinu"
                 options={[
@@ -542,11 +584,12 @@ export default function Actions() {
                 onChange={(v) => setSelectedYear(v === '' ? '' : Number(v))}
                 fullWidth
               />
-              <div className="mt-6 flex gap-3 justify-end">
+
+              <div className="mt-5 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => !loadingReport && setShowAnnualReportModal(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   Otkaži
                 </button>
@@ -554,7 +597,7 @@ export default function Actions() {
                   type="button"
                   onClick={handleGenerateAnnualReportPdf}
                   disabled={loadingReport || selectedYear === ''}
-                  className="px-4 py-2 rounded-lg bg-[#41ac53] text-white font-medium hover:bg-[#358c43] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {loadingReport ? 'Priprema…' : 'Štampaj'}
                 </button>

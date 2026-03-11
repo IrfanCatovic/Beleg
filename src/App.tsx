@@ -111,7 +111,7 @@ const router = createBrowserRouter([
 
           // Dodaj/izmeni akciju samo admin i vodič
           {
-            element: <RoleRoute allowedRoles={['admin', 'vodic']} />,
+            element: <RoleRoute allowedRoles={['superadmin', 'admin', 'vodic']} />,
             children: [
               { path: '/dodaj-akciju', element: <AddAction /> },
               { path: '/profil/dodaj-proslu-akciju', element: <AddPastAction /> },
