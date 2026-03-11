@@ -21,7 +21,7 @@ const PAKETI: Record<
   }
 > = {
   Starter: {
-    name: 'Starter',
+    name: 'Starter paket',
     description: 'Za manja društva koja tek uvode digitalnu administraciju.',
     basePriceEur: 25,
     includedUsers: 100,
@@ -30,7 +30,7 @@ const PAKETI: Record<
     admins: 3,
   },
   Growth: {
-    name: 'Growth',
+    name: 'Growth paket',
     description: 'Za aktivna društva sa većim brojem članova i akcija.',
     basePriceEur: 49,
     includedUsers: 500,
@@ -40,7 +40,7 @@ const PAKETI: Record<
     highlighted: true,
   },
   Pro: {
-    name: 'Pro',
+    name: 'Pro paket',
     description: 'Za velika društva i saveze kojima je potrebna puna podrška.',
     basePriceEur: 79,
     includedUsers: 2000,

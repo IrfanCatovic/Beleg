@@ -167,7 +167,7 @@ export default function UserProfile() {
 
       {/* ══════════ COVER ══════════ */}
       <div
-        className="relative h-36 sm:h-44 md:h-52 lg:h-56 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2"
+        className="relative h-56 sm:h-44 md:h-52 lg:h-56 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2"
         onDoubleClick={() => { if (isOwn && hasCover) setPositioning(true) }}
       >
         {hasCover ? (

@@ -1,19 +1,21 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 
 const KONTAKTI = [
-  {
-    ime: 'Enes',
-    telefon: '+381 63 830 6056',
-    telefonLink: '0638306056',
-    email: 'enesh23@gmail.com',
-  },
   {
     ime: 'Irfan',
     telefon: '+381 69 555 4991',
     telefonLink: '0695554991',
     email: 'catovicc84@gmail.com',
   },
+  {
+    ime: 'Enes',
+    telefon: '+381 63 830 6056',
+    telefonLink: '0638306056',
+    email: 'enesh23@gmail.com',
+  },
+  
 ] as const
 
 const TRUST_ITEMS = [
@@ -40,6 +42,20 @@ const TRUST_ITEMS = [
 ] as const
 
 export default function Kontakt() {
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
+
+  const handlePhoneClick = async (telefon: string) => {
+    try {
+      await navigator.clipboard.writeText(telefon)
+      setCopiedPhone(telefon)
+      setTimeout(() => {
+        setCopiedPhone((prev) => (prev === telefon ? null : prev))
+      }, 1500)
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-emerald-50/80">
       <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6">
@@ -101,24 +117,28 @@ export default function Kontakt() {
                 <h3 className="text-lg font-semibold text-gray-900">{osoba.ime}</h3>
               </div>
               <div className="space-y-3">
-                <a
-                  href={`tel:+381${osoba.telefonLink.replace(/\s/g, '').replace(/^0/, '')}`}
-                  className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => handlePhoneClick(osoba.telefon)}
+                  className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors w-full text-left"
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 shrink-0">
                     <PhoneIcon className="h-4 w-4" />
                   </span>
                   <span className="font-medium">{osoba.telefon}</span>
-                </a>
-                <a
-                  href={`mailto:${osoba.email}`}
+                </button>
+                {copiedPhone === osoba.telefon && (
+                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">Broj kopiran</span>
+                )}
+                <Link
+                  to="/cena"
                   className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors break-all"
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 shrink-0">
                     <EmailIcon className="h-4 w-4" />
                   </span>
                   <span className="font-medium text-sm sm:text-base">{osoba.email}</span>
-                </a>
+                </Link>
               </div>
             </section>
           ))}
