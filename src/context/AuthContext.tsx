@@ -85,7 +85,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                     setUser(userData)
                     localStorage.setItem('user', JSON.stringify(userData))
                 } catch {
-                    // Token može biti istekao – ignorišemo
+
                 }
             }, [])
 

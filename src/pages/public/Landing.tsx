@@ -53,7 +53,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
+        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
           <MarketingNavbar />
 
           <div className="space-y-10">
@@ -166,7 +166,7 @@ export default function Landing() {
             <div className="absolute -left-32 top-10 h-64 w-64 rounded-full bg-emerald-50" />
             <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-yellow-50" />
           </div>
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -175,8 +175,17 @@ export default function Landing() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
-              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-red-500">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                      <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                </div>
                 <p className="text-sm font-semibold mb-3">
                   Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.
                 </p>
@@ -184,7 +193,14 @@ export default function Landing() {
                   Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 text-emerald-600">
+                        <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u NaVrhu</p>
+                  </div>
                   <p className="text-xs text-gray-600">
                     Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
                     (legitimacije, markice, disciplinske mere, izbor u organe).
@@ -192,8 +208,17 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-red-500">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                      <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                </div>
                 <p className="text-sm font-semibold mb-3">
                   Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.
                 </p>
@@ -201,7 +226,14 @@ export default function Landing() {
                   Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 text-emerald-600">
+                        <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u NaVrhu</p>
+                  </div>
                   <p className="text-xs text-gray-600">
                     Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
                     mu treba. Vodiči, admini i blagajnici imaju posebna ovlašćenja.
@@ -209,8 +241,17 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500 mb-2">Problem</p>
+              <div className="rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-red-500">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                      <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                </div>
                 <p className="text-sm font-semibold mb-3">
                   Administracija troši sate i dane godišnje.
                 </p>
@@ -218,7 +259,14 @@ export default function Landing() {
                   Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji, sve se radi od nule.
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
-                  <p className="text-xs font-semibold text-emerald-700 mb-1">Rešenje u NaVrhu</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 text-emerald-600">
+                        <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u NaVrhu</p>
+                  </div>
                   <p className="text-xs text-gray-600">
                     Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
                     ušteda preko <span className="font-semibold">200 sati godišnje</span>.
@@ -231,7 +279,7 @@ export default function Landing() {
 
         {/* Ranking i mini takmičenja */}
         <section className="py-16 sm:py-20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
               {/* Tekst levo */}
               <div className="flex-[1.1] max-w-3xl">
@@ -326,7 +374,7 @@ export default function Landing() {
             <div className="absolute -right-24 -top-10 h-56 w-56 rounded-full bg-white/60" />
             <div className="absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-emerald-100/70" />
           </div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
@@ -335,67 +383,135 @@ export default function Landing() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Upravljanje članovima</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Detaljni profili članova sa ličnim podacima, kontaktima, planinarskim dokumentima,
-                  disciplinskim merama i izborima u organe.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Više uloga (admin, sekretar, vodič, blagajnik, član) svako vidi ono što mu je potrebno.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-emerald-900">Upravljanje članovima</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Detaljni profili članova sa ličnim podacima, kontaktima, planinarskim dokumentima,
+                      disciplinskim merama i izborima u organe.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Više uloga (admin, sekretar, vodič, blagajnik, član) svako vidi ono što mu je potrebno.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-emerald-600">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Akcije i zadaci</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Kreiranje, uređivanje i praćenje planinarskih akcija, prijave članova i zadaci za vodiče
-                  i organizatore.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Jasan pregled aktivnih iprošlih akcija, istorije prisustva i angažmana članova.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-blue-900">Akcije i zadaci</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Kreiranje, uređivanje i praćenje planinarskih akcija, prijave članova i zadaci za vodiče
+                      i organizatore.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Jasan pregled aktivnih i prošlih akcija, istorije prisustva i angažmana članova.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-blue-600">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Finansije (admin i blagajnik)</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Evidencija uplata i isplata, povezivanje sa članovima ili akcijama i pregled istorije plaćanja.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Transparentan rad blagajnika i lakše pravdanje finansija prema upravnom odboru.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-amber-900">Finansije (admin i blagajnik)</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Evidencija uplata i isplata, povezivanje sa članovima ili akcijama i pregled istorije plaćanja.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Transparentan rad blagajnika i lakše pravdanje finansija prema upravnom odboru.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-amber-600">
+                      <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+                      <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+                      <circle cx="18" cy="14" r="1" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Obaveštenja u realnom vremenu</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Interni sistem notifikacija za akcije, uplate, zadatke i važna saopštenja.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Admin jednim klikom šalje obaveštenje svim članovima ili ciljanim grupama.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-violet-900">Obaveštenja u realnom vremenu</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Interni sistem notifikacija za akcije, uplate, zadatke i važna saopštenja.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Admin jednim klikom šalje obaveštenje svim članovima ili ciljanim grupama.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-violet-600">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Automatski PDF izveštaji</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  NaVrhu za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
-                  finansijski izveštaji nastaju iz sistema jednim klikom, bez dodatnog kucanja i prepisivanja.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-rose-100 p-5 hover:shadow-lg hover:border-rose-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-rose-900">Automatski PDF izveštaji</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      NaVrhu za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
+                      finansijski izveštaji nastaju iz sistema jednim klikom, bez dodatnog kucanja i prepisivanja.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-rose-100 group-hover:bg-rose-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-rose-600">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-5">
-                <h3 className="text-sm font-semibold mb-2">Centralni login i web pristup</h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona uz podršku tima developera.
-,                </p>
-                <p className="text-xs text-gray-500">
-                  Jedan sistem, svi članovi i saradnici na istom mestu.
-                </p>
+              <div className="group rounded-2xl bg-white shadow-sm border border-sky-100 p-5 hover:shadow-lg hover:border-sky-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold mb-2 text-sky-900">Centralni login i web pristup</h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona uz podršku tima developera.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Jedan sistem, svi članovi i saradnici na istom mestu.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-sky-100 group-hover:bg-sky-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-sky-600">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -403,7 +519,7 @@ export default function Landing() {
 
         {/* Kako funkcioniše */}
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše NaVrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -451,7 +567,7 @@ export default function Landing() {
 
         {/* Komunitet i podrška */}
         <section className="py-16 sm:py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
               {/* Tekst levo */}
               <div className="flex-[1.1]">
@@ -461,27 +577,49 @@ export default function Landing() {
                   je da vam damo više vremena na stazi, a manje za stolom.
                 </p>
 
-                <div className="space-y-4 text-sm">
-                  <div>
-                    <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
-                    <p className="text-xs text-gray-600">
-                      Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena, uz
-                      brz odaziv na prijavljene bagove i probleme u radu.
-                    </p>
+                <div className="space-y-5 text-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-100">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-emerald-600">
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
+                      <p className="text-xs text-gray-600">
+                        Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena, uz
+                        brz odaziv na prijavljene bagove i probleme u radu.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
-                    <p className="text-xs text-gray-600">
-                      E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja, sa
-                      fokusom na brz response time i jasne, konkretne odgovore.
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-blue-100">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-blue-600">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
+                      <p className="text-xs text-gray-600">
+                        E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja, sa
+                        fokusom na brz response time i jasne, konkretne odgovore.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
-                    <p className="text-xs text-gray-600">
-                      Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije,
-                      a naše izdanje prati realne potrebe i predloge iz te zajednice.
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-amber-100">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-amber-600">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
+                      <p className="text-xs text-gray-600">
+                        Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije,
+                        a naše izdanje prati realne potrebe i predloge iz te zajednice.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -551,7 +689,7 @@ export default function Landing() {
             <div className="absolute -left-28 top-16 h-52 w-52 rounded-full bg-emerald-50" />
             <div className="absolute -right-24 bottom-10 h-60 w-60 rounded-full bg-slate-50" />
           </div>
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -560,29 +698,52 @@ export default function Landing() {
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-center">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-center hover:shadow-md transition-shadow">
+                <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-emerald-200/60">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-emerald-700">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
                 <p className="text-xs font-semibold text-emerald-800 mb-1">Ušteda vremena</p>
                 <p className="text-2xl font-extrabold text-emerald-700 mb-1">200+</p>
                 <p className="text-[11px] text-emerald-900/80">sati godišnje manje na administraciji</p>
               </div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center hover:shadow-md transition-shadow">
+                <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-slate-200/60">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-slate-700">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M9 12l2 2 4-4" />
+                  </svg>
+                </div>
                 <p className="text-xs font-semibold text-slate-800 mb-1">Manje grešaka</p>
                 <p className="text-2xl font-extrabold text-slate-800 mb-1">↓</p>
                 <p className="text-[11px] text-slate-900/80">
                   preciznija evidencija članova, uplata i prisustva
                 </p>
               </div>
-              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4 text-center">
+              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-5 text-center hover:shadow-md transition-shadow">
+                <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-200/60">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-yellow-800">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
                 <p className="text-xs font-semibold text-yellow-900 mb-1">Brža komunikacija</p>
                 <p className="text-2xl font-extrabold text-yellow-900 mb-1">x3</p>
                 <p className="text-[11px] text-yellow-900/90">
                   sve informacije i obaveštenja na jednom mestu
                 </p>
               </div>
-              <div className="rounded-2xl border border-emerald-100 bg-white p-4 text-center">
-                <p className="text-xs font-semibold text-emerald-800 mb-1">Transparentnost</p>
-                <p className="text-2xl font-extrabold text-emerald-700 mb-1">100%</p>
-                <p className="text-[11px] text-emerald-900/80">
+              <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-5 text-center hover:shadow-md transition-shadow">
+                <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-violet-200/60">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-violet-700">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                <p className="text-xs font-semibold text-violet-800 mb-1">Transparentnost</p>
+                <p className="text-2xl font-extrabold text-violet-700 mb-1">100%</p>
+                <p className="text-[11px] text-violet-900/80">
                   bolji pregled rada rukovodstva i blagajne
                 </p>
               </div>
@@ -592,7 +753,7 @@ export default function Landing() {
 
         {/* Za koga je */}
         <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je NaVrhu</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
@@ -601,41 +762,81 @@ export default function Landing() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
-                <p className="text-xs font-semibold text-emerald-700 mb-1">Predsednik društva</p>
-                <p className="text-sm font-semibold mb-2">
-                  Sve na jednom mestu, bez iznenađenja.
-                </p>
-                <p className="text-xs text-gray-600">
-                  Jasan pregled članova, akcija, finansija i obaveštenja. Manji rizik, manje haosa.
-                </p>
+              <div className="group rounded-2xl bg-white border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-emerald-700 mb-1">Predsednik društva</p>
+                    <p className="text-sm font-semibold mb-2">
+                      Sve na jednom mestu, bez iznenađenja.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Jasan pregled članova, akcija, finansija i obaveštenja. Manji rizik, manje haosa.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-emerald-600">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
-                <p className="text-xs font-semibold text-emerald-700 mb-1">Sekretar</p>
-                <p className="text-sm font-semibold mb-2">
-                  Manje papira, više reda.
-                </p>
-                <p className="text-xs text-gray-600">
-                  Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke, manje manuelnog rada.
-                </p>
+              <div className="group rounded-2xl bg-white border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-blue-700 mb-1">Sekretar</p>
+                    <p className="text-sm font-semibold mb-2">
+                      Manje papira, više reda.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke, manje manuelnog rada.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-blue-600">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
-                <p className="text-xs font-semibold text-emerald-700 mb-1">Vodič</p>
-                <p className="text-sm font-semibold mb-2">
-                  Jasne prijave i komunikacija.
-                </p>
-                <p className="text-xs text-gray-600">
-                  Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.
-                </p>
+              <div className="group rounded-2xl bg-white border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-amber-700 mb-1">Vodič</p>
+                    <p className="text-sm font-semibold mb-2">
+                      Jasne prijave i komunikacija.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-amber-600">
+                      <circle cx="12" cy="12" r="10" />
+                      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white border border-emerald-100 p-5">
-                <p className="text-xs font-semibold text-emerald-700 mb-1">Blagajnik</p>
-                <p className="text-sm font-semibold mb-2">
-                  Čista evidencija finansija.
-                </p>
-                <p className="text-xs text-gray-600">
-                  Jasna evidencija uplata i isplata, lakše pravdanje finansija pred članovima i upravom.
-                </p>
+              <div className="group rounded-2xl bg-white border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-violet-700 mb-1">Blagajnik</p>
+                    <p className="text-sm font-semibold mb-2">
+                      Čista evidencija finansija.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Jasna evidencija uplata i isplata, lakše pravdanje finansija pred članovima i upravom.
+                    </p>
+                  </div>
+                  <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 text-violet-600">
+                      <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+                      <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+                      <circle cx="18" cy="14" r="1" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -643,7 +844,7 @@ export default function Landing() {
 
         {/* UI preview */}
         <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Pogled u interfejs</h2>
             </div>
@@ -678,7 +879,7 @@ export default function Landing() {
 
         {/* CTA pri dnu */}
         <section id="cta" className="py-16 sm:py-20 bg-gradient-to-br from-emerald-700 via-emerald-800 to-slate-900 text-white">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-10 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
@@ -709,7 +910,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-slate-900 text-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs text-slate-300 text-center sm:text-left">
             Adri Sentinel – za planinarska društva koja žele više vremena na stazi, a manje za stolom.
           </div>
