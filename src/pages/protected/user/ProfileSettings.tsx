@@ -42,6 +42,7 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [targetUsername, setTargetUsername] = useState('')
 
   const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar')
   const isSekretarEdit = !!id && user?.role === 'sekretar'
@@ -66,11 +67,13 @@ export default function ProfileSettings() {
           const k = res.data
           setForm({
             ...initialForm,
+            username: k.username || '',
             izreceneDisciplinskeKazne: k.izrecene_disciplinske_kazne || '',
             izborUOrganeSportskogUdruzenja: k.izbor_u_organe_sportskog_udruzenja || '',
             napomene: k.napomene || '',
           })
           setRole(k.role || '')
+          setTargetUsername(k.username || '')
         } catch (err: any) {
           setError(err.response?.data?.error || 'Greška pri učitavanju profila')
         } finally {
@@ -238,11 +241,29 @@ export default function ProfileSettings() {
   if (loading) return <div className="text-center py-20">Učitavanje...</div>
 
   const backLink = isAdminEdit ? (
-    <Link to={id ? `/users/${id}` : '/users'} className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+    <Link
+      to={
+        targetUsername
+          ? `/korisnik/${targetUsername}`
+          : id
+          ? `/users/${id}`
+          : '/users'
+      }
+      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+    >
       ← Nazad na profil korisnika
     </Link>
   ) : (
-    <Link to="/profil" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+    <Link
+      to={
+        form.username
+          ? `/korisnik/${form.username}`
+          : user?.username
+          ? `/korisnik/${user.username}`
+          : '/home'
+      }
+      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+    >
       ← Nazad na profil
     </Link>
   )
