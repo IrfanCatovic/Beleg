@@ -138,7 +138,7 @@ export default function UserProfile() {
 
   const saveCoverPos = async () => {
     setSaving(true)
-    try { await api.patch('/api/me/cover-position', { cover_position_y: coverY }); setPositioning(false) }
+    try { await api.patch('/api/me/cover-position', { coverPositionY: coverY }); setPositioning(false) }
     catch { /* ignore */ }
     finally { setSaving(false) }
   }
