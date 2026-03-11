@@ -91,13 +91,22 @@ export default function Kontakt() {
       return
     }
 
+    const noteBody = `Pitanje poslato sa stranice Kontakt:\n\nKontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
+
     setSending(true)
     try {
-      await api.post('/api/kontakt-poruka', {
-        contactPerson: person,
-        clubName: club,
-        city: place,
-        question: q,
+      await api.post('/api/cena-zahtev', {
+        paket: 'Kontakt forma',
+        extraUsers: 0,
+        extraAdmins: 0,
+        note: noteBody,
+        imeKluba: club,
+        contactEmail: '',
+        contactPhone: '',
+        basePriceRsd: 0,
+        extraUsersCostRsd: 0,
+        extraAdminsCostRsd: 0,
+        totalMonthlyRsd: 0,
       })
       setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
       setContactPerson('')
