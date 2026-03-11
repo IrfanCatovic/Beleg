@@ -1,4 +1,5 @@
 // Lokalne slike zamenjene Cloudinary URL-ovima direktno u JSX
+import { useNavigate } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -41,6 +42,8 @@ function IconSparkles(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Landing() {
+
+  const navigate = useNavigate()
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       {/* Hero */}
@@ -967,13 +970,13 @@ export default function Landing() {
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-4">
               <a
-                href="mailto:catovicc84@gmail.com?subject=Prezentacija%20za%20na%20vrhu&body=Pozdrav%2C%0A%0Aželeli%20bismo%20da%20zakažemo%20prezentaciju%20za%20na%20vrhu%20za%20naše%20planinarsko%20društvo.%0A%0AIme%20društva%3A%0AKontakt%20osoba%3A%0ATermin%20koji%20vam%20odgovara%3A%0A%0AHvala!"
+                onClick={() => navigate('/kontakt')}
                 className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
               >
                 Zakaži prezentaciju
               </a>
               <a
-                href="mailto:catovicc84@gmail.com?subject=Upit%20za%20na%20vrhu"
+                onClick={() => navigate('/kontakt')}
                 className="inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
               >
                 Pošalji upit

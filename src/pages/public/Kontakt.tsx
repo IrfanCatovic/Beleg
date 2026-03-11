@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
+import api from '../../services/api'
 
 const KONTAKTI = [
   {
@@ -43,6 +44,14 @@ const TRUST_ITEMS = [
 
 export default function Kontakt() {
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
+  const [contactPerson, setContactPerson] = useState('')
+  const [clubName, setClubName] = useState('')
+  const [city, setCity] = useState('')
+  const [question, setQuestion] = useState('')
+  const [fieldError, setFieldError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const handlePhoneClick = async (telefon: string) => {
     try {
@@ -53,6 +62,57 @@ export default function Kontakt() {
       }, 1500)
     } catch {
       // ignore
+    }
+  }
+
+  const handleEmailClick = async (email: string) => {
+    try {
+      await navigator.clipboard.writeText(email)
+      setCopiedEmail(email)
+      setTimeout(() => {
+        setCopiedEmail((prev) => (prev === email ? null : prev))
+      }, 1500)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleContactSubmit = async () => {
+    const person = contactPerson.trim()
+    const club = clubName.trim()
+    const place = city.trim()
+    const q = question.trim()
+
+    setFieldError('')
+    setSubmitMessage(null)
+
+    if (!person || !club || !place || !q) {
+      setFieldError('Molimo popunite sva obavezna polja.')
+      return
+    }
+
+    setSending(true)
+    try {
+      await api.post('/api/kontakt-poruka', {
+        contactPerson: person,
+        clubName: club,
+        city: place,
+        question: q,
+      })
+      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
+      setContactPerson('')
+      setClubName('')
+      setCity('')
+      setQuestion('')
+    } catch (err: unknown) {
+      const res =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response
+          : null
+      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      setSubmitMessage({ type: 'error', text: msg })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -130,18 +190,137 @@ export default function Kontakt() {
                 {copiedPhone === osoba.telefon && (
                   <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">Broj kopiran</span>
                 )}
-                <Link
-                  to="/cena"
-                  className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors break-all"
+                <button
+                  type="button"
+                  onClick={() => handleEmailClick(osoba.email)}
+                  className="flex items-center gap-3 py-2 px-3 -mx-3 rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors break-all w-full text-left"
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 shrink-0">
                     <EmailIcon className="h-4 w-4" />
                   </span>
                   <span className="font-medium text-sm sm:text-base">{osoba.email}</span>
-                </Link>
+                </button>
+                {copiedEmail === osoba.email && (
+                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">Email kopiran</span>
+                )}
               </div>
             </section>
           ))}
+        </div>
+
+        {/* Kontakt forma */}
+        <div className="mt-12 rounded-2xl bg-white border border-emerald-100 shadow-sm p-6 sm:p-8 space-y-5">
+          <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Pošaljite nam poruku</h2>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
+                Kratka forma za pitanja o NaVrhu, saradnji ili demonstraciji. Odgovaramo vam direktno na kontakt koji
+                ostavite u poruci.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="contact-person" className="text-xs font-medium text-gray-600">
+                Kontakt osoba <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="contact-person"
+                type="text"
+                value={contactPerson}
+                onChange={(e) => {
+                  setContactPerson(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder="Ime i prezime kontakt osobe"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="club-name" className="text-xs font-medium text-gray-600">
+                Ime kluba <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="club-name"
+                type="text"
+                value={clubName}
+                onChange={(e) => {
+                  setClubName(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder="npr. Planinarsko društvo Javor"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)]">
+            <div className="space-y-2">
+              <label htmlFor="city" className="text-xs font-medium text-gray-600">
+                Mesto <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="city"
+                type="text"
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder="Grad ili mesto u kojem je klub"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="question" className="text-xs font-medium text-gray-600">
+              Pitanje za nas <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="question"
+              value={question}
+              onChange={(e) => {
+                setQuestion(e.target.value)
+                setFieldError('')
+              }}
+              rows={4}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
+              placeholder="Ukratko opišite šta vas zanima – npr. termin za prezentaciju, tehničko pitanje, predlog funkcije…"
+            />
+          </div>
+
+          {fieldError && <p className="text-xs text-red-600">{fieldError}</p>}
+          {submitMessage && (
+            <p
+              className={`text-sm font-medium ${
+                submitMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'
+              }`}
+            >
+              {submitMessage.text}
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+            <p className="text-xs text-gray-500">
+              Klikom na „Pošalji poruku“ vaš upit stiže direktno našem timu. Odgovaramo u najkraćem roku.
+            </p>
+            <button
+              type="button"
+              onClick={handleContactSubmit}
+              disabled={sending}
+              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+            >
+              {sending ? 'Slanje…' : 'Pošalji poruku'}
+            </button>
+          </div>
         </div>
 
         {/* CTA Cena */}
