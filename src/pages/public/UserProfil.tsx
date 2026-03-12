@@ -85,19 +85,13 @@ export default function UserProfile() {
       setLoading(true)
       setError('')
       try {
-        let eid = id
-        if (!eid && username) {
-          const r = await api.get<{ korisnici: Korisnik[] }>('/api/korisnici')
-          const found = (r.data.korisnici || []).find(k => k.username === username)
-          if (!found) { setError('Korisnik nije pronađen'); setLoading(false); return }
-          eid = String(found.id)
-        }
-        if (!eid) { setError('Korisnik nije pronađen'); setLoading(false); return }
+        const idOrUsername = id ?? username
+        if (!idOrUsername) { setError('Korisnik nije pronađen'); setLoading(false); return }
 
         const [rK, rS, rA] = await Promise.all([
-          api.get(`/api/korisnici/${eid}`),
-          api.get(`/api/korisnici/${eid}/statistika`),
-          api.get(`/api/korisnici/${eid}/popeo-se`),
+          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`),
+          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/statistika`),
+          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/popeo-se`),
         ])
         if (cancelled) return
 
@@ -120,7 +114,7 @@ export default function UserProfile() {
   useEffect(() => { setAvatarFail(false) }, [id, username])
 
   useEffect(() => {
-    if (!korisnik?.id) { setTop30(null); return }
+    if (!korisnik?.id || !currentUser) { setTop30(null); return }
     api.get('/api/korisnici').then(r => {
       const sorted = ((r.data.korisnici || []) as Array<{ id: number; ukupnoKm?: number; ukupnoMetaraUspona?: number }>)
         .map(k => ({ ...k, rank: computeRank({ ukupnoKm: k.ukupnoKm ?? 0, ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0 }) }))
@@ -128,7 +122,7 @@ export default function UserProfile() {
       const idx = sorted.findIndex(k => k.id === korisnik.id)
       setTop30(idx >= 0 && idx < 30 ? idx + 1 : null)
     }).catch(() => setTop30(null))
-  }, [korisnik?.id])
+  }, [korisnik?.id, currentUser])
 
   useEffect(() => { if (korisnik) setCoverY(korisnik.cover_position_y ?? 0.5) }, [korisnik])
 
@@ -212,9 +206,9 @@ export default function UserProfile() {
           onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
         />
 
-        {/* own profile: add/replace cover button */}
+
         {isOwn && !positioning && (
-          <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-auto flex items-center gap-2">
+          <div className="absolute top-4 left-4 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover/cover:opacity-100 transition-opacity">
             <input
               ref={coverInputRef}
               type="file"
@@ -240,12 +234,7 @@ export default function UserProfile() {
           </div>
         )}
 
-        {/* own profile hint: double click to position */}
-        {isOwn && hasCover && !positioning && (
-          <span className="absolute bottom-3 right-4 text-[10px] text-white/50 font-medium opacity-0 group-hover/cover:opacity-100 transition-opacity pointer-events-none">
-            Dupli klik za pozicioniranje
-          </span>
-        )}
+
 
         {/* positioning overlay */}
         {positioning && (

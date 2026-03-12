@@ -382,35 +382,45 @@ func main() {
 	})
 
 	// Javne rute — profil korisnika (za deljenje linka; bez logina)
-	// GET /api/korisnici/:id — detalji korisnika javni
-	r.GET("/api/korisnici/:id", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-			return
+	// getKorisnikByIDOrUsername vraća korisnika po id (broj) ili username; vrati nil ako ne nađe
+	getKorisnikByIDOrUsername := func(db *gorm.DB, param string) *models.Korisnik {
+		param = strings.TrimSpace(param)
+		if param == "" {
+			return nil
 		}
+		if id, err := strconv.Atoi(param); err == nil {
+			var k models.Korisnik
+			if db.First(&k, id).Error == nil {
+				return &k
+			}
+			return nil
+		}
+		var k models.Korisnik
+		if db.Where("username = ?", param).First(&k).Error == nil {
+			return &k
+		}
+		return nil
+	}
+
+	// GET /api/korisnici/:id — detalji korisnika javni; :id može biti numerički id ili username
+	r.GET("/api/korisnici/:id", func(c *gin.Context) {
 		dbAny, _ := c.Get("db")
 		db := dbAny.(*gorm.DB)
-		var korisnik models.Korisnik
-		if err := db.First(&korisnik, id).Error; err != nil {
+		param := c.Param("id")
+		korisnik := getKorisnikByIDOrUsername(db, param)
+		if korisnik == nil {
 			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 			return
 		}
 		c.JSON(200, korisnik)
 	})
-	// GET /api/korisnici/:id/statistika — statistika javna
+	// GET /api/korisnici/:id/statistika — statistika javna; :id može biti numerički id ili username
 	r.GET("/api/korisnici/:id/statistika", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-			return
-		}
 		dbAny, _ := c.Get("db")
 		db := dbAny.(*gorm.DB)
-		var korisnik models.Korisnik
-		if err := db.First(&korisnik, id).Error; err != nil {
+		param := c.Param("id")
+		korisnik := getKorisnikByIDOrUsername(db, param)
+		if korisnik == nil {
 			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 			return
 		}
@@ -422,21 +432,21 @@ func main() {
 			},
 		})
 	})
-	// GET /api/korisnici/:id/popeo-se — lista uspešnih akcija javna
+	// GET /api/korisnici/:id/popeo-se — lista uspešnih akcija javna; :id može biti numerički id ili username
 	r.GET("/api/korisnici/:id/popeo-se", func(c *gin.Context) {
-		idStr := c.Param("id")
-		targetID, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
-			return
-		}
 		dbAny, _ := c.Get("db")
 		db := dbAny.(*gorm.DB)
+		param := c.Param("id")
+		korisnik := getKorisnikByIDOrUsername(db, param)
+		if korisnik == nil {
+			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+			return
+		}
+		targetID := int(korisnik.ID)
 		var prijave []models.Prijava
-		err = db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
+		if err := db.Where("korisnik_id = ? AND status = ?", targetID, "popeo se").
 			Preload("Akcija").
-			Find(&prijave).Error
-		if err != nil {
+			Find(&prijave).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Greška pri čitanju prijava", "details": err.Error()})
 			return
 		}
