@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../../services/api'
 import { useAuth } from '../../../context/AuthContext'
 import Dropdown from '../../../components/Dropdown'
+import BackButton from '../../../components/BackButton'
 
 const initialForm = {
   username: '',
@@ -95,9 +96,9 @@ export default function RegisterUser() {
     }
   }
 
+  const labelClass = 'block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-[0.16em]'
   const inputClass =
-    'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]'
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
+    'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none transition'
   const sectionClass = 'space-y-4'
 
   const roleOptions = (user?.role === 'superadmin' || user?.role === 'admin')
@@ -105,289 +106,311 @@ export default function RegisterUser() {
     : ['clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme']
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
-      <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-emerald-100">
-        <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-          Registracija novog člana
-        </h2>
-
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
-            Član uspešno registrovan! Preusmeravam...
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
+          <BackButton />
+          <div className="flex-1 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
+              Novi član kluba
+            </p>
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight text-gray-900">
+              Registracija korisnika
+            </h1>
           </div>
-        )}
+          <div className="w-10 sm:w-16" aria-hidden />
+        </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 text-red-800 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Obavezna polja */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Obavezna polja
-            </h3>
-            <div>
-              <label className={labelClass}>Korisničko ime *</label>
-              <input
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                required
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Lozinka * (min. 8 karaktera)</label>
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                minLength={8}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Uloga *</label>
-              <Dropdown
-                aria-label="Uloga"
-                options={[
-                  { value: '', label: '— izaberi —' },
-                  ...roleOptions.map((role) => ({
-                    value: role,
-                    label: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
-                  })),
-                ]}
-                value={form.role}
-                onChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
-                fullWidth
-              />
-            </div>
-          </div>
-
-          {/* Lični podaci */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Lični podaci (opciono)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Puno ime</label>
-                <input
-                  name="fullName"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Ime roditelja</label>
-                <input
-                  name="imeRoditelja"
-                  value={form.imeRoditelja}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Pol</label>
-                <Dropdown
-                  aria-label="Pol"
-                  options={[
-                    { value: '', label: '— izaberi —' },
-                    { value: 'M', label: 'Muški' },
-                    { value: 'Ž', label: 'Ženski' },
-                  ]}
-                  value={form.pol}
-                  onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
-                  fullWidth
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Datum rođenja</label>
-                <input
-                  name="datumRodjenja"
-                  type="date"
-                  value={form.datumRodjenja}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Državljanstvo</label>
-                <input
-                  name="drzavljanstvo"
-                  value={form.drzavljanstvo}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Kontakt */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Kontakt (opciono)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Email</label>
-                <input
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Telefon</label>
-                <input
-                  name="telefon"
-                  value={form.telefon}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Adresa</label>
-                <input
-                  name="adresa"
-                  value={form.adresa}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Planinarski / dokumenti */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Dokumenti i planinarski podaci (opciono)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Broj ličnog dokumenta</label>
-                <input
-                  name="brojLicnogDokumenta"
-                  value={form.brojLicnogDokumenta}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Broj planinarske legitimacije</label>
-                <input
-                  name="brojPlaninarskeLegitimacije"
-                  value={form.brojPlaninarskeLegitimacije}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Broj planinarske markice</label>
-                <input
-                  name="brojPlaninarskeMarkice"
-                  value={form.brojPlaninarskeMarkice}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Datum učlanjenja</label>
-                <input
-                  name="datumUclanjenja"
-                  type="date"
-                  value={form.datumUclanjenja}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Disciplinske kazne, izbor u organe, napomene */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Disciplinske kazne, izbor u organe, napomene (opciono)
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass}>Izrečene disciplinske kazne</label>
-                <textarea
-                  name="izreceneDisciplinskeKazne"
-                  value={form.izreceneDisciplinskeKazne}
-                  onChange={handleChange}
-                  rows={3}
-                  className={inputClass}
-                  placeholder="Tekst o izrečenim disciplinskim kaznama..."
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Izbor u organe sportskog udruženja</label>
-                <textarea
-                  name="izborUOrganeSportskogUdruzenja"
-                  value={form.izborUOrganeSportskogUdruzenja}
-                  onChange={handleChange}
-                  rows={3}
-                  className={inputClass}
-                  placeholder="Tekst o izboru u organe..."
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Napomene</label>
-                <textarea
-                  name="napomene"
-                  value={form.napomene}
-                  onChange={handleChange}
-                  rows={3}
-                  className={inputClass}
-                  placeholder="Dodatne napomene..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Avatar */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Profilna slika (opciono)
-            </h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#41ac53]/10 file:text-[#41ac53] hover:file:bg-[#41ac53]/20 cursor-pointer"
-            />
-            {avatarPreview && (
-              <div className="mt-4 flex justify-center">
-                <img
-                  src={avatarPreview}
-                  alt="Preview profilne slike"
-                  className="w-32 h-32 object-cover rounded-full border-4 border-[#41ac53]/30 shadow-md"
-                />
+        <div className="max-w-4xl mx-auto">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 lg:p-7 space-y-6 sm:space-y-7"
+          >
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs sm:text-sm text-emerald-700 text-center font-medium">
+                Član uspešno registrovan! Preusmeravam...
               </div>
             )}
-          </div>
 
-          <button
-            type="submit"
-            className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50"
-            style={{ backgroundColor: '#41ac53' }}
-          >
-            Kreiraj novog člana
-          </button>
-        </form>
+            {error && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs sm:text-sm text-rose-700">
+                {error}
+              </div>
+            )}
 
-        <p className="mt-8 text-center text-sm text-gray-500">
-          Obavezna su samo korisničko ime, lozinka i uloga. Ostala polja možete popuniti kasnije.
-        </p>
+            {/* Obavezna polja */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Obavezna polja
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Korisničko ime *</label>
+                  <input
+                    name="username"
+                    value={form.username}
+                    onChange={handleChange}
+                    required
+                    className={inputClass}
+                    placeholder="npr. pera.peric"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Lozinka * (min. 8 karaktera)</label>
+                  <input
+                    name="password"
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                    minLength={8}
+                    className={inputClass}
+                    placeholder="Unesi lozinku"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Uloga *</label>
+                  <Dropdown
+                    aria-label="Uloga"
+                    options={[
+                      { value: '', label: '— izaberi —' },
+                      ...roleOptions.map((role) => ({
+                        value: role,
+                        label: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
+                      })),
+                    ]}
+                    value={form.role}
+                    onChange={(v) => setForm((prev) => ({ ...prev, role: v }))}
+                    fullWidth
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Lični podaci */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Lični podaci (opciono)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div>
+                  <label className={labelClass}>Puno ime</label>
+                  <input
+                    name="fullName"
+                    value={form.fullName}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="Ime i prezime"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Ime roditelja</label>
+                  <input
+                    name="imeRoditelja"
+                    value={form.imeRoditelja}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Pol</label>
+                  <Dropdown
+                    aria-label="Pol"
+                    options={[
+                      { value: '', label: '— izaberi —' },
+                      { value: 'M', label: 'Muški' },
+                      { value: 'Ž', label: 'Ženski' },
+                    ]}
+                    value={form.pol}
+                    onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+                    fullWidth
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Datum rođenja</label>
+                  <input
+                    name="datumRodjenja"
+                    type="date"
+                    value={form.datumRodjenja}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Državljanstvo</label>
+                  <input
+                    name="drzavljanstvo"
+                    value={form.drzavljanstvo}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Kontakt */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Kontakt (opciono)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div>
+                  <label className={labelClass}>Email</label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="email@primer.rs"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Telefon</label>
+                  <input
+                    name="telefon"
+                    value={form.telefon}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="+381..."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Adresa</label>
+                  <input
+                    name="adresa"
+                    value={form.adresa}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="Ulica i broj, mesto"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Planinarski / dokumenti */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Dokumenti i planinarski podaci (opciono)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div>
+                  <label className={labelClass}>Broj ličnog dokumenta</label>
+                  <input
+                    name="brojLicnogDokumenta"
+                    value={form.brojLicnogDokumenta}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Broj planinarske legitimacije</label>
+                  <input
+                    name="brojPlaninarskeLegitimacije"
+                    value={form.brojPlaninarskeLegitimacije}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Broj planinarske markice</label>
+                  <input
+                    name="brojPlaninarskeMarkice"
+                    value={form.brojPlaninarskeMarkice}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Datum učlanjenja</label>
+                  <input
+                    name="datumUclanjenja"
+                    type="date"
+                    value={form.datumUclanjenja}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Disciplinske kazne, izbor u organe, napomene */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Disciplinske kazne, izbor u organe, napomene (opciono)
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className={labelClass}>Izrečene disciplinske kazne</label>
+                  <textarea
+                    name="izreceneDisciplinskeKazne"
+                    value={form.izreceneDisciplinskeKazne}
+                    onChange={handleChange}
+                    rows={3}
+                    className={`${inputClass} min-h-[72px]`}
+                    placeholder="Tekst o izrečenim disciplinskim kaznama..."
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                  <textarea
+                    name="izborUOrganeSportskogUdruzenja"
+                    value={form.izborUOrganeSportskogUdruzenja}
+                    onChange={handleChange}
+                    rows={3}
+                    className={`${inputClass} min-h-[72px]`}
+                    placeholder="Tekst o izboru u organe..."
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Napomene</label>
+                  <textarea
+                    name="napomene"
+                    value={form.napomene}
+                    onChange={handleChange}
+                    rows={3}
+                    className={`${inputClass} min-h-[72px]`}
+                    placeholder="Dodatne napomene..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Avatar */}
+            <div className={sectionClass}>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
+                Profilna slika (opciono)
+              </h3>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+              />
+              {avatarPreview && (
+                <div className="mt-4 flex justify-center">
+                  <img
+                    src={avatarPreview}
+                    alt="Preview profilne slike"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-full border-4 border-emerald-100 shadow-md"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-gray-50">
+              <button
+                type="submit"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-wait transition-all"
+              >
+                Kreiraj novog člana
+              </button>
+              <p className="mt-3 text-center text-[11px] text-gray-400">
+                Obavezna su samo korisničko ime, lozinka i uloga. Ostala polja možeš popuniti kasnije.
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
