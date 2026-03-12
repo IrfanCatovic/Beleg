@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/ProfileActionButtons'
@@ -74,6 +74,7 @@ export default function UserProfile() {
   const [coverY, setCoverY] = useState(0.5)
   const [positioning, setPositioning] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
 
   const rank = useRanking({ uspesneAkcije: akcije, ukupnoKm: stats.ukupnoKm, ukupnoMetaraUspona: stats.ukupnoMetaraUspona })
 
@@ -136,11 +137,31 @@ export default function UserProfile() {
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
 
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
   const saveCoverPos = async () => {
     setSaving(true)
     try { await api.patch('/api/me/cover-position', { coverPositionY: coverY }); setPositioning(false) }
     catch { /* ignore */ }
     finally { setSaving(false) }
+  }
+
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !korisnik) return
+    if (!file.type.startsWith('image/')) return
+    setCoverUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('coverImage', file)
+      const res = await api.patch('/api/me/cover', formData)
+      const url = (res.data as { cover_image_url?: string }).cover_image_url
+      if (url) setKorisnik((k) => (k ? { ...k, cover_image_url: url } : null))
+    } catch { /* ignore */ }
+    finally {
+      setCoverUploading(false)
+      e.target.value = ''
+    }
   }
 
   /* ── loading / error ── */
@@ -191,7 +212,35 @@ export default function UserProfile() {
           onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
         />
 
-        {/* own profile hint */}
+        {/* own profile: add/replace cover button */}
+        {isOwn && !positioning && (
+          <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-auto flex items-center gap-2">
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverImageChange}
+            />
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={coverUploading}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold text-white bg-black/40 hover:bg-black/55 backdrop-blur-sm border border-white/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {coverUploading ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+              ) : (
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+              {hasCover ? 'Zameni cover' : 'Dodaj cover sliku'}
+            </button>
+          </div>
+        )}
+
+        {/* own profile hint: double click to position */}
         {isOwn && hasCover && !positioning && (
           <span className="absolute bottom-3 right-4 text-[10px] text-white/50 font-medium opacity-0 group-hover/cover:opacity-100 transition-opacity pointer-events-none">
             Dupli klik za pozicioniranje

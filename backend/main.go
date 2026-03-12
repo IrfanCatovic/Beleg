@@ -1582,6 +1582,67 @@ func main() {
 			c.JSON(200, gin.H{"message": "Pozicija sačuvana", "coverPositionY": pos})
 		})
 
+		// PATCH /api/me/cover — upload cover slike (multipart: coverImage)
+		protected.PATCH("/me/cover", func(c *gin.Context) {
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+				return
+			}
+			files := c.Request.MultipartForm.File["coverImage"]
+			if len(files) == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Očekuje se slika (coverImage)"})
+				return
+			}
+			file := files[0]
+			f, err := file.Open()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju cover slike"})
+				return
+			}
+			defer f.Close()
+
+			cld, err := cloudinary.NewFromParams(
+				os.Getenv("CLOUDINARY_CLOUD_NAME"),
+				os.Getenv("CLOUDINARY_API_KEY"),
+				os.Getenv("CLOUDINARY_API_SECRET"),
+			)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+				return
+			}
+
+			ctx := context.Background()
+			uploadParams := uploader.UploadParams{
+				PublicID: fmt.Sprintf("covers/%s-%d", username, time.Now().Unix()),
+				Folder:   "adri-sentinel",
+			}
+
+			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u cover slike: " + err.Error()})
+				return
+			}
+
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			if err := db.Model(&korisnik).Update("cover_image_url", uploadResult.SecureURL).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju cover slike"})
+				return
+			}
+			c.JSON(200, gin.H{"message": "Cover slika ažurirana", "cover_image_url": uploadResult.SecureURL})
+		})
+
 		// PATCH /api/korisnici/:id  admin ažurira korisnika (role, disciplinske kazne, izbor u organe, napomene).
 		// Admin i sekretar mogu postaviti novu lozinku (samo ako je korisnik zaboravio).
 		protected.PATCH("/korisnici/:id", func(c *gin.Context) {
