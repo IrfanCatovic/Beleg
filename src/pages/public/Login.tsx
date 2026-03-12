@@ -108,17 +108,17 @@ export default function Login() {
         <div className="relative rounded-3xl bg-white/90 backdrop-blur-md border border-emerald-100 shadow-xl shadow-emerald-100/80 px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
           {/* Badge + title */}
           <div className="mb-6 flex flex-col items-center text-center gap-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 border border-emerald-100">
+            <div className="inline-flex items-center gap-2.5 rounded-full bg-emerald-50 px-3 py-1.5 border border-emerald-100">
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white text-xs font-extrabold shadow-sm"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl overflow-hidden shadow-sm hover:scale-105 transition-transform"
                 aria-label="Početna stranica"
               >
-                N
+                <img src="/LogoP.jpg" alt="planiner" className="h-full w-full" />
               </button>
               <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-700">
-                Prijava u NaVrhu
+                Prijava u planiner
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-900">
@@ -193,7 +193,7 @@ export default function Login() {
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400">
-            <span>NaVrhu • sistem za planinarska društva</span>
+            <span>planiner • sistem za planinarska društva</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
             <span>Sigurne evidencije, više vremena na stazi</span>
           </div>

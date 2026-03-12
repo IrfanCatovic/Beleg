@@ -122,11 +122,13 @@ export default function AppLayout() {
                   to="/home"
                   className="shrink-0 flex items-center gap-2 group"
                 >
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 transition-shadow">
-                    N
-                  </span>
+                  <img
+                    src="/LogoP.jpg"
+                    alt="planiner"
+                    className="h-8 w-8 rounded-lg shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 transition-shadow"
+                  />
                   <span className="hidden sm:block text-[15px] font-bold tracking-tight text-white">
-                    NaVrhu
+                    planiner
                   </span>
                 </Link>
 
@@ -178,7 +180,7 @@ export default function AppLayout() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                       </svg>
                       {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-slate-900">
+                        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-emerald-500">
                           {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                       )}
@@ -445,18 +447,16 @@ export default function AppLayout() {
       {/* Mobile bottom bar */}
       {isLoggedIn && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white backdrop-blur-xl md:hidden">
-          <div className="mx-auto flex max-w-7xl items-center px-2 py-2.5">
+          <div className="mx-auto flex max-w-7xl items-center px-2 py-2">
             <div className="flex-1 flex justify-center">
               <button
                 type="button"
                 onClick={() => navigate('/home')}
-                className="flex flex-col items-center justify-center text-xs font-medium text-white/70"
+                className="flex flex-col items-center justify-center"
                 aria-label="Home"
               >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-white">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 11l9-7 9 7v8a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4H9v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-8z" />
-                  </svg>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-white/20 shadow-sm">
+                  <img src="/LogoP.jpg" alt="Home" className="h-7 w-7 rounded-lg" />
                 </span>
               </button>
             </div>
@@ -470,16 +470,16 @@ export default function AppLayout() {
                   setIsProfileMenuOpen(false)
                   setIsNotificationsOpen((v) => !v)
                 }}
-                className="relative flex flex-col items-center justify-center text-xs font-medium text-white/70"
+                className="relative flex flex-col items-center justify-center"
                 aria-label="Obaveštenja"
               >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-white">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                   </svg>
                 </span>
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-1/4 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-slate-900">
+                  <span className="absolute top-0 right-1/4 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-emerald-500">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
@@ -490,10 +490,10 @@ export default function AppLayout() {
               <button
                 type="button"
                 onClick={() => navigate('/search')}
-                className="flex flex-col items-center justify-center text-xs font-medium text-white/70"
+                className="flex flex-col items-center justify-center"
                 aria-label="Pretraga"
               >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-white">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -505,10 +505,10 @@ export default function AppLayout() {
               <button
                 type="button"
                 onClick={() => navigate(user ? `/korisnik/${user.username}` : '/profil')}
-                className="flex flex-col items-center justify-center text-xs font-medium text-white/70"
+                className="flex flex-col items-center justify-center"
                 aria-label="Profil"
               >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-emerald-400/30 text-emerald-400 overflow-hidden">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 ring-2 ring-white/30 text-white overflow-hidden shadow-sm">
                   {user?.avatarUrl ? (
                     <img
                       src={user.avatarUrl}

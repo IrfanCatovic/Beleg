@@ -7,14 +7,16 @@ export default function MarketingNavbar() {
       <Link
         to="/"
         className="flex items-center gap-3 group"
-        aria-label="Početna – NaVrhu"
+        aria-label="Početna – planiner"
       >
-        <div className="h-9 w-9 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/40 group-hover:scale-105 transition-transform">
-          <span className="text-white font-bold text-xl">n</span>
-        </div>
+        <img
+          src="/LogoP.jpg"
+          alt="planiner"
+          className="h-9 w-9 rounded-2xl shadow-md shadow-emerald-500/40 group-hover:scale-105 transition-transform"
+        />
         <div className="leading-tight">
           <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
-            NaVrhu
+            planiner
           </p>
           <p className="text-[10px] sm:text-xs text-gray-500">
             Aplikacija za planinarska društva

@@ -45,7 +45,7 @@ export default function Welcome() {
           className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 leading-tight"
           style={{ color: '#41ac53' }}
         >
-          NaVrhu
+          planiner
         </h1>
 
         <p className="text-xl sm:text-2xl md:text-3xl font-light text-gray-700 mb-6 md:mb-10 leading-relaxed">
@@ -67,7 +67,7 @@ export default function Welcome() {
         </Link>
 
         <p className="mt-16 text-sm text-gray-500">
-          Planinarsko društvo NaVrhu • © {new Date().getFullYear()}
+          Planinarsko društvo planiner • © {new Date().getFullYear()}
         </p>
       </div>
     </div>

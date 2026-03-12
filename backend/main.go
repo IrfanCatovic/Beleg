@@ -1172,29 +1172,32 @@ func main() {
 				return
 			}
 
-			// DTO koji frontend očekuje (korisnik = username, fullName za štampu formulara)
-			type PrijavaDTO struct {
-				ID           uint      `json:"id"`
-				Korisnik     string    `json:"korisnik"`
-				FullName     string    `json:"fullName"`
-				PrijavljenAt time.Time `json:"prijavljenAt"`
-				Status       string    `json:"status"`
-			}
+		type PrijavaDTO struct {
+			ID           uint      `json:"id"`
+			Korisnik     string    `json:"korisnik"`
+			FullName     string    `json:"fullName"`
+			AvatarURL    string    `json:"avatarUrl,omitempty"`
+			PrijavljenAt time.Time `json:"prijavljenAt"`
+			Status       string    `json:"status"`
+		}
 
-			var out []PrijavaDTO
-			for _, p := range prijave {
-				fullName := ""
-				if p.Korisnik.ID != 0 {
-					fullName = p.Korisnik.FullName
-				}
-				out = append(out, PrijavaDTO{
-					ID:           p.ID,
-					Korisnik:     p.Korisnik.Username,
-					FullName:     fullName,
-					PrijavljenAt: p.PrijavljenAt,
-					Status:       p.Status,
-				})
+		var out []PrijavaDTO
+		for _, p := range prijave {
+			fullName := ""
+			avatarURL := ""
+			if p.Korisnik.ID != 0 {
+				fullName = p.Korisnik.FullName
+				avatarURL = p.Korisnik.AvatarURL
 			}
+			out = append(out, PrijavaDTO{
+				ID:           p.ID,
+				Korisnik:     p.Korisnik.Username,
+				FullName:     fullName,
+				AvatarURL:    avatarURL,
+				PrijavljenAt: p.PrijavljenAt,
+				Status:       p.Status,
+			})
+		}
 
 			c.JSON(200, gin.H{
 				"prijave": out,

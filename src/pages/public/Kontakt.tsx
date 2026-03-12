@@ -141,7 +141,7 @@ export default function Kontakt() {
             Tu smo za vas
           </h1>
           <p className="text-gray-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Pitanja o NaVrhu aplikaciji, ponudi za vaše društvo ili tehnička podrška – javite nam se.
+            Pitanja o planiner aplikaciji, ponudi za vaše društvo ili tehnička podrška – javite nam se.
             Naš tim vam odgovara brzo i konkretno.
           </p>
         </div>
@@ -223,7 +223,7 @@ export default function Kontakt() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Pošaljite nam poruku</h2>
               <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-                Kratka forma za pitanja o NaVrhu, saradnji ili demonstraciji. Odgovaramo vam direktno na kontakt koji
+                Kratka forma za pitanja o planiner, saradnji ili demonstraciji. Odgovaramo vam direktno na kontakt koji
                 ostavite u poruci.
               </p>
             </div>
