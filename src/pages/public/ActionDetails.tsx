@@ -121,6 +121,15 @@ export default function ActionDetails() {
   }
 
   const handleZavrsiAkciju = async () => {
+    const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')
+    if (neoznaceni.length > 0) {
+      await showAlert(
+        'Za završavanje akcije potrebno je da za svakog prijavljenog člana obeležiš da li se popeo ili nije uspeo.',
+        'Označi sve članove'
+      )
+      return
+    }
+
     const confirmed = await showConfirm(
       'Posle završavanja akcije više neće biti moguće menjati prijave ili statuse učesnika.',
       {
