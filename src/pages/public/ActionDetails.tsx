@@ -73,6 +73,28 @@ export default function ActionDetails() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const enrichWithAvatars = async (items: Prijava[]): Promise<Prijava[]> => {
+      return Promise.all(
+        items.map(async (p) => {
+          const existingAvatar = (p as any).avatarUrl || (p as any).avatar_url
+          if (existingAvatar) {
+            return { ...p, avatarUrl: existingAvatar }
+          }
+          try {
+            if (!p.korisnik) return p
+            const res = await api.get(`/api/korisnici/${encodeURIComponent(p.korisnik)}`)
+            const avatar = (res.data as any)?.avatar_url
+            if (avatar) {
+              return { ...p, avatarUrl: avatar }
+            }
+          } catch {
+            // ignore, zadrži bez avatara
+          }
+          return p
+        })
+      )
+    }
+
     const fetchAkcija = async () => {
       try {
         const res = await api.get(`/api/akcije/${id}`)
@@ -87,7 +109,9 @@ export default function ActionDetails() {
     const fetchPrijave = async () => {
       try {
         const res = await api.get(`/api/akcije/${id}/prijave`)
-        setPrijave(res.data.prijave || [])
+        const list: Prijava[] = res.data.prijave || []
+        const enriched = await enrichWithAvatars(list)
+        setPrijave(enriched)
       } catch (err: any) {
         console.error('Greška pri učitavanju prijava:', err)
       }
@@ -114,7 +138,16 @@ export default function ActionDetails() {
     try {
       await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
       const res = await api.get(`/api/akcije/${id}/prijave`)
-      setPrijave(res.data.prijave || [])
+      const list: Prijava[] = res.data.prijave || []
+      // nije neophodno ponovo povlačiti avatare, ali možemo zadržati postojeće
+      setPrijave((prev) => {
+        const avatarMap = new Map<number, string | undefined>()
+        prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
+        return list.map((p) => ({
+          ...p,
+          avatarUrl: p.avatarUrl || (p as any).avatar_url || avatarMap.get(p.id),
+        }))
+      })
     } catch {
       alert('Greška pri ažuriranju statusa')
     }
@@ -406,6 +439,7 @@ export default function ActionDetails() {
                         const displayName = p.fullName?.trim() ? p.fullName : p.korisnik || 'Nepoznat'
                         const initial = displayName.charAt(0).toUpperCase()
                         const statusCls = STATUS_STYLE[p.status] || 'bg-gray-100 text-gray-500 border-gray-200'
+                        const avatar = p.avatarUrl || (p as any).avatar_url
 
                         return (
                           <div
@@ -417,10 +451,10 @@ export default function ActionDetails() {
                               className="flex items-center gap-3 min-w-0 hover:no-underline group"
                             >
                               <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white shadow-sm flex-shrink-0">
-                                {p.avatarUrl ? (
-                                  <img src={p.avatarUrl} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
+                                {avatar ? (
+                                  <img src={avatar} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
                                 ) : null}
-                                <span className={p.avatarUrl ? 'invisible' : ''}>{initial}</span>
+                                <span className={avatar ? 'invisible' : ''}>{initial}</span>
                               </div>
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">
