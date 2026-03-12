@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 
@@ -57,6 +58,7 @@ const STATUS_STYLE: Record<string, string> = {
 export default function ActionDetails() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { showConfirm, showAlert } = useModal()
   const navigate = useNavigate()
   const [akcija, setAkcija] = useState<Akcija | null>(null)
   const [prijave, setPrijave] = useState<Prijava[]>([])
@@ -112,15 +114,24 @@ export default function ActionDetails() {
   }
 
   const handleZavrsiAkciju = async () => {
-    if (!window.confirm('Da li zaista želiš da završiš ovu akciju? Posle ovoga niko više neće moći da menja prijave ili status.')) return
+    const confirmed = await showConfirm(
+      'Posle završavanja akcije više neće biti moguće menjati prijave ili statuse učesnika.',
+      {
+        title: 'Završi akciju?',
+        confirmLabel: 'Završi akciju',
+        cancelLabel: 'Otkaži',
+      }
+    )
+    if (!confirmed) return
+
     try {
       const res = await api.post(`/api/akcije/${id}/zavrsi`)
-      alert('Akcija je uspešno završena!')
+      await showAlert('Akcija je uspešno završena.', 'Akcija završena')
       const updated = res.data?.akcija
       if (updated) setAkcija(updated)
       else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri završavanju akcije')
+      await showAlert(err.response?.data?.error || 'Greška pri završavanju akcije', 'Greška')
     }
   }
 
