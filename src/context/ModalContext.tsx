@@ -164,12 +164,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     showConfirm,
   }
 
+  const isDanger = state.variant === 'danger'
+  const isConfirm = state.type === 'confirm'
+
   return (
     <ModalContext.Provider value={value}>
       {children}
       {state.open && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-3 sm:px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-3 sm:px-4 animate-[fadeIn_150ms_ease-out]"
           onClick={close}
           role="dialog"
           aria-modal="true"
@@ -177,51 +180,73 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           aria-describedby="modal-desc"
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6"
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-[scaleIn_200ms_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
-            {(state.title || state.message) && (
-              <div className="mb-4">
+            <div className="p-5 sm:p-6">
+              {/* Icon */}
+              <div className="flex justify-center mb-4">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${
+                  isDanger ? 'bg-rose-50' : isConfirm ? 'bg-amber-50' : 'bg-emerald-50'
+                }`}>
+                  {isDanger ? (
+                    <svg className="w-6 h-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                  ) : isConfirm ? (
+                    <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="text-center mb-5">
                 {state.title && (
-                  <h2 id="modal-title" className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
+                  <h2 id="modal-title" className="text-base sm:text-lg font-bold text-gray-900 tracking-tight mb-1.5">
                     {state.title}
                   </h2>
                 )}
-                <p id="modal-desc" className="text-sm text-gray-600 whitespace-pre-wrap">
+                <p id="modal-desc" className="text-sm text-gray-500 leading-relaxed whitespace-pre-wrap">
                   {state.message}
                 </p>
               </div>
-            )}
-            <div className="flex flex-row gap-2 justify-end">
+
+              {/* Buttons */}
               {state.type === 'alert' ? (
                 <button
                   type="button"
                   onClick={handleAlertOk}
-                  className="px-4 py-2 rounded-lg bg-[#41ac53] text-white text-sm font-medium shadow-sm hover:bg-[#358c43]"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all"
                 >
                   {state.okLabel}
                 </button>
               ) : (
-                <>
+                <div className="flex gap-2.5">
                   <button
                     type="button"
                     onClick={close}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                   >
                     {state.cancelLabel}
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirm}
-                    className={
-                      state.variant === 'danger'
-                        ? 'px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium shadow-sm hover:bg-red-700'
-                        : 'px-4 py-2 rounded-lg bg-[#41ac53] text-white text-sm font-medium shadow-sm hover:bg-[#358c43]'
-                    }
+                    className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all ${
+                      isDanger
+                        ? 'text-white bg-gradient-to-r from-rose-400 via-rose-500 to-rose-400 hover:from-rose-300 hover:via-rose-400 hover:to-rose-300 shadow-rose-200/50'
+                        : 'text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-emerald-200/50'
+                    }`}
                   >
                     {state.confirmLabel}
                   </button>
-                </>
+                </div>
               )}
             </div>
           </div>
