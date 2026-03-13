@@ -53,7 +53,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25" />
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-20 lg:pt-12 lg:pb-28">
+        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 lg:pt-12 lg:pb-14">
           <MarketingNavbar />
 
           <div className="space-y-10">
@@ -101,9 +101,9 @@ export default function Landing() {
 
               {/* Desna kolona: slika */}
               <div className="flex-[0.9] flex justify-center lg:justify-end">
-                <div className="max-w-sm sm:max-w-md">
+                <div className="max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
                   <img
-                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237572/hero_rgwmwy.png"
+                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773415948/hero_rgwmwy.png"
                     alt="na vrhu – prikaz aplikacije na laptopu i telefonu"
                     className="rounded-3xl w-full h-auto object-contain"
                   />
@@ -496,12 +496,9 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-sky-100 p-5 hover:shadow-lg hover:border-sky-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-sky-900">Centralni login i web pristup</h3>
-                    <p className="text-xs text-gray-600 mb-3">
-                      Pristup preko browsera, bez instalacije. Sve je dostupno 24/7 sa računara, tableta ili telefona uz podršku tima developera.
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Jedan sistem, svi članovi i saradnici na istom mestu.
+                    <h3 className="text-sm font-semibold mb-2 text-sky-900">Javni profil i dostignuća</h3>
+                    <p className="text-xs text-gray-600">
+                      Svaki korisnik ima svoj profil koji je javno dostupan. Na njemu može da pokaže svoja dostignuća: pređene staze, savladane uspone i učešće u akcijama.
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-sky-100 group-hover:bg-sky-200 transition-colors">
