@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import { getRandomHikingGreeting } from '../../data/hikingGreetings'
 
 export default function Login() {
   const { login } = useAuth()
@@ -11,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const greeting = useMemo(() => getRandomHikingGreeting(), [])
 
   useEffect(() => {
     const checkSetup = async () => {
@@ -93,6 +95,26 @@ export default function Login() {
         <div className="pointer-events-none absolute -left-32 -top-24 h-72 w-72 rounded-full bg-emerald-200/50 blur-3xl" />
         <div className="pointer-events-none absolute right-[-6rem] top-1/3 h-80 w-80 rounded-full bg-yellow-200/50 blur-3xl" />
         <div className="pointer-events-none absolute left-1/3 bottom-[-6rem] h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
+
+        {/* Dekorativni elementi – ptice, drveće, sunce */}
+        <svg className="absolute top-12 left-[15%] w-8 h-8 text-emerald-300/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 8c-4 0-7 3-7 3s-3-3-7-3" strokeLinecap="round" /><path d="M19 5c-5 0-8 4-8 4s-3-4-8-4" strokeLinecap="round" /></svg>
+        <svg className="absolute top-20 right-[18%] w-6 h-6 text-emerald-200/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 8c-4 0-7 3-7 3s-3-3-7-3" strokeLinecap="round" /></svg>
+        <svg className="absolute bottom-16 left-[22%] w-10 h-10 text-emerald-300/30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L8 12h3v10l4-12h-3z" opacity="0.3" /><path d="M12 2l-2 5h1.5v4l2-5h-1.5z" /></svg>
+        <svg className="absolute bottom-24 right-[20%] w-8 h-8 text-emerald-400/20" viewBox="0 0 40 40" fill="currentColor"><path d="M20 4L10 28h8v8l12-20h-8z" opacity="0.4" /></svg>
+
+        {/* Sunce gore desno */}
+        <div className="absolute top-6 right-[30%] sm:right-[35%]">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-yellow-300/40 to-amber-200/30 blur-sm" />
+          <div className="absolute inset-1 h-6 w-6 rounded-full bg-yellow-200/50" />
+        </div>
+
+        {/* Mountain silhouette na dnu */}
+        <svg className="absolute bottom-0 left-0 w-full h-16 sm:h-20 text-emerald-100/40" viewBox="0 0 1440 120" preserveAspectRatio="none" fill="currentColor">
+          <path d="M0,120 L0,80 Q80,20 160,60 Q240,100 320,50 Q400,0 480,40 Q560,80 640,30 Q720,-10 800,50 Q880,110 960,40 Q1040,-10 1120,60 Q1200,100 1280,30 Q1360,-20 1440,70 L1440,120 Z" />
+        </svg>
+        <svg className="absolute bottom-0 left-0 w-full h-12 sm:h-16 text-emerald-200/25" viewBox="0 0 1440 100" preserveAspectRatio="none" fill="currentColor">
+          <path d="M0,100 L0,70 Q120,30 240,55 Q360,80 480,35 Q600,10 720,50 Q840,90 960,45 Q1080,10 1200,60 Q1320,90 1440,50 L1440,100 Z" />
+        </svg>
       </div>
 
       {/* Loading overlay for initial setup check – now light themed */}
@@ -126,6 +148,9 @@ export default function Login() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-md">
               Jedan nalog za sve što vaše planinarsko društvo treba – članovi, akcije, finansije i ranking.
+            </p>
+            <p className="text-[11px] sm:text-xs italic text-emerald-600/70 max-w-sm">
+              „{greeting}"
             </p>
           </div>
 
@@ -192,7 +217,27 @@ export default function Login() {
             Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.
           </p>
 
-          <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+          {/* Dekorativna linija razdvajač */}
+          <div className="mt-5 flex items-center gap-3">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-emerald-300">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" opacity="0.6" />
+            </svg>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
+          </div>
+
+          {/* Mini elevation profil */}
+          <div className="mt-4 flex flex-col items-center gap-1">
+            <svg viewBox="0 0 200 40" className="w-48 h-8 text-emerald-400/50" fill="none">
+              <path d="M0,35 L15,28 L30,32 L50,18 L65,25 L80,12 L100,8 L120,15 L135,6 L150,20 L170,14 L185,22 L200,18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M0,35 L15,28 L30,32 L50,18 L65,25 L80,12 L100,8 L120,15 L135,6 L150,20 L170,14 L185,22 L200,18 L200,40 L0,40 Z" fill="currentColor" opacity="0.1" />
+              <circle cx="135" cy="6" r="2.5" fill="currentColor" opacity="0.8" />
+            </svg>
+            <p className="text-[9px] text-emerald-500/60 tracking-wider uppercase font-medium">tvoj sledeći vrh te čeka</p>
+          </div>
+
+          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400">
             <span>planiner • sistem za planinarska društva</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
             <span>Sigurne evidencije, više vremena na stazi</span>
