@@ -75,7 +75,7 @@ export default function Landing() {
                 </p>
 
                 <p className="text-sm text-gray-600 max-w-xl">
-                  Za predsednike, sekretare, vodiče i blagajnike koji žele manje administracije, a više vremena na stazi.
+                  Za predsednike, sekretare, vodiče, blagajnike i članove koji žele manje administracije, a više vremena na stazi.
                 </p>
 
                 <div className="flex flex-wrap gap-4 items-center">
@@ -503,9 +503,10 @@ export default function Landing() {
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-sky-100 group-hover:bg-sky-200 transition-colors">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-sky-600">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="2" y1="12" x2="22" y2="12" />
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                      <path d="M16 3l2 2-2 2" fill="none" />
+                      <polygon points="22 2 22 6 18 4" fill="currentColor" stroke="none" />
                     </svg>
                   </div>
                 </div>
@@ -533,7 +534,7 @@ export default function Landing() {
                 },
                 {
                   title: 'Unos postojećih članova i podataka',
-                  text: 'Pomažemo da postojeće članove sa papira i iz tabela postepeno unesete u planiner uz naše šablone i podršku tima',
+                  text: 'Pomažemo da postojeće članove sa papira i iz tabela postepeno unesete u planiner uz naše šablone i podršku tima.',
                   step: '02',
                 },
                 {
@@ -637,12 +638,15 @@ export default function Landing() {
 
               {/* Slika tima desno */}
               <div className="flex-[0.9] flex justify-center lg:justify-end">
-                <div className="w-full max-w-sm rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
-                  <img
-                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237574/team_c4diuf.jpg"
-                    alt="Tim na vrhu u online sastanku sa planinarskim društvom"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-full max-w-sm">
+                  <div className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
+                    <img
+                      src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237574/team_c4diuf.jpg"
+                      alt="Tim na vrhu u online sastanku sa planinarskim društvom"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim planiner-a – podrška od prvog dana</p>
                 </div>
               </div>
             </div>
@@ -728,9 +732,9 @@ export default function Landing() {
                   </svg>
                 </div>
                 <p className="text-xs font-semibold text-slate-800 mb-1">Manje grešaka</p>
-                <p className="text-2xl font-extrabold text-slate-800 mb-1">↓</p>
+                <p className="text-2xl font-extrabold text-slate-800 mb-1">0</p>
                 <p className="text-[11px] text-slate-900/80">
-                  preciznija evidencija članova, uplata i prisustva
+                  izgubljenih formulara i duplih unosa
                 </p>
               </div>
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-5 text-center hover:shadow-md transition-shadow">
@@ -757,6 +761,60 @@ export default function Landing() {
                 <p className="text-[11px] text-violet-900/80">
                   bolji pregled rada rukovodstva i blagajne
                 </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Social proof – citati korisnika */}
+        <section className="py-14 sm:py-18 bg-slate-50 border-y border-slate-100">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-8">Šta kažu korisnici</p>
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                <div className="flex gap-0.5 mb-3">
+                  {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
+                </div>
+                <p className="text-sm text-gray-700 italic mb-4">
+                  „Konačno nemam 50 poruka u viber grupi pre svake akcije. Sve je na jednom mestu, prijave, detalji, ko je platio."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">M</div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800">Marko P. <span className="font-normal text-gray-400">– Vodič</span></p>
+                    <p className="text-[11px] text-gray-400">PD „Zeleni vrh"</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                <div className="flex gap-0.5 mb-3">
+                  {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
+                </div>
+                <p className="text-sm text-gray-700 italic mb-4">
+                  „Kao blagajnik trošio sam dane na prepisivanje uplata iz beležnice. Sada vidim sve u realnom vremenu i mogu da izvezem izveštaj u PDF za 10 sekundi."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">J</div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800">Jelena S. <span className="font-normal text-gray-400">– Blagajnik</span></p>
+                    <p className="text-[11px] text-gray-400">PD „Staza"</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
+                <div className="flex gap-0.5 mb-3">
+                  {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
+                </div>
+                <p className="text-sm text-gray-700 italic mb-4">
+                  „Moj profil sa statistikom i rangom me motiviše da idem na svaku akciju. Javni profil sam podelio na Instagramu, svi su bili oduševljeni."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-700">N</div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800">Nemanja D. <span className="font-normal text-gray-400">– Član</span></p>
+                    <p className="text-[11px] text-gray-400">PD „Vršak"</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1041,53 +1099,73 @@ export default function Landing() {
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam planiner u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
+              Pokažemo vam planiner u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
               može da olakša rad.
             </p>
-            <div className="flex flex-wrap gap-4 justify-center mb-4">
+            <div className="flex flex-wrap gap-4 justify-center mb-3">
               <a
                 onClick={() => navigate('/kontakt')}
-                className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
+                className="cursor-pointer inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
               >
                 Zakaži prezentaciju
               </a>
               <a
                 onClick={() => navigate('/kontakt')}
-                className="inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
+                className="cursor-pointer inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
               >
                 Pošalji upit
               </a>
             </div>
-            <p className="text-[11px] text-emerald-100/80">
+            <p className="text-xs text-emerald-200/60 mb-6">
               Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.
             </p>
+            <div className="border-t border-emerald-500/20 pt-5">
+              <p className="text-xs text-emerald-100/70 mb-2">Želiš prvo da vidiš kako izgleda?</p>
+              <a
+                href="/login"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-white transition-colors"
+              >
+                Pogledaj demo nalog
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
+              </a>
+            </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-slate-900 text-slate-200">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-slate-300 text-center sm:text-left">
-            Adri Sentinel – za planinarska društva koja žele više vremena na stazi, a manje za stolom.
+      <footer className="border-t border-slate-700/50 bg-slate-900 text-slate-200">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <img src="/LogoP.jpg" alt="planiner" className="h-8 w-8 rounded-lg" />
+              <div>
+                <p className="text-sm font-semibold text-white">planiner</p>
+                <p className="text-[11px] text-slate-400">by Adri Sentinel</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-5 text-xs text-slate-400 justify-center sm:justify-end">
+              <a href="#hero" className="hover:text-white transition-colors">
+                O nama
+              </a>
+              <a href="#features" className="hover:text-white transition-colors">
+                Funkcionalnosti
+              </a>
+              <a href="/kontakt" className="hover:text-white transition-colors">
+                Kontakt
+              </a>
+              <button
+                type="button"
+                className="hover:text-white transition-colors"
+              >
+                Politika privatnosti
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-4 text-[11px] text-slate-400 justify-center sm:justify-end">
-            <a href="#hero" className="hover:text-white transition-colors">
-              O nama
-            </a>
-            <a href="#features" className="hover:text-white transition-colors">
-              Funkcionalnosti
-            </a>
-            <a href="/kontakt" className="hover:text-white transition-colors">
-              Kontakt
-            </a>
-            <span className="text-slate-500">•</span>
-            <button
-              type="button"
-              className="hover:text-white transition-colors"
-            >
-              Politika privatnosti
-            </button>
+          <div className="mt-6 pt-4 border-t border-slate-800 text-center sm:text-left">
+            <p className="text-[11px] text-slate-500">
+              © {new Date().getFullYear()} Adri Sentinel d.o.o. – za planinarska društva koja žele više vremena na stazi, a manje za stolom.
+            </p>
           </div>
         </div>
       </footer>
