@@ -853,108 +853,183 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* UI preview */}
-        <section className="py-16 sm:py-20 bg-white">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Sneak a peek in app</h2>
-              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Pogledajte kako izgleda aplikacija na PC-u i mobilnim uređajima. Priključi se i ti globalnoj mreži planinara – vidi i budi viđen.
+        {/* UI preview – premium showcase */}
+        <section className="relative py-20 sm:py-28 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
+          {/* Ambient glow effects */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
+            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-sky-500/8 rounded-full blur-[100px]" />
+          </div>
+
+          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+            {/* Header */}
+            <div className="text-center mb-16 sm:mb-20">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400 mb-3">Sneak peek</p>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 tracking-tight">
+                Pogledaj aplikaciju iznutra
+              </h2>
+              <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu – vidi i budi viđen.
               </p>
             </div>
 
-            <div className="space-y-8">
-              {/* 1. Akcije – PC + telefon */}
-              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
-                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Ekran 1
-                    </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">Akcije (PC i telefon)</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      Lista akcija, prijave članova i detalji – isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
-                    </p>
+            <div className="space-y-24 sm:space-y-32">
+
+              {/* ── 1. Akcije ── */}
+              <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1fr,1.4fr] items-center">
+                {/* Tekst levo */}
+                <div>
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold mb-4">1</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Akcije</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                    Lista akcija, prijave članova i detalji – isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
+                  </p>
+                  <div className="flex gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                    </span>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: akcije (PC)
+                </div>
+                {/* Slike desno – PC veći, dva mobilna preklapaju */}
+                <div className="relative">
+                  {/* PC screenshot – browser frame */}
+                  <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                    <div className="bg-slate-700 px-4 py-2 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/akcije/uspon-na-zlu-kolatu</span>
                     </div>
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: akcije (telefon)
+                    <img src="/ActionDetails.png" alt="Akcije – PC prikaz" className="w-full h-auto" />
+                  </div>
+                  {/* Mobilni ekrani – lebde preko donjeg desnog ugla */}
+                  <div className="absolute -bottom-8 -right-2 sm:-right-4 flex gap-2 sm:gap-3">
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
+                      <img src="/ActionDetails_mobile.png" alt="Akcije – telefon detalj" className="w-full h-auto" />
+                    </div>
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 -mt-4 sm:-mt-6">
+                      <img src="/Akcije1_mob.png" alt="Akcije – telefon lista" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 2. Profili korisnika – PC + mobilni */}
-              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
-                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Ekran 2
-                    </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">Profili korisnika</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      Javni profili članova – statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: profili (PC)
+              {/* ── 2. Profili – obrnut layout: slike levo, tekst desno ── */}
+              <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1.4fr,1fr] items-center">
+                {/* Slike levo */}
+                <div className="relative order-2 lg:order-1">
+                  <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                    <div className="bg-slate-700 px-4 py-2 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/korisnik/catko</span>
                     </div>
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: profili (telefon)
+                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
+                      Screenshot profila (PC) – dodaj sliku ovde
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-8 -left-2 sm:-left-4 flex gap-2 sm:gap-3">
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
+                      Profil (telefon)
+                    </div>
+                  </div>
+                </div>
+                {/* Tekst desno */}
+                <div className="order-1 lg:order-2">
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold mb-4">2</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Profili korisnika</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                    Javni profili članova – statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
+                  </p>
+                  <div className="flex gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 3. Finansije ── */}
+              <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1fr,1.4fr] items-center">
+                <div>
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold mb-4">3</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Finansije</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                    Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo – sve na jednom mestu, dostupno i sa mobilnog.
+                  </p>
+                  <div className="flex gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                    </span>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                    <div className="bg-slate-700 px-4 py-2 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/finansije</span>
+                    </div>
+                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
+                      Screenshot finansija (PC) – dodaj sliku ovde
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-8 -right-2 sm:-right-4">
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
+                      Finansije (telefon)
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 3. Finansije – PC + mobilni */}
-              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
-                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Ekran 3
-                    </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">Finansije</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo – sve na jednom mestu, dostupno i sa mobilnog.
-                    </p>
+              {/* ── 4. Zadaci – obrnut layout ── */}
+              <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1.4fr,1fr] items-center">
+                <div className="relative order-2 lg:order-1">
+                  <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                    <div className="bg-slate-700 px-4 py-2 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/zadaci</span>
+                    </div>
+                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
+                      Screenshot zadataka (PC) – dodaj sliku ovde
+                    </div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: finansije (PC)
+                  <div className="absolute -bottom-8 -left-2 sm:-left-4">
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
+                      Zadaci (telefon)
                     </div>
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: finansije (telefon)
-                    </div>
+                  </div>
+                </div>
+                <div className="order-1 lg:order-2">
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-violet-500/20 text-violet-400 text-sm font-bold mb-4">4</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Zadaci</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                    Zadaci za rukovodstvo, vodiče i članove – praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
+                  </p>
+                  <div className="flex gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* 4. Zadaci */}
-              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
-                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Ekran 4
-                    </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">Zadaci</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      Zadaci za rukovodstvo, vodiče i članove – praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: zadaci (PC)
-                    </div>
-                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      Screen: zadaci (telefon)
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>

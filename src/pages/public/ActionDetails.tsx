@@ -122,13 +122,17 @@ export default function ActionDetails() {
   }, [id, user])
 
   const handleDelete = async () => {
-    if (!window.confirm('Da li si siguran da želiš da obrišeš ovu akciju? Ova akcija će biti trajno obrisana.')) return
+    const confirmed = await showConfirm(
+      'Da li si siguran da želiš da obrišeš ovu akciju? Ova akcija će biti trajno obrisana.',
+      { variant: 'danger', confirmLabel: 'Obriši' }
+    )
+    if (!confirmed) return
     try {
       await api.delete(`/api/akcije/${id}`)
-      alert('Akcija je uspešno obrisana.')
+      await showAlert('Akcija je uspešno obrisana.')
       navigate('/akcije')
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri brisanju akcije')
+      await showAlert(err.response?.data?.error || 'Greška pri brisanju akcije', 'Greška')
     }
   }
 
