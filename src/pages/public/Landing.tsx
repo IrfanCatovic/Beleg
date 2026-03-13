@@ -857,96 +857,100 @@ export default function Landing() {
         <section className="py-16 sm:py-20 bg-white">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Pogled u interfejs</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Sneak a peek in app</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Kako konkretno izgleda planiner za društvo, vodiče, blagajnika i članove na računaru i telefonu.
+                Pogledajte kako izgleda aplikacija na PC-u i mobilnim uređajima. Priključi se i ti globalnoj mreži planinara – vidi i budi viđen.
               </p>
             </div>
 
             <div className="space-y-8">
-              {/* 1. Dashboard društva – PC */}
+              {/* 1. Akcije – PC + telefon */}
               <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
                 <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Glavni ekran za rukovodstvo
+                      Ekran 1
                     </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">Dashboard društva (PC prikaz)</h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
-                      Pregled ključnih stvari na jednom mestu: aktivne akcije, nove prijave, istaknute obaveze za
-                      rukovodstvo i kratki pregled finansija.
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">Akcije (PC i telefon)</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Lista akcija, prijave članova i detalji – isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
                     </p>
-                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
-                      <li>• Lista narednih akcija sa brojem prijavljenih i statusom (otvorena / zatvorena).</li>
-                      <li>• Brzi uvid u novoupisane članove i isteke članarina/markica.</li>
-                      <li>• Kratki finansijski widget: uplate, isplate, saldo blagajne.</li>
-                    </ul>
                   </div>
-                  <div className="flex flex-col gap-3">
-                    <div className="h-40 sm:h-48 rounded-2xl border border-dashed border-gray-300 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[11px] text-gray-500 text-center px-4">
-                      OVDE: izdvoji screen glavnog dashboard-a za društvo (PC prikaz – širi desktop snimak ekrana)
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      Screen: akcije (PC)
+                    </div>
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      Screen: akcije (telefon)
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 2. Profil člana i ranking – PC + mobilni */}
+              {/* 2. Profili korisnika – PC + mobilni */}
               <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
                 <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Za članove i vodiče
+                      Ekran 2
                     </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">
-                      Profil člana, statistika i ranking (PC + mobilni)
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
-                      Svaki član ima svoj „planinarski CV“ – akcije, pređene kilometre, ukupni uspon i dodijeljeni rank,
-                      vidljiv i na računaru i na telefonu.
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">Profili korisnika</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Javni profili članova – statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
                     </p>
-                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
-                      <li>• Detaljan profil člana sa ličnim i planinarskim podacima.</li>
-                      <li>• Statistika: broj akcija, kilometraža, ukupan uspon, sezonski ranking.</li>
-                      <li>• Brzi pregled prisustva na akcijama za vodiče i rukovodstvo.</li>
-                    </ul>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      OVDE: izdvoji screen profila člana i statistike (PC prikaz)
+                      Screen: profili (PC)
                     </div>
                     <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      OVDE: izdvoji screen mobilnog prikaza profila / rang liste (telefon)
+                      Screen: profili (telefon)
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 3. Akcije i finansije – PC + mobilna prijava */}
+              {/* 3. Finansije – PC + mobilni */}
               <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
                 <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-                      Organizacija akcija i blagajna
+                      Ekran 3
                     </p>
-                    <h3 className="text-sm sm:text-base font-semibold mb-3">
-                      Planiranje akcija, prijave i finansije (PC + mobilna prijava)
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3">
-                      Jedan interfejs za vodiče i blagajnika – kreiranje akcija, praćenje prijava i povezivanje uplata sa
-                      konkretnim akcijama i članovima.
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">Finansije</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo – sve na jednom mestu, dostupno i sa mobilnog.
                     </p>
-                    <ul className="space-y-1.5 text-[11px] sm:text-xs text-gray-600">
-                      <li>• Ekran akcije: lista prijavljenih, statusi (prijavljen, potvrđen, platio).</li>
-                      <li>• Finansijski pregled po akciji – ko je uplatio, koliko i kada.</li>
-                      <li>• Jednostavna mobilna prijava člana na akciju direktno iz svog naloga.</li>
-                    </ul>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      OVDE: izdvoji screen detalja jedne akcije sa prijavama (PC prikaz)
+                      Screen: finansije (PC)
                     </div>
                     <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
-                      OVDE: izdvoji screen finansijskog pregleda / blagajne ili mobilne prijave na akciju (telefon)
+                      Screen: finansije (telefon)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Zadaci */}
+              <div className="rounded-3xl border border-gray-100 bg-slate-50 p-6 lg:p-8 shadow-sm">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr,1.1fr] items-center">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+                      Ekran 4
+                    </p>
+                    <h3 className="text-sm sm:text-base font-semibold mb-3">Zadaci</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Zadaci za rukovodstvo, vodiče i članove – praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      Screen: zadaci (PC)
+                    </div>
+                    <div className="h-36 sm:h-40 rounded-2xl border border-dashed border-gray-300 bg-slate-100 flex items-center justify-center text-[11px] text-gray-500 text-center px-3">
+                      Screen: zadaci (telefon)
                     </div>
                   </div>
                 </div>
@@ -999,7 +1003,7 @@ export default function Landing() {
             <a href="#features" className="hover:text-white transition-colors">
               Funkcionalnosti
             </a>
-            <a href="#cta" className="hover:text-white transition-colors">
+            <a href="/kontakt" className="hover:text-white transition-colors">
               Kontakt
             </a>
             <span className="text-slate-500">•</span>
