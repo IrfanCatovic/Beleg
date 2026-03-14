@@ -18,11 +18,17 @@ type Klubovi struct {
 	//limitirati broj admina i clanova
 	KorisnikAdminLimit          int       `gorm:"default:3" json:"korisnik_admin_limit"`
 	KorisnikLimit               int       `gorm:"default:100" json:"korisnik_limit"`
-	MaxStorageGB 				float64    `gorm:"default:10.0" json:"max_storage_gb"`	
+	MaxStorageGB                float64   `gorm:"default:10.0" json:"max_storage_gb"`
 
-	CreatedAt                  time.Time `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt                  time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
-	
+	// Subskripcija: kada se klub prvi put prijavio i do kad traje
+	SubscribedAt                *time.Time `json:"subscribedAt,omitempty"`
+	SubscriptionEndsAt          *time.Time `json:"subscriptionEndsAt,omitempty"`
+
+
+	LogoURL                     string    `gorm:"type:varchar(500)" json:"logoUrl,omitempty"`
+
+	CreatedAt                   time.Time `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt                   time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
 func (Klubovi) TableName() string {

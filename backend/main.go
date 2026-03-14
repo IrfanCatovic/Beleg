@@ -484,6 +484,7 @@ func main() {
 		routes.RegisterFinanceRoutes(protected)
 		routes.RegisterZadatakRoutes(protected)
 		routes.RegisterObavestenjaRoutes(protected)
+		routes.RegisterSuperadminRoutes(protected)
 
 		// GET /api/akcije lista akcija iz baze
 		protected.GET("/akcije", func(c *gin.Context) {
