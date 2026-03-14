@@ -8,7 +8,13 @@ type Klubovi struct {
 	Adresa                     string    `gorm:"type:varchar(255)" json:"adresa,omitempty"`
 	Telefon                    string    `gorm:"type:varchar(50)" json:"telefon,omitempty"`
 	Email                      string    `gorm:"type:varchar(255)" json:"email,omitempty"`
-
+	MaticniBroj                string    `gorm:"type:varchar(50)" json:"maticni_broj,omitempty"`
+	PIB                        string    `gorm:"type:varchar(50)" json:"pib,omitempty"`
+	ZiroRacun                  string    `gorm:"type:varchar(50)" json:"ziro_racun,omitempty"`
+	Sediste                     string    `gorm:"type:varchar(255)" json:"sediste,omitempty"`
+	WebSajt                     string    `gorm:"type:varchar(255)" json:"web_sajt,omitempty"`
+	DatumOsnivanja             time.Time `json:"datum_osnovanja,omitempty"`
+	
 	//limitirati broj admina i clanova
 	KorisnikAdminLimit          int       `gorm:"default:3" json:"korisnik_admin_limit"`
 	KorisnikLimit               int       `gorm:"default:100" json:"korisnik_limit"`

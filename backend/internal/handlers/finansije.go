@@ -11,15 +11,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// checkFinanceRole vraća true ako je admin, superadmin ili blagajnik.
+
 func checkFinanceRole(c *gin.Context) bool {
 	roleVal, _ := c.Get("role")
 	role, _ := roleVal.(string)
 	return role == "admin" || role == "superadmin" || role == "blagajnik"
 }
 
-// GetDashboard vraća saldo, uplate, isplate i transakcije za zadati period.
-// Query: from=YYYY-MM-DD, to=YYYY-MM-DD (opciono; default: cela godina)
+
 func GetDashboard(c *gin.Context) {
 	if !checkFinanceRole(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili blagajnik mogu da vide finansije"})

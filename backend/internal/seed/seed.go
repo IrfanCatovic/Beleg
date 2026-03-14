@@ -7,11 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// DefaultKlubNaziv je naziv defaultnog kluba koji se kreira pri prvom pokretanju.
 const DefaultKlubNaziv = "Demo klub"
 
-// RunIfEmpty kreira default klub i dodeljuje postojeće korisnike (osim superadmina)
-// ako tabela klubovi još nema nijedan red. Pokreće se samo jednom pri startu aplikacije.
 func RunIfEmpty(db *gorm.DB) {
 	var count int64
 	if err := db.Model(&models.Klubovi{}).Count(&count).Error; err != nil {
@@ -22,12 +19,11 @@ func RunIfEmpty(db *gorm.DB) {
 		return
 	}
 
-	// Kreiraj default klub
 	klub := models.Klubovi{
 		Naziv:             DefaultKlubNaziv,
 		KorisnikAdminLimit: 3,
 		KorisnikLimit:      100,
-		MaxStorageGB:       10.0,
+		MaxStorageGB:       5.0,
 	}
 	if err := db.Create(&klub).Error; err != nil {
 		log.Printf("[seed] Greška pri kreiranju default kluba: %v", err)
@@ -35,7 +31,7 @@ func RunIfEmpty(db *gorm.DB) {
 	}
 	log.Printf("[seed] Kreiran default klub: %s (id=%d)", klub.Naziv, klub.ID)
 
-	// Dodeli sve postojeće korisnike (osim superadmina) tom klubu
+
 	clubID := klub.ID
 	result := db.Model(&models.Korisnik{}).
 		Where("role != ?", "superadmin").
