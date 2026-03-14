@@ -58,7 +58,7 @@ function buildTransactionRows(transakcije: FinanceReportTransakcija[]): string {
   return transakcije.map((t) => {
     const opis = [t.opis, t.clanarinaKorisnik?.fullName || t.clanarinaKorisnik?.username].filter(Boolean).join(' – ') || '—'
     const uplata = t.tip === 'uplata' ? t.iznos.toLocaleString('sr-RS') : ''
-    const isplata = t.tip === 'isplata' ? Math.abs(t.iznos).toLocaleString('sr-RS') : ''
+    const isplata = t.tip === 'isplata' ? `-${Math.abs(t.iznos).toLocaleString('sr-RS')}` : ''
     return `
       <tr>
         <td>${escapeHtml(formatDateShort(t.datum))}</td>
@@ -108,7 +108,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
   }).join('')
 
   const uplateStr = data.uplate.toLocaleString('sr-RS')
-  const isplateStr = data.isplate.toLocaleString('sr-RS')
+  const isplateStr = data.isplate === 0 ? '0' : `-${data.isplate.toLocaleString('sr-RS')}`
   const saldoClass = data.saldo >= 0 ? 'saldo-row' : 'saldo-row saldo-negative'
   const saldoStr = data.saldo.toLocaleString('sr-RS')
 

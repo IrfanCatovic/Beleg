@@ -71,7 +71,7 @@ func GetDashboard(c *gin.Context) {
 			ukupnoUplate += t.Iznos
 		} else {
 			// Isplate su u bazi upisane kao negativan iznos
-			ukupnoIsplate += -t.Iznos
+			ukupnoIsplate -= t.Iznos
 		}
 	}
 	// Trenutno stanje = uplate − isplate (u bazi su isplate negativne)
