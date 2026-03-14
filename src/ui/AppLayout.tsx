@@ -140,6 +140,9 @@ export default function AppLayout() {
                   {canSeeFinance(user?.role) && (
                     <NavLink to="/finansije" className={navLinkClass}>Finansije</NavLink>
                   )}
+                  {user?.role === 'superadmin' && (
+                    <NavLink to="/superadmin" className={navLinkClass}>Klubovi</NavLink>
+                  )}
                 </nav>
               </div>
 
@@ -409,6 +412,19 @@ export default function AppLayout() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Finansije
+                  </NavLink>
+                )}
+                {user?.role === 'superadmin' && (
+                  <NavLink
+                    to="/superadmin"
+                    className={({ isActive }) =>
+                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                      }`
+                    }
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Klubovi
                   </NavLink>
                 )}
                 <div className="mt-2 pt-2 border-t border-white/[0.06]">

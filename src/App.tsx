@@ -31,6 +31,7 @@ import Kontakt from './pages/public/Kontakt'
 import Cena from './pages/public/Cena'
 import Welcome from './pages/protected/Welcome'
 import RegisterSuperAdmin from './pages/public/RegisterSuperAdmin'
+import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
 
 
 const router = createBrowserRouter([
@@ -124,6 +125,14 @@ const router = createBrowserRouter([
             element: <RoleRoute allowedRoles={['superadmin', 'admin', 'sekretar']} />,
             children: [
               { path: '/dodaj-korisnika', element: <RegisterUser /> },
+            ],
+          },
+
+          // Superadmin: upravljanje klubovima (samo superadmin)
+          {
+            element: <RoleRoute allowedRoles={['superadmin']} />,
+            children: [
+              { path: '/superadmin', element: <SuperadminKlubovi /> },
             ],
           },
         ],
