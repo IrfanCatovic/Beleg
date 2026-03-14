@@ -8,4 +8,5 @@ import (
 
 func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.GET("/superadmin/klubovi", handlers.GetKlubovi)
+	g.POST("/superadmin/klubovi", handlers.CreateKlub)
 }
