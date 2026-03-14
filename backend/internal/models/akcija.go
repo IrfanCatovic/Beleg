@@ -24,9 +24,9 @@ type Akcija struct {
 	// false = samo na profilu člana, ne u listi akcija kluba
 	UIstorijiKluba           bool      `gorm:"column:u_istoriji_kluba;not null;default:true" json:"uIstorijiKluba"`
 
-	// Klub kojem akcija pripada (svaka akcija je u okviru jednog kluba)
-	KlubID uint     `gorm:"not null" json:"klubId"`
-	Klub   *Klubovi  `gorm:"foreignKey:KlubID" json:"-"`
+	// Klub kojem akcija pripada (svaka akcija je u okviru jednog kluba). Nullable da migracija prođe kad već ima redova; seed/backfill popuni postojeće.
+	KlubID *uint    `json:"klubId,omitempty"`
+	Klub   *Klubovi `gorm:"foreignKey:KlubID" json:"-"`
 }
 
 // TableName specifies the table name for the Akcija model
