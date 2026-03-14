@@ -5,6 +5,7 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
+	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
 	"context"
 	"fmt"
@@ -113,11 +114,15 @@ func main() {
 		&models.Zadatak{},
 		&models.ZadatakKorisnik{},
 		&models.Obavestenje{},
+		&models.Klubovi{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
-	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja)")
+	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
+
+	// Seed: default klub + dodela postojećih korisnika (jednokratno pri prvom startu)
+	seed.RunIfEmpty(db)
 
 	// Inject db u Gin context
 	r.Use(func(c *gin.Context) {

@@ -21,7 +21,7 @@ type Korisnik struct {
 	BrojPlaninarskeLegitimacije string    `gorm:"type:varchar(50);unique_index" json:"broj_planinarske_legitimacije,omitempty"` // unique ako želiš
 	BrojPlaninarskeMarkice     string    `gorm:"type:varchar(50)" json:"broj_planinarske_markice,omitempty"`
 	DatumUclanjenja            *time.Time `json:"datum_uclanjenja,omitempty"`
-
+	
 	// Opciona tekstualna polja
 	IzreceneDisciplinskeKazne  string    `gorm:"type:text" json:"izrecene_disciplinske_kazne,omitempty"`
 	IzborUOrganeSportskogUdruzenja string `gorm:"type:text" json:"izbor_u_organe_sportskog_udruzenja,omitempty"`
@@ -41,6 +41,10 @@ type Korisnik struct {
 	// Timestamps (automatski)
 	CreatedAt                  time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt                  time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
+
+
+	KlubID *uint     `json:"klubId,omitempty"`
+	Klub   *Klubovi  `gorm:"foreignKey:KlubID" json:"-"`
 }
 
 
