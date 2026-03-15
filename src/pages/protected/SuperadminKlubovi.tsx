@@ -75,7 +75,10 @@ const defaultForm = {
   max_storage_gb: 10,
   subscribedAt: '',
   subscriptionEndsAt: '',
+  /** Za prikaz u formi (edit); ne šalje se u payload */
   logoUrl: '',
+  /** Izabrani fajl za upload; šalje se na PATCH .../logo */
+  logoFile: null as File | null,
 }
 
 export default function SuperadminKlubovi() {
@@ -169,6 +172,7 @@ export default function SuperadminKlubovi() {
       subscribedAt: k.subscribedAt ? String(k.subscribedAt).slice(0, 10) : '',
       subscriptionEndsAt: k.subscriptionEndsAt ? String(k.subscriptionEndsAt).slice(0, 10) : '',
       logoUrl: k.logoUrl ?? '',
+      logoFile: null,
     })
     setFormError('')
     setModalOpen(true)
@@ -199,12 +203,22 @@ export default function SuperadminKlubovi() {
         max_storage_gb: form.max_storage_gb,
         subscribedAt: form.subscribedAt || undefined,
         subscriptionEndsAt: form.subscriptionEndsAt || undefined,
-        logoUrl: form.logoUrl.trim() || undefined,
       }
       if (editingId != null) {
+        if (form.logoFile) {
+          const fd = new FormData()
+          fd.append('logo', form.logoFile)
+          await api.patch(`/api/superadmin/klubovi/${editingId}/logo`, fd)
+        }
         await api.patch(`/api/superadmin/klubovi/${editingId}`, payload)
       } else {
-        await api.post('/api/superadmin/klubovi', payload)
+        const res = await api.post<{ klub: { id: number } }>('/api/superadmin/klubovi', payload)
+        const clubId = res.data.klub.id
+        if (form.logoFile) {
+          const fd = new FormData()
+          fd.append('logo', form.logoFile)
+          await api.patch(`/api/superadmin/klubovi/${clubId}/logo`, fd)
+        }
       }
       setModalOpen(false)
       fetchKlubovi()
@@ -458,14 +472,31 @@ export default function SuperadminKlubovi() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Logo URL</label>
-                <input
-                  type="url"
-                  value={form.logoUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="https://..."
-                />
+                <label className="block text-sm font-medium text-gray-700">Logo kluba</label>
+                <div className="mt-1 flex items-center gap-3">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+                    {form.logoFile ? (
+                      <img src={URL.createObjectURL(form.logoFile)} alt="" className="h-full w-full object-cover" />
+                    ) : form.logoUrl ? (
+                      <img src={form.logoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-400">—</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        setForm((f) => ({ ...f, logoFile: file || null }))
+                        e.target.value = ''
+                      }}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                    />
+                    <p className="mt-0.5 text-xs text-gray-500">Izaberite sliku (npr. JPG, PNG). Upload na Cloudinary pri čuvanju.</p>
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                 <button
