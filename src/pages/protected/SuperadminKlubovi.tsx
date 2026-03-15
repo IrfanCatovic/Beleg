@@ -267,31 +267,30 @@ export default function SuperadminKlubovi() {
             const status = getSubscriptionStatus(k.subscriptionEndsAt)
             const isDeleting = deleteKlubId === k.id
             const countdown = isDeleting ? deleteCountdown : 0
+            const initials = k.naziv.slice(0, 2).toUpperCase()
             return (
               <div
                 key={k.id}
-                className={`rounded-xl border border-gray-200 border-l-4 p-4 shadow-sm ${cardBorderByStatus[status]}`}
+                className={`rounded-xl border border-gray-200 border-l-4 overflow-hidden shadow-sm flex flex-col ${cardBorderByStatus[status]}`}
               >
-                <div className="flex items-start justify-between gap-2">
+                {/* Logo + naziv + akcije */}
+                <div className="flex items-start gap-3 p-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white border border-gray-200/80 overflow-hidden">
+                    {k.logoUrl ? (
+                      <img src={k.logoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-gray-400">{initials}</span>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
-                    {k.logoUrl && (
-                      <img
-                        src={k.logoUrl}
-                        alt=""
-                        className="mb-2 h-12 w-12 rounded-lg object-cover"
-                      />
-                    )}
-                    <h2 className="truncate text-lg font-semibold text-gray-900">{k.naziv}</h2>
-                    {k.sediste && (
-                      <p className="mt-0.5 truncate text-sm text-gray-600">{k.sediste}</p>
-                    )}
-                    {k.subscriptionEndsAt && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Subskripcija do: {formatDateShort(k.subscriptionEndsAt)}
+                    <h2 className="font-semibold text-gray-900 truncate">{k.naziv}</h2>
+                    {(k.sediste || k.adresa) && (
+                      <p className="mt-0.5 text-sm text-gray-600 truncate" title={k.sediste || k.adresa}>
+                        {k.sediste || k.adresa}
                       </p>
                     )}
                     <span
-                      className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         status === 'active'
                           ? 'bg-emerald-100 text-emerald-800'
                           : status === 'warning'
@@ -301,19 +300,8 @@ export default function SuperadminKlubovi() {
                     >
                       {labelByStatus[status]}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        localStorage.setItem('superadmin_club_id', String(k.id))
-                        navigate('/home')
-                      }}
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                    >
-                      <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-                      Ulazi
-                    </button>
                   </div>
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex shrink-0 gap-0.5">
                     <button
                       type="button"
                       onClick={() => openEditModal(k)}
@@ -346,6 +334,25 @@ export default function SuperadminKlubovi() {
                       </div>
                     )}
                   </div>
+                </div>
+                {/* Subskripcija + Ulazi */}
+                <div className="mt-auto border-t border-gray-200/60 px-4 py-3 bg-white/30">
+                  {k.subscriptionEndsAt && (
+                    <p className="text-xs text-gray-500 mb-2">
+                      Subskripcija do: {formatDateShort(k.subscriptionEndsAt)}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('superadmin_club_id', String(k.id))
+                      navigate('/home')
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+                  >
+                    <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+                    Ulazi
+                  </button>
                 </div>
               </div>
             )

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
 import api from '../services/api'
@@ -29,6 +29,11 @@ const canSeeFinance = (role?: string) =>
 export default function AppLayout() {
   const { logout, user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const isSuperadminNoClub =
+    user?.role === 'superadmin' && !localStorage.getItem('superadmin_club_id')
+
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -77,12 +82,12 @@ export default function AppLayout() {
   }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen])
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!isLoggedIn || isSuperadminNoClub) return
     api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
-  }, [isLoggedIn])
+  }, [isLoggedIn, isSuperadminNoClub])
 
   useEffect(() => {
-    if (!isLoggedIn || !isNotificationsOpen) return
+    if (!isLoggedIn || isSuperadminNoClub || !isNotificationsOpen) return
     setNotificationsLoading(true)
     setUnreadCount(0)
     api
@@ -91,7 +96,7 @@ export default function AppLayout() {
       .then((r) => setNotifications(r.data.obavestenja ?? []))
       .catch(() => setNotifications([]))
       .finally(() => setNotificationsLoading(false))
-  }, [isLoggedIn, isNotificationsOpen])
+  }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen])
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
@@ -102,9 +107,17 @@ export default function AppLayout() {
   }
 
   const handleLogout = () => {
+    if (user?.role === 'superadmin') {
+      localStorage.removeItem('superadmin_club_id')
+    }
     logout()
     navigate('/', { replace: true })
     setIsMenuOpen(false)
+  }
+
+  // Superadmin bez izabranog kluba može da vidi samo /superadmin (posle svih hook-ova)
+  if (isSuperadminNoClub && location.pathname !== '/superadmin') {
+    return <Navigate to="/superadmin" replace />
   }
 
   const iconBtnClass =
@@ -119,7 +132,7 @@ export default function AppLayout() {
               {/* Logo */}
               <div className="flex items-center gap-8">
                 <Link
-                  to="/home"
+                  to={isSuperadminNoClub ? '/superadmin' : '/home'}
                   className="shrink-0 flex items-center gap-2 group"
                 >
                   <img
@@ -132,7 +145,8 @@ export default function AppLayout() {
                   </span>
                 </Link>
 
-                {/* Desktop nav */}
+                {/* Desktop nav – sakriven za superadmina bez kluba */}
+                {!isSuperadminNoClub && (
                 <nav className="hidden md:flex items-center gap-1">
                   <NavLink to="/akcije" className={navLinkClass}>Akcije</NavLink>
                   <NavLink to="/zadaci" className={navLinkClass}>Zadaci</NavLink>
@@ -144,12 +158,18 @@ export default function AppLayout() {
                     <NavLink to="/superadmin" className={navLinkClass}>Klubovi</NavLink>
                   )}
                 </nav>
+                )}
+                {isSuperadminNoClub && (
+                  <span className="hidden sm:block text-sm text-white/70">Izaberite klub</span>
+                )}
               </div>
 
               {/* Right section */}
               <div className="flex items-center gap-2">
-                {/* Desktop actions */}
+                {/* Desktop actions – Search i Notifications sakriveni za superadmina bez kluba */}
                 <div className="hidden md:flex md:items-center md:gap-1.5">
+                  {!isSuperadminNoClub && (
+                  <>
                   {/* Search */}
                   <button
                     ref={searchButtonRef}
@@ -248,9 +268,13 @@ export default function AppLayout() {
                       </div>
                     )}
                   </div>
+                  </>
+                  )}
 
-                  {/* Divider */}
+                  {/* Divider – sakriven kada nema search/notifications */}
+                  {!isSuperadminNoClub && (
                   <div className="h-6 w-px bg-white/10 mx-1.5" />
+                  )}
 
                   {/* Profile dropdown */}
                   {user && (
@@ -360,7 +384,7 @@ export default function AppLayout() {
             </div>
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile menu – samo Odjava za superadmina bez kluba */}
           <div
             className={`md:hidden overflow-hidden transition-all duration-300 ease-out ${
               isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
@@ -368,6 +392,8 @@ export default function AppLayout() {
           >
             <div className="border-t border-white/[0.06] bg-slate-800/80 backdrop-blur-xl px-4 pb-4 pt-3">
               <div className="flex flex-col gap-0.5">
+                {!isSuperadminNoClub && (
+                <>
                 <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
@@ -427,6 +453,8 @@ export default function AppLayout() {
                     Klubovi
                   </NavLink>
                 )}
+                </>
+                )}
                 <div className="mt-2 pt-2 border-t border-white/[0.06]">
                   <button
                     onClick={handleLogout}
@@ -444,7 +472,7 @@ export default function AppLayout() {
         </header>
       )}
 
-      {isLoggedIn && isSearchOpen && (
+      {isLoggedIn && !isSuperadminNoClub && isSearchOpen && (
         <div ref={searchPanelRef} className="hidden md:block border-b border-gray-100 bg-white/95 backdrop-blur-sm shadow-sm">
           <GlobalSearchPanel
             searchQuery={searchQuery}
@@ -460,8 +488,8 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      {/* Mobile bottom bar */}
-      {isLoggedIn && (
+      {/* Mobile bottom bar – sakriven za superadmina bez kluba */}
+      {isLoggedIn && !isSuperadminNoClub && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white backdrop-blur-xl md:hidden">
           <div className="mx-auto flex max-w-7xl items-center px-2 py-2">
             <div className="flex-1 flex justify-center">

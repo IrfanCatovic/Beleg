@@ -76,7 +76,7 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Club-Id"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -1765,17 +1765,26 @@ func main() {
 			c.JSON(200, gin.H{"message": "Korisnik ažuriran", "korisnik": korisnik})
 		})
 
-		// GET /api/korisnici list of all users
+		// GET /api/korisnici list of users (filtrirano po effective club)
 		protected.GET("/korisnici", func(c *gin.Context) {
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
-			var korisnici []models.Korisnik
-			if err := db.Find(&korisnici).Error; err != nil {
-				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "korisnici": []models.Korisnik{}})
+				return
+			}
+			if clubID == 0 {
+				c.JSON(200, gin.H{"korisnici": []models.Korisnik{}})
 				return
 			}
 
+			var korisnici []models.Korisnik
+			if err := db.Where("klub_id = ?", clubID).Find(&korisnici).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
+				return
+			}
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})
 
