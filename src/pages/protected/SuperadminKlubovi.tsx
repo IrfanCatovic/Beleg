@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -8,6 +9,7 @@ import {
   TrashIcon,
   PlusIcon,
   XMarkIcon,
+  ArrowRightStartOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 
 export interface Klub {
@@ -78,6 +80,7 @@ const defaultForm = {
 
 export default function SuperadminKlubovi() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [klubovi, setKlubovi] = useState<Klub[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -298,6 +301,17 @@ export default function SuperadminKlubovi() {
                     >
                       {labelByStatus[status]}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.setItem('superadmin_club_id', String(k.id))
+                        navigate('/home')
+                      }}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                    >
+                      <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+                      Ulazi
+                    </button>
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <button

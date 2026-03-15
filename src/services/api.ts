@@ -15,10 +15,23 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 // interceptor: add token in every request; za FormData ne postavljaj Content-Type (browser doda boundary)
+// za superadmina dodaj X-Club-Id ako je izabrao klub
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  const savedUser = localStorage.getItem('user')
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser) as { role?: string }
+      const clubId = localStorage.getItem('superadmin_club_id')
+      if (user.role === 'superadmin' && clubId) {
+        config.headers['X-Club-Id'] = clubId
+      }
+    } catch {
+      // ignore parse error
+    }
   }
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type']
