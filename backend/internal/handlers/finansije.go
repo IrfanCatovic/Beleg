@@ -1,9 +1,16 @@
+// Paket handlers za finansije. Svi endpointi su club-scoped:
+// - Koristi se helpers.GetEffectiveClubID(c, db): za običnog admin/blagajnika = klub tog korisnika;
+//   za superadmina = vrednost headera X-Club-Id (ako nije poslat, ok=false).
+// - Transakcije: prikazuju se samo one koje je uneo korisnik iz effective kluba (KorisnikID → korisnici.klub_id).
+// - Članarine: samo članovi effective kluba; pri evidentiranju proverava se da i član i ulogovani pripadaju tom klubu.
+// - Obaveštenja za nove transakcije/članarine šalju se samo admin/blagajnik tog kluba.
 package handlers
 
 import (
 	"net/http"
 	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -32,6 +39,16 @@ func GetDashboard(c *gin.Context) {
 	}
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusOK, gin.H{"saldo": 0, "uplate": 0, "isplate": 0, "transakcije": []models.Transakcija{}, "from": "", "to": ""})
+		return
+	}
+
 	fromStr := c.Query("from")
 	toStr := c.Query("to")
 	year := time.Now().Year()
@@ -55,9 +72,10 @@ func GetDashboard(c *gin.Context) {
 		return
 	}
 
-	// Transakcije u periodu
+	// Transakcije u periodu – samo one koje je uneo neko iz ovog kluba
+	creatorIDs := db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", clubID)
 	var transakcije []models.Transakcija
-	if err := db.Where("datum >= ? AND datum <= ?", from, to).
+	if err := db.Where("datum >= ? AND datum <= ?", from, to).Where("korisnik_id IN (?)", creatorIDs).
 		Order("datum DESC, created_at DESC").
 		Preload("Korisnik").Preload("ClanarinaKorisnik").
 		Find(&transakcije).Error; err != nil {
@@ -87,7 +105,7 @@ func GetDashboard(c *gin.Context) {
 	})
 }
 
-// GetTransakcije vraća listu svih transakcija (uplata i isplata).
+// GetTransakcije vraća listu svih transakcija (uplata i isplata) za effective klub.
 // Dostupno samo admin i blagajnik.
 func GetTransakcije(c *gin.Context) {
 	if !checkFinanceRole(c) {
@@ -102,8 +120,19 @@ func GetTransakcije(c *gin.Context) {
 	}
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusOK, []models.Transakcija{})
+		return
+	}
+
+	creatorIDs := db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", clubID)
 	var transakcije []models.Transakcija
-	if err := db.Order("datum DESC, created_at DESC").Preload("Korisnik").Find(&transakcije).Error; err != nil {
+	if err := db.Where("korisnik_id IN (?)", creatorIDs).Order("datum DESC, created_at DESC").Preload("Korisnik").Find(&transakcije).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju transakcija"})
 		return
 	}
@@ -144,10 +173,20 @@ func CreateTransakcija(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*gorm.DB)
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
 	usernameVal, _ := c.Get("username")
 	var ulogovan models.Korisnik
 	if err := db.Where("username = ?", usernameVal).First(&ulogovan).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	// Samo korisnik iz tog kluba može da unese transakciju (da transakcija "pripada" klubu)
+	if ulogovan.KlubID == nil || *ulogovan.KlubID != clubID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Transakciju možete uneti samo u okviru kluba u koji ste ulogovani"})
 		return
 	}
 
@@ -166,19 +205,30 @@ func CreateTransakcija(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju transakcije"})
 		return
 	}
-	// Obaveštenje za admin i blagajnik
+	// Obaveštenje samo admin/blagajnik iz ovog kluba
 	var adminBlagajnikIDs []uint
-	db.Model(&models.Korisnik{}).Where("role IN ?", []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
+	db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
 	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Nova transakcija", body.Opis, "/finansije")
 	c.JSON(http.StatusCreated, t)
 }
 
-// GetClanarine vraća listu korisnika sa statusom članarine za datu godinu.
+// GetClanarine vraća listu korisnika (samo iz effective kluba) sa statusom članarine za datu godinu.
 // Status "platio" = postoji uplata u toj godini; za novu godinu svi su početno neplaćeni (nema transakcija).
 // Query: godina=2025 (default: tekuća godina)
 func GetClanarine(c *gin.Context) {
 	if !checkFinanceRole(c) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili blagajnik mogu da vide članarine"})
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusOK, gin.H{"godina": time.Now().Year(), "clanarine": []interface{}{}})
 		return
 	}
 
@@ -189,10 +239,8 @@ func GetClanarine(c *gin.Context) {
 		}
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
-
 	var korisnici []models.Korisnik
-	if err := db.Order("full_name, username").Find(&korisnici).Error; err != nil {
+	if err := db.Where("klub_id = ?", clubID).Order("full_name, username").Find(&korisnici).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju korisnika"})
 		return
 	}
@@ -253,10 +301,19 @@ func PostClanarinaPlati(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*gorm.DB)
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
 
 	var clan models.Korisnik
 	if err := db.First(&clan, body.KorisnikID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	if clan.KlubID == nil || *clan.KlubID != clubID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Član ne pripada vašem klubu"})
 		return
 	}
 
@@ -264,6 +321,10 @@ func PostClanarinaPlati(c *gin.Context) {
 	var ulogovan models.Korisnik
 	if err := db.Where("username = ?", usernameVal).First(&ulogovan).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	if ulogovan.KlubID == nil || *ulogovan.KlubID != clubID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Članarinu možete evidentirati samo u okviru svog kluba"})
 		return
 	}
 
@@ -280,9 +341,9 @@ func PostClanarinaPlati(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju članarine"})
 		return
 	}
-	// Obaveštenje za admin i blagajnik
+	// Obaveštenje samo admin/blagajnik ovog kluba
 	var adminBlagajnikIDs []uint
-	db.Model(&models.Korisnik{}).Where("role IN ?", []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
+	db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
 	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Evidentirana nova uplata članarine", "Članarina – "+clan.FullName, "/finansije")
 	c.JSON(http.StatusCreated, t)
 }
