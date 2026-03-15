@@ -312,6 +312,15 @@ func main() {
 			return
 		}
 
+		// Ako nije superadmin, proveri da klub nije na hold-u (14+ dana posle isteka subskripcije)
+		if korisnik.Role != "superadmin" && korisnik.KlubID != nil {
+			_, onHold := helpers.EnsureClubHoldState(db, *korisnik.KlubID)
+			if onHold {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Klub je privremeno suspendovan (hold). Kontaktirajte superadmina za aktivaciju."})
+				return
+			}
+		}
+
 		// Generiši JWT token
 		claims := jwt.MapClaims{
 			"username": korisnik.Username,
@@ -495,6 +504,7 @@ func main() {
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
+	protected.Use(middleware.ClubHoldMiddleware())
 	{
 		routes.RegisterFinanceRoutes(protected)
 		routes.RegisterZadatakRoutes(protected)

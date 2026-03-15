@@ -164,6 +164,7 @@ type updateKlubRequest struct {
 	SubscribedAt        *string  `json:"subscribedAt"`
 	SubscriptionEndsAt  *string  `json:"subscriptionEndsAt"`
 	LogoURL             *string  `json:"logoUrl"`
+	OnHold              *bool    `json:"onHold"`
 }
 
 // UpdateKlub ažurira klub po ID-u (samo superadmin). PATCH, body: JSON (samo polja koja menjaš).
@@ -259,9 +260,16 @@ func UpdateKlub(c *gin.Context) {
 	}
 	if req.SubscriptionEndsAt != nil {
 		klub.SubscriptionEndsAt = parseDate(*req.SubscriptionEndsAt)
+		// Ako superadmin postavi novi datum subskripcije u budućnost, skinuti hold
+		if klub.SubscriptionEndsAt != nil && klub.SubscriptionEndsAt.After(time.Now()) {
+			klub.OnHold = false
+		}
 	}
 	if req.LogoURL != nil {
 		klub.LogoURL = strings.TrimSpace(*req.LogoURL)
+	}
+	if req.OnHold != nil {
+		klub.OnHold = *req.OnHold
 	}
 
 	if err := db.Save(&klub).Error; err != nil {

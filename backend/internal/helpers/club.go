@@ -2,12 +2,15 @@ package helpers
 
 import (
 	"strconv"
+	"time"
 
 	"beleg-app/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+const HoldDaysAfterSubscriptionEnd = 14
 
 
 const XClubIDHeader = "X-Club-Id"
@@ -42,4 +45,23 @@ func GetEffectiveClubID(c *gin.Context, db *gorm.DB) (clubID uint, ok bool) {
 		return 0, false
 	}
 	return uint(id), true
+}
+
+// EnsureClubHoldState učitava klub, i ako je subskripcija istekla pre više od HoldDaysAfterSubscriptionEnd dana,
+// postavlja OnHold = true i čuva. Vraća da li je klub na hold-u (i ažurirani klub).
+func EnsureClubHoldState(db *gorm.DB, clubID uint) (club *models.Klubovi, onHold bool) {
+	var k models.Klubovi
+	if err := db.First(&k, clubID).Error; err != nil {
+		return nil, false
+	}
+	club = &k
+	if club.SubscriptionEndsAt == nil {
+		return club, club.OnHold
+	}
+	deadline := club.SubscriptionEndsAt.AddDate(0, 0, HoldDaysAfterSubscriptionEnd)
+	if time.Now().After(deadline) && !club.OnHold {
+		club.OnHold = true
+		_ = db.Save(club)
+	}
+	return club, club.OnHold
 }

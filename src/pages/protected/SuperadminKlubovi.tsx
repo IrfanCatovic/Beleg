@@ -30,6 +30,7 @@ export interface Klub {
   subscribedAt?: string | null
   subscriptionEndsAt?: string | null
   logoUrl?: string
+  onHold?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -75,6 +76,7 @@ const defaultForm = {
   max_storage_gb: 10,
   subscribedAt: '',
   subscriptionEndsAt: '',
+  onHold: false,
   /** Za prikaz u formi (edit); ne šalje se u payload */
   logoUrl: '',
   /** Izabrani fajl za upload; šalje se na PATCH .../logo */
@@ -171,6 +173,7 @@ export default function SuperadminKlubovi() {
       max_storage_gb: k.max_storage_gb ?? 10,
       subscribedAt: k.subscribedAt ? String(k.subscribedAt).slice(0, 10) : '',
       subscriptionEndsAt: k.subscriptionEndsAt ? String(k.subscriptionEndsAt).slice(0, 10) : '',
+      onHold: k.onHold ?? false,
       logoUrl: k.logoUrl ?? '',
       logoFile: null,
     })
@@ -203,6 +206,7 @@ export default function SuperadminKlubovi() {
         max_storage_gb: form.max_storage_gb,
         subscribedAt: form.subscribedAt || undefined,
         subscriptionEndsAt: form.subscriptionEndsAt || undefined,
+        ...(editingId != null ? { onHold: form.onHold } : {}),
       }
       if (editingId != null) {
         if (form.logoFile) {
@@ -285,7 +289,9 @@ export default function SuperadminKlubovi() {
             return (
               <div
                 key={k.id}
-                className={`rounded-xl border border-gray-200 border-l-4 overflow-hidden shadow-sm flex flex-col ${cardBorderByStatus[status]}`}
+                className={`rounded-xl border border-gray-200 border-l-4 overflow-hidden shadow-sm flex flex-col ${
+                  k.onHold ? 'border-l-slate-500 bg-slate-50/80' : cardBorderByStatus[status]
+                }`}
               >
                 {/* Logo + naziv + akcije */}
                 <div className="flex items-start gap-3 p-4">
@@ -303,17 +309,24 @@ export default function SuperadminKlubovi() {
                         {k.sediste || k.adresa}
                       </p>
                     )}
-                    <span
-                      className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                        status === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : status === 'warning'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {labelByStatus[status]}
-                    </span>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {k.onHold && (
+                        <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-slate-200 text-slate-800">
+                          Na hold-u
+                        </span>
+                      )}
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          status === 'active'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : status === 'warning'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {labelByStatus[status]}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex shrink-0 gap-0.5">
                     <button
@@ -472,8 +485,22 @@ export default function SuperadminKlubovi() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Logo kluba</label>
+                {editingId != null && (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="form-onHold"
+                      checked={!form.onHold}
+                      onChange={(e) => setForm((f) => ({ ...f, onHold: !e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <label htmlFor="form-onHold" className="text-sm font-medium text-gray-700">
+                      Klub aktivan (članovi mogu da se loguju)
+                    </label>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Logo kluba</label>
                 <div className="mt-1 flex items-center gap-3">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
                     {form.logoFile ? (

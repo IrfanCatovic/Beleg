@@ -24,6 +24,8 @@ type Klubovi struct {
 	SubscribedAt                *time.Time `json:"subscribedAt,omitempty"`
 	SubscriptionEndsAt          *time.Time `json:"subscriptionEndsAt,omitempty"`
 
+	// OnHold: true = klub suspendovan (14+ dana posle isteka subskripcije); članovi ne mogu da se loguju
+	OnHold                      bool      `gorm:"default:false" json:"onHold"`
 
 	LogoURL                     string    `gorm:"type:varchar(500)" json:"logoUrl,omitempty"`
 

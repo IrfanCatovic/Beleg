@@ -39,12 +39,17 @@ api.interceptors.request.use((config) => {
   return config
 }, (error) => Promise.reject(error))
 
-// na 401 (npr. istekao token) odjavi korisnika
+// na 401 (npr. istekao token) ili 403 (klub na hold-u) odjavi korisnika
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && onUnauthorized) {
       onUnauthorized()
+    } else if (error.response?.status === 403 && onUnauthorized) {
+      const msg = (error.response?.data as { error?: string })?.error ?? ''
+      if (msg.includes('hold') || msg.includes('suspendovan')) {
+        onUnauthorized()
+      }
     }
     return Promise.reject(error)
   }
