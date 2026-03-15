@@ -32,6 +32,7 @@ import Cena from './pages/public/Cena'
 import Welcome from './pages/protected/Welcome'
 import RegisterSuperAdmin from './pages/public/RegisterSuperAdmin'
 import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
+import Klub from './pages/protected/Klub'
 
 
 const router = createBrowserRouter([
@@ -101,6 +102,7 @@ const router = createBrowserRouter([
           // Akcije svi ulogovani vide listu i detalje, prijavljuju se
           { path: '/akcije', element: <Actions /> },
           { path: '/zadaci', element: <Zadaci /> },
+          { path: '/klub', element: <Klub /> },
 
           // Finansije, uplata, isplata admin i blagajnik
           {

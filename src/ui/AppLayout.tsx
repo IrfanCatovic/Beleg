@@ -152,6 +152,7 @@ export default function AppLayout() {
                   <NavLink to="/akcije" className={navLinkClass}>Akcije</NavLink>
                   <NavLink to="/zadaci" className={navLinkClass}>Zadaci</NavLink>
                   <NavLink to="/users" className={navLinkClass}>Članovi</NavLink>
+                  <NavLink to="/klub" className={navLinkClass}>Klub</NavLink>
                   {canSeeFinance(user?.role) && (
                     <NavLink to="/finansije" className={navLinkClass}>Finansije</NavLink>
                   )}
@@ -456,6 +457,17 @@ export default function AppLayout() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Članovi
+                </NavLink>
+                <NavLink
+                  to="/klub"
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                    }`
+                  }
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Klub
                 </NavLink>
                 {canSeeFinance(user?.role) && (
                   <NavLink

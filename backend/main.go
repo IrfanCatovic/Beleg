@@ -512,6 +512,7 @@ func main() {
 		routes.RegisterFinanceRoutes(protected)
 		routes.RegisterZadatakRoutes(protected)
 		routes.RegisterObavestenjaRoutes(protected)
+		routes.RegisterClubRoutes(protected)
 		routes.RegisterSuperadminRoutes(protected)
 
 		// PATCH /api/superadmin/klubovi/:id/logo — upload slike loga kluba (multipart "logo"), Cloudinary
