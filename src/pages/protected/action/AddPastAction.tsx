@@ -32,6 +32,7 @@ export default function AddPastAction() {
   const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
   const [drugiVodicIme, setDrugiVodicIme] = useState('')
   const [dodajUIstorijuKluba, setDodajUIstorijuKluba] = useState(true)
+  const [javna, setJavna] = useState(false)
   const [slika, setSlika] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -93,6 +94,7 @@ export default function AddPastAction() {
       if (vodicId) formData.append('vodic_id', vodicId)
       if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
       formData.append('dodaj_u_istoriju_kluba', dodajUIstorijuKluba ? 'true' : 'false')
+      formData.append('javna', String(javna))
       if (slika) formData.append('slika', slika)
 
       await api.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
@@ -378,8 +380,20 @@ export default function AddPastAction() {
               </div>
             </div>
 
-            {/* Istorija kluba */}
-            <div className="space-y-2 pt-2 border-t border-gray-50">
+            {/* Javna + Istorija kluba */}
+            <div className="space-y-3 pt-2 border-t border-gray-50">
+              <div className="flex items-center gap-3 p-3.5 rounded-lg bg-sky-50/60 border border-sky-100">
+                <input
+                  type="checkbox"
+                  id="javna-past"
+                  checked={javna}
+                  onChange={(e) => setJavna(e.target.checked)}
+                  className="w-4 h-4 rounded border-sky-300 text-sky-500 focus:ring-sky-500"
+                />
+                <label htmlFor="javna-past" className="text-xs sm:text-sm text-gray-800 font-medium">
+                  Javna (svi su videli dok je bila aktivna; završenu vidi samo klub)
+                </label>
+              </div>
               <div className="flex items-center gap-3 p-3.5 rounded-lg bg-emerald-50/60 border border-emerald-100">
                 <input
                   type="checkbox"

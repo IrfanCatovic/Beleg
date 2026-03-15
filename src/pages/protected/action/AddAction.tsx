@@ -32,6 +32,7 @@ export default function AddAction() {
   const [drugiVodicIme, setDrugiVodicIme] = useState('')
   const [visinaVrhM, setVisinaVrhM] = useState('')
   const [zimskiUspon, setZimskiUspon] = useState(false)
+  const [javna, setJavna] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -111,6 +112,7 @@ export default function AddAction() {
       formData.append('duzinaStazeKm', duzinaStazeKm)
       formData.append('visinaVrhM', visinaVrhM)
       formData.append('zimskiUspon', String(zimskiUspon))
+      formData.append('javna', String(javna))
       if (vodicId) formData.append('vodic_id', vodicId)
       if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
       if (slika) formData.append('slika', slika)
@@ -339,6 +341,23 @@ export default function AddAction() {
                 <label htmlFor="zimski-uspon" className="text-xs sm:text-sm text-gray-700 font-medium">
                   Zimski uspon
                 </label>
+              </div>
+              <div className="flex items-center gap-3 p-3.5 rounded-lg bg-sky-50/60 border border-sky-100">
+                <input
+                  type="checkbox"
+                  id="javna"
+                  checked={javna}
+                  onChange={(e) => setJavna(e.target.checked)}
+                  className="w-4 h-4 rounded border-sky-300 text-sky-500 focus:ring-sky-500"
+                />
+                <div>
+                  <label htmlFor="javna" className="text-xs sm:text-sm text-gray-800 font-medium">
+                    Javna akcija
+                  </label>
+                  <p className="text-[11px] text-gray-600 mt-0.5">
+                    Svi vide na listi aktivnih i mogu da se prijave. Završenu vidi samo klub koji ju je postavio.
+                  </p>
+                </div>
               </div>
 
               <div>

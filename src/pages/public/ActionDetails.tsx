@@ -24,6 +24,8 @@ interface Akcija {
   vodic?: { fullName: string; username: string }
   addedBy?: { fullName: string; username: string }
   prijaveCount?: number
+  javna?: boolean
+  klubNaziv?: string
 }
 
 interface Prijava {
@@ -273,6 +275,11 @@ export default function ActionDetails() {
                   Zimski uspon
                 </span>
               )}
+              {akcija.javna && (
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-500/80 text-white backdrop-blur-sm border border-violet-400/30">
+                  Javna
+                </span>
+              )}
               {akcija.isCompleted && (
                 <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/10">
                   Završena
@@ -367,6 +374,18 @@ export default function ActionDetails() {
                         iconBg="bg-gray-50"
                         label="Postavio/la"
                         value={akcija.addedBy.fullName || `@${akcija.addedBy.username}`}
+                      />
+                    )}
+                    {akcija.javna && akcija.klubNaziv && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                          </svg>
+                        }
+                        iconBg="bg-violet-50"
+                        label="Klub"
+                        value={akcija.klubNaziv}
                       />
                     )}
                     <InfoRow

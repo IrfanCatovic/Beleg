@@ -26,6 +26,7 @@ interface AkcijaData {
   vodicId?: number
   drugiVodicIme?: string
   isCompleted?: boolean
+  javna?: boolean
 }
 
 export default function EditAction() {
@@ -46,6 +47,7 @@ export default function EditAction() {
   const [vodicId, setVodicId] = useState('')
   const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
   const [drugiVodicIme, setDrugiVodicIme] = useState('')
+  const [javna, setJavna] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
@@ -89,6 +91,7 @@ export default function EditAction() {
         setVodicId(a.vodicId ? String(a.vodicId) : '')
         setDrugiVodicIme(a.drugiVodicIme || '')
         setDrugiVodicCheck(!!a.drugiVodicIme)
+        setJavna(a.javna ?? false)
       } catch (err: any) {
         setError(err.response?.data?.error || 'Greška pri učitavanju akcije')
       } finally {
@@ -139,6 +142,7 @@ export default function EditAction() {
       formData.append('duzinaStazeKm', duzinaStazeKm)
       if (vodicId) formData.append('vodic_id', vodicId)
       if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
+      formData.append('javna', String(javna))
       if (slika) formData.append('slika', slika)
 
       await api.patch(`/api/akcije/${id}`, formData, {
@@ -277,6 +281,19 @@ export default function EditAction() {
             />
           </div>
         )}
+
+        <div className="flex items-center gap-3 p-3.5 rounded-lg bg-sky-50/60 border border-sky-100">
+          <input
+            type="checkbox"
+            id="javna-edit"
+            checked={javna}
+            onChange={(e) => setJavna(e.target.checked)}
+            className="w-4 h-4 rounded border-sky-300 text-sky-500 focus:ring-sky-500"
+          />
+          <label htmlFor="javna-edit" className="text-sm text-gray-800 font-medium">
+            Javna akcija (svi vide na listi aktivnih, mogu da se prijave)
+          </label>
+        </div>
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">Težina</label>

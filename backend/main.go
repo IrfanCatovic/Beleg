@@ -367,6 +367,13 @@ func main() {
 			"duzinaStazeKm": akcija.UkupnoKmAkcija, "visinaVrhM": akcija.VisinaVrhM, "zimskiUspon": akcija.ZimskiUspon,
 			"vodicId": akcija.VodicID,
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
+			"javna": akcija.Javna,
+		}
+		if akcija.Javna && akcija.KlubID != nil {
+			var klub models.Klubovi
+			if db.First(&klub, *akcija.KlubID).Error == nil {
+				resp["klubNaziv"] = klub.Naziv
+			}
 		}
 		if akcija.VodicID > 0 {
 			var v models.Korisnik
@@ -508,14 +515,27 @@ func main() {
 
 			var aktivne []models.Akcija
 			var zavrsene []models.Akcija
-			base := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ?)"
-			if err := gormDb.Where(base, false, true, clubID).Find(&aktivne).Error; err != nil {
+			// Aktivne: klub ili javna (svi vide javne, mogu da se prijave)
+			aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR javna = ?)"
+			if err := gormDb.Preload("Klub").Where(aktivneWhere, false, true, clubID, true).Find(&aktivne).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 				return
 			}
-			if err := gormDb.Where(base, true, true, clubID).Find(&zavrsene).Error; err != nil {
+			// Završene: samo klub koji ju je postavio (javna završena = samo njen klub je vidi)
+			zavrseneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND klub_id = ?"
+			if err := gormDb.Preload("Klub").Where(zavrseneWhere, true, true, clubID).Find(&zavrsene).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
 				return
+			}
+			for i := range aktivne {
+				if aktivne[i].Klub != nil {
+					aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+				}
+			}
+			for i := range zavrsene {
+				if zavrsene[i].Klub != nil {
+					zavrsene[i].KlubNaziv = zavrsene[i].Klub.Naziv
+				}
 			}
 
 			c.JSON(http.StatusOK, gin.H{
@@ -827,6 +847,12 @@ func main() {
 				return
 			}
 
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok || clubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (superadmin) ili niste u klubu."})
+				return
+			}
+
 			form, err := c.MultipartForm()
 			if err != nil {
 				c.JSON(400, gin.H{"error": "Nevažeća forma"})
@@ -845,6 +871,7 @@ func main() {
 			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
+			javna := strings.ToLower(strings.TrimSpace(c.PostForm("javna"))) == "true"
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
@@ -906,6 +933,8 @@ func main() {
 				SlikaURL:                 "",
 				IsCompleted:              false,
 				UIstorijiKluba:           true, // nova akcija za klub = uvek true (AddPastAction ima checkbox)
+				Javna:                    javna,
+				KlubID:                   &clubID,
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 				AddedByID:                currentUser.ID,
@@ -1005,6 +1034,9 @@ func main() {
 			zimskiUsponStr := c.PostForm("zimskiUspon")
 			vodicIDStr := c.PostForm("vodic_id")
 			drugiVodicIme := c.PostForm("drugi_vodic_ime")
+			if rawJavna := c.PostForm("javna"); rawJavna != "" {
+				akcija.Javna = strings.ToLower(strings.TrimSpace(rawJavna)) == "true"
+			}
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
@@ -1818,6 +1850,12 @@ func main() {
 				return
 			}
 
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok || clubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (superadmin) ili niste u klubu."})
+				return
+			}
+
 			form, err := c.MultipartForm()
 			if err != nil {
 				c.JSON(400, gin.H{"error": "Nevažeća forma"})
@@ -1839,6 +1877,7 @@ func main() {
 			// Checkbox: samo ako je eksplicitno "false" → samo profil; inače i u istoriju kluba (podrazumevano true)
 			rawDodaj := c.PostForm("dodaj_u_istoriju_kluba")
 			dodajUIstorijuKluba := strings.TrimSpace(strings.ToLower(rawDodaj)) != "false"
+			javnaPast := strings.ToLower(strings.TrimSpace(c.PostForm("javna"))) == "true"
 			log.Printf("AddPastAction: dodaj_u_istoriju_kluba='%s' → parsed=%v", rawDodaj, dodajUIstorijuKluba)
 
 			if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
@@ -1899,6 +1938,8 @@ func main() {
 				ZimskiUspon:              zimskiUspon,
 				SlikaURL:                 "",
 				IsCompleted:              true,
+				Javna:                    javnaPast,
+				KlubID:                   &clubID,
 				VodicID:                  vodicID,
 				DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 				AddedByID:                currentUser.ID,
