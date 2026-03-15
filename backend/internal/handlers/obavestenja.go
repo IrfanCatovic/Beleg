@@ -1,3 +1,5 @@
+// Obavestenja: lista/read/delete su po trenutnom korisniku (user_id). Broadcast šalje samo korisnicima
+// effective kluba (helpers.GetEffectiveClubID), ne svima u sistemu.
 package handlers
 
 import (
@@ -6,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -198,7 +201,7 @@ type BroadcastRequest struct {
 	Body  string `json:"body"`
 }
 
-// Broadcast šalje jedno obaveštenje svim korisnicima. Samo admin ili superadmin.
+// Broadcast šalje jedno obaveštenje svim korisnicima effective kluba (ne svim korisnicima u sistemu).
 func Broadcast(c *gin.Context) {
 	roleVal, _ := c.Get("role")
 	if roleVal != "admin" && roleVal != "superadmin" {
@@ -220,8 +223,18 @@ func Broadcast(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 
-	var allIDs []uint
-	db.Model(&models.Korisnik{}).Pluck("id", &allIDs)
-	notifications.NotifyUsers(db, allIDs, models.ObavestenjeTipBroadcast, req.Title, req.Body, "")
-	c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje poslato svima", "recipients": len(allIDs)})
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje poslato", "recipients": 0})
+		return
+	}
+
+	var recipientIDs []uint
+	db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &recipientIDs)
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipBroadcast, req.Title, req.Body, "")
+	c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje poslato članovima kluba", "recipients": len(recipientIDs)})
 }

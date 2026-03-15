@@ -19,6 +19,7 @@ type Zadatak struct {
 	Deadline     *time.Time `json:"deadline,omitempty"`
 	Hitno        bool       `gorm:"default:false" json:"hitno"`
 	Status       string     `gorm:"type:varchar(20);not null;default:'aktivni'" json:"status"` // aktivni | u_toku | zavrsen
+	KlubID       *uint      `gorm:"index" json:"klubId,omitempty"`                             // zadatak pripada jednom klubu
 	CreatedAt    time.Time  `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time  `gorm:"autoUpdateTime" json:"updatedAt"`
 

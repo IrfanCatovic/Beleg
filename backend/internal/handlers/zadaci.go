@@ -1,3 +1,5 @@
+// Zadaci su club-scoped: svaki zadatak ima klub_id; lista i sve akcije (preuzmi, izmeni, završi, obriši)
+// filtriraju se po helpers.GetEffectiveClubID. Obaveštenje za novi zadatak ide samo članovima tog kluba.
 package handlers
 
 import (
@@ -6,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -62,6 +65,7 @@ func buildZadatakResponse(z models.Zadatak) zadatakResponse {
 	return zadatakResponse{Zadatak: z, Assignees: assignees}
 }
 
+// GetZadaci vraća samo zadatke effective kluba.
 func GetZadaci(c *gin.Context) {
 	dbAny, exists := c.Get("db")
 	if !exists {
@@ -70,8 +74,18 @@ func GetZadaci(c *gin.Context) {
 	}
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusOK, []zadatakResponse{})
+		return
+	}
+
 	var zadaci []models.Zadatak
-	if err := db.Preload("ZadatakKorisnici.Korisnik").Order("created_at DESC").Find(&zadaci).Error; err != nil {
+	if err := db.Where("klub_id = ?", clubID).Preload("ZadatakKorisnici.Korisnik").Order("created_at DESC").Find(&zadaci).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju zadataka"})
 		return
 	}
@@ -91,6 +105,16 @@ func CreateZadatak(c *gin.Context) {
 
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Zadatak mora biti vezan za klub"})
+		return
+	}
 
 	var req createZadatakRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -126,17 +150,18 @@ func CreateZadatak(c *gin.Context) {
 		Deadline:     deadline,
 		Hitno:        req.Hitno,
 		Status:       models.ZadatakStatusAktivni,
+		KlubID:       &clubID,
 	}
 	if err := db.Create(&zadatak).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju zadatka"})
 		return
 	}
-	// Obaveštenje onima koji mogu da vide zadatak (AllowAll = svi, inače po ulogama)
+	// Obaveštenje samo korisnicima ovog kluba koji mogu da vide zadatak (AllowAll = svi u klubu, inače po ulogama u klubu)
 	var recipientIDs []uint
 	if zadatak.AllowAll {
-		db.Model(&models.Korisnik{}).Pluck("id", &recipientIDs)
+		db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &recipientIDs)
 	} else {
-		db.Model(&models.Korisnik{}).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
+		db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
 	}
 	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci")
 	c.JSON(http.StatusCreated, gin.H{"zadatak": buildZadatakResponse(zadatak)})
@@ -163,6 +188,12 @@ func PreuzmiZadatak(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+
 	var korisnik models.Korisnik
 	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
@@ -171,6 +202,10 @@ func PreuzmiZadatak(c *gin.Context) {
 
 	var z models.Zadatak
 	if err := db.First(&z, zadatakID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.KlubID == nil || *z.KlubID != clubID {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
 		return
 	}
@@ -220,8 +255,18 @@ func UpdateZadatak(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+
 	var z models.Zadatak
 	if err := db.First(&z, zadatakID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.KlubID == nil || *z.KlubID != clubID {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
 		return
 	}
@@ -295,8 +340,18 @@ func ZavrsiZadatak(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+
 	var z models.Zadatak
 	if err := db.First(&z, zadatakID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.KlubID == nil || *z.KlubID != clubID {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
 		return
 	}
@@ -324,6 +379,22 @@ func DeleteZadatak(c *gin.Context) {
 	}
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+
+	var z models.Zadatak
+	if err := db.First(&z, zadatakID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.KlubID == nil || *z.KlubID != clubID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
 
 	if err := db.Where("zadatak_id = ?", zadatakID).Delete(&models.ZadatakKorisnik{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju veza"})
