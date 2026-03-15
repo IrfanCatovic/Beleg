@@ -3,6 +3,7 @@ package main
 import (
 	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/helpers"
+	"beleg-app/backend/internal/jobs"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
-
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -2321,7 +2321,7 @@ func main() {
 	r.Static("/uploads", "./uploads")
 
 	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana (praksa velikih kompanija)
-	go runCloudinaryPendingDeletesJob(db)
+	go jobs.RunCloudinaryPendingDeletesJob(db)
 
 	r.Run(":8080")
 }
