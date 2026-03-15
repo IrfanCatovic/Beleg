@@ -2,6 +2,7 @@ package main
 
 import (
 	"beleg-app/backend/internal/handlers"
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
@@ -486,27 +487,33 @@ func main() {
 		routes.RegisterObavestenjaRoutes(protected)
 		routes.RegisterSuperadminRoutes(protected)
 
-		// GET /api/akcije lista akcija iz baze
+		// GET /api/akcije lista akcija iz baze (filtrirano po effective club)
 		protected.GET("/akcije", func(c *gin.Context) {
 			dbAny, exists := c.Get("db")
 			if !exists {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
 				return
 			}
-
 			gormDb := dbAny.(*gorm.DB)
 
-			var aktivne []models.Akcija
-			var zavrsene []models.Akcija
-
-			// Aktivne akcije (is_completed = false), samo one u istoriji kluba (NULL = stari redovi = uključi)
-			if err := gormDb.Where("is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?)", false, true).Find(&aktivne).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
+			clubID, ok := helpers.GetEffectiveClubID(c, gormDb)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "aktivne": []models.Akcija{}, "zavrsene": []models.Akcija{}})
+				return
+			}
+			if clubID == 0 {
+				c.JSON(http.StatusOK, gin.H{"aktivne": []models.Akcija{}, "zavrsene": []models.Akcija{}})
 				return
 			}
 
-			// Završene akcije (is_completed = true), samo one u istoriji kluba (NULL = stari redovi = uključi)
-			if err := gormDb.Where("is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?)", true, true).Find(&zavrsene).Error; err != nil {
+			var aktivne []models.Akcija
+			var zavrsene []models.Akcija
+			base := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ?)"
+			if err := gormDb.Where(base, false, true, clubID).Find(&aktivne).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
+				return
+			}
+			if err := gormDb.Where(base, true, true, clubID).Find(&zavrsene).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
 				return
 			}
@@ -517,7 +524,7 @@ func main() {
 			})
 		})
 
-		// POST /api/register — kreiranje korisnika (uključujući superadmin)
+		// POST /api/register kreiranje korisnika (uključujući superadmin)
 		// Ako se šalje role=superadmin: dozvoljeno samo kada nema nijednog superadmina (bez auth-a).
 		// Za ostale role: obavezan auth (admin ili sekretar), multipart/form-data, role iz forme.
 		r.POST("/api/register", func(c *gin.Context) {
