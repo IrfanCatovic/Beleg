@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
+
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -116,6 +117,7 @@ func main() {
 		&models.ZadatakKorisnik{},
 		&models.Obavestenje{},
 		&models.Klubovi{},
+		&models.CloudinaryPendingDelete{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
@@ -239,8 +241,9 @@ func main() {
 
 			ctx := context.Background()
 			uploadParams := uploader.UploadParams{
-				PublicID: fmt.Sprintf("avatari/setup-%s-%d", username, time.Now().Unix()),
-				Folder:   "adri-sentinel",
+				PublicID:       fmt.Sprintf("avatari/setup-%s-%d", username, time.Now().Unix()),
+				Folder:         helpers.CloudinaryFolderSetup(),
+				Transformation: "q_auto:good,f_auto",
 			}
 
 			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -557,14 +560,16 @@ func main() {
 			}
 			ctx := context.Background()
 			uploadParams := uploader.UploadParams{
-				PublicID: fmt.Sprintf("klubovi/klub-logo-%d-%d", id, time.Now().Unix()),
-				Folder:   "adri-sentinel",
+				PublicID:       fmt.Sprintf("klubovi/klub-logo-%d-%d", id, time.Now().Unix()),
+				Folder:         helpers.CloudinaryFolderForClub(uint(id)),
+				Transformation: "q_auto:good,f_auto",
 			}
 			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u loga: " + err.Error()})
 				return
 			}
+			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), klub.LogoURL)
 			klub.LogoURL = uploadResult.SecureURL
 			if err := db.Save(&klub).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju kluba"})
@@ -706,8 +711,9 @@ func main() {
 					}
 					ctx := context.Background()
 					uploadParams := uploader.UploadParams{
-						PublicID: fmt.Sprintf("avatari/register-superadmin-%s-%d", username, time.Now().Unix()),
-						Folder:   "adri-sentinel",
+						PublicID:       fmt.Sprintf("avatari/register-superadmin-%s-%d", username, time.Now().Unix()),
+						Folder:         helpers.CloudinaryFolderSetup(),
+						Transformation: "q_auto:good,f_auto",
 					}
 					uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
 					if err != nil {
@@ -874,8 +880,9 @@ func main() {
 
 				ctx := context.Background()
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("avatari/register-%s-%d", username, time.Now().Unix()),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("avatari/register-%s-%d", username, time.Now().Unix()),
+					Folder:         helpers.CloudinaryFolderForClub(clubID),
+					Transformation: "q_auto:good,f_auto",
 				}
 
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1067,9 +1074,14 @@ func main() {
 				}
 
 				ctx := context.Background()
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+					Transformation: "q_auto:good,f_auto",
 				}
 
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1216,9 +1228,14 @@ func main() {
 				}
 
 				ctx := context.Background()
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+					Transformation: "q_auto:good,f_auto",
 				}
 
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1227,6 +1244,7 @@ func main() {
 					return
 				}
 
+				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), akcija.SlikaURL)
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}
@@ -1583,9 +1601,14 @@ func main() {
 				}
 
 				ctx := context.Background()
+				clubIDForFolder := uint(0)
+				if korisnik.KlubID != nil {
+					clubIDForFolder = *korisnik.KlubID
+				}
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("avatari/%s-%d", newUsername, time.Now().Unix()),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("avatari/%s-%d", newUsername, time.Now().Unix()),
+					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+					Transformation: "q_auto:good,f_auto",
 				}
 
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1593,6 +1616,7 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
 					return
 				}
+				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.AvatarURL)
 				korisnik.AvatarURL = uploadResult.SecureURL
 			}
 
@@ -1617,9 +1641,14 @@ func main() {
 				}
 
 				ctx := context.Background()
+				clubIDForFolder := uint(0)
+				if korisnik.KlubID != nil {
+					clubIDForFolder = *korisnik.KlubID
+				}
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("covers/%s-%d", newUsername, time.Now().Unix()),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("covers/%s-%d", newUsername, time.Now().Unix()),
+					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+					Transformation: "q_auto:good,f_auto",
 				}
 
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1627,6 +1656,7 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u cover slike: " + err.Error()})
 					return
 				}
+				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.CoverImageURL)
 				korisnik.CoverImageURL = uploadResult.SecureURL
 			}
 
@@ -1744,6 +1774,12 @@ func main() {
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+
 			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 				return
@@ -1772,9 +1808,14 @@ func main() {
 			}
 
 			ctx := context.Background()
+			clubIDForFolder := uint(0)
+			if korisnik.KlubID != nil {
+				clubIDForFolder = *korisnik.KlubID
+			}
 			uploadParams := uploader.UploadParams{
-				PublicID: fmt.Sprintf("covers/%s-%d", username, time.Now().Unix()),
-				Folder:   "adri-sentinel",
+				PublicID:       fmt.Sprintf("covers/%s-%d", username, time.Now().Unix()),
+				Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+				Transformation: "q_auto:good,f_auto",
 			}
 
 			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
@@ -1783,11 +1824,7 @@ func main() {
 				return
 			}
 
-			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
-				return
-			}
+			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.CoverImageURL)
 			if err := db.Model(&korisnik).Update("cover_image_url", uploadResult.SecureURL).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju cover slike"})
 				return
@@ -2070,9 +2107,14 @@ func main() {
 					return
 				}
 				ctx := context.Background()
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
 				uploadParams := uploader.UploadParams{
-					PublicID: fmt.Sprintf("akcije/%d", akcija.ID),
-					Folder:   "adri-sentinel",
+					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
+					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+					Transformation: "q_auto:good,f_auto",
 				}
 				uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
 				if err != nil {
@@ -2277,5 +2319,9 @@ func main() {
 	}
 
 	r.Static("/uploads", "./uploads")
+
+	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana (praksa velikih kompanija)
+	go runCloudinaryPendingDeletesJob(db)
+
 	r.Run(":8080")
 }
