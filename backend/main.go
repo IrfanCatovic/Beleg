@@ -707,6 +707,19 @@ func main() {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili sekretar mogu da kreiraju nove korisnike"})
 				return
 			}
+			usernameVal, _ := claims["username"].(string)
+			c.Set("role", roleVal)
+			c.Set("username", usernameVal)
+
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi pre dodavanja korisnika."})
+				return
+			}
+			if clubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nemate dodeljen klub. Samo admin/sekretar u klubu može da dodaje korisnike."})
+				return
+			}
 
 			if username == "" || password == "" || role == "" {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username, password i role"})
@@ -794,6 +807,7 @@ func main() {
 				avatarURL = uploadResult.SecureURL
 			}
 
+			klubIDPtr := &clubID
 			korisnik := models.Korisnik{
 				Username:                         username,
 				Password:                         string(hashed),
@@ -814,6 +828,7 @@ func main() {
 				Napomene:                         napomene,
 				AvatarURL:                        avatarURL,
 				Role:                             role,
+				KlubID:                           klubIDPtr,
 			}
 
 			if err := db.Create(&korisnik).Error; err != nil {
