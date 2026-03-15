@@ -360,6 +360,7 @@ export default function SuperadminKlubovi() {
                     type="button"
                     onClick={() => {
                       localStorage.setItem('superadmin_club_id', String(k.id))
+                      localStorage.setItem('superadmin_club_name', k.naziv ?? '')
                       navigate('/home')
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"

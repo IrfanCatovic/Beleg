@@ -109,6 +109,7 @@ export default function AppLayout() {
   const handleLogout = () => {
     if (user?.role === 'superadmin') {
       localStorage.removeItem('superadmin_club_id')
+      localStorage.removeItem('superadmin_club_name')
     }
     logout()
     navigate('/', { replace: true })
@@ -161,6 +162,20 @@ export default function AppLayout() {
                 )}
                 {isSuperadminNoClub && (
                   <span className="hidden sm:block text-sm text-white/70">Izaberite klub</span>
+                )}
+                {/* Superadmin sa izabranim klubom: prikaz "Ušao u: [naziv]" + Promeni klub */}
+                {user?.role === 'superadmin' && !isSuperadminNoClub && (
+                  <div className="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
+                    <span className="text-[12px] text-white/80 font-medium whitespace-nowrap">
+                      Ušao u: <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || 'Klub'}</span>
+                    </span>
+                    <Link
+                      to="/superadmin"
+                      className="text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 whitespace-nowrap transition-colors"
+                    >
+                      Promeni klub
+                    </Link>
+                  </div>
                 )}
               </div>
 
@@ -226,6 +241,7 @@ export default function AppLayout() {
                                 : n.type === 'akcija' ? 'bg-blue-100 text-blue-600'
                                 : n.type === 'zadatak' ? 'bg-amber-100 text-amber-700'
                                 : n.type === 'broadcast' ? 'bg-violet-100 text-violet-600'
+                                : n.type === 'subskripcija' ? 'bg-amber-100 text-amber-700'
                                 : 'bg-gray-100 text-gray-600'
                               return (
                                 <button
@@ -392,6 +408,20 @@ export default function AppLayout() {
           >
             <div className="border-t border-white/[0.06] bg-slate-800/80 backdrop-blur-xl px-4 pb-4 pt-3">
               <div className="flex flex-col gap-0.5">
+                {user?.role === 'superadmin' && !isSuperadminNoClub && (
+                  <div className="mb-2 pb-2 border-b border-white/10 flex flex-col gap-1.5">
+                    <p className="text-[12px] text-white/70 font-medium">
+                      Ušao u: <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || 'Klub'}</span>
+                    </p>
+                    <Link
+                      to="/superadmin"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="text-[13px] font-semibold text-emerald-300 hover:text-emerald-200"
+                    >
+                      Promeni klub
+                    </Link>
+                  </div>
+                )}
                 {!isSuperadminNoClub && (
                 <>
                 <NavLink
@@ -488,7 +518,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      {/* Mobile bottom bar – sakriven za superadmina bez kluba */}
+      {/* Mobile bottom bar sakriven za superadmina bez kluba */}
       {isLoggedIn && !isSuperadminNoClub && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white backdrop-blur-xl md:hidden">
           <div className="mx-auto flex max-w-7xl items-center px-2 py-2">
@@ -606,6 +636,7 @@ export default function AppLayout() {
                       : n.type === 'akcija' ? 'bg-blue-100 text-blue-600'
                       : n.type === 'zadatak' ? 'bg-amber-100 text-amber-700'
                       : n.type === 'broadcast' ? 'bg-violet-100 text-violet-600'
+                      : n.type === 'subskripcija' ? 'bg-amber-100 text-amber-700'
                       : 'bg-gray-100 text-gray-600'
                     return (
                       <button

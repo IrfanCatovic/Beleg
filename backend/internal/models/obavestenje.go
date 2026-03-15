@@ -7,8 +7,9 @@ const (
 	ObavestenjeTipUplata     = "uplata"      // nova uplata → blagajnik + admin
 	ObavestenjeTipAkcija     = "akcija"      // nova akcija → svi
 	ObavestenjeTipZadatak    = "zadatak"     // novi zadatak → oni koji mogu da vide
-	ObavestenjeTipPost        = "post"        // novi post na homepage (kasnije)
-	ObavestenjeTipBroadcast   = "broadcast"   // admin šalje svima
+	ObavestenjeTipPost         = "post"         // novi post na homepage (kasnije)
+	ObavestenjeTipBroadcast    = "broadcast"    // admin šalje svima
+	ObavestenjeTipSubskripcija = "subskripcija" // subskripcija kluba ističe uskoro → admin + sekretar
 )
 
 // Obavestenje je jedno obaveštenje za jednog korisnika (recipient).

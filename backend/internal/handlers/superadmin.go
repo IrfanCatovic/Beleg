@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -267,6 +268,23 @@ func UpdateKlub(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju kluba: " + err.Error()})
 		return
 	}
+
+	// Ako je ažuriran datum isteka subskripcije i ističe uskoro (≤5 dana), obavesti admin i sekretar kluba
+	if req.SubscriptionEndsAt != nil && klub.SubscriptionEndsAt != nil {
+		end := *klub.SubscriptionEndsAt
+		now := time.Now()
+		daysLeft := int(end.Sub(now).Hours() / 24)
+		if daysLeft >= 0 && daysLeft <= 5 {
+			var adminIDs []uint
+			if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", uint(id), []string{"admin", "sekretar"}).Pluck("id", &adminIDs).Error; err == nil && len(adminIDs) > 0 {
+				endStr := end.Format("02.01.2006")
+				title := "Subskripcija kluba ističe uskoro"
+				body := "Subskripcija vašeg kluba \"" + klub.Naziv + "\" ističe " + endStr + ". Kontaktirajte superadmina za produženje."
+				notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home")
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"klub": klub})
 }
 
