@@ -26,6 +26,8 @@ type Klubovi struct {
 
 	// OnHold: true = klub suspendovan (14+ dana posle isteka subskripcije); članovi ne mogu da se loguju
 	OnHold                      bool      `gorm:"default:false" json:"onHold"`
+	// SubscriptionWarningSentAt: kada je poslato upozorenje adminima (7 dana posle isteka) da će klub biti pauziran za 7 dana
+	SubscriptionWarningSentAt   *time.Time `json:"subscriptionWarningSentAt,omitempty"`
 
 	LogoURL                     string    `gorm:"type:varchar(500)" json:"logoUrl,omitempty"`
 

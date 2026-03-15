@@ -260,9 +260,10 @@ func UpdateKlub(c *gin.Context) {
 	}
 	if req.SubscriptionEndsAt != nil {
 		klub.SubscriptionEndsAt = parseDate(*req.SubscriptionEndsAt)
-		// Ako superadmin postavi novi datum subskripcije u budućnost, skinuti hold
+		// Ako superadmin postavi novi datum subskripcije u budućnost, skinuti hold i resetovati upozorenje
 		if klub.SubscriptionEndsAt != nil && klub.SubscriptionEndsAt.After(time.Now()) {
 			klub.OnHold = false
+			klub.SubscriptionWarningSentAt = nil
 		}
 	}
 	if req.LogoURL != nil {
