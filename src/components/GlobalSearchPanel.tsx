@@ -43,7 +43,24 @@ function ResultListClanovi({
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-gray-900 truncate">{k.fullName || k.username}</p>
-              <p className="text-xs text-gray-500 truncate">@{k.username}</p>
+              <p className="text-xs text-gray-500 truncate flex items-center gap-1.5">
+                <span>@{k.username}</span>
+                {k.klubNaziv && (
+                  <>
+                    <span className="w-0.5 h-0.5 rounded-full bg-gray-300 flex-shrink-0" />
+                    <span className="inline-flex items-center gap-1 text-violet-600 font-medium truncate">
+                      {k.klubLogoUrl ? (
+                        <img src={k.klubLogoUrl} alt="" className="w-3 h-3 rounded-sm object-cover flex-shrink-0" />
+                      ) : (
+                        <svg className="w-3 h-3 text-violet-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                        </svg>
+                      )}
+                      {k.klubNaziv}
+                    </span>
+                  </>
+                )}
+              </p>
             </div>
             <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

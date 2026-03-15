@@ -425,6 +425,13 @@ func main() {
 			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 			return
 		}
+		if korisnik.KlubID != nil {
+			var klub models.Klubovi
+			if db.First(&klub, *korisnik.KlubID).Error == nil {
+				korisnik.KlubNaziv = klub.Naziv
+				korisnik.KlubLogoURL = klub.LogoURL
+			}
+		}
 		c.JSON(200, korisnik)
 	})
 	// GET /api/korisnici/:id/statistika — statistika javna; :id može biti numerički id ili username
@@ -1828,9 +1835,15 @@ func main() {
 			}
 
 			var korisnici []models.Korisnik
-			if err := db.Where("klub_id = ?", clubID).Find(&korisnici).Error; err != nil {
+			if err := db.Preload("Klub").Where("klub_id = ?", clubID).Find(&korisnici).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
 				return
+			}
+			for i := range korisnici {
+				if korisnici[i].Klub != nil {
+					korisnici[i].KlubNaziv = korisnici[i].Klub.Naziv
+					korisnici[i].KlubLogoURL = korisnici[i].Klub.LogoURL
+				}
 			}
 			c.JSON(200, gin.H{"korisnici": korisnici})
 		})

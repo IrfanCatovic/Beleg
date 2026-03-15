@@ -8,6 +8,8 @@ export interface SearchKorisnik {
   fullName?: string
   avatar_url?: string
   role: string
+  klubNaziv?: string
+  klubLogoUrl?: string
 }
 
 export interface SearchAkcija {

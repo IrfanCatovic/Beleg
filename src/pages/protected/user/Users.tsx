@@ -18,6 +18,8 @@ interface Korisnik {
   createdAt: string
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
+  klubNaziv?: string
+  klubLogoUrl?: string
 }
 
 export default function Korisnici() {
@@ -364,6 +366,18 @@ export default function Korisnici() {
                                 </span>
                               </div>
                             </div>
+                            {k.klubNaziv && (
+                              <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
+                                {k.klubLogoUrl ? (
+                                  <img src={k.klubLogoUrl} alt="" className="w-4 h-4 rounded-sm object-cover" />
+                                ) : (
+                                  <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                                  </svg>
+                                )}
+                                <span className="text-violet-600 font-medium">{k.klubNaziv}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500">
                               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

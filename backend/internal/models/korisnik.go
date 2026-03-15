@@ -45,6 +45,9 @@ type Korisnik struct {
 
 	KlubID *uint     `json:"klubId,omitempty"`
 	Klub   *Klubovi  `gorm:"foreignKey:KlubID" json:"-"`
+
+	KlubNaziv   string `gorm:"-" json:"klubNaziv,omitempty"`
+	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
 }
 
 

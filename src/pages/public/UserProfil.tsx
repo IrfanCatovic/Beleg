@@ -41,6 +41,8 @@ interface Korisnik {
   ukupnoKm: number
   ukupnoMetaraUspona: number
   brojPopeoSe: number
+  klubNaziv?: string
+  klubLogoUrl?: string
 }
 
 const TEZINA: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -299,6 +301,21 @@ export default function UserProfile() {
                 <span className={`inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-bold tracking-wide uppercase ${getRoleStyle(korisnik.role)}`}>
                   {getRoleLabel(korisnik.role)}
                 </span>
+                {korisnik.klubNaziv && (
+                  <>
+                    <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-200" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-md text-[10px] font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
+                      {korisnik.klubLogoUrl ? (
+                        <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                      ) : (
+                        <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                        </svg>
+                      )}
+                      {korisnik.klubNaziv}
+                    </span>
+                  </>
+                )}
                 <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-200" />
                 <span className="text-[11px] text-gray-400 font-medium">Član od {formatDate(korisnik.createdAt)}</span>
               </div>
