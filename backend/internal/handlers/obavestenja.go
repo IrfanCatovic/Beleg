@@ -155,6 +155,43 @@ func MarkAllRead(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Sva obaveštenja označena kao pročitana", "count": res.RowsAffected})
 }
 
+// DeleteObavestenje briše jedno obaveštenje (samo svoje).
+func DeleteObavestenje(c *gin.Context) {
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username := usernameVal.(string)
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID obaveštenja"})
+		return
+	}
+
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	res := db.Where("id = ? AND user_id = ?", id, korisnik.ID).Delete(&models.Obavestenje{})
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju"})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Obaveštenje nije pronađeno ili nije vaše"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje obrisano"})
+}
+
 // BroadcastRequest body za slanje obaveštenja svima (samo admin).
 type BroadcastRequest struct {
 	Title string `json:"title" binding:"required"`

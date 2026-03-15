@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
+import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface ObavestenjeItem {
   id: number
@@ -44,9 +45,23 @@ export default function Obavestenja() {
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
-      api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
+      api.patch(`/api/obavestenja/${n.id}/read`).then(() => {
+        setUnreadCount((c) => Math.max(0, c - 1))
+        setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
+      }).catch(() => {})
     }
     if (n.link) navigate(n.link)
+  }
+
+  const handleDelete = async (e: React.MouseEvent, n: ObavestenjeItem) => {
+    e.stopPropagation()
+    try {
+      await api.delete(`/api/obavestenja/${n.id}`)
+      setList((prev) => prev.filter((x) => x.id !== n.id))
+      if (!n.readAt) setUnreadCount((c) => Math.max(0, c - 1))
+    } catch {
+      // ignore
+    }
   }
 
   const handleBroadcast = (e: React.FormEvent) => {
@@ -75,14 +90,16 @@ export default function Obavestenja() {
 
   const iconClass = (type: string) =>
     type === 'uplata'
-      ? 'bg-green-100 text-green-600'
+      ? 'bg-emerald-100 text-emerald-600'
       : type === 'akcija'
         ? 'bg-blue-100 text-blue-600'
         : type === 'zadatak'
-          ? 'bg-yellow-100 text-yellow-700'
+          ? 'bg-amber-100 text-amber-700'
           : type === 'broadcast'
             ? 'bg-violet-100 text-violet-600'
-            : 'bg-gray-100 text-gray-600'
+            : type === 'subskripcija'
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-gray-100 text-gray-600'
 
   if (!isLoggedIn) return null
 
@@ -133,30 +150,41 @@ export default function Obavestenja() {
       ) : (
         <ul className="space-y-0 divide-y divide-gray-100">
           {list.map((n) => (
-            <li key={n.id}>
-              <button
-                type="button"
-                onClick={() => handleNotificationClick(n)}
-                className={`flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-gray-50 ${!n.readAt ? 'bg-green-50/50' : ''}`}
-              >
-                <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconClass(n.type)}`}>
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
-                  </svg>
-                </span>
-                <span className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{n.title}</p>
-                  {n.body && <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>}
-                  <p className="mt-1 text-xs text-gray-400">{formatRelativeTime(n.createdAt)} · {formatDateTime(n.createdAt)}</p>
-                </span>
-                {n.link && (
-                  <span className="shrink-0 text-gray-400">
+            <li
+              key={n.id}
+              className={`rounded-xl transition-colors ${
+                !n.readAt
+                  ? 'bg-emerald-50/70 border-l-4 border-emerald-500'
+                  : 'bg-white border-l-4 border-transparent'
+              }`}
+            >
+              <div className="flex items-start gap-3 px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => handleNotificationClick(n)}
+                  className="flex flex-1 min-w-0 items-start gap-3 text-left hover:opacity-90"
+                >
+                  <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconClass(n.type)}`}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                     </svg>
                   </span>
-                )}
-              </button>
+                  <span className="flex-1 min-w-0">
+                    <p className={`${!n.readAt ? 'font-semibold' : 'font-medium'} text-gray-900`}>{n.title}</p>
+                    {n.body && <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>}
+                    <p className="mt-1 text-xs text-gray-400">{formatRelativeTime(n.createdAt)} · {formatDateTime(n.createdAt)}</p>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(e, n)}
+                  className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  title="Obriši obaveštenje"
+                  aria-label="Obriši"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>

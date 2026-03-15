@@ -102,8 +102,8 @@ export default function AppLayout() {
     if (!n.readAt) {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
     }
-    if (n.link) navigate(n.link)
     setIsNotificationsOpen(false)
+    navigate('/obavestenja')
   }
 
   const handleLogout = () => {
