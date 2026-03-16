@@ -154,6 +154,25 @@ func main() {
 		})
 	})
 
+	// GET /api/klubovi/:naziv — javni profil kluba po nazivu (bez razmaka, npr. PsKopaonik)
+	r.GET("/api/klubovi/:naziv", func(c *gin.Context) {
+		naziv := strings.TrimSpace(c.Param("naziv"))
+		if naziv == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv kluba je obavezan"})
+			return
+		}
+		var klub models.Klubovi
+		if err := db.Where("naziv = ?", naziv).First(&klub).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Klub nije pronađen"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju kluba"})
+			}
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"klub": klub})
+	})
+
 	// POST /api/setup/admin (RegisterAdmin) kreiranje prvog admina prema modelu Korisnik
 	// Obavezno: username, password. Ostalo opciono (multipart/form-data + opciono avatar).
 	r.POST("/api/setup/admin", func(c *gin.Context) {

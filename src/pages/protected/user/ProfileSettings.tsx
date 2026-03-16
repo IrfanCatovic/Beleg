@@ -382,7 +382,7 @@ export default function ProfileSettings() {
                 </div>
               ) : (
                 <>
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <UserCircleIcon className="h-5 w-5 text-emerald-600" />

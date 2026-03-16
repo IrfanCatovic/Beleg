@@ -6,6 +6,7 @@ import { formatDateShort } from '../../utils/dateUtils'
 import { getRoleLabel } from '../../utils/roleUtils'
 import NewTaskModal, { type Role } from '../../components/NewTaskModal'
 import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
+import { useModal } from '../../context/ModalContext'
 
 interface TaskAssignee {
   username: string
@@ -28,6 +29,7 @@ interface Task {
 
 export default function Zadaci() {
   const { isLoggedIn, user } = useAuth()
+  const { showConfirm, showAlert } = useModal()
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,13 +129,14 @@ export default function Zadaci() {
 
   const handleTakeTask = async (task: Task) => {
     if (!canTakeTask(task) || hasTakenTask(task)) return
-    if (!confirm(`Da li želite da preuzmete zadatak "${task.naziv}"?`)) return
+    const ok = await showConfirm(`Da li želite da preuzmete zadatak "${task.naziv}"?`)
+    if (!ok) return
     try {
       const res = await api.post(`/api/zadaci/${task.id}/preuzmi`)
       const updated: Task = res.data?.zadatak || res.data
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri preuzimanju zadatka.')
+      await showAlert(err.response?.data?.error || 'Greška pri preuzimanju zadatka.')
     }
   }
 
