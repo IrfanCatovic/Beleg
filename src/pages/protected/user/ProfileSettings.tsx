@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
@@ -11,9 +11,9 @@ import {
   PhoneIcon,
   DocumentTextIcon,
   ClipboardDocumentListIcon,
-  PhotoIcon,
   KeyIcon,
   ArrowLeftIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 
 const dateOnly = (s: string | undefined): string => {
@@ -55,6 +55,7 @@ export default function ProfileSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [targetUsername, setTargetUsername] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar')
   const isSekretarEdit = !!id && user?.role === 'sekretar'
@@ -271,13 +272,41 @@ export default function ProfileSettings() {
               </Link>
               <div className="h-14 w-px bg-gray-200 hidden sm:block" />
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
+                {/* Profilna slika – hover: potamni + ikonica olovke, klik otvara izbor fajla (samo za sopstveni profil) */}
+                {!isAdminEdit ? (
+                  <>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                      aria-label="Izaberi profilnu sliku"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                    >
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
+                      )}
+                      <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                        <PencilSquareIcon className="h-8 w-8 text-white" />
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                )}
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">
                     {isSekretarEdit ? 'Postavi lozinku' : isAdminEdit ? 'Podešavanja korisnika' : 'Podešavanja profila'}
@@ -287,7 +316,7 @@ export default function ProfileSettings() {
                       ? 'Nova lozinka za korisnika (samo ako je zaboravio)'
                       : isAdminEdit
                       ? 'Uloga, disciplinske kazne, napomene, lozinka'
-                      : 'Lični i planinarski podaci, lozinka, profilna slika'}
+                      : 'Lični i planinarski podaci, lozinka'}
                   </p>
                 </div>
               </div>
@@ -562,24 +591,6 @@ export default function ProfileSettings() {
                     <label className={labelClass}>Napomene</label>
                     <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
                   </div>
-                </div>
-              </div>
-
-              {/* Profilna slika */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <PhotoIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Profilna slika</h2>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
-                  {avatarPreview && (
-                    <div className="mt-4">
-                      <img src={avatarPreview} alt="Pregled" className="h-24 w-24 rounded-xl object-cover border border-gray-200" />
-                    </div>
-                  )}
                 </div>
               </div>
 
