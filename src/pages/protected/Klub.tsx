@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import CalendarDropdown from '../../components/CalendarDropdown'
 import { formatDateShort } from '../../utils/dateUtils'
 import {
   PencilSquareIcon,
@@ -306,7 +307,13 @@ export default function Klub() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Datum osnivanja</label>
-                    <input type="date" value={form.datum_osnivanja} onChange={(e) => setForm((f) => ({ ...f, datum_osnivanja: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                    <CalendarDropdown
+                      value={form.datum_osnivanja}
+                      onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
+                      placeholder="Izaberite datum osnivanja"
+                      fullWidth
+                      aria-label="Datum osnivanja"
+                    />
                   </div>
                 </div>
               ) : (

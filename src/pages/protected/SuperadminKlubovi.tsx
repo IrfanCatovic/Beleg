@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import CalendarDropdown from '../../components/CalendarDropdown'
 import { formatDateShort } from '../../utils/dateUtils'
 import {
   PencilSquareIcon,
@@ -443,6 +444,16 @@ export default function SuperadminKlubovi() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Datum osnivanja kluba</label>
+                <CalendarDropdown
+                  value={form.datum_osnivanja}
+                  onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
+                  placeholder="Izaberite datum osnivanja"
+                  fullWidth
+                  aria-label="Datum osnivanja"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Limit admina</label>
@@ -467,21 +478,23 @@ export default function SuperadminKlubovi() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Subskripcija od (YYYY-MM-DD)</label>
-                  <input
-                    type="date"
+                  <label className="block text-sm font-medium text-gray-700">Subskripcija od</label>
+                  <CalendarDropdown
                     value={form.subscribedAt}
-                    onChange={(e) => setForm((f) => ({ ...f, subscribedAt: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    onChange={(v) => setForm((f) => ({ ...f, subscribedAt: v }))}
+                    placeholder="Datum od"
+                    fullWidth
+                    aria-label="Subskripcija od"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Subskripcija do (YYYY-MM-DD)</label>
-                  <input
-                    type="date"
+                  <label className="block text-sm font-medium text-gray-700">Subskripcija do</label>
+                  <CalendarDropdown
                     value={form.subscriptionEndsAt}
-                    onChange={(e) => setForm((f) => ({ ...f, subscriptionEndsAt: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    onChange={(v) => setForm((f) => ({ ...f, subscriptionEndsAt: v }))}
+                    placeholder="Datum do"
+                    fullWidth
+                    aria-label="Subskripcija do"
                   />
                 </div>
               </div>

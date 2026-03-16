@@ -3,6 +3,7 @@ import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
+import CalendarDropdown from '../../../components/CalendarDropdown'
 
 const dateOnly = (s: string | undefined): string => {
   if (!s) return ''
@@ -530,12 +531,12 @@ export default function ProfileSettings() {
               </div>
               <div>
                 <label className={labelClass}>Datum rođenja</label>
-                <input
-                  name="datumRodjenja"
-                  type="date"
+                <CalendarDropdown
                   value={form.datumRodjenja}
-                  onChange={handleChange}
-                  className={inputClass}
+                  onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
+                  placeholder="Izaberite datum rođenja"
+                  fullWidth
+                  aria-label="Datum rođenja"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -601,12 +602,12 @@ export default function ProfileSettings() {
               </div>
               <div>
                 <label className={labelClass}>Datum učlanjenja</label>
-                <input
-                  name="datumUclanjenja"
-                  type="date"
+                <CalendarDropdown
                   value={form.datumUclanjenja}
-                  onChange={handleChange}
-                  className={inputClass}
+                  onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
+                  placeholder="Izaberite datum učlanjenja"
+                  fullWidth
+                  aria-label="Datum učlanjenja"
                 />
               </div>
             </div>
