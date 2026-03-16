@@ -4,6 +4,17 @@ import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
+import Loader from '../../../components/Loader'
+import {
+  UserCircleIcon,
+  IdentificationIcon,
+  PhoneIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+  PhotoIcon,
+  KeyIcon,
+  ArrowLeftIcon,
+} from '@heroicons/react/24/outline'
 
 const dateOnly = (s: string | undefined): string => {
   if (!s) return ''
@@ -232,479 +243,357 @@ export default function ProfileSettings() {
   }
 
   const disabledInputClass =
-    'w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed'
+    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed'
   const inputClass =
-    'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#41ac53] focus:border-[#41ac53]'
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
-  const sectionClass = 'space-y-4'
+    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
+  const labelClass = 'block text-xs font-medium text-gray-500 mb-1'
 
   if (!isLoggedIn) return null
-  if (loading) return <div className="text-center py-20">Učitavanje...</div>
+  if (loading) return <Loader />
 
-  const backLink = isAdminEdit ? (
-    <Link
-      to={
-        targetUsername
-          ? `/korisnik/${targetUsername}`
-          : id
-          ? `/users/${id}`
-          : '/users'
-      }
-      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-    >
-      ← Nazad na profil korisnika
-    </Link>
-  ) : (
-    <Link
-      to={
-        form.username
-          ? `/korisnik/${form.username}`
-          : user?.username
-          ? `/korisnik/${user.username}`
-          : '/home'
-      }
-      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-    >
-      ← Nazad na profil
-    </Link>
-  )
+  const backTo = isAdminEdit
+    ? (targetUsername ? `/korisnik/${targetUsername}` : id ? `/users/${id}` : '/users')
+    : (form.username ? `/korisnik/${form.username}` : user?.username ? `/korisnik/${user.username}` : '/home')
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold" style={{ color: '#41ac53' }}>
-            {isSekretarEdit ? 'Postavi lozinku korisniku' : isAdminEdit ? 'Admin: Podešavanja korisnika' : 'Podešavanja profila'}
-          </h2>
-          {backLink}
-        </div>
-
-        <p className="text-sm text-gray-500 mb-6">
-          {isSekretarEdit
-            ? 'Samo možete postaviti novu lozinku korisniku — isključivo u slučaju kada je korisnik zaboravio lozinku.'
-            : isAdminEdit
-            ? 'Admin može menjati ulogu, disciplinske kazne, izbor u organe, napomene. Može i postaviti novu lozinku korisniku — samo ako je korisnik zaboravio lozinku.'
-            : 'Možete menjati sva polja osim uloge i admin polja (disciplinske kazne, izbor u organe, napomene). Ulogu i ta polja može promeniti samo administrator. Možete promeniti i lozinku.'}
-        </p>
-
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
-            Profil sačuvan. Preusmeravam...
-          </div>
-        )}
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 text-red-800 rounded-lg">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Admin edit: role + disciplinske, izbor, napomene + opciono lozinka. Sekretar: samo lozinka */}
-          {isAdminEdit ? (
-            <>
-              {/* Sekretar vidi samo sekciju za lozinku */}
-              {isSekretarEdit ? (
-                <div className={sectionClass}>
-                  <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-                    Postavi novu lozinku (samo ako je korisnik zaboravio)
-                  </h3>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Nova lozinka *</label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className={inputClass}
-                      placeholder="Min. 8 karaktera"
-                      minLength={8}
-                      required
-                      autoComplete="new-password"
-                    />
-                    <label className={labelClass}>Ponovite lozinku *</label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={inputClass}
-                      placeholder="Ponovite lozinku"
-                      required
-                      autoComplete="new-password"
-                    />
-                  </div>
+    <div className="min-h-[60vh] bg-gradient-to-b from-gray-50 to-white">
+      {/* Hero */}
+      <div className="border-b border-gray-200/80 bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Link
+                to={backTo}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+                Nazad
+              </Link>
+              <div className="h-14 w-px bg-gray-200 hidden sm:block" />
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
-              ) : (
-                <>
-              <div className={sectionClass}>
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-                  Uloga
-                </h3>
                 <div>
-                  <label className={labelClass}>Uloga (samo admin menja)</label>
-                  <Dropdown
-                    aria-label="Uloga"
-                    options={[
-                      { value: 'clan', label: 'Clan' },
-                      { value: 'admin', label: 'Admin' },
-                      { value: 'vodic', label: 'Vodic' },
-                      { value: 'blagajnik', label: 'Blagajnik' },
-                      { value: 'sekretar', label: 'Sekretar' },
-                      { value: 'menadzer-opreme', label: 'Menadzer opreme' },
-                    ]}
-                    value={role}
-                    onChange={setRole}
-                    fullWidth
-                  />
+                  <h1 className="text-xl font-bold text-gray-900">
+                    {isSekretarEdit ? 'Postavi lozinku' : isAdminEdit ? 'Podešavanja korisnika' : 'Podešavanja profila'}
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {isSekretarEdit
+                      ? 'Nova lozinka za korisnika (samo ako je zaboravio)'
+                      : isAdminEdit
+                      ? 'Uloga, disciplinske kazne, napomene, lozinka'
+                      : 'Lični i planinarski podaci, lozinka, profilna slika'}
+                  </p>
                 </div>
               </div>
-              <div className={sectionClass}>
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-                  Disciplinske kazne, izbor u organe, napomene
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Izrečene disciplinske kazne</label>
-                    <textarea
-                      name="izreceneDisciplinskeKazne"
-                      value={form.izreceneDisciplinskeKazne}
-                      onChange={handleChange}
-                      rows={3}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Izbor u organe sportskog udruženja</label>
-                    <textarea
-                      name="izborUOrganeSportskogUdruzenja"
-                      value={form.izborUOrganeSportskogUdruzenja}
-                      onChange={handleChange}
-                      rows={3}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Napomene</label>
-                    <textarea
-                      name="napomene"
-                      value={form.napomene}
-                      onChange={handleChange}
-                      rows={3}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className={sectionClass}>
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-                  Postavi novu lozinku (samo ako je korisnik zaboravio)
-                </h3>
-                <div className="space-y-2">
-                  <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className={inputClass}
-                    placeholder="Min. 8 karaktera"
-                    minLength={8}
-                    autoComplete="new-password"
-                  />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={inputClass}
-                    placeholder="Ponovite lozinku"
-                    autoComplete="new-password"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-4 pt-4">
+            </div>
+            {!isAdminEdit && (
+              <div className="flex items-center gap-2">
                 <button
                   type="submit"
+                  form="profile-settings-form"
                   disabled={saving}
-                  className="flex-1 py-3 px-4 bg-[#41ac53] hover:bg-[#3a9a4a] disabled:opacity-60 text-white font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
                 >
                   {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
                 </button>
                 <Link
-                  to={id ? `/users/${id}` : '/users'}
-                  className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
+                  to={backTo}
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Odustani
                 </Link>
               </div>
-            </>
-              )}
-              {isSekretarEdit && (
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 py-3 px-4 bg-[#41ac53] hover:bg-[#3a9a4a] disabled:opacity-60 text-white font-medium rounded-lg transition-colors"
-                  >
-                    {saving ? 'Čuvanje...' : 'Postavi lozinku'}
-                  </button>
-                  <Link
-                    to={id ? `/users/${id}` : '/users'}
-                    className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
-                  >
-                    Odustani
-                  </Link>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-          {/* Korisničko ime i uloga */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Nalog
-            </h3>
-            <div>
-              <label className={labelClass}>Korisničko ime</label>
-              <input
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                required
-                className={inputClass}
-                placeholder="Jedinstveno u sistemu"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Uloga (samo admin može da promeni)</label>
-              <input
-                value={role}
-                readOnly
-                disabled
-                className={disabledInputClass}
-              />
-            </div>
-            {/* Promena lozinke – samo kod sopstvenog profila, admin ne vidi ni lozinku */}
-            <div className="space-y-2 mt-4">
-              <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={inputClass}
-                placeholder="Min. 8 karaktera"
-                minLength={8}
-                autoComplete="new-password"
-              />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={inputClass}
-                placeholder="Ponovite lozinku"
-                autoComplete="new-password"
-              />
-            </div>
-          </div>
-
-          {/* Lični podaci */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Lični podaci
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Puno ime</label>
-                <input name="fullName" value={form.fullName} onChange={handleChange} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Ime roditelja</label>
-                <input name="imeRoditelja" value={form.imeRoditelja} onChange={handleChange} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Pol</label>
-                <Dropdown
-                  aria-label="Pol"
-                  options={[
-                    { value: '', label: '— izaberi —' },
-                    { value: 'M', label: 'Muški' },
-                    { value: 'Ž', label: 'Ženski' },
-                  ]}
-                  value={form.pol}
-                  onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
-                  fullWidth
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Datum rođenja</label>
-                <CalendarDropdown
-                  value={form.datumRodjenja}
-                  onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
-                  placeholder="Izaberite datum rođenja"
-                  fullWidth
-                  aria-label="Datum rođenja"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Državljanstvo</label>
-                <input name="drzavljanstvo" value={form.drzavljanstvo} onChange={handleChange} className={inputClass} />
-              </div>
-            </div>
-          </div>
-
-          {/* Kontakt */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Kontakt
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Email</label>
-                <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Telefon</label>
-                <input name="telefon" value={form.telefon} onChange={handleChange} className={inputClass} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Adresa</label>
-                <input name="adresa" value={form.adresa} onChange={handleChange} className={inputClass} />
-              </div>
-            </div>
-          </div>
-
-          {/* Dokumenti i planinarski podaci */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Dokumenti i planinarski podaci
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Broj ličnog dokumenta</label>
-                <input
-                  name="brojLicnogDokumenta"
-                  value={form.brojLicnogDokumenta}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Broj planinarske legitimacije</label>
-                <input
-                  name="brojPlaninarskeLegitimacije"
-                  value={form.brojPlaninarskeLegitimacije}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Broj planinarske markice</label>
-                <input
-                  name="brojPlaninarskeMarkice"
-                  value={form.brojPlaninarskeMarkice}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Datum učlanjenja</label>
-                <CalendarDropdown
-                  value={form.datumUclanjenja}
-                  onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
-                  placeholder="Izaberite datum učlanjenja"
-                  fullWidth
-                  aria-label="Datum učlanjenja"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Disciplinske kazne, izbor u organe, napomene – samo admin može da menja */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Disciplinske kazne, izbor u organe, napomene
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass}>
-                  Izrečene disciplinske kazne {!canEditAdminFields && '(samo admin)'}
-                </label>
-                <textarea
-                  name="izreceneDisciplinskeKazne"
-                  value={form.izreceneDisciplinskeKazne}
-                  onChange={handleChange}
-                  rows={3}
-                  readOnly={!canEditAdminFields}
-                  disabled={!canEditAdminFields}
-                  className={canEditAdminFields ? inputClass : disabledInputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>
-                  Izbor u organe sportskog udruženja {!canEditAdminFields && '(samo admin)'}
-                </label>
-                <textarea
-                  name="izborUOrganeSportskogUdruzenja"
-                  value={form.izborUOrganeSportskogUdruzenja}
-                  onChange={handleChange}
-                  rows={3}
-                  readOnly={!canEditAdminFields}
-                  disabled={!canEditAdminFields}
-                  className={canEditAdminFields ? inputClass : disabledInputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>
-                  Napomene {!canEditAdminFields && '(samo admin)'}
-                </label>
-                <textarea
-                  name="napomene"
-                  value={form.napomene}
-                  onChange={handleChange}
-                  rows={3}
-                  readOnly={!canEditAdminFields}
-                  disabled={!canEditAdminFields}
-                  className={canEditAdminFields ? inputClass : disabledInputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Avatar */}
-          <div className={sectionClass}>
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Profilna slika
-            </h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#41ac53]/10 file:text-[#41ac53] hover:file:bg-[#41ac53]/20 cursor-pointer"
-            />
-            {avatarPreview && (
-              <div className="mt-3">
-                <img
-                  src={avatarPreview}
-                  alt="Pregled"
-                  className="w-24 h-24 rounded-full object-cover border border-gray-200"
-                />
-              </div>
             )}
           </div>
+        </div>
+      </div>
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 py-3 px-4 bg-[#41ac53] hover:bg-[#3a9a4a] disabled:opacity-60 text-white font-medium rounded-lg transition-colors"
-            >
-              {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
-            </button>
-            <Link
-              to="/profil"
-              className="py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-center"
-            >
-              Odustani
-            </Link>
+      {success && (
+        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800">
+            Profil sačuvan. Preusmeravam...
           </div>
-          </>
+        </div>
+      )}
+      {error && (
+        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">{error}</div>
+        </div>
+      )}
+
+      <form id="profile-settings-form" onSubmit={handleSubmit} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Admin edit: sekretar samo lozinka; admin uloga + disciplinske + lozinka */}
+          {isAdminEdit ? (
+            <div className="space-y-6">
+              {isSekretarEdit ? (
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                    <div className="flex items-center gap-2">
+                      <KeyIcon className="h-5 w-5 text-emerald-600" />
+                      <h2 className="text-base font-semibold text-gray-900">Postavi novu lozinku</h2>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Samo ako je korisnik zaboravio lozinku.</p>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <label className={labelClass}>Nova lozinka *</label>
+                      <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} required autoComplete="new-password" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Ponovite lozinku *</label>
+                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" required autoComplete="new-password" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                      <div className="flex items-center gap-2">
+                        <UserCircleIcon className="h-5 w-5 text-emerald-600" />
+                        <h2 className="text-base font-semibold text-gray-900">Uloga</h2>
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <Dropdown aria-label="Uloga" options={[{ value: 'clan', label: 'Clan' }, { value: 'admin', label: 'Admin' }, { value: 'vodic', label: 'Vodic' }, { value: 'blagajnik', label: 'Blagajnik' }, { value: 'sekretar', label: 'Sekretar' }, { value: 'menadzer-opreme', label: 'Menadzer opreme' }]} value={role} onChange={setRole} fullWidth />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                      <div className="flex items-center gap-2">
+                        <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
+                        <h2 className="text-base font-semibold text-gray-900">Disciplinske kazne, izbor u organe, napomene</h2>
+                      </div>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className={labelClass}>Izrečene disciplinske kazne</label>
+                        <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                        <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Napomene</label>
+                        <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} className={inputClass} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                      <div className="flex items-center gap-2">
+                        <KeyIcon className="h-5 w-5 text-emerald-600" />
+                        <h2 className="text-base font-semibold text-gray-900">Postavi novu lozinku</h2>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">Ostavite prazno ako ne menjate.</p>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className={labelClass}>Nova lozinka</label>
+                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} autoComplete="new-password" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Ponovite lozinku</label>
+                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" autoComplete="new-password" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              <div className="flex gap-3">
+                <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
+                  {saving ? 'Čuvanje...' : isSekretarEdit ? 'Postavi lozinku' : 'Sačuvaj promene'}
+                </button>
+                <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Odustani
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Nalog */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <UserCircleIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Nalog</h2>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className={labelClass}>Korisničko ime</label>
+                    <input name="username" value={form.username} onChange={handleChange} required className={inputClass} placeholder="Jedinstveno u sistemu" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Uloga</label>
+                    <input value={role} readOnly disabled className={disabledInputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
+                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} autoComplete="new-password" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Ponovite lozinku</label>
+                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" autoComplete="new-password" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Lični podaci */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <IdentificationIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Lični podaci</h2>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Puno ime</label>
+                      <input name="fullName" value={form.fullName} onChange={handleChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Ime roditelja</label>
+                      <input name="imeRoditelja" value={form.imeRoditelja} onChange={handleChange} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Pol</label>
+                      <Dropdown aria-label="Pol" options={[{ value: '', label: '— izaberi —' }, { value: 'M', label: 'Muški' }, { value: 'Ž', label: 'Ženski' }]} value={form.pol} onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))} fullWidth />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Datum rođenja</label>
+                      <CalendarDropdown value={form.datumRodjenja} onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))} placeholder="Izaberite datum" fullWidth aria-label="Datum rođenja" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Državljanstvo</label>
+                    <input name="drzavljanstvo" value={form.drzavljanstvo} onChange={handleChange} className={inputClass} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Kontakt */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <PhoneIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Kontakt</h2>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Email</label>
+                      <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Telefon</label>
+                      <input name="telefon" value={form.telefon} onChange={handleChange} className={inputClass} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Adresa</label>
+                    <input name="adresa" value={form.adresa} onChange={handleChange} className={inputClass} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dokumenti i planinarski */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Dokumenti i planinarski podaci</h2>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Broj ličnog dokumenta</label>
+                      <input name="brojLicnogDokumenta" value={form.brojLicnogDokumenta} onChange={handleChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Broj planinarske legitimacije</label>
+                      <input name="brojPlaninarskeLegitimacije" value={form.brojPlaninarskeLegitimacije} onChange={handleChange} className={inputClass} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Broj planinarske markice</label>
+                      <input name="brojPlaninarskeMarkice" value={form.brojPlaninarskeMarkice} onChange={handleChange} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Datum učlanjenja</label>
+                      <CalendarDropdown value={form.datumUclanjenja} onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))} placeholder="Izaberite datum" fullWidth aria-label="Datum učlanjenja" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Disciplinske, napomene */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Disciplinske kazne, izbor u organe, napomene</h2>
+                  </div>
+                  {!canEditAdminFields && <p className="mt-1 text-xs text-gray-500">Ova polja menja samo admin.</p>}
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className={labelClass}>Izrečene disciplinske kazne</label>
+                    <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                    <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Napomene</label>
+                    <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Profilna slika */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <PhotoIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Profilna slika</h2>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <input type="file" accept="image/*" onChange={handleAvatarChange} className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                  {avatarPreview && (
+                    <div className="mt-4">
+                      <img src={avatarPreview} alt="Pregled" className="h-24 w-24 rounded-xl object-cover border border-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 lg:col-span-2 sm:hidden">
+                <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
+                  {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
+                </button>
+                <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Odustani
+                </Link>
+              </div>
+            </div>
           )}
         </form>
-      </div>
     </div>
   )
 }
