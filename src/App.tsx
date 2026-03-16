@@ -103,6 +103,7 @@ const router = createBrowserRouter([
           { path: '/akcije', element: <Actions /> },
           { path: '/zadaci', element: <Zadaci /> },
           { path: '/klub', element: <Klub /> },
+          { path: '/klubovi/:naziv', element: <Klub /> },
 
           // Finansije, uplata, isplata admin i blagajnik
           {

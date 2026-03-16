@@ -10,6 +10,7 @@ import (
 	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -2536,7 +2537,7 @@ func main() {
 
 	r.Static("/uploads", "./uploads")
 
-	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana (praksa velikih kompanija)
+	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana 
 	go jobs.RunCloudinaryPendingDeletesJob(db)
 
 	r.Run(":8080")

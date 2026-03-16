@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -46,6 +47,8 @@ const canEditClub = (role: string | undefined) =>
 
 export default function Klub() {
   const { user } = useAuth()
+  const { naziv } = useParams<{ naziv?: string }>()
+  const navigate = useNavigate()
   const [klub, setKlub] = useState<KlubData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -72,9 +75,14 @@ export default function Klub() {
     setLoading(true)
     setError('')
     try {
-      const res = await api.get<{ klub: KlubData }>('/api/klub')
+      const endpoint = naziv ? `/api/klubovi/${encodeURIComponent(naziv)}` : '/api/klub'
+      const res = await api.get<{ klub: KlubData }>(endpoint)
       setKlub(res.data.klub)
       const k = res.data.klub
+      // Ako smo došli preko starog /klub, nakon učitavanja preusmeri na /klubovi/:naziv
+      if (!naziv && k.naziv) {
+        navigate(`/klubovi/${encodeURIComponent(k.naziv)}`, { replace: true })
+      }
       setForm({
         naziv: k.naziv ?? '',
         adresa: k.adresa ?? '',
