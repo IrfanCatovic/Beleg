@@ -70,6 +70,9 @@ export default function Klub() {
   const [logoUploading, setLogoUploading] = useState(false)
   const [logoError, setLogoError] = useState('')
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public')
+  const [memberCount, setMemberCount] = useState<number | null>(null)
+  const [adminCount, setAdminCount] = useState<number | null>(null)
 
   const fetchKlub = async () => {
     setLoading(true)
@@ -108,7 +111,24 @@ export default function Klub() {
 
   useEffect(() => {
     fetchKlub()
-  }, [])
+  }, [naziv])
+
+  // U admin tabu prikažemo koliko članova / admina ima klub.
+  useEffect(() => {
+    const canEdit = canEditClub(user?.role)
+    if (!canEdit) return
+    const loadCounts = async () => {
+      try {
+        const res = await api.get<{ korisnici: Array<{ role: string }> }>('/api/korisnici')
+        const lista = res.data.korisnici || []
+        setMemberCount(lista.length)
+        setAdminCount(lista.filter((k) => k.role === 'admin' || k.role === 'sekretar').length)
+      } catch {
+        // ako padne, samo ne prikazujemo brojače
+      }
+    }
+    loadCounts()
+  }, [user?.role])
 
   const handleSave = async () => {
     if (!klub) return
@@ -224,7 +244,7 @@ export default function Klub() {
     <div className="min-h-[60vh] bg-gradient-to-b from-gray-50 to-white">
       {/* Hero: logo + naziv + akcije */}
       <div className="border-b border-gray-200/80 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="flex items-center gap-5">
               {canEdit ? (
@@ -300,145 +320,204 @@ export default function Klub() {
               )}
             </div>
           </div>
+
+          {/* Tabovi: Javni podaci / Administracija */}
+          <div className="flex items-center gap-4 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('public')}
+              className={`text-xs sm:text-sm font-semibold pb-2 border-b-2 transition-colors ${
+                activeTab === 'public'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Javni podaci
+            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                className={`text-xs sm:text-sm font-semibold pb-2 border-b-2 transition-colors ${
+                  activeTab === 'admin'
+                    ? 'border-emerald-500 text-emerald-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Administracija kluba
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {(saveError || logoError) && (
+      {saveError || logoError ? (
         <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2">{saveError || logoError}</p>
+          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2">
+            {saveError || logoError}
+          </p>
         </div>
-      )}
+      ) : null}
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Kartica: Kontakt i adresa */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-              <div className="flex items-center gap-2">
-                <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Kontakt i adresa</h2>
+        {activeTab === 'public' ? (
+          <>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Javni: kontakt i adresa */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Kontakt i adresa</h2>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="divide-y divide-gray-100 -mx-1">
+                    {klub.adresa && <FieldRow label="Adresa" value={klub.adresa} icon={MapPinIcon} />}
+                    {klub.telefon && <FieldRow label="Telefon" value={klub.telefon} icon={PhoneIcon} />}
+                    {klub.email && <FieldRow label="Email" value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
+                    {klub.sediste && <FieldRow label="Sedište" value={klub.sediste} icon={BuildingOffice2Icon} />}
+                    {klub.web_sajt && <FieldRow label="Web sajt" value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
+                    {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">Nema unetih kontakt podataka.</p>}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-5">
-              {editing ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Adresa</label>
-                    <input type="text" value={form.adresa} onChange={(e) => setForm((f) => ({ ...f, adresa: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" placeholder="Ulica i broj, grad" />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Telefon</label>
-                      <input type="text" value={form.telefon} onChange={(e) => setForm((f) => ({ ...f, telefon: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
-                      <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Sedište</label>
-                    <input type="text" value={form.sediste} onChange={(e) => setForm((f) => ({ ...f, sediste: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Web sajt</label>
-                    <input type="url" value={form.web_sajt} onChange={(e) => setForm((f) => ({ ...f, web_sajt: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" placeholder="https://..." />
-                  </div>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 -mx-1">
-                  {klub.adresa && <FieldRow label="Adresa" value={klub.adresa} icon={MapPinIcon} />}
-                  {klub.telefon && <FieldRow label="Telefon" value={klub.telefon} icon={PhoneIcon} />}
-                  {klub.email && <FieldRow label="Email" value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
-                  {klub.sediste && <FieldRow label="Sedište" value={klub.sediste} icon={BuildingOffice2Icon} />}
-                  {klub.web_sajt && <FieldRow label="Web sajt" value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
-                  {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">Nema unetih kontakt podataka.</p>}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Kartica: Pravni i finansijski */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-              <div className="flex items-center gap-2">
-                <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Pravni i finansijski podaci</h2>
+              {/* Javni: osnovni pravni info (bez detalja o limitima) */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Osnovni podaci</h2>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="divide-y divide-gray-100 -mx-1">
+                    {klub.maticni_broj && <FieldRow label="Matični broj" value={klub.maticni_broj} icon={DocumentTextIcon} />}
+                    {klub.pib && <FieldRow label="PIB" value={klub.pib} icon={DocumentTextIcon} />}
+                    {klub.datum_osnivanja && <FieldRow label="Datum osnivanja" value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
+                    {!klub.maticni_broj && !klub.pib && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">Nema unetih podataka.</p>}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="p-5">
-              {editing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Matični broj</label>
-                      <input type="text" value={form.maticni_broj} onChange={(e) => setForm((f) => ({ ...f, maticni_broj: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">PIB</label>
-                      <input type="text" value={form.pib} onChange={(e) => setForm((f) => ({ ...f, pib: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Žiro račun</label>
-                    <input type="text" value={form.ziro_racun} onChange={(e) => setForm((f) => ({ ...f, ziro_racun: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Datum osnivanja</label>
-                    <CalendarDropdown
-                      value={form.datum_osnivanja}
-                      onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
-                      placeholder="Izaberite datum osnivanja"
-                      fullWidth
-                      aria-label="Datum osnivanja"
-                    />
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Admin: pravni i finansijski + limiti */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Pravni i finansijski podaci</h2>
                   </div>
                 </div>
-              ) : (
-                <div className="divide-y divide-gray-100 -mx-1">
-                  {klub.maticni_broj && <FieldRow label="Matični broj" value={klub.maticni_broj} icon={DocumentTextIcon} />}
-                  {klub.pib && <FieldRow label="PIB" value={klub.pib} icon={DocumentTextIcon} />}
-                  {klub.ziro_racun && <FieldRow label="Žiro račun" value={klub.ziro_racun} icon={BanknotesIcon} />}
-                  {klub.datum_osnivanja && <FieldRow label="Datum osnivanja" value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
-                  {!klub.maticni_broj && !klub.pib && !klub.ziro_racun && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">Nema unetih pravnih podataka.</p>}
+                <div className="p-5">
+                  {editing ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Matični broj</label>
+                          <input type="text" value={form.maticni_broj} onChange={(e) => setForm((f) => ({ ...f, maticni_broj: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">PIB</label>
+                          <input type="text" value={form.pib} onChange={(e) => setForm((f) => ({ ...f, pib: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Žiro račun</label>
+                        <input type="text" value={form.ziro_racun} onChange={(e) => setForm((f) => ({ ...f, ziro_racun: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Datum osnivanja</label>
+                        <CalendarDropdown
+                          value={form.datum_osnivanja}
+                          onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
+                          placeholder="Izaberite datum osnivanja"
+                          fullWidth
+                          aria-label="Datum osnivanja"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 -mx-1">
+                      {klub.maticni_broj && <FieldRow label="Matični broj" value={klub.maticni_broj} icon={DocumentTextIcon} />}
+                      {klub.pib && <FieldRow label="PIB" value={klub.pib} icon={DocumentTextIcon} />}
+                      {klub.ziro_racun && <FieldRow label="Žiro račun" value={klub.ziro_racun} icon={BanknotesIcon} />}
+                      {klub.datum_osnivanja && <FieldRow label="Datum osnivanja" value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
+                      {!klub.maticni_broj && !klub.pib && !klub.ziro_racun && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">Nema unetih pravnih podataka.</p>}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+              </div>
 
-        {/* Subskripcija – puna širina ispod */}
-        {(klub.subscribedAt != null || klub.subscriptionEndsAt != null || klub.onHold) && (
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-              <div className="flex items-center gap-2">
-                <CalendarDaysIcon className="h-5 w-5 text-amber-600" />
-                <h2 className="text-base font-semibold text-gray-900">Subskripcija</h2>
+              {/* Admin: statistika članova i limita */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Statistika kluba</h2>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Članovi</span>
+                    <span className="font-semibold text-gray-900">
+                      {memberCount != null ? memberCount : '—'} / {klub.korisnik_limit ?? '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Admin + sekretar</span>
+                    <span className="font-semibold text-gray-900">
+                      {adminCount != null ? adminCount : '—'} / {klub.korisnik_admin_limit ?? '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Max prostor (GB)</span>
+                    <span className="font-semibold text-gray-900">
+                      {klub.max_storage_gb != null ? klub.max_storage_gb : '—'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="mt-1 text-xs text-gray-500">Ove podatke menja samo superadmin na stranici Klubovi.</p>
             </div>
-            <div className="p-5">
-              <div className="flex flex-wrap items-center gap-6">
-                {klub.subscribedAt && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Datum prijave</p>
-                    <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscribedAt)}</p>
+
+            {/* Subskripcija puna širina ispod */}
+            {(klub.subscribedAt != null || klub.subscriptionEndsAt != null || klub.onHold) && (
+              <div className="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                  <div className="flex items-center gap-2">
+                    <CalendarDaysIcon className="h-5 w-5 text-amber-600" />
+                    <h2 className="text-base font-semibold text-gray-900">Subskripcija</h2>
                   </div>
-                )}
-                {klub.subscriptionEndsAt && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Subskripcija do</p>
-                    <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscriptionEndsAt)}</p>
+                  <p className="mt-1 text-xs text-gray-500">Ove podatke menja samo superadmin na stranici Klubovi.</p>
+                </div>
+                <div className="p-5">
+                  <div className="flex flex-wrap items-center gap-6">
+                    {klub.subscribedAt && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Datum prijave</p>
+                        <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscribedAt)}</p>
+                      </div>
+                    )}
+                    {klub.subscriptionEndsAt && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Subskripcija do</p>
+                        <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscriptionEndsAt)}</p>
+                      </div>
+                    )}
+                    {klub.onHold && (
+                      <div className="inline-flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-2">
+                        <span className="text-sm font-semibold text-rose-700">Klub privremeno pauziran</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {klub.onHold && (
-                  <div className="inline-flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-2">
-                    <span className="text-sm font-semibold text-rose-700">Klub privremeno pauziran</span>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

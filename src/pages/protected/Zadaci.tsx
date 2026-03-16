@@ -162,13 +162,14 @@ export default function Zadaci() {
 
   const handleZavrsi = async (task: Task) => {
     if (!isAdminOrSekretar) return
-    if (!confirm(`Označiti zadatak "${task.naziv}" kao završen?`)) return
+    const ok = await showConfirm(`Označiti zadatak "${task.naziv}" kao završen?`)
+    if (!ok) return
     try {
       const res = await api.post(`/api/zadaci/${task.id}/zavrsi`)
       const updated: Task = res.data?.zadatak || res.data
       if (updated) setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška.')
+      await showAlert(err.response?.data?.error || 'Greška.')
     }
   }
 

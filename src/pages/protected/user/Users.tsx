@@ -80,41 +80,59 @@ export default function Korisnici() {
     let result = korisnici
 
     if (roleFilter) {
-      result = result.filter(k => k.role === roleFilter)
+      result = result.filter((k) => k.role === roleFilter)
     }
 
     if (searchTerm.trim()) {
       const lowerSearch = searchTerm.toLowerCase()
-      result = result.filter(k =>
-        (k.username || '').toLowerCase().includes(lowerSearch) ||
-        (k.fullName || '').toLowerCase().includes(lowerSearch)
+      result = result.filter(
+        (k) =>
+          (k.username || '').toLowerCase().includes(lowerSearch) ||
+          (k.fullName || '').toLowerCase().includes(lowerSearch)
       )
     }
 
     return result
   }, [korisnici, searchTerm, roleFilter])
 
-  const rankingKorisnici = useMemo(
+  // Globalni ranking za ceo klub (bez filtera) – da pozicija (1., 56., ...) ostane ista
+  const globalRanking = useMemo(
     () =>
       korisnici
         .map((k) => {
-          const rank = computeRank({
-            ukupnoKm: k.ukupnoKm ?? 0,
-            ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-          })
-          return { ...k, rank }
+                  const rank = computeRank({
+                    ukupnoKm: k.ukupnoKm ?? 0,
+                    ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+                  })
+                  return { ...k, rank }
         })
         .sort((a, b) => b.rank.mmr - a.rank.mmr),
     [korisnici]
   )
 
-  const top30PositionByUserId = useMemo(() => {
+  // Globalna pozicija po korisniku (id -> 1,2,3...)
+  const globalPositionByUserId = useMemo(() => {
     const map: Record<number, number> = {}
-    rankingKorisnici.slice(0, 30).forEach((k, i) => {
+    globalRanking.forEach((k, i) => {
       map[k.id] = i + 1
     })
     return map
-  }, [rankingKorisnici])
+  }, [globalRanking])
+
+  // Rang lista za prikaz – po filtriranim korisnicima, ali sa globalnom pozicijom
+  const rankingKorisnici = useMemo(
+    () =>
+      filteredKorisnici
+        .map((k) => {
+          const rank = computeRank({
+            ukupnoKm: k.ukupnoKm ?? 0,
+            ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+          })
+          return { ...k, rank, globalPosition: globalPositionByUserId[k.id] }
+        })
+        .sort((a, b) => b.rank.mmr - a.rank.mmr),
+    [filteredKorisnici, globalPositionByUserId]
+  )
 
   const handleDelete = async (k: Korisnik) => {
     if (deletingId) return
@@ -361,7 +379,7 @@ export default function Korisnici() {
                               className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-1.5 text-right bg-white/80 border border-gray-100"
                             >
                               <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900">
-                                {formatRankDisplayName(rank, top30PositionByUserId[k.id])}
+                                {formatRankDisplayName(rank, globalPositionByUserId[k.id])}
                               </span>
                               <span className="text-[10px] text-gray-600">
                                 MMR {rank.mmr}
@@ -381,7 +399,7 @@ export default function Korisnici() {
                                 style={{ borderLeft: `3px solid ${rank.boja}` }}
                               >
                                 <span className="text-[11px] font-semibold text-gray-800">
-                                  {formatRankDisplayName(rank, top30PositionByUserId[k.id])}
+                                  {formatRankDisplayName(rank, globalPositionByUserId[k.id])}
                                 </span>
                                 <span className="text-[10px] text-gray-500">
                                   MMR {rank.mmr}
@@ -526,7 +544,7 @@ export default function Korisnici() {
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-700">
-                          {formatRankDisplayName(k.rank, top30PositionByUserId[k.id])}
+                          {formatRankDisplayName(k.rank, globalPositionByUserId[k.id])}
                         </span>
                         <span className="text-xs font-semibold text-gray-800">
                           {k.rank.mmr} MMR
