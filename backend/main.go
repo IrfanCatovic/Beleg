@@ -119,6 +119,7 @@ func main() {
 		&models.Obavestenje{},
 		&models.Klubovi{},
 		&models.CloudinaryPendingDelete{},
+		&models.Post{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
@@ -533,6 +534,7 @@ func main() {
 		routes.RegisterZadatakRoutes(protected)
 		routes.RegisterObavestenjaRoutes(protected)
 		routes.RegisterClubRoutes(protected)
+		routes.RegisterPostRoutes(protected)
 
 		// PATCH /api/klub/logo — admin/sekretar (tog kluba) ili superadmin menja logo effective kluba (multipart "logo")
 		protected.PATCH("/klub/logo", func(c *gin.Context) {
