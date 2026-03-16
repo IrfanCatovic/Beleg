@@ -544,6 +544,10 @@ func main() {
 				return
 			}
 			file := files[0]
+			if err := helpers.CheckStorageLimit(db, uint(id), file.Size); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			f, err := file.Open()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -570,6 +574,7 @@ func main() {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u loga: " + err.Error()})
 				return
 			}
+			helpers.AddStorageUsage(db, uint(id), file.Size)
 			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), klub.LogoURL)
 			klub.LogoURL = uploadResult.SecureURL
 			if err := db.Save(&klub).Error; err != nil {
@@ -825,6 +830,12 @@ func main() {
 				return
 			}
 
+			// Limiti kluba: max članova i max admina
+			if err := helpers.CheckClubLimitsForRegister(db, clubID, role); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
 			// Hash lozinke
 			hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 			if err != nil {
@@ -862,6 +873,10 @@ func main() {
 			avatarURL := ""
 			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 				file := files[0]
+				if err := helpers.CheckStorageLimit(db, clubID, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -892,6 +907,7 @@ func main() {
 					return
 				}
 				avatarURL = uploadResult.SecureURL
+				_ = helpers.AddStorageUsage(db, clubID, file.Size)
 			}
 
 			klubIDPtr := &clubID
@@ -1056,7 +1072,14 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
-
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
+				if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(500, gin.H{"error": "Greška pri čitanju fajla"})
@@ -1075,10 +1098,6 @@ func main() {
 				}
 
 				ctx := context.Background()
-				clubIDForFolder := uint(0)
-				if akcija.KlubID != nil {
-					clubIDForFolder = *akcija.KlubID
-				}
 				uploadParams := uploader.UploadParams{
 					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
 					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -1090,7 +1109,7 @@ func main() {
 					c.JSON(500, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
 					return
 				}
-
+				helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}
@@ -1211,6 +1230,14 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
+				if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -1229,10 +1256,6 @@ func main() {
 				}
 
 				ctx := context.Background()
-				clubIDForFolder := uint(0)
-				if akcija.KlubID != nil {
-					clubIDForFolder = *akcija.KlubID
-				}
 				uploadParams := uploader.UploadParams{
 					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
 					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -1244,7 +1267,7 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
 					return
 				}
-
+				helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), akcija.SlikaURL)
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
@@ -1584,6 +1607,14 @@ func main() {
 			// Opciono: novi avatar na Cloudinary
 			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 				file := files[0]
+				clubIDForFolder := uint(0)
+				if korisnik.KlubID != nil {
+					clubIDForFolder = *korisnik.KlubID
+				}
+				if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -1602,10 +1633,6 @@ func main() {
 				}
 
 				ctx := context.Background()
-				clubIDForFolder := uint(0)
-				if korisnik.KlubID != nil {
-					clubIDForFolder = *korisnik.KlubID
-				}
 				uploadParams := uploader.UploadParams{
 					PublicID:       fmt.Sprintf("avatari/%s-%d", newUsername, time.Now().Unix()),
 					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -1617,6 +1644,7 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike: " + err.Error()})
 					return
 				}
+				helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.AvatarURL)
 				korisnik.AvatarURL = uploadResult.SecureURL
 			}
@@ -1624,6 +1652,14 @@ func main() {
 			// Opciono: cover image na Cloudinary
 			if files := c.Request.MultipartForm.File["coverImage"]; len(files) > 0 {
 				file := files[0]
+				clubIDForFolder := uint(0)
+				if korisnik.KlubID != nil {
+					clubIDForFolder = *korisnik.KlubID
+				}
+				if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju cover slike"})
@@ -1642,10 +1678,6 @@ func main() {
 				}
 
 				ctx := context.Background()
-				clubIDForFolder := uint(0)
-				if korisnik.KlubID != nil {
-					clubIDForFolder = *korisnik.KlubID
-				}
 				uploadParams := uploader.UploadParams{
 					PublicID:       fmt.Sprintf("covers/%s-%d", newUsername, time.Now().Unix()),
 					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -1657,6 +1689,7 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u cover slike: " + err.Error()})
 					return
 				}
+				helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 				helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.CoverImageURL)
 				korisnik.CoverImageURL = uploadResult.SecureURL
 			}
@@ -1791,6 +1824,14 @@ func main() {
 				return
 			}
 			file := files[0]
+			clubIDForFolder := uint(0)
+			if korisnik.KlubID != nil {
+				clubIDForFolder = *korisnik.KlubID
+			}
+			if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			f, err := file.Open()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju cover slike"})
@@ -1809,10 +1850,6 @@ func main() {
 			}
 
 			ctx := context.Background()
-			clubIDForFolder := uint(0)
-			if korisnik.KlubID != nil {
-				clubIDForFolder = *korisnik.KlubID
-			}
 			uploadParams := uploader.UploadParams{
 				PublicID:       fmt.Sprintf("covers/%s-%d", username, time.Now().Unix()),
 				Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -1824,7 +1861,7 @@ func main() {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u cover slike: " + err.Error()})
 				return
 			}
-
+			helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.CoverImageURL)
 			if err := db.Model(&korisnik).Update("cover_image_url", uploadResult.SecureURL).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju cover slike"})
@@ -1898,6 +1935,13 @@ func main() {
 				if !validRoles[body.Role] {
 					c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća uloga"})
 					return
+				}
+				// Limit admina u klubu: ako postavljamo admin/sekretar, proveri da klub nije već pun
+				if korisnik.KlubID != nil && *korisnik.KlubID != 0 {
+					if err := helpers.CheckClubLimitsForRoleChange(db, *korisnik.KlubID, korisnik.Role, body.Role); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+						return
+					}
 				}
 			}
 			updates := map[string]interface{}{
@@ -2092,6 +2136,14 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
+				clubIDForFolder := uint(0)
+				if akcija.KlubID != nil {
+					clubIDForFolder = *akcija.KlubID
+				}
+				if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
 				f, err := file.Open()
 				if err != nil {
 					c.JSON(500, gin.H{"error": "Greška pri čitanju fajla"})
@@ -2108,10 +2160,6 @@ func main() {
 					return
 				}
 				ctx := context.Background()
-				clubIDForFolder := uint(0)
-				if akcija.KlubID != nil {
-					clubIDForFolder = *akcija.KlubID
-				}
 				uploadParams := uploader.UploadParams{
 					PublicID:       fmt.Sprintf("akcije/%d", akcija.ID),
 					Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
@@ -2122,6 +2170,7 @@ func main() {
 					c.JSON(500, gin.H{"error": "Greška pri upload-u na Cloudinary: " + err.Error()})
 					return
 				}
+				helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 				akcija.SlikaURL = uploadResult.SecureURL
 				db.Save(&akcija)
 			}

@@ -19,6 +19,7 @@ type Klubovi struct {
 	KorisnikAdminLimit          int       `gorm:"default:3" json:"korisnik_admin_limit"`
 	KorisnikLimit               int       `gorm:"default:100" json:"korisnik_limit"`
 	MaxStorageGB                float64   `gorm:"default:10.0" json:"max_storage_gb"`
+	UsedStorageGB               float64   `gorm:"default:0" json:"used_storage_gb"` // ukupno GB zauzeto uploadima kluba
 
 	// Subskripcija: kada se klub prvi put prijavio i do kad traje
 	SubscribedAt                *time.Time `json:"subscribedAt,omitempty"`

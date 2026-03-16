@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -9,6 +11,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+)
+
+var (
+	ErrClubMemberLimit   = errors.New("Dostignut je maksimalan broj članova za ovaj klub")
+	ErrClubAdminLimit    = errors.New("Dostignut je maksimalan broj admina za ovaj klub")
+	ErrClubStorageLimit  = errors.New("Dostignut je limit prostora za ovaj klub (GB)")
 )
 
 const HoldDaysAfterSubscriptionEnd = 14
@@ -84,4 +92,80 @@ func EnsureClubHoldState(db *gorm.DB, clubID uint) (club *models.Klubovi, onHold
 		_ = db.Save(club)
 	}
 	return club, club.OnHold
+}
+
+// CheckClubLimitsForRegister proverava da li klub može da primi novog člana sa datom ulogom.
+// Koristi se pre kreiranja korisnika u POST /api/register.
+func CheckClubLimitsForRegister(db *gorm.DB, clubID uint, newRole string) error {
+	var klub models.Klubovi
+	if err := db.First(&klub, clubID).Error; err != nil {
+		return err
+	}
+	var memberCount int64
+	if err := db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Count(&memberCount).Error; err != nil {
+		return err
+	}
+	if memberCount >= int64(klub.KorisnikLimit) {
+		return fmt.Errorf("%w (max %d)", ErrClubMemberLimit, klub.KorisnikLimit)
+	}
+	if newRole == "admin" || newRole == "sekretar" {
+		var adminCount int64
+		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Count(&adminCount).Error; err != nil {
+			return err
+		}
+		if adminCount >= int64(klub.KorisnikAdminLimit) {
+			return fmt.Errorf("%w (max %d)", ErrClubAdminLimit, klub.KorisnikAdminLimit)
+		}
+	}
+	return nil
+}
+
+// CheckClubLimitsForRoleChange proverava da li je dozvoljeno promeniti ulogu na admin/sekretar u datom klubu.
+// Koristi se u PATCH /api/korisnici/:id kada se postavlja role na admin ili sekretar.
+func CheckClubLimitsForRoleChange(db *gorm.DB, clubID uint, currentRole, newRole string) error {
+	if newRole != "admin" && newRole != "sekretar" {
+		return nil
+	}
+	isAdminRole := func(r string) bool { return r == "admin" || r == "sekretar" }
+	if isAdminRole(currentRole) {
+		return nil // već je admin/sekretar, broj se ne menja
+	}
+	var klub models.Klubovi
+	if err := db.First(&klub, clubID).Error; err != nil {
+		return err
+	}
+	var adminCount int64
+	if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Count(&adminCount).Error; err != nil {
+		return err
+	}
+	if adminCount >= int64(klub.KorisnikAdminLimit) {
+		return fmt.Errorf("%w (max %d)", ErrClubAdminLimit, klub.KorisnikAdminLimit)
+	}
+	return nil
+}
+
+// CheckStorageLimit proverava da li upload veličine fileSizeBytes prekoračuje MaxStorageGB kluba.
+// Pozvati pre upload-a. Ako clubID == 0, ne proverava (nema kluba).
+func CheckStorageLimit(db *gorm.DB, clubID uint, fileSizeBytes int64) error {
+	if clubID == 0 {
+		return nil
+	}
+	var klub models.Klubovi
+	if err := db.First(&klub, clubID).Error; err != nil {
+		return err
+	}
+	addGB := float64(fileSizeBytes) / 1e9
+	if klub.UsedStorageGB+addGB > klub.MaxStorageGB {
+		return fmt.Errorf("%w (max %.2f GB)", ErrClubStorageLimit, klub.MaxStorageGB)
+	}
+	return nil
+}
+
+// AddStorageUsage dodaje zauzeće (fileSizeBytes u GB) klubu. Pozvati tek posle uspešnog upload-a.
+func AddStorageUsage(db *gorm.DB, clubID uint, fileSizeBytes int64) error {
+	if clubID == 0 {
+		return nil
+	}
+	addGB := float64(fileSizeBytes) / 1e9
+	return db.Model(&models.Klubovi{}).Where("id = ?", clubID).Update("used_storage_gb", gorm.Expr("used_storage_gb + ?", addGB)).Error
 }
