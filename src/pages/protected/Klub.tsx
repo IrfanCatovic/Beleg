@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -64,6 +64,9 @@ export default function Klub() {
   })
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [logoError, setLogoError] = useState('')
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   const fetchKlub = async () => {
     setLoading(true)
@@ -118,6 +121,7 @@ export default function Klub() {
       const res = await api.patch<{ klub: KlubData }>('/api/klub', payload)
       setKlub(res.data.klub)
       setEditing(false)
+      setLogoError('')
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
         ? String((e.response.data as { error: unknown }).error)
@@ -145,6 +149,39 @@ export default function Klub() {
     }
     setEditing(false)
     setSaveError('')
+    setLogoError('')
+  }
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setLogoError('')
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Dozvoljene su samo slike (jpg, png, gif...)')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoError('Slika je prevelika (maksimum 5 MB)')
+      return
+    }
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+      const res = await api.patch<{ klub: KlubData }>('/api/klub/logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setKlub(res.data.klub)
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
+          ? String((err.response.data as { error: unknown }).error)
+          : 'Greška pri upload-u loga'
+      setLogoError(msg)
+    } finally {
+      setLogoUploading(false)
+    }
   }
 
   if (loading) return <Loader />
@@ -182,7 +219,40 @@ export default function Klub() {
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="flex items-center gap-5">
-              {klub.logoUrl ? (
+              {canEdit ? (
+                <>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                    aria-label="Izaberi logo kluba"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={logoUploading}
+                    className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-2xl border border-gray-200 bg-white shadow-sm ring-1 ring-black/5 overflow-hidden group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {klub.logoUrl ? (
+                      <img src={klub.logoUrl} alt="" className="h-full w-full object-contain" />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+                        <span className="text-4xl sm:text-5xl font-bold text-white">{klub.naziv.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                      <PencilSquareIcon className="h-10 w-10 text-white" />
+                    </span>
+                    {logoUploading && (
+                      <span className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+                        <span className="text-white text-xs font-medium">Upload...</span>
+                      </span>
+                    )}
+                  </button>
+                </>
+              ) : klub.logoUrl ? (
                 <img src={klub.logoUrl} alt="" className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-contain border border-gray-200 bg-white shadow-sm ring-1 ring-black/5" />
               ) : (
                 <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg ring-1 ring-black/5">
@@ -225,9 +295,9 @@ export default function Klub() {
         </div>
       </div>
 
-      {saveError && (
+      {(saveError || logoError) && (
         <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2">{saveError}</p>
+          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2">{saveError || logoError}</p>
         </div>
       )}
 

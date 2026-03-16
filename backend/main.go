@@ -513,6 +513,85 @@ func main() {
 		routes.RegisterZadatakRoutes(protected)
 		routes.RegisterObavestenjaRoutes(protected)
 		routes.RegisterClubRoutes(protected)
+
+		// PATCH /api/klub/logo — admin/sekretar (tog kluba) ili superadmin menja logo effective kluba (multipart "logo")
+		protected.PATCH("/klub/logo", func(c *gin.Context) {
+			db := c.MustGet("db").(*gorm.DB)
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok || clubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (X-Club-Id) ili niste u klubu"})
+				return
+			}
+			roleVal, _ := c.Get("role")
+			role, _ := roleVal.(string)
+			if role != "superadmin" && role != "admin" && role != "sekretar" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar kluba mogu da menjaju logo"})
+				return
+			}
+			if role != "superadmin" {
+				usernameVal, _ := c.Get("username")
+				username, _ := usernameVal.(string)
+				var k models.Korisnik
+				if err := db.Where("username = ?", username).First(&k).Error; err != nil || k.KlubID == nil || *k.KlubID != clubID {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Možete menjati samo logo svog kluba"})
+					return
+				}
+			}
+			var klub models.Klubovi
+			if err := db.First(&klub, clubID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Klub nije pronađen"})
+				return
+			}
+			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+				return
+			}
+			files := c.Request.MultipartForm.File["logo"]
+			if len(files) == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite sliku (polje logo)"})
+				return
+			}
+			file := files[0]
+			if err := helpers.CheckStorageLimit(db, clubID, file.Size); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			f, err := file.Open()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+				return
+			}
+			defer f.Close()
+			cld, err := cloudinary.NewFromParams(
+				os.Getenv("CLOUDINARY_CLOUD_NAME"),
+				os.Getenv("CLOUDINARY_API_KEY"),
+				os.Getenv("CLOUDINARY_API_SECRET"),
+			)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+				return
+			}
+			ctx := context.Background()
+			uploadParams := uploader.UploadParams{
+				PublicID:       fmt.Sprintf("klubovi/klub-logo-%d-%d", clubID, time.Now().Unix()),
+				Folder:         helpers.CloudinaryFolderForClub(clubID),
+				Transformation: "q_auto:good,f_auto",
+			}
+			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u loga: " + err.Error()})
+				return
+			}
+			helpers.AddStorageUsage(db, clubID, file.Size)
+			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), klub.LogoURL)
+			klub.LogoURL = uploadResult.SecureURL
+			if err := db.Save(&klub).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju kluba"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"klub": klub})
+		})
+
 		routes.RegisterSuperadminRoutes(protected)
 
 		// PATCH /api/superadmin/klubovi/:id/logo — upload slike loga kluba (multipart "logo"), Cloudinary
