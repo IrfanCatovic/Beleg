@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../../context/AuthContext'
+import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
 import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
@@ -24,6 +25,7 @@ interface Korisnik {
 
 export default function Korisnici() {
   const { user } = useAuth()
+  const { showConfirm, showAlert } = useModal()
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -33,6 +35,7 @@ export default function Korisnici() {
   const roleDropdownRef = useRef<HTMLDivElement>(null)
   const [avatarFailed, setAvatarFailed] = useState<Record<number, boolean>>({})
   const [printingId, setPrintingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'rank'>('all')
 
   useEffect(() => {
@@ -112,6 +115,25 @@ export default function Korisnici() {
     })
     return map
   }, [rankingKorisnici])
+
+  const handleDelete = async (k: Korisnik) => {
+    if (deletingId) return
+    const ok = await showConfirm(
+      `Da li ste sigurni da želite da trajno obrišete korisnika ${k.fullName || k.username}? Ovaj korak se ne može poništiti.`,
+      { variant: 'danger', confirmLabel: 'Obriši' }
+    )
+    if (!ok) return
+    setDeletingId(k.id)
+    try {
+      await api.delete(`/api/korisnici/${k.id}`)
+      setKorisnici((prev) => prev.filter((u) => u.id !== k.id))
+      await showAlert('Korisnik je obrisan.')
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri brisanju korisnika.', 'Greška')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const handlePrint = async (k: Korisnik) => {
     if (printingId) return
@@ -419,6 +441,20 @@ export default function Korisnici() {
                             >
                               <PrinterIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${printingId === k.id ? 'animate-pulse' : ''}`} />
                             </button>
+                            {user?.username !== k.username && (
+                              <button
+                                type="button"
+                                className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Obriši korisnika"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDelete(k)
+                                }}
+                                disabled={deletingId === k.id}
+                              >
+                                <TrashIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${deletingId === k.id ? 'animate-pulse' : ''}`} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

@@ -1973,6 +1973,74 @@ func main() {
 			c.JSON(200, gin.H{"message": "Korisnik ažuriran", "korisnik": korisnik})
 		})
 
+		// DELETE /api/korisnici/:id — obriši korisnika (admin/sekretar samo u svom klubu, superadmin bilo koga). Ne možeš obrisati samog sebe.
+		protected.DELETE("/korisnici/:id", func(c *gin.Context) {
+			roleVal, _ := c.Get("role")
+			roleStr, _ := roleVal.(string)
+			isAdmin := roleStr == "admin" || roleStr == "superadmin"
+			isSekretar := roleStr == "sekretar"
+			if !isAdmin && !isSekretar {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da obrišu korisnika"})
+				return
+			}
+			idStr := c.Param("id")
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
+				return
+			}
+			db := c.MustGet("db").(*gorm.DB)
+			usernameVal, _ := c.Get("username")
+			username, _ := usernameVal.(string)
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			if korisnik.Username == username {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete obrisati samog sebe"})
+				return
+			}
+			// Admin/sekretar samo u svom klubu; superadmin može bilo koga
+			if roleStr != "superadmin" {
+				clubID, ok := helpers.GetEffectiveClubID(c, db)
+				if !ok || clubID == 0 {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Nemate izabran klub"})
+					return
+				}
+				if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Možete obrisati samo članove svog kluba"})
+					return
+				}
+			}
+
+			// Ne dozvoli brisanje ako je korisnik uneo transakcije (korisnik_id je obavezan)
+			var transCount int64
+			if err := db.Model(&models.Transakcija{}).Where("korisnik_id = ?", id).Count(&transCount).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri transakcija"})
+				return
+			}
+			if transCount > 0 {
+				c.JSON(http.StatusConflict, gin.H{"error": "Ne možete obrisati korisnika koji ima unete transakcije. Prvo preuredite ili obrišite te transakcije."})
+				return
+			}
+
+			// Čišćenje povezanih podataka
+			db.Where("user_id = ?", id).Delete(&models.Obavestenje{})
+			db.Where("korisnik_id = ?", id).Delete(&models.Prijava{})
+			db.Where("korisnik_id = ?", id).Delete(&models.ZadatakKorisnik{})
+			db.Model(&models.Transakcija{}).Where("clanarina_korisnik_id = ?", id).Update("clanarina_korisnik_id", nil)
+			db.Model(&models.Akcija{}).Where("vodic_id = ?", id).Update("vodic_id", 0)
+			db.Model(&models.Akcija{}).Where("added_by_id = ?", id).Update("added_by_id", 0)
+
+			if err := db.Delete(&korisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju korisnika"})
+				return
+			}
+			c.JSON(200, gin.H{"message": "Korisnik je obrisan"})
+		})
+
 		// GET /api/korisnici list of users (filtrirano po effective club)
 		protected.GET("/korisnici", func(c *gin.Context) {
 			dbAny, _ := c.Get("db")
