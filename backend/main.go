@@ -2496,6 +2496,71 @@ func main() {
 			})
 		})
 
+		// DELETE /api/prijave/:id — ukloni člana sa akcije (samo admin, superadmin ili vodič)
+		protected.DELETE("/prijave/:id", func(c *gin.Context) {
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može da ukloni člana sa akcije"})
+				return
+			}
+
+			idStr := c.Param("id")
+			prijavaID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prijave"})
+				return
+			}
+
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+
+			var prijava models.Prijava
+			if err := db.Preload("Akcija").First(&prijava, prijavaID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
+				return
+			}
+
+			// Ako nije superadmin, proveri da akcija pripada effective klubu
+			if role != "superadmin" {
+				clubID, ok := helpers.GetEffectiveClubID(c, db)
+				if !ok || clubID == 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (X-Club-Id)"})
+					return
+				}
+				if prijava.Akcija.KlubID == nil || *prijava.Akcija.KlubID != clubID {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Možete ukloniti samo članove sa akcija svog kluba"})
+					return
+				}
+			}
+
+			// Ako je član imao status "popeo se", oduzmi mu statistiku
+			if prijava.Status == "popeo se" {
+				var korisnik models.Korisnik
+				if err := db.First(&korisnik, prijava.KorisnikID).Error; err == nil {
+					korisnik.UkupnoKmKorisnik -= prijava.Akcija.UkupnoKmAkcija
+					korisnik.UkupnoMetaraUsponaKorisnik -= prijava.Akcija.UkupnoMetaraUsponaAkcija
+					korisnik.BrojPopeoSe -= 1
+					if korisnik.UkupnoKmKorisnik < 0 {
+						korisnik.UkupnoKmKorisnik = 0
+					}
+					if korisnik.UkupnoMetaraUsponaKorisnik < 0 {
+						korisnik.UkupnoMetaraUsponaKorisnik = 0
+					}
+					if korisnik.BrojPopeoSe < 0 {
+						korisnik.BrojPopeoSe = 0
+					}
+					db.Save(&korisnik)
+				}
+			}
+
+			if err := db.Delete(&prijava).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju člana sa akcije"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Član je uklonjen sa akcije"})
+		})
+
 		// GET /api/moje-prijave list of IDs of akcije that user is signed up for, for quick check on frontend for ACTIONS PAGE
 		// prijavljeneAkcije = sve akcije gde je korisnik prijavljen (bilo koji status)
 		// otkaziveAkcije = samo gde je status "prijavljen" (korisnik može otkazati)
