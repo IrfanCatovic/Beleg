@@ -2,23 +2,19 @@ package models
 
 import "time"
 
-// Post predstavlja javnu objavu (feed) unutar jednog kluba.
-// Za sada podržava samo tekst + opcioni URL slike.
-// Lajkovi i komentari će se dodati kasnije preko posebnih tabela.
+// Post predstavlja javnu objavu (feed) vidljivu svim ulogovanim korisnicima,
+// nezavisno od kluba kome pripadaju.
 type Post struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
-	// Klub kome post pripada (scope da postovi budu po klubu)
-	ClubID uint `gorm:"index;not null" json:"clubId"`
-
-	// Autor objave
-	AuthorID uint      `gorm:"index;not null" json:"authorId"`
-	Author   *Korisnik `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	// Autor objave (korisnik iz bilo kog kluba)
+	UserID uint      `gorm:"index;not null" json:"userId"`
+	User   *Korisnik `gorm:"foreignKey:UserID" json:"user,omitempty"`
 
 	// Sadržaj objave
 	Content string `gorm:"type:text;not null" json:"content"`
 
-	// Opciona slika (Cloudinary URL ili slično)
+	// Opciona slika (URL)
 	ImageURL string `gorm:"type:varchar(500)" json:"imageUrl,omitempty"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`

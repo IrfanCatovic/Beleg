@@ -149,6 +149,7 @@ export default function AppLayout() {
                 {/* Desktop nav – sakriven za superadmina bez kluba */}
                 {!isSuperadminNoClub && (
                 <nav className="hidden md:flex items-center gap-1">
+                  <NavLink to="/home" className={navLinkClass}>Naslovna</NavLink>
                   <NavLink to="/akcije" className={navLinkClass}>Akcije</NavLink>
                   <NavLink to="/zadaci" className={navLinkClass}>Zadaci</NavLink>
                   <NavLink to="/users" className={navLinkClass}>Članovi</NavLink>
@@ -425,6 +426,17 @@ export default function AppLayout() {
                 )}
                 {!isSuperadminNoClub && (
                 <>
+                <NavLink
+                  to="/home"
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                    }`
+                  }
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Naslovna
+                </NavLink>
                 <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
