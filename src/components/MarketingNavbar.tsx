@@ -16,7 +16,7 @@ export default function MarketingNavbar() {
         />
         <div className="leading-tight">
           <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
-            planiner
+            Planiner
           </p>
           <p className="text-[10px] sm:text-xs text-gray-500">
             Aplikacija za planinarska društva

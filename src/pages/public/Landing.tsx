@@ -62,7 +62,7 @@ export default function Landing() {
               {/* Leva kolona: tekst */}
               <div className="flex-[1.1] flex flex-col items-start gap-4">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug max-w-2xl">
-                  planiner{' '}
+                  Planiner{' '}
                   <span style={{ color: '#41ac53' }}>
                     digitalno srce tvog planinarskog društva
                   </span>
@@ -95,7 +95,7 @@ export default function Landing() {
                 </div>
 
                 <p className="text-xs sm:text-sm text-gray-500">
-                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako planiner rešava vaše svakodnevne glavobolje.
+                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako Planiner rešava vaše svakodnevne glavobolje.
                 </p>
               </div>
 
@@ -137,7 +137,7 @@ export default function Landing() {
                 Prati svoj napredak na svakoj stazi
               </h2>
               <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto">
-                planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se
+                Planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se
                 vrhovima već dokazao. Sezona po sezona, godina po godina.
               </p>
             </div>
@@ -199,7 +199,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
@@ -232,7 +232,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
@@ -265,7 +265,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
@@ -288,7 +288,7 @@ export default function Landing() {
                 Tvoj put na stazi jednostavno i zanimljivo
               </h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom,
+                Planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom,
                 zajednica sa drugim planinarima i motivacija kroz napredak i takmičenje.
               </p>
             </div>
@@ -358,7 +358,7 @@ export default function Landing() {
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Jedno mesto umesto deset grupa i poruka sve na stazi, sve u planineru.</span>
+                    <span>Jedno mesto umesto deset grupa i poruka sve na stazi, sve u Planineru.</span>
                   </li>
                 </ul>
               </div>
@@ -396,7 +396,7 @@ export default function Landing() {
             </div>
 
             <p className="text-center text-sm text-gray-500 mt-8">
-              Želiš da tvoje društvo koristi planiner?{' '}
+              Želiš da tvoje društvo koristi Planiner?{' '}
               <a href="#cta" className="font-semibold text-emerald-600 hover:text-emerald-700 underline">
                 Predloži rukovodstvu da zakaže prezentaciju
               </a>
@@ -419,7 +419,7 @@ export default function Landing() {
                   Pretvorite svaku akciju u mali izazov
                 </h2>
                 <p className="text-sm sm:text-base text-slate-200 mb-4 max-w-xl">
-                  planiner vodi detaljnu statistiku za svakog člana nakon uspešne akcije, broj pređenih kilometara,
+                  Planiner vodi detaljnu statistiku za svakog člana nakon uspešne akcije, broj pređenih kilometara,
                   ukupni uspon i osvojen rank. Društvo dobija motivacioni sistem koji nagrađuje aktivnost, a članovi
                   jasnu sliku o svom napretku.
                 </p>
@@ -603,7 +603,7 @@ export default function Landing() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold mb-2 text-rose-900">Automatski PDF izveštaji</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      planiner za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
+                      Planiner za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
                     </p>
                     <p className="text-xs text-gray-500">
                       Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
@@ -647,7 +647,7 @@ export default function Landing() {
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše planiner</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše Planiner</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
                 Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.
               </p>
@@ -713,7 +713,7 @@ export default function Landing() {
               <div className="flex-[1.1]">
                 <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera - partner za društvo</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
-                  planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
+                  Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
                   je da vam damo više vremena na stazi, a manje za stolom.
                 </p>
 
@@ -770,11 +770,11 @@ export default function Landing() {
                   <div className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
                     <img
                       src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786065/teamwork_nfwwcv.jpg"
-                      alt="Tim na planiner u online sastanku sa planinarskim društvom"
+                      alt="Tim na Planiner u online sastanku sa planinarskim društvom"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim planiner-a  podrška od prvog dana</p>
+                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim Planiner-a  podrška od prvog dana</p>
                 </div>
               </div>
             </div>
@@ -804,7 +804,7 @@ export default function Landing() {
                   Svaki član vidi svoj put na planini
                 </h2>
                 <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto">
-                  planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i
+                  Planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i
                   vođenja tura. Društvo dobija urednu evidenciju, a članovi lični motiv da budu još aktivniji.
                 </p>
               </div>
@@ -836,7 +836,7 @@ export default function Landing() {
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Jasne, merljive koristi koje vaše društvo dobija prelaskom na planiner.
+                Jasne, merljive koristi koje vaše društvo dobija prelaskom na Planiner.
               </p>
             </div>
 
@@ -952,7 +952,7 @@ export default function Landing() {
         <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je planiner</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je Planiner</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
                 Jedna aplikacija, različiti pogledi  svaka uloga u društvu dobija jasne benefite.
               </p>
@@ -1227,7 +1227,7 @@ export default function Landing() {
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam planiner u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
+              Pokažemo vam Planiner u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
               može da olakša rad.
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-3">
@@ -1266,10 +1266,10 @@ export default function Landing() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src="/LogoP.jpg" alt="planiner" className="h-8 w-8 rounded-lg" />
+              <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
               <div>
-                <p className="text-sm font-semibold text-white">planiner</p>
-                <p className="text-[11px] text-slate-400">by Adri Sentinel</p>
+                <p className="text-sm font-semibold text-white">Planiner</p>
+                <p className="text-[11px] text-slate-400">by Orin</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-5 text-xs text-slate-400 justify-center sm:justify-end">
@@ -1292,7 +1292,7 @@ export default function Landing() {
           </div>
           <div className="mt-6 pt-4 border-t border-slate-800 text-center sm:text-left">
             <p className="text-[11px] text-slate-500">
-              © {new Date().getFullYear()} Adri Sentinel d.o.o.  za planinarska društva koja žele više vremena na stazi, a manje za stolom.
+              © {new Date().getFullYear()} Orin d.o.o.  za planinarska društva koja žele više vremena na stazi, a manje za stolom.
             </p>
           </div>
         </div>
