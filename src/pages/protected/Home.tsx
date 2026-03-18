@@ -175,7 +175,8 @@ export default function Home() {
   if (loadingPosts && posts.length === 0) return <Loader />
 
   const displayName = user?.fullName || user?.username || 'planinaru'
-  const canPost = !!newPostContent.trim()
+  const POST_MAX_LENGTH = 3000
+  const canPost = !!newPostContent.trim() && newPostContent.length <= POST_MAX_LENGTH
 
   return (
     <div className="relative min-h-screen bg-gray-50 pb-20 md:pb-12">
@@ -208,6 +209,7 @@ export default function Home() {
                     <textarea
                       ref={textareaRef}
                       value={newPostContent}
+                      maxLength={POST_MAX_LENGTH}
                       onChange={e => setNewPostContent(e.target.value)}
                       onInput={handleTextareaInput}
                       onKeyDown={e => {
@@ -222,8 +224,8 @@ export default function Home() {
                     />
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-[11px] text-gray-400">
-                        {newPostContent.length > 0 && <span>{newPostContent.length}/4000</span>}
-                        {newPostContent.length === 0 && <span>Ctrl+Enter za objavu</span>}
+                        {newPostContent.length > 0 && <span className={newPostContent.length > POST_MAX_LENGTH ? 'text-rose-500 font-medium' : ''}>{newPostContent.length}/{POST_MAX_LENGTH}</span>}
+
                       </p>
                       <button
                         onClick={handleSubmitPost}

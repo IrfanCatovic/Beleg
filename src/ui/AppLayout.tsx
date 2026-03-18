@@ -427,17 +427,6 @@ export default function AppLayout() {
                 {!isSuperadminNoClub && (
                 <>
                 <NavLink
-                  to="/home"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                    }`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Naslovna
-                </NavLink>
-                <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
                     `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${

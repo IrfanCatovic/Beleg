@@ -125,8 +125,8 @@ func CreatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
 		return
 	}
-	if len(req.Content) > 4000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 4000 karaktera)"})
+	if len(req.Content) > 3000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
 		return
 	}
 
