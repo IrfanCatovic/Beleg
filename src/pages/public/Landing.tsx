@@ -103,8 +103,8 @@ export default function Landing() {
               <div className="flex-[0.9] flex justify-center lg:justify-end">
                 <div className="max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
                   <img
-                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773415948/hero_rgwmwy.png"
-                    alt="na vrhu – prikaz aplikacije na laptopu i telefonu"
+                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786067/na_vrhu_prikaz_aplikacije_na_laptopu_i_telefonu_kp9o1u.png"
+                    alt="na vrhu  prikaz aplikacije na laptopu i telefonu"
                     className="rounded-3xl w-full h-auto object-contain"
                   />
                 </div>
@@ -118,10 +118,10 @@ export default function Landing() {
       <section className="relative w-full bg-slate-900 text-white">
         <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
           <img
-            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237569/segment1_pzlff1.jpg"
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinski_pejza%C5%BE_vpdfmb.jpg"
             alt="Planinski pejzaž"
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center top' }}
+            style={{ objectPosition: 'center center' }}
           />
 
           {/* Tamni overlay za čitljiv tekst */}
@@ -277,6 +277,134 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* Za člana: kako radi, zašto je zanimljivo, zajednica, napredak, takmičenje */}
+        <section id="za-clana" className="py-16 sm:py-20 bg-gradient-to-b from-slate-50 to-white">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+            <div className="text-center mb-12">
+              <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700 mb-3">
+                Za člana društva
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+                Tvoj put na stazi jednostavno i zanimljivo
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+                planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom,
+                zajednica sa drugim planinarima i motivacija kroz napredak i takmičenje.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {/* Kako koristiš aplikaciju */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-100">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-emerald-600">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900">Kako radi za tebe</h3>
+                </div>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
+                    <span>Uloguješ se i vidiš sve predstojeće akcije društva na jednom mestu.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
+                    <span>Prijaviš se na akciju jednim klikom bez papira, formulara i dopisivanja.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
+                    <span>Posle svake akcije automatski ti se beleže kilometri, uspon i učestvovanje.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
+                    <span>Pratiš svoj napredak i rang u društvu sve na tvom profilu.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Interakcija sa ostalim planinarima */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-blue-100">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-blue-600">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900">Zajednica i interakcija</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">
+                  Ostani u toku sa društvom i drugim planinarima:
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+                    <span>Ko je na kojoj akciji vidiš ko se prijavio i ko je vodič.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+                    <span>Obaveštenja o novim akcijama, promenama i važnim obaveštenjima.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+                    <span>Javni profili članova pogledaj napredak drugih i podeli svoj.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
+                    <span>Jedno mesto umesto deset grupa i poruka sve na stazi, sve u planineru.</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Beleženje napretka i takmičenje */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100">
+                    <IconSparkles className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900">Napredak i takmičenje</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">
+                  Svaka akcija ti donosi više od uspomene beleži se i motivira:
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Kilometri, ukupan uspon, broj akcija istorija na tvom profilu.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Rank tipa „Legenda stijena“ vidiš gde stojiš u društvu.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Mini takmičenja po sezoni ko je najaktivniji, ko ima najviše uspona.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Podeli svoj planinarski CV na društvenim mrežama i motiviraj druge.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-gray-500 mt-8">
+              Želiš da tvoje društvo koristi planiner?{' '}
+              <a href="#cta" className="font-semibold text-emerald-600 hover:text-emerald-700 underline">
+                Predloži rukovodstvu da zakaže prezentaciju
+              </a>
+              .
+            </p>
+          </div>
+        </section>
+
         {/* Ranking i mini takmičenja */}
         <section className="py-16 sm:py-20 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
@@ -378,7 +506,7 @@ export default function Landing() {
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
-                Sve što planinarskom društvu treba – od prvog učlanjenja do poslednjeg izvještaja blagajne.
+                Sve što planinarskom društvu treba  od prvog učlanjenja do poslednjeg izvještaja blagajne.
               </p>
             </div>
 
@@ -614,7 +742,7 @@ export default function Landing() {
                     <div>
                       <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
                       <p className="text-xs text-gray-600">
-                        E-mail, telefon i online sastanci – od implementacije i obuke tima do svakodnevnih pitanja, sa
+                        E-mail, telefon i online sastanci  od implementacije i obuke tima do svakodnevnih pitanja, sa
                         fokusom na brz response time i jasne, konkretne odgovore.
                       </p>
                     </div>
@@ -641,12 +769,12 @@ export default function Landing() {
                 <div className="w-full max-w-sm">
                   <div className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
                     <img
-                      src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237574/team_c4diuf.jpg"
-                      alt="Tim na vrhu u online sastanku sa planinarskim društvom"
+                      src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786065/teamwork_nfwwcv.jpg"
+                      alt="Tim na planiner u online sastanku sa planinarskim društvom"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim planiner-a – podrška od prvog dana</p>
+                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim planiner-a  podrška od prvog dana</p>
                 </div>
               </div>
             </div>
@@ -657,7 +785,7 @@ export default function Landing() {
         <section className="relative w-full bg-slate-900 text-white">
           <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
             <img
-              src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773237570/planinar_aqkntm.jpg"
+              src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinar_na_stazi_zaz7p3.jpg"
               alt="Planinar na stazi"
               className="w-full h-full object-cover filter blur-[1px] scale-105"
               style={{ objectPosition: 'center 65%' }}
@@ -766,7 +894,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Social proof – citati korisnika */}
+        {/* Social proof  citati korisnika */}
         <section className="py-14 sm:py-18 bg-slate-50 border-y border-slate-100">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-8">Šta kažu korisnici</p>
@@ -781,7 +909,7 @@ export default function Landing() {
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">M</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Marko P. <span className="font-normal text-gray-400">– Vodič</span></p>
+                    <p className="text-xs font-semibold text-gray-800">Marko P. <span className="font-normal text-gray-400"> Vodič</span></p>
                     <p className="text-[11px] text-gray-400">PD „Zeleni vrh"</p>
                   </div>
                 </div>
@@ -796,7 +924,7 @@ export default function Landing() {
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">J</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Jelena S. <span className="font-normal text-gray-400">– Blagajnik</span></p>
+                    <p className="text-xs font-semibold text-gray-800">Jelena S. <span className="font-normal text-gray-400"> Blagajnik</span></p>
                     <p className="text-[11px] text-gray-400">PD „Staza"</p>
                   </div>
                 </div>
@@ -811,7 +939,7 @@ export default function Landing() {
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-700">N</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Nemanja D. <span className="font-normal text-gray-400">– Član</span></p>
+                    <p className="text-xs font-semibold text-gray-800">Nemanja D. <span className="font-normal text-gray-400"> Član</span></p>
                     <p className="text-[11px] text-gray-400">PD „Vršak"</p>
                   </div>
                 </div>
@@ -826,7 +954,7 @@ export default function Landing() {
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je planiner</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
-                Jedna aplikacija, različiti pogledi – svaka uloga u društvu dobija jasne benefite.
+                Jedna aplikacija, različiti pogledi  svaka uloga u društvu dobija jasne benefite.
               </p>
             </div>
 
@@ -911,7 +1039,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* UI preview – premium showcase */}
+        {/* UI preview  premium showcase */}
         <section className="relative py-20 sm:py-28 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
           {/* Ambient glow effects */}
           <div className="pointer-events-none absolute inset-0">
@@ -927,7 +1055,7 @@ export default function Landing() {
                 Pogledaj aplikaciju iznutra
               </h2>
               <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu – vidi i budi viđen.
+                Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu vidi i budi viđen.
               </p>
             </div>
 
@@ -940,7 +1068,7 @@ export default function Landing() {
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold mb-4">1</span>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Akcije</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Lista akcija, prijave članova i detalji – isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
+                    Lista akcija, prijave članova i detalji isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
@@ -951,9 +1079,9 @@ export default function Landing() {
                     </span>
                   </div>
                 </div>
-                {/* Slike desno – PC veći, dva mobilna preklapaju */}
+                {/* Slike desno PC veći, dva mobilna preklapaju */}
                 <div className="relative">
-                  {/* PC screenshot – browser frame */}
+                  {/* PC screenshot browser frame */}
                   <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
                     <div className="bg-slate-700 px-4 py-2 flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
@@ -961,21 +1089,21 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/akcije/uspon-na-zlu-kolatu</span>
                     </div>
-                    <img src="/ActionDetails.png" alt="Akcije – PC prikaz" className="w-full h-auto" />
+                    <img src="/ActionDetails.png" alt="Akcije PC prikaz" className="w-full h-auto" />
                   </div>
-                  {/* Mobilni ekrani – lebde preko donjeg desnog ugla */}
+                  {/* Mobilni ekrani lebde preko donjeg desnog ugla */}
                   <div className="absolute -bottom-8 -right-2 sm:-right-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="/ActionDetails_mobile.png" alt="Akcije – telefon detalj" className="w-full h-auto" />
+                      <img src="/ActionDetails_mobile.png" alt="Akcije telefon detalj" className="w-full h-auto" />
                     </div>
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 -mt-4 sm:-mt-6">
-                      <img src="/Akcije1_mob.png" alt="Akcije – telefon lista" className="w-full h-auto" />
+                      <img src="/Akcije1_mob.png" alt="Akcije telefon lista" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── 2. Profili – obrnut layout: slike levo, tekst desno ── */}
+              {/* ── 2. Profili obrnut layout: slike levo, tekst desno ── */}
               <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1.4fr,1fr] items-center">
                 {/* Slike levo */}
                 <div className="relative order-2 lg:order-1">
@@ -987,7 +1115,7 @@ export default function Landing() {
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/korisnik/catko</span>
                     </div>
                     <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot profila (PC) – dodaj sliku ovde
+                      Screenshot profila (PC) dodaj sliku ovde
                     </div>
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4 flex gap-2 sm:gap-3">
@@ -1001,7 +1129,7 @@ export default function Landing() {
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold mb-4">2</span>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Profili korisnika</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Javni profili članova – statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
+                    Javni profili članova statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
@@ -1020,7 +1148,7 @@ export default function Landing() {
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold mb-4">3</span>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Finansije</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo – sve na jednom mestu, dostupno i sa mobilnog.
+                    Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo sve na jednom mestu, dostupno i sa mobilnog.
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
@@ -1040,7 +1168,7 @@ export default function Landing() {
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/finansije</span>
                     </div>
                     <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot finansija (PC) – dodaj sliku ovde
+                      Screenshot finansija (PC) dodaj sliku ovde
                     </div>
                   </div>
                   <div className="absolute -bottom-8 -right-2 sm:-right-4">
@@ -1051,7 +1179,7 @@ export default function Landing() {
                 </div>
               </div>
 
-              {/* ── 4. Zadaci – obrnut layout ── */}
+              {/* ── 4. Zadaci obrnut layout ── */}
               <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1.4fr,1fr] items-center">
                 <div className="relative order-2 lg:order-1">
                   <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
@@ -1062,7 +1190,7 @@ export default function Landing() {
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/zadaci</span>
                     </div>
                     <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot zadataka (PC) – dodaj sliku ovde
+                      Screenshot zadataka (PC) dodaj sliku ovde
                     </div>
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4">
@@ -1075,7 +1203,7 @@ export default function Landing() {
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-violet-500/20 text-violet-400 text-sm font-bold mb-4">4</span>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Zadaci</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Zadaci za rukovodstvo, vodiče i članove – praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
+                    Zadaci za rukovodstvo, vodiče i članove praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
@@ -1099,7 +1227,7 @@ export default function Landing() {
               Spremni da svom društvu vratite vrijeme, a sebi mir?
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam planiner u 30 minuta. Bez obaveze, bez pritiska – samo iskren pregled onoga što vašem društvu
+              Pokažemo vam planiner u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
               može da olakša rad.
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-3">
@@ -1164,7 +1292,7 @@ export default function Landing() {
           </div>
           <div className="mt-6 pt-4 border-t border-slate-800 text-center sm:text-left">
             <p className="text-[11px] text-slate-500">
-              © {new Date().getFullYear()} Adri Sentinel d.o.o. – za planinarska društva koja žele više vremena na stazi, a manje za stolom.
+              © {new Date().getFullYear()} Adri Sentinel d.o.o.  za planinarska društva koja žele više vremena na stazi, a manje za stolom.
             </p>
           </div>
         </div>
