@@ -1,13 +1,20 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -192,26 +199,106 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	var req CreatePostRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Polje 'content' je obavezno"})
-		return
-	}
+	contentType := strings.ToLower(c.GetHeader("Content-Type"))
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
 
-	req.Content = strings.TrimSpace(req.Content)
-	if req.Content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
-		return
-	}
-	if len(req.Content) > 3000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
-		return
+	var content string
+	var imageURL string
+
+	if isMultipart {
+		// multipart: content (text) + image (file)
+		if err := c.Request.ParseMultipartForm(20 << 20); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+			return
+		}
+
+		content = strings.TrimSpace(c.PostForm("content"))
+		if content == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
+			return
+		}
+		if len(content) > 3000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
+			return
+		}
+
+		files := c.Request.MultipartForm.File["image"]
+		if len(files) > 0 {
+			fileHeader := files[0]
+			clubID := uint(0)
+			folder := helpers.CloudinaryFolderSetup()
+			if korisnik.KlubID != nil {
+				clubID = *korisnik.KlubID
+				folder = helpers.CloudinaryFolderForClub(clubID)
+			}
+
+			if err := helpers.CheckStorageLimit(db, clubID, fileHeader.Size); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			f, err := fileHeader.Open()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+				return
+			}
+			defer f.Close()
+
+			cld, err := cloudinary.NewFromParams(
+				os.Getenv("CLOUDINARY_CLOUD_NAME"),
+				os.Getenv("CLOUDINARY_API_KEY"),
+				os.Getenv("CLOUDINARY_API_SECRET"),
+			)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+				return
+			}
+
+			ctx := context.Background()
+			uploadParams := uploader.UploadParams{
+				PublicID:       fmt.Sprintf("posts/post-%d-%d", korisnik.ID, time.Now().Unix()),
+				Folder:         folder,
+				Transformation: "q_auto:good,f_auto",
+			}
+
+			uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u slike"})
+				return
+			}
+
+			if err := helpers.AddStorageUsage(db, clubID, fileHeader.Size); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri evidentiranju storage zauzeća"})
+				return
+			}
+
+			imageURL = uploadResult.SecureURL
+		}
+	} else {
+		// json: content + opcioni imageUrl
+		var req CreatePostRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Polje 'content' je obavezno"})
+			return
+		}
+
+		content = strings.TrimSpace(req.Content)
+		imageURL = strings.TrimSpace(req.ImageURL)
+
+		if content == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
+			return
+		}
+		if len(content) > 3000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
+			return
+		}
 	}
 
 	post := models.Post{
 		UserID:   korisnik.ID,
-		Content:  req.Content,
-		ImageURL: strings.TrimSpace(req.ImageURL),
+		Content:  content,
+		ImageURL: imageURL,
 	}
 
 	if err := db.Create(&post).Error; err != nil {
@@ -289,6 +376,11 @@ func DeletePost(c *gin.Context) {
 	// Čisti engagement kako ne bi ostali orphan zapisi.
 	_ = db.Where("post_id = ?", postID).Delete(&models.PostLike{}).Error
 	_ = db.Where("post_id = ?", postID).Delete(&models.PostComment{}).Error
+
+	// Zakaži brisanje Cloudinary slike (ako je post ima).
+	if post.ImageURL != "" {
+		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), post.ImageURL)
+	}
 
 	if err := db.Delete(&post).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju objave"})

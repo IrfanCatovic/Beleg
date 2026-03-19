@@ -75,7 +75,10 @@ export default function Home() {
   const [newPostContent, setNewPostContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const [newPostImage, setNewPostImage] = useState<File | null>(null)
+  const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null)
 
   const hasMore = posts.length < total
 
@@ -129,15 +132,68 @@ export default function Home() {
     return () => observer.disconnect()
   }, [hasMore, loadingMore, loadingPosts, posts.length, fetchPosts])
 
+  useEffect(() => {
+    return () => {
+      if (newPostImagePreview) URL.revokeObjectURL(newPostImagePreview)
+    }
+  }, [newPostImagePreview])
+
+  const handleSelectImage = (e: any) => {
+    const file = e.target.files?.[0] ?? null
+    if (!file) {
+      setNewPostImage(null)
+      setNewPostImagePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      void showAlert('Slika je prevelika (maksimum 5 MB).', 'Slika')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    setNewPostImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return URL.createObjectURL(file)
+    })
+    setNewPostImage(file)
+  }
+
+  const handleRemoveImage = () => {
+    setNewPostImage(null)
+    setNewPostImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const handleSubmitPost = async () => {
     const content = newPostContent.trim()
     if (!content || submitting) return
     setSubmitting(true)
     try {
-      const res = await api.post('/api/posts', { content })
+      let res
+      if (newPostImage) {
+        const fd = new FormData()
+        fd.append('content', content)
+        fd.append('image', newPostImage)
+        res = await api.post('/api/posts', fd)
+      } else {
+        res = await api.post('/api/posts', { content })
+      }
       setPosts(prev => [res.data.post, ...prev])
       setTotal(prev => prev + 1)
       setNewPostContent('')
+      setNewPostImage(null)
+      setNewPostImagePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
+      if (fileInputRef.current) fileInputRef.current.value = ''
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri objavljivanju', 'Objava')
@@ -258,6 +314,51 @@ export default function Home() {
                         )}
                         Objavi
                       </button>
+                    </div>
+
+                    {/* Upload slike za objavu */}
+                    <div className="mt-3">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleSelectImage}
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={submitting}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0V8m0 4l-4-4m4 4l4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Dodaj sliku
+                        </button>
+
+                        {newPostImagePreview && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            disabled={submitting}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Ukloni
+                          </button>
+                        )}
+                      </div>
+
+                      {newPostImagePreview && (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-gray-100 bg-white">
+                          <img
+                            src={newPostImagePreview}
+                            alt="Preview"
+                            className="w-full max-h-48 object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
