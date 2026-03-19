@@ -199,6 +199,25 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
+	// ClubID polje u bazi je NOT NULL (zbog ranije sheme).
+	// Feed je globalan, ali moramo da popunimo vrednost za integritet.
+	var clubID uint
+	if korisnik.KlubID != nil {
+		clubID = *korisnik.KlubID
+	} else {
+		// superadmin mora imati izabran klub u header-u, inače nema šta da upiše
+		roleVal, _ := c.Get("role")
+		role, _ := roleVal.(string)
+		if role == "superadmin" {
+			effectiveClubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok || effectiveClubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (X-Club-Id) da biste postavili objavu"})
+				return
+			}
+			clubID = effectiveClubID
+		}
+	}
+
 	contentType := strings.ToLower(c.GetHeader("Content-Type"))
 	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
 
@@ -296,6 +315,7 @@ func CreatePost(c *gin.Context) {
 	}
 
 	post := models.Post{
+		ClubID:   clubID,
 		UserID:   korisnik.ID,
 		Content:  content,
 		ImageURL: imageURL,
