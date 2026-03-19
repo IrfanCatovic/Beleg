@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
-import BackButton from '../../../components/BackButton'
+import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 

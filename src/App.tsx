@@ -21,8 +21,8 @@ import EditAction from './pages/protected/action/EditAction'
 import RegisterUser from './pages/protected/user/RegisterUser'
 
 //routes
-import ProtectedRoute from './components/ProtectedRoute'
-import RoleRoute from './components/RoleRoute'
+import ProtectedRoute from './components/routes/ProtectedRoute'
+import RoleRoute from './components/routes/RoleRoute'
 import RegisterAdmin from './pages/protected/user/RegisterAdmin'
 import ProfileSettings from './pages/protected/user/ProfileSettings'
 import Obavestenja from './pages/protected/Obavestenja'

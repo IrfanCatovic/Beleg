@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
-import BackButton from '../../../components/BackButton'
+import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 
 interface Korisnik {

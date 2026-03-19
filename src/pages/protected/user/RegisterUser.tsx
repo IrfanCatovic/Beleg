@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../../services/api'
 import { useAuth } from '../../../context/AuthContext'
 import Dropdown from '../../../components/Dropdown'
-import BackButton from '../../../components/BackButton'
+import BackButton from '../../../components/buttons/BackButton'
 
 const initialForm = {
   username: '',
