@@ -12,9 +12,14 @@ type Post struct {
 	ClubID uint `gorm:"column:club_id;index;not null" json:"-"`
 
 	// Autor objave (korisnik iz bilo kog kluba)
-	// Tabela "posts" je ranije imala kolonu "author_id" (ne "user_id"),
-	// pa mapiramo UserID na existing schema kolonu.
-	UserID uint      `gorm:"column:author_id;index;not null" json:"userId"`
+	// Tabela "posts" je prošla kroz promene (ranije je FK bio "author_id",
+	// a sada je "user_id" NOT NULL u šemi). Da bismo bili kompatibilni sa obe
+	// kolone u realnoj bazi, mapiramo oba.
+	UserID uint `gorm:"column:user_id;index;not null" json:"userId"`
+
+	// author_id postoji u bazi (ranije smo ga koristili kao FK).
+	// Nema relaciju, samo ga popunjavamo da ne padne NOT NULL constraint.
+	AuthorID uint `gorm:"column:author_id;index;not null" json:"-"`
 	User   *Korisnik `gorm:"foreignKey:UserID" json:"user,omitempty"`
 
 	// Sadržaj objave

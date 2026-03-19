@@ -317,6 +317,7 @@ func CreatePost(c *gin.Context) {
 	post := models.Post{
 		ClubID:   clubID,
 		UserID:   korisnik.ID,
+		AuthorID: korisnik.ID,
 		Content:  content,
 		ImageURL: imageURL,
 	}

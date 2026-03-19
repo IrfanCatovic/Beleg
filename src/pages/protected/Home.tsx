@@ -195,7 +195,6 @@ export default function Home() {
       })
       if (fileInputRef.current) fileInputRef.current.value = ''
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
-      await showAlert('Objava je uspešno postavljena.', 'Uspeh')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri objavljivanju', 'Objava')
     } finally {
@@ -280,27 +279,42 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <textarea
-                      ref={textareaRef}
-                      value={newPostContent}
-                      maxLength={POST_MAX_LENGTH}
-                      onChange={e => setNewPostContent(e.target.value)}
-                      onInput={handleTextareaInput}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) {
-                          e.preventDefault()
-                          handleSubmitPost()
-                        }
-                      }}
-                      placeholder="Podeli nešto sa zajednicom..."
-                      rows={1}
-                      className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all"
-                    />
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-[11px] text-gray-400">
-                        {newPostContent.length > 0 && <span className={newPostContent.length > POST_MAX_LENGTH ? 'text-rose-500 font-medium' : ''}>{newPostContent.length}/{POST_MAX_LENGTH}</span>}
+                    <div className="relative">
+                      <textarea
+                        ref={textareaRef}
+                        value={newPostContent}
+                        maxLength={POST_MAX_LENGTH}
+                        onChange={e => setNewPostContent(e.target.value)}
+                        onInput={handleTextareaInput}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) {
+                            e.preventDefault()
+                            handleSubmitPost()
+                          }
+                        }}
+                        placeholder="Podeli nešto sa zajednicom..."
+                        rows={1}
+                        className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 pr-14 text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all"
+                      />
 
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={submitting}
+                        className="absolute right-3 bottom-3 inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-emerald-100"
+                        aria-label="Dodaj sliku"
+                        title="Dodaj sliku"
+                      >
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0V8m0 4l-4-4m4 4l4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-emerald-600 font-extrabold text-[14px] leading-none">+</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="flex justify-end mt-3">
                       <button
                         onClick={handleSubmitPost}
                         disabled={!canPost || submitting}
@@ -326,20 +340,12 @@ export default function Home() {
                         className="hidden"
                         onChange={handleSelectImage}
                       />
-                      <div className="flex items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={submitting}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0V8m0 4l-4-4m4 4l4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Dodaj sliku
-                        </button>
 
-                        {newPostImagePreview && (
+                      {newPostImagePreview && (
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl">
+                            Slika spremna
+                          </div>
                           <button
                             type="button"
                             onClick={handleRemoveImage}
@@ -348,11 +354,11 @@ export default function Home() {
                           >
                             Ukloni
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
 
                       {newPostImagePreview && (
-                        <div className="mt-3 rounded-xl overflow-hidden border border-gray-100 bg-white">
+                        <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
                           <img
                             src={newPostImagePreview}
                             alt="Preview"
@@ -539,9 +545,12 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
   const [submittingComment, setSubmittingComment] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
   const [newComment, setNewComment] = useState('')
+  /** Ne stavljati commentsLoading u deps useCallback — menja referencu i ponovo pali useEffect (glitch). */
+  const commentsFetchInFlightRef = useRef(false)
 
   const fetchComments = useCallback(async () => {
-    if (commentsLoading) return
+    if (commentsFetchInFlightRef.current) return
+    commentsFetchInFlightRef.current = true
     setCommentsLoading(true)
     try {
       const res = await api.get(`/api/posts/${post.id}/comments`, { params: { limit: 20, offset: 0 } })
@@ -553,13 +562,14 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
       await showAlert('Greška pri učitavanju komentara', 'Komentari')
     } finally {
       setCommentsLoading(false)
+      commentsFetchInFlightRef.current = false
     }
-  }, [commentsLoading, post.id, showAlert])
+  }, [post.id, showAlert])
 
   useEffect(() => {
     if (!commentsOpen) return
     if (comments.length > 0) return
-    fetchComments()
+    void fetchComments()
   }, [commentsOpen, comments.length, fetchComments])
 
   const handleToggleLike = async () => {
@@ -585,7 +595,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
       setNewComment('')
       setCommentsOpen(true)
       await fetchComments()
-      await showAlert('Komentar je dodat.', 'Uspeh')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri dodavanju komentara', 'Komentar')
     } finally {
@@ -703,7 +712,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
                 strokeWidth="1.7"
               />
             </svg>
-            Lajk
             {liking && (
               <span className="ml-1 inline-flex items-center justify-center">
                 <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -720,7 +728,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
             <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h6M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-3.44-.56L3 21l1.56-4.56A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            Komentari
             <span className="ml-1 text-xs font-bold text-gray-500">{commentCount}</span>
           </button>
         </div>
@@ -786,7 +793,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
                   placeholder="Napiši komentar..."
                 />
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="text-[11px] text-gray-400">{newComment.length}/1500</p>
                   <button
                     type="button"
                     onClick={handleSubmitComment}
