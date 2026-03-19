@@ -34,6 +34,7 @@ export interface KlubData {
   korisnik_admin_limit?: number
   korisnik_limit?: number
   max_storage_gb?: number
+  used_storage_gb?: number
   subscribedAt?: string | null
   subscriptionEndsAt?: string | null
   logoUrl?: string
@@ -73,6 +74,7 @@ export default function Klub() {
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public')
   const [memberCount, setMemberCount] = useState<number | null>(null)
   const [adminCount, setAdminCount] = useState<number | null>(null)
+  const [secretaryCount, setSecretaryCount] = useState<number | null>(null)
 
   const fetchKlub = async () => {
     setLoading(true)
@@ -122,7 +124,8 @@ export default function Klub() {
         const res = await api.get<{ korisnici: Array<{ role: string }> }>('/api/korisnici')
         const lista = res.data.korisnici || []
         setMemberCount(lista.length)
-        setAdminCount(lista.filter((k) => k.role === 'admin' || k.role === 'sekretar').length)
+        setAdminCount(lista.filter((k) => k.role === 'admin').length)
+        setSecretaryCount(lista.filter((k) => k.role === 'sekretar').length)
       } catch {
         // ako padne, samo ne prikazujemo brojače
       }
@@ -469,9 +472,15 @@ export default function Klub() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Admin + sekretar</span>
+                    <span className="text-gray-500">Admin</span>
                     <span className="font-semibold text-gray-900">
                       {adminCount != null ? adminCount : '—'} / {klub.korisnik_admin_limit ?? '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Sekretar</span>
+                    <span className="font-semibold text-gray-900">
+                      {secretaryCount != null ? secretaryCount : '—'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
@@ -480,6 +489,31 @@ export default function Klub() {
                       {klub.max_storage_gb != null ? klub.max_storage_gb : '—'}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Potrošeno (GB)</span>
+                    <span className="font-semibold text-gray-900">
+                      {klub.used_storage_gb != null ? Number(klub.used_storage_gb).toFixed(2) : '—'}
+                    </span>
+                  </div>
+
+                  {klub.max_storage_gb != null && klub.max_storage_gb > 0 && klub.used_storage_gb != null && (
+                    <div className="mt-1">
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        {/*
+                          Iskorišćenost u procentima (ograničimo na 100% da progress bar ne “puca”).
+                        */}
+                        <div
+                          className="h-full bg-emerald-500"
+                          style={{
+                            width: `${Math.min(100, (klub.used_storage_gb / klub.max_storage_gb) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Iskorišćenost: {Math.min(100, (klub.used_storage_gb / klub.max_storage_gb) * 100).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -108,9 +108,10 @@ func CheckClubLimitsForRegister(db *gorm.DB, clubID uint, newRole string) error 
 	if memberCount >= int64(klub.KorisnikLimit) {
 		return fmt.Errorf("%w (max %d)", ErrClubMemberLimit, klub.KorisnikLimit)
 	}
-	if newRole == "admin" || newRole == "sekretar" {
+	// Admin je ograničen, sekretar nije (sekretar moze koliko zeli).
+	if newRole == "admin" {
 		var adminCount int64
-		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Count(&adminCount).Error; err != nil {
+		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role = ?", clubID, "admin").Count(&adminCount).Error; err != nil {
 			return err
 		}
 		if adminCount >= int64(klub.KorisnikAdminLimit) {
@@ -123,19 +124,19 @@ func CheckClubLimitsForRegister(db *gorm.DB, clubID uint, newRole string) error 
 // CheckClubLimitsForRoleChange proverava da li je dozvoljeno promeniti ulogu na admin/sekretar u datom klubu.
 // Koristi se u PATCH /api/korisnici/:id kada se postavlja role na admin ili sekretar.
 func CheckClubLimitsForRoleChange(db *gorm.DB, clubID uint, currentRole, newRole string) error {
-	if newRole != "admin" && newRole != "sekretar" {
+	// Limit važi samo za prelazak u ulogu "admin".
+	if newRole != "admin" {
 		return nil
 	}
-	isAdminRole := func(r string) bool { return r == "admin" || r == "sekretar" }
-	if isAdminRole(currentRole) {
-		return nil // već je admin/sekretar, broj se ne menja
+	if currentRole == "admin" {
+		return nil // već je admin, broj se ne menja
 	}
 	var klub models.Klubovi
 	if err := db.First(&klub, clubID).Error; err != nil {
 		return err
 	}
 	var adminCount int64
-	if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Count(&adminCount).Error; err != nil {
+	if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role = ?", clubID, "admin").Count(&adminCount).Error; err != nil {
 		return err
 	}
 	if adminCount >= int64(klub.KorisnikAdminLimit) {

@@ -195,6 +195,7 @@ export default function Home() {
       })
       if (fileInputRef.current) fileInputRef.current.value = ''
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
+      await showAlert('Objava je uspešno postavljena.', 'Uspeh')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri objavljivanju', 'Objava')
     } finally {
@@ -584,6 +585,7 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
       setNewComment('')
       setCommentsOpen(true)
       await fetchComments()
+      await showAlert('Komentar je dodat.', 'Uspeh')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri dodavanju komentara', 'Komentar')
     } finally {
