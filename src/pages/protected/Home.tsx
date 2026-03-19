@@ -342,28 +342,27 @@ export default function Home() {
                       />
 
                       {newPostImagePreview && (
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                          <div className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl">
-                            Slika spremna
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleRemoveImage}
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            Ukloni
-                          </button>
-                        </div>
-                      )}
+                        <div className="flex justify-center">
+                          <div className="relative w-full max-w-xl rounded-xl overflow-hidden border border-gray-100 bg-white">
+                            <button
+                              type="button"
+                              onClick={handleRemoveImage}
+                              disabled={submitting}
+                              aria-label="Ukloni sliku"
+                              title="Ukloni sliku"
+                              className={`absolute top-2 right-2 z-10 p-2 rounded-xl bg-white/90 border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
+                            >
+                              <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
 
-                      {newPostImagePreview && (
-                        <div className="rounded-xl overflow-hidden border border-gray-100 bg-white">
-                          <img
-                            src={newPostImagePreview}
-                            alt="Preview"
-                            className="w-full max-h-48 object-cover"
-                          />
+                            <img
+                              src={newPostImagePreview}
+                              alt="Preview"
+                              className="w-full max-h-48 object-cover"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
