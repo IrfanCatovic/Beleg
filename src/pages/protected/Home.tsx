@@ -79,8 +79,21 @@ export default function Home() {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [newPostImage, setNewPostImage] = useState<File | null>(null)
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   const hasMore = posts.length < total
+
+  const openLightbox = useCallback((src: string) => setLightboxSrc(src), [])
+  const closeLightbox = useCallback(() => setLightboxSrc(null), [])
+
+  useEffect(() => {
+    if (!lightboxSrc) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightboxSrc, closeLightbox])
 
   const fetchPosts = useCallback(async (offset = 0, append = false) => {
     try {
@@ -253,6 +266,38 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-gray-50 pb-20 md:pb-12">
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-md px-3 sm:px-6 py-6 flex items-center justify-center animate-[fadeIn_150ms_ease-out]"
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="relative w-full max-w-6xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeLightbox}
+              className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 text-white transition-colors"
+              aria-label="Zatvori uvećanu sliku"
+              title="Zatvori (Esc)"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <path d="M6 6l12 12" />
+                <path d="M18 6l-12 12" />
+              </svg>
+            </button>
+
+            <img
+              src={lightboxSrc}
+              alt="Uvećana slika"
+              className="w-full max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10 bg-black/20 transition-transform duration-200 transform-gpu"
+            />
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-8 items-start">
 
@@ -361,6 +406,12 @@ export default function Home() {
                               src={newPostImagePreview}
                               alt="Preview"
                               className="w-full max-h-48 object-cover"
+                              onClick={() => openLightbox(newPostImagePreview)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') openLightbox(newPostImagePreview)
+                              }}
                             />
                           </div>
                         </div>
@@ -391,6 +442,7 @@ export default function Home() {
                     currentUsername={user?.username}
                     currentRole={user?.role}
                     onDelete={handleDeletePost}
+                    onOpenImage={openLightbox}
                   />
                 ))}
               </div>
@@ -524,11 +576,12 @@ export default function Home() {
 /* Sub-components */
 /* ═════════════════════════════════════════════════════════════════════ */
 
-function PostCard({ post, currentUsername, currentRole, onDelete }: {
+function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }: {
   post: Post
   currentUsername?: string
   currentRole?: string
   onDelete: (id: number) => void
+  onOpenImage: (src: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -685,6 +738,12 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
               alt=""
               className="w-full max-h-[500px] object-cover"
               loading="lazy"
+              onClick={() => onOpenImage(post.imageUrl!)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onOpenImage(post.imageUrl!)
+              }}
             />
           </div>
         )}
