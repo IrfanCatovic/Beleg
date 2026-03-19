@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import { formatRelativeTime, formatDateShort } from '../../utils/dateUtils'
-import { getRoleLabel } from '../../utils/roleUtils'
 import Loader from '../../components/Loader'
 
 interface PostUser {
@@ -260,62 +259,51 @@ export default function Home() {
 
   if (loadingPosts && posts.length === 0) return <Loader />
 
-  const displayName = user?.fullName || user?.username || 'planinaru'
   const POST_MAX_LENGTH = 3000
   const canPost = !!newPostContent.trim() && newPostContent.length <= POST_MAX_LENGTH
 
   return (
-    <div className="relative min-h-screen bg-gray-50 pb-20 md:pb-12">
+    <div className="relative min-h-screen bg-white sm:bg-gray-50 pb-20 md:pb-12">
+      {/* ── Lightbox ── */}
       {lightboxSrc && (
         <div
-          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-md px-3 sm:px-6 py-6 flex items-center justify-center animate-[fadeIn_150ms_ease-out]"
+          className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-lg flex items-center justify-center animate-[fadeIn_120ms_ease-out]"
           onClick={closeLightbox}
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="relative w-full max-w-6xl"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white/90 hover:text-white transition-all"
+            aria-label="Zatvori"
+            title="Zatvori (Esc)"
           >
-            <button
-              type="button"
-              onClick={closeLightbox}
-              className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 text-white transition-colors"
-              aria-label="Zatvori uvećanu sliku"
-              title="Zatvori (Esc)"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                <path d="M6 6l12 12" />
-                <path d="M18 6l-12 12" />
-              </svg>
-            </button>
-
-            <img
-              src={lightboxSrc}
-              alt="Uvećana slika"
-              className="w-full max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10 bg-black/20 transition-transform duration-200 transform-gpu"
-            />
-          </div>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Uvećana slika"
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+          />
         </div>
       )}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-8 items-start">
+
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,640px)_320px] xl:grid-cols-[minmax(0,640px)_360px] gap-8 lg:justify-center items-start">
 
           {/* ──── MAIN: Feed ──── */}
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0">
 
-            {/* Welcome + Compose Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3">
-                <p className="text-sm font-medium text-emerald-600 mb-0.5">Zdravo, {displayName}</p>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Šta ima novo?</h1>
-              </div>
-
-              {/* Compose */}
-              <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+            {/* ── Compose ── */}
+            <div className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden">
+              <div className="px-4 sm:px-5 py-4">
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white shadow-sm">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
                       {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -324,117 +312,92 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="relative">
-                      <textarea
-                        ref={textareaRef}
-                        value={newPostContent}
-                        maxLength={POST_MAX_LENGTH}
-                        onChange={e => setNewPostContent(e.target.value)}
-                        onInput={handleTextareaInput}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) {
-                            e.preventDefault()
-                            handleSubmitPost()
-                          }
-                        }}
-                        placeholder="Podeli nešto sa zajednicom..."
-                        rows={1}
-                        className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 pr-14 text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all"
-                      />
+                    <textarea
+                      ref={textareaRef}
+                      value={newPostContent}
+                      maxLength={POST_MAX_LENGTH}
+                      onChange={e => setNewPostContent(e.target.value)}
+                      onInput={handleTextareaInput}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) {
+                          e.preventDefault()
+                          handleSubmitPost()
+                        }
+                      }}
+                      placeholder="Podeli nešto sa zajednicom..."
+                      rows={1}
+                      className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
+                    />
 
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={submitting}
-                        className="absolute right-3 bottom-3 inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-emerald-100"
-                        aria-label="Dodaj sliku"
-                        title="Dodaj sliku"
-                      >
-                        <div className="flex items-center gap-1">
-                          <svg className="w-4 h-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0V8m0 4l-4-4m4 4l4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    {newPostImagePreview && (
+                      <div className="mt-3 relative rounded-xl overflow-hidden border border-gray-200/60 bg-gray-50">
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          disabled={submitting}
+                          aria-label="Ukloni sliku"
+                          className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                            <path d="M18 6L6 18M6 6l12 12" />
                           </svg>
-                          <span className="text-emerald-600 font-extrabold text-[14px] leading-none">+</span>
-                        </div>
-                      </button>
-                    </div>
+                        </button>
+                        <img
+                          src={newPostImagePreview}
+                          alt="Preview"
+                          className="w-full max-h-72 object-cover cursor-pointer"
+                          onClick={() => openLightbox(newPostImagePreview)}
+                        />
+                      </div>
+                    )}
 
-                    <div className="flex justify-end mt-3">
+                    <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <div className="flex items-center gap-1">
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSelectImage} />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={submitting}
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 transition-colors"
+                          aria-label="Dodaj sliku"
+                          title="Dodaj sliku"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm14.625-11.25a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0z" />
+                          </svg>
+                        </button>
+                      </div>
                       <button
                         onClick={handleSubmitPost}
                         disabled={!canPost || submitting}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-emerald-200/50 transition-all"
+                        className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         {submitting ? (
                           <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                          </svg>
-                        )}
-                        Objavi
+                        ) : 'Objavi'}
                       </button>
-                    </div>
-
-                    {/* Upload slike za objavu */}
-                    <div className="mt-3">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleSelectImage}
-                      />
-
-                      {newPostImagePreview && (
-                        <div className="flex justify-center">
-                          <div className="relative w-full max-w-xl rounded-xl overflow-hidden border border-gray-100 bg-white">
-                            <button
-                              type="button"
-                              onClick={handleRemoveImage}
-                              disabled={submitting}
-                              aria-label="Ukloni sliku"
-                              title="Ukloni sliku"
-                              className={`absolute top-2 right-2 z-10 p-2 rounded-xl bg-white/90 border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
-                            >
-                              <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-
-                            <img
-                              src={newPostImagePreview}
-                              alt="Preview"
-                              className="w-full max-h-48 object-cover"
-                              onClick={() => openLightbox(newPostImagePreview)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') openLightbox(newPostImagePreview)
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Post List */}
+            {/* ── Divider on mobile ── */}
+            <div className="h-2 bg-gray-100 sm:hidden" />
+
+            {/* ── Post List ── */}
             {posts.length === 0 && !loadingPosts ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 mb-4">
-                  <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="px-4 py-16 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Još nema objava</h3>
-                <p className="text-sm text-gray-500 max-w-sm mx-auto">Budi prvi koji će podeliti nešto sa zajednicom! Napiši kako je bilo na poslednjoj akciji ili podeli neki saveta za planinarenje.</p>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Još nema objava</h3>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto">Budi prvi koji će podeliti nešto sa zajednicom!</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="sm:mt-4 sm:space-y-4 divide-y divide-gray-100 sm:divide-y-0">
                 {posts.map(post => (
                   <PostCard
                     key={post.id}
@@ -448,30 +411,28 @@ export default function Home() {
               </div>
             )}
 
-            {/* Sentinel za infinite scroll */}
             <div ref={sentinelRef} className="h-1" />
 
             {loadingMore && (
-              <div className="flex justify-center py-6">
-                <div className="h-7 w-7 rounded-full border-[3px] border-emerald-500 border-t-transparent animate-spin" />
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 rounded-full border-[2.5px] border-emerald-500 border-t-transparent animate-spin" />
               </div>
             )}
 
             {!hasMore && posts.length > 0 && (
-              <div className="text-center py-6">
+              <div className="text-center py-8">
                 <p className="text-xs text-gray-400 font-medium">Sve objave su učitane</p>
               </div>
             )}
           </div>
 
           {/* ──── SIDEBAR ──── */}
-          <aside className="hidden lg:block space-y-6 sticky top-[76px]">
+          <aside className="hidden lg:block space-y-5 sticky top-[76px]">
 
-            {/* Moja statistika */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
+            <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                <h3 className="text-sm font-bold text-gray-900 tracking-tight">Moja statistika</h3>
+                <h3 className="text-sm font-bold text-gray-900">Moja statistika</h3>
               </div>
               <div className="p-4">
                 {loadingSidebar ? (
@@ -497,12 +458,11 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sledeće akcije */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-blue-400 to-indigo-600" />
-                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">Sledeće akcije</h3>
+                  <h3 className="text-sm font-bold text-gray-900">Sledeće akcije</h3>
                 </div>
                 <Link to="/akcije" className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
                   Sve akcije
@@ -550,11 +510,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Brzi linkovi */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
+            <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-400 to-purple-600" />
-                <h3 className="text-sm font-bold text-gray-900 tracking-tight">Brzi linkovi</h3>
+                <h3 className="text-sm font-bold text-gray-900">Brzi linkovi</h3>
               </div>
               <div className="p-3">
                 <div className="space-y-0.5">
@@ -670,207 +629,194 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
   const avatar = post.user.avatarUrl
   const displayName = post.user.fullName?.trim() || post.user.username
   const initial = displayName.charAt(0).toUpperCase()
-  const roleLabel = getRoleLabel(post.user.role)
-
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-      <div className="px-5 sm:px-6 pt-5 sm:pt-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <Link to={`/korisnik/${post.user.username}`} className="flex items-center gap-3 min-w-0 group">
-            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white shadow-sm flex-shrink-0">
-              {avatar ? (
-                <img src={avatar} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
-              ) : null}
-              <span className={avatar ? 'invisible' : ''}>{initial}</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{displayName}</p>
-                {post.user.klubNaziv && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-gray-100 text-[10px] font-medium text-gray-500 truncate max-w-[120px]">
-                    {post.user.klubNaziv}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-400 font-medium">
-                @{post.user.username} · {roleLabel} · {formatRelativeTime(post.createdAt)}
-              </p>
-            </div>
-          </Link>
-
-          {canDelete && (
-            <div className="relative flex-shrink-0" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen(v => !v)}
-                className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 top-9 w-40 bg-white rounded-xl shadow-xl ring-1 ring-black/5 z-20 py-1 animate-[scaleIn_150ms_ease-out]">
-                  <button
-                    onClick={() => { setMenuOpen(false); onDelete(post.id) }}
-                    className="flex w-full items-center gap-2 px-3.5 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
-                    Obriši objavu
-                  </button>
-                </div>
+    <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <Link to={`/korisnik/${post.user.username}`} className="flex items-center gap-3 min-w-0 group">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ring-[2.5px] ring-emerald-100/60">
+            {avatar ? (
+              <img src={avatar} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
+            ) : null}
+            <span className={avatar ? 'invisible' : ''}>{initial}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[14px] font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{displayName}</p>
+              {post.user.klubNaziv && (
+                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-500 truncate max-w-[100px]">
+                  {post.user.klubNaziv}
+                </span>
               )}
+            </div>
+            <p className="text-[12px] text-gray-400 -mt-0.5">
+              @{post.user.username} · {formatRelativeTime(post.createdAt)}
+            </p>
+          </div>
+        </Link>
+
+        {canDelete && (
+          <div className="relative flex-shrink-0" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              className="inline-flex items-center justify-center h-8 w-8 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-9 w-44 bg-white rounded-xl shadow-xl ring-1 ring-black/5 z-20 py-1 animate-[scaleIn_150ms_ease-out]">
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete(post.id) }}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                  Obriši objavu
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Content text */}
+      <div className="px-4 sm:px-5 pb-2.5">
+        <p className="text-[15px] text-gray-900 leading-relaxed whitespace-pre-wrap break-words">{post.content}</p>
+      </div>
+
+      {/* Image — full width, no padding */}
+      {post.imageUrl && (
+        <div className="sm:mx-5 sm:mb-3 sm:rounded-xl overflow-hidden">
+          <img
+            src={post.imageUrl}
+            alt=""
+            className="w-full max-h-[560px] object-cover cursor-pointer"
+            loading="lazy"
+            onClick={() => onOpenImage(post.imageUrl!)}
+          />
+        </div>
+      )}
+
+      {/* Actions — flat, no borders */}
+      <div className="flex items-center gap-1 px-2 sm:px-3 py-1 border-t border-gray-100/80">
+        <button
+          type="button"
+          onClick={handleToggleLike}
+          disabled={liking}
+          className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            liked ? 'text-rose-600' : 'text-gray-500 hover:text-rose-500'
+          } hover:bg-gray-50 disabled:opacity-60`}
+        >
+          <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+              fill={liked ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+          </svg>
+          {liking ? (
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+          ) : (
+            <span className="text-[13px]">{likeCount > 0 ? likeCount : ''}</span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCommentsOpen((v) => !v)}
+          className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-500 hover:text-emerald-600 hover:bg-gray-50 transition-colors"
+        >
+          <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h6M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-3.44-.56L3 21l1.56-4.56A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span className="text-[13px]">{commentCount > 0 ? commentCount : ''}</span>
+        </button>
+      </div>
+
+      {/* Like count text */}
+      {likeCount > 0 && (
+        <div className="px-4 sm:px-5 pb-1">
+          <p className="text-[13px] font-semibold text-gray-900">{likeCount} {likeCount === 1 ? 'lajk' : 'lajkova'}</p>
+        </div>
+      )}
+
+      {/* Comments section */}
+      {commentsOpen && (
+        <div className="px-4 sm:px-5 pb-4 pt-1">
+          {commentsLoading && comments.length === 0 && (
+            <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
+              <div className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+              Učitavanje komentara...
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Content */}
-      <div className="px-5 sm:px-6 pt-3 pb-5 sm:pb-6">
-        <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{post.content}</p>
-
-        {post.imageUrl && (
-          <div className="mt-4 rounded-xl overflow-hidden border border-gray-100">
-            <img
-              src={post.imageUrl}
-              alt=""
-              className="w-full max-h-[500px] object-cover"
-              loading="lazy"
-              onClick={() => onOpenImage(post.imageUrl!)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onOpenImage(post.imageUrl!)
-              }}
-            />
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleToggleLike}
-            disabled={liking}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-              liked
-                ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100/60'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-emerald-50/60 hover:border-emerald-200'
-            } disabled:opacity-60 disabled:cursor-not-allowed`}
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                fill={liked ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-            </svg>
-            {liking && (
-              <span className="ml-1 inline-flex items-center justify-center">
-                <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-              </span>
-            )}
-            <span className={`ml-1 text-xs font-bold ${liked ? 'text-rose-700' : 'text-gray-500'}`}>{likeCount}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCommentsOpen((v) => !v)}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50/60 hover:border-emerald-200 transition-colors"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h6M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-3.44-.56L3 21l1.56-4.56A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span className="ml-1 text-xs font-bold text-gray-500">{commentCount}</span>
-          </button>
-        </div>
-
-        {/* Comments */}
-        {commentsOpen && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-bold text-gray-900">Komentari</p>
-              {commentsLoading && comments.length === 0 && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <div className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-                  Učitavanje...
-                </div>
-              )}
-            </div>
-
-            {comments.length > 0 ? (
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {comments.map((cm) => {
-                  const displayName = cm.user.fullName?.trim() ? cm.user.fullName : cm.user.username
-                  const initial = displayName.charAt(0).toUpperCase()
-                  return (
-                    <div key={cm.id} className="flex gap-3">
-                      <div className="relative w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {cm.user.avatarUrl ? (
-                          <img src={cm.user.avatarUrl} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
-                        ) : (
-                          <span>{initial}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Link to={`/korisnik/${cm.user.username}`} className="text-sm font-semibold text-gray-900 hover:text-emerald-700 transition-colors">
-                            {displayName}
-                          </Link>
-                          <span className="text-xs text-gray-400">{formatRelativeTime(cm.createdAt)}</span>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap break-words">{cm.content}</p>
-                      </div>
+          {comments.length > 0 && (
+            <div className="space-y-3 max-h-80 overflow-y-auto py-2">
+              {comments.map((cm) => {
+                const cmName = cm.user.fullName?.trim() ? cm.user.fullName : cm.user.username
+                const cmInitial = cmName.charAt(0).toUpperCase()
+                return (
+                  <div key={cm.id} className="flex gap-2.5">
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0">
+                      {cm.user.avatarUrl ? (
+                        <img src={cm.user.avatarUrl} alt={cmName} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <span>{cmInitial}</span>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
-            ) : !commentsLoading ? (
-              <p className="text-sm text-gray-500">Još nema komentara. Budi prvi.</p>
-            ) : null}
-
-            <div className="mt-4 flex gap-3 items-start">
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {post.user.username ? (
-                  <span>{(post.user.fullName?.trim() ? post.user.fullName : post.user.username).charAt(0).toUpperCase()}</span>
-                ) : (
-                  <span>?</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows={2}
-                  className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                  placeholder="Napiši komentar..."
-                />
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSubmitComment}
-                    disabled={!newComment.trim() || submittingComment}
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-emerald-200/50"
-                  >
-                    {submittingComment ? (
-                      <span className="inline-flex items-center justify-center">
-                        <span className="h-4 w-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
-                      </span>
-                    ) : (
-                      'Pošalji'
-                    )}
-                  </button>
-                </div>
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] leading-snug">
+                        <Link to={`/korisnik/${cm.user.username}`} className="font-bold text-gray-900 hover:text-emerald-700 transition-colors mr-1.5">
+                          {cmName}
+                        </Link>
+                        <span className="text-gray-700">{cm.content}</span>
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{formatRelativeTime(cm.createdAt)}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+          )}
+
+          {!commentsLoading && comments.length === 0 && (
+            <p className="text-[13px] text-gray-400 py-2">Još nema komentara.</p>
+          )}
+
+          {/* Add comment */}
+          <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmitComment()
+                }
+              }}
+              className="flex-1 min-w-0 border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none py-1"
+              placeholder="Dodaj komentar..."
+            />
+            <button
+              type="button"
+              onClick={handleSubmitComment}
+              disabled={!newComment.trim() || submittingComment}
+              className="text-sm font-bold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-default transition-colors px-1"
+            >
+              {submittingComment ? (
+                <span className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin inline-block" />
+              ) : (
+                'Objavi'
+              )}
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </article>
   )
 }

@@ -175,13 +175,18 @@ export default function Zadaci() {
 
   const handleDelete = async (task: Task) => {
     if (!isAdminOrSekretar) return
-    if (!confirm(`Obrisati zadatak "${task.naziv}"?`)) return
+    const confirmed = await showConfirm(`Obrisati zadatak "${task.naziv}"?`, {
+      variant: 'danger',
+      confirmLabel: 'Obriši',
+      cancelLabel: 'Otkaži',
+    })
+    if (!confirmed) return
     try {
       await api.delete(`/api/zadaci/${task.id}`)
       setTasks((prev) => prev.filter((t) => t.id !== task.id))
       setEditTask(null)
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Greška pri brisanju.')
+      await showAlert(err.response?.data?.error || 'Greška pri brisanju.')
     }
   }
 
