@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,6 +19,19 @@ type CreatePostRequest struct {
 
 func GetPosts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	var currentUser models.Korisnik
+	if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
 
 	limit := 30
 	offset := 0
@@ -51,6 +65,64 @@ func GetPosts(c *gin.Context) {
 		return
 	}
 
+	// Engagement (lajkovi/komentari) - agregacije za prikaz u listi.
+	// Ovo izbegava N+1 upite (30 postova => max 3 dodatne query-je).
+	postIDs := make([]uint, 0, len(posts))
+	for _, p := range posts {
+		postIDs = append(postIDs, p.ID)
+	}
+
+	type likeCountRow struct {
+		PostID uint
+		Cnt    int64
+	}
+	likeCountMap := make(map[uint]int64, len(posts))
+	if len(postIDs) > 0 {
+		var likeRows []likeCountRow
+		if err := db.Model(&models.PostLike{}).
+			Select("post_id, count(*) as cnt").
+			Where("post_id IN ?", postIDs).
+			Group("post_id").
+			Scan(&likeRows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju lajkova"})
+			return
+		}
+		for _, r := range likeRows {
+			likeCountMap[r.PostID] = r.Cnt
+		}
+	}
+
+	likedSet := make(map[uint]bool, len(posts))
+	if len(postIDs) > 0 {
+		var likedPostIDs []uint
+		_ = db.Model(&models.PostLike{}).
+			Where("user_id = ? AND post_id IN ?", currentUser.ID, postIDs).
+			Pluck("post_id", &likedPostIDs).Error
+		for _, pid := range likedPostIDs {
+			likedSet[pid] = true
+		}
+	}
+
+	type commentCountRow struct {
+		PostID uint
+		Cnt    int64
+	}
+	commentCountMap := make(map[uint]int64, len(posts))
+	if len(postIDs) > 0 {
+		var commentRows []commentCountRow
+		if err := db.Model(&models.PostComment{}).
+			Select("post_id, count(*) as cnt").
+			Where("post_id IN ?", postIDs).
+			Group("post_id").
+			Scan(&commentRows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju komentara"})
+			return
+		}
+		for _, r := range commentRows {
+			commentCountMap[r.PostID] = r.Cnt
+		}
+	}
+
 	type UserDTO struct {
 		ID        uint   `json:"id"`
 		Username  string `json:"username"`
@@ -61,11 +133,14 @@ func GetPosts(c *gin.Context) {
 	}
 
 	type PostDTO struct {
-		ID        uint    `json:"id"`
-		Content   string  `json:"content"`
-		ImageURL  string  `json:"imageUrl,omitempty"`
-		CreatedAt string  `json:"createdAt"`
-		User      UserDTO `json:"user"`
+		ID           uint    `json:"id"`
+		Content      string  `json:"content"`
+		ImageURL     string  `json:"imageUrl,omitempty"`
+		CreatedAt    string  `json:"createdAt"`
+		User         UserDTO `json:"user"`
+		LikeCount    int64   `json:"likeCount"`
+		CommentCount int64   `json:"commentCount"`
+		MyLiked      bool    `json:"myLiked"`
 	}
 
 	out := make([]PostDTO, 0, len(posts))
@@ -82,11 +157,14 @@ func GetPosts(c *gin.Context) {
 			}
 		}
 		out = append(out, PostDTO{
-			ID:        p.ID,
-			Content:   p.Content,
-			ImageURL:  p.ImageURL,
-			CreatedAt: p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			User:      u,
+			ID:            p.ID,
+			Content:      p.Content,
+			ImageURL:     p.ImageURL,
+			CreatedAt:    p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			User:         u,
+			LikeCount:    likeCountMap[p.ID],
+			CommentCount: commentCountMap[p.ID],
+			MyLiked:      likedSet[p.ID],
 		})
 	}
 
@@ -157,6 +235,9 @@ func CreatePost(c *gin.Context) {
 		"content":   post.Content,
 		"imageUrl":  post.ImageURL,
 		"createdAt": post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"likeCount":    int64(0),
+		"commentCount": int64(0),
+		"myLiked":      false,
 		"user": gin.H{
 			"id":        post.User.ID,
 			"username":  post.User.Username,
@@ -205,10 +286,244 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
+	// Čisti engagement kako ne bi ostali orphan zapisi.
+	_ = db.Where("post_id = ?", postID).Delete(&models.PostLike{}).Error
+	_ = db.Where("post_id = ?", postID).Delete(&models.PostComment{}).Error
+
 	if err := db.Delete(&post).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju objave"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Objava obrisana"})
+}
+
+type ToggleLikeResponse struct {
+	Liked     bool  `json:"liked"`
+	LikeCount int64 `json:"likeCount"`
+}
+
+// POST /api/posts/:id/like
+// Toggle lajk: ako korisnik već lajkuje post -> uklanja lajk, inače dodaje.
+func TogglePostLike(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	idStr := c.Param("id")
+	postID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	// Proveri da post postoji
+	var post models.Post
+	if err := db.First(&post, postID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		return
+	}
+
+	var existing models.PostLike
+	likeErr := db.Where("post_id = ? AND user_id = ?", postID, korisnik.ID).First(&existing).Error
+	liked := false
+	if likeErr == nil {
+		if err := db.Delete(&existing).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju lajkа"})
+			return
+		}
+		liked = false
+	} else if errors.Is(likeErr, gorm.ErrRecordNotFound) {
+		if err := db.Create(&models.PostLike{PostID: uint(postID), UserID: korisnik.ID}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju lajkа"})
+			return
+		}
+		liked = true
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri lajkа"})
+		return
+	}
+
+	var likeCount int64
+	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
+
+	c.JSON(http.StatusOK, ToggleLikeResponse{
+		Liked:     liked,
+		LikeCount: likeCount,
+	})
+}
+
+type CreateCommentRequest struct {
+	Content string `json:"content" binding:"required"`
+}
+
+// GET /api/posts/:id/comments?limit=20&offset=0
+func GetPostComments(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	idStr := c.Param("id")
+	postID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	limit := 20
+	offset := 0
+	if l := c.Query("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 50 {
+			limit = n
+		}
+	}
+	if o := c.Query("offset"); o != "" {
+		if n, err := strconv.Atoi(o); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	var total int64
+	db.Model(&models.PostComment{}).Where("post_id = ?", postID).Count(&total)
+
+	var comments []models.PostComment
+	if err := db.
+		Preload("User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id, username, full_name, avatar_url")
+		}).
+		Where("post_id = ?", postID).
+		Order("created_at ASC").
+		Limit(limit).
+		Offset(offset).
+		Find(&comments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju komentara"})
+		return
+	}
+
+	type CommentUserDTO struct {
+		ID        uint   `json:"id"`
+		Username  string `json:"username"`
+		FullName  string `json:"fullName"`
+		AvatarURL string `json:"avatarUrl,omitempty"`
+	}
+
+	type CommentDTO struct {
+		ID        uint            `json:"id"`
+		Content   string         `json:"content"`
+		CreatedAt string         `json:"createdAt"`
+		User      CommentUserDTO `json:"user"`
+	}
+
+	out := make([]CommentDTO, 0, len(comments))
+	for _, cm := range comments {
+		u := CommentUserDTO{}
+		if cm.User != nil {
+			u = CommentUserDTO{
+				ID:        cm.User.ID,
+				Username:  cm.User.Username,
+				FullName:  cm.User.FullName,
+				AvatarURL: cm.User.AvatarURL,
+			}
+		}
+
+		out = append(out, CommentDTO{
+			ID:        cm.ID,
+			Content:   cm.Content,
+			CreatedAt: cm.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			User:      u,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"comments": out,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+	})
+}
+
+// POST /api/posts/:id/comments
+func CreatePostComment(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	idStr := c.Param("id")
+	postID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	var req CreateCommentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Polje 'content' je obavezno"})
+		return
+	}
+
+	req.Content = strings.TrimSpace(req.Content)
+	if req.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst komentara ne sme biti prazan"})
+		return
+	}
+	if len(req.Content) > 1500 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst komentara je predugačak (maks. 1500 karaktera)"})
+		return
+	}
+
+	// Proveri da post postoji
+	var post models.Post
+	if err := db.First(&post, postID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		return
+	}
+
+	comment := models.PostComment{
+		PostID:  uint(postID),
+		UserID:  korisnik.ID,
+		Content: req.Content,
+	}
+
+	if err := db.Create(&comment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju komentara"})
+		return
+	}
+
+	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, username, full_name, avatar_url")
+	}).First(&comment, comment.ID)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"comment": gin.H{
+			"id":        comment.ID,
+			"content":   comment.Content,
+			"createdAt": comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"user": gin.H{
+				"id":        comment.User.ID,
+				"username":  comment.User.Username,
+				"fullName":  comment.User.FullName,
+				"avatarUrl": comment.User.AvatarURL,
+			},
+		},
+	})
 }

@@ -10,4 +10,8 @@ func RegisterPostRoutes(g *gin.RouterGroup) {
 	g.GET("/posts", handlers.GetPosts)
 	g.POST("/posts", handlers.CreatePost)
 	g.DELETE("/posts/:id", handlers.DeletePost)
+
+	g.POST("/posts/:id/like", handlers.TogglePostLike)
+	g.GET("/posts/:id/comments", handlers.GetPostComments)
+	g.POST("/posts/:id/comments", handlers.CreatePostComment)
 }

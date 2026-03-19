@@ -120,6 +120,8 @@ func main() {
 		&models.Klubovi{},
 		&models.CloudinaryPendingDelete{},
 		&models.Post{},
+		&models.PostLike{},
+		&models.PostComment{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)

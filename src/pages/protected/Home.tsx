@@ -22,6 +22,23 @@ interface Post {
   imageUrl?: string
   createdAt: string
   user: PostUser
+  likeCount: number
+  commentCount: number
+  myLiked: boolean
+}
+
+interface PostCommentUser {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+}
+
+interface PostComment {
+  id: number
+  content: string
+  createdAt: string
+  user: PostCommentUser
 }
 
 interface Akcija {
@@ -44,7 +61,7 @@ const POST_LIMIT = 30
 
 export default function Home() {
   const { isLoggedIn, user } = useAuth()
-  const { showConfirm } = useModal()
+  const { showConfirm, showAlert } = useModal()
 
   const [posts, setPosts] = useState<Post[]>([])
   const [total, setTotal] = useState(0)
@@ -122,8 +139,8 @@ export default function Home() {
       setTotal(prev => prev + 1)
       setNewPostContent('')
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
-    } catch {
-      // silently handle
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri objavljivanju', 'Objava')
     } finally {
       setSubmitting(false)
     }
@@ -141,8 +158,8 @@ export default function Home() {
       await api.delete(`/api/posts/${postId}`)
       setPosts(prev => prev.filter(p => p.id !== postId))
       setTotal(prev => prev - 1)
-    } catch {
-      // silently handle
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri brisanju objave', 'Objava')
     }
   }
 
@@ -409,6 +426,70 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  const { showAlert } = useModal()
+
+  const [liked, setLiked] = useState<boolean>(!!post.myLiked)
+  const [likeCount, setLikeCount] = useState<number>(post.likeCount ?? 0)
+  const [commentCount, setCommentCount] = useState<number>(post.commentCount ?? 0)
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [liking, setLiking] = useState(false)
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [comments, setComments] = useState<PostComment[]>([])
+  const [newComment, setNewComment] = useState('')
+
+  const fetchComments = useCallback(async () => {
+    if (commentsLoading) return
+    setCommentsLoading(true)
+    try {
+      const res = await api.get(`/api/posts/${post.id}/comments`, { params: { limit: 20, offset: 0 } })
+      setComments(res.data.comments || [])
+      setCommentCount(res.data.total ?? 0)
+    } catch {
+      setComments([])
+      setCommentCount(0)
+      await showAlert('Greška pri učitavanju komentara', 'Komentari')
+    } finally {
+      setCommentsLoading(false)
+    }
+  }, [commentsLoading, post.id, showAlert])
+
+  useEffect(() => {
+    if (!commentsOpen) return
+    if (comments.length > 0) return
+    fetchComments()
+  }, [commentsOpen, comments.length, fetchComments])
+
+  const handleToggleLike = async () => {
+    if (liking) return
+    try {
+      setLiking(true)
+      const res = await api.post(`/api/posts/${post.id}/like`)
+      setLiked(!!res.data.liked)
+      setLikeCount(res.data.likeCount ?? 0)
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri lajkovanju objave', 'Lajk')
+    } finally {
+      setLiking(false)
+    }
+  }
+
+  const handleSubmitComment = async () => {
+    const content = newComment.trim()
+    if (!content || submittingComment) return
+    setSubmittingComment(true)
+    try {
+      await api.post(`/api/posts/${post.id}/comments`, { content })
+      setNewComment('')
+      setCommentsOpen(true)
+      await fetchComments()
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri dodavanju komentara', 'Komentar')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
   const isOwner = currentUsername === post.user.username
   const isAdmin = currentRole === 'admin' || currentRole === 'superadmin'
   const canDelete = isOwner || isAdmin
@@ -494,6 +575,132 @@ function PostCard({ post, currentUsername, currentRole, onDelete }: {
               className="w-full max-h-[500px] object-cover"
               loading="lazy"
             />
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleToggleLike}
+            disabled={liking}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+              liked
+                ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100/60'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-emerald-50/60 hover:border-emerald-200'
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                fill={liked ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                strokeWidth="1.7"
+              />
+            </svg>
+            Lajk
+            {liking && (
+              <span className="ml-1 inline-flex items-center justify-center">
+                <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+              </span>
+            )}
+            <span className={`ml-1 text-xs font-bold ${liked ? 'text-rose-700' : 'text-gray-500'}`}>{likeCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCommentsOpen((v) => !v)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50/60 hover:border-emerald-200 transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h6M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-3.44-.56L3 21l1.56-4.56A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Komentari
+            <span className="ml-1 text-xs font-bold text-gray-500">{commentCount}</span>
+          </button>
+        </div>
+
+        {/* Comments */}
+        {commentsOpen && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-gray-900">Komentari</p>
+              {commentsLoading && comments.length === 0 && (
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+                  Učitavanje...
+                </div>
+              )}
+            </div>
+
+            {comments.length > 0 ? (
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {comments.map((cm) => {
+                  const displayName = cm.user.fullName?.trim() ? cm.user.fullName : cm.user.username
+                  const initial = displayName.charAt(0).toUpperCase()
+                  return (
+                    <div key={cm.id} className="flex gap-3">
+                      <div className="relative w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {cm.user.avatarUrl ? (
+                          <img src={cm.user.avatarUrl} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <span>{initial}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link to={`/korisnik/${cm.user.username}`} className="text-sm font-semibold text-gray-900 hover:text-emerald-700 transition-colors">
+                            {displayName}
+                          </Link>
+                          <span className="text-xs text-gray-400">{formatRelativeTime(cm.createdAt)}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap break-words">{cm.content}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : !commentsLoading ? (
+              <p className="text-sm text-gray-500">Još nema komentara. Budi prvi.</p>
+            ) : null}
+
+            <div className="mt-4 flex gap-3 items-start">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                {post.user.username ? (
+                  <span>{(post.user.fullName?.trim() ? post.user.fullName : post.user.username).charAt(0).toUpperCase()}</span>
+                ) : (
+                  <span>?</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                  placeholder="Napiši komentar..."
+                />
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="text-[11px] text-gray-400">{newComment.length}/1500</p>
+                  <button
+                    type="button"
+                    onClick={handleSubmitComment}
+                    disabled={!newComment.trim() || submittingComment}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-emerald-200/50"
+                  >
+                    {submittingComment ? (
+                      <span className="inline-flex items-center justify-center">
+                        <span className="h-4 w-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+                      </span>
+                    ) : (
+                      'Pošalji'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
