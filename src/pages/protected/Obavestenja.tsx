@@ -21,7 +21,6 @@ export default function Obavestenja() {
   const navigate = useNavigate()
   const [list, setList] = useState<ObavestenjeItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
   const [broadcastTitle, setBroadcastTitle] = useState('')
   const [broadcastBody, setBroadcastBody] = useState('')
   const [broadcastSending, setBroadcastSending] = useState(false)
@@ -37,7 +36,6 @@ export default function Obavestenja() {
       .get('/api/obavestenja', { params: { limit: 50 } })
       .then((r) => {
         setList(r.data.obavestenja ?? [])
-        setUnreadCount(r.data.unreadCount ?? 0)
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false))
@@ -46,7 +44,6 @@ export default function Obavestenja() {
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => {
-        setUnreadCount((c) => Math.max(0, c - 1))
         setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
       }).catch(() => {})
     }
@@ -58,7 +55,6 @@ export default function Obavestenja() {
     try {
       await api.delete(`/api/obavestenja/${n.id}`)
       setList((prev) => prev.filter((x) => x.id !== n.id))
-      if (!n.readAt) setUnreadCount((c) => Math.max(0, c - 1))
     } catch {
       // ignore
     }
@@ -82,7 +78,6 @@ export default function Obavestenja() {
       })
       .then((r) => {
         setList(r.data.obavestenja ?? [])
-        setUnreadCount(r.data.unreadCount ?? 0)
       })
       .catch((err) => setBroadcastError(err.response?.data?.error || 'Greška pri slanju.'))
       .finally(() => setBroadcastSending(false))
@@ -95,6 +90,8 @@ export default function Obavestenja() {
         ? 'bg-blue-100 text-blue-600'
         : type === 'zadatak'
           ? 'bg-amber-100 text-amber-700'
+          : type === 'post'
+            ? 'bg-rose-100 text-rose-600'
           : type === 'broadcast'
             ? 'bg-violet-100 text-violet-600'
             : type === 'subskripcija'

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/helpers"
+	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/models"
 
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -471,6 +472,22 @@ func TogglePostLike(c *gin.Context) {
 	var likeCount int64
 	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
 
+	// Obavesti vlasnika objave samo kada korisnik doda lajk (ne kada ukloni).
+	if liked && post.UserID != korisnik.ID {
+		likerName := strings.TrimSpace(korisnik.FullName)
+		if likerName == "" {
+			likerName = korisnik.Username
+		}
+		notifications.NotifyUsers(
+			db,
+			[]uint{post.UserID},
+			models.ObavestenjeTipPost,
+			"Novi lajk na vašoj objavi",
+			fmt.Sprintf("%s je lajkovao/la vašu objavu.", likerName),
+			"/home",
+		)
+	}
+
 	c.JSON(http.StatusOK, ToggleLikeResponse{
 		Liked:     liked,
 		LikeCount: likeCount,
@@ -620,6 +637,30 @@ func CreatePostComment(c *gin.Context) {
 	if err := db.Create(&comment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju komentara"})
 		return
+	}
+
+	// Obavesti vlasnika objave samo kada komentar nije od samog vlasnika.
+	if post.UserID != korisnik.ID {
+		commenterName := strings.TrimSpace(korisnik.FullName)
+		if commenterName == "" {
+			commenterName = korisnik.Username
+		}
+
+		// Kratki odlomak komentara (da ne bude ogroman body).
+		runes := []rune(req.Content)
+		snippet := req.Content
+		if len(runes) > 120 {
+			snippet = string(runes[:120]) + "..."
+		}
+
+		notifications.NotifyUsers(
+			db,
+			[]uint{post.UserID},
+			models.ObavestenjeTipPost,
+			"Novi komentar na vašoj objavi",
+			fmt.Sprintf("%s je komentarisao/la: %s", commenterName, snippet),
+			"/home",
+		)
 	}
 
 	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
