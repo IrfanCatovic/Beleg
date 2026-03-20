@@ -737,13 +737,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
         </button>
       </div>
 
-      {/* Like count text */}
-      {likeCount > 0 && (
-        <div className="px-4 sm:px-5 pb-1">
-          <p className="text-[13px] font-semibold text-gray-900">{likeCount} {likeCount === 1 ? 'lajk' : 'lajkova'}</p>
-        </div>
-      )}
-
       {/* Comments section */}
       {commentsOpen && (
         <div className="px-4 sm:px-5 pb-4 pt-1">
@@ -788,7 +781,7 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
           )}
 
           {/* Add comment */}
-          <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3">
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-white/80 px-3 py-2 shadow-sm">
             <input
               type="text"
               value={newComment}
@@ -799,14 +792,14 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
                   handleSubmitComment()
                 }
               }}
-              className="flex-1 min-w-0 border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none py-1"
+              className="flex-1 min-w-0 border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
               placeholder="Dodaj komentar..."
             />
             <button
               type="button"
               onClick={handleSubmitComment}
               disabled={!newComment.trim() || submittingComment}
-              className="text-sm font-bold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-default transition-colors px-1"
+              className="text-sm font-bold text-emerald-600 hover:text-emerald-700 disabled:text-gray-300 disabled:cursor-default transition-colors px-1.5 py-1 rounded-lg hover:bg-emerald-50"
             >
               {submittingComment ? (
                 <span className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin inline-block" />

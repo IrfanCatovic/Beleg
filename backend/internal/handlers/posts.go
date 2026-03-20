@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,83 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+var mentionRegex = regexp.MustCompile(`@([A-Za-z0-9_\.]{3,30})`)
+
+func extractMentionUsernames(content string) []string {
+	if content == "" {
+		return nil
+	}
+	matches := mentionRegex.FindAllStringSubmatch(content, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(matches))
+	out := make([]string, 0, len(matches))
+	for _, m := range matches {
+		if len(m) < 2 {
+			continue
+		}
+		u := strings.ToLower(strings.TrimSpace(m[1]))
+		if u == "" {
+			continue
+		}
+		if _, ok := seen[u]; ok {
+			continue
+		}
+		seen[u] = struct{}{}
+		out = append(out, u)
+	}
+	return out
+}
+
+func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender models.Korisnik, senderText string, selfUserID uint) {
+	if len(mentionUsernames) == 0 {
+		return
+	}
+
+	// Mapiraj username -> userId (samo oni koji postoje)
+	var users []models.Korisnik
+	if err := db.Where("LOWER(username) IN ?", mentionUsernames).Find(&users).Error; err != nil {
+		return
+	}
+
+	if len(users) == 0 {
+		return
+	}
+
+	senderName := strings.TrimSpace(sender.FullName)
+	if senderName == "" {
+		senderName = sender.Username
+	}
+
+	runes := []rune(senderText)
+	snippet := senderText
+	if len(runes) > 120 {
+		snippet = string(runes[:120]) + "..."
+	}
+
+	// Deduplikacija po UserID (da @username 2x ne pravi 2 notifikacije)
+	uidSeen := make(map[uint]struct{}, len(users))
+	for _, u := range users {
+		if u.ID == selfUserID {
+			continue
+		}
+		if _, ok := uidSeen[u.ID]; ok {
+			continue
+		}
+		uidSeen[u.ID] = struct{}{}
+
+		notifications.NotifyUsers(
+			db,
+			[]uint{u.ID},
+			models.ObavestenjeTipPost,
+			"Označen si",
+			fmt.Sprintf("%s te je označio/la: %s", senderName, snippet),
+			"/home",
+		)
+	}
+}
 
 type CreatePostRequest struct {
 	Content  string `json:"content" binding:"required"`
@@ -327,6 +405,10 @@ func CreatePost(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju objave"})
 		return
 	}
+
+	// Notifikuj označene (@username) u tekstu objave.
+	mentions := extractMentionUsernames(content)
+	notifyMentionsFromContent(db, mentions, korisnik, content, korisnik.ID)
 
 	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id, username, full_name, avatar_url, role, klub_id")
@@ -638,6 +720,10 @@ func CreatePostComment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju komentara"})
 		return
 	}
+
+	// Notifikuj označene (@username) u komentaru.
+	mentions := extractMentionUsernames(req.Content)
+	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID)
 
 	// Obavesti vlasnika objave samo kada komentar nije od samog vlasnika.
 	if post.UserID != korisnik.ID {
