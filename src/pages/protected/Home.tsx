@@ -33,6 +33,13 @@ interface PostCommentUser {
   avatarUrl?: string
 }
 
+interface MentionUser {
+  id: number
+  username: string
+  fullName?: string
+  avatar_url?: string
+}
+
 interface PostComment {
   id: number
   content: string
@@ -80,6 +87,15 @@ export default function Home() {
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
+  // @mention autocomplete (komentar + opis objave)
+  const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([])
+  const [mentionUsersLoading, setMentionUsersLoading] = useState(false)
+  const [mentionOpen, setMentionOpen] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionStart, setMentionStart] = useState<number | null>(null)
+  const [mentionEnd, setMentionEnd] = useState<number | null>(null)
+  const postMentionWrapperRef = useRef<HTMLDivElement>(null)
+
   const hasMore = posts.length < total
 
   const openLightbox = useCallback((src: string) => setLightboxSrc(src), [])
@@ -93,6 +109,56 @@ export default function Home() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [lightboxSrc, closeLightbox])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    setMentionUsersLoading(true)
+    api
+      .get('/api/korisnici')
+      .then((res) => {
+        setMentionUsers((res.data.korisnici as MentionUser[]) || [])
+      })
+      .catch(() => setMentionUsers([]))
+      .finally(() => setMentionUsersLoading(false))
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!mentionOpen) return
+    const handler = (e: MouseEvent) => {
+      const el = postMentionWrapperRef.current
+      if (el && !el.contains(e.target as Node)) setMentionOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [mentionOpen])
+
+  const parseMentionContext = useCallback((text: string, caretPos: number) => {
+    if (caretPos < 0) return null
+    const left = text.slice(0, caretPos)
+    const m = left.match(/(^|[\s\n])@([A-Za-z0-9_\.]{0,30})$/)
+    if (!m) return null
+    const query = (m[2] ?? '').toString()
+    const start = caretPos - query.length - 1
+    return { query, start, end: caretPos }
+  }, [])
+
+  const handlePickMention = useCallback(
+    (u: MentionUser) => {
+      if (mentionStart == null || mentionEnd == null) return
+      const before = newPostContent.slice(0, mentionStart)
+      const after = newPostContent.slice(mentionEnd)
+      const next = `${before}@${u.username} ${after}`
+      setNewPostContent(next)
+      setMentionOpen(false)
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current
+        if (!ta) return
+        const pos = mentionStart + 1 + u.username.length + 1
+        ta.setSelectionRange(pos, pos)
+      })
+    },
+    [mentionStart, mentionEnd, newPostContent]
+  )
 
   const fetchPosts = useCallback(async (offset = 0, append = false) => {
     try {
@@ -299,7 +365,7 @@ export default function Home() {
           <div className="min-w-0">
 
             {/* ── Compose ── */}
-            <div className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden">
+            <div className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-visible">
               <div className="px-4 sm:px-5 py-4">
                 <div className="flex gap-3">
                   <div className="flex-shrink-0 pt-0.5">
@@ -311,12 +377,29 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 relative" ref={postMentionWrapperRef}>
                     <textarea
                       ref={textareaRef}
                       value={newPostContent}
                       maxLength={POST_MAX_LENGTH}
-                      onChange={e => setNewPostContent(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        const caretPos = e.currentTarget.selectionStart ?? value.length
+                        setNewPostContent(value)
+
+                        const ctx = parseMentionContext(value, caretPos)
+                        if (!ctx) {
+                          setMentionOpen(false)
+                          setMentionQuery('')
+                          setMentionStart(null)
+                          setMentionEnd(null)
+                          return
+                        }
+                        setMentionQuery(ctx.query)
+                        setMentionStart(ctx.start)
+                        setMentionEnd(ctx.end)
+                        setMentionOpen(true)
+                      }}
                       onInput={handleTextareaInput}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) {
@@ -328,6 +411,57 @@ export default function Home() {
                       rows={1}
                       className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
                     />
+
+                    {mentionOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-2 z-30">
+                        <div className="rounded-xl bg-white border border-gray-200 shadow-lg overflow-hidden">
+                          {mentionUsersLoading ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">Učitavam...</div>
+                          ) : (
+                            (() => {
+                              const q = mentionQuery.trim().toLowerCase()
+                              const filtered = mentionUsers
+                                .filter((u) => {
+                                  const un = (u.username || '').toLowerCase()
+                                  const fn = (u.fullName || '').toLowerCase()
+                                  return q.length === 0 ? true : un.startsWith(q) || fn.startsWith(q) || fn.includes(q)
+                                })
+                                .slice(0, 8)
+
+                              if (filtered.length === 0) {
+                                return <div className="px-3 py-2 text-sm text-gray-500">Nema rezultata</div>
+                              }
+
+                              return (
+                                <div className="max-h-56 overflow-y-auto">
+                                  {filtered.map((u) => (
+                                    <button
+                                      type="button"
+                                      key={u.id}
+                                      onMouseDown={(ev) => ev.preventDefault()}
+                                      onClick={() => handlePickMention(u)}
+                                      className="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">
+                                          {(u.fullName?.trim() || u.username || '?').charAt(0).toUpperCase()}
+                                        </span>
+                                        <div className="min-w-0">
+                                          <div className="text-sm font-semibold text-gray-900 truncate">
+                                            {u.fullName?.trim() || u.username}
+                                          </div>
+                                          <div className="text-xs text-gray-500 truncate">@{u.username}</div>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )
+                            })()
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {newPostImagePreview && (
                       <div className="mt-3 relative rounded-xl overflow-hidden border border-gray-200/60 bg-gray-50">
@@ -406,6 +540,7 @@ export default function Home() {
                     currentRole={user?.role}
                     onDelete={handleDeletePost}
                     onOpenImage={openLightbox}
+                    mentionUsers={mentionUsers}
                   />
                 ))}
               </div>
@@ -535,12 +670,13 @@ export default function Home() {
 /* Sub-components */
 /* ═════════════════════════════════════════════════════════════════════ */
 
-function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }: {
+function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage, mentionUsers }: {
   post: Post
   currentUsername?: string
   currentRole?: string
   onDelete: (id: number) => void
   onOpenImage: (src: string) => void
+  mentionUsers: MentionUser[]
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -556,8 +692,54 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
   const [submittingComment, setSubmittingComment] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
   const [newComment, setNewComment] = useState('')
+  const commentInputRef = useRef<HTMLInputElement>(null)
+  const [commentMentionOpen, setCommentMentionOpen] = useState(false)
+  const [commentMentionQuery, setCommentMentionQuery] = useState('')
+  const [commentMentionStart, setCommentMentionStart] = useState<number | null>(null)
+  const [commentMentionEnd, setCommentMentionEnd] = useState<number | null>(null)
   /** Ne stavljati commentsLoading u deps useCallback — menja referencu i ponovo pali useEffect (glitch). */
   const commentsFetchInFlightRef = useRef(false)
+
+  const parseCommentMentionContext = useCallback((text: string, caretPos: number) => {
+    if (caretPos < 0) return null
+    const left = text.slice(0, caretPos)
+    const m = left.match(/(^|[\s\n])@([A-Za-z0-9_\.]{0,30})$/)
+    if (!m) return null
+    const query = (m[2] ?? '').toString()
+    const start = caretPos - query.length - 1
+    return { query, start, end: caretPos }
+  }, [])
+
+  const pickCommentMention = useCallback(
+    (u: MentionUser) => {
+      if (commentMentionStart == null || commentMentionEnd == null) return
+      const before = newComment.slice(0, commentMentionStart)
+      const after = newComment.slice(commentMentionEnd)
+      const next = `${before}@${u.username} ${after}`
+      setNewComment(next)
+      setCommentMentionOpen(false)
+
+      requestAnimationFrame(() => {
+        const el = commentInputRef.current
+        if (!el) return
+        const pos = commentMentionStart + 1 + u.username.length + 1
+        el.setSelectionRange(pos, pos)
+      })
+    },
+    [commentMentionStart, commentMentionEnd, newComment]
+  )
+
+  const commentMentionSuggestions = useMemo(() => {
+    const q = commentMentionQuery.trim().toLowerCase()
+    if (q.length === 0) return mentionUsers.slice(0, 8)
+    return mentionUsers
+      .filter((u) => {
+        const un = (u.username || '').toLowerCase()
+        const fn = (u.fullName || '').toLowerCase()
+        return un.startsWith(q) || fn.startsWith(q) || fn.includes(q)
+      })
+      .slice(0, 8)
+  }, [commentMentionQuery, mentionUsers])
 
   const fetchComments = useCallback(async () => {
     if (commentsFetchInFlightRef.current) return
@@ -630,7 +812,7 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
   const displayName = post.user.fullName?.trim() || post.user.username
   const initial = displayName.charAt(0).toUpperCase()
   return (
-    <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden">
+    <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-visible">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
         <Link to={`/korisnik/${post.user.username}`} className="flex items-center gap-3 min-w-0 group">
@@ -782,19 +964,86 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage }:
 
           {/* Add comment */}
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-white/80 px-3 py-2 shadow-sm">
-            <input
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmitComment()
-                }
-              }}
-              className="flex-1 min-w-0 border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
-              placeholder="Dodaj komentar..."
-            />
+            <div className="relative flex-1 min-w-0">
+              <input
+                ref={commentInputRef}
+                type="text"
+                value={newComment}
+                onChange={(e) => {
+                  const value = e.target.value
+                  const caretPos = e.currentTarget.selectionStart ?? value.length
+                  setNewComment(value)
+
+                  const ctx = parseCommentMentionContext(value, caretPos)
+                  if (!ctx) {
+                    setCommentMentionOpen(false)
+                    setCommentMentionQuery('')
+                    setCommentMentionStart(null)
+                    setCommentMentionEnd(null)
+                    return
+                  }
+
+                  setCommentMentionQuery(ctx.query)
+                  setCommentMentionStart(ctx.start)
+                  setCommentMentionEnd(ctx.end)
+                  setCommentMentionOpen(true)
+                }}
+                onKeyDown={(e) => {
+                  if (commentMentionOpen && (e.key === 'Enter' || e.key === 'Tab')) {
+                    const first = commentMentionSuggestions[0]
+                    if (first) {
+                      e.preventDefault()
+                      pickCommentMention(first)
+                    }
+                    return
+                  }
+                  if (e.key === 'Escape' && commentMentionOpen) {
+                    setCommentMentionOpen(false)
+                    return
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmitComment()
+                  }
+                }}
+                className="w-full border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
+                placeholder="Dodaj komentar..."
+              />
+
+              {commentMentionOpen && (
+                <div className="absolute left-0 right-0 top-full mt-2 z-30">
+                  <div className="rounded-xl bg-white border border-gray-200 shadow-lg overflow-hidden">
+                    {commentMentionSuggestions.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">Nema rezultata</div>
+                    ) : (
+                      <div className="max-h-56 overflow-y-auto">
+                        {commentMentionSuggestions.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onMouseDown={(ev) => ev.preventDefault()}
+                            onClick={() => pickCommentMention(u)}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">
+                                {(u.fullName?.trim() || u.username || '?').charAt(0).toUpperCase()}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-gray-900 truncate">
+                                  {u.fullName?.trim() || u.username}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">@{u.username}</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleSubmitComment}
