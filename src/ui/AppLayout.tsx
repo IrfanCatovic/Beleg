@@ -103,7 +103,8 @@ export default function AppLayout() {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
     }
     setIsNotificationsOpen(false)
-    navigate('/obavestenja')
+    const target = (n.link && n.link.trim()) ? n.link : '/obavestenja'
+    navigate(target)
   }
 
   const handleLogout = () => {
@@ -270,7 +271,7 @@ export default function AppLayout() {
                         <div className="mt-1 border-t border-gray-100 px-4 pt-2 pb-1.5 flex items-center justify-between">
                           <button
                             type="button"
-                            onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
+                                  onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
                             className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
                           >
                             Prikaži sva obaveštenja

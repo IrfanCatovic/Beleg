@@ -7,6 +7,7 @@ import Loader from '../../components/Loader'
 import { formatDateShort, dateToYMD } from '../../utils/dateUtils'
 import { generateFinanceReportPdf } from '../../utils/generateFinanceReportPdf'
 import { PrinterIcon } from '@heroicons/react/24/outline'
+import { useLocation } from 'react-router-dom'
 
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
 type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
@@ -43,6 +44,7 @@ interface ClanarinaRow {
 export default function Finance() {
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('dashboard')
+  const location = useLocation()
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
@@ -57,6 +59,7 @@ export default function Finance() {
   const [toDate, setToDate] = useState(() => dateToYMD(new Date(currentYear, 11, 31)))
   const [periodPreset, setPeriodPreset] = useState<'danas' | 'mesec' | 'godina' | 'dveGodine'>('dveGodine')
   const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
+  const [targetTransId, setTargetTransId] = useState<number | null>(null)
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
   const [clanarineLoading, setClanarineLoading] = useState(false)
@@ -108,9 +111,47 @@ export default function Finance() {
   }
 
   useEffect(() => {
-    if (tab === 'dashboard') fetchDashboard()
+    if (tab === 'dashboard' || tab === 'transakcije') fetchDashboard()
     else if (tab === 'clanarine') fetchClanarine()
   }, [tab, fromDate, toDate, clanarineGodina])
+
+  // Deep-link iz notifikacije: /finansije#trans-<id>
+  useEffect(() => {
+    const hash = location.hash || ''
+    const m = hash.match(/^#trans-(\d+)$/)
+    if (!m) {
+      setTargetTransId(null)
+      return
+    }
+    const id = Number(m[1])
+    if (Number.isNaN(id) || id <= 0) {
+      setTargetTransId(null)
+      return
+    }
+    setTargetTransId(id)
+    setTab('transakcije')
+    setTransakcijaFilter('sve')
+    setCurrentPage(1)
+  }, [location.hash])
+
+  useEffect(() => {
+    if (!targetTransId) return
+    if (!dashboardData?.transakcije) return
+
+    const all = dashboardData.transakcije
+    const filtered = transakcijaFilter === 'sve' ? all : all.filter((t) => t.tip === transakcijaFilter)
+    const idx = filtered.findIndex((t) => t.id === targetTransId)
+    if (idx < 0) return
+
+    const page = Math.floor(idx / PAGE_SIZE) + 1
+    if (page !== currentPage) {
+      setCurrentPage(page)
+      return
+    }
+
+    const el = document.getElementById(`trans-${targetTransId}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [targetTransId, dashboardData, transakcijaFilter, currentPage])
 
   const handleNovaTransakcija = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -456,7 +497,11 @@ export default function Finance() {
                           </thead>
                           <tbody className="divide-y divide-gray-50">
                             {paginatedTransakcije.map((t) => (
-                              <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
+                              <tr
+                                id={`trans-${t.id}`}
+                                key={t.id}
+                                className="hover:bg-gray-50/50 transition-colors"
+                              >
                                 <td className="px-5 py-3.5 text-sm text-gray-600 font-medium">{formatDateShort(t.datum)}</td>
                                 <td className="px-5 py-3.5">
                                   <span
@@ -489,7 +534,7 @@ export default function Finance() {
                       {/* Mobile cards */}
                       <div className="sm:hidden divide-y divide-gray-50">
                         {paginatedTransakcije.map((t) => (
-                          <div key={t.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                          <div id={`trans-${t.id}`} key={t.id} className="p-4 hover:bg-gray-50/50 transition-colors">
                             <div className="flex justify-between items-start gap-2">
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${

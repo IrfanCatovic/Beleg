@@ -93,7 +93,7 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 			models.ObavestenjeTipPost,
 			"Označen si",
 			fmt.Sprintf("%s te je označio/la: %s", senderName, snippet),
-			"/home",
+			fmt.Sprintf("/korisnik/%s", u.Username),
 		)
 	}
 }
@@ -566,7 +566,7 @@ func TogglePostLike(c *gin.Context) {
 			models.ObavestenjeTipPost,
 			"Novi lajk na vašoj objavi",
 			fmt.Sprintf("%s je lajkovao/la vašu objavu.", likerName),
-			"/home",
+			fmt.Sprintf("/home#post-%d", postID),
 		)
 	}
 
@@ -745,7 +745,7 @@ func CreatePostComment(c *gin.Context) {
 			models.ObavestenjeTipPost,
 			"Novi komentar na vašoj objavi",
 			fmt.Sprintf("%s je komentarisao/la: %s", commenterName, snippet),
-			"/home",
+			fmt.Sprintf("/home#post-%d", postID),
 		)
 	}
 

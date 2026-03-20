@@ -7,6 +7,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -208,7 +209,14 @@ func CreateTransakcija(c *gin.Context) {
 	// Obaveštenje samo admin/blagajnik iz ovog kluba
 	var adminBlagajnikIDs []uint
 	db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
-	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Nova transakcija", body.Opis, "/finansije")
+	notifications.NotifyUsers(
+		db,
+		adminBlagajnikIDs,
+		models.ObavestenjeTipUplata,
+		"Nova transakcija",
+		body.Opis,
+		fmt.Sprintf("/finansije#trans-%d", t.ID),
+	)
 	c.JSON(http.StatusCreated, t)
 }
 
@@ -344,6 +352,13 @@ func PostClanarinaPlati(c *gin.Context) {
 	// Obaveštenje samo admin/blagajnik ovog kluba
 	var adminBlagajnikIDs []uint
 	db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "blagajnik"}).Pluck("id", &adminBlagajnikIDs)
-	notifications.NotifyUsers(db, adminBlagajnikIDs, models.ObavestenjeTipUplata, "Evidentirana nova uplata članarine", "Članarina – "+clan.FullName, "/finansije")
+	notifications.NotifyUsers(
+		db,
+		adminBlagajnikIDs,
+		models.ObavestenjeTipUplata,
+		"Evidentirana nova uplata članarine",
+		"Članarina – "+clan.FullName,
+		fmt.Sprintf("/finansije#trans-%d", t.ID),
+	)
 	c.JSON(http.StatusCreated, t)
 }
