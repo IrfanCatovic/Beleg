@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import { formatDateShort, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
 
 interface ObavestenjeFull {
@@ -81,9 +83,10 @@ export default function ObavestenjeDetalj() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isLoggedIn, user } = useAuth()
+  const { showConfirm, showAlert } = useModal()
 
   const [notif, setNotif] = useState<ObavestenjeFull | null>(null)
-  const [post, setPost] = useState<PostPayload | null>(null)
+  const [post, setPost] = useState<Post | null>(null)
   const [task, setTask] = useState<TaskPayload | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
   const [entityError, setEntityError] = useState('')
@@ -92,6 +95,50 @@ export default function ObavestenjeDetalj() {
   const [entityLoading, setEntityLoading] = useState(false)
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
+
+  const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([])
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+
+  const openLightbox = useCallback((src: string) => setLightboxSrc(src), [])
+  const closeLightbox = useCallback(() => setLightboxSrc(null), [])
+
+  useEffect(() => {
+    if (!lightboxSrc) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightboxSrc, closeLightbox])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    api
+      .get('/api/korisnici')
+      .then((res) => setMentionUsers((res.data.korisnici as MentionUser[]) || []))
+      .catch(() => setMentionUsers([]))
+  }, [isLoggedIn])
+
+  const handleDeletePost = useCallback(
+    async (postId: number) => {
+      const ok = await showConfirm('Da li želite da obrišete ovu objavu?', {
+        title: 'Obriši objavu',
+        confirmLabel: 'Obriši',
+        cancelLabel: 'Otkaži',
+        variant: 'danger',
+      })
+      if (!ok) return
+      try {
+        await api.delete(`/api/posts/${postId}`)
+        setPost(null)
+        navigate('/obavestenja')
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri brisanju objave'
+        await showAlert(msg, 'Objava')
+      }
+    },
+    [navigate, showConfirm, showAlert]
+  )
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -136,7 +183,7 @@ export default function ObavestenjeDetalj() {
         setEntityLoading(true)
         try {
           if (postId != null) {
-            const pr = await api.get<{ post: PostPayload }>(`/api/posts/${postId}`)
+            const pr = await api.get<{ post: Post }>(`/api/posts/${postId}`)
             if (!cancelled) setPost(pr.data.post)
           } else if (zadatakId != null) {
             const tr = await api.get<TaskPayload>(`/api/zadaci/${zadatakId}`)
@@ -198,7 +245,34 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.transakcijaId) != null
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-6 pb-20">
+    <div className="relative mx-auto max-w-xl px-4 py-6 pb-20">
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-lg flex items-center justify-center animate-[fadeIn_120ms_ease-out]"
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white/90 hover:text-white transition-all"
+            aria-label="Zatvori"
+            title="Zatvori (Esc)"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Uvećana slika"
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+          />
+        </div>
+      )}
+
       <Link
         to="/obavestenja"
         className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700 mb-4"
@@ -241,36 +315,18 @@ export default function ObavestenjeDetalj() {
       )}
 
       {!entityLoading && post && (
-        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Objava</p>
-          </div>
-          <div className="p-4">
-            <Link to={`/korisnik/${post.user.username}`} className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-                {post.user.avatarUrl ? (
-                  <img src={post.user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  (post.user.fullName || post.user.username).charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{post.user.fullName || post.user.username}</p>
-                {post.user.klubNaziv && <p className="text-xs text-gray-500 truncate">{post.user.klubNaziv}</p>}
-              </div>
-            </Link>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{post.content}</p>
-            {post.imageUrl && (
-              <img src={post.imageUrl} alt="" className="mt-3 rounded-xl max-h-64 w-full object-cover border border-gray-100" />
-            )}
-            <p className="mt-3 text-xs text-gray-400">
-              {formatDateTime(post.createdAt)} · {post.likeCount} lajkova · {post.commentCount} komentara
-            </p>
-            <Link
-              to="/home"
-              className="mt-4 inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-            >
-              Otvori feed (Home) →
+        <div className="sm:mt-0">
+          <PostCard
+            post={post}
+            currentUsername={user?.username}
+            currentRole={user?.role}
+            onDelete={handleDeletePost}
+            onOpenImage={openLightbox}
+            mentionUsers={mentionUsers}
+          />
+          <div className="mt-3 text-center">
+            <Link to="/home" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+              Otvori ceo feed →
             </Link>
           </div>
         </div>
