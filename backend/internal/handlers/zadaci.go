@@ -279,6 +279,74 @@ func PreuzmiZadatak(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"zadatak": buildZadatakResponse(updated)})
 }
 
+// NapustiZadatak — POST /zadaci/:id/napusti. Uklanja trenutnog korisnika sa zadatka; ako niko više ne radi, status se vraća na "aktivni".
+func NapustiZadatak(c *gin.Context) {
+	zadatakID, ok := parseZadatakID(c)
+	if !ok {
+		return
+	}
+	usernameVal, _ := c.Get("username")
+	username, _ := usernameVal.(string)
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var z models.Zadatak
+	if err := db.First(&z, zadatakID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.KlubID == nil || *z.KlubID != clubID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+	if z.Status == models.ZadatakStatusZavrsen {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete se povući sa završenog zadatka"})
+		return
+	}
+
+	res := db.Where("zadatak_id = ? AND korisnik_id = ?", zadatakID, korisnik.ID).Delete(&models.ZadatakKorisnik{})
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju zadatka"})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Niste prijavljeni na ovaj zadatak"})
+		return
+	}
+
+	var remaining int64
+	if err := db.Model(&models.ZadatakKorisnik{}).Where("zadatak_id = ?", zadatakID).Count(&remaining).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju zadatka"})
+		return
+	}
+	if remaining == 0 && z.Status == models.ZadatakStatusUToku {
+		if err := db.Model(&z).Update("status", models.ZadatakStatusAktivni).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statusa"})
+			return
+		}
+		z.Status = models.ZadatakStatusAktivni
+	}
+
+	var updated models.Zadatak
+	if err := db.Preload("ZadatakKorisnici.Korisnik").First(&updated, zadatakID).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"zadatak": buildZadatakResponse(z)})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"zadatak": buildZadatakResponse(updated)})
+}
+
 // UpdateZadatak — PATCH /zadaci/:id. Samo admin/sekretar; zabranjeno ako je status "zavrsen".
 func UpdateZadatak(c *gin.Context) {
 	if !checkZadatakCreateRole(c) {

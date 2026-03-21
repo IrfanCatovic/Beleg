@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
+import { obavestenjeBellIconClass } from '../../utils/obavestenjeIconClass'
 import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface ObavestenjeItem {
@@ -88,25 +89,10 @@ export default function Obavestenja() {
       .finally(() => setBroadcastSending(false))
   }
 
-  const iconClass = (type: string) =>
-    type === 'uplata'
-      ? 'bg-emerald-100 text-emerald-600'
-      : type === 'akcija'
-        ? 'bg-blue-100 text-blue-600'
-        : type === 'zadatak'
-          ? 'bg-amber-100 text-amber-700'
-          : type === 'post'
-            ? 'bg-rose-100 text-rose-600'
-          : type === 'broadcast'
-            ? 'bg-violet-100 text-violet-600'
-            : type === 'subskripcija'
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-gray-100 text-gray-600'
-
   if (!isLoggedIn) return null
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Obaveštenja</h1>
 
       {(user?.role === 'admin' || user?.role === 'superadmin') && (
@@ -166,7 +152,7 @@ export default function Obavestenja() {
                   onClick={() => handleNotificationClick(n)}
                   className="flex flex-1 min-w-0 items-start gap-3 text-left hover:opacity-90"
                 >
-                  <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconClass(n.type)}`}>
+                  <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${obavestenjeBellIconClass(n.type)}`}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                     </svg>

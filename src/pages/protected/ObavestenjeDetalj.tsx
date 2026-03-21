@@ -5,6 +5,9 @@ import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
+import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
+import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
+import type { Role } from '../../components/NewTaskModal'
 import { formatDateShort, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
 
 interface ObavestenjeFull {
@@ -48,6 +51,34 @@ interface TaskPayload {
   status: string
   createdAt: string
   assignees?: { username: string; fullName?: string; role: string }[]
+}
+
+function normalizeApiTask(raw: TaskPayload): Task {
+  const st = raw.status
+  const status: Task['status'] =
+    st === 'aktivni' || st === 'u_toku' || st === 'zavrsen' ? st : 'aktivni'
+  return {
+    id: raw.id,
+    naziv: raw.naziv,
+    opis: raw.opis ?? '',
+    allowedRoles: (raw.allowedRoles || []) as Role[],
+    allowAll: raw.allowAll,
+    deadline: raw.deadline ?? null,
+    hitno: raw.hitno,
+    status,
+    createdAt: raw.createdAt,
+    assignees: raw.assignees,
+  }
+}
+
+function unwrapZadatak(data: unknown): TaskPayload | null {
+  if (!data || typeof data !== 'object') return null
+  const o = data as Record<string, unknown>
+  if (o.zadatak && typeof o.zadatak === 'object' && o.zadatak !== null) {
+    return o.zadatak as TaskPayload
+  }
+  if (typeof o.id === 'number') return o as TaskPayload
+  return null
 }
 
 interface TransPayload {
@@ -95,6 +126,8 @@ export default function ObavestenjeDetalj() {
   const [entityLoading, setEntityLoading] = useState(false)
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
+  const isAdminOrSekretar =
+    user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
 
   const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([])
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
@@ -138,6 +171,123 @@ export default function ObavestenjeDetalj() {
       }
     },
     [navigate, showConfirm, showAlert]
+  )
+
+  const canTakeTask = useCallback(
+    (t: Task) => {
+      if (!user) return false
+      if (t.allowAll) return true
+      return t.allowedRoles?.includes(user.role as Role) ?? false
+    },
+    [user]
+  )
+
+  const hasTakenTask = useCallback(
+    (t: Task) => {
+      if (!user || !t.assignees) return false
+      return t.assignees.some((a) => a.username === user.username)
+    },
+    [user]
+  )
+
+  const handleTakeTask = useCallback(
+    async (t: Task) => {
+      if (!user || !canTakeTask(t) || hasTakenTask(t)) return
+      const ok = await showConfirm(`Da li želite da preuzmete zadatak "${t.naziv}"?`)
+      if (!ok) return
+      try {
+        const res = await api.post(`/api/zadaci/${t.id}/preuzmi`)
+        const raw = unwrapZadatak(res.data)
+        if (raw) setTask(normalizeApiTask(raw))
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'Greška pri preuzimanju zadatka.'
+        await showAlert(msg, 'Zadatak')
+      }
+    },
+    [user, canTakeTask, hasTakenTask, showConfirm, showAlert]
+  )
+
+  const handleLeaveTask = useCallback(
+    async (t: Task) => {
+      if (!user || !hasTakenTask(t)) return
+      const ok = await showConfirm(
+        `Da li želite da se povučete sa zadatka "${t.naziv}"? Zadatak će ponovo biti dostupan za prijavu ako niko drugi ne učestvuje.`
+      )
+      if (!ok) return
+      try {
+        const res = await api.post(`/api/zadaci/${t.id}/napusti`)
+        const raw = unwrapZadatak(res.data)
+        if (raw) setTask(normalizeApiTask(raw))
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'Greška pri otkazivanju prijave.'
+        await showAlert(msg, 'Zadatak')
+      }
+    },
+    [user, hasTakenTask, showConfirm, showAlert]
+  )
+
+  const handleZavrsiTask = useCallback(
+    async (t: Task) => {
+      if (!isAdminOrSekretar) return
+      const ok = await showConfirm(`Označiti zadatak "${t.naziv}" kao završen?`)
+      if (!ok) return
+      try {
+        const res = await api.post(`/api/zadaci/${t.id}/zavrsi`)
+        const raw = unwrapZadatak(res.data)
+        if (raw) setTask(normalizeApiTask(raw))
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška.'
+        await showAlert(msg, 'Zadatak')
+      }
+    },
+    [isAdminOrSekretar, showConfirm, showAlert]
+  )
+
+  const handleUpdateTask = useCallback(
+    async (
+      taskId: number,
+      data: {
+        naziv: string
+        opis: string
+        deadline: string | null
+        hitno: boolean
+        allowedRoles: Role[]
+        allowAll: boolean
+      }
+    ) => {
+      const res = await api.patch(`/api/zadaci/${taskId}`, data)
+      const raw = unwrapZadatak(res.data)
+      if (!raw) throw new Error('Nepoznat odgovor servera.')
+      setTask(normalizeApiTask(raw))
+      setEditTask(null)
+    },
+    []
+  )
+
+  const handleDeleteTask = useCallback(
+    async (t: Task) => {
+      if (!isAdminOrSekretar) return
+      const confirmed = await showConfirm(`Obrisati zadatak "${t.naziv}"?`, {
+        variant: 'danger',
+        confirmLabel: 'Obriši',
+        cancelLabel: 'Otkaži',
+      })
+      if (!confirmed) return
+      try {
+        await api.delete(`/api/zadaci/${t.id}`)
+        setTask(null)
+        setEditTask(null)
+        navigate('/obavestenja')
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri brisanju.'
+        await showAlert(msg, 'Zadatak')
+      }
+    },
+    [isAdminOrSekretar, showConfirm, showAlert, navigate]
   )
 
   useEffect(() => {
@@ -187,7 +337,7 @@ export default function ObavestenjeDetalj() {
             if (!cancelled) setPost(pr.data.post)
           } else if (zadatakId != null) {
             const tr = await api.get<TaskPayload>(`/api/zadaci/${zadatakId}`)
-            if (!cancelled) setTask(tr.data)
+            if (!cancelled) setTask(normalizeApiTask(tr.data))
           } else if (transakcijaId != null) {
             if (!canSeeFinance) {
               if (!cancelled) setEntityError('Nemate pristup detaljima transakcije. Otvorite finansije ako ste ovlašćeni.')
@@ -244,11 +394,16 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.zadatakId) != null ||
     numFromMeta(meta.transakcijaId) != null
   const expectingPost = numFromMeta(meta.postId) != null
-  // Bez duplog naslova obaveštenja iznad feed kartice (npr. „Novi komentar…“)
-  const showNotifSummary = !post && !(expectingPost && entityLoading)
+  const expectingTask = numFromMeta(meta.zadatakId) != null
+  // Bez duplog naslova obaveštenja iznad feed / zadatak kartice
+  const showNotifSummary =
+    !post &&
+    !task &&
+    !(expectingPost && entityLoading) &&
+    !(expectingTask && entityLoading)
 
   return (
-    <div className="relative mx-auto max-w-xl px-4 py-6 pb-20">
+    <div className="relative mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-6 pb-20">
       {lightboxSrc && (
         <div
           className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-lg flex items-center justify-center animate-[fadeIn_120ms_ease-out]"
@@ -337,24 +492,28 @@ export default function ObavestenjeDetalj() {
         </div>
       )}
 
-      {!entityLoading && task && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Zadatak</p>
-          <h2 className="text-lg font-bold text-gray-900">{task.naziv}</h2>
-          {task.opis && <p className="mt-2 text-sm text-gray-600 line-clamp-6">{task.opis}</p>}
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
-            <span className="rounded-lg bg-gray-100 px-2 py-1 font-medium">Status: {task.status}</span>
-            {task.hitno && <span className="rounded-lg bg-rose-100 text-rose-700 px-2 py-1 font-medium">Hitno</span>}
-            {task.deadline && <span>Rok: {formatDateShort(task.deadline)}</span>}
+      {!entityLoading && task && user && (
+        <div className="sm:mt-0 w-full">
+          <TaskCard
+            task={task}
+            footer={
+              <TaskCardFooter
+                task={task}
+                username={user.username}
+                userRole={user.role}
+                onTake={handleTakeTask}
+                onLeave={handleLeaveTask}
+                onZavrsi={handleZavrsiTask}
+                onEdit={(t) => setEditTask(t)}
+                onDelete={handleDeleteTask}
+              />
+            }
+          />
+          <div className="mt-3 text-center">
+            <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+              Svi zadaci →
+            </Link>
           </div>
-          {task.assignees && task.assignees.length > 0 && (
-            <p className="mt-2 text-xs text-gray-500">
-              Učesnici: {task.assignees.map((a) => a.fullName || a.username).join(', ')}
-            </p>
-          )}
-          <Link to="/zadaci" className="mt-4 inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-            Svi zadaci →
-          </Link>
         </div>
       )}
 

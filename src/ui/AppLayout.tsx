@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
+import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
 
 interface ObavestenjeItem {
   id: number
@@ -243,13 +244,6 @@ export default function AppLayout() {
                             <p className="px-4 py-4 text-xs text-gray-500">Nema obaveštenja.</p>
                           ) : (
                             notifications.map((n) => {
-                              const iconClass =
-                                n.type === 'uplata' ? 'bg-emerald-100 text-emerald-600'
-                                : n.type === 'akcija' ? 'bg-blue-100 text-blue-600'
-                                : n.type === 'zadatak' ? 'bg-amber-100 text-amber-700'
-                                : n.type === 'broadcast' ? 'bg-violet-100 text-violet-600'
-                                : n.type === 'subskripcija' ? 'bg-amber-100 text-amber-700'
-                                : 'bg-gray-100 text-gray-600'
                               return (
                                 <button
                                   key={n.id}
@@ -257,7 +251,7 @@ export default function AppLayout() {
                                   onClick={() => handleNotificationClick(n)}
                                   className={`flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${!n.readAt ? 'bg-emerald-50/40' : ''}`}
                                 >
-                                  <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
+                                  <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${obavestenjeBellIconClass(n.type)}`}>
                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                                     </svg>
@@ -662,13 +656,6 @@ export default function AppLayout() {
               ) : (
                 <div className="py-1">
                   {notifications.map((n) => {
-                    const iconClass =
-                      n.type === 'uplata' ? 'bg-emerald-100 text-emerald-600'
-                      : n.type === 'akcija' ? 'bg-blue-100 text-blue-600'
-                      : n.type === 'zadatak' ? 'bg-amber-100 text-amber-700'
-                      : n.type === 'broadcast' ? 'bg-violet-100 text-violet-600'
-                      : n.type === 'subskripcija' ? 'bg-amber-100 text-amber-700'
-                      : 'bg-gray-100 text-gray-600'
                     return (
                       <button
                         key={n.id}
@@ -676,7 +663,7 @@ export default function AppLayout() {
                         onClick={() => handleNotificationClick(n)}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 ${!n.readAt ? 'bg-emerald-50/40' : ''}`}
                       >
-                        <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
+                        <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${obavestenjeBellIconClass(n.type)}`}>
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                           </svg>
