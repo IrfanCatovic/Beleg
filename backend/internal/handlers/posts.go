@@ -50,8 +50,9 @@ func extractMentionUsernames(content string) []string {
 	return out
 }
 
-func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender models.Korisnik, senderText string, selfUserID uint, postID uint) {
-	if len(mentionUsernames) == 0 {
+// postClubID: obaveštenje o pomenima ide samo korisnicima istog kluba kao objava (ne drugi klubovi).
+func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender models.Korisnik, senderText string, selfUserID uint, postID uint, postClubID uint) {
+	if len(mentionUsernames) == 0 || postClubID == 0 {
 		return
 	}
 
@@ -80,6 +81,9 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 	uidSeen := make(map[uint]struct{}, len(users))
 	for _, u := range users {
 		if u.ID == selfUserID {
+			continue
+		}
+		if u.KlubID == nil || *u.KlubID != postClubID {
 			continue
 		}
 		if _, ok := uidSeen[u.ID]; ok {
@@ -489,9 +493,9 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	// Notifikuj označene (@username) u tekstu objave.
+	// Notifikuj označene (@username) u tekstu objave — samo članove istog kluba kao objava.
 	mentions := extractMentionUsernames(content)
-	notifyMentionsFromContent(db, mentions, korisnik, content, korisnik.ID, post.ID)
+	notifyMentionsFromContent(db, mentions, korisnik, content, korisnik.ID, post.ID, clubID)
 
 	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id, username, full_name, avatar_url, role, klub_id")
@@ -637,8 +641,8 @@ func TogglePostLike(c *gin.Context) {
 	var likeCount int64
 	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
 
-	// Obavesti vlasnika objave samo kada korisnik doda lajk (ne kada ukloni).
-	if liked && post.UserID != korisnik.ID {
+	// Obavesti vlasnika objave samo kada korisnik doda lajk — i samo ako su u istom klubu kao objava.
+	if liked && post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
 		likerName := strings.TrimSpace(korisnik.FullName)
 		if likerName == "" {
 			likerName = korisnik.Username
@@ -805,12 +809,12 @@ func CreatePostComment(c *gin.Context) {
 		return
 	}
 
-	// Notifikuj označene (@username) u komentaru.
+	// Notifikuj označene (@username) u komentaru — samo članove kluba kojem objava pripada.
 	mentions := extractMentionUsernames(req.Content)
-	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID, uint(postID))
+	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID, uint(postID), post.ClubID)
 
-	// Obavesti vlasnika objave samo kada komentar nije od samog vlasnika.
-	if post.UserID != korisnik.ID {
+	// Obavesti vlasnika objave samo ako komentar nije od vlasnika i ako je komentator u istom klubu kao objava.
+	if post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
 		commenterName := strings.TrimSpace(korisnik.FullName)
 		if commenterName == "" {
 			commenterName = korisnik.Username

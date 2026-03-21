@@ -133,21 +133,22 @@ export default function SuperadminKlubovi() {
     return () => clearInterval(t)
   }, [deleteKlubId, deleteCountdown])
 
-  // Kada odbrojavanje stigne do 0, automatski pozovi brisanje
-  useEffect(() => {
-    if (deleteKlubId == null || deleteCountdown !== 0 || deleteLoading) return
+  const confirmDeleteClub = async () => {
+    if (deleteKlubId == null) return
     const id = deleteKlubId
-    setDeleteKlubId(null)
     setDeleteLoading(true)
-    api
-      .delete(`/api/superadmin/klubovi/${id}`)
-      .then(() => fetchKlubovi())
-      .catch((err: unknown) => {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri brisanju'
-        setError(msg)
-      })
-      .finally(() => setDeleteLoading(false))
-  }, [deleteCountdown, deleteKlubId, deleteLoading])
+    try {
+      await api.delete(`/api/superadmin/klubovi/${id}`)
+      setDeleteKlubId(null)
+      setDeleteCountdown(0)
+      await fetchKlubovi()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri brisanju'
+      setError(msg)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const openAddModal = () => {
     setEditingId(null)
@@ -348,14 +349,27 @@ export default function SuperadminKlubovi() {
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     ) : (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-xs font-medium text-red-600">
-                          {countdown > 0 ? `Obrisaće se za ${countdown}s` : 'Brisanje...'}
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-right text-xs font-medium text-red-600 max-w-[9rem]">
+                          {countdown > 0
+                            ? `Još ${countdown}s, zatim potvrdite brisanje.`
+                            : 'Kliknite Izbriši za trajno brisanje.'}
                         </span>
+                        {countdown === 0 && (
+                          <button
+                            type="button"
+                            onClick={confirmDeleteClub}
+                            disabled={deleteLoading}
+                            className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            Izbriši
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={cancelDelete}
-                          className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300"
+                          disabled={deleteLoading}
+                          className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
                         >
                           Odustani
                         </button>

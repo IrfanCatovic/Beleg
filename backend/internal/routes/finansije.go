@@ -11,6 +11,7 @@ import (
 // Provera uloge (admin/blagajnik) je unutar handlera.
 func RegisterFinanceRoutes(g *gin.RouterGroup) {
 	g.GET("/finansije/transakcije/:id", handlers.GetTransakcijaByID)
+	g.DELETE("/finansije/transakcije/:id", handlers.DeleteTransakcija)
 	g.GET("/finansije", handlers.GetTransakcije)
 	g.GET("/finansije/dashboard", handlers.GetDashboard)
 	g.POST("/finansije", handlers.CreateTransakcija)

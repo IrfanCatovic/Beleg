@@ -1166,10 +1166,10 @@ func main() {
 				return
 			}
 
-			// Obaveštenje svima: nova akcija u kalendaru
-			var allUserIDs []uint
-			db.Model(&models.Korisnik{}).Pluck("id", &allUserIDs)
-			notifications.NotifyUsers(db, allUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
+			// Obaveštenje samo članovima kluba kojem akcija pripada (ne celoj bazi)
+			var clubMemberIDs []uint
+			db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &clubMemberIDs)
+			notifications.NotifyUsers(db, clubMemberIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
 
 			// Upload slika na Cloudinary (ako postoji)
 			files := form.File["slika"]

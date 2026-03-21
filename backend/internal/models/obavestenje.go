@@ -5,7 +5,7 @@ import "time"
 // Tipovi obaveštenja za prikaz i filtriranje.
 const (
 	ObavestenjeTipUplata     = "uplata"      // nova uplata → blagajnik + admin
-	ObavestenjeTipAkcija     = "akcija"      // nova akcija → svi
+	ObavestenjeTipAkcija     = "akcija"      // nova akcija → članovi kluba akcije
 	ObavestenjeTipZadatak    = "zadatak"     // novi zadatak → oni koji mogu da vide
 	ObavestenjeTipPost         = "post"         // novi post na homepage (kasnije)
 	ObavestenjeTipBroadcast    = "broadcast"    // admin šalje svima

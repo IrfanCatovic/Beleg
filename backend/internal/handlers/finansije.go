@@ -27,6 +27,12 @@ func checkFinanceRole(c *gin.Context) bool {
 	return role == "admin" || role == "superadmin" || role == "blagajnik"
 }
 
+func checkDeleteTransakcijaRole(c *gin.Context) bool {
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	return role == "admin" || role == "superadmin"
+}
+
 
 func GetDashboard(c *gin.Context) {
 	if !checkFinanceRole(c) {
@@ -183,6 +189,51 @@ func GetTransakcijaByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, t)
+}
+
+// DeleteTransakcija briše transakciju effective kluba — samo admin / superadmin (ne blagajnik).
+func DeleteTransakcija(c *gin.Context) {
+	if !checkDeleteTransakcijaRole(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin može da briše transakcije"})
+		return
+	}
+
+	dbAny, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transakcija nije pronađena"})
+		return
+	}
+
+	idStr := c.Param("id")
+	tid, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID transakcije"})
+		return
+	}
+
+	creatorIDs := db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", clubID)
+	var t models.Transakcija
+	if err := db.Where("id = ? AND korisnik_id IN (?)", tid, creatorIDs).First(&t).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transakcija nije pronađena"})
+		return
+	}
+
+	if err := db.Delete(&models.Transakcija{}, tid).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju transakcije"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Transakcija obrisana"})
 }
 
 // CreateTransakcija kreira novu uplatu ili isplatu (ručni unos).
