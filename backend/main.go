@@ -1166,10 +1166,14 @@ func main() {
 				return
 			}
 
-			// Obaveštenje samo članovima kluba kojem akcija pripada (ne celoj bazi)
-			var clubMemberIDs []uint
-			db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &clubMemberIDs)
-			notifications.NotifyUsers(db, clubMemberIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
+			// Javna akcija → obaveštenje svim korisnicima koji pripadaju bilo kom klubu; inače samo članovima kluba akcije
+			var notifyUserIDs []uint
+			if javna {
+				db.Model(&models.Korisnik{}).Where("klub_id IS NOT NULL").Pluck("id", &notifyUserIDs)
+			} else {
+				db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &notifyUserIDs)
+			}
+			notifications.NotifyUsers(db, notifyUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
 
 			// Upload slika na Cloudinary (ako postoji)
 			files := form.File["slika"]

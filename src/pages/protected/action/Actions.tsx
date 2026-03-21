@@ -366,7 +366,11 @@ export default function Actions() {
                   <Link
                     key={akcija.id}
                     to={`/akcije/${akcija.id}`}
-                    className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col"
+                    className={`group bg-white rounded-xl border border-gray-100 overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
+                      akcija.javna
+                        ? 'shadow-[0_2px_20px_-2px_rgba(180,83,9,0.28),0_10px_40px_-4px_rgba(245,158,11,0.24),0_0_52px_-8px_rgba(253,224,71,0.38)] hover:shadow-[0_4px_28px_-2px_rgba(180,83,9,0.34),0_14px_48px_-4px_rgba(245,158,11,0.3),0_0_64px_-6px_rgba(253,224,71,0.48)]'
+                        : 'shadow-sm hover:shadow-md'
+                    }`}
                   >
                     {/* Image */}
                     <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
@@ -385,6 +389,11 @@ export default function Actions() {
                           +{mmr} MMR
                         </span>
                       </div>
+                      {akcija.javna && (
+                        <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
+                          Javna
+                        </span>
+                      )}
                       {akcija.zimskiUspon && (
                         <span className="absolute top-2 right-2.5 text-[10px] font-bold text-white bg-sky-500/80 backdrop-blur-sm px-2 py-0.5 rounded-md">
                           Zimski uspon
@@ -404,8 +413,8 @@ export default function Actions() {
                       </p>
 
                       {akcija.javna && akcija.klubNaziv && (
-                        <p className="text-[10px] text-violet-600 font-semibold truncate mb-2 flex items-center gap-1">
-                          <svg className="w-3 h-3 text-violet-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <p className="text-[10px] text-amber-800/90 font-semibold truncate mb-2 flex items-center gap-1">
+                          <svg className="w-3 h-3 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                           </svg>
                           {akcija.klubNaziv}
@@ -516,7 +525,11 @@ export default function Actions() {
                   <Link
                     key={akcija.id}
                     to={`/akcije/${akcija.id}`}
-                    className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col"
+                    className={`group bg-white rounded-xl border border-gray-100 overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
+                      akcija.javna
+                        ? 'shadow-[0_2px_18px_-2px_rgba(180,83,9,0.24),0_8px_36px_-4px_rgba(245,158,11,0.2),0_0_48px_-8px_rgba(253,224,71,0.32)] hover:shadow-[0_4px_24px_-2px_rgba(180,83,9,0.3),0_12px_44px_-4px_rgba(245,158,11,0.26),0_0_58px_-6px_rgba(253,224,71,0.42)]'
+                        : 'shadow-sm hover:shadow-md'
+                    }`}
                   >
                     {/* Image */}
                     <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
@@ -535,6 +548,11 @@ export default function Actions() {
                           +{mmr} MMR
                         </span>
                       </div>
+                      {akcija.javna && (
+                        <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
+                          Javna
+                        </span>
+                      )}
                     </div>
 
                     {/* Body */}
@@ -548,8 +566,8 @@ export default function Actions() {
                       </p>
 
                       {akcija.javna && akcija.klubNaziv && (
-                        <p className="text-[10px] text-violet-600 font-semibold truncate mb-2 flex items-center gap-1">
-                          <svg className="w-3 h-3 text-violet-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <p className="text-[10px] text-amber-800/90 font-semibold truncate mb-2 flex items-center gap-1">
+                          <svg className="w-3 h-3 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                           </svg>
                           {akcija.klubNaziv}
