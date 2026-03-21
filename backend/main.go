@@ -83,6 +83,9 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) < 32 {
+		log.Fatal("JWT_SECRET nije podešen ili je prekratak (minimum 32 karaktera)")
+	}
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
@@ -102,7 +105,6 @@ func main() {
 	} else {
 		log.Println("Uspješno povezan sa bazom!")
 		log.Print(".env je ucitan")
-		log.Println("Cloud name:", os.Getenv("CLOUDINARY_CLOUD_NAME"))
 	}
 
 	fmt.Println("Uspješno povezan sa bazom!")
@@ -137,6 +139,10 @@ func main() {
 	})
 
 	// Public rute
+	loginRateLimiter := middleware.NewIPRateLimiter(12, time.Minute)
+	cenaZahtevRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
+	registerRateLimiter := middleware.NewIPRateLimiter(8, 10*time.Minute)
+	setupAdminRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
 
 	r.GET("/api/setup/status", func(c *gin.Context) {
 		var total int64
@@ -178,7 +184,7 @@ func main() {
 
 	// POST /api/setup/admin (RegisterAdmin) kreiranje prvog admina prema modelu Korisnik
 	// Obavezno: username, password. Ostalo opciono (multipart/form-data + opciono avatar).
-	r.POST("/api/setup/admin", func(c *gin.Context) {
+	r.POST("/api/setup/admin", setupAdminRateLimiter, func(c *gin.Context) {
 		if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 			return
@@ -319,7 +325,7 @@ func main() {
 	})
 
 	// POST /login login korisnika i dobijanje JWT tokena
-	r.POST("/login", func(c *gin.Context) {
+	r.POST("/login", loginRateLimiter, func(c *gin.Context) {
 		var req struct {
 			Username string `json:"username" binding:"required"`
 			Password string `json:"password" binding:"required"`
@@ -328,18 +334,32 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 			return
 		}
+		req.Username = strings.TrimSpace(req.Username)
+		clientIP := c.ClientIP()
+		if allowed, lockedUntil := middleware.CheckLoginAllowed(clientIP, req.Username); !allowed {
+			retryAfter := int(time.Until(lockedUntil).Seconds())
+			if retryAfter < 1 {
+				retryAfter = 1
+			}
+			c.Header("Retry-After", strconv.Itoa(retryAfter))
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Previše neuspešnih pokušaja prijave. Pokušajte ponovo kasnije."})
+			return
+		}
 
 		var korisnik models.Korisnik
 		if err := db.Where("username = ?", req.Username).First(&korisnik).Error; err != nil {
+			middleware.RegisterLoginFailure(clientIP, req.Username)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Pogrešno korisničko ime ili lozinka"})
 			return
 		}
 
 		// Proveri lozinku
 		if err := bcrypt.CompareHashAndPassword([]byte(korisnik.Password), []byte(req.Password)); err != nil {
+			middleware.RegisterLoginFailure(clientIP, req.Username)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Pogrešno korisničko ime ili lozinka"})
 			return
 		}
+		middleware.RegisterLoginSuccess(clientIP, req.Username)
 
 		// Ako nije superadmin, proveri da klub nije na hold-u (14+ dana posle isteka subskripcije)
 		if korisnik.Role != "superadmin" && korisnik.KlubID != nil {
@@ -379,7 +399,7 @@ func main() {
 	})
 
 	// POST /api/cena-zahtev — javna forma za zahtev ponude; šalje email na EMAIL_TO
-	r.POST("/api/cena-zahtev", handlers.CenaZahtev)
+	r.POST("/api/cena-zahtev", cenaZahtevRateLimiter, handlers.CenaZahtev)
 
 	// Javna ruta — detalji akcije (za deljenje linka; vraća i vodiča i ko je dodao)
 	// GET /api/akcije/:id  detalji su javni (ruta registrovana iznad, van protected)
@@ -769,7 +789,7 @@ func main() {
 		// POST /api/register kreiranje korisnika (uključujući superadmin)
 		// Ako se šalje role=superadmin: dozvoljeno samo kada nema nijednog superadmina (bez auth-a).
 		// Za ostale role: obavezan auth (admin ili sekretar), multipart/form-data, role iz forme.
-		r.POST("/api/register", func(c *gin.Context) {
+		r.POST("/api/register", registerRateLimiter, func(c *gin.Context) {
 			db := c.MustGet("db").(*gorm.DB)
 
 			if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
@@ -2741,5 +2761,11 @@ func main() {
 	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana 
 	go jobs.RunCloudinaryPendingDeletesJob(db)
 
-	r.Run(":8080")
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("Neuspešno pokretanje servera:", err)
+	}
 }

@@ -13,12 +13,17 @@ dist-ssr
 *.local
 .npm
 .env.local
+.env.*
+!.env.example
 
 # Go
 *.exe
 vendor/
 go.sum
 .env
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Editor directories and files
 .vscode/*
