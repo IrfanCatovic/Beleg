@@ -26,6 +26,7 @@ import RoleRoute from './components/routes/RoleRoute'
 import RegisterAdmin from './pages/protected/user/RegisterAdmin'
 import ProfileSettings from './pages/protected/user/ProfileSettings'
 import Obavestenja from './pages/protected/Obavestenja'
+import ObavestenjeDetalj from './pages/protected/ObavestenjeDetalj'
 import Landing from './pages/public/Landing'
 import Kontakt from './pages/public/Kontakt'
 import Cena from './pages/public/Cena'
@@ -89,6 +90,7 @@ const router = createBrowserRouter([
           { path: '/home', element: <Home /> },
           { path: '/search', element: <Search /> },
           { path: '/obavestenja', element: <Obavestenja /> },
+          { path: '/obavestenja/:id', element: <ObavestenjeDetalj /> },
 
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
           { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },

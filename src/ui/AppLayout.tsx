@@ -103,8 +103,12 @@ export default function AppLayout() {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
     }
     setIsNotificationsOpen(false)
-    const target = (n.link && n.link.trim()) ? n.link : '/obavestenja'
-    navigate(target)
+    // Akcije: direktno na detalj akcije; ostalo na stranicu obaveštenja sa učitanim entitetom
+    if (n.type === 'akcija' && n.link?.trim()) {
+      navigate(n.link.trim())
+      return
+    }
+    navigate(`/obavestenja/${n.id}`)
   }
 
   const handleLogout = () => {

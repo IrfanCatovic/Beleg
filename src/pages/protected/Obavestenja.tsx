@@ -12,6 +12,7 @@ interface ObavestenjeItem {
   title: string
   body?: string
   link?: string
+  metadata?: string
   readAt?: string | null
   createdAt: string
 }
@@ -47,7 +48,11 @@ export default function Obavestenja() {
         setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
       }).catch(() => {})
     }
-    if (n.link) navigate(n.link)
+    if (n.type === 'akcija' && n.link?.trim()) {
+      navigate(n.link.trim())
+      return
+    }
+    navigate(`/obavestenja/${n.id}`)
   }
 
   const handleDelete = async (e: React.MouseEvent, n: ObavestenjeItem) => {
