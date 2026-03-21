@@ -432,6 +432,63 @@ func main() {
 			c.JSON(404, gin.H{"error": "Akcija nije pronađena"})
 			return
 		}
+
+		// Za nejavne akcije puni detalji su dostupni samo članovima istog kluba
+		// (i superadminu koji je izabrao isti klub preko X-Club-Id).
+		canSeePrivateDetails := akcija.Javna
+		if !akcija.Javna && akcija.KlubID != nil {
+			authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				tokenStr := strings.TrimSpace(authHeader[len("Bearer "):])
+				claims := jwt.MapClaims{}
+				if tokenStr != "" {
+					if token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+						if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+							return nil, jwt.ErrSignatureInvalid
+						}
+						return jwtSecret, nil
+					}); err == nil && token.Valid {
+						usernameClaim, _ := claims["username"].(string)
+						roleClaim, _ := claims["role"].(string)
+						usernameClaim = strings.TrimSpace(usernameClaim)
+						if usernameClaim != "" {
+							var viewer models.Korisnik
+							if err := db.Where("username = ?", usernameClaim).First(&viewer).Error; err == nil {
+								if viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
+									canSeePrivateDetails = true
+								}
+								if roleClaim == "superadmin" {
+									if selectedClubID, err := strconv.ParseUint(strings.TrimSpace(c.GetHeader("X-Club-Id")), 10, 64); err == nil && uint(selectedClubID) == *akcija.KlubID {
+										canSeePrivateDetails = true
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if !canSeePrivateDetails {
+			limited := gin.H{
+				"id":          akcija.ID,
+				"naziv":       akcija.Naziv,
+				"planina":     akcija.Planina,
+				"vrh":         akcija.Vrh,
+				"datum":       akcija.Datum,
+				"isCompleted": akcija.IsCompleted,
+				"createdAt":   akcija.CreatedAt,
+				"updatedAt":   akcija.UpdatedAt,
+				"javna":       akcija.Javna,
+				"limited":     true,
+			}
+			if akcija.KlubID != nil {
+				limited["klubId"] = *akcija.KlubID
+			}
+			c.JSON(200, limited)
+			return
+		}
+
 		resp := gin.H{
 			"id": akcija.ID, "naziv": akcija.Naziv, "planina": akcija.Planina, "vrh": akcija.Vrh, "datum": akcija.Datum,
 			"opis": akcija.Opis, "tezina": akcija.Tezina, "slikaUrl": akcija.SlikaURL,

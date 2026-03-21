@@ -13,9 +13,9 @@ interface Akcija {
   planina?: string
   vrh: string
   datum: string
-  opis: string
-  tezina: string
-  slikaUrl: string
+  opis?: string
+  tezina?: string
+  slikaUrl?: string
   createdAt: string
   updatedAt: string
   isCompleted: boolean
@@ -28,6 +28,7 @@ interface Akcija {
   javna?: boolean
   klubNaziv?: string
   klubId?: number
+  limited?: boolean
 }
 
 interface Prijava {
@@ -120,7 +121,7 @@ export default function ActionDetails() {
       )
     }
 
-    if (!id || !user || !akcija) {
+    if (!id || !user || !akcija || akcija.limited) {
       setPrijave([])
       setMojaPrijava(null)
       return
@@ -270,8 +271,9 @@ export default function ActionDetails() {
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const t = tz(akcija.tezina)
   const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
+  const isLimitedView = !!akcija.limited
   const memberCount =
-    user && canManageHost ? prijave.length : (akcija.prijaveCount ?? 0)
+    user && canManageHost && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -388,6 +390,16 @@ export default function ActionDetails() {
           </div>
         </div>
       </div>
+
+      {isLimitedView && (
+        <div className="bg-amber-50/70 border-b border-amber-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <p className="text-sm text-amber-800">
+              Ova akcija nije javna. Prikazan je ograničen skup podataka. Puni detalji su dostupni samo članovima kluba domaćina.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ══════════ BODY ══════════ */}
       <div className="bg-gray-50/80 min-h-[40vh]">
@@ -511,7 +523,7 @@ export default function ActionDetails() {
                     </div>
                   )}
 
-                  {user && !canManageHost && (
+                  {user && !canManageHost && !isLimitedView && (
                     <div className="rounded-xl bg-gradient-to-br from-sky-50/80 to-gray-50 border border-sky-100/80 p-5 space-y-3">
                       <p className="text-sm text-gray-600 leading-relaxed">
                         Potpun spisak prijavljenih vidi samo organizator kluba koji je objavio akciju. Ukupno prijavljenih:{' '}
@@ -529,7 +541,7 @@ export default function ActionDetails() {
                     </div>
                   )}
 
-                  {user && canManageHost && prijave.length > 0 && (
+                  {user && canManageHost && !isLimitedView && prijave.length > 0 && (
                     <div className="space-y-2">
                       {prijave.map((p) => {
                         const displayName = p.fullName?.trim() ? p.fullName : p.korisnik || 'Nepoznat'
@@ -658,7 +670,7 @@ export default function ActionDetails() {
               </div>
 
               {/* ══════════ ADMIN CONTROLS (samo domaćin kluba) ══════════ */}
-              {canManageHost && (
+              {canManageHost && !isLimitedView && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
