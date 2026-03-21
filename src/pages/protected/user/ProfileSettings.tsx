@@ -43,7 +43,7 @@ const initialForm = {
 export default function ProfileSettings() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, isLoggedIn, login } = useAuth()
+  const { user, isLoggedIn, login, refreshUser } = useAuth()
   const [form, setForm] = useState(initialForm)
   const [role, setRole] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -226,12 +226,9 @@ export default function ProfileSettings() {
 
       const res = await api.patch('/api/me', formData)
 
-      if (res.data?.token && res.data?.role && res.data?.user) {
-        login({
-          token: res.data.token,
-          role: res.data.role,
-          user: res.data.user,
-        })
+      if (res.data?.role && res.data?.user) {
+        login({ role: res.data.role, user: res.data.user })
+        await refreshUser()
       }
 
       setSuccess(true)

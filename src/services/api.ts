@@ -1,9 +1,12 @@
 import axios from 'axios'
 
-const apiBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+// U dev-u koristi prazan baseURL da request ide na isti origin (Vite proxy prosleđuje na backend).
+// U produkciji: ako su frontend i backend na istom domenu, ostavi ''. Inače postavi VITE_API_URL.
+const apiBaseURL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: apiBaseURL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,13 +19,9 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
-// interceptor: add token in every request; za FormData ne postavljaj Content-Type (browser doda boundary)
-// za superadmina dodaj X-Club-Id ako je izabrao klub
+// interceptor: za superadmina dodaj X-Club-Id (user preference, nije tajna)
+// token se šalje automatski kao HttpOnly cookie, ne treba ga dodavati ručno
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
     try {

@@ -399,18 +399,24 @@ func main() {
 			return
 		}
 
-		// Vrati odgovor
-		c.JSON(http.StatusOK, LoginResponse{
-			Token: tokenString,
-			Role:  korisnik.Role,
-			User: struct {
-				Username string `json:"username"`
-				FullName string `json:"fullName"`
-			}{
-				Username: korisnik.Username,
-				FullName: korisnik.FullName,
+		// Postavi HttpOnly cookie (24h) — token više ne ide u body
+		cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
+		middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure)
+
+		c.JSON(http.StatusOK, gin.H{
+			"role": korisnik.Role,
+			"user": gin.H{
+				"username":   korisnik.Username,
+				"fullName":   korisnik.FullName,
+				"avatar_url": korisnik.AvatarURL,
 			},
 		})
+	})
+
+	// POST /api/logout — briše auth cookie (frontend poziva pre nego što očisti state)
+	r.POST("/api/logout", func(c *gin.Context) {
+		middleware.ClearAuthCookie(c)
+		c.JSON(http.StatusOK, gin.H{"message": "Odjavljen"})
 	})
 
 	// POST /api/cena-zahtev — javna forma za zahtev ponude; šalje email na EMAIL_TO
@@ -2051,7 +2057,7 @@ func main() {
 			}
 
 			resp := gin.H{"message": "Profil ažuriran", "korisnik": korisnik}
-			// Ako je promenjeno korisničko ime, vrati novi JWT da klijent može da ga sačuva (inače sledeći zahtev bi tražio starim username-om)
+			// Ako je promenjeno korisničko ime, postavi novi JWT u cookie (stari je vezan za stari username)
 			if newUsername != username.(string) {
 				claims := jwt.MapClaims{
 					"username": korisnik.Username,
@@ -2061,7 +2067,8 @@ func main() {
 				token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 				tokenString, err := token.SignedString(jwtSecret)
 				if err == nil {
-					resp["token"] = tokenString
+					cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
+					middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure)
 					resp["role"] = korisnik.Role
 					resp["user"] = gin.H{"username": korisnik.Username, "fullName": korisnik.FullName}
 				}

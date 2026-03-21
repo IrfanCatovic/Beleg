@@ -15,7 +15,6 @@ export interface User {
 
 
 export interface LoginResponse {
-  token: string;
   role: string;
   user: { username: string; fullName: string; avatar_url?: string };
 }
@@ -23,87 +22,84 @@ export interface LoginResponse {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
+  authLoading: boolean;
   login: (data: LoginResponse) => void;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function readStoredUser(): User | null {
-    const savedUser = localStorage.getItem('user')
-    if (!savedUser) return null
-    try {
-        return JSON.parse(savedUser) as User
-    } catch {
-        localStorage.removeItem('user')
-        return null
-    }
-}
-
     export function AuthProvider({ children }: { children: ReactNode }) {
+        const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+        const [user, setUser] = useState<User | null>(null)
+        const [authLoading, setAuthLoading] = useState(true)
 
-        const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-        return !!localStorage.getItem('token')
-        })
+        const logout = useCallback(async () => {
+            try {
+                await api.post('/api/logout')
+            } catch { /* ignore */ }
+            setIsLoggedIn(false)
+            setUser(null)
+            localStorage.removeItem('user')
+            localStorage.removeItem('isLoggedIn')
+        }, [])
 
-        const [user, setUser] = useState<User | null>(() => readStoredUser())
-
-
-
-        useEffect(() => {
-            if (isLoggedIn) {
-                localStorage.setItem('isLoggedIn', 'true')
-            } else {
-                localStorage.removeItem('isLoggedIn')
-                localStorage.removeItem('user')
-                localStorage.removeItem('token')
-            }
-        }, [isLoggedIn])
-
-            const login = (data: LoginResponse) => {
+        const refreshUser = useCallback(async () => {
+            try {
+                const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string; klubId?: number }>('/api/me')
+                const data = res.data
                 const userData: User = {
-                    username: data.user.username,
-                    fullName: data.user.fullName,
+                    username: data.username,
+                    fullName: data.fullName,
                     role: data.role as User['role'],
-                    avatarUrl: data.user.avatar_url,
+                    avatarUrl: data.avatar_url,
+                    klubId: data.klubId,
                 }
                 setUser(userData)
                 localStorage.setItem('user', JSON.stringify(userData))
-                localStorage.setItem('token', data.token)
-                setIsLoggedIn(true)
+                return true
+            } catch {
+                return false
             }
+        }, [])
 
-            const logout = useCallback(() => {
-                setIsLoggedIn(false)
-                setUser(null)
-                localStorage.removeItem('token')
-            }, [])
-
-            const refreshUser = useCallback(async () => {
-                if (!localStorage.getItem('token')) return
-                try {
-                    const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string; klubId?: number }>('/api/me')
-                    const data = res.data
-                    const userData: User = {
-                        username: data.username,
-                        fullName: data.fullName,
-                        role: data.role as User['role'],
-                        avatarUrl: data.avatar_url,
-                        klubId: data.klubId,
-                    }
-                    setUser(userData)
-                    localStorage.setItem('user', JSON.stringify(userData))
-                } catch {
-                    logout()
-                }
-            }, [logout])
+        const login = useCallback((data: LoginResponse) => {
+            const userData: User = {
+                username: data.user.username,
+                fullName: data.user.fullName,
+                role: data.role as User['role'],
+                avatarUrl: data.user.avatar_url,
+            }
+            setUser(userData)
+            localStorage.setItem('user', JSON.stringify(userData))
+            setIsLoggedIn(true)
+        }, [])
 
         useEffect(() => {
-            if (isLoggedIn && localStorage.getItem('token')) {
-                refreshUser()
+            api.get('/api/me')
+                .then((res) => {
+                    const data = res.data as { username?: string; fullName?: string; role?: string }
+                    if (data?.username && data?.role) {
+                        const userData: User = {
+                            username: data.username,
+                            fullName: data.fullName ?? '',
+                            role: data.role as User['role'],
+                        }
+                        setUser(userData)
+                        setIsLoggedIn(true)
+                        localStorage.setItem('user', JSON.stringify(userData))
+                    }
+                })
+                .catch(() => { /* nije ulogovan */ })
+                .finally(() => setAuthLoading(false))
+        }, [])
+
+        useEffect(() => {
+            if (isLoggedIn) {
+                refreshUser().then((ok) => { if (!ok) logout() })
             }
-        }, [isLoggedIn, refreshUser])
+        }, [isLoggedIn])
 
         useEffect(() => {
             setUnauthorizedHandler(logout)
@@ -111,7 +107,7 @@ function readStoredUser(): User | null {
         }, [logout])
 
         return (
-            <AuthContext.Provider value={{ isLoggedIn, user, login, logout, refreshUser }}>
+            <AuthContext.Provider value={{ isLoggedIn, user, authLoading, login, logout, refreshUser }}>
                 {children}
             </AuthContext.Provider>
         );
