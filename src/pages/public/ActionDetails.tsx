@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
+import { canManageHostAkcija } from '../../utils/canManageAkcija'
 
 interface Akcija {
   id: number
@@ -26,6 +27,7 @@ interface Akcija {
   prijaveCount?: number
   javna?: boolean
   klubNaziv?: string
+  klubId?: number
 }
 
 interface Prijava {
@@ -71,8 +73,29 @@ export default function ActionDetails() {
   const navigate = useNavigate()
   const [akcija, setAkcija] = useState<Akcija | null>(null)
   const [prijave, setPrijave] = useState<Prijava[]>([])
+  const [mojaPrijava, setMojaPrijava] = useState<{ id: number; status: Prijava['status']; prijavljenAt: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchAkcija = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await api.get(`/api/akcije/${id}`)
+        if (!cancelled) setAkcija(res.data)
+      } catch (err: any) {
+        if (!cancelled) setError(err.response?.data?.error || 'Greška pri učitavanju akcije')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchAkcija()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   useEffect(() => {
     const enrichWithAvatars = async (items: Prijava[]): Promise<Prijava[]> => {
@@ -97,31 +120,39 @@ export default function ActionDetails() {
       )
     }
 
-    const fetchAkcija = async () => {
-      try {
-        const res = await api.get(`/api/akcije/${id}`)
-        setAkcija(res.data)
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju akcije')
-      } finally {
-        setLoading(false)
-      }
+    if (!id || !user || !akcija) {
+      setPrijave([])
+      setMojaPrijava(null)
+      return
     }
 
-    const fetchPrijave = async () => {
+    const host = canManageHostAkcija(user, akcija.klubId)
+
+    const run = async () => {
+      if (host) {
+        try {
+          const res = await api.get(`/api/akcije/${id}/prijave`)
+          const list: Prijava[] = res.data.prijave || []
+          const enriched = await enrichWithAvatars(list)
+          setPrijave(enriched)
+          setMojaPrijava(null)
+        } catch {
+          setPrijave([])
+          setMojaPrijava(null)
+        }
+        return
+      }
       try {
-        const res = await api.get(`/api/akcije/${id}/prijave`)
-        const list: Prijava[] = res.data.prijave || []
-        const enriched = await enrichWithAvatars(list)
-        setPrijave(enriched)
-      } catch (err: any) {
-        console.error('Greška pri učitavanju prijava:', err)
+        const res = await api.get(`/api/akcije/${id}/moja-prijava`)
+        setMojaPrijava(res.data?.prijava ?? null)
+        setPrijave([])
+      } catch {
+        setMojaPrijava(null)
+        setPrijave([])
       }
     }
-
-    fetchAkcija()
-    if (user) fetchPrijave()
-  }, [id, user])
+    void run()
+  }, [id, user, akcija])
 
   const handleDelete = async () => {
     const confirmed = await showConfirm(
@@ -238,8 +269,9 @@ export default function ActionDetails() {
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const t = tz(akcija.tezina)
-  const isAdmin = user && ['superadmin', 'admin', 'vodic'].includes(user.role)
-  const memberCount = user ? prijave.length : (akcija.prijaveCount ?? 0)
+  const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
+  const memberCount =
+    user && canManageHost ? prijave.length : (akcija.prijaveCount ?? 0)
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -468,7 +500,7 @@ export default function ActionDetails() {
                     </div>
                   )}
 
-                  {user && prijave.length === 0 && (
+                  {user && canManageHost && prijave.length === 0 && (
                     <div className="rounded-xl bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-100 p-8 text-center">
                       <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm border border-gray-100 mb-3">
                         <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -479,7 +511,25 @@ export default function ActionDetails() {
                     </div>
                   )}
 
-                  {user && prijave.length > 0 && (
+                  {user && !canManageHost && (
+                    <div className="rounded-xl bg-gradient-to-br from-sky-50/80 to-gray-50 border border-sky-100/80 p-5 space-y-3">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        Potpun spisak prijavljenih vidi samo organizator kluba koji je objavio akciju. Ukupno prijavljenih:{' '}
+                        <span className="font-semibold text-gray-900">{akcija.prijaveCount ?? 0}</span>.
+                      </p>
+                      {mojaPrijava && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vaš status</span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${STATUS_STYLE[mojaPrijava.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                            {STATUS_LABEL[mojaPrijava.status] || mojaPrijava.status}
+                          </span>
+                          <span className="text-[11px] text-gray-400">{formatDateTime(mojaPrijava.prijavljenAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {user && canManageHost && prijave.length > 0 && (
                     <div className="space-y-2">
                       {prijave.map((p) => {
                         const displayName = p.fullName?.trim() ? p.fullName : p.korisnik || 'Nepoznat'
@@ -516,7 +566,7 @@ export default function ActionDetails() {
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusCls}`}>
                                 {STATUS_LABEL[p.status] || p.status}
                               </span>
-                              {isAdmin && !akcija.isCompleted && (
+                              {canManageHost && !akcija.isCompleted && (
                                 <div className="flex gap-1.5 items-center">
                                   {p.status === 'prijavljen' && (
                                     <>
@@ -597,7 +647,7 @@ export default function ActionDetails() {
                       <span className="text-[11px] text-gray-500 font-medium">Prijavljenih</span>
                       <span className="text-sm font-bold text-gray-900">{memberCount}</span>
                     </div>
-                    {akcija.isCompleted && user && (
+                    {akcija.isCompleted && user && canManageHost && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
                         <span className="text-[11px] text-emerald-600 font-medium">Popeli se</span>
                         <span className="text-sm font-bold text-emerald-700">{uspesnoPopeli.length}</span>
@@ -607,8 +657,8 @@ export default function ActionDetails() {
                 </div>
               </div>
 
-              {/* ══════════ ADMIN CONTROLS ══════════ */}
-              {isAdmin && (
+              {/* ══════════ ADMIN CONTROLS (samo domaćin kluba) ══════════ */}
+              {canManageHost && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />

@@ -404,6 +404,9 @@ func main() {
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
 			"javna": akcija.Javna,
 		}
+		if akcija.KlubID != nil {
+			resp["klubId"] = *akcija.KlubID
+		}
 		if akcija.Javna && akcija.KlubID != nil {
 			var klub models.Klubovi
 			if db.First(&klub, *akcija.KlubID).Error == nil {
@@ -1248,6 +1251,10 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 				return
 			}
+			if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič kluba koji je objavio akciju može da je menja"})
+				return
+			}
 
 			form, err := c.MultipartForm()
 			if err != nil {
@@ -1440,6 +1447,40 @@ func main() {
 			})
 		})
 
+		// GET /api/akcije/:id/moja-prijava — prijava trenutnog korisnika (bez pune liste učesnika)
+		protected.GET("/akcije/:id/moja-prijava", func(c *gin.Context) {
+			idStr := c.Param("id")
+			akcijaID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(400, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+			username, exists := c.Get("username")
+			if !exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+				return
+			}
+			dbAny, _ := c.Get("db")
+			db := dbAny.(*gorm.DB)
+			var korisnik models.Korisnik
+			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			var prijava models.Prijava
+			if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).First(&prijava).Error; err != nil {
+				c.JSON(200, gin.H{"prijava": nil})
+				return
+			}
+			c.JSON(200, gin.H{
+				"prijava": gin.H{
+					"id":           prijava.ID,
+					"status":       prijava.Status,
+					"prijavljenAt": prijava.PrijavljenAt,
+				},
+			})
+		})
+
 		// GET /api/akcije/:id/prijave lista prijava za akciju koristimo za ActionDetails page vidi ko je prijavljen i menja status
 		// GET /api/akcije/:id/prijave
 		protected.GET("/akcije/:id/prijave", func(c *gin.Context) {
@@ -1452,6 +1493,16 @@ func main() {
 
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
+
+			var akcijaZaPravo models.Akcija
+			if err := db.First(&akcijaZaPravo, id).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+			if !helpers.CanManageAkcija(c, db, akcijaZaPravo.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina vidi spisak prijavljenih"})
+				return
+			}
 
 			var prijave []models.Prijava
 			// BITNO: preload korisnika da imamo username
@@ -1516,6 +1567,10 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 				return
 			}
+			if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič kluba koji je objavio akciju može da je završi"})
+				return
+			}
 
 			if akcija.IsCompleted {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
@@ -1552,6 +1607,10 @@ func main() {
 			var akcija models.Akcija
 			if err := db.First(&akcija, id).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+			if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič kluba koji je objavio akciju može da je obriše"})
 				return
 			}
 
@@ -2470,6 +2529,10 @@ func main() {
 				c.JSON(404, gin.H{"error": "Prijava nije pronađena"})
 				return
 			}
+			if !helpers.CanManageAkcija(c, db, prijava.Akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da menja status prijava"})
+				return
+			}
 
 			// Ako menjamo status na 'popeo se' dodaj statistiku korisniku
 			if req.Status == "popeo se" && prijava.Status != "popeo se" {
@@ -2525,18 +2588,9 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
 				return
 			}
-
-			// Ako nije superadmin, proveri da akcija pripada effective klubu
-			if role != "superadmin" {
-				clubID, ok := helpers.GetEffectiveClubID(c, db)
-				if !ok || clubID == 0 {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (X-Club-Id)"})
-					return
-				}
-				if prijava.Akcija.KlubID == nil || *prijava.Akcija.KlubID != clubID {
-					c.JSON(http.StatusForbidden, gin.H{"error": "Možete ukloniti samo članove sa akcija svog kluba"})
-					return
-				}
+			if !helpers.CanManageAkcija(c, db, prijava.Akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da ukloni člana sa akcije"})
+				return
 			}
 
 			// Ako je član imao status "popeo se", oduzmi mu statistiku

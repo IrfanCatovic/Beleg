@@ -4,6 +4,7 @@ import api from '../../../services/api'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
+import { canManageHostAkcija } from '../../../utils/canManageAkcija'
 
 interface Korisnik {
   id: number
@@ -27,6 +28,7 @@ interface AkcijaData {
   drugiVodicIme?: string
   isCompleted?: boolean
   javna?: boolean
+  klubId?: number
 }
 
 export default function EditAction() {
@@ -68,13 +70,24 @@ export default function EditAction() {
   }, [])
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !user) return
 
     const fetchAkcija = async () => {
       setLoadingData(true)
       try {
         const res = await api.get(`/api/akcije/${id}`)
         const a: AkcijaData = res.data
+
+        const canKnowHost =
+          user.role === 'superadmin' || user.klubId != null
+        if (
+          a.klubId != null &&
+          canKnowHost &&
+          !canManageHostAkcija(user, a.klubId)
+        ) {
+          navigate(`/akcije/${id}`, { replace: true })
+          return
+        }
 
         const datumStr = typeof a.datum === 'string'
           ? a.datum.slice(0, 10)
@@ -100,7 +113,7 @@ export default function EditAction() {
     }
 
     fetchAkcija()
-  }, [id])
+  }, [id, user, navigate])
 
   if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
     return <div className="text-center py-10 text-red-600">Samo admin ili vodič mogu da izmene akcije.</div>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import api, { setUnauthorizedHandler } from "../services/api";
 
-interface User {
+export interface User {
     username: string;
     fullName: string;
     role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme';
@@ -9,6 +9,8 @@ interface User {
     ukupnoMetaraUspona?: number;
     brojPopeoSe?: number;
     avatarUrl?: string;
+    /** Klub korisnika (za superadmina nije uvek relevantno — koristi se X-Club-Id) */
+    klubId?: number;
 }
 
 
@@ -74,13 +76,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             const refreshUser = useCallback(async () => {
                 if (!localStorage.getItem('token')) return
                 try {
-                    const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string }>('/api/me')
+                    const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string; klubId?: number }>('/api/me')
                     const data = res.data
                     const userData: User = {
                         username: data.username,
                         fullName: data.fullName,
                         role: data.role as User['role'],
                         avatarUrl: data.avatar_url,
+                        klubId: data.klubId,
                     }
                     setUser(userData)
                     localStorage.setItem('user', JSON.stringify(userData))

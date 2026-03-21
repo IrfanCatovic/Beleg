@@ -57,6 +57,24 @@ func GetEffectiveClubID(c *gin.Context, db *gorm.DB) (clubID uint, ok bool) {
 	return uint(id), true
 }
 
+// CanManageAkcija: admin, vodič ili superadmin (sa X-Club-Id = klub akcije) može da uređuje akciju
+// samo ako je effective klub jednak klubu na kojem je akcija kreirana (domaćin).
+func CanManageAkcija(c *gin.Context, db *gorm.DB, akcijaKlubID *uint) bool {
+	if akcijaKlubID == nil || *akcijaKlubID == 0 {
+		return false
+	}
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	if role != "admin" && role != "vodic" && role != "superadmin" {
+		return false
+	}
+	effectiveClubID, ok := GetEffectiveClubID(c, db)
+	if !ok {
+		return false
+	}
+	return effectiveClubID == *akcijaKlubID
+}
+
 // EnsureClubHoldState učitava klub, i ako je subskripcija istekla pre više od HoldDaysAfterSubscriptionEnd dana,
 // postavlja OnHold = true i čuva. Ako je 7 dana posle isteka (a pre 14), šalje upozorenje adminima jednom.
 // Vraća da li je klub na hold-u (i ažurirani klub).
