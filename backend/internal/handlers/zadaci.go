@@ -3,7 +3,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -164,7 +163,7 @@ func CreateZadatak(c *gin.Context) {
 	} else {
 		db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
 	}
-	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, fmt.Sprintf("/zadaci#task-%d", zadatak.ID))
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci")
 	c.JSON(http.StatusCreated, gin.H{"zadatak": buildZadatakResponse(zadatak)})
 }
 

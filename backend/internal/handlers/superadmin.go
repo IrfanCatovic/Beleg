@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -258,9 +259,12 @@ func UpdateKlub(c *gin.Context) {
 	if req.SubscribedAt != nil {
 		klub.SubscribedAt = parseDate(*req.SubscribedAt)
 	}
+	if req.OnHold != nil {
+		klub.OnHold = *req.OnHold
+	}
 	if req.SubscriptionEndsAt != nil {
 		klub.SubscriptionEndsAt = parseDate(*req.SubscriptionEndsAt)
-		// Ako superadmin postavi novi datum subskripcije u budućnost, skinuti hold i resetovati upozorenje
+		// Produženje pretplate u budućnost: skinuti hold i resetovati upozorenje (mora posle req.OnHold da ne bi stari onHold iz forme prepisao)
 		if klub.SubscriptionEndsAt != nil && klub.SubscriptionEndsAt.After(time.Now()) {
 			klub.OnHold = false
 			klub.SubscriptionWarningSentAt = nil
@@ -269,8 +273,13 @@ func UpdateKlub(c *gin.Context) {
 	if req.LogoURL != nil {
 		klub.LogoURL = strings.TrimSpace(*req.LogoURL)
 	}
-	if req.OnHold != nil {
-		klub.OnHold = *req.OnHold
+	// Ako je pretplata istekla duže od grace period-a (isto kao EnsureClubHoldState), hold ostaje dok se datum ne produži u budućnost — ne može samo čekiranjem „aktivan”.
+	if klub.SubscriptionEndsAt != nil {
+		end := *klub.SubscriptionEndsAt
+		holdDeadline := end.AddDate(0, 0, helpers.HoldDaysAfterSubscriptionEnd)
+		if time.Now().After(holdDeadline) && !end.After(time.Now()) {
+			klub.OnHold = true
+		}
 	}
 
 	if err := db.Save(&klub).Error; err != nil {

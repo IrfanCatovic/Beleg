@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
@@ -68,7 +68,6 @@ const POST_LIMIT = 30
 export default function Home() {
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
-  const location = useLocation()
 
   const [posts, setPosts] = useState<Post[]>([])
   const [total, setTotal] = useState(0)
@@ -98,25 +97,6 @@ export default function Home() {
   const postMentionWrapperRef = useRef<HTMLDivElement>(null)
 
   const hasMore = posts.length < total
-
-  // Deep-link iz notifikacije: /home#post-<id>
-  const targetPostId = useMemo(() => {
-    const hash = location.hash || ''
-    const m = hash.match(/^#post-(\d+)$/)
-    if (!m) return null
-    const id = Number(m[1])
-    if (Number.isNaN(id)) return null
-    return id
-  }, [location.hash])
-
-  const postsLengthRef = useRef(posts.length)
-  const totalRef = useRef(total)
-  useEffect(() => {
-    postsLengthRef.current = posts.length
-  }, [posts.length])
-  useEffect(() => {
-    totalRef.current = total
-  }, [total])
 
   const openLightbox = useCallback((src: string) => setLightboxSrc(src), [])
   const closeLightbox = useCallback(() => setLightboxSrc(null), [])
@@ -213,31 +193,6 @@ export default function Home() {
       setStatistika({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
     }).finally(() => setLoadingSidebar(false))
   }, [isLoggedIn])
-
-  useEffect(() => {
-    if (!targetPostId) return
-    let cancelled = false
-
-    const run = async () => {
-      for (let i = 0; i < 8; i++) {
-        if (cancelled) return
-        const el = document.getElementById(`post-${targetPostId}`)
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          return
-        }
-        if (postsLengthRef.current >= totalRef.current) return
-        await fetchPosts(postsLengthRef.current, true)
-        // kratko sačekaj da se DOM ažurira
-        await new Promise((r) => setTimeout(r, 250))
-      }
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [targetPostId, fetchPosts])
 
   // Infinite scroll
   useEffect(() => {
@@ -858,7 +813,6 @@ function PostCard({ post, currentUsername, currentRole, onDelete, onOpenImage, m
   const initial = displayName.charAt(0).toUpperCase()
   return (
     <article
-      id={`post-${post.id}`}
       className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-visible"
     >
       {/* Header */}

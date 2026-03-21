@@ -566,7 +566,7 @@ func TogglePostLike(c *gin.Context) {
 			models.ObavestenjeTipPost,
 			"Novi lajk na vašoj objavi",
 			fmt.Sprintf("%s je lajkovao/la vašu objavu.", likerName),
-			fmt.Sprintf("/home#post-%d", postID),
+			"/home",
 		)
 	}
 
@@ -745,7 +745,7 @@ func CreatePostComment(c *gin.Context) {
 			models.ObavestenjeTipPost,
 			"Novi komentar na vašoj objavi",
 			fmt.Sprintf("%s je komentarisao/la: %s", commenterName, snippet),
-			fmt.Sprintf("/home#post-%d", postID),
+			"/home",
 		)
 	}
 

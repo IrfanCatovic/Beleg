@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -31,7 +30,6 @@ interface Task {
 export default function Zadaci() {
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
-  const location = useLocation()
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,28 +55,6 @@ export default function Zadaci() {
     }
     fetchTasks()
   }, [isLoggedIn])
-
-  useEffect(() => {
-    const hash = location.hash || ''
-    const m = hash.match(/^#task-(\d+)$/)
-    if (!m) return
-    const id = Number(m[1])
-    if (Number.isNaN(id)) return
-
-    let attempts = 0
-    const tick = () => {
-      attempts += 1
-      const el = document.getElementById(`task-${id}`)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        return
-      }
-      if (attempts >= 10) return
-      setTimeout(tick, 250)
-    }
-    tick()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.hash])
 
   if (!isLoggedIn || !user) {
     return (
@@ -524,7 +500,6 @@ function TaskCard({ task, footer }: { task: Task; footer: React.ReactNode }) {
 
   return (
     <div
-      id={`task-${task.id}`}
       className={`group flex flex-col rounded-2xl border shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
         isUrgent
           ? 'border-rose-200 bg-white ring-1 ring-rose-100'

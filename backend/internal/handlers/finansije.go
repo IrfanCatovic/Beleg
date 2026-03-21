@@ -7,7 +7,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -215,7 +214,7 @@ func CreateTransakcija(c *gin.Context) {
 		models.ObavestenjeTipUplata,
 		"Nova transakcija",
 		body.Opis,
-		fmt.Sprintf("/finansije#trans-%d", t.ID),
+		"/finansije",
 	)
 	c.JSON(http.StatusCreated, t)
 }
@@ -358,7 +357,7 @@ func PostClanarinaPlati(c *gin.Context) {
 		models.ObavestenjeTipUplata,
 		"Evidentirana nova uplata članarine",
 		"Članarina – "+clan.FullName,
-		fmt.Sprintf("/finansije#trans-%d", t.ID),
+		"/finansije",
 	)
 	c.JSON(http.StatusCreated, t)
 }
