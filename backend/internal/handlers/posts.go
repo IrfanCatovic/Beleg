@@ -410,6 +410,10 @@ func CreatePost(c *gin.Context) {
 		files := c.Request.MultipartForm.File["image"]
 		if len(files) > 0 {
 			fileHeader := files[0]
+			if err := helpers.ValidateImageFileHeader(fileHeader); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika: " + err.Error()})
+				return
+			}
 			clubID := uint(0)
 			folder := helpers.CloudinaryFolderSetup()
 			if korisnik.KlubID != nil {

@@ -244,6 +244,10 @@ func main() {
 		avatarURL := ""
 		if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 			file := files[0]
+			if err := helpers.ValidateImageFileHeader(file); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna avatar slika: " + err.Error()})
+				return
+			}
 			f, err := file.Open()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -593,6 +597,10 @@ func main() {
 				return
 			}
 			file := files[0]
+			if err := helpers.ValidateImageFileHeader(file); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika loga: " + err.Error()})
+				return
+			}
 			if err := helpers.CheckStorageLimit(db, clubID, file.Size); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
@@ -664,6 +672,10 @@ func main() {
 				return
 			}
 			file := files[0]
+			if err := helpers.ValidateImageFileHeader(file); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika loga: " + err.Error()})
+				return
+			}
 			if err := helpers.CheckStorageLimit(db, uint(id), file.Size); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
@@ -820,6 +832,10 @@ func main() {
 				avatarURL := ""
 				if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 					file := files[0]
+					if err := helpers.ValidateImageFileHeader(file); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna avatar slika: " + err.Error()})
+						return
+					}
 					f, err := file.Open()
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
@@ -993,6 +1009,10 @@ func main() {
 			avatarURL := ""
 			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna avatar slika: " + err.Error()})
+					return
+				}
 				if err := helpers.CheckStorageLimit(db, clubID, file.Size); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 					return
@@ -1196,6 +1216,10 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika akcije: " + err.Error()})
+					return
+				}
 				clubIDForFolder := uint(0)
 				if akcija.KlubID != nil {
 					clubIDForFolder = *akcija.KlubID
@@ -1358,6 +1382,10 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika akcije: " + err.Error()})
+					return
+				}
 				clubIDForFolder := uint(0)
 				if akcija.KlubID != nil {
 					clubIDForFolder = *akcija.KlubID
@@ -1787,6 +1815,10 @@ func main() {
 			// Opciono: novi avatar na Cloudinary
 			if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna avatar slika: " + err.Error()})
+					return
+				}
 				clubIDForFolder := uint(0)
 				if korisnik.KlubID != nil {
 					clubIDForFolder = *korisnik.KlubID
@@ -1832,6 +1864,10 @@ func main() {
 			// Opciono: cover image na Cloudinary
 			if files := c.Request.MultipartForm.File["coverImage"]; len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna cover slika: " + err.Error()})
+					return
+				}
 				clubIDForFolder := uint(0)
 				if korisnik.KlubID != nil {
 					clubIDForFolder = *korisnik.KlubID
@@ -2004,6 +2040,10 @@ func main() {
 				return
 			}
 			file := files[0]
+			if err := helpers.ValidateImageFileHeader(file); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna cover slika: " + err.Error()})
+				return
+			}
 			clubIDForFolder := uint(0)
 			if korisnik.KlubID != nil {
 				clubIDForFolder = *korisnik.KlubID
@@ -2400,6 +2440,10 @@ func main() {
 			files := form.File["slika"]
 			if len(files) > 0 {
 				file := files[0]
+				if err := helpers.ValidateImageFileHeader(file); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika akcije: " + err.Error()})
+					return
+				}
 				clubIDForFolder := uint(0)
 				if akcija.KlubID != nil {
 					clubIDForFolder = *akcija.KlubID
