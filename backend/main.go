@@ -74,6 +74,7 @@ func main() {
 		}
 	}
 	origins = append([]string{"http://localhost:5173", "http://127.0.0.1:5173"}, origins...)
+	r.Use(middleware.SecurityHeaders(os.Getenv("SECURITY_CSP")))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -179,7 +180,21 @@ func main() {
 			}
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"klub": klub})
+		c.JSON(http.StatusOK, gin.H{
+			"klub": gin.H{
+				"id":             klub.ID,
+				"naziv":          klub.Naziv,
+				"adresa":         klub.Adresa,
+				"telefon":        klub.Telefon,
+				"email":          klub.Email,
+				"sediste":        klub.Sediste,
+				"web_sajt":       klub.WebSajt,
+				"datum_osnovanja": klub.DatumOsnivanja,
+				"logoUrl":        klub.LogoURL,
+				"createdAt":      klub.CreatedAt,
+				"updatedAt":      klub.UpdatedAt,
+			},
+		})
 	})
 
 	// POST /api/setup/admin (RegisterAdmin) kreiranje prvog admina prema modelu Korisnik
