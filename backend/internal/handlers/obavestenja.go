@@ -66,6 +66,40 @@ func GetObavestenja(c *gin.Context) {
 	})
 }
 
+// GetObavestenjeByID vraća jedno obaveštenje ako pripada trenutnom korisniku.
+func GetObavestenjeByID(c *gin.Context) {
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username := usernameVal.(string)
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID obaveštenja"})
+		return
+	}
+
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	var korisnik models.Korisnik
+	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var n models.Obavestenje
+	if err := db.Where("id = ? AND user_id = ?", id, korisnik.ID).First(&n).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Obaveštenje nije pronađeno"})
+		return
+	}
+
+	c.JSON(http.StatusOK, n)
+}
+
 // GetUnreadCount vraća samo broj nepročitanih obaveštenja (za badge).
 func GetUnreadCount(c *gin.Context) {
 	usernameVal, exists := c.Get("username")
@@ -235,6 +269,6 @@ func Broadcast(c *gin.Context) {
 
 	var recipientIDs []uint
 	db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &recipientIDs)
-	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipBroadcast, req.Title, req.Body, "")
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipBroadcast, req.Title, req.Body, "", "")
 	c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje poslato članovima kluba", "recipients": len(recipientIDs)})
 }

@@ -8,6 +8,7 @@ import (
 
 func RegisterZadatakRoutes(g *gin.RouterGroup) {
 	g.GET("/zadaci", handlers.GetZadaci)
+	g.GET("/zadaci/:id", handlers.GetZadatakByID)
 	g.POST("/zadaci", handlers.CreateZadatak)
 	g.POST("/zadaci/:id/preuzmi", handlers.PreuzmiZadatak)
 	g.PATCH("/zadaci/:id", handlers.UpdateZadatak)

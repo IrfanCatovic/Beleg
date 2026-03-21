@@ -1169,7 +1169,7 @@ func main() {
 			// Obaveštenje svima: nova akcija u kalendaru
 			var allUserIDs []uint
 			db.Model(&models.Korisnik{}).Pluck("id", &allUserIDs)
-			notifications.NotifyUsers(db, allUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)))
+			notifications.NotifyUsers(db, allUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
 
 			// Upload slika na Cloudinary (ako postoji)
 			files := form.File["slika"]

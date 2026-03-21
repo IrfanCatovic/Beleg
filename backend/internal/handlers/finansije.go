@@ -7,7 +7,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"beleg-app/backend/internal/helpers"
@@ -140,6 +142,49 @@ func GetTransakcije(c *gin.Context) {
 	c.JSON(http.StatusOK, transakcije)
 }
 
+// GetTransakcijaByID vraća jednu transakciju ako je uneo neko iz effective kluba.
+func GetTransakcijaByID(c *gin.Context) {
+	if !checkFinanceRole(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili blagajnik mogu da vide finansije"})
+		return
+	}
+
+	dbAny, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transakcija nije pronađena"})
+		return
+	}
+
+	idStr := c.Param("id")
+	tid, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID transakcije"})
+		return
+	}
+
+	creatorIDs := db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", clubID)
+	var t models.Transakcija
+	if err := db.Where("id = ? AND korisnik_id IN (?)", tid, creatorIDs).
+		Preload("Korisnik").Preload("ClanarinaKorisnik").
+		First(&t).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transakcija nije pronađena"})
+		return
+	}
+
+	c.JSON(http.StatusOK, t)
+}
+
 // CreateTransakcija kreira novu uplatu ili isplatu (ručni unos).
 // Body: { "tip": "uplata"|"isplata", "iznos": number, "opis": string, "datum": "YYYY-MM-DD" }
 func CreateTransakcija(c *gin.Context) {
@@ -215,6 +260,7 @@ func CreateTransakcija(c *gin.Context) {
 		"Nova transakcija",
 		body.Opis,
 		"/finansije",
+		fmt.Sprintf(`{"transakcijaId":%d}`, t.ID),
 	)
 	c.JSON(http.StatusCreated, t)
 }
@@ -358,6 +404,7 @@ func PostClanarinaPlati(c *gin.Context) {
 		"Evidentirana nova uplata članarine",
 		"Članarina – "+clan.FullName,
 		"/finansije",
+		fmt.Sprintf(`{"transakcijaId":%d}`, t.ID),
 	)
 	c.JSON(http.StatusCreated, t)
 }

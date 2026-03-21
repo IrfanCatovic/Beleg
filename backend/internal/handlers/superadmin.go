@@ -298,7 +298,7 @@ func UpdateKlub(c *gin.Context) {
 				endStr := end.Format("02.01.2006")
 				title := "Subskripcija kluba ističe uskoro"
 				body := "Subskripcija vašeg kluba \"" + klub.Naziv + "\" ističe " + endStr + ". Kontaktirajte superadmina za produženje."
-				notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home")
+				notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home", "")
 			}
 		}
 	}

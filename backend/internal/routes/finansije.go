@@ -10,6 +10,7 @@ import (
 // Grupa mora biti već zaštićena AuthMiddleware-om (npr. protected /api).
 // Provera uloge (admin/blagajnik) je unutar handlera.
 func RegisterFinanceRoutes(g *gin.RouterGroup) {
+	g.GET("/finansije/transakcije/:id", handlers.GetTransakcijaByID)
 	g.GET("/finansije", handlers.GetTransakcije)
 	g.GET("/finansije/dashboard", handlers.GetDashboard)
 	g.POST("/finansije", handlers.CreateTransakcija)

@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -96,6 +97,42 @@ func GetZadaci(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+// GetZadatakByID vraća jedan zadatak effective kluba.
+func GetZadatakByID(c *gin.Context) {
+	dbAny, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+
+	idStr := c.Param("id")
+	zid, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID zadatka"})
+		return
+	}
+
+	var z models.Zadatak
+	if err := db.Where("id = ? AND klub_id = ?", zid, clubID).
+		Preload("ZadatakKorisnici.Korisnik").
+		First(&z).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zadatak nije pronađen"})
+		return
+	}
+
+	c.JSON(http.StatusOK, buildZadatakResponse(z))
+}
 
 func CreateZadatak(c *gin.Context) {
 	if !checkZadatakCreateRole(c) {
@@ -163,7 +200,7 @@ func CreateZadatak(c *gin.Context) {
 	} else {
 		db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
 	}
-	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci")
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci", fmt.Sprintf(`{"zadatakId":%d}`, zadatak.ID))
 	c.JSON(http.StatusCreated, gin.H{"zadatak": buildZadatakResponse(zadatak)})
 }
 

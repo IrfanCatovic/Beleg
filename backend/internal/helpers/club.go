@@ -80,7 +80,7 @@ func EnsureClubHoldState(db *gorm.DB, clubID uint) (club *models.Klubovi, onHold
 		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Pluck("id", &adminIDs).Error; err == nil && len(adminIDs) > 0 {
 			title := "Upozorenje: klub će biti pauziran za 7 dana"
 			body := "Subskripcija vašeg kluba \"" + club.Naziv + "\" je istekla. Ukoliko se subskripcija ne obnovi, klub će biti privremeno pauziran (hold) za 7 dana i članovi neće moći da se loguju. Kontaktirajte superadmina za produženje."
-			notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home")
+			notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home", "")
 			t := now
 			club.SubscriptionWarningSentAt = &t
 			_ = db.Model(club).Update("subscription_warning_sent_at", t)

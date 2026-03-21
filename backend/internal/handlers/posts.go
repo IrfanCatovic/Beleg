@@ -50,7 +50,7 @@ func extractMentionUsernames(content string) []string {
 	return out
 }
 
-func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender models.Korisnik, senderText string, selfUserID uint) {
+func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender models.Korisnik, senderText string, selfUserID uint, postID uint) {
 	if len(mentionUsernames) == 0 {
 		return
 	}
@@ -87,6 +87,7 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 		}
 		uidSeen[u.ID] = struct{}{}
 
+		meta := fmt.Sprintf(`{"postId":%d}`, postID)
 		notifications.NotifyUsers(
 			db,
 			[]uint{u.ID},
@@ -94,6 +95,7 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 			"Označen si",
 			fmt.Sprintf("%s te je označio/la: %s", senderName, snippet),
 			fmt.Sprintf("/korisnik/%s", u.Username),
+			meta,
 		)
 	}
 }
@@ -262,6 +264,87 @@ func GetPosts(c *gin.Context) {
 	})
 }
 
+// GetPost vraća jednu objavu u istom formatu kao element liste feed-a.
+func GetPost(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	var currentUser models.Korisnik
+	if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	idStr := c.Param("id")
+	postID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	var post models.Post
+	if err := db.
+		Preload("User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id, username, full_name, avatar_url, role, klub_id")
+		}).
+		Preload("User.Klub", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id, naziv, logo_url")
+		}).
+		First(&post, postID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		return
+	}
+
+	var likeCount int64
+	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
+	var commentCount int64
+	db.Model(&models.PostComment{}).Where("post_id = ?", postID).Count(&commentCount)
+	myLiked := false
+	var existingLike models.PostLike
+	if db.Where("post_id = ? AND user_id = ?", postID, currentUser.ID).First(&existingLike).Error == nil {
+		myLiked = true
+	}
+
+	type UserDTO struct {
+		ID        uint   `json:"id"`
+		Username  string `json:"username"`
+		FullName  string `json:"fullName"`
+		AvatarURL string `json:"avatarUrl,omitempty"`
+		Role      string `json:"role"`
+		KlubNaziv string `json:"klubNaziv,omitempty"`
+	}
+	u := UserDTO{}
+	if post.User != nil {
+		u.ID = post.User.ID
+		u.Username = post.User.Username
+		u.FullName = post.User.FullName
+		u.AvatarURL = post.User.AvatarURL
+		u.Role = post.User.Role
+		if post.User.Klub != nil {
+			u.KlubNaziv = post.User.Klub.Naziv
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"post": gin.H{
+			"id":           post.ID,
+			"content":      post.Content,
+			"imageUrl":     post.ImageURL,
+			"createdAt":    post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"user":         u,
+			"likeCount":    likeCount,
+			"commentCount": commentCount,
+			"myLiked":      myLiked,
+		},
+	})
+}
+
 func CreatePost(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -408,7 +491,7 @@ func CreatePost(c *gin.Context) {
 
 	// Notifikuj označene (@username) u tekstu objave.
 	mentions := extractMentionUsernames(content)
-	notifyMentionsFromContent(db, mentions, korisnik, content, korisnik.ID)
+	notifyMentionsFromContent(db, mentions, korisnik, content, korisnik.ID, post.ID)
 
 	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
 		return tx.Select("id, username, full_name, avatar_url, role, klub_id")
@@ -567,6 +650,7 @@ func TogglePostLike(c *gin.Context) {
 			"Novi lajk na vašoj objavi",
 			fmt.Sprintf("%s je lajkovao/la vašu objavu.", likerName),
 			"/home",
+			fmt.Sprintf(`{"postId":%d}`, postID),
 		)
 	}
 
@@ -723,7 +807,7 @@ func CreatePostComment(c *gin.Context) {
 
 	// Notifikuj označene (@username) u komentaru.
 	mentions := extractMentionUsernames(req.Content)
-	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID)
+	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID, uint(postID))
 
 	// Obavesti vlasnika objave samo kada komentar nije od samog vlasnika.
 	if post.UserID != korisnik.ID {
@@ -746,6 +830,7 @@ func CreatePostComment(c *gin.Context) {
 			"Novi komentar na vašoj objavi",
 			fmt.Sprintf("%s je komentarisao/la: %s", commenterName, snippet),
 			"/home",
+			fmt.Sprintf(`{"postId":%d}`, postID),
 		)
 	}
 

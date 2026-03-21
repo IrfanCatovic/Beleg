@@ -9,6 +9,7 @@ import (
 func RegisterObavestenjaRoutes(g *gin.RouterGroup) {
 	g.GET("/obavestenja", handlers.GetObavestenja)
 	g.GET("/obavestenja/unread-count", handlers.GetUnreadCount)
+	g.GET("/obavestenja/:id", handlers.GetObavestenjeByID)
 	g.PATCH("/obavestenja/read-all", handlers.MarkAllRead)
 	g.PATCH("/obavestenja/:id/read", handlers.MarkRead)
 	g.DELETE("/obavestenja/:id", handlers.DeleteObavestenje)
