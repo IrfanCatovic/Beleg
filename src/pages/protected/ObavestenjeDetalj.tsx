@@ -243,6 +243,9 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.postId) != null ||
     numFromMeta(meta.zadatakId) != null ||
     numFromMeta(meta.transakcijaId) != null
+  const expectingPost = numFromMeta(meta.postId) != null
+  // Bez duplog naslova obaveštenja iznad feed kartice (npr. „Novi komentar…“)
+  const showNotifSummary = !post && !(expectingPost && entityLoading)
 
   return (
     <div className="relative mx-auto max-w-xl px-4 py-6 pb-20">
@@ -283,24 +286,26 @@ export default function ObavestenjeDetalj() {
         Sva obaveštenja
       </Link>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm mb-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{notif.type}</p>
-        <h1 className="text-xl font-bold text-gray-900">{notif.title}</h1>
-        {notif.body && <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{notif.body}</p>}
-        <p className="mt-3 text-xs text-gray-400">
-          {formatRelativeTime(notif.createdAt)} · {formatDateTime(notif.createdAt)}
-        </p>
-        {notif.link && notif.type !== 'akcija' && (
-          <div className="mt-4">
-            <Link
-              to={notif.link}
-              className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-            >
-              Otvori povezanu stranicu →
-            </Link>
-          </div>
-        )}
-      </div>
+      {showNotifSummary && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm mb-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{notif.type}</p>
+          <h1 className="text-xl font-bold text-gray-900">{notif.title}</h1>
+          {notif.body && <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{notif.body}</p>}
+          <p className="mt-3 text-xs text-gray-400">
+            {formatRelativeTime(notif.createdAt)} · {formatDateTime(notif.createdAt)}
+          </p>
+          {notif.link && notif.type !== 'akcija' && (
+            <div className="mt-4">
+              <Link
+                to={notif.link}
+                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+              >
+                Otvori povezanu stranicu →
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {entityLoading && (
         <div className="flex justify-center py-8">
