@@ -30,17 +30,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function readStoredUser(): User | null {
+    const savedUser = localStorage.getItem('user')
+    if (!savedUser) return null
+    try {
+        return JSON.parse(savedUser) as User
+    } catch {
+        localStorage.removeItem('user')
+        return null
+    }
+}
+
     export function AuthProvider({ children }: { children: ReactNode }) {
 
         const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-        return !!localStorage.getItem('isLoggedIn') //this checks if there is already item isLoggedIn in localStorage and 
-        // sets the initial state accordingly, and this !! converts the value to a boolean (true if it exists, false if it doesn't)
+        return !!localStorage.getItem('token')
         })
 
-        const [user, setUser] = useState<User | null>(() => {
-            const savedUser = localStorage.getItem('user')
-            return savedUser ? JSON.parse(savedUser) : null
-        })
+        const [user, setUser] = useState<User | null>(() => readStoredUser())
 
 
 
@@ -88,9 +95,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                     setUser(userData)
                     localStorage.setItem('user', JSON.stringify(userData))
                 } catch {
-
+                    logout()
                 }
-            }, [])
+            }, [logout])
 
         useEffect(() => {
             if (isLoggedIn && localStorage.getItem('token')) {

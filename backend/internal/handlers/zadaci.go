@@ -214,6 +214,19 @@ func parseZadatakID(c *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 
+func canTakeZadatakByRole(z models.Zadatak, userRole string) bool {
+	if z.AllowAll {
+		return true
+	}
+	role := strings.TrimSpace(strings.ToLower(userRole))
+	for _, allowed := range z.AllowedRoles {
+		if role == strings.TrimSpace(strings.ToLower(allowed)) {
+			return true
+		}
+	}
+	return false
+}
+
 // PreuzmiZadatak — POST /zadaci/:id/preuzmi. Korisnik se pridružuje zadatku; ako je status "aktivni", prelazi u "u_toku".
 func PreuzmiZadatak(c *gin.Context) {
 	zadatakID, ok := parseZadatakID(c)
@@ -248,6 +261,10 @@ func PreuzmiZadatak(c *gin.Context) {
 	}
 	if z.Status == models.ZadatakStatusZavrsen {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Završen zadatak ne može se preuzimati"})
+		return
+	}
+	if !canTakeZadatakByRole(z, korisnik.Role) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Vaša uloga nema dozvolu za preuzimanje ovog zadatka"})
 		return
 	}
 

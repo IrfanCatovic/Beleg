@@ -57,7 +57,6 @@ func main() {
 		log.Println("GREŠKA: .env fajl NIJE UČITAN! Razlog:", err)
 	} else {
 		log.Println("OK: .env fajl je učitan")
-		log.Println("DB_PASSWORD iz env:", os.Getenv("DB_PASSWORD")) 
 	}
 
 	
@@ -470,7 +469,22 @@ func main() {
 				korisnik.KlubLogoURL = klub.LogoURL
 			}
 		}
-		c.JSON(200, korisnik)
+		c.JSON(200, gin.H{
+			"id":              korisnik.ID,
+			"username":        korisnik.Username,
+			"fullName":        korisnik.FullName,
+			"avatar_url":      korisnik.AvatarURL,
+			"cover_image_url": korisnik.CoverImageURL,
+			"cover_position_y": korisnik.CoverPositionY,
+			"role":            korisnik.Role,
+			"createdAt":       korisnik.CreatedAt,
+			"updatedAt":       korisnik.UpdatedAt,
+			"ukupnoKm":        korisnik.UkupnoKmKorisnik,
+			"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
+			"brojPopeoSe":     korisnik.BrojPopeoSe,
+			"klubNaziv":       korisnik.KlubNaziv,
+			"klubLogoUrl":     korisnik.KlubLogoURL,
+		})
 	})
 	// GET /api/korisnici/:id/statistika — statistika javna; :id može biti numerički id ili username
 	r.GET("/api/korisnici/:id/statistika", func(c *gin.Context) {
@@ -2060,6 +2074,18 @@ func main() {
 				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
+			// Admin/sekretar mogu da menjaju samo članove svog kluba; superadmin može bilo koga.
+			if roleStr != "superadmin" {
+				clubID, ok := helpers.GetEffectiveClubID(c, db)
+				if !ok || clubID == 0 {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Nemate izabran klub"})
+					return
+				}
+				if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Možete menjati samo članove svog kluba"})
+					return
+				}
+			}
 			var body struct {
 				Role                           string `json:"role"`
 				IzreceneDisciplinskeKazne     string `json:"izreceneDisciplinskeKazne"`
@@ -2269,6 +2295,10 @@ func main() {
 			clubID, ok := helpers.GetEffectiveClubID(c, db)
 			if !ok || clubID == 0 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (superadmin) ili niste u klubu."})
+				return
+			}
+			if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Možete dodati prošlu akciju samo članu iz izabranog kluba"})
 				return
 			}
 
