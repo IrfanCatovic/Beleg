@@ -401,14 +401,16 @@ export default function AppLayout() {
             </div>
           </div>
 
-          {/* Mobile menu – samo Odjava za superadmina bez kluba */}
+          {/* Mobile menu – dovoljna visina + scroll da superadmin vidi sve do Odjave */}
           <div
             className={`md:hidden overflow-hidden transition-all duration-300 ease-out ${
-              isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              isMenuOpen
+                ? 'max-h-[min(85vh,720px)] opacity-100'
+                : 'max-h-0 opacity-0 pointer-events-none'
             }`}
           >
-            <div className="border-t border-white/[0.06] bg-slate-800/80 backdrop-blur-xl px-4 pb-4 pt-3">
-              <div className="flex flex-col gap-0.5">
+            <div className="max-h-[min(85vh,720px)] overflow-y-auto overscroll-contain border-t border-white/[0.06] bg-slate-800/80 backdrop-blur-xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+              <div className="flex flex-col gap-0.5 pb-1">
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
                   <div className="mb-2 pb-2 border-b border-white/10 flex flex-col gap-1.5">
                     <p className="text-[12px] text-white/70 font-medium">
