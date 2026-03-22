@@ -245,7 +245,7 @@ func PreuzmiZadatak(c *gin.Context) {
 	}
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -314,7 +314,7 @@ func NapustiZadatak(c *gin.Context) {
 	}
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}

@@ -78,7 +78,7 @@ export default function RegisterAdmin() {
 
     try {
       const formData = new FormData()
-      formData.append('username', form.username.trim())
+      formData.append('username', form.username.trim().toLowerCase())
       formData.append('password', form.password)
 
       // Opciona polja – dodaj samo ako nisu prazna

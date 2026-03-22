@@ -38,7 +38,7 @@ export default function RegisterSuperAdmin() {
 
     try {
       const formData = new FormData()
-      formData.append('username', username)
+      formData.append('username', username.trim().toLowerCase())
       formData.append('password', password)
       formData.append('role', 'superadmin')
       if (fullName) formData.append('fullName', fullName)

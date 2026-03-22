@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"beleg-app/backend/internal/helpers"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -93,7 +95,8 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("username", claims["username"])
+		usernameClaim, _ := claims["username"].(string)
+		c.Set("username", helpers.NormalizeUsername(usernameClaim))
 		c.Set("role", claims["role"])
 
 		c.Next()

@@ -30,7 +30,7 @@ func GetObavestenja(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -86,7 +86,7 @@ func GetObavestenjeByID(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -113,7 +113,7 @@ func GetUnreadCount(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -143,7 +143,7 @@ func MarkRead(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -176,7 +176,7 @@ func MarkAllRead(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -212,7 +212,7 @@ func DeleteObavestenje(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}

@@ -45,7 +45,10 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const response = await api.post('/login', { username, password })
+      const response = await api.post('/login', {
+        username: username.trim().toLowerCase(),
+        password,
+      })
       login(response.data)
       navigate('/home')
     } catch (err: any) {

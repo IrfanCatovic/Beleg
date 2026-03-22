@@ -208,7 +208,7 @@ func main() {
 			return
 		}
 
-		username := strings.TrimSpace(c.PostForm("username"))
+		username := helpers.NormalizeUsername(c.PostForm("username"))
 		password := c.PostForm("password")
 
 		if username == "" || password == "" {
@@ -217,6 +217,12 @@ func main() {
 		}
 		if len(password) < 8 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+			return
+		}
+
+		var takenSetup models.Korisnik
+		if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&takenSetup).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 			return
 		}
 
@@ -352,7 +358,11 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 			return
 		}
-		req.Username = strings.TrimSpace(req.Username)
+		req.Username = helpers.NormalizeUsername(req.Username)
+		if req.Username == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno korisničko ime"})
+			return
+		}
 		clientIP := c.ClientIP()
 		if allowed, lockedUntil := middleware.CheckLoginAllowed(clientIP, req.Username); !allowed {
 			retryAfter := int(time.Until(lockedUntil).Seconds())
@@ -365,7 +375,7 @@ func main() {
 		}
 
 		var korisnik models.Korisnik
-		if err := db.Where("username = ?", req.Username).First(&korisnik).Error; err != nil {
+		if err := helpers.DBWhereUsername(db, req.Username).First(&korisnik).Error; err != nil {
 			middleware.RegisterLoginFailure(clientIP, req.Username)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Pogrešno korisničko ime ili lozinka"})
 			return
@@ -378,6 +388,12 @@ func main() {
 			return
 		}
 		middleware.RegisterLoginSuccess(clientIP, req.Username)
+
+		// U bazi uvek mala slova (migracija starog zapisa sa mešanim slovima)
+		if korisnik.Username != req.Username {
+			_ = db.Model(&korisnik).Update("username", req.Username)
+			korisnik.Username = req.Username
+		}
 
 		// Deaktivirani nalog ne može da se prijavi
 		if korisnik.Role == "deleted" {
@@ -472,7 +488,7 @@ func main() {
 						usernameClaim = strings.TrimSpace(usernameClaim)
 						if usernameClaim != "" {
 							var viewer models.Korisnik
-							if err := db.Where("username = ?", usernameClaim).First(&viewer).Error; err == nil {
+							if err := helpers.DBWhereUsername(db, usernameClaim).First(&viewer).Error; err == nil {
 								if viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
 									canSeePrivateDetails = true
 								}
@@ -560,7 +576,7 @@ func main() {
 			return nil
 		}
 		var k models.Korisnik
-		if db.Where("username = ?", param).First(&k).Error == nil && k.Role != "deleted" {
+		if helpers.DBWhereUsername(db, param).First(&k).Error == nil && k.Role != "deleted" {
 			return &k
 		}
 		return nil
@@ -687,7 +703,7 @@ func main() {
 				usernameVal, _ := c.Get("username")
 				username, _ := usernameVal.(string)
 				var k models.Korisnik
-				if err := db.Where("username = ?", username).First(&k).Error; err != nil || k.KlubID == nil || *k.KlubID != clubID {
+				if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&k).Error; err != nil || k.KlubID == nil || *k.KlubID != clubID {
 					c.JSON(http.StatusForbidden, gin.H{"error": "Možete menjati samo logo svog kluba"})
 					return
 				}
@@ -887,7 +903,7 @@ func main() {
 				return
 			}
 
-			username := strings.TrimSpace(c.PostForm("username"))
+			username := helpers.NormalizeUsername(c.PostForm("username"))
 			password := c.PostForm("password")
 			role := strings.TrimSpace(c.PostForm("role"))
 
@@ -995,6 +1011,11 @@ func main() {
 					AvatarURL:                        avatarURL,
 					Role:                             "superadmin",
 				}
+				var takenSuper models.Korisnik
+				if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&takenSuper).Error; err == nil {
+					c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
+					return
+				}
 				if err := db.Create(&korisnik).Error; err != nil {
 					c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 					return
@@ -1040,7 +1061,7 @@ func main() {
 			}
 			usernameVal, _ := claims["username"].(string)
 			c.Set("role", roleVal)
-			c.Set("username", usernameVal)
+			c.Set("username", helpers.NormalizeUsername(usernameVal))
 
 			clubID, ok := helpers.GetEffectiveClubID(c, db)
 			if !ok {
@@ -1178,6 +1199,11 @@ func main() {
 				KlubID:                           klubIDPtr,
 			}
 
+			var takenMember models.Korisnik
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&takenMember).Error; err == nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
+				return
+			}
 			if err := db.Create(&korisnik).Error; err != nil {
 				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 				return
@@ -1204,7 +1230,7 @@ func main() {
 			username, _ := c.Get("username")
 			db := c.MustGet("db").(*gorm.DB)
 			var currentUser models.Korisnik
-			if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&currentUser).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1559,7 +1585,7 @@ func main() {
 
 			// 1. Pronađi ID korisnika po username-u
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1609,7 +1635,7 @@ func main() {
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1793,7 +1819,7 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username.(string)).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1828,7 +1854,7 @@ func main() {
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1846,7 +1872,7 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -1877,14 +1903,19 @@ func main() {
 				}
 			}
 
-			// Username: ako je poslat i različit od trenutnog, provera jedinstvenosti
+			// Username: uvek mala slova; ako je poslat i različit od trenutnog, provera jedinstvenosti
 			newUsername := post("username")
 			if newUsername == "" {
 				newUsername = korisnik.Username
+			} else {
+				newUsername = helpers.NormalizeUsername(newUsername)
+				if newUsername == "" {
+					newUsername = korisnik.Username
+				}
 			}
 			if newUsername != korisnik.Username {
 				var existing models.Korisnik
-				if err := db.Where("username = ?", newUsername).First(&existing).Error; err == nil {
+				if err := helpers.DBWhereUsername(db, newUsername).First(&existing).Error; err == nil && existing.ID != korisnik.ID {
 					c.JSON(http.StatusConflict, gin.H{"error": "Korisničko ime je već zauzeto"})
 					return
 				}
@@ -2095,7 +2126,7 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -2132,7 +2163,7 @@ func main() {
 			db := dbAny.(*gorm.DB)
 
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -2445,7 +2476,7 @@ func main() {
 			username, _ := c.Get("username")
 			db := c.MustGet("db").(*gorm.DB)
 			var currentUser models.Korisnik
-			if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&currentUser).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
@@ -2645,7 +2676,7 @@ func main() {
 
 			// 1. Pronađi ID ulogovanog korisnika po username-u
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Korisnik nije pronađen", "details": err.Error()})
 				return
 			}
@@ -2842,7 +2873,7 @@ func main() {
 
 			// Pronađi korisnika po username-u da dobijemo njegov ID
 			var korisnik models.Korisnik
-			if err := db.Where("username = ?", username.(string)).First(&korisnik).Error; err != nil {
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}

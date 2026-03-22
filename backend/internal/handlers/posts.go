@@ -120,7 +120,7 @@ func GetPosts(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var currentUser models.Korisnik
-	if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -280,7 +280,7 @@ func GetPost(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var currentUser models.Korisnik
-	if err := db.Where("username = ?", username).First(&currentUser).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -360,7 +360,7 @@ func CreatePost(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -543,7 +543,7 @@ func DeletePost(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -604,7 +604,7 @@ func TogglePostLike(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -768,7 +768,7 @@ func CreatePostComment(c *gin.Context) {
 	username, _ := usernameVal.(string)
 
 	var korisnik models.Korisnik
-	if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}

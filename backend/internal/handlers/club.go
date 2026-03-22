@@ -85,7 +85,7 @@ func canEditClub(c *gin.Context, db *gorm.DB, clubID uint) bool {
 	usernameVal, _ := c.Get("username")
 	username, _ := usernameVal.(string)
 	var k models.Korisnik
-	if err := db.Where("username = ?", username).First(&k).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, username).First(&k).Error; err != nil {
 		return false
 	}
 	return k.KlubID != nil && *k.KlubID == clubID

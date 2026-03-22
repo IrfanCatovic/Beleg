@@ -35,7 +35,7 @@ func ClubHoldMiddleware() gin.HandlerFunc {
 		}
 
 		var korisnik models.Korisnik
-		if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 			c.Next()
 			return
 		}

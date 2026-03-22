@@ -36,7 +36,7 @@ func GetEffectiveClubID(c *gin.Context, db *gorm.DB) (clubID uint, ok bool) {
 			return 0, true
 		}
 		var korisnik models.Korisnik
-		if err := db.Where("username = ?", username).First(&korisnik).Error; err != nil {
+		if err := DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
 			return 0, true
 		}
 		if korisnik.KlubID != nil {

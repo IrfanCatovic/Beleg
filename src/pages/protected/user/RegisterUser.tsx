@@ -68,7 +68,7 @@ export default function RegisterUser() {
     }
     try {
       const formData = new FormData()
-      formData.append('username', form.username.trim())
+      formData.append('username', form.username.trim().toLowerCase())
       formData.append('password', form.password)
       formData.append('role', form.role)
 

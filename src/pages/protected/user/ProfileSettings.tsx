@@ -203,7 +203,7 @@ export default function ProfileSettings() {
       }
 
       const formData = new FormData()
-      formData.append('username', form.username.trim())
+      formData.append('username', form.username.trim().toLowerCase())
       formData.append('fullName', form.fullName.trim())
       formData.append('imeRoditelja', form.imeRoditelja.trim())
       formData.append('pol', form.pol)

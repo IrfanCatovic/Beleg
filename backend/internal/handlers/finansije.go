@@ -275,8 +275,9 @@ func CreateTransakcija(c *gin.Context) {
 		return
 	}
 	usernameVal, _ := c.Get("username")
+	un, _ := usernameVal.(string)
 	var ulogovan models.Korisnik
-	if err := db.Where("username = ?", usernameVal).First(&ulogovan).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, un).First(&ulogovan).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
@@ -422,8 +423,9 @@ func PostClanarinaPlati(c *gin.Context) {
 	}
 
 	usernameVal, _ := c.Get("username")
+	un, _ := usernameVal.(string)
 	var ulogovan models.Korisnik
-	if err := db.Where("username = ?", usernameVal).First(&ulogovan).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, un).First(&ulogovan).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
