@@ -401,7 +401,8 @@ func main() {
 
 		// Postavi HttpOnly cookie (24h) — token više ne ide u body
 		cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
-		middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure)
+		sameSiteNone := os.Getenv("COOKIE_SAMESITE_NONE") == "true"
+		middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
 
 		c.JSON(http.StatusOK, gin.H{
 			"role": korisnik.Role,
@@ -415,7 +416,9 @@ func main() {
 
 	// POST /api/logout — briše auth cookie (frontend poziva pre nego što očisti state)
 	r.POST("/api/logout", func(c *gin.Context) {
-		middleware.ClearAuthCookie(c)
+		cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
+		sameSiteNone := os.Getenv("COOKIE_SAMESITE_NONE") == "true"
+		middleware.ClearAuthCookie(c, cookieSecure, sameSiteNone)
 		c.JSON(http.StatusOK, gin.H{"message": "Odjavljen"})
 	})
 
@@ -2068,7 +2071,8 @@ func main() {
 				tokenString, err := token.SignedString(jwtSecret)
 				if err == nil {
 					cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
-					middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure)
+					sameSiteNone := os.Getenv("COOKIE_SAMESITE_NONE") == "true"
+					middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
 					resp["role"] = korisnik.Role
 					resp["user"] = gin.H{"username": korisnik.Username, "fullName": korisnik.FullName}
 				}

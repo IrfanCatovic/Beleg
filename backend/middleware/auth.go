@@ -11,13 +11,38 @@ import (
 const authCookieName = "auth_token"
 
 // SetAuthCookie postavlja HttpOnly cookie sa JWT tokenom.
-func SetAuthCookie(c *gin.Context, token string, maxAgeSeconds int, secure bool) {
-	c.SetCookie(authCookieName, token, maxAgeSeconds, "/", "", secure, true)
+// sameSiteNone: true za cross-site (npr. frontend na Vercel, API na Railway); false za Lax.
+func SetAuthCookie(c *gin.Context, token string, maxAgeSeconds int, secure bool, sameSiteNone bool) {
+	sameSite := http.SameSiteLaxMode
+	if sameSiteNone {
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     authCookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   maxAgeSeconds,
+		Secure:   secure,
+		HttpOnly: true,
+		SameSite: sameSite,
+	})
 }
 
 // ClearAuthCookie briše auth cookie (za logout).
-func ClearAuthCookie(c *gin.Context) {
-	c.SetCookie(authCookieName, "", -1, "/", "", false, true)
+func ClearAuthCookie(c *gin.Context, secure bool, sameSiteNone bool) {
+	sameSite := http.SameSiteLaxMode
+	if sameSiteNone {
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     authCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   secure,
+		HttpOnly: true,
+		SameSite: sameSite,
+	})
 }
 
 // getTokenFromRequest prvo traži token u HttpOnly cookie, pa u Authorization header.
