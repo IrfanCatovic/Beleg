@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth, type User } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
 import CalendarDropdown from '../../components/CalendarDropdown'
@@ -43,8 +43,24 @@ export interface KlubData {
   updatedAt?: string
 }
 
-const canEditClub = (role: string | undefined) =>
-  role === 'admin' || role === 'sekretar' || role === 'superadmin'
+/** Administracija i izmene — samo admin/sekretar/superadmin čiji je izabrani klub baš ovaj (nema „tuđeg“ kluba). */
+function canManageThisClub(user: User | null, clubId: number | undefined): boolean {
+  if (!user || clubId == null) return false
+  if (user.klubId !== clubId) return false
+  return user.role === 'admin' || user.role === 'sekretar' || user.role === 'superadmin'
+}
+
+interface ClubAdminStats {
+  activeMembers: number
+  maxMembers: number
+  adminCount: number
+  maxAdmins: number
+  usedStorageGb: number
+  maxStorageGb: number
+  subscribedAt?: string | null
+  subscriptionEndsAt?: string | null
+  onHold?: boolean
+}
 
 export default function Klub() {
   const { user } = useAuth()
@@ -72,18 +88,30 @@ export default function Klub() {
   const [logoError, setLogoError] = useState('')
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public')
-  const [memberCount, setMemberCount] = useState<number | null>(null)
-  const [adminCount, setAdminCount] = useState<number | null>(null)
-  const [secretaryCount, setSecretaryCount] = useState<number | null>(null)
+  const [adminStats, setAdminStats] = useState<ClubAdminStats | null>(null)
+  const [adminStatsLoading, setAdminStatsLoading] = useState(false)
 
-  const fetchKlub = async () => {
+  const fetchKlub = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       const endpoint = naziv ? `/api/klubovi/${encodeURIComponent(naziv)}` : '/api/klub'
       const res = await api.get<{ klub: KlubData }>(endpoint)
-      setKlub(res.data.klub)
-      const k = res.data.klub
+      let k = res.data.klub
+
+      // Javni profil nema limite/subskripciju — ako korisnik upravlja ovim klubom, učitaj pune podatke.
+      if (naziv && canManageThisClub(user, k.id)) {
+        try {
+          const full = await api.get<{ klub: KlubData }>('/api/klub')
+          if (full.data.klub?.id === k.id) {
+            k = full.data.klub
+          }
+        } catch {
+          /* ostaje javni sklop */
+        }
+      }
+
+      setKlub(k)
       // Ako smo došli preko starog /klub, nakon učitavanja preusmeri na /klubovi/:naziv
       if (!naziv && k.naziv) {
         navigate(`/klubovi/${encodeURIComponent(k.naziv)}`, { replace: true })
@@ -109,29 +137,34 @@ export default function Klub() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [naziv, user?.klubId, user?.role, navigate])
 
   useEffect(() => {
     fetchKlub()
-  }, [naziv])
+  }, [fetchKlub])
 
-  // U admin tabu prikažemo koliko članova / admina ima klub.
+  // Statistika samo za effective klub i samo za admin/sekretar/superadmin tog kluba (backend proverava).
   useEffect(() => {
-    const canEdit = canEditClub(user?.role)
-    if (!canEdit) return
-    const loadCounts = async () => {
-      try {
-        const res = await api.get<{ korisnici: Array<{ role: string }> }>('/api/korisnici')
-        const lista = res.data.korisnici || []
-        setMemberCount(lista.length)
-        setAdminCount(lista.filter((k) => k.role === 'admin').length)
-        setSecretaryCount(lista.filter((k) => k.role === 'sekretar').length)
-      } catch {
-        // ako padne, samo ne prikazujemo brojače
-      }
+    if (!klub?.id || !canManageThisClub(user, klub.id)) {
+      setAdminStats(null)
+      return
     }
-    loadCounts()
-  }, [user?.role])
+    let cancelled = false
+    setAdminStatsLoading(true)
+    ;(async () => {
+      try {
+        const res = await api.get<ClubAdminStats>('/api/klub/admin-stats')
+        if (!cancelled) setAdminStats(res.data)
+      } catch {
+        if (!cancelled) setAdminStats(null)
+      } finally {
+        if (!cancelled) setAdminStatsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [klub?.id, user?.klubId, user?.role])
 
   const handleSave = async () => {
     if (!klub) return
@@ -228,7 +261,7 @@ export default function Klub() {
   }
   if (!klub) return null
 
-  const canEdit = canEditClub(user?.role)
+  const canManage = canManageThisClub(user, klub.id)
 
   const FieldRow = ({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: React.ComponentType<{ className?: string }> }) => {
     const display = value === undefined || value === null || value === '' ? '—' : value
@@ -250,7 +283,7 @@ export default function Klub() {
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="flex items-center gap-5">
-              {canEdit ? (
+              {canManage ? (
                 <>
                   <input
                     ref={logoInputRef}
@@ -306,12 +339,12 @@ export default function Klub() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {canEdit && !editing && (
+              {canManage && !editing && (
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 transition-colors">
                   <PencilSquareIcon className="h-5 w-5" /> Izmeni podatke
                 </button>
               )}
-              {canEdit && editing && (
+              {canManage && editing && (
                 <>
                   <button type="button" onClick={handleSave} disabled={saveLoading || !form.naziv.trim()} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
                     <CheckIcon className="h-5 w-5" /> {saveLoading ? 'Čuvanje...' : 'Sačuvaj'}
@@ -337,7 +370,7 @@ export default function Klub() {
             >
               Javni podaci
             </button>
-            {canEdit && (
+            {canManage && (
               <button
                 type="button"
                 onClick={() => setActiveTab('admin')}
@@ -456,101 +489,95 @@ export default function Klub() {
                 </div>
               </div>
 
-              {/* Admin: statistika članova i limita */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              {/* Admin: statistika (API /api/klub/admin-stats — samo za tvoj klub) */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Statistika kluba</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Statistika i limiti kluba</h2>
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Podaci važe za vaš klub. Limite i trajanje pretplate podešava superadmin.
+                  </p>
                 </div>
-                <div className="p-5 space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Članovi</span>
-                    <span className="font-semibold text-gray-900">
-                      {memberCount != null ? memberCount : '—'} / {klub.korisnik_limit ?? '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Admin</span>
-                    <span className="font-semibold text-gray-900">
-                      {adminCount != null ? adminCount : '—'} / {klub.korisnik_admin_limit ?? '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Sekretar</span>
-                    <span className="font-semibold text-gray-900">
-                      {secretaryCount != null ? secretaryCount : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Max prostor (GB)</span>
-                    <span className="font-semibold text-gray-900">
-                      {klub.max_storage_gb != null ? klub.max_storage_gb : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Potrošeno (GB)</span>
-                    <span className="font-semibold text-gray-900">
-                      {klub.used_storage_gb != null ? Number(klub.used_storage_gb).toFixed(2) : '—'}
-                    </span>
-                  </div>
-
-                  {klub.max_storage_gb != null && klub.max_storage_gb > 0 && klub.used_storage_gb != null && (
-                    <div className="mt-1">
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        {/*
-                          Iskorišćenost u procentima (ograničimo na 100% da progress bar ne “puca”).
-                        */}
-                        <div
-                          className="h-full bg-emerald-500"
-                          style={{
-                            width: `${Math.min(100, (klub.used_storage_gb / klub.max_storage_gb) * 100)}%`,
-                          }}
-                        />
+                <div className="p-5 space-y-4">
+                  {adminStatsLoading && (
+                    <p className="text-sm text-gray-500">Učitavanje statistike…</p>
+                  )}
+                  {!adminStatsLoading && !adminStats && (
+                    <p className="text-sm text-amber-700">Statistika trenutno nije dostupna.</p>
+                  )}
+                  {adminStats && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Aktivni članovi</p>
+                          <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+                            {adminStats.activeMembers} <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxMembers}</span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">Registrovani u klubu (bez obrisanih naloga)</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Administratori</p>
+                          <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+                            {adminStats.adminCount} <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxAdmins}</span>
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">Uloga „admin“ u ovom klubu</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 sm:col-span-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Prostor za fajlove (Cloudinary)</p>
+                          <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+                            {Number(adminStats.usedStorageGb).toFixed(2)} GB{' '}
+                            <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxStorageGb} GB</span>
+                          </p>
+                          {adminStats.maxStorageGb > 0 && (
+                            <div className="mt-2">
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500"
+                                  style={{
+                                    width: `${Math.min(100, (adminStats.usedStorageGb / adminStats.maxStorageGb) * 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <p className="mt-1.5 text-xs text-gray-500">
+                                Iskorišćeno: {Math.min(100, (adminStats.usedStorageGb / adminStats.maxStorageGb) * 100).toFixed(1)}%
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="mt-2 text-xs text-gray-500">
-                        Iskorišćenost: {Math.min(100, (klub.used_storage_gb / klub.max_storage_gb) * 100).toFixed(2)}%
-                      </p>
-                    </div>
+
+                      <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CalendarDaysIcon className="h-5 w-5 text-amber-600 shrink-0" />
+                          <p className="text-sm font-semibold text-gray-900">Pretplata (subscription)</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Važi do</p>
+                            <p className="mt-0.5 font-semibold text-gray-900">
+                              {adminStats.subscriptionEndsAt ? formatDateShort(adminStats.subscriptionEndsAt) : '—'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Datum prijave / početak</p>
+                            <p className="mt-0.5 font-semibold text-gray-900">
+                              {adminStats.subscribedAt ? formatDateShort(adminStats.subscribedAt) : '—'}
+                            </p>
+                          </div>
+                        </div>
+                        {adminStats.onHold && (
+                          <div className="mt-3 inline-flex rounded-lg bg-rose-100 border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-800">
+                            Klub je trenutno na pauzi (hold)
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Subskripcija puna širina ispod */}
-            {(klub.subscribedAt != null || klub.subscriptionEndsAt != null || klub.onHold) && (
-              <div className="mt-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <CalendarDaysIcon className="h-5 w-5 text-amber-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Subskripcija</h2>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">Ove podatke menja samo superadmin na stranici Klubovi.</p>
-                </div>
-                <div className="p-5">
-                  <div className="flex flex-wrap items-center gap-6">
-                    {klub.subscribedAt && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Datum prijave</p>
-                        <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscribedAt)}</p>
-                      </div>
-                    )}
-                    {klub.subscriptionEndsAt && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Subskripcija do</p>
-                        <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDateShort(klub.subscriptionEndsAt)}</p>
-                      </div>
-                    )}
-                    {klub.onHold && (
-                      <div className="inline-flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-2">
-                        <span className="text-sm font-semibold text-rose-700">Klub privremeno pauziran</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

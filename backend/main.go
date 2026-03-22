@@ -599,7 +599,7 @@ func main() {
 				korisnik.KlubLogoURL = klub.LogoURL
 			}
 		}
-		c.JSON(200, gin.H{
+		respPub := gin.H{
 			"id":              korisnik.ID,
 			"username":        korisnik.Username,
 			"fullName":        korisnik.FullName,
@@ -614,7 +614,11 @@ func main() {
 			"brojPopeoSe":     korisnik.BrojPopeoSe,
 			"klubNaziv":       korisnik.KlubNaziv,
 			"klubLogoUrl":     korisnik.KlubLogoURL,
-		})
+		}
+		if korisnik.CoverPositionYMobile != nil {
+			respPub["cover_position_y_mobile"] = *korisnik.CoverPositionYMobile
+		}
+		c.JSON(200, respPub)
 	})
 	// GET /api/korisnici/:id/statistika — statistika javna; :id može biti numerički id ili username
 	r.GET("/api/korisnici/:id/statistika", func(c *gin.Context) {
@@ -2082,6 +2086,17 @@ func main() {
 					updates["cover_position_y"] = pos
 				}
 			}
+			if coverPosMobStr := post("coverPositionYMobile"); coverPosMobStr != "" {
+				if pos, err := strconv.ParseFloat(coverPosMobStr, 64); err == nil {
+					if pos < 0 {
+						pos = 0
+					}
+					if pos > 1 {
+						pos = 1
+					}
+					updates["cover_position_y_mobile"] = pos
+				}
+			}
 			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
 				return
@@ -2115,7 +2130,7 @@ func main() {
 			c.JSON(200, resp)
 		})
 
-		// PATCH /api/me/cover-position — samo pozicija cover slike (JSON: { "coverPositionY": 0–1 })
+		// PATCH /api/me/cover-position — pozicija covera: coverPositionY (širi ekran, md+), coverPositionYMobile (uža širina)
 		protected.PATCH("/me/cover-position", func(c *gin.Context) {
 			username, exists := c.Get("username")
 			if !exists {
@@ -2132,24 +2147,51 @@ func main() {
 			}
 
 			var body struct {
-				CoverPositionY *float64 `json:"coverPositionY"`
+				CoverPositionY       *float64 `json:"coverPositionY"`
+				CoverPositionYMobile *float64 `json:"coverPositionYMobile"`
 			}
-			if err := c.ShouldBindJSON(&body); err != nil || body.CoverPositionY == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Očekuje se JSON: { coverPositionY: number (0–1) }"})
+			if err := c.ShouldBindJSON(&body); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravan JSON"})
 				return
 			}
-			pos := *body.CoverPositionY
-			if pos < 0 {
-				pos = 0
+			if body.CoverPositionY == nil && body.CoverPositionYMobile == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Pošaljite coverPositionY i/ili coverPositionYMobile (broj 0–1)"})
+				return
 			}
-			if pos > 1 {
-				pos = 1
+			clamp01 := func(p float64) float64 {
+				if p < 0 {
+					return 0
+				}
+				if p > 1 {
+					return 1
+				}
+				return p
 			}
-			if err := db.Model(&korisnik).Update("cover_position_y", pos).Error; err != nil {
+			updates := map[string]interface{}{}
+			if body.CoverPositionY != nil {
+				updates["cover_position_y"] = clamp01(*body.CoverPositionY)
+			}
+			if body.CoverPositionYMobile != nil {
+				updates["cover_position_y_mobile"] = clamp01(*body.CoverPositionYMobile)
+			}
+			if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju pozicije"})
 				return
 			}
-			c.JSON(200, gin.H{"message": "Pozicija sačuvana", "coverPositionY": pos})
+			if err := db.Where("id = ?", korisnik.ID).First(&korisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju"})
+				return
+			}
+			out := gin.H{
+				"message":         "Pozicija sačuvana",
+				"coverPositionY":  korisnik.CoverPositionY,
+				"cover_position_y": korisnik.CoverPositionY,
+			}
+			if korisnik.CoverPositionYMobile != nil {
+				out["coverPositionYMobile"] = *korisnik.CoverPositionYMobile
+				out["cover_position_y_mobile"] = *korisnik.CoverPositionYMobile
+			}
+			c.JSON(200, out)
 		})
 
 		// PATCH /api/me/cover — upload cover slike (multipart: coverImage)

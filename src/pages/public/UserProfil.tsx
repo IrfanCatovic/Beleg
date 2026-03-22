@@ -35,6 +35,8 @@ interface Korisnik {
   avatar_url?: string
   cover_image_url?: string
   cover_position_y?: number
+  /** Vertikalni fokus na uskom ekranu (&lt; md); ako nije sačuvan, koristi se cover_position_y. */
+  cover_position_y_mobile?: number
   email?: string
   telefon?: string
   role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
@@ -61,6 +63,21 @@ function tz(t?: string) {
   return TEZINA[t.toLowerCase()] ?? { ...DEFAULT_TEZINA, label: t }
 }
 
+/** Isti breakpoint kao Tailwind `md:` — cover na širem ekranu koristi drugačiju sačuvanu poziciju. */
+const COVER_MD_MEDIA = '(min-width: 768px)'
+
+function useIsMdUpForCover() {
+  const [mdUp, setMdUp] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(COVER_MD_MEDIA)
+    const apply = () => setMdUp(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  return mdUp
+}
+
 /* ────────────────────────────────────────────────────────────────────── */
 
 export default function UserProfile() {
@@ -75,7 +92,9 @@ export default function UserProfile() {
   const [error, setError] = useState('')
   const [avatarFail, setAvatarFail] = useState(false)
   const [top30, setTop30] = useState<number | null>(null)
-  const [coverY, setCoverY] = useState(0.5)
+  const isMdUp = useIsMdUpForCover()
+  const [coverYDesktop, setCoverYDesktop] = useState(0.5)
+  const [coverYMobile, setCoverYMobile] = useState(0.5)
   const [positioning, setPositioning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
@@ -129,7 +148,13 @@ export default function UserProfile() {
     }).catch(() => setTop30(null))
   }, [korisnik?.id, currentUser])
 
-  useEffect(() => { if (korisnik) setCoverY(korisnik.cover_position_y ?? 0.5) }, [korisnik])
+  useEffect(() => {
+    if (!korisnik) return
+    const d = korisnik.cover_position_y ?? 0.5
+    const m = korisnik.cover_position_y_mobile != null ? korisnik.cover_position_y_mobile : d
+    setCoverYDesktop(d)
+    setCoverYMobile(m)
+  }, [korisnik])
 
   /* ── derived ── */
   const isOwn = currentUser?.username === korisnik?.username
@@ -138,11 +163,22 @@ export default function UserProfile() {
 
   const coverInputRef = useRef<HTMLInputElement>(null)
 
-  const saveCoverPos = async () => {
+  const saveCoverPos = async (variant: 'desktop' | 'mobile') => {
     setSaving(true)
-    try { await api.patch('/api/me/cover-position', { coverPositionY: coverY }); setPositioning(false) }
-    catch { /* ignore */ }
-    finally { setSaving(false) }
+    try {
+      if (variant === 'desktop') {
+        await api.patch('/api/me/cover-position', { coverPositionY: coverYDesktop })
+        setKorisnik((k) => (k ? { ...k, cover_position_y: coverYDesktop } : null))
+      } else {
+        await api.patch('/api/me/cover-position', { coverPositionYMobile: coverYMobile })
+        setKorisnik((k) => (k ? { ...k, cover_position_y_mobile: coverYMobile } : null))
+      }
+      setPositioning(false)
+    } catch {
+      /* ignore */
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,7 +200,12 @@ export default function UserProfile() {
   }
 
   const cancelCoverPositioning = () => {
-    if (korisnik) setCoverY(korisnik.cover_position_y ?? 0.5)
+    if (korisnik) {
+      const d = korisnik.cover_position_y ?? 0.5
+      const m = korisnik.cover_position_y_mobile != null ? korisnik.cover_position_y_mobile : d
+      setCoverYDesktop(d)
+      setCoverYMobile(m)
+    }
     setPositioning(false)
   }
 
@@ -209,6 +250,7 @@ export default function UserProfile() {
   )
 
   const rankColor = rank.boja === '#000000' ? '#FFD700' : '#fff'
+  const coverYVisible = isMdUp ? coverYDesktop : coverYMobile
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
@@ -220,7 +262,7 @@ export default function UserProfile() {
             src={korisnik.cover_image_url}
             alt=""
             className="absolute inset-0 w-full h-full object-cover transition-[object-position] duration-300 pointer-events-none"
-            style={{ objectPosition: `center ${coverY * 100}%` }}
+            style={{ objectPosition: `center ${coverYVisible * 100}%` }}
             draggable={false}
           />
         ) : (
@@ -288,30 +330,32 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
           >
-            <p className="text-white text-center text-sm font-semibold">Pomeri cover gore / dole</p>
-            <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">Prevuci klizač ispod ili koristi + / −</p>
+            <p className="text-white text-center text-sm font-semibold">Pomeri cover (prikaz na računaru / širem ekranu)</p>
+            <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">
+              Na telefonu je druga visina covera — tamo podešavaj posebno. Ovde se čuva samo prikaz za ekrane šire od 768px.
+            </p>
             <input
               type="range"
               min={0}
               max={1}
               step={0.01}
-              value={coverY}
-              onChange={(e) => setCoverY(parseFloat(e.target.value))}
+              value={coverYDesktop}
+              onChange={(e) => setCoverYDesktop(parseFloat(e.target.value))}
               className="w-full max-w-[min(100%,20rem)] accent-emerald-400 cursor-pointer"
             />
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setCoverY((y) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
+                onClick={() => setCoverYDesktop((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
                 aria-label="Pomeri prikaz nagore"
               >
                 −
               </button>
-              <span className="text-white/70 text-xs tabular-nums w-12 text-center">{Math.round(coverY * 100)}%</span>
+              <span className="text-white/70 text-xs tabular-nums w-12 text-center">{Math.round(coverYDesktop * 100)}%</span>
               <button
                 type="button"
-                onClick={() => setCoverY((y) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
+                onClick={() => setCoverYDesktop((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
                 aria-label="Pomeri prikaz nadole"
               >
@@ -321,7 +365,7 @@ export default function UserProfile() {
             <div className="flex flex-wrap justify-center gap-2 pt-1">
               <button
                 type="button"
-                onClick={saveCoverPos}
+                onClick={() => saveCoverPos('desktop')}
                 disabled={saving}
                 className="min-h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-lg transition disabled:opacity-50"
               >
@@ -361,29 +405,31 @@ export default function UserProfile() {
             <h2 id="cover-pos-sheet-title" className="text-center text-sm font-bold text-gray-900">
               Pomeri cover gore / dole
             </h2>
-            <p className="text-center text-[11px] text-gray-500 -mt-1">Vidiš celu sliku iznad; ovde podesi prikaz.</p>
+            <p className="text-center text-[11px] text-gray-500 -mt-1">
+              Prikaz za telefon / uže ekrane (&lt; 768px). Na računaru koristi isto dugme na coveru u širem prikazu.
+            </p>
             <input
               type="range"
               min={0}
               max={1}
               step={0.01}
-              value={coverY}
-              onChange={(e) => setCoverY(parseFloat(e.target.value))}
+              value={coverYMobile}
+              onChange={(e) => setCoverYMobile(parseFloat(e.target.value))}
               className="w-full h-12 accent-emerald-600 cursor-pointer touch-pan-y"
             />
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
-                onClick={() => setCoverY((y) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
+                onClick={() => setCoverYMobile((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
                 aria-label="Pomeri prikaz nagore"
               >
                 −
               </button>
-              <span className="text-gray-600 text-sm tabular-nums font-semibold w-14 text-center">{Math.round(coverY * 100)}%</span>
+              <span className="text-gray-600 text-sm tabular-nums font-semibold w-14 text-center">{Math.round(coverYMobile * 100)}%</span>
               <button
                 type="button"
-                onClick={() => setCoverY((y) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
+                onClick={() => setCoverYMobile((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
                 aria-label="Pomeri prikaz nadole"
               >
@@ -400,7 +446,7 @@ export default function UserProfile() {
               </button>
               <button
                 type="button"
-                onClick={saveCoverPos}
+                onClick={() => saveCoverPos('mobile')}
                 disabled={saving}
                 className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
               >

@@ -30,7 +30,9 @@ type Korisnik struct {
 	// Slike (opciono)
 	AvatarURL                  string    `gorm:"type:varchar(500)" json:"avatar_url,omitempty"`
 	CoverImageURL              string    `gorm:"type:varchar(500)" json:"cover_image_url,omitempty"`
-	CoverPositionY             float64   `gorm:"type:float;default:0.5" json:"cover_position_y,omitempty"` // 0 = vrh, 1 = dno; za object-position
+	CoverPositionY             float64   `gorm:"type:float;default:0.5" json:"cover_position_y,omitempty"` // 0 = vrh, 1 = dno; za širi ekran (md+)
+	// Opciono: vertikalni fokus na uskom ekranu; ako je NULL, koristi se CoverPositionY (isti kadro kao na PC).
+	CoverPositionYMobile       *float64  `gorm:"type:float" json:"cover_position_y_mobile,omitempty"`
 	// Role i status
 	Role                       string    `gorm:"type:varchar(20);not null;default:'clan'" json:"role"`
 	// Statistika (opciono, default 0)

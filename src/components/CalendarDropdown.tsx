@@ -1,17 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatDateShort } from '../utils/dateUtils'
 
-const WEEKDAYS_SR = ['Po', 'Ut', 'Sr', 'Če', 'Pe', 'Su', 'Ne']
 const MONTHS_SR = [
   'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
   'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
 ]
 
-function toYMD(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+/** Lokalni YYYY-MM-DD iz brojeva (m = 0..11). */
+function formatYMDParts(y: number, m: number, d: number): string {
+  const mm = String(m + 1).padStart(2, '0')
+  const day = String(d).padStart(2, '0')
+  return `${y}-${mm}-${day}`
 }
 
 function parseYMD(ymd: string): Date {
@@ -19,10 +18,14 @@ function parseYMD(ymd: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1)
 }
 
+function toYMDDate(d: Date): string {
+  return formatYMDParts(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
 function isValidYMD(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
   const d = parseYMD(s)
-  return !isNaN(d.getTime()) && toYMD(d) === s
+  return !isNaN(d.getTime()) && toYMDDate(d) === s
 }
 
 function getYearBounds(minDate?: string, maxDate?: string): { minY: number; maxY: number } {
@@ -35,23 +38,12 @@ function getYearBounds(minDate?: string, maxDate?: string): { minY: number; maxY
   return { minY, maxY }
 }
 
-function getDaysInMonth(year: number, month: number): Date[] {
-  const first = new Date(year, month, 1)
-  const last = new Date(year, month + 1, 0)
-  const startPad = (first.getDay() + 6) % 7
-  const days: Date[] = []
-  for (let i = 0; i < startPad; i++) {
-    const d = new Date(year, month, 1 - (startPad - i))
-    days.push(d)
-  }
-  for (let d = 1; d <= last.getDate(); d++) {
-    days.push(new Date(year, month, d))
-  }
-  const rest = 42 - days.length
-  for (let i = 1; i <= rest; i++) {
-    days.push(new Date(year, month + 1, i))
-  }
-  return days
+function lastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function timeAtLocalMidnight(y: number, month: number, day: number): number {
+  return new Date(y, month, day).getTime()
 }
 
 export interface CalendarDropdownProps {
@@ -64,9 +56,10 @@ export interface CalendarDropdownProps {
   minTriggerWidth?: string
   className?: string
   'aria-label'?: string
-  /** Za datum rođenja itd. — sakriva dugme „Današnji datum“. Podrazumevano true. */
   showTodayShortcut?: boolean
 }
+
+type Part = number | ''
 
 export default function CalendarDropdown({
   value,
@@ -82,29 +75,127 @@ export default function CalendarDropdown({
 }: CalendarDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   const valueDate = value && isValidYMD(value) ? parseYMD(value) : null
   const displayLabel = value ? formatDateShort(value) : placeholder
 
-  const [viewYear, setViewYear] = useState(() => valueDate?.getFullYear() ?? new Date().getFullYear())
-  const [viewMonth, setViewMonth] = useState(() => valueDate?.getMonth() ?? new Date().getMonth())
+  const [selD, setSelD] = useState<Part>('')
+  const [selM, setSelM] = useState<Part>('')
+  const [selY, setSelY] = useState<Part>('')
 
   const minD = minDate && isValidYMD(minDate) ? parseYMD(minDate).getTime() : null
   const maxD = maxDate && isValidYMD(maxDate) ? parseYMD(maxDate).getTime() : null
   const { minY, maxY } = getYearBounds(minDate, maxDate)
-  const yearOptions: number[] = []
-  for (let y = minY; y <= maxY; y++) yearOptions.push(y)
+
+  const yearOptions = useMemo(() => {
+    const ys: number[] = []
+    for (let y = minY; y <= maxY; y++) ys.push(y)
+    return ys
+  }, [minY, maxY])
+
+  const isAllowed = useCallback(
+    (y: number, m: number, d: number) => {
+      if (d < 1 || d > lastDayOfMonth(y, m)) return false
+      const t = timeAtLocalMidnight(y, m, d)
+      if (minD != null && t < minD) return false
+      if (maxD != null && t > maxD) return false
+      return true
+    },
+    [minD, maxD]
+  )
+
+  /** Dani koji postoje u bar jednom dozvoljenom (godina, mesec) — za prvi korak. */
+  const dayOptionsFirst = useMemo(() => {
+    const set = new Set<number>()
+    for (const y of yearOptions) {
+      for (let m = 0; m < 12; m++) {
+        const last = lastDayOfMonth(y, m)
+        for (let d = 1; d <= last; d++) {
+          if (isAllowed(y, m, d)) set.add(d)
+        }
+      }
+    }
+    return [...set].sort((a, b) => a - b)
+  }, [yearOptions, isAllowed])
+
+  /** Meseci za izabrani dan (pre ili posle godine). */
+  const monthOptions = useMemo(() => {
+    if (selD === '') return []
+    const d = selD as number
+    const months = new Set<number>()
+    for (const y of yearOptions) {
+      for (let m = 0; m < 12; m++) {
+        if (d <= lastDayOfMonth(y, m) && isAllowed(y, m, d)) months.add(m)
+      }
+    }
+    return [...months].sort((a, b) => a - b)
+  }, [selD, yearOptions, isAllowed])
+
+  /** Godine za izabrani dan + mesec. */
+  const yearOptionsFiltered = useMemo(() => {
+    if (selD === '' || selM === '') return yearOptions
+    const d = selD as number
+    const m = selM as number
+    return yearOptions.filter((y) => d <= lastDayOfMonth(y, m) && isAllowed(y, m, d))
+  }, [selD, selM, yearOptions, isAllowed])
+
+  /** Dani kada su mesec i godina poznati. */
+  const dayOptionsRefined = useMemo(() => {
+    if (selY === '' || selM === '') return []
+    const y = selY as number
+    const m = selM as number
+    const last = lastDayOfMonth(y, m)
+    const out: number[] = []
+    for (let d = 1; d <= last; d++) {
+      if (isAllowed(y, m, d)) out.push(d)
+    }
+    return out
+  }, [selY, selM, isAllowed])
+
+  /** Lista dana za <select>: prvo široka (samo dan), posle suženje kad ima M+Y. */
+  const daySelectOptions = selY !== '' && selM !== '' ? dayOptionsRefined : dayOptionsFirst
 
   useEffect(() => {
     if (!open) return
     if (value && isValidYMD(value)) {
-      const vd = parseYMD(value)
-      setViewYear(Math.min(maxY, Math.max(minY, vd.getFullYear())))
-      setViewMonth(vd.getMonth())
-    } else {
-      setViewYear((y) => Math.min(maxY, Math.max(minY, y)))
+      const dt = parseYMD(value)
+      setSelY(dt.getFullYear())
+      setSelM(dt.getMonth())
+      setSelD(dt.getDate())
+      return
     }
-  }, [open, value, minY, maxY])
+    setSelY('')
+    setSelM('')
+    setSelD('')
+  }, [open, value])
+
+  /** Posle izbora meseca/godine suzi dan ako više nije validan. */
+  useEffect(() => {
+    if (!open || selY === '' || selM === '' || selD === '') return
+    const d = selD as number
+    if (dayOptionsRefined.length === 0) return
+    if (!dayOptionsRefined.includes(d)) {
+      const first = dayOptionsRefined[0]
+      if (first != null) setSelD(first)
+    }
+  }, [open, selY, selM, dayOptionsRefined, selD])
+
+  /** Kad su tri dela izabrana i u opsegu — upis u formu. */
+  useEffect(() => {
+    if (!open) return
+    if (selD === '' || selM === '' || selY === '') return
+    const y = selY as number
+    const m = selM as number
+    let d = selD as number
+    const last = lastDayOfMonth(y, m)
+    if (d > last) d = last
+    if (!isAllowed(y, m, d)) return
+    const ymd = formatYMDParts(y, m, d)
+    if (!isValidYMD(ymd)) return
+    if (ymd !== value) onChangeRef.current(ymd)
+  }, [selD, selM, selY, open, value, isAllowed])
 
   useEffect(() => {
     const close = (e: MouseEvent | TouchEvent) => {
@@ -120,39 +211,69 @@ export default function CalendarDropdown({
     }
   }, [open])
 
-  const isDisabled = (d: Date) => {
-    const t = d.getTime()
-    if (minD != null && t < minD) return true
-    if (maxD != null && t > maxD) return true
-    return false
-  }
+  const selectClass =
+    'min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-2 py-2.5 text-sm font-medium text-gray-800 shadow-sm focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20'
 
-  const days = getDaysInMonth(viewYear, viewMonth)
-  const currentMonth = viewMonth
-
-  const goPrev = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11)
-      setViewYear((y) => y - 1)
-    } else {
-      setViewMonth((m) => m - 1)
+  const onDayChange = (v: string) => {
+    if (v === '') {
+      setSelD('')
+      setSelM('')
+      setSelY('')
+      return
     }
+    const d = Number(v)
+    setSelD(d)
+    setSelM('')
+    setSelY('')
   }
 
-  const goNext = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0)
-      setViewYear((y) => y + 1)
-    } else {
-      setViewMonth((m) => m + 1)
+  const onMonthChange = (v: string) => {
+    if (v === '') {
+      setSelM('')
+      setSelY('')
+      return
     }
+    setSelM(Number(v))
+    setSelY('')
   }
 
-  const handleSelect = (d: Date) => {
-    if (isDisabled(d)) return
-    onChange(toYMD(d))
+  const onYearChange = (v: string) => {
+    if (v === '') {
+      setSelY('')
+      return
+    }
+    setSelY(Number(v))
+  }
+
+  const applyToday = () => {
+    const t = new Date()
+    const y = t.getFullYear()
+    const m = t.getMonth()
+    const d = t.getDate()
+    if (!isAllowed(y, m, d)) return
+    const ymd = formatYMDParts(y, m, d)
+    setSelY(y)
+    setSelM(m)
+    setSelD(d)
+    onChange(ymd)
     setOpen(false)
   }
+
+  const todayOk =
+    showTodayShortcut &&
+    (() => {
+      const t = new Date()
+      return isAllowed(t.getFullYear(), t.getMonth(), t.getDate())
+    })()
+
+  const hint =
+    minD != null && maxD != null
+      ? 'Dozvoljen je samo opseg između minimalnog i maksimalnog datuma (npr. samo budućnost za zakazivanje).'
+      : minD != null
+        ? 'Datum ne može biti pre donje granice.'
+        : maxD != null
+          ? 'Datum ne može biti posle gornje granice.'
+          : 'Izaberi dan, pa mesec, pa godinu — prikazuju se samo validne kombinacije.'
 
   return (
     <div
@@ -187,134 +308,74 @@ export default function CalendarDropdown({
           role="dialog"
           aria-modal="true"
           aria-label="Izbor datuma"
-          className="absolute left-0 right-0 top-full z-[9999] mt-2 w-full min-w-[320px] max-w-[400px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:left-0 sm:right-auto"
+          className="absolute left-0 right-0 top-full z-[9999] mt-2 w-full min-w-[280px] max-w-[420px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:left-0 sm:right-auto"
           style={!fullWidth ? { minWidth: minTriggerWidth } : undefined}
         >
-          {/* Direktan unos (tipkovnica / nativni picker) — posebno za starije godine */}
-          <div className="mb-3">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Unesite datum
-            </label>
-            <input
-              type="date"
-              value={isValidYMD(value) ? value : ''}
-              min={minDate && isValidYMD(minDate) ? minDate : undefined}
-              max={maxDate && isValidYMD(maxDate) ? maxDate : undefined}
-              onChange={(e) => {
-                const v = e.target.value
-                if (!v) {
-                  onChange('')
-                  return
-                }
-                if (!isValidYMD(v)) return
-                onChange(v)
-                setViewYear(parseYMD(v).getFullYear())
-                setViewMonth(parseYMD(v).getMonth())
-              }}
-              className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20"
-            />
-            <p className="mt-1 text-[11px] text-gray-400">Format GGGG-MM-DD ili izaberite u polju iznad.</p>
-          </div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Redom: dan → mesec → godina
+          </p>
 
-          {/* Mesec / godina — brz skok (npr. 1958) + strelice */}
-          <div className="mb-4 flex flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:justify-between">
-            <button
-              type="button"
-              onClick={goPrev}
-              aria-label="Prethodni mesec"
-              className="order-1 flex h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 sm:order-none"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div className="order-3 flex w-full min-w-0 flex-1 flex-wrap items-stretch justify-center gap-2 sm:order-none sm:w-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">Dan</label>
               <select
-                value={viewMonth}
-                onChange={(e) => setViewMonth(Number(e.target.value))}
-                aria-label="Mesec"
-                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2 text-sm font-medium text-gray-800 focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 sm:min-w-[9.5rem]"
+                value={selD === '' ? '' : String(selD)}
+                onChange={(e) => onDayChange(e.target.value)}
+                aria-label="Dan"
+                className={selectClass}
               >
-                {MONTHS_SR.map((label, idx) => (
-                  <option key={label} value={idx}>
-                    {label}
+                <option value="">— dan —</option>
+                {daySelectOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="min-w-0 flex-[1.35]">
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">Mesec</label>
               <select
-                value={viewYear}
-                onChange={(e) => setViewYear(Number(e.target.value))}
-                aria-label="Godina"
-                className="min-h-[44px] w-[6.5rem] shrink-0 rounded-xl border border-gray-200 bg-white px-2 py-2 text-sm font-medium text-gray-800 focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 sm:w-[7rem]"
+                value={selM === '' ? '' : String(selM)}
+                onChange={(e) => onMonthChange(e.target.value)}
+                disabled={selD === ''}
+                aria-label="Mesec"
+                className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400`}
               >
-                {yearOptions.map((y) => (
+                <option value="">{selD === '' ? 'Prvo izaberi dan' : '— mesec —'}</option>
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {MONTHS_SR[m]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">Godina</label>
+              <select
+                value={selY === '' ? '' : String(selY)}
+                onChange={(e) => onYearChange(e.target.value)}
+                disabled={selD === '' || selM === ''}
+                aria-label="Godina"
+                className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400`}
+              >
+                <option value="">{selM === '' ? 'Prvo mesec' : '— godina —'}</option>
+                {yearOptionsFiltered.map((y) => (
                   <option key={y} value={y}>
                     {y}
                   </option>
                 ))}
               </select>
             </div>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Sledeći mesec"
-              className="order-2 flex h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 sm:order-none"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
 
-          {/* Dani u nedelji */}
-          <div className="grid grid-cols-7 gap-0.5 text-center text-xs font-medium text-gray-500">
-            {WEEKDAYS_SR.map((day) => (
-              <div key={day} className="py-1.5">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Kalendar mreža */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {days.map((d, i) => {
-              const ymd = toYMD(d)
-              const isCurrentMonth = d.getMonth() === currentMonth
-              const isSelected = value === ymd
-              const disabled = isDisabled(d)
-              const isToday =
-                toYMD(new Date()) === ymd
-
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleSelect(d)}
-                  disabled={disabled}
-                  aria-label={d.toLocaleDateString('sr-RS')}
-                  aria-selected={isSelected}
-                  className={`
-                    flex h-9 min-h-[44px] w-full items-center justify-center rounded-xl text-sm font-medium transition-colors
-                    sm:h-9 sm:min-h-0
-                    ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-800'}
-                    ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
-                    ${isSelected ? 'bg-[#41ac53] text-white hover:bg-[#389e4a]' : ''}
-                    ${!isSelected && !disabled && isCurrentMonth ? 'hover:bg-gray-100' : ''}
-                    ${isToday && !isSelected ? 'ring-1 ring-[#41ac53] ring-offset-1' : ''}
-                  `}
-                >
-                  {d.getDate()}
-                </button>
-              )
-            })}
-          </div>
+          <p className="mt-2 text-[11px] text-gray-400">{hint}</p>
 
           {showTodayShortcut && (
             <div className="mt-3 border-t border-gray-100 pt-3">
               <button
                 type="button"
-                onClick={() => handleSelect(new Date())}
-                disabled={isDisabled(new Date())}
+                onClick={applyToday}
+                disabled={!todayOk}
                 className="w-full rounded-xl bg-gray-50 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Današnji datum

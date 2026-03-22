@@ -10,6 +10,7 @@ import (
 // GET /api/klub – podaci effective kluba (svi članovi mogu da vide).
 // PATCH /api/klub – ažuriranje podataka kluba (samo admin/sekretar tog kluba ili superadmin).
 func RegisterClubRoutes(g *gin.RouterGroup) {
+	g.GET("/klub/admin-stats", handlers.GetClubAdminStats)
 	g.GET("/klub", handlers.GetMojKlub)
 	g.PATCH("/klub", handlers.UpdateMojKlub)
 }

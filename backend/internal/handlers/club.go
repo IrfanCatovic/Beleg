@@ -45,6 +45,62 @@ func GetMojKlub(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"klub": klub})
 }
 
+// GetClubAdminStats vraća osetljive brojke za effective klub (članovi, admini, skladište, subskripcija).
+// Samo admin ili sekretar tog kluba ili superadmin u kontekstu tog kluba (X-Club-Id).
+func GetClubAdminStats(c *gin.Context) {
+	dbAny, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Niste u klubu"})
+		return
+	}
+
+	if !canEditClub(c, db, clubID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar kluba vide administraciju"})
+		return
+	}
+
+	var klub models.Klubovi
+	if err := db.First(&klub, clubID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Klub nije pronađen"})
+		return
+	}
+
+	var activeMembers int64
+	if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role != ?", clubID, "deleted").Count(&activeMembers).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju članova"})
+		return
+	}
+
+	var adminCount int64
+	if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role = ?", clubID, "admin").Count(&adminCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju admina"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"activeMembers":      activeMembers,
+		"maxMembers":         klub.KorisnikLimit,
+		"adminCount":         adminCount,
+		"maxAdmins":          klub.KorisnikAdminLimit,
+		"usedStorageGb":      klub.UsedStorageGB,
+		"maxStorageGb":       klub.MaxStorageGB,
+		"subscriptionEndsAt": klub.SubscriptionEndsAt,
+		"subscribedAt":       klub.SubscribedAt,
+		"onHold":             klub.OnHold,
+	})
+}
+
 // updateMojKlubRequest polja koja klub (admin/sekretar) može da menja.
 // Limite, subskripciju i OnHold menja samo superadmin preko superadmin ruta.
 type updateMojKlubRequest struct {

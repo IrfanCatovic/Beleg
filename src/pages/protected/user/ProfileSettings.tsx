@@ -488,7 +488,7 @@ export default function ProfileSettings() {
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Puno ime</label>
+                      <label className={labelClass}>Puno ime i prezime</label>
                       <input name="fullName" value={form.fullName} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
