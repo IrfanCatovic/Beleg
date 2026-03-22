@@ -453,19 +453,18 @@ func main() {
 
 		// Za nejavne akcije puni detalji su dostupni samo članovima istog kluba
 		// (i superadminu koji je izabrao isti klub preko X-Club-Id).
+		// Token može biti u HttpOnly cookie ili u Authorization header.
 		canSeePrivateDetails := akcija.Javna
 		if !akcija.Javna && akcija.KlubID != nil {
-			authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
-			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-				tokenStr := strings.TrimSpace(authHeader[len("Bearer "):])
+			tokenStr := middleware.GetTokenFromRequest(c)
+			if tokenStr != "" {
 				claims := jwt.MapClaims{}
-				if tokenStr != "" {
-					if token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-						if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-							return nil, jwt.ErrSignatureInvalid
-						}
-						return jwtSecret, nil
-					}); err == nil && token.Valid {
+				if token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+						return nil, jwt.ErrSignatureInvalid
+					}
+					return jwtSecret, nil
+				}); err == nil && token.Valid {
 						usernameClaim, _ := claims["username"].(string)
 						roleClaim, _ := claims["role"].(string)
 						usernameClaim = strings.TrimSpace(usernameClaim)
@@ -484,7 +483,6 @@ func main() {
 						}
 					}
 				}
-			}
 		}
 
 		if !canSeePrivateDetails {
@@ -1012,18 +1010,12 @@ func main() {
 			}
 
 			// ——— Ostale uloge: obavezan auth (admin ili sekretar) ———
-			authHeader := c.GetHeader("Authorization")
-			if authHeader == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			// Token može biti u HttpOnly cookie ili u Authorization header
+			tokenStr := middleware.GetTokenFromRequest(c)
+			if tokenStr == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste prijavljeni"})
 				return
 			}
-			authHeader = strings.TrimSpace(authHeader)
-			if !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
-				return
-			}
-			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-			tokenStr = strings.TrimSpace(tokenStr)
 			if len(tokenStr) < 10 {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 				return

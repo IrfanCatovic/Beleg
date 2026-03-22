@@ -45,8 +45,9 @@ func ClearAuthCookie(c *gin.Context, secure bool, sameSiteNone bool) {
 	})
 }
 
-// getTokenFromRequest prvo traži token u HttpOnly cookie, pa u Authorization header.
-func getTokenFromRequest(c *gin.Context) string {
+// GetTokenFromRequest prvo traži token u HttpOnly cookie, pa u Authorization header.
+// Koristi se i u AuthMiddleware i u handelerima koji rade inline auth (npr. /api/register).
+func GetTokenFromRequest(c *gin.Context) string {
 	if tok, err := c.Cookie(authCookieName); err == nil && strings.TrimSpace(tok) != "" {
 		return strings.TrimSpace(tok)
 	}
@@ -61,7 +62,7 @@ func getTokenFromRequest(c *gin.Context) string {
 // Token može biti u cookie (auth_token) ili u Authorization header.
 func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenStr := getTokenFromRequest(c)
+		tokenStr := GetTokenFromRequest(c)
 
 		if tokenStr == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Niste prijavljeni"})
