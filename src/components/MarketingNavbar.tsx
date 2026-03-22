@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function MarketingNavbar() {
   return (
+    <>
     <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
       {/* Logo + home */}
       <Link
@@ -49,6 +50,19 @@ export default function MarketingNavbar() {
         </Link>
       </div>
     </nav>
+
+    {/* Mobilni floating login – prikazuje se samo na malim ekranima */}
+    <Link
+      to="/login"
+      className="sm:hidden fixed bottom-5 left-4 right-4 z-50 flex items-center justify-center gap-2 py-3.5 px-5 rounded-full bg-white/95 backdrop-blur-md border border-emerald-200/80 shadow-lg shadow-emerald-900/10 active:scale-[0.98] transition-transform"
+      style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+    >
+      <span className="text-sm font-semibold text-emerald-700">Prijavi se</span>
+      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+    </Link>
+    </>
   )
 }
 
