@@ -19,6 +19,22 @@ function parseYMD(ymd: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1)
 }
 
+function isValidYMD(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const d = parseYMD(s)
+  return !isNaN(d.getTime()) && toYMD(d) === s
+}
+
+function getYearBounds(minDate?: string, maxDate?: string): { minY: number; maxY: number } {
+  const now = new Date()
+  let minY = 1900
+  let maxY = now.getFullYear() + 15
+  if (minDate && isValidYMD(minDate)) minY = parseYMD(minDate).getFullYear()
+  if (maxDate && isValidYMD(maxDate)) maxY = parseYMD(maxDate).getFullYear()
+  if (minY > maxY) return { minY: maxY, maxY: minY }
+  return { minY, maxY }
+}
+
 function getDaysInMonth(year: number, month: number): Date[] {
   const first = new Date(year, month, 1)
   const last = new Date(year, month + 1, 0)
@@ -48,6 +64,8 @@ export interface CalendarDropdownProps {
   minTriggerWidth?: string
   className?: string
   'aria-label'?: string
+  /** Za datum rođenja itd. — sakriva dugme „Današnji datum“. Podrazumevano true. */
+  showTodayShortcut?: boolean
 }
 
 export default function CalendarDropdown({
@@ -60,22 +78,33 @@ export default function CalendarDropdown({
   minTriggerWidth = '200px',
   className = '',
   'aria-label': ariaLabel,
+  showTodayShortcut = true,
 }: CalendarDropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const valueDate = value ? parseYMD(value) : null
+  const valueDate = value && isValidYMD(value) ? parseYMD(value) : null
   const displayLabel = value ? formatDateShort(value) : placeholder
 
   const [viewYear, setViewYear] = useState(() => valueDate?.getFullYear() ?? new Date().getFullYear())
   const [viewMonth, setViewMonth] = useState(() => valueDate?.getMonth() ?? new Date().getMonth())
 
+  const minD = minDate && isValidYMD(minDate) ? parseYMD(minDate).getTime() : null
+  const maxD = maxDate && isValidYMD(maxDate) ? parseYMD(maxDate).getTime() : null
+  const { minY, maxY } = getYearBounds(minDate, maxDate)
+  const yearOptions: number[] = []
+  for (let y = minY; y <= maxY; y++) yearOptions.push(y)
+
   useEffect(() => {
-    if (valueDate && open) {
-      setViewYear(valueDate.getFullYear())
-      setViewMonth(valueDate.getMonth())
+    if (!open) return
+    if (value && isValidYMD(value)) {
+      const vd = parseYMD(value)
+      setViewYear(Math.min(maxY, Math.max(minY, vd.getFullYear())))
+      setViewMonth(vd.getMonth())
+    } else {
+      setViewYear((y) => Math.min(maxY, Math.max(minY, y)))
     }
-  }, [open, value])
+  }, [open, value, minY, maxY])
 
   useEffect(() => {
     const close = (e: MouseEvent | TouchEvent) => {
@@ -90,9 +119,6 @@ export default function CalendarDropdown({
       document.removeEventListener('touchstart', close)
     }
   }, [open])
-
-  const minD = minDate ? parseYMD(minDate).getTime() : null
-  const maxD = maxDate ? parseYMD(maxDate).getTime() : null
 
   const isDisabled = (d: Date) => {
     const t = d.getTime()
@@ -164,26 +190,75 @@ export default function CalendarDropdown({
           className="absolute left-0 right-0 top-full z-[9999] mt-2 w-full min-w-[320px] max-w-[400px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:left-0 sm:right-auto"
           style={!fullWidth ? { minWidth: minTriggerWidth } : undefined}
         >
-          {/* Mesec / godina navigacija */}
-          <div className="mb-4 flex items-center justify-between gap-2">
+          {/* Direktan unos (tipkovnica / nativni picker) — posebno za starije godine */}
+          <div className="mb-3">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Unesite datum
+            </label>
+            <input
+              type="date"
+              value={isValidYMD(value) ? value : ''}
+              min={minDate && isValidYMD(minDate) ? minDate : undefined}
+              max={maxDate && isValidYMD(maxDate) ? maxDate : undefined}
+              onChange={(e) => {
+                const v = e.target.value
+                if (!v) {
+                  onChange('')
+                  return
+                }
+                if (!isValidYMD(v)) return
+                onChange(v)
+                setViewYear(parseYMD(v).getFullYear())
+                setViewMonth(parseYMD(v).getMonth())
+              }}
+              className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">Format GGGG-MM-DD ili izaberite u polju iznad.</p>
+          </div>
+
+          {/* Mesec / godina — brz skok (npr. 1958) + strelice */}
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:justify-between">
             <button
               type="button"
               onClick={goPrev}
               aria-label="Prethodni mesec"
-              className="flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30"
+              className="order-1 flex h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 sm:order-none"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-base font-semibold text-gray-800 sm:text-lg">
-              {MONTHS_SR[viewMonth]} {viewYear}
-            </span>
+            <div className="order-3 flex w-full min-w-0 flex-1 flex-wrap items-stretch justify-center gap-2 sm:order-none sm:w-auto">
+              <select
+                value={viewMonth}
+                onChange={(e) => setViewMonth(Number(e.target.value))}
+                aria-label="Mesec"
+                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-2 py-2 text-sm font-medium text-gray-800 focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 sm:min-w-[9.5rem]"
+              >
+                {MONTHS_SR.map((label, idx) => (
+                  <option key={label} value={idx}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={viewYear}
+                onChange={(e) => setViewYear(Number(e.target.value))}
+                aria-label="Godina"
+                className="min-h-[44px] w-[6.5rem] shrink-0 rounded-xl border border-gray-200 bg-white px-2 py-2 text-sm font-medium text-gray-800 focus:border-[#41ac53] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 sm:w-[7rem]"
+              >
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="button"
               onClick={goNext}
               aria-label="Sledeći mesec"
-              className="flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30"
+              className="order-2 flex h-10 w-10 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 sm:order-none"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -234,16 +309,18 @@ export default function CalendarDropdown({
             })}
           </div>
 
-          {/* Današnji datum brzi izbor na mobilnom */}
-          <div className="mt-3 border-t border-gray-100 pt-3">
-            <button
-              type="button"
-              onClick={() => handleSelect(new Date())}
-              className="w-full rounded-xl bg-gray-50 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30"
-            >
-              Današnji datum
-            </button>
-          </div>
+          {showTodayShortcut && (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <button
+                type="button"
+                onClick={() => handleSelect(new Date())}
+                disabled={isDisabled(new Date())}
+                className="w-full rounded-xl bg-gray-50 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Današnji datum
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

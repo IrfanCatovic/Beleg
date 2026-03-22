@@ -9,7 +9,7 @@ import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
 import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
-import { ArrowsUpDownIcon } from '@heroicons/react/24/outline'
+import { ArrowsUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
   id: number
@@ -79,6 +79,7 @@ export default function UserProfile() {
   const [positioning, setPositioning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
 
   const rank = useRanking({ uspesneAkcije: akcije, ukupnoKm: stats.ukupnoKm, ukupnoMetaraUspona: stats.ukupnoMetaraUspona })
 
@@ -175,6 +176,20 @@ export default function UserProfile() {
       document.body.style.overflow = prev
     }
   }, [positioning])
+
+  useEffect(() => {
+    if (!avatarLightboxOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAvatarLightboxOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [avatarLightboxOpen])
 
   /* ── loading / error ── */
   if (loading) return (
@@ -401,31 +416,28 @@ export default function UserProfile() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-6">
 
-            {/* avatar — bez uvećavanja na klik; sopstveni profil: olovka u uglu → podešavanja */}
+            {/* avatar — klik otvara punu sliku (izmena profila: zupčanik gore na coveru) */}
             <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
-              <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-4xl ring-[3px] ring-white shadow-xl">
-                {korisnik.avatar_url && !avatarFail ? (
+              {korisnik.avatar_url && !avatarFail ? (
+                <button
+                  type="button"
+                  onClick={() => setAvatarLightboxOpen(true)}
+                  className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  aria-label="Prikaži profilnu sliku u punoj veličini"
+                  title="Klik za punu veličinu"
+                >
                   <img
                     src={korisnik.avatar_url}
                     alt={korisnik.fullName || korisnik.username || ''}
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                    className="absolute inset-0 h-full w-full object-cover select-none"
                     draggable={false}
                     onError={() => setAvatarFail(true)}
                   />
-                ) : null}
-                <span className={korisnik.avatar_url && !avatarFail ? 'invisible pointer-events-none' : ''}>{initial}</span>
-              </div>
-              {isOwn && (
-                <Link
-                  to="/profil/podesavanja"
-                  className="absolute -bottom-0.5 -right-0.5 z-10 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-white text-emerald-600 shadow-lg border-2 border-white hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                  aria-label="Izmeni profil i profilnu sliku"
-                  title="Izmeni profil"
-                >
-                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                  </svg>
-                </Link>
+                </button>
+              ) : (
+                <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-4xl font-bold text-white ring-[3px] ring-white shadow-xl">
+                  <span>{initial}</span>
+                </div>
               )}
             </div>
 
@@ -552,6 +564,36 @@ export default function UserProfile() {
           )}
         </div>
       </div>
+
+      {/* Puna veličina profilne slike */}
+      {avatarLightboxOpen && korisnik.avatar_url && (
+        <div
+          className="fixed inset-0 z-[280] flex items-center justify-center bg-black/90 p-4 sm:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Profilna slika"
+          onClick={() => setAvatarLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Zatvori"
+            onClick={(e) => {
+              e.stopPropagation()
+              setAvatarLightboxOpen(false)
+            }}
+          >
+            <XMarkIcon className="h-7 w-7" strokeWidth={1.5} />
+          </button>
+          <img
+            src={korisnik.avatar_url}
+            alt={korisnik.fullName || korisnik.username || ''}
+            className="max-h-[min(92vh,100%)] max-w-full rounded-lg object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            draggable={false}
+          />
+        </div>
+      )}
     </div>
   )
 }

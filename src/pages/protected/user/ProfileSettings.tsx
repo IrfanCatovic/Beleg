@@ -5,6 +5,7 @@ import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import Loader from '../../../components/Loader'
+import { dateToYMD } from '../../../utils/dateUtils'
 import {
   UserCircleIcon,
   IdentificationIcon,
@@ -502,7 +503,16 @@ export default function ProfileSettings() {
                     </div>
                     <div>
                       <label className={labelClass}>Datum rođenja</label>
-                      <CalendarDropdown value={form.datumRodjenja} onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))} placeholder="Izaberite datum" fullWidth aria-label="Datum rođenja" />
+                      <CalendarDropdown
+                        value={form.datumRodjenja}
+                        onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
+                        placeholder="Izaberite datum"
+                        fullWidth
+                        aria-label="Datum rođenja"
+                        minDate="1900-01-01"
+                        maxDate={dateToYMD(new Date())}
+                        showTodayShortcut={false}
+                      />
                     </div>
                   </div>
                   <div>
@@ -564,7 +574,15 @@ export default function ProfileSettings() {
                     </div>
                     <div>
                       <label className={labelClass}>Datum učlanjenja</label>
-                      <CalendarDropdown value={form.datumUclanjenja} onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))} placeholder="Izaberite datum" fullWidth aria-label="Datum učlanjenja" />
+                      <CalendarDropdown
+                        value={form.datumUclanjenja}
+                        onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
+                        placeholder="Izaberite datum"
+                        fullWidth
+                        aria-label="Datum učlanjenja"
+                        minDate="1900-01-01"
+                        maxDate={dateToYMD(new Date())}
+                      />
                     </div>
                   </div>
                 </div>
