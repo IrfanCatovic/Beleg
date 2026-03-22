@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Kad imamo sopstveno dugme za prikaz lozinke, sakrij ugrađeno (Edge/IE i neki Chromium UI). */
+.app-hide-native-password-toggle::-ms-reveal,
+.app-hide-native-password-toggle::-ms-clear {
+  display: none;
+}
+.app-hide-native-password-toggle::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }

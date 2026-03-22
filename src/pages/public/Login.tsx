@@ -197,7 +197,7 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 pl-3.5 pr-11 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
+                  className="app-hide-native-password-toggle w-full rounded-xl border border-emerald-100 bg-white py-2.5 pl-3.5 pr-11 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
                   placeholder="Unesi lozinku"
                   required
                   disabled={loading}
