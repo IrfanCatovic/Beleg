@@ -8,6 +8,7 @@ import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMembe
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
 import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
+import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 
 interface UspesnaAkcija {
   id: number
@@ -450,13 +451,12 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
     >
       {/* image */}
       <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
-        <img
-          src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+        <AkcijaImageOrFallback
+          src={akcija.slikaUrl}
           alt={akcija.naziv}
-          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-          onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'; e.currentTarget.onerror = null }}
+          imgClassName="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
           <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
             {formatDateShort(akcija.datum)}

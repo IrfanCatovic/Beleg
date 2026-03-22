@@ -11,6 +11,7 @@ import {
   type ParticipantForReport,
 } from '../../../utils/annualReportUtils'
 import Loader from '../../../components/Loader'
+import { AkcijaImageOrFallback } from '../../../components/AkcijaImageFallback'
 import Dropdown from '../../../components/Dropdown'
 import { computeMMRForAkcija } from '../../../utils/rankingUtils'
 
@@ -374,13 +375,12 @@ export default function Actions() {
                   >
                     {/* Image */}
                     <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
-                      <img
-                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                      <AkcijaImageOrFallback
+                        src={akcija.slikaUrl}
                         alt={akcija.naziv}
-                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'; e.currentTarget.onerror = null }}
+                        imgClassName="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                       <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
                         <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
                           {formatDateShort(akcija.datum)}
@@ -533,13 +533,12 @@ export default function Actions() {
                   >
                     {/* Image */}
                     <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
-                      <img
-                        src={akcija.slikaUrl || 'https://via.placeholder.com/600x400?text=Bez+slike'}
+                      <AkcijaImageOrFallback
+                        src={akcija.slikaUrl}
                         alt={akcija.naziv}
-                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Slika+nije+dostupna'; e.currentTarget.onerror = null }}
+                        imgClassName="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                       <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
                         <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
                           {formatDateShort(akcija.datum)}

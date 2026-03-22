@@ -362,7 +362,7 @@ export default function ProfileSettings() {
           {isAdminEdit ? (
             <div className="space-y-6">
               {isSekretarEdit ? (
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                   <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                     <div className="flex items-center gap-2">
                       <KeyIcon className="h-5 w-5 text-emerald-600" />
@@ -394,7 +394,7 @@ export default function ProfileSettings() {
                       <Dropdown aria-label="Uloga" options={[{ value: 'clan', label: 'Clan' }, { value: 'admin', label: 'Admin' }, { value: 'vodic', label: 'Vodic' }, { value: 'blagajnik', label: 'Blagajnik' }, { value: 'sekretar', label: 'Sekretar' }, { value: 'menadzer-opreme', label: 'Menadzer opreme' }]} value={role} onChange={setRole} fullWidth />
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
@@ -416,7 +416,7 @@ export default function ProfileSettings() {
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <KeyIcon className="h-5 w-5 text-emerald-600" />
@@ -449,7 +449,7 @@ export default function ProfileSettings() {
           ) : (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* Nalog */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <UserCircleIcon className="h-5 w-5 text-emerald-600" />
@@ -477,7 +477,7 @@ export default function ProfileSettings() {
               </div>
 
               {/* Lični podaci */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <IdentificationIcon className="h-5 w-5 text-emerald-600" />
@@ -513,7 +513,7 @@ export default function ProfileSettings() {
               </div>
 
               {/* Kontakt */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <PhoneIcon className="h-5 w-5 text-emerald-600" />
@@ -539,7 +539,7 @@ export default function ProfileSettings() {
               </div>
 
               {/* Dokumenti i planinarski */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
@@ -571,7 +571,7 @@ export default function ProfileSettings() {
               </div>
 
               {/* Disciplinske, napomene */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible lg:col-span-2">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />

@@ -6,6 +6,7 @@ import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
+import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 
 interface Akcija {
   id: number
@@ -299,10 +300,10 @@ export default function ActionDetails() {
 
       {/* ══════════ COVER IMAGE ══════════ */}
       <div className="relative h-64 sm:h-72 md:h-80 lg:h-[22rem] overflow-hidden -mt-6 w-screen left-1/2 -translate-x-1/2">
-        <img
-          src={akcija.slikaUrl || 'https://via.placeholder.com/1200x600?text=Akcija'}
+        <AkcijaImageOrFallback
+          src={akcija.slikaUrl}
           alt={akcija.naziv}
-          className="absolute inset-0 w-full h-full object-cover"
+          imgClassName="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
 
