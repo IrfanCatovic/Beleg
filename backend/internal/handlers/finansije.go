@@ -344,7 +344,7 @@ func GetClanarine(c *gin.Context) {
 	}
 
 	var korisnici []models.Korisnik
-	if err := db.Where("klub_id = ?", clubID).Order("full_name, username").Find(&korisnici).Error; err != nil {
+	if err := db.Where("klub_id = ? AND role != ?", clubID, "deleted").Order("full_name, username").Find(&korisnici).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju korisnika"})
 		return
 	}

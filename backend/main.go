@@ -376,6 +376,12 @@ func main() {
 		}
 		middleware.RegisterLoginSuccess(clientIP, req.Username)
 
+		// Deaktivirani nalog ne može da se prijavi
+		if korisnik.Role == "deleted" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Nalog je deaktiviran."})
+			return
+		}
+
 		// Ako nije superadmin, proveri da klub nije na hold-u (14+ dana posle isteka subskripcije)
 		if korisnik.Role != "superadmin" && korisnik.KlubID != nil {
 			_, onHold := helpers.EnsureClubHoldState(db, *korisnik.KlubID)
@@ -537,7 +543,7 @@ func main() {
 	})
 
 	// Javne rute — profil korisnika (za deljenje linka; bez logina)
-	// getKorisnikByIDOrUsername vraća korisnika po id (broj) ili username; vrati nil ako ne nađe
+	// getKorisnikByIDOrUsername vraća korisnika po id (broj) ili username; vrati nil ako ne nađe ili je deaktiviran
 	getKorisnikByIDOrUsername := func(db *gorm.DB, param string) *models.Korisnik {
 		param = strings.TrimSpace(param)
 		if param == "" {
@@ -545,13 +551,13 @@ func main() {
 		}
 		if id, err := strconv.Atoi(param); err == nil {
 			var k models.Korisnik
-			if db.First(&k, id).Error == nil {
+			if db.First(&k, id).Error == nil && k.Role != "deleted" {
 				return &k
 			}
 			return nil
 		}
 		var k models.Korisnik
-		if db.Where("username = ?", param).First(&k).Error == nil {
+		if db.Where("username = ?", param).First(&k).Error == nil && k.Role != "deleted" {
 			return &k
 		}
 		return nil
@@ -2217,6 +2223,10 @@ func main() {
 				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 				return
 			}
+			if korisnik.Role == "deleted" {
+				c.JSON(404, gin.H{"error": "Korisnik je deaktiviran i ne može se menjati"})
+				return
+			}
 			// Admin/sekretar mogu da menjaju samo članove svog kluba; superadmin može bilo koga.
 			if roleStr != "superadmin" {
 				clubID, ok := helpers.GetEffectiveClubID(c, db)
@@ -2337,6 +2347,10 @@ func main() {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete obrisati samog sebe"})
 				return
 			}
+			if korisnik.Role == "deleted" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Korisnik je već deaktiviran"})
+				return
+			}
 			// Admin/sekretar samo u svom klubu; superadmin može bilo koga
 			if roleStr != "superadmin" {
 				clubID, ok := helpers.GetEffectiveClubID(c, db)
@@ -2350,18 +2364,27 @@ func main() {
 				}
 			}
 
-			// Ne dozvoli brisanje ako je korisnik uneo transakcije (korisnik_id je obavezan)
+			// Ako korisnik ima transakcije → soft delete (deaktivacija); inače hard delete
 			var transCount int64
 			if err := db.Model(&models.Transakcija{}).Where("korisnik_id = ?", id).Count(&transCount).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri transakcija"})
 				return
 			}
 			if transCount > 0 {
-				c.JSON(http.StatusConflict, gin.H{"error": "Ne možete obrisati korisnika koji ima unete transakcije. Prvo preuredite ili obrišite te transakcije."})
+				// Soft delete: role=deleted, lozinka invalidirana — korisnik ostaje u bazi radi integriteta transakcija, username ostaje zauzet
+				randomHash, _ := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("deleted-%d-%s", time.Now().UnixNano(), korisnik.Username)), bcrypt.DefaultCost)
+				if err := db.Model(&korisnik).Updates(map[string]interface{}{
+					"role":     "deleted",
+					"password": string(randomHash),
+				}).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri deaktivaciji korisnika"})
+					return
+				}
+				c.JSON(200, gin.H{"message": "Korisnik je deaktiviran (ima unete transakcije, nalog ostaje za istoriju)"})
 				return
 			}
 
-			// Čišćenje povezanih podataka
+			// Hard delete — nema transakcija
 			db.Where("user_id = ?", id).Delete(&models.Obavestenje{})
 			db.Where("korisnik_id = ?", id).Delete(&models.Prijava{})
 			db.Where("korisnik_id = ?", id).Delete(&models.ZadatakKorisnik{})
@@ -2392,7 +2415,7 @@ func main() {
 			}
 
 			var korisnici []models.Korisnik
-			if err := db.Preload("Klub").Where("klub_id = ?", clubID).Find(&korisnici).Error; err != nil {
+			if err := db.Preload("Klub").Where("klub_id = ? AND role != ?", clubID, "deleted").Find(&korisnici).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
 				return
 			}
@@ -2432,6 +2455,10 @@ func main() {
 			var korisnik models.Korisnik
 			if err := db.First(&korisnik, korisnikID).Error; err != nil {
 				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			if korisnik.Role == "deleted" {
+				c.JSON(404, gin.H{"error": "Korisnik je deaktiviran"})
 				return
 			}
 

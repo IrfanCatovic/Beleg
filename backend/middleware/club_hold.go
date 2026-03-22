@@ -39,6 +39,10 @@ func ClubHoldMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		if korisnik.Role == "deleted" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Nalog je deaktiviran."})
+			return
+		}
 		if korisnik.KlubID == nil {
 			c.Next()
 			return
