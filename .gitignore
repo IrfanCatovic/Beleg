@@ -19,7 +19,7 @@ dist-ssr
 # Go
 *.exe
 vendor/
-go.sum
+**/planiner-api
 .env
 backend/.env
 backend/.env.*
