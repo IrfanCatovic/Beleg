@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import axios from 'axios'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
 
@@ -96,6 +97,7 @@ export default function Cena() {
 
     setSending(true)
     try {
+      // Javna forma: bez cookies — manje CORS problema kad je frontend na drugom domenu od API-ja.
       await api.post(
         '/api/cena-zahtev',
         {
@@ -111,7 +113,7 @@ export default function Cena() {
           extraAdminsCostRsd: Math.round(extraAdminsCostRsd),
           totalMonthlyRsd: Math.round(totalMonthlyRsd),
         },
-        { timeout: 35_000 },
+        { timeout: 45_000, withCredentials: false },
       )
       setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javit ćemo vam se uskoro.' })
       setNote('')
@@ -119,13 +121,31 @@ export default function Cena() {
       setContactPhone('')
       setContactEmail('')
     } catch (err: unknown) {
-      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
-      if (code === 'ECONNABORTED') {
-        setSubmitMessage({
-          type: 'error',
-          text: 'Zahtev je predugo trajao. Proverite internet ili pokušajte kasnije.',
-        })
-        return
+      if (axios.isAxiosError(err)) {
+        const code = err.code
+        const timedOut =
+          code === 'ECONNABORTED' ||
+          code === 'ETIMEDOUT' ||
+          (typeof err.message === 'string' && err.message.toLowerCase().includes('timeout'))
+        if (timedOut) {
+          setSubmitMessage({
+            type: 'error',
+            text: 'Zahtev je predugo trajao. Proverite da li API radi i da je u hostingu podešen SMTP (mnogi blokiraju port 587).',
+          })
+          return
+        }
+        if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
+          setSubmitMessage({
+            type: 'error',
+            text: 'Nema odgovora od servera. Proverite VITE_API_URL na frontendu i CORS_ORIGINS na API-ju (mora tačan URL sajta, npr. https://app.vercel.app).',
+          })
+          return
+        }
+        const msg = (err.response?.data as { error?: string } | undefined)?.error
+        if (msg) {
+          setSubmitMessage({ type: 'error', text: msg })
+          return
+        }
       }
       const res = err && typeof err === 'object' && 'response' in err ? (err as { response?: { data?: { error?: string } } }).response : null
       const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'

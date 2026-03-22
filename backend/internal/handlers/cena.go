@@ -30,6 +30,9 @@ type CenaZahtevRequest struct {
 // CenaZahtev prima zahtev za ponudu sa stranice Cena i šalje email na konfigurisani EMAIL_TO.
 // Obavezno: imeKluba, contactPhone, contactEmail.
 func CenaZahtev(c *gin.Context) {
+	// Log za produkciju: ako ovoga nema u logovima, zahtev ne stiže do API-ja (CORS, pogrešan URL).
+	log.Printf("[cena-zahtev] primljen zahtev od %s", c.ClientIP())
+
 	var req CenaZahtevRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})

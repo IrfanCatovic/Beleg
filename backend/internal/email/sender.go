@@ -12,14 +12,21 @@ import (
 )
 
 // Send šalje običan tekstualni email.
-// Promenljive okruženja:
-//   - SMTP_HOST, SMTP_PORT (podrazumevano 587), SMTP_USER, SMTP_PASS
+// Ako je RESEND_API_KEY podešen, koristi se Resend HTTPS (preporuka za Railway itd.); inače SMTP.
+//
+// Resend: RESEND_API_KEY, RESEND_FROM ("Ime <a@domen.com>"), EMAIL_TO (ili SMTP_USER kao primaoc).
+//
+// SMTP: SMTP_HOST, SMTP_PORT (podrazumevano 587), SMTP_USER, SMTP_PASS
 //   - EMAIL_TO — primaoc(i); više adresa odvojeno zarezom; prazno = SMTP_USER
-//   - EMAIL_FROM — adresa u From / envelope (podrazumevano SMTP_USER); mnogi provajderi traže istu kao SMTP_USER
+//   - EMAIL_FROM — adresa u From / envelope (podrazumevano SMTP_USER)
 //   - SMTP_TLS_SKIP_VERIFY=true — samo za lokalni dev (ne na produkciji)
 //
 // Port 465: TLS od prvog bajta (SMTPS). Port 587/25: običan TCP pa STARTTLS ako server podržava.
 func Send(subject, body string) error {
+	if used, err := sendViaResendIfConfigured(subject, body); used {
+		return err
+	}
+
 	host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
 	port := strings.TrimSpace(os.Getenv("SMTP_PORT"))
 	if port == "" {
@@ -106,17 +113,25 @@ func tlsConfig(host string) *tls.Config {
 	return cfg
 }
 
+// Kratki dial timeout: na mnogim hostinzima (Railway, Render…) odlazni SMTP je blokiran —
+// bez ovoga net.Dial može viseti minutima pre nego što spoljašnji SendWithTimeout odgovori.
+func smtpDialer() *net.Dialer {
+	return &net.Dialer{Timeout: 12 * time.Second}
+}
+
 func dialSMTP(host, port string) (*smtp.Client, func(), error) {
 	addr := net.JoinHostPort(host, port)
 	p, _ := strconv.Atoi(port)
 	tlsCfg := tlsConfig(host)
+	dialer := smtpDialer()
 
 	// SMTPS (npr. Gmail/Outlook često nude 465)
 	if p == 465 {
-		conn, err := tls.Dial("tcp", addr, tlsCfg)
+		conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsCfg)
 		if err != nil {
 			return nil, nil, fmt.Errorf("TLS konekcija na %s: %w", addr, err)
 		}
+		_ = conn.SetDeadline(time.Now().Add(60 * time.Second))
 		client, err := smtp.NewClient(conn, host)
 		if err != nil {
 			conn.Close()
@@ -125,10 +140,11 @@ func dialSMTP(host, port string) (*smtp.Client, func(), error) {
 		return client, func() { _ = client.Close() }, nil
 	}
 
-	conn, err := net.Dial("tcp", addr)
+	conn, err := dialer.Dial("tcp", addr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("TCP konekcija na %s: %w", addr, err)
 	}
+	_ = conn.SetDeadline(time.Now().Add(60 * time.Second))
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		conn.Close()

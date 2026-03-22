@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axios from 'axios'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
@@ -110,7 +111,7 @@ export default function Kontakt() {
           extraAdminsCostRsd: 0,
           totalMonthlyRsd: 0,
         },
-        { timeout: 35_000 },
+        { timeout: 45_000, withCredentials: false },
       )
       setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
       setContactPerson('')
@@ -118,13 +119,31 @@ export default function Kontakt() {
       setCity('')
       setQuestion('')
     } catch (err: unknown) {
-      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
-      if (code === 'ECONNABORTED') {
-        setSubmitMessage({
-          type: 'error',
-          text: 'Zahtev je predugo trajao. Proverite internet ili pokušajte kasnije.',
-        })
-        return
+      if (axios.isAxiosError(err)) {
+        const code = err.code
+        const timedOut =
+          code === 'ECONNABORTED' ||
+          code === 'ETIMEDOUT' ||
+          (typeof err.message === 'string' && err.message.toLowerCase().includes('timeout'))
+        if (timedOut) {
+          setSubmitMessage({
+            type: 'error',
+            text: 'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+          })
+          return
+        }
+        if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
+          setSubmitMessage({
+            type: 'error',
+            text: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+          })
+          return
+        }
+        const apiMsg = (err.response?.data as { error?: string } | undefined)?.error
+        if (apiMsg) {
+          setSubmitMessage({ type: 'error', text: apiMsg })
+          return
+        }
       }
       const res =
         err && typeof err === 'object' && 'response' in err
