@@ -127,8 +127,13 @@ func humanizeEmailSendError(err error) string {
 	if strings.Contains(e, "starttls") || strings.Contains(e, "tls") && strings.Contains(e, "certificate") {
 		return "Problem sa TLS/SMTP. Probajte SMTP_PORT=465 ili proverite SMTP_HOST."
 	}
-	if strings.Contains(e, "resend") || strings.Contains(e, "resend api") {
-		return "Slanje preko Resend nije uspelo. Proverite RESEND_API_KEY, RESEND_FROM (verifikovan domen) i EMAIL_TO na Renderu."
+	// Resend: prikaži konkretnu poruku iz API-ja (ne zameni generičkim tekstom)
+	if strings.Contains(e, "resend [") {
+		out := err.Error()
+		if len(out) > 900 {
+			out = out[:900] + "…"
+		}
+		return out
 	}
 	if strings.Contains(e, "resend_from") || strings.Contains(e, "resend_api_key") {
 		return err.Error()
