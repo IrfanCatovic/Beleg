@@ -78,7 +78,6 @@ export default function CalendarDropdown({
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  const valueDate = value && isValidYMD(value) ? parseYMD(value) : null
   const displayLabel = value ? formatDateShort(value) : placeholder
 
   const [selD, setSelD] = useState<Part>('')
