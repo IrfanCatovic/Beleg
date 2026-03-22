@@ -19,9 +19,20 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
-// interceptor: za superadmina dodaj X-Club-Id (user preference, nije tajna)
-// token se šalje automatski kao HttpOnly cookie, ne treba ga dodavati ručno
+// interceptor: Bearer token iz localStorage (kad cookie nije dostupan – npr. drugi domen u produkciji)
+// + HttpOnly cookie kad je isti origin / ispravno podešen CORS
+const AUTH_TOKEN_KEY = 'auth_token'
+
+export function setAuthToken(token: string | null) {
+  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token)
+  else localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
 api.interceptors.request.use((config) => {
+  const bearer = localStorage.getItem(AUTH_TOKEN_KEY)
+  if (bearer) {
+    config.headers.Authorization = `Bearer ${bearer}`
+  }
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
     try {
@@ -44,7 +55,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && onUnauthorized) {
+    const reqUrl = (error.config?.url || '').toString()
+    const method = (error.config?.method || '').toLowerCase()
+    const isLoginPost = method === 'post' && (reqUrl === '/login' || reqUrl.endsWith('/login'))
+    if (error.response?.status === 401 && onUnauthorized && !isLoginPost) {
       onUnauthorized()
     } else if (error.response?.status === 403 && onUnauthorized) {
       const msg = (error.response?.data as { error?: string })?.error ?? ''

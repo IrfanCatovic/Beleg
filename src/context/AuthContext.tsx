@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import api, { setUnauthorizedHandler } from "../services/api";
+import api, { setUnauthorizedHandler, setAuthToken } from "../services/api";
 
 export interface User {
     username: string;
@@ -17,6 +17,8 @@ export interface User {
 export interface LoginResponse {
   role: string;
   user: { username: string; fullName: string; avatar_url?: string };
+  /** JWT kada cookie nije moguć (cross-origin); šalje se kao Authorization Bearer */
+  token?: string;
 }
 
 interface AuthContextType {
@@ -43,6 +45,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             setUser(null)
             localStorage.removeItem('user')
             localStorage.removeItem('isLoggedIn')
+            setAuthToken(null)
         }, [])
 
         const refreshUser = useCallback(async () => {
@@ -73,6 +76,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             }
             setUser(userData)
             localStorage.setItem('user', JSON.stringify(userData))
+            if (data.token && data.token.length > 10) {
+                setAuthToken(data.token)
+            }
             setIsLoggedIn(true)
         }, [])
 

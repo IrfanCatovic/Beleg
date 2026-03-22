@@ -45,21 +45,23 @@ func ClearAuthCookie(c *gin.Context, secure bool, sameSiteNone bool) {
 	})
 }
 
-// GetTokenFromRequest prvo traži token u HttpOnly cookie, pa u Authorization header.
-// Koristi se i u AuthMiddleware i u handelerima koji rade inline auth (npr. /api/register).
+// GetTokenFromRequest prvo traži Bearer (SPA u produkciji šalje token iz localStorage),
+// pa cookie — tako zastareo ili pogrešan cookie ne blokira validan Authorization.
 func GetTokenFromRequest(c *gin.Context) string {
-	if tok, err := c.Cookie(authCookieName); err == nil && strings.TrimSpace(tok) != "" {
-		return strings.TrimSpace(tok)
-	}
 	authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
 	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-		return strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		if t := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer ")); t != "" {
+			return t
+		}
+	}
+	if tok, err := c.Cookie(authCookieName); err == nil && strings.TrimSpace(tok) != "" {
+		return strings.TrimSpace(tok)
 	}
 	return ""
 }
 
 // AuthMiddleware prima isti JWT secret kao main (nakon godotenv.Load()), da verifikacija odgovara potpisivanju.
-// Token može biti u cookie (auth_token) ili u Authorization header.
+// Token: Authorization Bearer (prioritet) ili HttpOnly cookie auth_token.
 func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := GetTokenFromRequest(c)

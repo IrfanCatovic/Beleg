@@ -415,6 +415,8 @@ func main() {
 
 		c.JSON(http.StatusOK, gin.H{
 			"role": korisnik.Role,
+			// Token u body-ju: SPA na drugom domenu (Vercel + API) često ne dobije cookie; Authorization header radi svuda.
+			"token": tokenString,
 			"user": gin.H{
 				"username":   korisnik.Username,
 				"fullName":   korisnik.FullName,
@@ -2076,6 +2078,7 @@ func main() {
 					middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
 					resp["role"] = korisnik.Role
 					resp["user"] = gin.H{"username": korisnik.Username, "fullName": korisnik.FullName}
+					resp["token"] = tokenString
 				}
 			}
 			c.JSON(200, resp)

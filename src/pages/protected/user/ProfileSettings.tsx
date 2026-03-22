@@ -227,7 +227,11 @@ export default function ProfileSettings() {
       const res = await api.patch('/api/me', formData)
 
       if (res.data?.role && res.data?.user) {
-        login({ role: res.data.role, user: res.data.user })
+        login({
+          role: res.data.role,
+          user: res.data.user,
+          token: typeof res.data.token === 'string' ? res.data.token : undefined,
+        })
         await refreshUser()
       }
 
