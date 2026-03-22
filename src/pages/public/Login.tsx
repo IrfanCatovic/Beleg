@@ -213,6 +213,10 @@ export default function Login() {
             </button>
           </form>
 
+          <div className="mt-5 p-3 rounded-xl bg-emerald-50/80 border border-emerald-100 text-center">
+            <p className="text-[11px] sm:text-xs text-emerald-800 font-medium mb-0.5">Demo nalog za testiranje</p>
+            <p className="text-[11px] sm:text-xs text-slate-600">username <strong>planiner</strong> / pw <strong>admin</strong></p>
+          </div>
           <p className="mt-5 text-[11px] sm:text-xs text-center text-slate-500">
             Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.
           </p>
