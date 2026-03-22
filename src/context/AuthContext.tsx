@@ -77,8 +77,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
         }, [])
 
         useEffect(() => {
-            api.get('/api/me')
+            api.get('/api/me', { validateStatus: (s) => s === 200 || s === 401 })
                 .then((res) => {
+                    if (res.status === 401) return
                     const data = res.data as { username?: string; fullName?: string; role?: string }
                     if (data?.username && data?.role) {
                         const userData: User = {

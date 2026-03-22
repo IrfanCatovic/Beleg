@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
-const EUR_TO_RSD = 117
-const ADMIN_PRICE_EUR = 5
-const ADMIN_PRICE_RSD = ADMIN_PRICE_EUR * EUR_TO_RSD
+
+const ADMIN_PRICE_RSD = 600
 
 type PaketKey = 'Starter' | 'Growth' | 'Pro'
 
@@ -12,9 +11,9 @@ const PAKETI: Record<
   {
     name: string
     description: string
-    basePriceEur: number
+    basePriceRsd: number
     includedUsers: number
-    extraPricePerUserEur: number
+    extraPricePerUserRsd: number
     spaceGb: number
     admins: number
     highlighted?: boolean
@@ -23,29 +22,29 @@ const PAKETI: Record<
   Starter: {
     name: 'Starter paket',
     description: 'Za manja društva koja tek uvode digitalnu administraciju.',
-    basePriceEur: 25,
+    basePriceRsd: 2925,
     includedUsers: 100,
-    extraPricePerUserEur: 0.4, // 0.25 * 1.6
-    spaceGb: 5,
+    extraPricePerUserRsd: 47,
+    spaceGb: 2,
     admins: 3,
   },
   Growth: {
     name: 'Growth paket',
     description: 'Za aktivna društva sa većim brojem članova i akcija.',
-    basePriceEur: 49,
+    basePriceRsd: 5750,
     includedUsers: 500,
-    extraPricePerUserEur: 0.16, // ≈ (49 / 500) * 1.6
-    spaceGb: 20,
+    extraPricePerUserRsd: 21,
+    spaceGb: 5,
     admins: 3,
     highlighted: true,
   },
   Pro: {
     name: 'Pro paket',
     description: 'Za velika društva i saveze kojima je potrebna puna podrška.',
-    basePriceEur: 79,
-    includedUsers: 2000,
-    extraPricePerUserEur: 0.06, // ≈ (79 / 2000) * 1.6
-    spaceGb: 50,
+    basePriceRsd: 9750,
+    includedUsers: 1000,
+    extraPricePerUserRsd: 9,
+    spaceGb: 10,
     admins: 5,
   },
 }
@@ -63,9 +62,8 @@ export default function Cena() {
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const selected = PAKETI[selectedPaket]
-
-  const basePriceRsd = selected.basePriceEur * EUR_TO_RSD
-  const extraPricePerUserRsd = selected.extraPricePerUserEur * EUR_TO_RSD
+  const basePriceRsd = selected.basePriceRsd
+  const extraPricePerUserRsd = selected.extraPricePerUserRsd
 
   const { extraUsersCostRsd, extraAdminsCostRsd, totalMonthlyRsd } = useMemo(() => {
     const extraUsersCost = extraUsers * extraPricePerUserRsd
@@ -170,7 +168,7 @@ export default function Cena() {
                     p.highlighted ? 'text-white' : 'text-emerald-700'
                   }`}
                 >
-                  {Math.round(p.basePriceEur * EUR_TO_RSD).toLocaleString('sr-RS')} din
+                  {p.basePriceRsd.toLocaleString('sr-RS')} din
                   <span className="text-sm font-medium opacity-80"> / mesec</span>
                 </p>
                 <ul className={`text-sm space-y-1 mb-4 ${p.highlighted ? 'text-emerald-50' : 'text-gray-600'}`}>
@@ -179,7 +177,7 @@ export default function Cena() {
                   <li>admin naloga: {p.admins}</li>
                 </ul>
                 <p className={`text-xs mt-auto ${p.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>
-                  Cena dodatnog korisnika: {Math.round(p.extraPricePerUserEur * EUR_TO_RSD).toLocaleString('sr-RS')} din / mesec
+                  Cena dodatnog korisnika: {p.extraPricePerUserRsd.toLocaleString('sr-RS')} din / mesec
                 </p>
                 {isActive && (
                   <p className={`mt-2 text-xs font-semibold ${p.highlighted ? 'text-white' : 'text-emerald-700'}`}>
@@ -220,7 +218,7 @@ export default function Cena() {
                 <span className="text-emerald-700 font-semibold">{extraUsers}</span>
               </span>
               <span className="text-gray-700">
-                {extraUsers} × {Math.round(extraPricePerUserRsd).toLocaleString('sr-RS')} din ={' '}
+                {extraUsers} × {extraPricePerUserRsd.toLocaleString('sr-RS')} din ={' '}
                 <span className="font-semibold text-emerald-700">
                   {Math.round(extraUsersCostRsd).toLocaleString('sr-RS')} din / mesec
                 </span>
@@ -294,7 +292,7 @@ export default function Cena() {
               <p>
                 Dodatni korisnici:{' '}
                 <span className="font-semibold">
-                  {extraUsers} × {Math.round(extraPricePerUserRsd).toLocaleString('sr-RS')} din ={' '}
+                  {extraUsers} × {extraPricePerUserRsd.toLocaleString('sr-RS')} din ={' '}
                   {Math.round(extraUsersCostRsd).toLocaleString('sr-RS')} din
                 </span>
               </p>
