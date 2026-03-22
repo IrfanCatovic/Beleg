@@ -1,6 +1,30 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function MarketingNavbar() {
+  const [showFloating, setShowFloating] = useState(true)
+  const lastScrollY = useRef(0)
+  const ticking = useRef(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const y = window.scrollY
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          if (y > lastScrollY.current && y > 80) {
+            setShowFloating(false) // skrol dole → sakrij
+          } else {
+            setShowFloating(true) // skrol gore ili na vrhu → prikaži
+          }
+          lastScrollY.current = y
+          ticking.current = false
+        })
+        ticking.current = true
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
   return (
     <>
     <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
@@ -51,11 +75,15 @@ export default function MarketingNavbar() {
       </div>
     </nav>
 
-    {/* Mobilni floating login – prikazuje se samo na malim ekranima */}
+    {/* Mobilni floating login – skrol dole sakriva, skrol gore prikazuje */}
     <Link
       to="/login"
-      className="sm:hidden fixed bottom-5 left-4 right-4 z-50 flex items-center justify-center gap-2 py-3.5 px-5 rounded-full bg-white/95 backdrop-blur-md border border-emerald-200/80 shadow-lg shadow-emerald-900/10 active:scale-[0.98] transition-transform"
-      style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
+      className={`sm:hidden fixed left-4 right-4 z-[9999] flex items-center justify-center gap-2 py-3.5 px-5 rounded-full bg-white/95 backdrop-blur-md border border-emerald-200/80 shadow-lg shadow-emerald-900/10 active:scale-[0.98] transition-transform duration-300 ease-out`}
+      style={{
+        bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',
+        transform: showFloating ? 'translateY(0)' : 'translateY(calc(100% + 2rem))',
+        pointerEvents: showFloating ? 'auto' : 'none',
+      }}
     >
       <span className="text-sm font-semibold text-emerald-700">Prijavi se</span>
       <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
