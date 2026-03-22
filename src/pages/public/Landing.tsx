@@ -1256,7 +1256,7 @@ export default function Landing() {
                 Pogledaj demo nalog
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
               </a>
-              <p className="mt-2 text-[11px] text-emerald-200/80">Demo: username planiner / pw admin</p>
+              <p className="mt-2 text-[11px] text-emerald-200/80">Demo: username planiner / pw admin123</p>
             </div>
           </div>
         </section>
@@ -1296,7 +1296,7 @@ export default function Landing() {
               © {new Date().getFullYear()} Orin d.o.o.  za planinarska društva koja žele više vremena na stazi, a manje za stolom.
             </p>
             <p className="text-[11px] text-slate-500">
-              Demo nalog: username <strong>planiner</strong> / pw <strong>admin</strong>
+              Demo nalog: username <strong>planiner</strong> / pw <strong>admin123</strong>
             </p>
           </div>
         </div>
