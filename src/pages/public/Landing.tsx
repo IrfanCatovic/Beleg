@@ -47,13 +47,13 @@ export default function Landing() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       {/* Hero */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,#41ac53_0%,transparent_55%)] opacity-20" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25" />
+      <header className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,#41ac53_0%,transparent_55%)] opacity-20 max-md:opacity-[0.12]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25 max-md:opacity-[0.12]" />
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 lg:pt-12 lg:pb-14">
+        <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 lg:pt-12 lg:pb-14">
           <MarketingNavbar />
 
           <div className="space-y-10">
@@ -161,12 +161,12 @@ export default function Landing() {
 
       <main className="flex-1">
         {/* Problemi -> Rešenja */}
-        <section className="py-16 sm:py-20 bg-white relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 opacity-40">
-            <div className="absolute -left-32 top-10 h-64 w-64 rounded-full bg-emerald-50" />
-            <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-yellow-50" />
+        <section className="py-16 sm:py-20 bg-white relative isolate overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 opacity-40 max-md:opacity-[0.14]">
+            <div className="absolute -left-32 max-md:-left-48 top-10 h-64 max-md:h-44 w-64 max-md:w-44 rounded-full bg-emerald-50" />
+            <div className="absolute -right-32 max-md:-right-48 bottom-0 h-80 max-md:h-48 w-80 max-md:w-48 rounded-full bg-yellow-50" />
           </div>
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -497,12 +497,12 @@ export default function Landing() {
         </section>
 
         {/* Ključne funkcionalnosti */}
-        <section id="features" className="py-16 sm:py-20 bg-emerald-50/60 relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 opacity-50">
-            <div className="absolute -right-24 -top-10 h-56 w-56 rounded-full bg-white/60" />
-            <div className="absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-emerald-100/70" />
+        <section id="features" className="py-16 sm:py-20 bg-emerald-50/60 relative isolate overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 opacity-50 max-md:opacity-[0.18]">
+            <div className="absolute -right-24 max-md:-right-40 -top-10 max-md:-top-6 h-56 max-md:h-36 w-56 max-md:w-36 rounded-full bg-white/60" />
+            <div className="absolute -left-24 max-md:-left-40 bottom-0 h-48 max-md:h-32 w-48 max-md:w-32 rounded-full bg-emerald-100/70" />
           </div>
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
@@ -827,12 +827,12 @@ export default function Landing() {
         </section>
 
         {/* Brojevi i benefiti */}
-        <section className="py-16 sm:py-20 bg-white relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 opacity-40">
-            <div className="absolute -left-28 top-16 h-52 w-52 rounded-full bg-emerald-50" />
-            <div className="absolute -right-24 bottom-10 h-60 w-60 rounded-full bg-slate-50" />
+        <section className="py-16 sm:py-20 bg-white relative isolate overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0 opacity-40 max-md:opacity-[0.14]">
+            <div className="absolute -left-28 max-md:-left-44 top-16 max-md:top-8 h-52 max-md:h-36 w-52 max-md:w-36 rounded-full bg-emerald-50" />
+            <div className="absolute -right-24 max-md:-right-40 bottom-10 max-md:bottom-4 h-60 max-md:h-40 w-60 max-md:w-40 rounded-full bg-slate-50" />
           </div>
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
@@ -1040,14 +1040,14 @@ export default function Landing() {
         </section>
 
         {/* UI preview  premium showcase */}
-        <section className="relative py-20 sm:py-28 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
-          {/* Ambient glow effects */}
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-sky-500/8 rounded-full blur-[100px]" />
+        <section className="relative isolate py-20 sm:py-28 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
+          {/* Ambient glow effects — iza teksta; na mobilu manji i slabiji da ne prekrivaju naslove */}
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 md:left-1/4 md:translate-x-0 w-[min(100vw,280px)] h-[min(100vw,280px)] md:w-[600px] md:h-[600px] bg-emerald-500/10 rounded-full blur-[80px] md:blur-[120px] max-md:opacity-40" />
+            <div className="absolute bottom-0 right-1/2 translate-x-1/2 md:right-1/4 md:translate-x-0 w-[min(100vw,240px)] h-[min(100vw,240px)] md:w-[500px] md:h-[500px] bg-sky-500/8 rounded-full blur-[70px] md:blur-[100px] max-md:opacity-35" />
           </div>
 
-          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             {/* Header */}
             <div className="text-center mb-16 sm:mb-20">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400 mb-3">Sneak peek</p>
