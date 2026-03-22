@@ -71,18 +71,12 @@ func CenaZahtev(c *gin.Context) {
 
 	if err := email.SendWithTimeout(subject, body, 25*time.Second); err != nil {
 		log.Printf("[cena-zahtev] greška pri slanju emaila: %v", err)
-		msg := "Greška pri slanju poruke. Pokušajte ponovo kasnije."
-		if strings.Contains(err.Error(), "nije odgovorio u roku") {
-			msg = "Slanje je predugo trajalo. Proverite SMTP na serveru ili pokušajte kasnije."
-		}
-		if strings.Contains(err.Error(), "email nije konfigurisan") {
-			msg = "Forma trenutno nije dostupna (email nije podešen na serveru)."
-		}
+		msg := humanizeEmailSendError(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	log.Printf("[cena-zahtev] email uspešno prosleđen SMTP serveru (klub=%s, paket=%s)", imeKluba, req.Paket)
+	log.Printf("[cena-zahtev] email uspešno poslat (klub=%s, paket=%s)", imeKluba, req.Paket)
 	c.JSON(http.StatusOK, gin.H{"message": "Poruka je uspešno poslata. Javit ćemo vam se uskoro."})
 }
 
@@ -106,4 +100,39 @@ func buildCenaEmailBody(req CenaZahtevRequest, imeKluba, emailStr, phoneStr stri
 	b.WriteString("Email: " + emailStr + "\n")
 	b.WriteString("Telefon: " + phoneStr + "\n")
 	return b.String()
+}
+
+// humanizeEmailSendError — korisniku bezbedne poruke; pun tekst greške ostaje u server logu.
+func humanizeEmailSendError(err error) string {
+	if err == nil {
+		return "Greška pri slanju poruke."
+	}
+	e := strings.ToLower(err.Error())
+
+	if strings.Contains(e, "email nije konfigurisan") {
+		return "Forma trenutno nije dostupna (nema SMTP/Resend podešavanja na serveru)."
+	}
+	if strings.Contains(e, "nije odgovorio u roku") || strings.Contains(e, "i/o timeout") || strings.Contains(e, "connection timed out") {
+		return "Server ne može da se poveže na SMTP u roku. Na Renderu je često blokiran port 587 — u env dodajte Resend (RESEND_API_KEY + RESEND_FROM) ili drugi HTTPS email servis."
+	}
+	if strings.Contains(e, "connection refused") || strings.Contains(e, "no route to host") {
+		return "Konekcija ka SMTP serveru je odbijena (često na cloud hostingu). Koristite Resend: RESEND_API_KEY i RESEND_FROM na Renderu."
+	}
+	// Gmail i slično
+	if strings.Contains(e, "535") || strings.Contains(e, "534") ||
+		strings.Contains(e, "authentication failed") || strings.Contains(e, "username and password not accepted") ||
+		strings.Contains(e, "smtp autentifikacija") {
+		return "SMTP prijava nije uspela. Za Gmail obavezno app lozinka (ne obična), 2FA uključen. Proverite SMTP_USER i SMTP_PASS u Render Environment."
+	}
+	if strings.Contains(e, "starttls") || strings.Contains(e, "tls") && strings.Contains(e, "certificate") {
+		return "Problem sa TLS/SMTP. Probajte SMTP_PORT=465 ili proverite SMTP_HOST."
+	}
+	if strings.Contains(e, "resend") || strings.Contains(e, "resend api") {
+		return "Slanje preko Resend nije uspelo. Proverite RESEND_API_KEY, RESEND_FROM (verifikovan domen) i EMAIL_TO na Renderu."
+	}
+	if strings.Contains(e, "resend_from") || strings.Contains(e, "resend_api_key") {
+		return err.Error()
+	}
+
+	return "Greška pri slanju poruke. U Render Dashboard → Logs potražite red sa [cena-zahtev] za tehnički detalj."
 }
