@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useModal } from '../context/ModalContext'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
+import MentionContent from './MentionContent'
 
 export interface PostUser {
   id: number
@@ -260,9 +261,13 @@ export default function PostCard({
       </div>
 
       {/* Content text */}
-      <div className="px-4 sm:px-5 pb-2.5">
-        <p className="text-[15px] text-gray-900 leading-relaxed whitespace-pre-wrap break-words">{post.content}</p>
-      </div>
+      {post.content?.trim() ? (
+        <div className="px-4 sm:px-5 pb-2.5">
+          <p className="text-[15px] text-gray-900 leading-relaxed whitespace-pre-wrap break-words">
+            <MentionContent text={post.content} />
+          </p>
+        </div>
+      ) : null}
 
       {/* Image — full width, no padding */}
       {post.imageUrl && (
@@ -343,7 +348,7 @@ export default function PostCard({
                         <Link to={`/korisnik/${cm.user.username}`} className="font-bold text-gray-900 hover:text-emerald-700 transition-colors mr-1.5">
                           {cmName}
                         </Link>
-                        <span className="text-gray-700">{cm.content}</span>
+                        <MentionContent text={cm.content} className="text-gray-700" />
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5">{formatRelativeTime(cm.createdAt)}</p>
                     </div>

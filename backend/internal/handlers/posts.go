@@ -105,7 +105,7 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 }
 
 type CreatePostRequest struct {
-	Content  string `json:"content" binding:"required"`
+	Content  string `json:"content"`
 	ImageURL string `json:"imageUrl"`
 }
 
@@ -398,10 +398,6 @@ func CreatePost(c *gin.Context) {
 		}
 
 		content = strings.TrimSpace(c.PostForm("content"))
-		if content == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
-			return
-		}
 		if len(content) > 3000 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
 			return
@@ -463,19 +459,24 @@ func CreatePost(c *gin.Context) {
 
 			imageURL = uploadResult.SecureURL
 		}
+
+		if content == "" && imageURL == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite tekst ili dodajte sliku"})
+			return
+		}
 	} else {
-		// json: content + opcioni imageUrl
+		// json: content i/ili imageUrl
 		var req CreatePostRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Polje 'content' je obavezno"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
 			return
 		}
 
 		content = strings.TrimSpace(req.Content)
 		imageURL = strings.TrimSpace(req.ImageURL)
 
-		if content == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave ne sme biti prazan"})
+		if content == "" && imageURL == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite tekst ili imageUrl sa slikom"})
 			return
 		}
 		if len(content) > 3000 {

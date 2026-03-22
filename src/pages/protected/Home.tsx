@@ -211,7 +211,8 @@ export default function Home() {
 
   const handleSubmitPost = async () => {
     const content = newPostContent.trim()
-    if (!content || submitting) return
+    if (submitting) return
+    if (!content && !newPostImage) return
     setSubmitting(true)
     try {
       let res
@@ -286,7 +287,8 @@ export default function Home() {
   if (loadingPosts && posts.length === 0) return <Loader />
 
   const POST_MAX_LENGTH = 3000
-  const canPost = !!newPostContent.trim() && newPostContent.length <= POST_MAX_LENGTH
+  const canPost =
+    (!!newPostContent.trim() || !!newPostImage) && newPostContent.length <= POST_MAX_LENGTH
 
   return (
     <div className="relative min-h-screen bg-white sm:bg-gray-50 pb-20 md:pb-12">
@@ -367,7 +369,7 @@ export default function Home() {
                           handleSubmitPost()
                         }
                       }}
-                      placeholder="Podeli nešto sa zajednicom..."
+                      placeholder="Tekst (opciono ako dodaješ sliku) — podeli sa zajednicom..."
                       rows={1}
                       className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
                     />
