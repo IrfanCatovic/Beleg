@@ -14,7 +14,7 @@ import (
 // Send šalje običan tekstualni email.
 // Ako je RESEND_API_KEY podešen, koristi se Resend HTTPS (preporuka za Railway itd.); inače SMTP.
 //
-// Resend: RESEND_API_KEY, RESEND_FROM ("Ime <a@domen.com>"), EMAIL_TO (ili SMTP_USER kao primaoc).
+// Resend: RESEND_API_KEY (+ EMAIL_TO ili SMTP_USER). RESEND_FROM opciono (podrazumevano onboarding@resend.dev za test).
 //
 // SMTP: SMTP_HOST, SMTP_PORT (podrazumevano 587), SMTP_USER, SMTP_PASS
 //   - EMAIL_TO — primaoc(i); više adresa odvojeno zarezom; prazno = SMTP_USER

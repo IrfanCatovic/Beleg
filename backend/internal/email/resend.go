@@ -11,9 +11,11 @@ import (
 	"time"
 )
 
-// Ako je RESEND_API_KEY podešen, email ide preko HTTPS (pogodno za Railway/Render gde je odlazni SMTP često blokiran).
-// RESEND_FROM — npr. "NaVrhu <noreply@tvoj-domen.com>" (mora verifikovan domen na resend.com)
-// EMAIL_TO — primaoc(i), kao za SMTP
+// Ako je RESEND_API_KEY podešen, email ide preko HTTPS (pogodno za Render gde je odlazni SMTP često blokiran).
+//
+// Minimalno na Renderu: RESEND_API_KEY + EMAIL_TO (ili SMTP_USER kao primaoc).
+// RESEND_FROM — opciono; ako je prazno koristi se onboarding@resend.dev (Resend test: šalje samo na adrese koje dozvoljava tvoj nalog).
+// Za produkciju: verifikuj domen na resend.com i postavi npr. "Planiner <noreply@tvoj-domen.com>".
 func sendViaResendIfConfigured(subject, body string) (bool, error) {
 	key := strings.TrimSpace(os.Getenv("RESEND_API_KEY"))
 	if key == "" {
@@ -22,7 +24,7 @@ func sendViaResendIfConfigured(subject, body string) (bool, error) {
 
 	from := strings.TrimSpace(os.Getenv("RESEND_FROM"))
 	if from == "" {
-		return true, fmt.Errorf("RESEND_API_KEY je podešen ali nedostaje RESEND_FROM (pošiljalac mora biti sa verifikovanog domena)")
+		from = "onboarding@resend.dev"
 	}
 
 	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
