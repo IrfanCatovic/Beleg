@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"beleg-app/backend/internal/email"
 
@@ -38,28 +39,47 @@ func CenaZahtev(c *gin.Context) {
 	imeKluba := strings.TrimSpace(req.ImeKluba)
 	emailStr := strings.TrimSpace(req.ContactEmail)
 	phoneStr := strings.TrimSpace(req.ContactPhone)
+	isKontaktForma := strings.EqualFold(strings.TrimSpace(req.Paket), "Kontakt forma")
+
 	if imeKluba == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite ime kluba"})
 		return
 	}
-	if phoneStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite broj telefona"})
-		return
-	}
-	if emailStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite email"})
-		return
+	if !isKontaktForma {
+		if phoneStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite broj telefona"})
+			return
+		}
+		if emailStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite email"})
+			return
+		}
+	} else {
+		if emailStr == "" {
+			emailStr = "(nije unet – stranica Kontakt)"
+		}
+		if phoneStr == "" {
+			phoneStr = "(nije unet – stranica Kontakt)"
+		}
 	}
 
 	subject := "NaVrhu – zahtev za ponudu (paket " + req.Paket + ")"
 	body := buildCenaEmailBody(req, imeKluba, emailStr, phoneStr)
 
-	if err := email.Send(subject, body); err != nil {
+	if err := email.SendWithTimeout(subject, body, 25*time.Second); err != nil {
 		log.Printf("[cena-zahtev] greška pri slanju emaila: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri slanju poruke. Pokušajte ponovo kasnije."})
+		msg := "Greška pri slanju poruke. Pokušajte ponovo kasnije."
+		if strings.Contains(err.Error(), "nije odgovorio u roku") {
+			msg = "Slanje je predugo trajalo. Proverite SMTP na serveru ili pokušajte kasnije."
+		}
+		if strings.Contains(err.Error(), "email nije konfigurisan") {
+			msg = "Forma trenutno nije dostupna (email nije podešen na serveru)."
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
+	log.Printf("[cena-zahtev] email uspešno prosleđen SMTP serveru (klub=%s, paket=%s)", imeKluba, req.Paket)
 	c.JSON(http.StatusOK, gin.H{"message": "Poruka je uspešno poslata. Javit ćemo vam se uskoro."})
 }
 

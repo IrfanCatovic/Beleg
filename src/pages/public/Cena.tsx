@@ -96,25 +96,37 @@ export default function Cena() {
 
     setSending(true)
     try {
-      await api.post('/api/cena-zahtev', {
-        paket: selected.name,
-        extraUsers,
-        extraAdmins,
-        note: note.trim(),
-        imeKluba: club,
-        contactEmail: email,
-        contactPhone: phone,
-        basePriceRsd: Math.round(basePriceRsd),
-        extraUsersCostRsd: Math.round(extraUsersCostRsd),
-        extraAdminsCostRsd: Math.round(extraAdminsCostRsd),
-        totalMonthlyRsd: Math.round(totalMonthlyRsd),
-      })
+      await api.post(
+        '/api/cena-zahtev',
+        {
+          paket: selected.name,
+          extraUsers,
+          extraAdmins,
+          note: note.trim(),
+          imeKluba: club,
+          contactEmail: email,
+          contactPhone: phone,
+          basePriceRsd: Math.round(basePriceRsd),
+          extraUsersCostRsd: Math.round(extraUsersCostRsd),
+          extraAdminsCostRsd: Math.round(extraAdminsCostRsd),
+          totalMonthlyRsd: Math.round(totalMonthlyRsd),
+        },
+        { timeout: 35_000 },
+      )
       setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javit ćemo vam se uskoro.' })
       setNote('')
       setImeKluba('')
       setContactPhone('')
       setContactEmail('')
     } catch (err: unknown) {
+      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
+      if (code === 'ECONNABORTED') {
+        setSubmitMessage({
+          type: 'error',
+          text: 'Zahtev je predugo trajao. Proverite internet ili pokušajte kasnije.',
+        })
+        return
+      }
       const res = err && typeof err === 'object' && 'response' in err ? (err as { response?: { data?: { error?: string } } }).response : null
       const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
       setSubmitMessage({ type: 'error', text: msg })

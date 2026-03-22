@@ -1,36 +1,161 @@
 package email
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
-// Send sends a plain text email to the configured recipient.
-// Uses SMTP env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_TO.
-// If EMAIL_TO is empty, falls back to SMTP_USER.
+// Send šalje običan tekstualni email.
+// Promenljive okruženja:
+//   - SMTP_HOST, SMTP_PORT (podrazumevano 587), SMTP_USER, SMTP_PASS
+//   - EMAIL_TO — primaoc(i); više adresa odvojeno zarezom; prazno = SMTP_USER
+//   - EMAIL_FROM — adresa u From / envelope (podrazumevano SMTP_USER); mnogi provajderi traže istu kao SMTP_USER
+//   - SMTP_TLS_SKIP_VERIFY=true — samo za lokalni dev (ne na produkciji)
+//
+// Port 465: TLS od prvog bajta (SMTPS). Port 587/25: običan TCP pa STARTTLS ako server podržava.
 func Send(subject, body string) error {
-	host := os.Getenv("SMTP_HOST")
-	port := os.Getenv("SMTP_PORT")
-	user := os.Getenv("SMTP_USER")
-	pass := os.Getenv("SMTP_PASS")
-	to := strings.TrimSpace(os.Getenv("EMAIL_TO"))
-	if to == "" {
-		to = user
+	host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	port := strings.TrimSpace(os.Getenv("SMTP_PORT"))
+	if port == "" {
+		port = "587"
 	}
-
-	if host == "" || port == "" || user == "" || pass == "" {
+	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
+	pass := os.Getenv("SMTP_PASS")
+	if host == "" || user == "" || pass == "" {
 		return fmt.Errorf("email nije konfigurisan: postavite SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS u .env")
 	}
 
-	addr := host + ":" + port
+	toRaw := strings.TrimSpace(os.Getenv("EMAIL_TO"))
+	var toAddrs []string
+	if toRaw == "" {
+		toAddrs = []string{user}
+	} else {
+		for _, p := range strings.Split(toRaw, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				toAddrs = append(toAddrs, p)
+			}
+		}
+		if len(toAddrs) == 0 {
+			toAddrs = []string{user}
+		}
+	}
+
+	from := strings.TrimSpace(os.Getenv("EMAIL_FROM"))
+	if from == "" {
+		from = user
+	}
+
+	toHeader := strings.Join(toAddrs, ", ")
 	auth := smtp.PlainAuth("", user, pass, host)
 
-	from := user
-	header := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n",
-		from, to, subject)
-	msg := []byte(header + body)
+	client, closeFn, err := dialSMTP(host, port)
+	if err != nil {
+		return err
+	}
+	defer closeFn()
 
-	return smtp.SendMail(addr, auth, from, []string{to}, msg)
+	if ok, _ := client.Extension("AUTH"); ok {
+		if err = client.Auth(auth); err != nil {
+			return fmt.Errorf("SMTP autentifikacija: %w", err)
+		}
+	}
+
+	if err = client.Mail(from); err != nil {
+		return fmt.Errorf("SMTP MAIL FROM: %w", err)
+	}
+	for _, addr := range toAddrs {
+		if err = client.Rcpt(addr); err != nil {
+			return fmt.Errorf("SMTP RCPT TO %s: %w", addr, err)
+		}
+	}
+
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("SMTP DATA: %w", err)
+	}
+
+	header := fmt.Sprintf(
+		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n",
+		from, toHeader, subject,
+	)
+	if _, err = w.Write([]byte(header + body)); err != nil {
+		return err
+	}
+	if err = w.Close(); err != nil {
+		return fmt.Errorf("završetak poruke: %w", err)
+	}
+	_ = client.Quit()
+	return nil
+}
+
+func tlsConfig(host string) *tls.Config {
+	cfg := &tls.Config{
+		ServerName: host,
+		MinVersion: tls.VersionTLS12,
+	}
+	if os.Getenv("SMTP_TLS_SKIP_VERIFY") == "true" {
+		cfg.InsecureSkipVerify = true
+	}
+	return cfg
+}
+
+func dialSMTP(host, port string) (*smtp.Client, func(), error) {
+	addr := net.JoinHostPort(host, port)
+	p, _ := strconv.Atoi(port)
+	tlsCfg := tlsConfig(host)
+
+	// SMTPS (npr. Gmail/Outlook često nude 465)
+	if p == 465 {
+		conn, err := tls.Dial("tcp", addr, tlsCfg)
+		if err != nil {
+			return nil, nil, fmt.Errorf("TLS konekcija na %s: %w", addr, err)
+		}
+		client, err := smtp.NewClient(conn, host)
+		if err != nil {
+			conn.Close()
+			return nil, nil, err
+		}
+		return client, func() { _ = client.Close() }, nil
+	}
+
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("TCP konekcija na %s: %w", addr, err)
+	}
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		conn.Close()
+		return nil, nil, err
+	}
+
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		if err = client.StartTLS(tlsCfg); err != nil {
+			_ = client.Close()
+			return nil, nil, fmt.Errorf("STARTTLS: %w", err)
+		}
+	}
+
+	return client, func() { _ = client.Close() }, nil
+}
+
+// SendWithTimeout poziva Send u gorutini; ako SMTP ne odgovori u roku, vraća grešku (da HTTP zahtev ne visi beskonačno).
+func SendWithTimeout(subject, body string, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = 25 * time.Second
+	}
+	ch := make(chan error, 1)
+	go func() { ch <- Send(subject, body) }()
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(timeout):
+		return fmt.Errorf("SMTP nije odgovorio u roku od %v (proverite SMTP_HOST/PORT i mrežu servera)", timeout)
+	}
 }

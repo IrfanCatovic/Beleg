@@ -95,25 +95,37 @@ export default function Kontakt() {
 
     setSending(true)
     try {
-      await api.post('/api/cena-zahtev', {
-        paket: 'Kontakt forma',
-        extraUsers: 0,
-        extraAdmins: 0,
-        note: noteBody,
-        imeKluba: club,
-        contactEmail: '',
-        contactPhone: '',
-        basePriceRsd: 0,
-        extraUsersCostRsd: 0,
-        extraAdminsCostRsd: 0,
-        totalMonthlyRsd: 0,
-      })
+      await api.post(
+        '/api/cena-zahtev',
+        {
+          paket: 'Kontakt forma',
+          extraUsers: 0,
+          extraAdmins: 0,
+          note: noteBody,
+          imeKluba: club,
+          contactEmail: '',
+          contactPhone: '',
+          basePriceRsd: 0,
+          extraUsersCostRsd: 0,
+          extraAdminsCostRsd: 0,
+          totalMonthlyRsd: 0,
+        },
+        { timeout: 35_000 },
+      )
       setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
       setContactPerson('')
       setClubName('')
       setCity('')
       setQuestion('')
     } catch (err: unknown) {
+      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
+      if (code === 'ECONNABORTED') {
+        setSubmitMessage({
+          type: 'error',
+          text: 'Zahtev je predugo trajao. Proverite internet ili pokušajte kasnije.',
+        })
+        return
+      }
       const res =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { error?: string } } }).response
