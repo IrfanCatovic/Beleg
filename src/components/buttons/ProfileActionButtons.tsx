@@ -8,6 +8,9 @@ interface ProfileActionButtonsProps {
   currentUser: { role: string; username: string } | null
   onPrintClick?: () => void
   children?: React.ReactNode
+  /** Bez absolute pozicioniranja — koristi unutar sopstvenog toolbar kontejnera (npr. cover) */
+  inline?: boolean
+  className?: string
 }
 
 export default function ProfileActionButtons({
@@ -16,6 +19,8 @@ export default function ProfileActionButtons({
   currentUser,
   onPrintClick,
   children,
+  inline = false,
+  className = '',
 }: ProfileActionButtonsProps) {
   // Na tuđim profilima samo admin i sekretar vide ova 3 dugmeta (info, gear, štampaj); ostali ih ne vide
   const canSeeProfileActions = !currentUser || isOwnProfile || currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'sekretar'
@@ -31,8 +36,12 @@ export default function ProfileActionButtons({
 
   const showPrint = currentUser && canSeeProfileActions && onPrintClick
 
+  const layoutClass = inline
+    ? 'relative z-auto flex items-center gap-2 flex-wrap pointer-events-auto'
+    : 'absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-30 flex items-center gap-2 flex-wrap pointer-events-auto'
+
   return (
-    <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-10 flex items-center gap-2 flex-wrap">
+    <div className={`${layoutClass} ${className}`.trim()}>
       {showSettings && <ProfileSettingsButton to={settingsLink} />}
       {showInfo && <ProfileInfoButton to={infoLink} />}
       {showPrint && <ProfilePrintButton onClick={onPrintClick} />}
