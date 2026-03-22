@@ -8,7 +8,7 @@ import PostCard, { type Post, type MentionUser } from '../../components/PostCard
 import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
 import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
 import type { Role } from '../../components/NewTaskModal'
-import { formatDate, formatDateShort, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
+import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
 import { TrashIcon } from '@heroicons/react/24/outline'
 
 interface ObavestenjeFull {
@@ -21,24 +21,6 @@ interface ObavestenjeFull {
   metadata?: string
   readAt?: string | null
   createdAt: string
-}
-
-interface PostPayload {
-  id: number
-  content: string
-  imageUrl?: string
-  createdAt: string
-  user: {
-    id: number
-    username: string
-    fullName: string
-    avatarUrl?: string
-    role: string
-    klubNaziv?: string
-  }
-  likeCount: number
-  commentCount: number
-  myLiked: boolean
 }
 
 interface TaskPayload {
@@ -76,9 +58,9 @@ function unwrapZadatak(data: unknown): TaskPayload | null {
   if (!data || typeof data !== 'object') return null
   const o = data as Record<string, unknown>
   if (o.zadatak && typeof o.zadatak === 'object' && o.zadatak !== null) {
-    return o.zadatak as TaskPayload
+    return o.zadatak as unknown as TaskPayload
   }
-  if (typeof o.id === 'number') return o as TaskPayload
+  if (typeof o.id === 'number') return o as unknown as TaskPayload
   return null
 }
 
@@ -126,7 +108,7 @@ export default function ObavestenjeDetalj() {
 
   const [notif, setNotif] = useState<ObavestenjeFull | null>(null)
   const [post, setPost] = useState<Post | null>(null)
-  const [task, setTask] = useState<TaskPayload | null>(null)
+  const [task, setTask] = useState<Task | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
   const [entityError, setEntityError] = useState('')
   const [pageError, setPageError] = useState('')
@@ -373,8 +355,9 @@ export default function ObavestenjeDetalj() {
             const pr = await api.get<{ post: Post }>(`/api/posts/${postId}`)
             if (!cancelled) setPost(pr.data.post)
           } else if (zadatakId != null) {
-            const tr = await api.get<TaskPayload>(`/api/zadaci/${zadatakId}`)
-            if (!cancelled) setTask(normalizeApiTask(tr.data))
+            const tr = await api.get(`/api/zadaci/${zadatakId}`)
+            const raw = unwrapZadatak(tr.data)
+            if (!cancelled && raw) setTask(normalizeApiTask(raw))
           } else if (transakcijaId != null) {
             if (!canSeeFinance) {
               if (!cancelled) setEntityError('Nemate pristup detaljima transakcije. Otvorite finansije ako ste ovlašćeni.')

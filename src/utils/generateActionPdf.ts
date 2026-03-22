@@ -1,5 +1,4 @@
 import html2pdf from 'html2pdf.js'
-import { PDF_CLUB_NAME } from './generateMemberPdf'
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return ''

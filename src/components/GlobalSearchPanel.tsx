@@ -174,8 +174,6 @@ export default function GlobalSearchPanel({
   })
 
   const hasQuery = searchQuery.trim().length >= 2
-  const hasAnyResults =
-    results.clanovi.length > 0 || results.akcije.length > 0 || results.finansije.length > 0
 
   const tabs: { id: SearchTab; label: string; count: number }[] = [
     { id: 'clanovi', label: 'Članovi', count: results.clanovi.length },

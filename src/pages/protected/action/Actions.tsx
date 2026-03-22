@@ -12,7 +12,7 @@ import {
 } from '../../../utils/annualReportUtils'
 import Loader from '../../../components/Loader'
 import Dropdown from '../../../components/Dropdown'
-import { computeMMRForAkcija, type AkcijaZaRanking } from '../../../utils/rankingUtils'
+import { computeMMRForAkcija } from '../../../utils/rankingUtils'
 
 interface Akcija {
   id: number

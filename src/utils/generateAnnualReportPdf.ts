@@ -176,7 +176,7 @@ export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
     jsPDF: {
       unit: 'mm',
       format: 'a4',
-      orientation: 'landscape',
+      orientation: 'landscape' as const,
       hotfixes: ['px_scaling'] as unknown as string[],
     },
   }
