@@ -369,7 +369,7 @@ export default function Home() {
                           handleSubmitPost()
                         }
                       }}
-                      placeholder="Tekst (opciono ako dodaješ sliku) — podeli sa zajednicom..."
+                      placeholder="Podeli nešto sa zajednicom..."
                       rows={1}
                       className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
                     />

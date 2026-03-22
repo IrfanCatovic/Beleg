@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
@@ -135,6 +135,18 @@ export default function UserProfile() {
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
 
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const coverLastTapRef = useRef(0)
+
+  const onCoverDoubleTap = useCallback(() => {
+    if (!isOwn || !hasCover || positioning) return
+    const now = Date.now()
+    if (now - coverLastTapRef.current < 380) {
+      setPositioning(true)
+      coverLastTapRef.current = 0
+    } else {
+      coverLastTapRef.current = now
+    }
+  }, [isOwn, hasCover, positioning])
 
   const saveCoverPos = async () => {
     setSaving(true)
@@ -161,6 +173,20 @@ export default function UserProfile() {
     }
   }
 
+  const cancelCoverPositioning = () => {
+    if (korisnik) setCoverY(korisnik.cover_position_y ?? 0.5)
+    setPositioning(false)
+  }
+
+  useEffect(() => {
+    if (!positioning) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [positioning])
+
   /* ── loading / error ── */
   if (loading) return (
     <div className="flex items-center justify-center py-32">
@@ -186,7 +212,10 @@ export default function UserProfile() {
       {/* ══════════ COVER ══════════ */}
       <div
         className="relative h-56 sm:h-44 md:h-52 lg:h-56 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2"
-        onDoubleClick={() => { if (isOwn && hasCover) setPositioning(true) }}
+        title={isOwn && hasCover ? 'Dupli klik: pomeri poziciju cover slike' : undefined}
+        onDoubleClick={() => {
+          if (isOwn && hasCover) setPositioning(true)
+        }}
       >
         {hasCover ? (
           <img
@@ -195,6 +224,11 @@ export default function UserProfile() {
             className="absolute inset-0 w-full h-full object-cover transition-[object-position] duration-300"
             style={{ objectPosition: `center ${coverY * 100}%` }}
             draggable={false}
+            onTouchEnd={(e) => {
+              if (!isOwn) return
+              e.stopPropagation()
+              onCoverDoubleTap()
+            }}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-emerald-900/80 to-teal-800" />
@@ -235,28 +269,21 @@ export default function UserProfile() {
               {hasCover ? 'Zameni cover' : 'Dodaj cover sliku'}
             </button>
             {hasCover && (
-              <button
-                type="button"
-                onClick={() => setPositioning(true)}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-white bg-black/40 hover:bg-black/55 backdrop-blur-sm border border-white/20 transition-all active:scale-[0.98]"
-              >
-                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                </svg>
-                Pomeri poziciju
-              </button>
+              <p className="w-full text-[10px] text-white/75 md:hidden">
+                Dupli dodir na cover sliku ispod — pomeri prikaz
+              </p>
             )}
           </div>
         )}
 
 
 
-        {/* positioning overlay (slider radi na telefonu; dupli klik na cover i dalje otvara na desktopu) */}
+        {/* Desktop: overlay preko covera (md+) */}
         {positioning && (
           <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-sm px-4 py-6"
-            onClick={e => e.stopPropagation()}
-            onDoubleClick={e => e.stopPropagation()}
+            className="hidden md:flex absolute inset-0 z-20 flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-sm px-4 py-6"
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
           >
             <p className="text-white text-center text-sm font-semibold">Pomeri cover gore / dole</p>
             <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">Prevuci klizač ispod ili koristi + / −</p>
@@ -267,7 +294,7 @@ export default function UserProfile() {
               step={0.01}
               value={coverY}
               onChange={(e) => setCoverY(parseFloat(e.target.value))}
-              className="w-full max-w-[min(100%,20rem)] h-11 sm:h-auto accent-emerald-400 cursor-pointer"
+              className="w-full max-w-[min(100%,20rem)] accent-emerald-400 cursor-pointer"
             />
             <div className="flex items-center gap-3">
               <button
@@ -299,7 +326,7 @@ export default function UserProfile() {
               </button>
               <button
                 type="button"
-                onClick={() => { setCoverY(korisnik.cover_position_y ?? 0.5); setPositioning(false) }}
+                onClick={cancelCoverPositioning}
                 className="min-h-11 px-6 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold transition"
               >
                 Otkaži
@@ -309,22 +336,109 @@ export default function UserProfile() {
         )}
       </div>
 
+      {/* Mobilni: donji sheet — van cover div-a da fixed radi (cover ima transform) */}
+      {positioning && isOwn && (
+        <div
+          className="md:hidden fixed inset-0 z-[200] flex flex-col justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cover-pos-sheet-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/45"
+            aria-label="Zatvori"
+            onClick={cancelCoverPositioning}
+          />
+          <div
+            className="relative z-10 rounded-t-2xl bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.18)] border-t border-gray-100 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[min(55vh,420px)] flex flex-col gap-3 animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto h-1 w-10 rounded-full bg-gray-200 shrink-0" aria-hidden />
+            <h2 id="cover-pos-sheet-title" className="text-center text-sm font-bold text-gray-900">
+              Pomeri cover gore / dole
+            </h2>
+            <p className="text-center text-[11px] text-gray-500 -mt-1">Vidiš celu sliku iznad; ovde podesi prikaz.</p>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={coverY}
+              onChange={(e) => setCoverY(parseFloat(e.target.value))}
+              className="w-full h-12 accent-emerald-600 cursor-pointer touch-pan-y"
+            />
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setCoverY((y) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
+                className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
+                aria-label="Pomeri prikaz nagore"
+              >
+                −
+              </button>
+              <span className="text-gray-600 text-sm tabular-nums font-semibold w-14 text-center">{Math.round(coverY * 100)}%</span>
+              <button
+                type="button"
+                onClick={() => setCoverY((y) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
+                className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
+                aria-label="Pomeri prikaz nadole"
+              >
+                +
+              </button>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={cancelCoverPositioning}
+                className="flex-1 min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
+              >
+                Otkaži
+              </button>
+              <button
+                type="button"
+                onClick={saveCoverPos}
+                disabled={saving}
+                className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {saving ? 'Čuvam…' : 'Sačuvaj'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══════════ PROFILE HEADER ══════════ */}
       <div className="relative bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-6">
 
-            {/* avatar */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-4xl ring-[3px] ring-white shadow-xl flex-shrink-0">
-              {korisnik.avatar_url && !avatarFail ? (
-                <img
-                  src={korisnik.avatar_url}
-                  alt={korisnik.fullName || korisnik.username || ''}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={() => setAvatarFail(true)}
-                />
-              ) : null}
-              <span className={korisnik.avatar_url && !avatarFail ? 'invisible' : ''}>{initial}</span>
+            {/* avatar — bez uvećavanja na klik; sopstveni profil: olovka u uglu → podešavanja */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-4xl ring-[3px] ring-white shadow-xl">
+                {korisnik.avatar_url && !avatarFail ? (
+                  <img
+                    src={korisnik.avatar_url}
+                    alt={korisnik.fullName || korisnik.username || ''}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                    draggable={false}
+                    onError={() => setAvatarFail(true)}
+                  />
+                ) : null}
+                <span className={korisnik.avatar_url && !avatarFail ? 'invisible pointer-events-none' : ''}>{initial}</span>
+              </div>
+              {isOwn && (
+                <Link
+                  to="/profil/podesavanja"
+                  className="absolute -bottom-0.5 -right-0.5 z-10 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-white text-emerald-600 shadow-lg border-2 border-white hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  aria-label="Izmeni profil i profilnu sliku"
+                  title="Izmeni profil"
+                >
+                  <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                  </svg>
+                </Link>
+              )}
             </div>
 
             {/* identity */}
