@@ -67,7 +67,11 @@ func CenaZahtev(c *gin.Context) {
 	}
 
 	subject := "NaVrhu – zahtev za ponudu (paket " + req.Paket + ")"
-	body := buildCenaEmailBody(req, imeKluba, emailStr, phoneStr)
+	if isKontaktForma {
+		subject = "Nova zahtev za ponudu sa stranice Kontakt"
+	}
+
+	body := buildCenaEmailBody(req, imeKluba, emailStr, phoneStr, isKontaktForma)
 
 	if err := email.SendWithTimeout(subject, body, 25*time.Second); err != nil {
 		log.Printf("[cena-zahtev] greška pri slanju emaila: %v", err)
@@ -80,7 +84,81 @@ func CenaZahtev(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Poruka je uspešno poslata. Javit ćemo vam se uskoro."})
 }
 
-func buildCenaEmailBody(req CenaZahtevRequest, imeKluba, emailStr, phoneStr string) string {
+func parseKontaktNote(note string) (imeKlubaNote, kontaktOsoba, mesto, pitanje string) {
+	// Frontend šalje note u formatu:
+	// Pitanje poslato sa stranice Kontakt:
+	// Kontakt osoba: ...
+	// Ime kluba: ...
+	// Mesto: ...
+	// Pitanje:
+	// ...
+	note = strings.ReplaceAll(note, "\r\n", "\n")
+	note = strings.TrimSpace(note)
+
+	getLineValue := func(label string) string {
+		idx := strings.Index(note, label)
+		if idx < 0 {
+			return ""
+		}
+		after := strings.TrimSpace(note[idx+len(label):])
+		// Ukloni eventualno prefiks “:” (npr. label uključuje “Kontakt osoba:”)
+		// ovde label standardno već uključuje “:”.
+		// Uzmi do prvog newline-a.
+		parts := strings.SplitN(after, "\n", 2)
+		return strings.TrimSpace(parts[0])
+	}
+
+	// labeli moraju tačno odgovarati tekstu iz frontenda
+	kontaktOsoba = getLineValue("Kontakt osoba:")
+	imeKlubaNote = getLineValue("Ime kluba:")
+	mesto = getLineValue("Mesto:")
+
+	qLabel := "Pitanje:"
+	qIdx := strings.Index(note, qLabel)
+	if qIdx >= 0 {
+		pitanje = strings.TrimSpace(note[qIdx+len(qLabel):])
+	}
+	return imeKlubaNote, kontaktOsoba, mesto, pitanje
+}
+
+func buildCenaEmailBody(
+	req CenaZahtevRequest,
+	imeKluba,
+	emailStr,
+	phoneStr string,
+	isKontaktForma bool,
+) string {
+	if isKontaktForma {
+		imeKlubaNote, kontakt, mesto, pitanje := parseKontaktNote(req.Note)
+		imeKlubaFinal := imeKluba
+		if imeKlubaNote != "" {
+			imeKlubaFinal = imeKlubaNote
+		}
+
+		// Ako parse nije uspeo iz nekog razloga, vrati barem note u “fallback” formatu.
+		if kontakt == "" || mesto == "" || pitanje == "" {
+			var b strings.Builder
+			b.WriteString("Nova zahtev za ponudu sa stranice Kontakt\n\n")
+			b.WriteString("---\n")
+			b.WriteString("Ime kluba: " + imeKlubaFinal + "\n\n")
+			if req.Note != "" {
+				b.WriteString("Pitanje:\n" + req.Note + "\n")
+			}
+			b.WriteString("---\n")
+			return b.String()
+		}
+
+		var b strings.Builder
+		b.WriteString("Nova zahtev za ponudu sa stranice Kontakt\n\n")
+		b.WriteString("---\n")
+		b.WriteString(fmt.Sprintf("Ime kluba: %s\n", imeKlubaFinal))
+		b.WriteString(fmt.Sprintf("Kontakt osoba: %s\n", kontakt))
+		b.WriteString(fmt.Sprintf("Mesto: %s\n", mesto))
+		b.WriteString("Pitanje za nas:\n" + pitanje + "\n")
+		b.WriteString("---\n")
+		return b.String()
+	}
+
 	var b strings.Builder
 	b.WriteString("Nov zahtev za ponudu sa stranice Cena.\n\n")
 	b.WriteString("---\n")

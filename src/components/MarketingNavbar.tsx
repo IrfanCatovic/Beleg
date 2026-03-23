@@ -1,30 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function MarketingNavbar() {
-  const [showFloating, setShowFloating] = useState(true)
-  const lastScrollY = useRef(0)
-  const ticking = useRef(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY
-      if (!ticking.current) {
-        window.requestAnimationFrame(() => {
-          if (y > lastScrollY.current && y > 80) {
-            setShowFloating(false) // skrol dole → sakrij
-          } else {
-            setShowFloating(true) // skrol gore ili na vrhu → prikaži
-          }
-          lastScrollY.current = y
-          ticking.current = false
-        })
-        ticking.current = true
-      }
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
   return (
     <>
     <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
@@ -42,9 +18,6 @@ export default function MarketingNavbar() {
         <div className="leading-tight">
           <p className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
             Planiner
-          </p>
-          <p className="text-[10px] sm:text-xs text-gray-500">
-            Aplikacija za planinarska društva
           </p>
         </div>
       </Link>
@@ -67,29 +40,12 @@ export default function MarketingNavbar() {
         </div>
         <Link
           to="/login"
-          className="hidden sm:inline-flex items-center rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-md transition-colors"
-          style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
+          className="inline-flex items-center rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
-          Ulaz za članove
+          Login
         </Link>
       </div>
     </nav>
-
-    {/* Mobilni floating login – skrol dole sakriva, skrol gore prikazuje */}
-    <Link
-      to="/login"
-      className={`sm:hidden fixed left-4 right-4 z-[9999] flex items-center justify-center gap-2 py-3.5 px-5 rounded-full bg-white/95 backdrop-blur-md border border-emerald-200/80 shadow-lg shadow-emerald-900/10 active:scale-[0.98] transition-transform duration-300 ease-out`}
-      style={{
-        bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',
-        transform: showFloating ? 'translateY(0)' : 'translateY(calc(100% + 2rem))',
-        pointerEvents: showFloating ? 'auto' : 'none',
-      }}
-    >
-      <span className="text-sm font-semibold text-emerald-700">Prijavi se</span>
-      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-      </svg>
-    </Link>
     </>
   )
 }

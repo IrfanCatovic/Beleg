@@ -81,14 +81,13 @@ export default function Landing() {
                 <div className="flex flex-wrap gap-4 items-center">
                   <a
                     href="#cta"
-                    className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all"
-                    style={{ background: 'linear-gradient(135deg,#41ac53 0%,#2f855a 100%)' }}
+                    className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   >
                     Zakaži prezentaciju
                   </a>
                   <a
                     href="#how-it-works"
-                    className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-gray-300 text-gray-800 hover:border-emerald-500 hover:text-emerald-700 transition-all bg-white/70 backdrop-blur"
+                    className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-700 bg-white/70 backdrop-blur hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   >
                     Pogledaj kako radi
                   </a>
@@ -1233,13 +1232,13 @@ export default function Landing() {
             <div className="flex flex-wrap gap-4 justify-center mb-3">
               <a
                 onClick={() => navigate('/kontakt')}
-                className="cursor-pointer inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-emerald-900 bg-white hover:bg-emerald-50 transition-all shadow-lg shadow-black/20"
+                className="cursor-pointer inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
                 Zakaži prezentaciju
               </a>
               <a
                 onClick={() => navigate('/kontakt')}
-                className="cursor-pointer inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-50 hover:bg-emerald-700/40 transition-all"
+                className="cursor-pointer inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-100 bg-transparent hover:bg-emerald-700/30 hover:border-emerald-300 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
                 Pošalji upit
               </a>

@@ -46,8 +46,9 @@ export interface KlubData {
 /** Administracija i izmene — samo admin/sekretar/superadmin čiji je izabrani klub baš ovaj (nema „tuđeg“ kluba). */
 function canManageThisClub(user: User | null, clubId: number | undefined): boolean {
   if (!user || clubId == null) return false
+  if (user.role === 'superadmin') return true
   if (user.klubId !== clubId) return false
-  return user.role === 'admin' || user.role === 'sekretar' || user.role === 'superadmin'
+  return user.role === 'admin' || user.role === 'sekretar'
 }
 
 interface ClubAdminStats {
@@ -98,6 +99,13 @@ export default function Klub() {
       const endpoint = naziv ? `/api/klubovi/${encodeURIComponent(naziv)}` : '/api/klub'
       const res = await api.get<{ klub: KlubData }>(endpoint)
       let k = res.data.klub
+
+      // Superadmin: odmah postavimo effective klub (X-Club-Id) na klub koji trenutno gledamo,
+      // da /api/klub/admin-stats i /api/klub rade za pravi klub.
+      if (user?.role === 'superadmin') {
+        localStorage.setItem('superadmin_club_id', String(k.id))
+        localStorage.setItem('superadmin_club_name', k.naziv ?? '')
+      }
 
       // Javni profil nema limite/subskripciju — ako korisnik upravlja ovim klubom, učitaj pune podatke.
       if (naziv && canManageThisClub(user, k.id)) {
