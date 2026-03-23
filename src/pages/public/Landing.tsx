@@ -62,40 +62,26 @@ export default function Landing() {
               {/* Leva kolona: tekst */}
               <div className="flex-[1.1] flex flex-col items-start gap-4">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug max-w-2xl">
-                  Planiner{' '}
-                  <span style={{ color: '#41ac53' }}>
-                    digitalno srce tvog planinarskog društva
-                  </span>
+                  Više vremena na stazi,{' '}
+                  <span className="text-emerald-600">manje za administraciju</span>
                 </h1>
 
                 <p className="text-base sm:text-lg text-gray-700 max-w-2xl">
-                  Upravljanje članovima, akcijama, finansijama i obaveštenjima na jednom mestu.
-                  Uštedi i preko <span className="font-semibold text-emerald-700">200 sati godišnje</span> na
-                  formularima, ručnom prepisivanju i haosu u tabelama.
+                  Planiner povezuje celo društvo, rukovodstvo lakše vodi klub, a članovi aktivno učestvuju
+                  kroz objave, prijave na akcije i praćenje svog napretka. Sve na jednom mestu, bez haosa u
+                  porukama i tabelama.
                 </p>
 
                 <p className="text-sm text-gray-600 max-w-xl">
-                  Za predsednike, sekretare, vodiče, blagajnike i članove koji žele manje administracije, a više vremena na stazi.
+                  Za predsednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.
                 </p>
 
-                <div className="flex flex-wrap gap-4 items-center">
-                  <a
-                    href="#cta"
-                    className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                  >
-                    Zakaži prezentaciju
-                  </a>
-                  <a
-                    href="#how-it-works"
-                    className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-700 bg-white/70 backdrop-blur hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  >
-                    Pogledaj kako radi
-                  </a>
-                </div>
-
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Bez obaveze i bez pritiska za 30 minuta pokazujemo kako Planiner rešava vaše svakodnevne glavobolje.
-                </p>
+                <a
+                  href="/kontakt"
+                  className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                >
+                  Zakaži prezentaciju besplatno
+                </a>
               </div>
 
               {/* Desna kolona: slika */}
@@ -112,6 +98,35 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      {/* Zašto Planiner, 3 kratke kartice */}
+      <section className="bg-white py-10 sm:py-14">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Manje administracije</h3>
+              <p className="text-xs text-gray-600">Članovi, akcije, finansije i obaveštenja, sve automatizovano. Bez Excela, papira i duplih poruka.</p>
+            </div>
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Aktivni članovi</h3>
+              <p className="text-xs text-gray-600">Objave, komentari, prijave na akcije jednim klikom, praćenje napretka i rang lista, svi su uključeni.</p>
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/40 p-5 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Jasna evidencija</h3>
+              <p className="text-xs text-gray-600">Izveštaji, statistika članova, finansije i dokumenti, sve spremno kad vam zatreba, bez kopanja.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Mountain band segment sa porukom */}
       <section className="relative w-full bg-slate-900 text-white">
@@ -652,40 +667,33 @@ export default function Landing() {
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-3">
               {[
                 {
-                  title: 'Kreiramo administratora i strukturu',
-                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo prvog admina i dogovaramo strukturu: sekcije, vodiče, blagajnika, upravni odbor i ostale uloge.',
+                  title: 'Postavljamo klub za vas',
+                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo admina i unosimo postojeće članove. Obuka traje samo 30 minuta.',
                   step: '01',
                 },
                 {
-                  title: 'Unos postojećih članova i podataka',
-                  text: 'Pomažemo da postojeće članove sa papira i iz tabela postepeno unesete u planiner uz naše šablone i podršku tima.',
+                  title: 'Rukovodstvo organizuje rad',
+                  text: 'Vodiči planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati finansije, sve na jednom mestu bez poruka i tabela.',
                   step: '02',
                 },
                 {
-                  title: 'Akcije, zadaci i uloge u sistemu',
-                  text: 'Vodiči i admini u aplikaciji planiraju akcije, definišu zadatke za tim, dodeljuju odgovorne osobe i prate prijave članova i to sve na jednom mestu.',
+                  title: 'Članovi aktivno učestvuju',
+                  text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang lista - Planiner postaje digitalno mesto susreta celog društva.',
                   step: '03',
-                }, 
-                {
-                  title: 'Svakodnevni rad celog društva',
-                  text: 'Članovi se prijavljuju na akcije i prate svoj napredak, vodiči šalju obaveštenja, blagajnik vidi sve uplate, a rukovodstvo ima jasan uvid u članove, akcije i finansije. planiner postaje digitalno „mesto susreta“ celog društva.',
-                  step: '04',
                 },
               ].map(({ title, text, step }, i) => {
                 const colors = [
                   'bg-emerald-100 text-emerald-800 border-emerald-200',
                   'bg-blue-100 text-blue-800 border-blue-200',
                   'bg-amber-100 text-amber-800 border-amber-200',
-                  'bg-violet-100 text-violet-800 border-violet-200',
                 ]
                 const borders = [
                   'border-emerald-100 hover:border-emerald-200',
                   'border-blue-100 hover:border-blue-200',
                   'border-amber-100 hover:border-amber-200',
-                  'border-violet-100 hover:border-violet-200',
                 ]
                 return (
                   <div
@@ -1040,7 +1048,7 @@ export default function Landing() {
 
         {/* UI preview  premium showcase */}
         <section className="relative isolate py-20 sm:py-28 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 overflow-hidden">
-          {/* Ambient glow effects — iza teksta; na mobilu manji i slabiji da ne prekrivaju naslove */}
+          {/* Ambient glow effects, iza teksta; na mobilu manji i slabiji da ne prekrivaju naslove */}
           <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 md:left-1/4 md:translate-x-0 w-[min(100vw,280px)] h-[min(100vw,280px)] md:w-[600px] md:h-[600px] bg-emerald-500/10 rounded-full blur-[80px] md:blur-[120px] max-md:opacity-40" />
             <div className="absolute bottom-0 right-1/2 translate-x-1/2 md:right-1/4 md:translate-x-0 w-[min(100vw,240px)] h-[min(100vw,240px)] md:w-[500px] md:h-[500px] bg-sky-500/8 rounded-full blur-[70px] md:blur-[100px] max-md:opacity-35" />
