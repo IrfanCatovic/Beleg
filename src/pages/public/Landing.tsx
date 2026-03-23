@@ -671,7 +671,7 @@ export default function Landing() {
               {[
                 {
                   title: 'Postavljamo klub za vas',
-                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo admina i unosimo postojeće članove. Obuka traje samo 30 minuta.',
+                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo admina i unosimo prve članove. Obuka traje samo 30 minuta.',
                   step: '01',
                 },
                 {

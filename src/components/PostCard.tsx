@@ -46,6 +46,13 @@ interface PostComment {
   user: PostCommentUser
 }
 
+interface PostLikeUser {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+}
+
 export default function PostCard({
   post,
   currentUsername,
@@ -70,10 +77,13 @@ export default function PostCard({
   const [likeCount, setLikeCount] = useState<number>(post.likeCount ?? 0)
   const [commentCount, setCommentCount] = useState<number>(post.commentCount ?? 0)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [likesOpen, setLikesOpen] = useState(false)
+  const [likesLoading, setLikesLoading] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [liking, setLiking] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
+  const [likes, setLikes] = useState<PostLikeUser[]>([])
   const [newComment, setNewComment] = useState('')
   const commentInputRef = useRef<HTMLInputElement>(null)
   const [commentMentionOpen, setCommentMentionOpen] = useState(false)
@@ -148,11 +158,38 @@ export default function PostCard({
     }
   }, [post.id, showAlert])
 
+  const fetchLikes = useCallback(async () => {
+    setLikesLoading(true)
+    try {
+      const res = await api.get(`/api/posts/${post.id}/likes`)
+      setLikes(res.data.likes || [])
+    } catch {
+      setLikes([])
+      await showAlert('Greška pri učitavanju lajkova', 'Lajkovi')
+    } finally {
+      setLikesLoading(false)
+    }
+  }, [post.id, showAlert])
+
   useEffect(() => {
     if (!commentsOpen) return
     if (comments.length > 0) return
     void fetchComments()
   }, [commentsOpen, comments.length, fetchComments])
+
+  useEffect(() => {
+    if (!likesOpen) return
+    const prevOverflow = document.body.style.overflow
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLikesOpen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [likesOpen])
 
   const handleToggleLike = async () => {
     if (liking) return
@@ -161,11 +198,23 @@ export default function PostCard({
       const res = await api.post(`/api/posts/${post.id}/like`)
       setLiked(!!res.data.liked)
       setLikeCount(res.data.likeCount ?? 0)
+      if (likesOpen) {
+        await fetchLikes()
+      }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri lajkovanju objave'
       await showAlert(msg, 'Lajk')
     } finally {
       setLiking(false)
+    }
+  }
+
+  const handleOpenLikes = async () => {
+    if (likeCount <= 0) return
+    const next = !likesOpen
+    setLikesOpen(next)
+    if (next) {
+      await fetchLikes()
     }
   }
 
@@ -300,11 +349,16 @@ export default function PostCard({
               strokeWidth="1.6"
             />
           </svg>
-          {liking ? (
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-          ) : (
-            <span className="text-[13px]">{likeCount > 0 ? likeCount : ''}</span>
-          )}
+          {liking ? <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" /> : null}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleOpenLikes()}
+          disabled={likeCount <= 0}
+          className="inline-flex items-center px-2 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-rose-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-default"
+          title={likeCount > 0 ? 'Prikaži ko je lajkovao' : 'Nema lajkova'}
+        >
+          <span className="text-[13px]">{likeCount > 0 ? likeCount : 0}</span>
         </button>
 
         <button
@@ -456,6 +510,64 @@ export default function PostCard({
                 'Objavi'
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {likesOpen && (
+        <div className="fixed inset-0 z-[70]">
+          <button
+            type="button"
+            aria-label="Zatvori modal lajkova"
+            onClick={() => setLikesOpen(false)}
+            className="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
+          />
+          <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 mx-auto w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <h3 className="text-sm font-bold text-gray-900">Lajkovi ({likeCount})</h3>
+              <button
+                type="button"
+                onClick={() => setLikesOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-3">
+              {likesLoading ? (
+                <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                  <div className="h-4 w-4 rounded-full border-2 border-rose-500 border-t-transparent animate-spin" />
+                  Učitavanje lajkova...
+                </div>
+              ) : likes.length === 0 ? (
+                <p className="text-[13px] text-gray-400 py-2">Nema lajkova.</p>
+              ) : (
+                <div className="space-y-1">
+                  {likes.map((u) => {
+                    const name = u.fullName?.trim() || u.username
+                    const initial = name.charAt(0).toUpperCase()
+                    return (
+                      <Link
+                        key={u.id}
+                        to={`/korisnik/${u.username}`}
+                        onClick={() => setLikesOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0">
+                          {u.avatarUrl ? <img src={u.avatarUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" /> : <span>{initial}</span>}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-800 truncate">{name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">@{u.username}</p>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
