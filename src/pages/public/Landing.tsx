@@ -1256,13 +1256,14 @@ export default function Landing() {
             </p>
             <div className="border-t border-emerald-500/20 pt-5">
               <p className="text-xs text-emerald-100/70 mb-2">Želiš prvo da vidiš kako izgleda?</p>
-              <a
-                href="/login"
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-white transition-colors"
               >
                 Pogledaj demo nalog
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
-              </a>
+              </button>
               <p className="mt-2 text-[11px] text-emerald-200/80">Demo: username planiner / pw admin123</p>
             </div>
           </div>
