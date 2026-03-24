@@ -1675,8 +1675,20 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 				return
 			}
-			if !helpers.CanManageAkcija(c, db, akcijaZaPravo.KlubID) {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina vidi spisak prijavljenih"})
+			// Pravilo vidljivosti prijavljenih:
+			// 1) Ako je akcija javna -> svaki ulogovan korisnik vidi listu
+			// 2) Ako nije javna -> vidi samo član istog kluba kao akcija
+			// 3) Svi ostali dobijaju 403 (frontend ih tretira kao gost view)
+			canSeePrijave := false
+			if akcijaZaPravo.Javna {
+				canSeePrijave = true
+			} else if akcijaZaPravo.KlubID != nil {
+				if viewerClubID, ok := helpers.GetEffectiveClubID(c, db); ok && viewerClubID == *akcijaZaPravo.KlubID {
+					canSeePrijave = true
+				}
+			}
+			if !canSeePrijave {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Spisak prijavljenih nije dostupan za ovu akciju"})
 				return
 			}
 
