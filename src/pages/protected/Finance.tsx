@@ -378,7 +378,7 @@ export default function Finance() {
               <>
                 {/* ── Summary cards ── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="grid grid-cols-3 divide-x divide-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 divide-y divide-gray-100 sm:divide-y-0 sm:divide-x">
                     <SummaryCell
                       icon={
                         <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -761,12 +761,14 @@ function SummaryCell({ icon, iconBg, value, label, accent }: {
   accent: string
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 py-4 px-3">
+    <div className="flex items-center justify-between sm:justify-center gap-3 py-4 px-4 sm:px-3">
       <div className={`flex-shrink-0 h-8 w-8 rounded-xl ${iconBg} flex items-center justify-center`}>
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className={`text-base sm:text-lg font-extrabold leading-none tracking-tight ${accent} truncate`}>{value}</p>
+      <div className="min-w-0 flex-1 sm:flex-initial">
+        <p className={`text-base sm:text-lg font-extrabold leading-none tracking-tight ${accent} break-words`}>
+          {value}
+        </p>
         <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">{label}</p>
       </div>
     </div>
