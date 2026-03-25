@@ -124,6 +124,7 @@ func main() {
 		&models.Obavestenje{},
 		&models.Klubovi{},
 		&models.CloudinaryPendingDelete{},
+		&models.Follow{},
 		&models.Post{},
 		&models.PostLike{},
 		&models.PostComment{},
