@@ -935,26 +935,36 @@ func main() {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri hash-ovanju lozinke"})
 					return
 				}
-				fullName := strings.TrimSpace(c.PostForm("fullName"))
-				imeRoditelja := strings.TrimSpace(c.PostForm("imeRoditelja"))
-				pol := strings.TrimSpace(c.PostForm("pol"))
-				drzavljanstvo := strings.TrimSpace(c.PostForm("drzavljanstvo"))
-				adresa := strings.TrimSpace(c.PostForm("adresa"))
-				telefon := strings.TrimSpace(c.PostForm("telefon"))
-				email := strings.TrimSpace(c.PostForm("email"))
-				brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
-				brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
-				brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
-				izreceneDisciplinskeKazne := strings.TrimSpace(c.PostForm("izreceneDisciplinskeKazne"))
-				izborUOrganeSportskogUdruzenja := strings.TrimSpace(c.PostForm("izborUOrganeSportskogUdruzenja"))
-				napomene := strings.TrimSpace(c.PostForm("napomene"))
+				// Podržavamo i camelCase i snake_case nazive polja (frontend/backoffice razlike).
+				post := func(keys ...string) string {
+					for _, k := range keys {
+						if v := strings.TrimSpace(c.PostForm(k)); v != "" {
+							return v
+						}
+					}
+					return ""
+				}
+
+				fullName := post("fullName", "full_name")
+				imeRoditelja := post("imeRoditelja", "ime_roditelja")
+				pol := post("pol")
+				drzavljanstvo := post("drzavljanstvo")
+				adresa := post("adresa")
+				telefon := post("telefon")
+				email := post("email")
+				brojLicnogDokumenta := post("brojLicnogDokumenta", "broj_licnog_dokumenta")
+				brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije", "broj_planinarske_legitimacije")
+				brojPlaninarskeMarkice := post("brojPlaninarskeMarkice", "broj_planinarske_markice")
+				izreceneDisciplinskeKazne := post("izreceneDisciplinskeKazne", "izrecene_disciplinske_kazne")
+				izborUOrganeSportskogUdruzenja := post("izborUOrganeSportskogUdruzenja", "izbor_u_organe_sportskog_udruzenja")
+				napomene := post("napomene")
 				var datumRodjenja, datumUclanjenja *time.Time
-				if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
+				if s := post("datumRodjenja", "datum_rodjenja"); s != "" {
 					if t, err := time.Parse("2006-01-02", s); err == nil {
 						datumRodjenja = &t
 					}
 				}
-				if s := strings.TrimSpace(c.PostForm("datumUclanjenja")); s != "" {
+				if s := post("datumUclanjenja", "datum_uclanjenja"); s != "" {
 					if t, err := time.Parse("2006-01-02", s); err == nil {
 						datumUclanjenja = &t
 					}
@@ -1109,27 +1119,37 @@ func main() {
 			}
 
 			// Opciona polja iz modela Korisnik (kao setup/admin)
-			fullName := strings.TrimSpace(c.PostForm("fullName"))
-			imeRoditelja := strings.TrimSpace(c.PostForm("imeRoditelja"))
-			pol := strings.TrimSpace(c.PostForm("pol"))
-			drzavljanstvo := strings.TrimSpace(c.PostForm("drzavljanstvo"))
-			adresa := strings.TrimSpace(c.PostForm("adresa"))
-			telefon := strings.TrimSpace(c.PostForm("telefon"))
-			email := strings.TrimSpace(c.PostForm("email"))
-			brojLicnogDokumenta := strings.TrimSpace(c.PostForm("brojLicnogDokumenta"))
-			brojPlaninarskeLegitimacije := strings.TrimSpace(c.PostForm("brojPlaninarskeLegitimacije"))
-			brojPlaninarskeMarkice := strings.TrimSpace(c.PostForm("brojPlaninarskeMarkice"))
-			izreceneDisciplinskeKazne := strings.TrimSpace(c.PostForm("izreceneDisciplinskeKazne"))
-			izborUOrganeSportskogUdruzenja := strings.TrimSpace(c.PostForm("izborUOrganeSportskogUdruzenja"))
-			napomene := strings.TrimSpace(c.PostForm("napomene"))
+			// Podržavamo i camelCase i snake_case nazive polja (frontend/backoffice razlike).
+			post := func(keys ...string) string {
+				for _, k := range keys {
+					if v := strings.TrimSpace(c.PostForm(k)); v != "" {
+						return v
+					}
+				}
+				return ""
+			}
+
+			fullName := post("fullName", "full_name")
+			imeRoditelja := post("imeRoditelja", "ime_roditelja")
+			pol := post("pol")
+			drzavljanstvo := post("drzavljanstvo")
+			adresa := post("adresa")
+			telefon := post("telefon")
+			email := post("email")
+			brojLicnogDokumenta := post("brojLicnogDokumenta", "broj_licnog_dokumenta")
+			brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije", "broj_planinarske_legitimacije")
+			brojPlaninarskeMarkice := post("brojPlaninarskeMarkice", "broj_planinarske_markice")
+			izreceneDisciplinskeKazne := post("izreceneDisciplinskeKazne", "izrecene_disciplinske_kazne")
+			izborUOrganeSportskogUdruzenja := post("izborUOrganeSportskogUdruzenja", "izbor_u_organe_sportskog_udruzenja")
+			napomene := post("napomene")
 
 			var datumRodjenja, datumUclanjenja *time.Time
-			if s := strings.TrimSpace(c.PostForm("datumRodjenja")); s != "" {
+			if s := post("datumRodjenja", "datum_rodjenja"); s != "" {
 				if t, err := time.Parse("2006-01-02", s); err == nil {
 					datumRodjenja = &t
 				}
 			}
-			if s := strings.TrimSpace(c.PostForm("datumUclanjenja")); s != "" {
+			if s := post("datumUclanjenja", "datum_uclanjenja"); s != "" {
 				if t, err := time.Parse("2006-01-02", s); err == nil {
 					datumUclanjenja = &t
 				}
