@@ -258,6 +258,10 @@ export default function Home() {
     }
   }
 
+  const handleUpdatePost = (updated: Post) => {
+    setPosts(prev => prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p)))
+  }
+
   const handleTextareaInput = () => {
     const el = textareaRef.current
     if (!el) return
@@ -501,6 +505,7 @@ export default function Home() {
                     currentUsername={user?.username}
                     currentRole={user?.role}
                     onDelete={handleDeletePost}
+                    onUpdate={handleUpdatePost}
                     onOpenImage={openLightbox}
                     mentionUsers={mentionUsers}
                   />

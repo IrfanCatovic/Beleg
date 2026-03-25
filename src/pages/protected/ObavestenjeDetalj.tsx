@@ -504,6 +504,7 @@ export default function ObavestenjeDetalj() {
             currentUsername={user?.username}
             currentRole={user?.role}
             onDelete={handleDeletePost}
+            onUpdate={(p) => setPost(p)}
             onOpenImage={openLightbox}
             mentionUsers={mentionUsers}
           />

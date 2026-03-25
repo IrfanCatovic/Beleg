@@ -58,6 +58,7 @@ export default function PostCard({
   currentUsername,
   currentRole,
   onDelete,
+  onUpdate,
   onOpenImage,
   mentionUsers,
 }: {
@@ -65,6 +66,7 @@ export default function PostCard({
   currentUsername?: string
   currentRole?: string
   onDelete: (id: number) => void
+  onUpdate?: (post: Post) => void
   onOpenImage: (src: string) => void
   mentionUsers: MentionUser[]
 }) {
@@ -72,6 +74,10 @@ export default function PostCard({
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { showAlert } = useModal()
+
+  const [editingPost, setEditingPost] = useState(false)
+  const [editContent, setEditContent] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const [liked, setLiked] = useState<boolean>(!!post.myLiked)
   const [likeCount, setLikeCount] = useState<number>(post.likeCount ?? 0)
@@ -97,7 +103,10 @@ export default function PostCard({
     setLiked(!!post.myLiked)
     setLikeCount(post.likeCount ?? 0)
     setCommentCount(post.commentCount ?? 0)
-  }, [post.id, post.myLiked, post.likeCount, post.commentCount])
+    if (!editingPost) {
+      setEditContent(post.content ?? '')
+    }
+  }, [post.id, post.myLiked, post.likeCount, post.commentCount, post.content, editingPost])
 
   const parseCommentMentionContext = useCallback((text: string, caretPos: number) => {
     if (caretPos < 0) return null
@@ -240,6 +249,28 @@ export default function PostCard({
   const canDelete = isOwner || isAdmin
   const canDeleteComments = isOwner || currentRole === 'admin' || currentRole === 'superadmin'
 
+  const handleSaveEditPost = async () => {
+    const content = editContent.trim()
+    if (savingEdit) return
+    if (content.length > 3000) {
+      await showAlert('Tekst objave je predugačak (maks. 3000 karaktera)', 'Objava')
+      return
+    }
+    setSavingEdit(true)
+    try {
+      const res = await api.patch(`/api/posts/${post.id}`, { content })
+      const updated = (res.data?.post || null) as Post | null
+      if (updated && typeof onUpdate === 'function') onUpdate(updated)
+      setEditingPost(false)
+      setMenuOpen(false)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri izmeni objave'
+      await showAlert(msg, 'Objava')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const handleDeleteComment = async (commentId: number) => {
     try {
       await api.delete(`/api/posts/${post.id}/comments/${commentId}`)
@@ -301,6 +332,27 @@ export default function PostCard({
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-9 w-44 bg-white rounded-xl shadow-xl ring-1 ring-black/5 z-20 py-1 animate-[scaleIn_150ms_ease-out]">
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setEditContent(post.content ?? '')
+                      setEditingPost(true)
+                    }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l9.932-9.931z"
+                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125L16.862 4.487" />
+                    </svg>
+                    Izmeni objavu
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -319,6 +371,55 @@ export default function PostCard({
           </div>
         )}
       </div>
+
+      {editingPost && (
+        <div className="fixed inset-0 z-[80] px-3 sm:px-4 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white border border-gray-100 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900">Izmeni objavu</h3>
+              <button
+                type="button"
+                onClick={() => setEditingPost(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                aria-label="Zatvori"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={5}
+                className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300"
+                placeholder="Tekst objave..."
+                maxLength={3000}
+              />
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPost(false)}
+                  disabled={savingEdit}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                >
+                  Otkaži
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveEditPost()}
+                  disabled={savingEdit}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+                >
+                  {savingEdit ? <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> : null}
+                  Sačuvaj
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content text */}
       {post.content?.trim() ? (

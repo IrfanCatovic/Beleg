@@ -109,6 +109,11 @@ type CreatePostRequest struct {
 	ImageURL string `json:"imageUrl"`
 }
 
+type UpdatePostRequest struct {
+	Content  *string `json:"content"`
+	ImageURL *string `json:"imageUrl"`
+}
+
 func GetPosts(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 
@@ -529,6 +534,128 @@ func CreatePost(c *gin.Context) {
 			"role":      post.User.Role,
 			"klubNaziv": klubNaziv,
 		},
+	}})
+}
+
+// PATCH /api/posts/:id
+// Dozvoljeno: samo autor objave.
+// Body: JSON { content?: string, imageUrl?: string }
+func UpdatePost(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	var korisnik models.Korisnik
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	postID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	var post models.Post
+	if err := db.Preload("User", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, username, full_name, avatar_url, role, klub_id")
+	}).Preload("User.Klub", func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id, naziv, logo_url")
+	}).First(&post, uint(postID)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju objave"})
+		}
+		return
+	}
+
+	if post.UserID != korisnik.ID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Možete izmeniti samo svoju objavu"})
+		return
+	}
+
+	var req UpdatePostRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
+		return
+	}
+	if req.Content == nil && req.ImageURL == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nema izmena"})
+		return
+	}
+
+	nextContent := post.Content
+	nextImageURL := post.ImageURL
+	if req.Content != nil {
+		nextContent = strings.TrimSpace(*req.Content)
+		if len(nextContent) > 3000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tekst objave je predugačak (maks. 3000 karaktera)"})
+			return
+		}
+	}
+	if req.ImageURL != nil {
+		nextImageURL = strings.TrimSpace(*req.ImageURL)
+	}
+
+	if strings.TrimSpace(nextContent) == "" && strings.TrimSpace(nextImageURL) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite tekst ili imageUrl sa slikom"})
+		return
+	}
+
+	oldImage := post.ImageURL
+	post.Content = nextContent
+	post.ImageURL = nextImageURL
+
+	if err := db.Save(&post).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri izmeni objave"})
+		return
+	}
+
+	// Ako je slika promenjena/uklonjena, zakaži brisanje stare Cloudinary slike.
+	if oldImage != "" && oldImage != post.ImageURL {
+		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), oldImage)
+	}
+
+	likeCount := int64(0)
+	commentCount := int64(0)
+	_ = db.Model(&models.PostLike{}).Where("post_id = ?", post.ID).Count(&likeCount).Error
+	_ = db.Model(&models.PostComment{}).Where("post_id = ?", post.ID).Count(&commentCount).Error
+
+	// myLiked: za autora nije bitno, ali vrati realno stanje (po korisniku).
+	myLiked := false
+	var like models.PostLike
+	if err := db.Where("post_id = ? AND user_id = ?", post.ID, korisnik.ID).First(&like).Error; err == nil {
+		myLiked = true
+	}
+
+	klubNaziv := ""
+	if post.User != nil && post.User.Klub != nil {
+		klubNaziv = post.User.Klub.Naziv
+	}
+
+	c.JSON(http.StatusOK, gin.H{"post": gin.H{
+		"id":           post.ID,
+		"content":      post.Content,
+		"imageUrl":     post.ImageURL,
+		"createdAt":    post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"user": gin.H{
+			"id":        post.User.ID,
+			"username":  post.User.Username,
+			"fullName":  post.User.FullName,
+			"avatarUrl": post.User.AvatarURL,
+			"role":      post.User.Role,
+			"klubNaziv": klubNaziv,
+		},
+		"likeCount":    likeCount,
+		"commentCount": commentCount,
+		"myLiked":      myLiked,
 	}})
 }
 
