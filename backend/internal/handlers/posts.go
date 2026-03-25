@@ -903,3 +903,75 @@ func CreatePostComment(c *gin.Context) {
 		},
 	})
 }
+
+// DELETE /api/posts/:id/comments/:commentId
+// Dozvoljeno: vlasnik objave, admin kluba kome objava pripada, ili superadmin.
+func DeletePostComment(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	usernameVal, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	username, _ := usernameVal.(string)
+
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+
+	var korisnik models.Korisnik
+	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	postID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID komentara"})
+		return
+	}
+
+	var post models.Post
+	if err := db.First(&post, uint(postID)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju objave"})
+		}
+		return
+	}
+
+	var comment models.PostComment
+	if err := db.First(&comment, uint(commentID)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Komentar nije pronađen"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju komentara"})
+		}
+		return
+	}
+	if comment.PostID != uint(postID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Komentar nije pronađen"})
+		return
+	}
+
+	isPostOwner := korisnik.ID == post.UserID
+	isSuperadmin := role == "superadmin"
+	isClubAdmin := role == "admin" && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID
+	if !isPostOwner && !isSuperadmin && !isClubAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da obrišete ovaj komentar"})
+		return
+	}
+
+	if err := db.Delete(&comment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju komentara"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Komentar obrisan"})
+}

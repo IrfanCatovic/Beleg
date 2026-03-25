@@ -16,4 +16,5 @@ func RegisterPostRoutes(g *gin.RouterGroup) {
 	g.GET("/posts/:id/likes", handlers.GetPostLikes)
 	g.GET("/posts/:id/comments", handlers.GetPostComments)
 	g.POST("/posts/:id/comments", handlers.CreatePostComment)
+	g.DELETE("/posts/:id/comments/:commentId", handlers.DeletePostComment)
 }
