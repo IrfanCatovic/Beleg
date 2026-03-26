@@ -4,6 +4,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
 import FollowControls from '../../components/buttons/FollowControls'
+import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
 import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
@@ -101,6 +102,12 @@ export default function UserProfile() {
   const [coverUploading, setCoverUploading] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
 
+  const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
+  const [followModalOpen, setFollowModalOpen] = useState(false)
+  const [followModalMode, setFollowModalMode] = useState<'following' | 'followers'>('following')
+  const [followModalUsers, setFollowModalUsers] = useState<FollowListUser[]>([])
+  const [followModalLoading, setFollowModalLoading] = useState(false)
+
   const rank = useRanking({ uspesneAkcije: akcije, ukupnoKm: stats.ukupnoKm, ukupnoMetaraUspona: stats.ukupnoMetaraUspona })
 
   /* ── data fetching ── */
@@ -150,6 +157,16 @@ export default function UserProfile() {
   }, [korisnik?.id, currentUser])
 
   useEffect(() => {
+    if (!korisnik?.id || !currentUser) return
+    api.get(`/api/follows/user/${korisnik.id}/counts`)
+      .then((r) => {
+        const d = r.data as { following?: number; followers?: number }
+        setFollowCounts({ following: d.following ?? 0, followers: d.followers ?? 0 })
+      })
+      .catch(() => setFollowCounts({ following: 0, followers: 0 }))
+  }, [korisnik?.id, currentUser])
+
+  useEffect(() => {
     if (!korisnik) return
     const d = korisnik.cover_position_y ?? 0.5
     const m = korisnik.cover_position_y_mobile != null ? korisnik.cover_position_y_mobile : d
@@ -163,6 +180,26 @@ export default function UserProfile() {
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
 
   const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const openFollowModal = async (mode: 'following' | 'followers') => {
+    if (!korisnik?.id || !currentUser) return
+    setFollowModalMode(mode)
+    setFollowModalOpen(true)
+    setFollowModalLoading(true)
+    setFollowModalUsers([])
+    try {
+      const endpoint = mode === 'following'
+        ? `/api/follows/user/${korisnik.id}/following`
+        : `/api/follows/user/${korisnik.id}/followers`
+      const res = await api.get(endpoint)
+      const users = ((res.data as { users?: FollowListUser[] }).users || [])
+      setFollowModalUsers(users)
+    } catch {
+      setFollowModalUsers([])
+    } finally {
+      setFollowModalLoading(false)
+    }
+  }
 
   const saveCoverPos = async (variant: 'desktop' | 'mobile') => {
     setSaving(true)
@@ -580,6 +617,36 @@ export default function UserProfile() {
             <StatCell value={stats.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label="Staza" accent="text-sky-500" />
             <StatCell value={String(stats.brojPopeoSe)} label="Osvojenih" accent="text-amber-500" />
           </div>
+
+          {/* Follow counts (samo kad je ulogovan) */}
+          {currentUser && (
+            <div className="flex items-center justify-center gap-8 py-3 border-t border-gray-50">
+              <button
+                type="button"
+                onClick={() => void openFollowModal('following')}
+                className="group text-center"
+              >
+                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition">
+                  {followCounts.following.toLocaleString('sr-RS')}
+                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
+                  Prati
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => void openFollowModal('followers')}
+                className="group text-center"
+              >
+                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition">
+                  {followCounts.followers.toLocaleString('sr-RS')}
+                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
+                  Pratioci
+                </p>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -643,6 +710,14 @@ export default function UserProfile() {
           />
         </div>
       )}
+
+      <FollowListModal
+        open={followModalOpen}
+        title={followModalMode === 'following' ? 'Prati' : 'Pratioci'}
+        users={followModalUsers}
+        loading={followModalLoading}
+        onClose={() => setFollowModalOpen(false)}
+      />
     </div>
   )
 }

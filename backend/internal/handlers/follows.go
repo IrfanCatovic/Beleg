@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
@@ -41,6 +42,33 @@ func getCurrentUser(c *gin.Context) (models.Korisnik, bool) {
 		return models.Korisnik{}, false
 	}
 	return currentUser, true
+}
+
+func getUserByIDOrUsername(db *gorm.DB, param string) (models.Korisnik, bool) {
+	param = strings.TrimSpace(param)
+	if param == "" {
+		return models.Korisnik{}, false
+	}
+	// numeric id?
+	if id, err := strconv.ParseUint(param, 10, 32); err == nil && id > 0 {
+		var u models.Korisnik
+		if err := db.First(&u, uint(id)).Error; err != nil {
+			return models.Korisnik{}, false
+		}
+		if u.Role == "deleted" {
+			return models.Korisnik{}, false
+		}
+		return u, true
+	}
+	// username
+	var u models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.NormalizeUsername(param)).First(&u).Error; err != nil {
+		return models.Korisnik{}, false
+	}
+	if u.Role == "deleted" {
+		return models.Korisnik{}, false
+	}
+	return u, true
 }
 
 // POST /api/follows/requests
@@ -354,5 +382,146 @@ func GetPendingIncomingFollowRequestsHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"requests": out})
+}
+
+type FollowCountsResponse struct {
+	Following int64 `json:"following"`
+	Followers int64 `json:"followers"`
+}
+
+// GET /api/follows/user/:id/counts
+// :id može biti numeric id ili username. Broji samo accepted.
+func GetFollowCountsHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	// zahteva auth (routes su protected), ali counts su vezani za target user
+	target, ok := getUserByIDOrUsername(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var following int64
+	db.Model(&models.Follow{}).
+		Where("requester_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
+		Count(&following)
+
+	var followers int64
+	db.Model(&models.Follow{}).
+		Where("target_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
+		Count(&followers)
+
+	c.JSON(http.StatusOK, FollowCountsResponse{Following: following, Followers: followers})
+}
+
+type FollowUserDTO struct {
+	ID        uint   `json:"id"`
+	Username  string `json:"username"`
+	FullName  string `json:"fullName,omitempty"`
+	AvatarURL string `json:"avatarUrl,omitempty"`
+	Role      string `json:"role"`
+	KlubNaziv string `json:"klubNaziv,omitempty"`
+}
+
+func toFollowUserDTO(u models.Korisnik) FollowUserDTO {
+	dto := FollowUserDTO{
+		ID:        u.ID,
+		Username:  u.Username,
+		FullName:  u.FullName,
+		AvatarURL: u.AvatarURL,
+		Role:      u.Role,
+	}
+	if u.Klub != nil {
+		dto.KlubNaziv = u.Klub.Naziv
+	}
+	return dto
+}
+
+// GET /api/follows/user/:id/following
+func GetFollowingListHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	target, ok := getUserByIDOrUsername(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var ids []uint
+	if err := db.Model(&models.Follow{}).
+		Where("requester_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
+		Order("created_at DESC").
+		Pluck("target_id", &ids).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju liste"})
+		return
+	}
+	if len(ids) == 0 {
+		c.JSON(http.StatusOK, gin.H{"users": []FollowUserDTO{}})
+		return
+	}
+
+	var users []models.Korisnik
+	if err := db.Where("id IN ?", ids).Preload("Klub").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
+		return
+	}
+
+	byID := make(map[uint]models.Korisnik, len(users))
+	for _, u := range users {
+		byID[u.ID] = u
+	}
+
+	out := make([]FollowUserDTO, 0, len(ids))
+	for _, id := range ids {
+		u, ok := byID[id]
+		if !ok {
+			continue
+		}
+		out = append(out, toFollowUserDTO(u))
+	}
+	c.JSON(http.StatusOK, gin.H{"users": out})
+}
+
+// GET /api/follows/user/:id/followers
+func GetFollowersListHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	target, ok := getUserByIDOrUsername(db, c.Param("id"))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var ids []uint
+	if err := db.Model(&models.Follow{}).
+		Where("target_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
+		Order("created_at DESC").
+		Pluck("requester_id", &ids).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju liste"})
+		return
+	}
+	if len(ids) == 0 {
+		c.JSON(http.StatusOK, gin.H{"users": []FollowUserDTO{}})
+		return
+	}
+
+	var users []models.Korisnik
+	if err := db.Where("id IN ?", ids).Preload("Klub").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
+		return
+	}
+
+	byID := make(map[uint]models.Korisnik, len(users))
+	for _, u := range users {
+		byID[u.ID] = u
+	}
+
+	out := make([]FollowUserDTO, 0, len(ids))
+	for _, id := range ids {
+		u, ok := byID[id]
+		if !ok {
+			continue
+		}
+		out = append(out, toFollowUserDTO(u))
+	}
+	c.JSON(http.StatusOK, gin.H{"users": out})
 }
 
