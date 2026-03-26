@@ -27,7 +27,8 @@ type FollowStatusResponse struct {
 }
 
 type BlockStatusResponse struct {
-	Blocked bool `json:"blocked"`
+	BlockedByMe     bool `json:"blockedByMe"`
+	BlockedByTarget bool `json:"blockedByTarget"`
 }
 
 func getCurrentUser(c *gin.Context) (models.Korisnik, bool) {
@@ -368,9 +369,12 @@ func GetBlockStatusHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
 		return
 	}
-	var cnt int64
-	_ = db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, uint(targetIDUint)).Count(&cnt).Error
-	c.JSON(http.StatusOK, BlockStatusResponse{Blocked: cnt > 0})
+	targetID := uint(targetIDUint)
+	var byMe int64
+	_ = db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).Count(&byMe).Error
+	var byTarget int64
+	_ = db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", targetID, currentUser.ID).Count(&byTarget).Error
+	c.JSON(http.StatusOK, BlockStatusResponse{BlockedByMe: byMe > 0, BlockedByTarget: byTarget > 0})
 }
 
 // GET /api/blocks/mine

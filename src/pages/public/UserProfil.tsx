@@ -104,6 +104,7 @@ export default function UserProfile() {
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
 
   const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
+  const [blockedEither, setBlockedEither] = useState(false)
   const [followModalOpen, setFollowModalOpen] = useState(false)
   const [followModalMode, setFollowModalMode] = useState<'following' | 'followers'>('following')
   const [followModalUsers, setFollowModalUsers] = useState<FollowListUser[]>([])
@@ -329,8 +330,13 @@ export default function UserProfile() {
             currentUser={currentUser}
             onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
           >
-            {!isOwn && currentUser && <FollowControls targetId={korisnik.id} />}
-            {!isOwn && currentUser && <BlockUserButton targetId={korisnik.id} />}
+            {!isOwn && currentUser && <FollowControls targetId={korisnik.id} hidden={blockedEither} />}
+            {!isOwn && currentUser && (
+              <BlockUserButton
+                targetId={korisnik.id}
+                onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+              />
+            )}
           </ProfileActionButtons>
         </div>
 

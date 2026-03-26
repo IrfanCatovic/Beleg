@@ -868,6 +868,24 @@ func main() {
 				return
 			}
 
+			// scope=global: za globalnu pretragu vraćamo samo javne aktivne akcije (iz svih klubova).
+			// Završene se ne izlistavaju globalno.
+			if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
+				var aktivne []models.Akcija
+				where := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
+				if err := gormDb.Preload("Klub").Where(where, false, true, true).Find(&aktivne).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
+					return
+				}
+				for i := range aktivne {
+					if aktivne[i].Klub != nil {
+						aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+					}
+				}
+				c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
+				return
+			}
+
 			var aktivne []models.Akcija
 			var zavrsene []models.Akcija
 			// Aktivne: klub ili javna (svi vide javne, mogu da se prijave)
@@ -2524,6 +2542,66 @@ func main() {
 			}
 			if clubID == 0 {
 				c.JSON(200, gin.H{"korisnici": []models.Korisnik{}})
+				return
+			}
+
+			// scope=global: pretraga preko mreže (drugi klubovi), bez privatnih podataka.
+			// Vraća samo javna polja + klub naziv/logo, uz poštovanje blokiranja.
+			if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
+				type PublicUserDTO struct {
+					ID         uint   `json:"id"`
+					Username   string `json:"username"`
+					FullName   string `json:"fullName,omitempty"`
+					AvatarURL  string `json:"avatar_url,omitempty"`
+					Role       string `json:"role"`
+					KlubNaziv  string `json:"klubNaziv,omitempty"`
+					KlubLogoURL string `json:"klubLogoUrl,omitempty"`
+				}
+
+				// Sakrij korisnike koji su blokirani u bilo kom smeru sa trenutnim korisnikom.
+				var blocks []models.Block
+				_ = db.Where("blocker_id = ? OR blocked_id = ?", currentUser.ID, currentUser.ID).Find(&blocks).Error
+				blockedSet := map[uint]struct{}{}
+				for _, b := range blocks {
+					if b.BlockerID == currentUser.ID {
+						blockedSet[b.BlockedID] = struct{}{}
+					} else if b.BlockedID == currentUser.ID {
+						blockedSet[b.BlockerID] = struct{}{}
+					}
+				}
+
+				var others []models.Korisnik
+				// samo drugi klubovi (da follow preko mreže ima poentu)
+				if err := db.Preload("Klub").
+					Where("klub_id IS NOT NULL AND klub_id <> ? AND role <> ?", clubID, "deleted").
+					Find(&others).Error; err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
+					return
+				}
+
+				out := make([]PublicUserDTO, 0, len(others))
+				for i := range others {
+					if others[i].ID == currentUser.ID {
+						continue
+					}
+					if _, blocked := blockedSet[others[i].ID]; blocked {
+						continue
+					}
+					dto := PublicUserDTO{
+						ID:        others[i].ID,
+						Username:  others[i].Username,
+						FullName:  others[i].FullName,
+						AvatarURL: others[i].AvatarURL,
+						Role:      others[i].Role,
+					}
+					if others[i].Klub != nil {
+						dto.KlubNaziv = others[i].Klub.Naziv
+						dto.KlubLogoURL = others[i].Klub.LogoURL
+					}
+					out = append(out, dto)
+				}
+
+				c.JSON(200, gin.H{"korisnici": out})
 				return
 			}
 

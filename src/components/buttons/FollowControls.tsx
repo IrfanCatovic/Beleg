@@ -10,7 +10,7 @@ type FollowStatusResponse = {
   incomingFollowId?: number
 }
 
-export default function FollowControls({ targetId }: { targetId: number }) {
+export default function FollowControls({ targetId, hidden }: { targetId: number; hidden?: boolean }) {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
 
@@ -141,6 +141,8 @@ export default function FollowControls({ targetId }: { targetId: number }) {
       </button>
     )
   }, [follow, isEnabled, loading, status.outgoing, submitting, unfollow, cancelOutgoing])
+
+  if (hidden) return null
 
   return buttons
 }

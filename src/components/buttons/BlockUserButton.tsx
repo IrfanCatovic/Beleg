@@ -2,23 +2,36 @@ import { useEffect, useState } from 'react'
 import api from '../../services/api'
 import { useModal } from '../../context/ModalContext'
 
-export default function BlockUserButton({ targetId }: { targetId: number }) {
+type Props = {
+  targetId: number
+  onBlockChange?: (blockedByMe: boolean, blockedByTarget: boolean) => void
+}
+
+export default function BlockUserButton({ targetId, onBlockChange }: Props) {
   const { showConfirm, showAlert } = useModal()
-  const [blocked, setBlocked] = useState(false)
+  const [blockedByMe, setBlockedByMe] = useState(false)
+  const [blockedByTarget, setBlockedByTarget] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const fetchStatus = async () => {
     try {
-      const res = await api.get<{ blocked?: boolean }>(`/api/blocks/status/${targetId}`)
-      setBlocked(!!res.data.blocked)
+      const res = await api.get<{ blockedByMe?: boolean; blockedByTarget?: boolean }>(`/api/blocks/status/${targetId}`)
+      const byMe = !!res.data.blockedByMe
+      const byThem = !!res.data.blockedByTarget
+      setBlockedByMe(byMe)
+      setBlockedByTarget(byThem)
+      onBlockChange?.(byMe, byThem)
     } catch {
-      setBlocked(false)
+      setBlockedByMe(false)
+      setBlockedByTarget(false)
     }
   }
 
   useEffect(() => {
     void fetchStatus()
   }, [targetId])
+
+  if (blockedByTarget && !blockedByMe) return null
 
   const onBlock = async () => {
     if (busy) return
@@ -32,7 +45,8 @@ export default function BlockUserButton({ targetId }: { targetId: number }) {
     setBusy(true)
     try {
       await api.post(`/api/blocks/${targetId}`)
-      setBlocked(true)
+      setBlockedByMe(true)
+      onBlockChange?.(true, blockedByTarget)
       await showAlert('Korisnik je blokiran.', 'Blokiranje')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri blokiranju', 'Blokiranje')
@@ -52,7 +66,8 @@ export default function BlockUserButton({ targetId }: { targetId: number }) {
     setBusy(true)
     try {
       await api.delete(`/api/blocks/${targetId}`)
-      setBlocked(false)
+      setBlockedByMe(false)
+      onBlockChange?.(false, blockedByTarget)
       await showAlert('Korisnik je uklonjen sa blok liste.', 'Blokiranje')
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri odblokiranju', 'Blokiranje')
@@ -61,7 +76,7 @@ export default function BlockUserButton({ targetId }: { targetId: number }) {
     }
   }
 
-  return blocked ? (
+  return blockedByMe ? (
     <button
       type="button"
       onClick={() => void onUnblock()}

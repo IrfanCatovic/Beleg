@@ -106,12 +106,12 @@ export function useGlobalSearch(
     const promises: Promise<void>[] = []
 
     promises.push(
-      api.get('/api/korisnici').then((res) => {
+      api.get('/api/korisnici?scope=global').then((res) => {
         if (!cancelled) setKorisnici(res.data.korisnici || [])
       })
     )
     promises.push(
-      api.get('/api/akcije').then((res) => {
+      api.get('/api/akcije?scope=global').then((res) => {
         const aktivne = res.data.aktivne || []
         const zavrsene = res.data.zavrsene || []
         if (!cancelled) setAkcije([...aktivne, ...zavrsene])
