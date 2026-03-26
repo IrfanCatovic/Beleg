@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
@@ -125,6 +125,13 @@ export default function ObavestenjeDetalj() {
   const [followStatusChecked, setFollowStatusChecked] = useState(false)
   const [incomingFollowState, setIncomingFollowState] = useState<'pending' | 'accepted' | 'gone'>('pending')
   const [followBackStatus, setFollowBackStatus] = useState<'none' | 'outgoing_pending' | 'outgoing_accepted'>('none')
+
+  const showAlertRef = useRef(showAlert)
+  showAlertRef.current = showAlert
+  const navigateRef = useRef(navigate)
+  navigateRef.current = navigate
+  const notifRef = useRef(notif)
+  notifRef.current = notif
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
   const isAdminOrSekretar =
@@ -401,9 +408,11 @@ export default function ObavestenjeDetalj() {
     }
   }, [id, isLoggedIn, navigate, canSeeFinance])
 
+  const notifId = notif?.id
   useEffect(() => {
-    if (!notif || notif.type !== 'follow') return
-    const m = parseMetadata(notif.metadata)
+    const n = notifRef.current
+    if (!n || n.type !== 'follow') return
+    const m = parseMetadata(n.metadata)
     const requesterID = numFromMeta(m.requesterId)
     if (requesterID == null || requesterID <= 0) {
       setFollowStatusChecked(true)
@@ -436,13 +445,13 @@ export default function ObavestenjeDetalj() {
         } else if (inc === 'pending') {
           setIncomingFollowState('pending')
         } else {
-          const title = (notif.title || '').toLowerCase()
-          const body = (notif.body || '').toLowerCase()
+          const title = (n.title || '').toLowerCase()
+          const body = (n.body || '').toLowerCase()
           const looksLikeHistory = title.includes('prihvaćen') || body.includes('te sada prati') || body.includes('te već prati')
           if (!looksLikeHistory) {
             await api.delete(`/api/obavestenja/${id}`).catch(() => {})
-            await showAlert('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
-            navigate('/obavestenja')
+            await showAlertRef.current('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
+            navigateRef.current('/obavestenja')
             return
           }
           setIncomingFollowState('gone')
@@ -460,7 +469,8 @@ export default function ObavestenjeDetalj() {
     return () => {
       cancelled = true
     }
-  }, [notif, followBusy, id, navigate, showAlert])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifId, id])
 
   if (!isLoggedIn) return null
 
@@ -774,19 +784,22 @@ export default function ObavestenjeDetalj() {
           <div className="p-5 sm:p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Praćenje</p>
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {acceptedTargetLabel} je prihvatio/la tvoj zahtev
+              {followAcceptedTargetUsername ? (
+                <>
+                  <Link
+                    to={`/korisnik/${followAcceptedTargetUsername}`}
+                    className="text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    @{followAcceptedTargetUsername}
+                  </Link>{' '}
+                  je prihvatio/la tvoj zahtev
+                </>
+              ) : (
+                <>
+                  {acceptedTargetLabel} je prihvatio/la tvoj zahtev
+                </>
+              )}
             </h2>
-
-            {followAcceptedTargetUsername && (
-              <div className="mt-3">
-                <Link
-                  to={`/korisnik/${followAcceptedTargetUsername}`}
-                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-                >
-                  @{followAcceptedTargetUsername}
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       )}
