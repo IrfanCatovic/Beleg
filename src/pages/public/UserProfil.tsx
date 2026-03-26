@@ -4,6 +4,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
 import FollowControls from '../../components/buttons/FollowControls'
+import BlockUserButton from '../../components/buttons/BlockUserButton'
 import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
 import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
@@ -329,6 +330,7 @@ export default function UserProfile() {
             onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
           >
             {!isOwn && currentUser && <FollowControls targetId={korisnik.id} />}
+            {!isOwn && currentUser && <BlockUserButton targetId={korisnik.id} />}
           </ProfileActionButtons>
         </div>
 

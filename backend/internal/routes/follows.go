@@ -18,5 +18,10 @@ func RegisterFollowRoutes(g *gin.RouterGroup) {
 	g.GET("/follows/user/:id/counts", handlers.GetFollowCountsHandler)
 	g.GET("/follows/user/:id/following", handlers.GetFollowingListHandler)
 	g.GET("/follows/user/:id/followers", handlers.GetFollowersListHandler)
+
+	g.POST("/blocks/:targetId", handlers.BlockUserHandler)
+	g.DELETE("/blocks/:targetId", handlers.UnblockUserHandler)
+	g.GET("/blocks/status/:targetId", handlers.GetBlockStatusHandler)
+	g.GET("/blocks/mine", handlers.GetMyBlockedUsersHandler)
 }
 

@@ -125,6 +125,7 @@ func main() {
 		&models.Klubovi{},
 		&models.CloudinaryPendingDelete{},
 		&models.Follow{},
+		&models.Block{},
 		&models.Post{},
 		&models.PostLike{},
 		&models.PostComment{},
@@ -2508,6 +2509,13 @@ func main() {
 		protected.GET("/korisnici", func(c *gin.Context) {
 			dbAny, _ := c.Get("db")
 			db := dbAny.(*gorm.DB)
+			usernameVal, _ := c.Get("username")
+			username, _ := usernameVal.(string)
+			var currentUser models.Korisnik
+			if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
 
 			clubID, ok := helpers.GetEffectiveClubID(c, db)
 			if !ok {
@@ -2524,13 +2532,57 @@ func main() {
 				c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
 				return
 			}
+
+			// Sakrij korisnike koji su blokirani u bilo kom smeru sa trenutnim korisnikom.
+			var blocks []models.Block
+			_ = db.Where("blocker_id = ? OR blocked_id = ?", currentUser.ID, currentUser.ID).Find(&blocks).Error
+			blockedSet := map[uint]struct{}{}
+			for _, b := range blocks {
+				if b.BlockerID == currentUser.ID {
+					blockedSet[b.BlockedID] = struct{}{}
+				} else if b.BlockedID == currentUser.ID {
+					blockedSet[b.BlockerID] = struct{}{}
+				}
+			}
+
+			filtered := make([]models.Korisnik, 0, len(korisnici))
 			for i := range korisnici {
+				if korisnici[i].ID != currentUser.ID {
+					if _, blocked := blockedSet[korisnici[i].ID]; blocked {
+						continue
+					}
+				}
 				if korisnici[i].Klub != nil {
 					korisnici[i].KlubNaziv = korisnici[i].Klub.Naziv
 					korisnici[i].KlubLogoURL = korisnici[i].Klub.LogoURL
 				}
+				filtered = append(filtered, korisnici[i])
 			}
-			c.JSON(200, gin.H{"korisnici": korisnici})
+			c.JSON(200, gin.H{"korisnici": filtered})
+		})
+
+		// GET /api/korisnici/:id/info — puni podaci korisnika (samo admin/superadmin i samo iz effective kluba)
+		protected.GET("/korisnici/:id/info", func(c *gin.Context) {
+			roleVal, _ := c.Get("role")
+			roleStr, _ := roleVal.(string)
+			if roleStr != "admin" && roleStr != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pristup ovim podacima"})
+				return
+			}
+			db := c.MustGet("db").(*gorm.DB)
+			clubID, ok := helpers.GetEffectiveClubID(c, db)
+			if !ok || clubID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub"})
+				return
+			}
+
+			param := c.Param("id")
+			korisnik := getKorisnikByIDOrUsername(db, param)
+			if korisnik == nil || korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			c.JSON(http.StatusOK, korisnik)
 		})
 
 

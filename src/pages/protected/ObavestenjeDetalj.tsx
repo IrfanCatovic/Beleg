@@ -122,7 +122,8 @@ export default function ObavestenjeDetalj() {
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
-  const [incomingFollowAccepted, setIncomingFollowAccepted] = useState(false)
+  const [followStatusChecked, setFollowStatusChecked] = useState(false)
+  const [incomingFollowState, setIncomingFollowState] = useState<'pending' | 'accepted' | 'gone'>('pending')
   const [followBackStatus, setFollowBackStatus] = useState<'none' | 'outgoing_pending' | 'outgoing_accepted'>('none')
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
@@ -344,7 +345,8 @@ export default function ObavestenjeDetalj() {
         const { data: n } = await api.get<ObavestenjeFull>(`/api/obavestenja/${id}`)
         if (cancelled) return
         setNotif(n)
-        setIncomingFollowAccepted(false)
+        setFollowStatusChecked(false)
+        setIncomingFollowState('pending')
         setFollowBackStatus('none')
 
         if (!n.readAt) {
@@ -403,7 +405,10 @@ export default function ObavestenjeDetalj() {
     if (!notif || notif.type !== 'follow') return
     const m = parseMetadata(notif.metadata)
     const requesterID = numFromMeta(m.requesterId)
-    if (requesterID == null || requesterID <= 0) return
+    if (requesterID == null || requesterID <= 0) {
+      setFollowStatusChecked(true)
+      return
+    }
     const requesterName =
       (typeof m.requesterFullName === 'string' && m.requesterFullName.trim() !== '' ? m.requesterFullName.trim() : '') ||
       (typeof m.requesterUsername === 'string' && m.requesterUsername.trim() !== '' ? m.requesterUsername.trim() : '') ||
@@ -411,30 +416,45 @@ export default function ObavestenjeDetalj() {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await api.get<{ state?: string }>(`/api/follows/status/${requesterID}`)
+        const res = await api.get<{
+          outgoing?: string
+          incoming?: string
+          outgoingFollowId?: number
+          incomingFollowId?: number
+        }>(`/api/follows/status/${requesterID}`)
         if (cancelled) return
-        const state = res.data?.state
-        if (state === 'incoming_accepted') {
-          setIncomingFollowAccepted(true)
+        const inc = res.data?.incoming ?? 'none'
+        const out = res.data?.outgoing ?? 'none'
+
+        if (inc === 'accepted') {
+          setIncomingFollowState('accepted')
           setNotif((prev) => prev ? {
             ...prev,
             title: 'Zahtev je već prihvaćen',
             body: `${requesterName} te već prati.`,
           } : prev)
-        } else if (state === 'incoming_pending') {
-          setIncomingFollowAccepted(false)
-        } else if (state === 'none') {
-          // Zahtev više ne postoji (otkazan/odbijen) -> obriši "zastarelo" obaveštenje.
-          await api.delete(`/api/obavestenja/${id}`).catch(() => {})
-          await showAlert('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
-          navigate('/obavestenja')
-          return
+        } else if (inc === 'pending') {
+          setIncomingFollowState('pending')
+        } else {
+          const title = (notif.title || '').toLowerCase()
+          const body = (notif.body || '').toLowerCase()
+          const looksLikeHistory = title.includes('prihvaćen') || body.includes('te sada prati') || body.includes('te već prati')
+          if (!looksLikeHistory) {
+            await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+            await showAlert('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
+            navigate('/obavestenja')
+            return
+          }
+          setIncomingFollowState('gone')
         }
-        if (state === 'outgoing_accepted') setFollowBackStatus('outgoing_accepted')
-        else if (state === 'outgoing_pending') setFollowBackStatus('outgoing_pending')
+
+        if (out === 'accepted') setFollowBackStatus('outgoing_accepted')
+        else if (out === 'pending') setFollowBackStatus('outgoing_pending')
         else setFollowBackStatus('none')
       } catch {
         if (!cancelled) setFollowBackStatus('none')
+      } finally {
+        if (!cancelled) setFollowStatusChecked(true)
       }
     })()
     return () => {
@@ -470,6 +490,14 @@ export default function ObavestenjeDetalj() {
     requesterUsername: typeof meta.requesterUsername === 'string' ? meta.requesterUsername : undefined,
     requesterFullName: typeof meta.requesterFullName === 'string' ? meta.requesterFullName : undefined,
   }
+  const followAcceptedTargetId = numFromMeta(meta.targetId) ?? undefined
+  const followAcceptedTargetUsername = typeof meta.targetUsername === 'string' ? meta.targetUsername : undefined
+  const followAcceptedTargetFullName = typeof meta.targetFullName === 'string' ? meta.targetFullName : undefined
+  const followKind: 'incoming_request' | 'accepted_info' | 'unknown' = followMeta.requesterId
+    ? 'incoming_request'
+    : followAcceptedTargetId
+      ? 'accepted_info'
+      : 'unknown'
   const hasEntityKey =
     numFromMeta(meta.postId) != null ||
     numFromMeta(meta.zadatakId) != null ||
@@ -490,19 +518,20 @@ export default function ObavestenjeDetalj() {
     !(expectingTrans && entityLoading)
 
   const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || 'Korisnik').trim()
+  const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || 'Korisnik').trim()
 
   const handleAcceptFollow = async () => {
     if (!followMeta.followId || followBusy) return
     setFollowBusy(true)
     try {
       await api.patch(`/api/follows/requests/${followMeta.followId}/accept`)
-      setIncomingFollowAccepted(true)
+      setIncomingFollowState('accepted')
       setNotif((prev) => prev ? {
         ...prev,
         title: 'Zahtev prihvaćen',
         body: `${requesterLabel} te sada prati. Ako želiš, možeš da uzvratiš.`,
       } : prev)
-      await showAlert('Zahtev je prihvaćen. Obaveštenje ostaje da možeš da uzvratiš.', 'Praćenje')
+      await showAlert('Zahtev je prihvaćen.', 'Praćenje')
     } catch (e: any) {
       await showAlert(e.response?.data?.error || 'Greška pri prihvatanju zahteva.', 'Praćenje')
     } finally {
@@ -562,6 +591,27 @@ export default function ObavestenjeDetalj() {
       await showAlert('Korisnik je otpraćen.', 'Praćenje')
     } catch (e: any) {
       await showAlert(e.response?.data?.error || 'Greška pri otpraćivanju.', 'Praćenje')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
+
+  const handleCancelFollowBackRequest = async () => {
+    if (!followMeta.requesterId || followBusy) return
+    const ok = await showConfirm('Da li želite da otkažete poslati zahtev za praćenje?', {
+      title: 'Otkaži zahtev',
+      confirmLabel: 'Otkaži',
+      cancelLabel: 'Ne',
+      variant: 'danger',
+    })
+    if (!ok) return
+    setFollowBusy(true)
+    try {
+      await api.delete(`/api/follows/user/${followMeta.requesterId}`)
+      setFollowBackStatus('none')
+      await showAlert('Zahtev je otkazan.', 'Praćenje')
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri otkazivanju zahteva.', 'Praćenje')
     } finally {
       setFollowBusy(false)
     }
@@ -639,13 +689,13 @@ export default function ObavestenjeDetalj() {
         </div>
       )}
 
-      {!entityLoading && notif.type === 'follow' && followMeta.followId && (
+      {!entityLoading && notif.type === 'follow' && followMeta.followId && followKind === 'incoming_request' && (
         <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
           <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
           <div className="p-5 sm:p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Zahtev za praćenje</p>
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {incomingFollowAccepted ? `${requesterLabel} te sada prati` : `${requesterLabel} želi da te zaprati`}
+              {incomingFollowState === 'accepted' ? `${requesterLabel} te sada prati` : incomingFollowState === 'gone' ? `Zahtev je istekao` : `${requesterLabel} želi da te zaprati`}
             </h2>
 
             {followMeta.requesterUsername && (
@@ -654,13 +704,15 @@ export default function ObavestenjeDetalj() {
                   to={`/korisnik/${followMeta.requesterUsername}`}
                   className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
                 >
-                  Otvori profil →
+                  @{followMeta.requesterUsername}
                 </Link>
               </div>
             )}
 
             <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
-              {!incomingFollowAccepted ? (
+              {!followStatusChecked ? (
+                <span className="text-xs text-gray-400 animate-pulse">Učitavanje...</span>
+              ) : incomingFollowState === 'pending' ? (
                 <>
                   <button
                     type="button"
@@ -679,7 +731,7 @@ export default function ObavestenjeDetalj() {
                     {followBusy ? '...' : 'Prihvati'}
                   </button>
                 </>
-              ) : (
+              ) : incomingFollowState === 'accepted' ? (
                 <>
                   {followBackStatus === 'outgoing_accepted' ? (
                     <button
@@ -691,9 +743,14 @@ export default function ObavestenjeDetalj() {
                       {followBusy ? '...' : 'Otprati'}
                     </button>
                   ) : followBackStatus === 'outgoing_pending' ? (
-                    <span className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
-                      Zahtev za uzvraćanje je poslat
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleCancelFollowBackRequest()}
+                      disabled={followBusy}
+                      className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {followBusy ? '...' : 'Otkaži zahtev'}
+                    </button>
                   ) : (
                     <button
                       type="button"
@@ -705,8 +762,31 @@ export default function ObavestenjeDetalj() {
                     </button>
                   )}
                 </>
-              )}
+              ) : null}
             </div>
+          </div>
+        </div>
+      )}
+
+      {!entityLoading && notif.type === 'follow' && followMeta.followId && followKind === 'accepted_info' && (
+        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
+          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
+          <div className="p-5 sm:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Praćenje</p>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              {acceptedTargetLabel} je prihvatio/la tvoj zahtev
+            </h2>
+
+            {followAcceptedTargetUsername && (
+              <div className="mt-3">
+                <Link
+                  to={`/korisnik/${followAcceptedTargetUsername}`}
+                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  @{followAcceptedTargetUsername}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

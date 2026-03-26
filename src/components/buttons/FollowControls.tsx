@@ -3,11 +3,11 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 
-type FollowStatus = 'none' | 'outgoing_pending' | 'outgoing_accepted' | 'incoming_pending' | 'incoming_accepted'
-
 type FollowStatusResponse = {
-  state: FollowStatus
-  followId?: number
+  outgoing: 'none' | 'pending' | 'accepted'
+  incoming: 'none' | 'pending' | 'accepted'
+  outgoingFollowId?: number
+  incomingFollowId?: number
 }
 
 export default function FollowControls({ targetId }: { targetId: number }) {
@@ -15,7 +15,7 @@ export default function FollowControls({ targetId }: { targetId: number }) {
   const { showAlert, showConfirm } = useModal()
 
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<FollowStatusResponse>({ state: 'none' })
+  const [status, setStatus] = useState<FollowStatusResponse>({ outgoing: 'none', incoming: 'none' })
   const [submitting, setSubmitting] = useState(false)
 
   const isEnabled = !!user
@@ -25,9 +25,9 @@ export default function FollowControls({ targetId }: { targetId: number }) {
     setLoading(true)
     try {
       const res = await api.get<FollowStatusResponse>(`/api/follows/status/${targetId}`)
-      setStatus({ state: res.data.state, followId: res.data.followId })
+      setStatus(res.data)
     } catch (err: any) {
-      setStatus({ state: 'none' })
+      setStatus({ outgoing: 'none', incoming: 'none' })
     } finally {
       setLoading(false)
     }
@@ -71,37 +71,21 @@ export default function FollowControls({ targetId }: { targetId: number }) {
     }
   }
 
-  const accept = async () => {
+  const cancelOutgoing = async () => {
     if (submitting) return
-    if (!status.followId) return
-    setSubmitting(true)
-    try {
-      await api.patch(`/api/follows/requests/${status.followId}/accept`)
-      await fetchStatus()
-    } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri prihvatanju', 'Follow')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const reject = async () => {
-    if (submitting) return
-    if (!status.followId) return
-    const ok = await showConfirm('Da li želite da odbijete zahtev za praćenje?', {
-      title: 'Odbij zahtev',
+    const ok = await showConfirm('Da li želite da otkažete poslati zahtev za praćenje?', {
+      title: 'Otkaži zahtev',
+      confirmLabel: 'Otkaži zahtev',
+      cancelLabel: 'Ne',
       variant: 'danger',
-      confirmLabel: 'Odbij',
-      cancelLabel: 'Zadrži',
     })
     if (!ok) return
-
     setSubmitting(true)
     try {
-      await api.delete(`/api/follows/requests/${status.followId}`)
+      await api.delete(`/api/follows/user/${targetId}`)
       await fetchStatus()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri odbijanju', 'Follow')
+      await showAlert(err.response?.data?.error || 'Greška pri otkazivanju zahteva', 'Follow')
     } finally {
       setSubmitting(false)
     }
@@ -119,7 +103,7 @@ export default function FollowControls({ targetId }: { targetId: number }) {
       )
     }
 
-    if (!isEnabled || status.state === 'none') {
+    if (!isEnabled || status.outgoing === 'none') {
       return (
         <button
           type="button"
@@ -132,57 +116,31 @@ export default function FollowControls({ targetId }: { targetId: number }) {
       )
     }
 
-    if (status.state === 'outgoing_pending') {
-      return (
-        <button type="button" className={`${baseCommon} bg-amber-50 text-amber-700 border border-amber-200`} disabled>
-          Zahtev poslat
-        </button>
-      )
-    }
-
-    if (status.state === 'outgoing_accepted') {
+    if (status.outgoing === 'pending') {
       return (
         <button
           type="button"
-          className={`${baseCommon} bg-rose-500 hover:bg-rose-600 text-white`}
-          onClick={() => void unfollow()}
+          className={`${baseCommon} bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100`}
+          onClick={() => void cancelOutgoing()}
           disabled={submitting}
         >
-          {submitting ? '...' : 'Otprati'}
+          {submitting ? '...' : 'Otkaži zahtev'}
         </button>
       )
     }
 
-    if (status.state === 'incoming_accepted') {
-      return (
-        <button type="button" className={`${baseCommon} bg-sky-50 text-sky-700 border border-sky-200`} disabled>
-          Prati te
-        </button>
-      )
-    }
-
-    // incoming_pending
+    // outgoing === 'accepted'
     return (
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={`${baseCommon} bg-emerald-500 hover:bg-emerald-600 text-white`}
-          onClick={() => void accept()}
-          disabled={submitting}
-        >
-          Prihvati
-        </button>
-        <button
-          type="button"
-          className={`${baseCommon} bg-rose-500 hover:bg-rose-600 text-white`}
-          onClick={() => void reject()}
-          disabled={submitting}
-        >
-          Odbij
-        </button>
-      </div>
+      <button
+        type="button"
+        className={`${baseCommon} bg-rose-500 hover:bg-rose-600 text-white`}
+        onClick={() => void unfollow()}
+        disabled={submitting}
+      >
+        {submitting ? '...' : 'Otprati'}
+      </button>
     )
-  }, [accept, follow, isEnabled, loading, reject, status.followId, status.state, submitting, unfollow])
+  }, [follow, isEnabled, loading, status.outgoing, submitting, unfollow, cancelOutgoing])
 
   return buttons
 }

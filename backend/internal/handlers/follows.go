@@ -20,13 +20,14 @@ type CreateFollowRequest struct {
 }
 
 type FollowStatusResponse struct {
-	// state:
-	// - "none"
-	// - "outgoing_pending"  (current user je requester, pending)
-	// - "outgoing_accepted" (current user je requester, accepted)
-	// - "incoming_pending"  (current user je target, pending)
-	State    string `json:"state"`
-	FollowID *uint  `json:"followId,omitempty"`
+	Outgoing         string `json:"outgoing"`                   // "none" | "pending" | "accepted"
+	Incoming         string `json:"incoming"`                   // "none" | "pending" | "accepted"
+	OutgoingFollowID *uint  `json:"outgoingFollowId,omitempty"` // ID reda gde currentUser → target
+	IncomingFollowID *uint  `json:"incomingFollowId,omitempty"` // ID reda gde target → currentUser
+}
+
+type BlockStatusResponse struct {
+	Blocked bool `json:"blocked"`
 }
 
 func getCurrentUser(c *gin.Context) (models.Korisnik, bool) {
@@ -71,6 +72,17 @@ func getUserByIDOrUsername(db *gorm.DB, param string) (models.Korisnik, bool) {
 	return u, true
 }
 
+func isBlockedEitherDirection(db *gorm.DB, a, b uint) bool {
+	if a == 0 || b == 0 {
+		return false
+	}
+	var cnt int64
+	_ = db.Model(&models.Block{}).
+		Where("(blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)", a, b, b, a).
+		Count(&cnt).Error
+	return cnt > 0
+}
+
 // POST /api/follows/requests
 // Kreira zahtev za praćenje (status = "pending").
 func CreateFollowRequestHandler(c *gin.Context) {
@@ -93,6 +105,10 @@ func CreateFollowRequestHandler(c *gin.Context) {
 	}
 	if req.TargetID == currentUser.ID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete pratiti sami sebe"})
+		return
+	}
+	if isBlockedEitherDirection(db, currentUser.ID, req.TargetID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Nije moguće pratiti korisnika zbog blokade"})
 		return
 	}
 
@@ -268,6 +284,137 @@ func UnfollowUserHandler(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// POST /api/blocks/:targetId
+func BlockUserHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	targetIDUint, err := strconv.ParseUint(c.Param("targetId"), 10, 32)
+	if err != nil || targetIDUint == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
+		return
+	}
+	targetID := uint(targetIDUint)
+	if targetID == currentUser.ID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete blokirati sebe"})
+		return
+	}
+
+	var target models.Korisnik
+	if err := db.First(&target, targetID).Error; err != nil || target.Role == "deleted" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	var existing models.Block
+	if err := db.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).First(&existing).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"block": existing})
+		return
+	}
+
+	b := models.Block{BlockerID: currentUser.ID, BlockedID: targetID}
+	if err := db.Create(&b).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri blokiranju korisnika"})
+		return
+	}
+
+	// Blok prekida sve follow veze u oba smera.
+	_ = db.Where("(requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)", currentUser.ID, targetID, targetID, currentUser.ID).
+		Delete(&models.Follow{}).Error
+
+	c.JSON(http.StatusOK, gin.H{"block": b})
+}
+
+// DELETE /api/blocks/:targetId
+func UnblockUserHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	targetIDUint, err := strconv.ParseUint(c.Param("targetId"), 10, 32)
+	if err != nil || targetIDUint == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
+		return
+	}
+
+	res := db.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, uint(targetIDUint)).Delete(&models.Block{})
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju blokade"})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije blokiran"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// GET /api/blocks/status/:targetId
+func GetBlockStatusHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	targetIDUint, err := strconv.ParseUint(c.Param("targetId"), 10, 32)
+	if err != nil || targetIDUint == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
+		return
+	}
+	var cnt int64
+	_ = db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, uint(targetIDUint)).Count(&cnt).Error
+	c.JSON(http.StatusOK, BlockStatusResponse{Blocked: cnt > 0})
+}
+
+// GET /api/blocks/mine
+func GetMyBlockedUsersHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	var blockedIDs []uint
+	if err := db.Model(&models.Block{}).
+		Where("blocker_id = ?", currentUser.ID).
+		Order("created_at DESC").
+		Pluck("blocked_id", &blockedIDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju blok liste"})
+		return
+	}
+	if len(blockedIDs) == 0 {
+		c.JSON(http.StatusOK, gin.H{"users": []FollowUserDTO{}})
+		return
+	}
+
+	var users []models.Korisnik
+	if err := db.Where("id IN ? AND role != ?", blockedIDs, "deleted").Preload("Klub").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
+		return
+	}
+	byID := make(map[uint]models.Korisnik, len(users))
+	for _, u := range users {
+		byID[u.ID] = u
+	}
+	out := make([]FollowUserDTO, 0, len(blockedIDs))
+	for _, id := range blockedIDs {
+		u, ok := byID[id]
+		if !ok {
+			continue
+		}
+		out = append(out, toFollowUserDTO(u))
+	}
+	c.JSON(http.StatusOK, gin.H{"users": out})
+}
+
 // GET /api/follows/status/:targetId
 // Vraca status odnosa između trenutnog korisnika (viewer) i target-a.
 func GetFollowStatusHandler(c *gin.Context) {
@@ -284,59 +431,31 @@ func GetFollowStatusHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
 		return
 	}
-
 	targetID := uint(targetIDUint)
 
-	// 1) outgoing: currentUser (requester) -> target (target)
+	resp := FollowStatusResponse{Outgoing: "none", Incoming: "none"}
+
+	// outgoing: currentUser → target
 	var outgoing models.Follow
 	if err := db.Where("requester_id = ? AND target_id = ?", currentUser.ID, targetID).First(&outgoing).Error; err == nil {
-		resp := FollowStatusResponse{}
-		switch outgoing.Status {
-		case models.FollowStatusPending:
-			resp.State = "outgoing_pending"
-			resp.FollowID = &outgoing.ID
-		case models.FollowStatusAccepted:
-			resp.State = "outgoing_accepted"
-			resp.FollowID = &outgoing.ID
-		default:
-			resp.State = "none"
-		}
-		c.JSON(http.StatusOK, resp)
-		return
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		resp.Outgoing = outgoing.Status
+		resp.OutgoingFollowID = &outgoing.ID
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri statusa"})
 		return
 	}
 
-	// 2) incoming: target (requester) -> currentUser (target)
+	// incoming: target → currentUser
 	var incoming models.Follow
-	if err := db.Where("requester_id = ? AND target_id = ? AND status = ?", targetID, currentUser.ID, models.FollowStatusPending).
-		First(&incoming).Error; err == nil {
-		c.JSON(http.StatusOK, FollowStatusResponse{
-			State:    "incoming_pending",
-			FollowID: &incoming.ID,
-		})
-		return
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := db.Where("requester_id = ? AND target_id = ?", targetID, currentUser.ID).First(&incoming).Error; err == nil {
+		resp.Incoming = incoming.Status
+		resp.IncomingFollowID = &incoming.ID
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri statusa"})
 		return
 	}
 
-	// 3) incoming accepted: target prati currentUser (zahtev je ranije prihvaćen)
-	var incomingAccepted models.Follow
-	if err := db.Where("requester_id = ? AND target_id = ? AND status = ?", targetID, currentUser.ID, models.FollowStatusAccepted).
-		First(&incomingAccepted).Error; err == nil {
-		c.JSON(http.StatusOK, FollowStatusResponse{
-			State:    "incoming_accepted",
-			FollowID: &incomingAccepted.ID,
-		})
-		return
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri statusa"})
-		return
-	}
-
-	c.JSON(http.StatusOK, FollowStatusResponse{State: "none"})
+	c.JSON(http.StatusOK, resp)
 }
 
 type PendingFollowRequestDTO struct {
