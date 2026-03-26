@@ -688,6 +688,7 @@ func main() {
 		routes.RegisterZadatakRoutes(protected)
 		routes.RegisterObavestenjaRoutes(protected)
 		routes.RegisterClubRoutes(protected)
+		routes.RegisterFollowRoutes(protected)
 		routes.RegisterPostRoutes(protected)
 
 		// PATCH /api/klub/logo — admin/sekretar (tog kluba) ili superadmin menja logo effective kluba (multipart "logo")

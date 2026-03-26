@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
+import FollowControls from '../../components/buttons/FollowControls'
 import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
@@ -289,7 +290,9 @@ export default function UserProfile() {
             isOwnProfile={!!isOwn}
             currentUser={currentUser}
             onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
-          />
+          >
+            {!isOwn && currentUser && <FollowControls targetId={korisnik.id} />}
+          </ProfileActionButtons>
         </div>
 
         {/* Donji levi ugao: samo providna olovka za zamenu covera (kao stil izmene, bez teksta) */}
