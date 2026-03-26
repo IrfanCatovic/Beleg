@@ -143,11 +143,43 @@ func GetPosts(c *gin.Context) {
 		}
 	}
 
+	// Feed je kombinacija:
+	// 1) svih članova istog kluba (ako korisnik ima klub)
+	// 2) svih korisnika koje currentUser prati (follows.status = "accepted")
+	allowedUserIDSet := map[uint]struct{}{
+		currentUser.ID: {},
+	}
+
+	if currentUser.KlubID != nil {
+		var clubUserIDs []uint
+		if err := db.Model(&models.Korisnik{}).
+			Where("klub_id = ?", *currentUser.KlubID).
+			Pluck("id", &clubUserIDs).Error; err == nil {
+			for _, id := range clubUserIDs {
+				allowedUserIDSet[id] = struct{}{}
+			}
+		}
+	}
+
+	var acceptedFollowTargetIDs []uint
+	_ = db.Model(&models.Follow{}).
+		Where("requester_id = ? AND status = ?", currentUser.ID, models.FollowStatusAccepted).
+		Pluck("target_id", &acceptedFollowTargetIDs).Error
+	for _, id := range acceptedFollowTargetIDs {
+		allowedUserIDSet[id] = struct{}{}
+	}
+
+	allowedUserIDs := make([]uint, 0, len(allowedUserIDSet))
+	for id := range allowedUserIDSet {
+		allowedUserIDs = append(allowedUserIDs, id)
+	}
+
 	var total int64
-	db.Model(&models.Post{}).Count(&total)
+	db.Model(&models.Post{}).Where("user_id IN ?", allowedUserIDs).Count(&total)
 
 	var posts []models.Post
 	if err := db.
+		Where("user_id IN ?", allowedUserIDs).
 		Preload("User", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id, username, full_name, avatar_url, role, klub_id")
 		}).

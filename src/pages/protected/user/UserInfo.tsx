@@ -44,6 +44,14 @@ interface KorisnikInfo {
   brojPopeoSe?: number
 }
 
+interface BlockedUser {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+  klubNaziv?: string
+}
+
 function formatPol(pol: string | undefined): string {
   if (!pol) return '—'
   if (pol === 'M') return 'Muški'
@@ -73,6 +81,8 @@ export default function UserInfo() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'blocked'>('info')
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([])
 
   useEffect(() => {
     if (!id || !currentUser) return
@@ -80,14 +90,8 @@ export default function UserInfo() {
       setLoading(true)
       setError('')
       try {
-        const res = await api.get(`/api/korisnici/${id}`)
+        const res = await api.get(`/api/korisnici/${id}/info`)
         const data = res.data as KorisnikInfo
-        const isAdminOrSekretar = currentUser?.role === 'superadmin' || currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
-        const isOwnProfile = data.username === currentUser?.username
-        if (!isAdminOrSekretar && !isOwnProfile) {
-          setError('Nemate pristup ovim podacima')
-          return
-        }
         setKorisnik(data)
       } catch (err: any) {
         setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
@@ -97,6 +101,15 @@ export default function UserInfo() {
     }
     fetchData()
   }, [id, currentUser])
+
+  useEffect(() => {
+    if (!currentUser || !korisnik) return
+    const isOwnProfile = korisnik.username === currentUser.username
+    if (!isOwnProfile) return
+    api.get('/api/blocks/mine')
+      .then((res) => setBlockedUsers((res.data.users || []) as BlockedUser[]))
+      .catch(() => setBlockedUsers([]))
+  }, [currentUser, korisnik])
 
   if (loading) return <Loader />
   if (error || !korisnik) {
@@ -145,6 +158,51 @@ export default function UserInfo() {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {currentUser && korisnik.username === currentUser.username && (
+          <div className="mb-6 inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab('info')}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition ${activeTab === 'info' ? 'bg-emerald-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              Informacije
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('blocked')}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition ${activeTab === 'blocked' ? 'bg-emerald-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              Blokirani korisnici
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'blocked' && currentUser && korisnik.username === currentUser.username ? (
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+              <h2 className="text-base font-semibold text-gray-900">Blokirani korisnici</h2>
+            </div>
+            {blockedUsers.length === 0 ? (
+              <p className="p-5 text-sm text-gray-500">Nema blokiranih korisnika.</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {blockedUsers.map((u) => (
+                  <li key={u.id} className="p-4">
+                    <Link to={`/korisnik/${u.username}`} className="flex items-center gap-3 hover:text-emerald-700">
+                      <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center font-bold text-emerald-700">
+                        {(u.fullName || u.username || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{u.fullName || u.username}</p>
+                        <p className="text-xs text-gray-500 truncate">@{u.username}{u.klubNaziv ? ` · ${u.klubNaziv}` : ''}</p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Osnovni podaci */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -217,6 +275,7 @@ export default function UserInfo() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )
