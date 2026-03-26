@@ -287,6 +287,20 @@ func GetFollowStatusHandler(c *gin.Context) {
 		return
 	}
 
+	// 3) incoming accepted: target prati currentUser (zahtev je ranije prihvaćen)
+	var incomingAccepted models.Follow
+	if err := db.Where("requester_id = ? AND target_id = ? AND status = ?", targetID, currentUser.ID, models.FollowStatusAccepted).
+		First(&incomingAccepted).Error; err == nil {
+		c.JSON(http.StatusOK, FollowStatusResponse{
+			State:    "incoming_accepted",
+			FollowID: &incomingAccepted.ID,
+		})
+		return
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri statusa"})
+		return
+	}
+
 	c.JSON(http.StatusOK, FollowStatusResponse{State: "none"})
 }
 

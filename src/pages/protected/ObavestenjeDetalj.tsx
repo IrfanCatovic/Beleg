@@ -122,6 +122,8 @@ export default function ObavestenjeDetalj() {
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [incomingFollowAccepted, setIncomingFollowAccepted] = useState(false)
+  const [followBackStatus, setFollowBackStatus] = useState<'none' | 'outgoing_pending' | 'outgoing_accepted'>('none')
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
   const isAdminOrSekretar =
@@ -342,6 +344,8 @@ export default function ObavestenjeDetalj() {
         const { data: n } = await api.get<ObavestenjeFull>(`/api/obavestenja/${id}`)
         if (cancelled) return
         setNotif(n)
+        setIncomingFollowAccepted(false)
+        setFollowBackStatus('none')
 
         if (!n.readAt) {
           await api.patch(`/api/obavestenja/${id}/read`).catch(() => {})
@@ -395,6 +399,49 @@ export default function ObavestenjeDetalj() {
     }
   }, [id, isLoggedIn, navigate, canSeeFinance])
 
+  useEffect(() => {
+    if (!notif || notif.type !== 'follow') return
+    const m = parseMetadata(notif.metadata)
+    const requesterID = numFromMeta(m.requesterId)
+    if (requesterID == null || requesterID <= 0) return
+    const requesterName =
+      (typeof m.requesterFullName === 'string' && m.requesterFullName.trim() !== '' ? m.requesterFullName.trim() : '') ||
+      (typeof m.requesterUsername === 'string' && m.requesterUsername.trim() !== '' ? m.requesterUsername.trim() : '') ||
+      'Korisnik'
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await api.get<{ state?: string }>(`/api/follows/status/${requesterID}`)
+        if (cancelled) return
+        const state = res.data?.state
+        if (state === 'incoming_accepted') {
+          setIncomingFollowAccepted(true)
+          setNotif((prev) => prev ? {
+            ...prev,
+            title: 'Zahtev je već prihvaćen',
+            body: `${requesterName} te već prati.`,
+          } : prev)
+        } else if (state === 'incoming_pending') {
+          setIncomingFollowAccepted(false)
+        } else if (state === 'none') {
+          // Zahtev više ne postoji (otkazan/odbijen) -> obriši "zastarelo" obaveštenje.
+          await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+          await showAlert('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
+          navigate('/obavestenja')
+          return
+        }
+        if (state === 'outgoing_accepted') setFollowBackStatus('outgoing_accepted')
+        else if (state === 'outgoing_pending') setFollowBackStatus('outgoing_pending')
+        else setFollowBackStatus('none')
+      } catch {
+        if (!cancelled) setFollowBackStatus('none')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [notif, followBusy, id, navigate, showAlert])
+
   if (!isLoggedIn) return null
 
   if (loading) {
@@ -444,22 +491,26 @@ export default function ObavestenjeDetalj() {
 
   const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || 'Korisnik').trim()
 
-  const handleAcceptFollow = useCallback(async () => {
+  const handleAcceptFollow = async () => {
     if (!followMeta.followId || followBusy) return
     setFollowBusy(true)
     try {
       await api.patch(`/api/follows/requests/${followMeta.followId}/accept`)
-      await api.delete(`/api/obavestenja/${id}`).catch(() => {})
-      await showAlert('Zahtev je prihvaćen.', 'Praćenje')
-      navigate('/obavestenja')
+      setIncomingFollowAccepted(true)
+      setNotif((prev) => prev ? {
+        ...prev,
+        title: 'Zahtev prihvaćen',
+        body: `${requesterLabel} te sada prati. Ako želiš, možeš da uzvratiš.`,
+      } : prev)
+      await showAlert('Zahtev je prihvaćen. Obaveštenje ostaje da možeš da uzvratiš.', 'Praćenje')
     } catch (e: any) {
       await showAlert(e.response?.data?.error || 'Greška pri prihvatanju zahteva.', 'Praćenje')
     } finally {
       setFollowBusy(false)
     }
-  }, [followBusy, followMeta.followId, id, navigate, showAlert])
+  }
 
-  const handleRejectFollow = useCallback(async () => {
+  const handleRejectFollow = async () => {
     if (!followMeta.followId || followBusy) return
     const ok = await showConfirm('Da li želite da odbijete zahtev za praćenje?', {
       title: 'Odbij zahtev',
@@ -479,7 +530,21 @@ export default function ObavestenjeDetalj() {
     } finally {
       setFollowBusy(false)
     }
-  }, [followBusy, followMeta.followId, id, navigate, showAlert, showConfirm])
+  }
+
+  const handleFollowBack = async () => {
+    if (!followMeta.requesterId || followBusy) return
+    setFollowBusy(true)
+    try {
+      await api.post('/api/follows/requests', { targetId: followMeta.requesterId })
+      setFollowBackStatus('outgoing_pending')
+      await showAlert('Poslat je zahtev za uzvraćeno praćenje.', 'Praćenje')
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri slanju zahteva.', 'Praćenje')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
 
   return (
     <div className="relative mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-6 pb-20">
@@ -559,11 +624,9 @@ export default function ObavestenjeDetalj() {
           <div className="p-5 sm:p-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Zahtev za praćenje</p>
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {requesterLabel} želi da te zaprati
+              {incomingFollowAccepted ? `${requesterLabel} te sada prati` : `${requesterLabel} želi da te zaprati`}
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Prihvatanjem, objave ovog korisnika će se pojavljivati u tvom feed-u.
-            </p>
+
             {followMeta.requesterUsername && (
               <div className="mt-3">
                 <Link
@@ -576,22 +639,47 @@ export default function ObavestenjeDetalj() {
             )}
 
             <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => void handleRejectFollow()}
-                disabled={followBusy}
-                className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {followBusy ? '...' : 'Odbij'}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleAcceptFollow()}
-                disabled={followBusy}
-                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {followBusy ? '...' : 'Prihvati'}
-              </button>
+              {!incomingFollowAccepted ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleRejectFollow()}
+                    disabled={followBusy}
+                    className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {followBusy ? '...' : 'Odbij'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAcceptFollow()}
+                    disabled={followBusy}
+                    className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {followBusy ? '...' : 'Prihvati'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {followBackStatus === 'outgoing_accepted' ? (
+                    <span className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                      Već pratite
+                    </span>
+                  ) : followBackStatus === 'outgoing_pending' ? (
+                    <span className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
+                      Zahtev za uzvraćanje je poslat
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleFollowBack()}
+                      disabled={followBusy}
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {followBusy ? '...' : 'Zaprati'}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

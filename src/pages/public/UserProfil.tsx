@@ -562,16 +562,6 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-3">
-                <div
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-extrabold shadow-sm"
-                  style={{ backgroundColor: rank.boja, color: rankColor }}
-                >
-                  {formatRankDisplayName(rank, top30)}
-                  <span className="opacity-60 font-semibold text-[10px]">{rank.mmr}</span>
-                </div>
-              </div>
-
               {/* contact pills */}
               {currentUser && (korisnik.email || korisnik.telefon) && (
                 <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
@@ -673,23 +663,6 @@ export default function UserProfile() {
                 )}
               </div>
 
-            {/* rank pill (desktop) */}
-            <div className="hidden lg:block flex-shrink-0">
-              <div
-                className="relative flex items-center gap-3 px-5 py-3 rounded-2xl shadow-lg overflow-hidden"
-                style={{ backgroundColor: rank.boja, color: rankColor }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-                <div className="relative">
-                  <p className="text-[9px] uppercase tracking-widest opacity-60 font-semibold">Rang</p>
-                  <p className="text-base font-extrabold tracking-wide leading-tight">{formatRankDisplayName(rank, top30)}</p>
-                </div>
-                <div className="relative text-right pl-4 border-l border-white/20">
-                  <p className="text-xl font-extrabold leading-none">{rank.mmr}</p>
-                  <p className="text-[9px] uppercase tracking-wider opacity-60 font-semibold">MMR</p>
-                </div>
-              </div>
-            </div>
             </div>
           </div>
         </div>
@@ -698,44 +671,60 @@ export default function UserProfile() {
       {/* ══════════ STATS BAR ══════════ */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Top row: premium rank + follow mini panel */}
+          <div className="py-3 border-b border-gray-50">
+            <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/70 shadow-[0_10px_30px_rgba(15,23,42,0.06)] px-3 sm:px-4 py-2.5">
+              <div className="flex items-center justify-between gap-2.5">
+                <div
+                  className="relative inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 overflow-hidden"
+                  style={{ backgroundColor: rank.boja, color: rankColor }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+
+                  <span className="relative text-xs sm:text-sm font-extrabold tracking-wide">{formatRankDisplayName(rank, top30)}</span>
+                  <span className="relative pl-2 ml-1 border-l border-white/25 text-[11px] sm:text-xs font-extrabold tabular-nums">{rank.mmr} MMR</span>
+                </div>
+
+                {currentUser ? (
+                  <div className="inline-flex items-stretch rounded-xl border border-gray-200/80 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => void openFollowModal('following')}
+                      className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
+                    >
+                      <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
+                        {followCounts.following.toLocaleString('sr-RS')}
+                      </p>
+                      <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
+                        Prati
+                      </p>
+                    </button>
+                    <div className="w-px self-stretch bg-gradient-to-b from-transparent via-gray-200 to-transparent" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => void openFollowModal('followers')}
+                      className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
+                    >
+                      <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
+                        {followCounts.followers.toLocaleString('sr-RS')}
+                      </p>
+                      <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
+                        Pratioci
+                      </p>
+                    </button>
+                  </div>
+                ) : (
+                  <div />
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             <StatCell value={stats.ukupnoMetaraUspona.toLocaleString('sr-RS')} unit="m" label="Uspon" accent="text-emerald-500" />
             <StatCell value={stats.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label="Staza" accent="text-sky-500" />
             <StatCell value={String(stats.brojPopeoSe)} label="Osvojenih" accent="text-amber-500" />
           </div>
-
-          {/* Follow counts (samo kad je ulogovan) */}
-          {currentUser && (
-            <div className="flex items-center justify-center py-3 border-t border-gray-50">
-              <div className="inline-flex items-center rounded-2xl bg-gray-50/80 border border-gray-100 shadow-sm overflow-hidden">
-              <button
-                type="button"
-                onClick={() => void openFollowModal('following')}
-                className="group text-center px-7 py-2.5 hover:bg-white transition"
-              >
-                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition tabular-nums">
-                  {followCounts.following.toLocaleString('sr-RS')}
-                </p>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
-                  Prati
-                </p>
-              </button>
-              <div className="w-px self-stretch bg-gray-200/60" aria-hidden />
-              <button
-                type="button"
-                onClick={() => void openFollowModal('followers')}
-                className="group text-center px-7 py-2.5 hover:bg-white transition"
-              >
-                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition tabular-nums">
-                  {followCounts.followers.toLocaleString('sr-RS')}
-                </p>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
-                  Pratioci
-                </p>
-              </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -752,7 +741,6 @@ export default function UserProfile() {
               </span>
             )}
           </div>
-
           {akcije.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">

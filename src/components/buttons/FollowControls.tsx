@@ -3,7 +3,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 
-type FollowStatus = 'none' | 'outgoing_pending' | 'outgoing_accepted' | 'incoming_pending'
+type FollowStatus = 'none' | 'outgoing_pending' | 'outgoing_accepted' | 'incoming_pending' | 'incoming_accepted'
 
 type FollowStatusResponse = {
   state: FollowStatus
@@ -124,6 +124,14 @@ export default function FollowControls({ targetId }: { targetId: number }) {
       return (
         <button type="button" className={`${baseCommon} bg-emerald-50 text-emerald-700 border border-emerald-200`} disabled>
           Već pratite
+        </button>
+      )
+    }
+
+    if (status.state === 'incoming_accepted') {
+      return (
+        <button type="button" className={`${baseCommon} bg-sky-50 text-sky-700 border border-sky-200`} disabled>
+          Prati te
         </button>
       )
     }
