@@ -115,7 +115,7 @@ export default function FollowControls({ targetId }: { targetId: number }) {
     if (status.state === 'outgoing_pending') {
       return (
         <button type="button" className={`${baseCommon} bg-amber-50 text-amber-700 border border-amber-200`} disabled>
-          Čeka odobrenje
+          Zahtev poslat
         </button>
       )
     }

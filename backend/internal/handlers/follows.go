@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -100,6 +102,22 @@ func CreateFollowRequestHandler(c *gin.Context) {
 		return
 	}
 
+	// Obaveštenje target korisniku: da može da prihvati/odbije iz Obaveštenja detalja.
+	requesterName := currentUser.FullName
+	if requesterName == "" {
+		requesterName = currentUser.Username
+	}
+	meta := fmt.Sprintf(`{"followId":%d,"requesterId":%d,"requesterUsername":%q,"requesterFullName":%q}`, f.ID, currentUser.ID, currentUser.Username, currentUser.FullName)
+	notifications.NotifyUsers(
+		db,
+		[]uint{target.ID},
+		models.ObavestenjeTipFollow,
+		"Novi zahtev za praćenje",
+		fmt.Sprintf("%s želi da te zaprati.", requesterName),
+		"",
+		meta,
+	)
+
 	c.JSON(http.StatusCreated, gin.H{"follow": f})
 }
 
@@ -136,6 +154,22 @@ func AcceptFollowRequestHandler(c *gin.Context) {
 		return
 	}
 	f.Status = models.FollowStatusAccepted
+
+	// Obaveštenje requester-u: target (currentUser) je prihvatio.
+	targetName := currentUser.FullName
+	if targetName == "" {
+		targetName = currentUser.Username
+	}
+	meta := fmt.Sprintf(`{"followId":%d,"targetId":%d,"targetUsername":%q,"targetFullName":%q}`, f.ID, currentUser.ID, currentUser.Username, currentUser.FullName)
+	notifications.NotifyUsers(
+		db,
+		[]uint{f.RequesterID},
+		models.ObavestenjeTipFollow,
+		"Zahtev prihvaćen",
+		fmt.Sprintf("%s je prihvatio/la tvoj zahtev za praćenje.", targetName),
+		"",
+		meta,
+	)
 
 	c.JSON(http.StatusOK, gin.H{"follow": f})
 }

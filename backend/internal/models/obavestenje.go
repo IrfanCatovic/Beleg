@@ -10,6 +10,7 @@ const (
 	ObavestenjeTipPost         = "post"         // novi post na homepage (kasnije)
 	ObavestenjeTipBroadcast    = "broadcast"    // admin šalje svima
 	ObavestenjeTipSubskripcija = "subskripcija" // subskripcija kluba ističe uskoro → admin + sekretar
+	ObavestenjeTipFollow       = "follow"       // novi zahtev za praćenje → target korisnik
 )
 
 // Obavestenje je jedno obaveštenje za jednog korisnika (recipient).

@@ -23,6 +23,13 @@ interface ObavestenjeFull {
   createdAt: string
 }
 
+interface FollowMeta {
+  followId?: number
+  requesterId?: number
+  requesterUsername?: string
+  requesterFullName?: string
+}
+
 interface TaskPayload {
   id: number
   naziv: string
@@ -114,6 +121,7 @@ export default function ObavestenjeDetalj() {
   const [pageError, setPageError] = useState('')
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(false)
+  const [followBusy, setFollowBusy] = useState(false)
 
   const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
   const isAdminOrSekretar =
@@ -409,21 +417,69 @@ export default function ObavestenjeDetalj() {
   }
 
   const meta = parseMetadata(notif.metadata)
+  const followMeta: FollowMeta = {
+    followId: numFromMeta(meta.followId) ?? undefined,
+    requesterId: numFromMeta(meta.requesterId) ?? undefined,
+    requesterUsername: typeof meta.requesterUsername === 'string' ? meta.requesterUsername : undefined,
+    requesterFullName: typeof meta.requesterFullName === 'string' ? meta.requesterFullName : undefined,
+  }
   const hasEntityKey =
     numFromMeta(meta.postId) != null ||
     numFromMeta(meta.zadatakId) != null ||
-    numFromMeta(meta.transakcijaId) != null
+    numFromMeta(meta.transakcijaId) != null ||
+    numFromMeta(meta.followId) != null
   const expectingPost = numFromMeta(meta.postId) != null
   const expectingTask = numFromMeta(meta.zadatakId) != null
   const expectingTrans = numFromMeta(meta.transakcijaId) != null
+  const expectingFollow = numFromMeta(meta.followId) != null
   // Bez duplog naslova obaveštenja iznad feed / zadatak / transakcija kartice
   const showNotifSummary =
     !post &&
     !task &&
     !trans &&
+    !(expectingFollow && followBusy) &&
     !(expectingPost && entityLoading) &&
     !(expectingTask && entityLoading) &&
     !(expectingTrans && entityLoading)
+
+  const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || 'Korisnik').trim()
+
+  const handleAcceptFollow = useCallback(async () => {
+    if (!followMeta.followId || followBusy) return
+    setFollowBusy(true)
+    try {
+      await api.patch(`/api/follows/requests/${followMeta.followId}/accept`)
+      await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+      await showAlert('Zahtev je prihvaćen.', 'Praćenje')
+      navigate('/obavestenja')
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri prihvatanju zahteva.', 'Praćenje')
+    } finally {
+      setFollowBusy(false)
+    }
+  }, [followBusy, followMeta.followId, id, navigate, showAlert])
+
+  const handleRejectFollow = useCallback(async () => {
+    if (!followMeta.followId || followBusy) return
+    const ok = await showConfirm('Da li želite da odbijete zahtev za praćenje?', {
+      title: 'Odbij zahtev',
+      confirmLabel: 'Odbij',
+      cancelLabel: 'Otkaži',
+      variant: 'danger',
+    })
+    if (!ok) return
+    setFollowBusy(true)
+    try {
+      await api.delete(`/api/follows/requests/${followMeta.followId}`)
+      await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+      await showAlert('Zahtev je odbijen.', 'Praćenje')
+      navigate('/obavestenja')
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri odbijanju zahteva.', 'Praćenje')
+    } finally {
+      setFollowBusy(false)
+    }
+  }, [followBusy, followMeta.followId, id, navigate, showAlert, showConfirm])
 
   return (
     <div className="relative mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-6 pb-20">
@@ -494,6 +550,50 @@ export default function ObavestenjeDetalj() {
       {entityError && (
         <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 mb-4">
           {entityError}
+        </div>
+      )}
+
+      {!entityLoading && notif.type === 'follow' && followMeta.followId && (
+        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
+          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
+          <div className="p-5 sm:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Zahtev za praćenje</p>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              {requesterLabel} želi da te zaprati
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Prihvatanjem, objave ovog korisnika će se pojavljivati u tvom feed-u.
+            </p>
+            {followMeta.requesterUsername && (
+              <div className="mt-3">
+                <Link
+                  to={`/korisnik/${followMeta.requesterUsername}`}
+                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  Otvori profil →
+                </Link>
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => void handleRejectFollow()}
+                disabled={followBusy}
+                className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {followBusy ? '...' : 'Odbij'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleAcceptFollow()}
+                disabled={followBusy}
+                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {followBusy ? '...' : 'Prihvati'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -655,7 +755,9 @@ export default function ObavestenjeDetalj() {
           <p className="text-sm text-gray-500 text-center py-4">Povezani sadržaj nije učitan.</p>
         )}
 
-      {!entityLoading && !hasEntityKey && ['broadcast', 'subskripcija', 'post', 'uplata', 'zadatak'].includes(notif.type) && (
+      {!entityLoading &&
+        !hasEntityKey &&
+        ['broadcast', 'subskripcija', 'post', 'uplata', 'zadatak', 'follow'].includes(notif.type) && (
         <p className="text-sm text-gray-500 text-center py-2">
           {notif.link ? 'Koristi link iznad za više detalja.' : 'Ovo obaveštenje nema dodatne podatke.'}
         </p>
