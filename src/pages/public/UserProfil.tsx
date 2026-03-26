@@ -332,7 +332,7 @@ export default function UserProfile() {
           </ProfileActionButtons>
         </div>
 
-        {/* Donji levi ugao: samo providna olovka za zamenu covera (kao stil izmene, bez teksta) */}
+        {/* Gornji levi ugao: samo providna olovka za zamenu covera (kao stil izmene, bez teksta) */}
         {isOwn && !positioning && (
           <>
             <input
@@ -348,7 +348,7 @@ export default function UserProfile() {
               disabled={coverUploading}
               title={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
               aria-label={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
-              className="absolute bottom-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
+              className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
             >
               {coverUploading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
@@ -500,49 +500,55 @@ export default function UserProfile() {
       {/* ══════════ PROFILE HEADER ══════════ */}
       <div className="relative bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-6">
 
-            {/* avatar — klik otvara punu sliku (izmena profila: zupčanik gore na coveru) */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
-              {korisnik.avatar_url && !avatarFail ? (
-                <button
-                  type="button"
-                  onClick={() => setAvatarLightboxOpen(true)}
-                  className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                  aria-label="Prikaži profilnu sliku u punoj veličini"
-                  title="Klik za punu veličinu"
-                >
-                  <img
-                    src={korisnik.avatar_url}
-                    alt={korisnik.fullName || korisnik.username || ''}
-                    className="absolute inset-0 h-full w-full object-cover select-none"
-                    draggable={false}
-                    onError={() => setAvatarFail(true)}
-                  />
-                </button>
-              ) : (
-                <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-4xl font-bold text-white ring-[3px] ring-white shadow-xl">
-                  <span>{initial}</span>
+            {/* mobile layout */}
+            <div className="sm:hidden">
+              <div className="flex items-center gap-3">
+                {/* avatar — klik otvara punu sliku (izmena profila: zupčanik gore na coveru) */}
+                <div className="relative w-20 h-20 flex-shrink-0">
+                  {korisnik.avatar_url && !avatarFail ? (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarLightboxOpen(true)}
+                      className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                      aria-label="Prikaži profilnu sliku u punoj veličini"
+                      title="Klik za punu veličinu"
+                    >
+                      <img
+                        src={korisnik.avatar_url}
+                        alt={korisnik.fullName || korisnik.username || ''}
+                        className="absolute inset-0 h-full w-full object-cover select-none"
+                        draggable={false}
+                        onError={() => setAvatarFail(true)}
+                      />
+                    </button>
+                  ) : (
+                    <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-3xl font-bold text-white ring-[3px] ring-white shadow-xl">
+                      <span>{initial}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* identity */}
-            <div className="flex-1 min-w-0 text-center sm:text-left pb-0 sm:pb-0.5">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                {korisnik.fullName || korisnik.username}
-              </h1>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-extrabold text-gray-900 tracking-tight truncate leading-tight">
+                    {korisnik.fullName || korisnik.username}
+                  </p>
+                  <p className="text-[13px] text-gray-400 font-semibold truncate -mt-0.5">@{korisnik.username}</p>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-1">
+                    <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                    </svg>
+                    <span className="truncate">Član od {formatDate(korisnik.createdAt)}</span>
+                  </div>
+                </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 mt-1.5">
-                <span className="text-[13px] text-gray-400 font-medium">@{korisnik.username}</span>
-                <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-200" />
-                <span className={`inline-flex items-center px-2 py-[3px] rounded-md text-[10px] font-bold tracking-wide uppercase ${getRoleStyle(korisnik.role)}`}>
-                  {getRoleLabel(korisnik.role)}
-                </span>
-                {korisnik.klubNaziv && (
-                  <>
-                    <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-200" />
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-md text-[10px] font-bold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
+                    {getRoleLabel(korisnik.role)}
+                  </span>
+                  {korisnik.klubNaziv && (
+                    <span className="inline-flex max-w-[44vw] items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
                       {korisnik.klubLogoUrl ? (
                         <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
                       ) : (
@@ -550,17 +556,25 @@ export default function UserProfile() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                         </svg>
                       )}
-                      {korisnik.klubNaziv}
+                      <span className="truncate">{korisnik.klubNaziv}</span>
                     </span>
-                  </>
-                )}
-                <span className="hidden sm:inline w-1 h-1 rounded-full bg-gray-200" />
-                <span className="text-[11px] text-gray-400 font-medium">Član od {formatDate(korisnik.createdAt)}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3">
+                <div
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-extrabold shadow-sm"
+                  style={{ backgroundColor: rank.boja, color: rankColor }}
+                >
+                  {formatRankDisplayName(rank, top30)}
+                  <span className="opacity-60 font-semibold text-[10px]">{rank.mmr}</span>
+                </div>
               </div>
 
               {/* contact pills */}
               {currentUser && (korisnik.email || korisnik.telefon) && (
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2.5">
+                <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
                   {korisnik.email && (
                     <a href={`mailto:${korisnik.email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
@@ -576,6 +590,88 @@ export default function UserProfile() {
                 </div>
               )}
             </div>
+
+            {/* desktop/tablet layout (existing) */}
+            <div className="hidden sm:flex w-full items-end gap-4 sm:gap-5">
+              {/* avatar — klik otvara punu sliku (izmena profila: zupčanik gore na coveru) */}
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
+                {korisnik.avatar_url && !avatarFail ? (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarLightboxOpen(true)}
+                    className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                    aria-label="Prikaži profilnu sliku u punoj veličini"
+                    title="Klik za punu veličinu"
+                  >
+                    <img
+                      src={korisnik.avatar_url}
+                      alt={korisnik.fullName || korisnik.username || ''}
+                      className="absolute inset-0 h-full w-full object-cover select-none"
+                      draggable={false}
+                      onError={() => setAvatarFail(true)}
+                    />
+                  </button>
+                ) : (
+                  <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-4xl font-bold text-white ring-[3px] ring-white shadow-xl">
+                    <span>{initial}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* identity */}
+              <div className="flex-1 min-w-0 text-left pb-0.5">
+                <div className="flex flex-col items-start gap-1">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
+                    {korisnik.fullName || korisnik.username}
+                  </h1>
+
+                  <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
+                    <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
+                    <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
+                      {getRoleLabel(korisnik.role)}
+                    </span>
+                    {korisnik.klubNaziv && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
+                        {korisnik.klubLogoUrl ? (
+                          <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                        ) : (
+                          <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                          </svg>
+                        )}
+                        {korisnik.klubNaziv}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-0.5">
+                    <span className="inline-flex items-center gap-1">
+                      <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                      </svg>
+                      Član od {formatDate(korisnik.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* contact pills */}
+                {currentUser && (korisnik.email || korisnik.telefon) && (
+                  <div className="flex flex-wrap items-center justify-start gap-2 mt-2.5">
+                    {korisnik.email && (
+                      <a href={`mailto:${korisnik.email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                        {korisnik.email}
+                      </a>
+                    )}
+                    {korisnik.telefon && (
+                      <a href={`tel:${korisnik.telefon}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                        {korisnik.telefon}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
 
             {/* rank pill (desktop) */}
             <div className="hidden lg:block flex-shrink-0">
@@ -594,6 +690,7 @@ export default function UserProfile() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -601,17 +698,6 @@ export default function UserProfile() {
       {/* ══════════ STATS BAR ══════════ */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* mobile rank */}
-          <div className="lg:hidden flex justify-center py-3 border-b border-gray-50">
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-extrabold shadow-sm"
-              style={{ backgroundColor: rank.boja, color: rankColor }}
-            >
-              {formatRankDisplayName(rank, top30)}
-              <span className="opacity-60 font-semibold text-[10px]">{rank.mmr}</span>
-            </div>
-          </div>
-
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             <StatCell value={stats.ukupnoMetaraUspona.toLocaleString('sr-RS')} unit="m" label="Uspon" accent="text-emerald-500" />
             <StatCell value={stats.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label="Staza" accent="text-sky-500" />
@@ -620,31 +706,34 @@ export default function UserProfile() {
 
           {/* Follow counts (samo kad je ulogovan) */}
           {currentUser && (
-            <div className="flex items-center justify-center gap-8 py-3 border-t border-gray-50">
+            <div className="flex items-center justify-center py-3 border-t border-gray-50">
+              <div className="inline-flex items-center rounded-2xl bg-gray-50/80 border border-gray-100 shadow-sm overflow-hidden">
               <button
                 type="button"
                 onClick={() => void openFollowModal('following')}
-                className="group text-center"
+                className="group text-center px-7 py-2.5 hover:bg-white transition"
               >
-                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition">
+                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition tabular-nums">
                   {followCounts.following.toLocaleString('sr-RS')}
                 </p>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
                   Prati
                 </p>
               </button>
+              <div className="w-px self-stretch bg-gray-200/60" aria-hidden />
               <button
                 type="button"
                 onClick={() => void openFollowModal('followers')}
-                className="group text-center"
+                className="group text-center px-7 py-2.5 hover:bg-white transition"
               >
-                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition">
+                <p className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-700 transition tabular-nums">
                   {followCounts.followers.toLocaleString('sr-RS')}
                 </p>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 group-hover:text-emerald-600 transition">
                   Pratioci
                 </p>
               </button>
+              </div>
             </div>
           )}
         </div>
