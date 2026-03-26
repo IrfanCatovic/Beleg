@@ -233,6 +233,41 @@ func RejectFollowRequestHandler(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// DELETE /api/follows/user/:targetId
+// Uklanja outgoing follow/request (pending ili accepted) od currentUser ka target-u.
+func UnfollowUserHandler(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	targetIDStr := c.Param("targetId")
+	targetIDUint, err := strconv.ParseUint(targetIDStr, 10, 32)
+	if err != nil || targetIDUint == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
+		return
+	}
+	targetID := uint(targetIDUint)
+	if targetID == currentUser.ID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete otpratiti sebe"})
+		return
+	}
+
+	res := db.Where("requester_id = ? AND target_id = ?", currentUser.ID, targetID).Delete(&models.Follow{})
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otpraćivanju"})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Veza praćenja nije pronađena"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // GET /api/follows/status/:targetId
 // Vraca status odnosa između trenutnog korisnika (viewer) i target-a.
 func GetFollowStatusHandler(c *gin.Context) {

@@ -546,6 +546,27 @@ export default function ObavestenjeDetalj() {
     }
   }
 
+  const handleUnfollowBack = async () => {
+    if (!followMeta.requesterId || followBusy) return
+    const ok = await showConfirm('Da li želite da otpratite ovog korisnika?', {
+      title: 'Otprati',
+      confirmLabel: 'Otprati',
+      cancelLabel: 'Otkaži',
+      variant: 'danger',
+    })
+    if (!ok) return
+    setFollowBusy(true)
+    try {
+      await api.delete(`/api/follows/user/${followMeta.requesterId}`)
+      setFollowBackStatus('none')
+      await showAlert('Korisnik je otpraćen.', 'Praćenje')
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri otpraćivanju.', 'Praćenje')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
+
   return (
     <div className="relative mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 py-6 pb-20">
       {lightboxSrc && (
@@ -661,9 +682,14 @@ export default function ObavestenjeDetalj() {
               ) : (
                 <>
                   {followBackStatus === 'outgoing_accepted' ? (
-                    <span className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
-                      Već pratite
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleUnfollowBack()}
+                      disabled={followBusy}
+                      className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {followBusy ? '...' : 'Otprati'}
+                    </button>
                   ) : followBackStatus === 'outgoing_pending' ? (
                     <span className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
                       Zahtev za uzvraćanje je poslat

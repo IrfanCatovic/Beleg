@@ -51,6 +51,26 @@ export default function FollowControls({ targetId }: { targetId: number }) {
     }
   }
 
+  const unfollow = async () => {
+    if (submitting) return
+    const ok = await showConfirm('Da li želite da otpratite ovog korisnika?', {
+      title: 'Otprati korisnika',
+      variant: 'danger',
+      confirmLabel: 'Otprati',
+      cancelLabel: 'Otkaži',
+    })
+    if (!ok) return
+    setSubmitting(true)
+    try {
+      await api.delete(`/api/follows/user/${targetId}`)
+      await fetchStatus()
+    } catch (err: any) {
+      await showAlert(err.response?.data?.error || 'Greška pri otpraćivanju', 'Follow')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const accept = async () => {
     if (submitting) return
     if (!status.followId) return
@@ -122,8 +142,13 @@ export default function FollowControls({ targetId }: { targetId: number }) {
 
     if (status.state === 'outgoing_accepted') {
       return (
-        <button type="button" className={`${baseCommon} bg-emerald-50 text-emerald-700 border border-emerald-200`} disabled>
-          Već pratite
+        <button
+          type="button"
+          className={`${baseCommon} bg-rose-500 hover:bg-rose-600 text-white`}
+          onClick={() => void unfollow()}
+          disabled={submitting}
+        >
+          {submitting ? '...' : 'Otprati'}
         </button>
       )
     }
@@ -157,7 +182,7 @@ export default function FollowControls({ targetId }: { targetId: number }) {
         </button>
       </div>
     )
-  }, [accept, follow, isEnabled, loading, reject, status.followId, status.state, submitting])
+  }, [accept, follow, isEnabled, loading, reject, status.followId, status.state, submitting, unfollow])
 
   return buttons
 }
