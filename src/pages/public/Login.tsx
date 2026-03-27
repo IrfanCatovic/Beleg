@@ -96,7 +96,7 @@ export default function Login() {
         {/* Gornji levi ugao portret, produžen po visini */}
         <div className="absolute left-[-4rem] top-0 sm:left-[-5rem] sm:top-4 w-60 h-64 sm:w-72 sm:h-80 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/60 border border-white/70 bg-white/70">
           <img
-            src="/hike1.jpg"
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597583/hike1_pfaknd.jpg"
             alt="Planinari na usponu"
             className="w-full h-full object-cover"
           />
@@ -104,7 +104,7 @@ export default function Login() {
         {/* Gornji desni ugao portret, produžen po visini */}
         <div className="absolute right-[-3rem] top-6 sm:right-[-4.5rem] sm:top-10 w-52 h-64 sm:w-68 sm:h-80 rounded-3xl overflow-hidden shadow-xl shadow-sky-100/60 border border-white/70 bg-white/70">
           <img
-            src="/hike2.jpg"
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597583/hike2_lu6gwc.jpg"
             alt="Pogled sa vrha"
             className="w-full h-full object-cover"
           />
@@ -112,7 +112,7 @@ export default function Login() {
         {/* Donji levi ugao  niže od forme, veći */}
         <div className="absolute left-[-3rem] bottom-8 sm:left-[-4rem] sm:bottom-12 w-56 h-40 sm:w-72 sm:h-52 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/70 border border-white/70 bg-white/70">
           <img
-            src="/hike3.jpg"
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597584/hike3_zml5we.jpg"
             alt="Staza kroz šumu"
             className="w-full h-full object-cover"
           />
@@ -120,7 +120,7 @@ export default function Login() {
         {/* Donji desni ugao – skroz ispod kartice, širi kadar */}
         <div className="absolute right-[-3rem] bottom-[-1rem] sm:right-[-4rem] sm:bottom-0 w-52 h-36 sm:w-72 sm:h-48 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/70 border border-white/70 bg-white/70">
           <img
-            src="/hike4.jpg"
+            src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597584/hike4_zhqml2.jpg"
             alt="Planinari na grebenu"
             className="w-full h-full object-cover"
           />

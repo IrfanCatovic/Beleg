@@ -1096,15 +1096,15 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/akcije/uspon-na-zlu-kolatu</span>
                     </div>
-                    <img src="/ActionDetails.png" alt="Akcije PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt="Akcije PC prikaz" className="w-full h-auto" />
                   </div>
                   {/* Mobilni ekrani lebde preko donjeg desnog ugla */}
                   <div className="absolute -bottom-8 -right-2 sm:-right-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="/ActionDetails_mobile.png" alt="Akcije telefon detalj" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon detalj" className="w-full h-auto" />
                     </div>
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 -mt-4 sm:-mt-6">
-                      <img src="/Akcije1_mob.png" alt="Akcije telefon lista" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon lista" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1121,13 +1121,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/korisnik/catko</span>
                     </div>
-                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot profila (PC) dodaj sliku ovde
-                    </div>
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt="Profil PC prikaz" className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4 flex gap-2 sm:gap-3">
-                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
-                      Profil (telefon)
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599686/profil1mob_ayuax1.png" alt="Profil telefon prikaz" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1174,13 +1172,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/finansije</span>
                     </div>
-                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot finansija (PC) dodaj sliku ovde
-                    </div>
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt="Finansije PC prikaz" className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -right-2 sm:-right-4">
-                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
-                      Finansije (telefon)
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599666/finansije1mob_khecis.png" alt="Finansije telefon prikaz" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1196,13 +1192,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/zadaci</span>
                     </div>
-                    <div className="bg-slate-800/60 flex items-center justify-center py-20 text-xs text-slate-500">
-                      Screenshot zadataka (PC) dodaj sliku ovde
-                    </div>
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt="Zadaci PC prikaz" className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4">
-                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 flex items-center justify-center py-16 text-[10px] text-slate-500 text-center px-2">
-                      Zadaci (telefon)
+                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599663/zadaci1mob_mibpje.png" alt="Zadaci telefon prikaz" className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
