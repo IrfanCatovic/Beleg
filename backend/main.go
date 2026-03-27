@@ -60,11 +60,20 @@ func main() {
 	}
 
 	
+	defaultOrigins := []string{
+		"http://localhost:5173",
+		"http://127.0.0.1:5173",
+		"https://planiner.com",
+		"https://www.planiner.com",
+	}
 	corsOrigins := os.Getenv("CORS_ORIGINS")
 	if corsOrigins == "" {
-		corsOrigins = "http://localhost:5173,http://127.0.0.1:5173"
+		corsOrigins = strings.Join(defaultOrigins, ",")
 	}
-	originSet := map[string]bool{"http://localhost:5173": true, "http://127.0.0.1:5173": true}
+	originSet := map[string]bool{}
+	for _, o := range defaultOrigins {
+		originSet[o] = true
+	}
 	var origins []string
 	for _, o := range strings.Split(corsOrigins, ",") {
 		o = strings.TrimSpace(o)
@@ -73,7 +82,7 @@ func main() {
 			origins = append(origins, o)
 		}
 	}
-	origins = append([]string{"http://localhost:5173", "http://127.0.0.1:5173"}, origins...)
+	origins = append(defaultOrigins, origins...)
 	r.Use(middleware.SecurityHeaders(os.Getenv("SECURITY_CSP")))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,

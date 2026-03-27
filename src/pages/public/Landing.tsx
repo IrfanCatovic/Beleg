@@ -1103,9 +1103,7 @@ export default function Landing() {
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
                       <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon detalj" className="w-full h-auto" />
                     </div>
-                    <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800 -mt-4 sm:-mt-6">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon lista" className="w-full h-auto" />
-                    </div>
+
                   </div>
                 </div>
               </div>
@@ -1272,7 +1270,7 @@ export default function Landing() {
               <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
               <div>
                 <p className="text-sm font-semibold text-white">Planiner</p>
-                <p className="text-[11px] text-slate-400">by Orin</p>
+                <p className="text-[11px] text-slate-400">by Irfan Ćatović</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-5 text-xs text-slate-400 justify-center sm:justify-end">
