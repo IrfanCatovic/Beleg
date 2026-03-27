@@ -7,14 +7,55 @@
  * Računa starost u punim godinama na datum akcije.
  * Koristi datum rođenja i datum održavanja akcije.
  */
+function parseFlexibleDate(value: string | null | undefined): Date | null {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+
+  // ISO / RFC parse (najčešći backend format)
+  const direct = new Date(raw)
+  if (!isNaN(direct.getTime())) return direct
+
+  // dd.mm.yyyy ili dd/mm/yyyy (+ opcioni time)
+  const firstPart = raw.split('T')[0].split(' ')[0]
+  const m = firstPart.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/)
+  if (m) {
+    const day = Number(m[1])
+    const month = Number(m[2])
+    const year = Number(m[3])
+    const d = new Date(year, month - 1, day)
+    if (
+      !isNaN(d.getTime()) &&
+      d.getFullYear() === year &&
+      d.getMonth() === month - 1 &&
+      d.getDate() === day
+    ) {
+      return d
+    }
+  }
+
+  return null
+}
+
+function normalizePol(value: string | null | undefined): 'm' | 'z' | null {
+  const s = String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  if (!s) return null
+  if (s === 'm' || s === 'muski') return 'm'
+  if (s === 'z' || s === 'zenski' || s === 'zensko') return 'z'
+  return null
+}
+
 export function getAgeAtDate(
   birthDate: string | null | undefined,
   actionDate: string
 ): number | null {
-  if (!birthDate || !birthDate.trim()) return null
-  const birth = new Date(birthDate)
-  const action = new Date(actionDate)
-  if (isNaN(birth.getTime()) || isNaN(action.getTime())) return null
+  const birth = parseFlexibleDate(birthDate)
+  const action = parseFlexibleDate(actionDate)
+  if (!birth || !action) return null
   let age = action.getFullYear() - birth.getFullYear()
   const m = action.getMonth() - birth.getMonth()
   if (m < 0 || (m === 0 && action.getDate() < birth.getDate())) age -= 1
@@ -76,8 +117,9 @@ export function computeCountsForParticipants(
   for (const p of participants) {
     const age = getAgeAtDate(p.datum_rodjenja, actionDate)
     const cat = age !== null ? getAgeCategory(age) : null
-    const isM = p.pol === 'M' || p.pol === 'muški' || p.pol === 'm'
-    const isZ = p.pol === 'Ž' || p.pol === 'ž' || p.pol === 'zenski' || p.pol === 'ženski' || p.pol === 'z'
+    const pol = normalizePol(p.pol)
+    const isM = pol === 'm'
+    const isZ = pol === 'z'
 
     if (isM) {
       c.mUkupno += 1
