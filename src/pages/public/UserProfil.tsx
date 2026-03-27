@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
@@ -112,6 +112,17 @@ export default function UserProfile() {
 
   const rank = useRanking({ uspesneAkcije: akcije, ukupnoKm: stats.ukupnoKm, ukupnoMetaraUspona: stats.ukupnoMetaraUspona })
 
+  const fetchFollowCounts = useCallback(async () => {
+    if (!korisnik?.id) return
+    try {
+      const r = await api.get(`/api/follows/user/${korisnik.id}/counts`)
+      const d = r.data as { following?: number; followers?: number }
+      setFollowCounts({ following: d.following ?? 0, followers: d.followers ?? 0 })
+    } catch {
+      setFollowCounts({ following: 0, followers: 0 })
+    }
+  }, [korisnik?.id])
+
   /* ── data fetching ── */
   useEffect(() => {
     let cancelled = false
@@ -159,14 +170,8 @@ export default function UserProfile() {
   }, [korisnik?.id, currentUser])
 
   useEffect(() => {
-    if (!korisnik?.id || !currentUser) return
-    api.get(`/api/follows/user/${korisnik.id}/counts`)
-      .then((r) => {
-        const d = r.data as { following?: number; followers?: number }
-        setFollowCounts({ following: d.following ?? 0, followers: d.followers ?? 0 })
-      })
-      .catch(() => setFollowCounts({ following: 0, followers: 0 }))
-  }, [korisnik?.id, currentUser])
+    void fetchFollowCounts()
+  }, [fetchFollowCounts])
 
   useEffect(() => {
     if (!korisnik) return
@@ -330,7 +335,9 @@ export default function UserProfile() {
             currentUser={currentUser}
             onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
           >
-            {!isOwn && currentUser && <FollowControls targetId={korisnik.id} hidden={blockedEither} />}
+            {!isOwn && currentUser && (
+              <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
+            )}
             {!isOwn && currentUser && (
               <BlockUserButton
                 targetId={korisnik.id}

@@ -10,7 +10,15 @@ type FollowStatusResponse = {
   incomingFollowId?: number
 }
 
-export default function FollowControls({ targetId, hidden }: { targetId: number; hidden?: boolean }) {
+export default function FollowControls({
+  targetId,
+  hidden,
+  onStatusChange,
+}: {
+  targetId: number
+  hidden?: boolean
+  onStatusChange?: () => void
+}) {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
 
@@ -44,6 +52,7 @@ export default function FollowControls({ targetId, hidden }: { targetId: number;
     try {
       await api.post('/api/follows/requests', { targetId })
       await fetchStatus()
+      onStatusChange?.()
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri slanju zahteva', 'Follow')
     } finally {
@@ -64,6 +73,7 @@ export default function FollowControls({ targetId, hidden }: { targetId: number;
     try {
       await api.delete(`/api/follows/user/${targetId}`)
       await fetchStatus()
+      onStatusChange?.()
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri otpraćivanju', 'Follow')
     } finally {
@@ -84,6 +94,7 @@ export default function FollowControls({ targetId, hidden }: { targetId: number;
     try {
       await api.delete(`/api/follows/user/${targetId}`)
       await fetchStatus()
+      onStatusChange?.()
     } catch (err: any) {
       await showAlert(err.response?.data?.error || 'Greška pri otkazivanju zahteva', 'Follow')
     } finally {
@@ -104,6 +115,18 @@ export default function FollowControls({ targetId, hidden }: { targetId: number;
     }
 
     if (!isEnabled || status.outgoing === 'none') {
+      if (status.incoming === 'pending') {
+        return (
+          <button
+            type="button"
+            className={`${baseCommon} border border-sky-200 bg-sky-50 text-sky-800`}
+            disabled
+            title="Ovaj korisnik vam je već poslao zahtev za praćenje."
+          >
+            Imaš zahtev
+          </button>
+        )
+      }
       return (
         <button
           type="button"
@@ -140,7 +163,7 @@ export default function FollowControls({ targetId, hidden }: { targetId: number;
         {submitting ? '...' : 'Otprati'}
       </button>
     )
-  }, [follow, isEnabled, loading, status.outgoing, submitting, unfollow, cancelOutgoing])
+  }, [follow, isEnabled, loading, status.incoming, status.outgoing, submitting, unfollow, cancelOutgoing])
 
   if (hidden) return null
 
