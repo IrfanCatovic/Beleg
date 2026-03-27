@@ -129,27 +129,26 @@ export default function Actions() {
       )
 
       const korisniciRes = await api.get('/api/korisnici')
-      const korisniciList = korisniciRes.data.korisnici || []
-      const usernameToId: Record<string, number> = {}
-      korisniciList.forEach((k: { id: number; username: string }) => {
-        if (k.username) usernameToId[k.username] = k.id
-      })
-
-      const userCache: Record<number, { datum_rodjenja?: string | null; pol?: string }> = {}
-      const getUser = async (userId: number) => {
-        if (userCache[userId]) return userCache[userId]
-        try {
-          const res = await api.get(`/api/korisnici/${userId}`)
-          const u = res.data
-          userCache[userId] = {
-            datum_rodjenja: u.datum_rodjenja ?? null,
-            pol: u.pol,
-          }
-          return userCache[userId]
-        } catch {
-          return {}
+      const korisniciList = (korisniciRes.data.korisnici || []) as Array<{
+        id: number
+        username?: string
+        datum_rodjenja?: string | null
+        pol?: string
+      }>
+      const userDataById: Record<number, { datum_rodjenja?: string | null; pol?: string }> = {}
+      const userDataByUsername: Record<string, { datum_rodjenja?: string | null; pol?: string }> = {}
+      korisniciList.forEach((k) => {
+        userDataById[k.id] = {
+          datum_rodjenja: k.datum_rodjenja ?? null,
+          pol: k.pol,
         }
-      }
+        if (k.username) {
+          userDataByUsername[k.username] = {
+            datum_rodjenja: k.datum_rodjenja ?? null,
+            pol: k.pol,
+          }
+        }
+      })
 
       const rows: AnnualReportRow[] = []
       for (let i = 0; i < sorted.length; i++) {
@@ -171,19 +170,13 @@ export default function Actions() {
         const uspesnoPopeli = prijave.filter((p: { status: string }) => p.status === 'popeo se')
         const participants: ParticipantForReport[] = []
         for (const p of uspesnoPopeli) {
-          const userId = p.userId ?? usernameToId[p.korisnik]
-          if (userId != null) {
-            const u = await getUser(userId)
-            participants.push({
-              datum_rodjenja: p.datum_rodjenja ?? u.datum_rodjenja,
-              pol: p.pol ?? u.pol,
-            })
-          } else if (p.datum_rodjenja != null || p.pol != null) {
-            participants.push({
-              datum_rodjenja: p.datum_rodjenja,
-              pol: p.pol,
-            })
-          }
+          const userMeta =
+            (p.userId != null ? userDataById[p.userId] : undefined) ??
+            (p.korisnik ? userDataByUsername[p.korisnik] : undefined)
+          participants.push({
+            datum_rodjenja: p.datum_rodjenja ?? userMeta?.datum_rodjenja ?? null,
+            pol: p.pol ?? userMeta?.pol,
+          })
         }
         const counts = computeCountsForParticipants(participants, akcija.datum)
         rows.push({
