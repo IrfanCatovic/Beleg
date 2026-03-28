@@ -8,31 +8,35 @@ import { getRandomHikingGreeting } from '../../data/hikingGreetings'
 const LS_REMEMBER_LOGIN = 'planiner_remember_login'
 const LS_SAVED_USERNAME = 'planiner_saved_username'
 
+/** Demo nalog za prezentacije; polja su unapred popunjena osim ako je uključeno „Zapamti me“. */
+const DEMO_LOGIN_USERNAME = 'planiner'
+const DEMO_LOGIN_PASSWORD = 'admin123'
+
+function getInitialLoginFields(): { username: string; password: string; rememberMe: boolean } {
+  try {
+    if (localStorage.getItem(LS_REMEMBER_LOGIN) === '1') {
+      const saved = localStorage.getItem(LS_SAVED_USERNAME)?.trim()
+      if (saved) {
+        return { username: saved, password: '', rememberMe: true }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { username: DEMO_LOGIN_USERNAME, password: DEMO_LOGIN_PASSWORD, rememberMe: false }
+}
+
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [bootstrap] = useState(getInitialLoginFields)
+  const [username, setUsername] = useState(bootstrap.username)
+  const [password, setPassword] = useState(bootstrap.password)
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(bootstrap.rememberMe)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const greeting = useMemo(() => getRandomHikingGreeting(), [])
-
-  // Učitaj zapamćeno korisničko ime (lozinka se nikad ne čuva u browseru)
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(LS_REMEMBER_LOGIN) === '1') {
-        const saved = localStorage.getItem(LS_SAVED_USERNAME)
-        if (saved) {
-          setUsername(saved)
-          setRememberMe(true)
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
 
   useEffect(() => {
     const checkSetup = async () => {
@@ -285,7 +289,9 @@ export default function Login() {
 
           <div className="mt-5 p-3 rounded-xl bg-emerald-50/80 border border-emerald-100 text-center">
             <p className="text-[11px] sm:text-xs text-emerald-800 font-medium mb-0.5">Demo nalog za testiranje</p>
-            <p className="text-[11px] sm:text-xs text-slate-600">username <strong>planiner</strong> / pw <strong>admin123</strong></p>
+            <p className="text-[11px] sm:text-xs text-slate-600">
+              username <strong>{DEMO_LOGIN_USERNAME}</strong> / pw <strong>{DEMO_LOGIN_PASSWORD}</strong>
+            </p>
           </div>
           <p className="mt-5 text-[11px] sm:text-xs text-center text-slate-500">
             Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.
