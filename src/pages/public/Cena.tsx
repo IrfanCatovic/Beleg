@@ -5,7 +5,7 @@ import api from '../../services/api'
 
 const ADMIN_PRICE_RSD = 600
 
-type PaketKey = 'Starter' | 'Growth' | 'Pro'
+type PaketKey = 'Free' | 'Starter' | 'Growth' | 'Pro'
 
 const PAKETI: Record<
   PaketKey,
@@ -15,11 +15,23 @@ const PAKETI: Record<
     basePriceRsd: number
     includedUsers: number
     extraPricePerUserRsd: number
-    spaceGb: number
+    /** Prikaz prostora u GB (ako nije zadato spaceMb). */
+    spaceGb?: number
+    /** Ako je zadato, prikazuje se umesto spaceGb (npr. besplatni paket). */
+    spaceMb?: number
     admins: number
     highlighted?: boolean
   }
 > = {
+  Free: {
+    name: 'Free paket',
+    description: 'Besplatno za manja društva — probajte planiner bez obaveze.',
+    basePriceRsd: 0,
+    includedUsers: 50,
+    extraPricePerUserRsd: 0,
+    spaceMb: 500,
+    admins: 1,
+  },
   Starter: {
     name: 'Starter paket',
     description: 'Za manja društva koja tek uvode digitalnu administraciju.',
@@ -65,8 +77,12 @@ export default function Cena() {
   const selected = PAKETI[selectedPaket]
   const basePriceRsd = selected.basePriceRsd
   const extraPricePerUserRsd = selected.extraPricePerUserRsd
+  const isFreePaket = selectedPaket === 'Free'
 
   const { extraUsersCostRsd, extraAdminsCostRsd, totalMonthlyRsd } = useMemo(() => {
+    if (isFreePaket) {
+      return { extraUsersCostRsd: 0, extraAdminsCostRsd: 0, totalMonthlyRsd: 0 }
+    }
     const extraUsersCost = extraUsers * extraPricePerUserRsd
     const extraAdminsCost = extraAdmins * ADMIN_PRICE_RSD
     return {
@@ -74,7 +90,7 @@ export default function Cena() {
       extraAdminsCostRsd: extraAdminsCost,
       totalMonthlyRsd: basePriceRsd + extraUsersCost + extraAdminsCost,
     }
-  }, [extraUsers, extraAdmins, basePriceRsd, extraPricePerUserRsd])
+  }, [extraUsers, extraAdmins, basePriceRsd, extraPricePerUserRsd, isFreePaket])
 
   const handleSendEmail = async () => {
     const club = imeKluba.trim()
@@ -170,7 +186,7 @@ export default function Cena() {
         </div>
 
         {/* Paketi */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(PAKETI) as PaketKey[]).map((key) => {
             const p = PAKETI[key]
             const isActive = key === selectedPaket
@@ -182,7 +198,13 @@ export default function Cena() {
               <button
                 key={key}
                 type="button"
-                onClick={() => setSelectedPaket(key)}
+                onClick={() => {
+                  setSelectedPaket(key)
+                  if (key === 'Free') {
+                    setExtraUsers(0)
+                    setExtraAdmins(0)
+                  }
+                }}
                 className={`rounded-2xl shadow-sm p-6 flex flex-col text-left border transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
                   cardClasses
                 } ${isActive ? 'ring-2 ring-offset-2 ring-offset-emerald-50 ring-emerald-400' : ''}`}
@@ -200,16 +222,26 @@ export default function Cena() {
                     p.highlighted ? 'text-white' : 'text-emerald-700'
                   }`}
                 >
-                  {p.basePriceRsd.toLocaleString('sr-RS')} din
-                  <span className="text-sm font-medium opacity-80"> / mesec</span>
+                  {p.basePriceRsd === 0 ? (
+                    <span className="block">Besplatno</span>
+                  ) : (
+                    <>
+                      {p.basePriceRsd.toLocaleString('sr-RS')} din
+                      <span className="text-sm font-medium opacity-80"> / mesec</span>
+                    </>
+                  )}
                 </p>
                 <ul className={`text-sm space-y-1 mb-4 ${p.highlighted ? 'text-emerald-50' : 'text-gray-600'}`}>
                   <li>do {p.includedUsers.toLocaleString('sr-RS')} članova</li>
-                  <li>do {p.spaceGb} GB slika</li>
+                  <li>
+                    do {p.spaceMb != null ? `${p.spaceMb.toLocaleString('sr-RS')} MB` : `${p.spaceGb} GB`} slika
+                  </li>
                   <li>admin naloga: {p.admins}</li>
                 </ul>
                 <p className={`text-xs mt-auto ${p.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>
-                  Cena dodatnog korisnika: {p.extraPricePerUserRsd.toLocaleString('sr-RS')} din / mesec
+                  {p.basePriceRsd === 0
+                    ? 'Bez mesečne pretplate; za više članova ili prostora — plaćeni paketi.'
+                    : `Cena dodatnog korisnika: ${p.extraPricePerUserRsd.toLocaleString('sr-RS')} din / mesec`}
                 </p>
                 {isActive && (
                   <p className={`mt-2 text-xs font-semibold ${p.highlighted ? 'text-white' : 'text-emerald-700'}`}>
@@ -222,11 +254,24 @@ export default function Cena() {
         </div>
 
         {/* Dodatni korisnici */}
-        <div className="rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4">
+        <div
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
+        >
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Dodatni korisnici (članovi)</h2>
           <p className="text-sm text-gray-600">
-            Osim korisnika uključenih u paket, možete dodati još korisnika po fiksnoj ceni po korisniku. Povucite klizač
-            da procenite koliko bi vas to koštalo mesečno.
+            {isFreePaket ? (
+              <>
+                Free paket ima fiksno do 50 članova. Za više članova izaberite Starter, Growth ili Pro i pošaljite
+                zahtev za ponudu.
+              </>
+            ) : (
+              <>
+                Osim korisnika uključenih u paket, možete dodati još korisnika po fiksnoj ceni po korisniku. Povucite
+                klizač da procenite koliko bi vas to koštalo mesečno.
+              </>
+            )}
           </p>
 
           <div className="mt-3 space-y-3">
@@ -242,7 +287,8 @@ export default function Cena() {
               step={10}
               value={extraUsers}
               onChange={(e) => setExtraUsers(Number(e.target.value))}
-              className="w-full accent-emerald-600"
+              disabled={isFreePaket}
+              className="w-full accent-emerald-600 disabled:cursor-not-allowed"
             />
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <span className="font-medium text-gray-800">
@@ -260,11 +306,15 @@ export default function Cena() {
         </div>
 
         {/* Dodatni admini */}
-        <div className="rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4">
+        <div
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
+        >
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Dodatni admin nalozi</h2>
           <p className="text-sm text-gray-600">
-            Svaki paket uključuje svoje admin naloge (Starter 3, Growth 3, Pro 5). Ako vam je potrebno više ljudi sa
-            administratorskim pristupom, možete dodati dodatne admin naloge.
+            Svaki paket uključuje svoje admin naloge (Free 1, Starter 3, Growth 3, Pro 5). Ako vam je potrebno više ljudi
+            sa administratorskim pristupom, možete dodati dodatne admin naloge (na plaćenim paketima).
           </p>
 
           <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end">
@@ -279,7 +329,8 @@ export default function Cena() {
                 max={20}
                 value={extraAdmins}
                 onChange={(e) => setExtraAdmins(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none"
+                disabled={isFreePaket}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none disabled:cursor-not-allowed"
               />
             </div>
             <div className="text-sm text-gray-700 space-y-1">
@@ -313,7 +364,11 @@ export default function Cena() {
               </p>
               <p>
                 Osnovna cena paketa:{' '}
-                <span className="font-semibold">{Math.round(basePriceRsd).toLocaleString('sr-RS')} din / mesec</span>
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? 'Besplatno'
+                    : `${Math.round(basePriceRsd).toLocaleString('sr-RS')} din / mesec`}
+                </span>
               </p>
               <p>
                 Uključeno korisnika:{' '}
@@ -324,19 +379,22 @@ export default function Cena() {
               <p>
                 Dodatni korisnici:{' '}
                 <span className="font-semibold">
-                  {extraUsers} × {extraPricePerUserRsd.toLocaleString('sr-RS')} din ={' '}
-                  {Math.round(extraUsersCostRsd).toLocaleString('sr-RS')} din
+                  {isFreePaket
+                    ? '— (samo na plaćenim paketima)'
+                    : `${extraUsers} × ${extraPricePerUserRsd.toLocaleString('sr-RS')} din = ${Math.round(extraUsersCostRsd).toLocaleString('sr-RS')} din`}
                 </span>
               </p>
               <p>
                 Dodatni admini:{' '}
                 <span className="font-semibold">
-                  {extraAdmins} × {ADMIN_PRICE_RSD.toLocaleString('sr-RS')} din ={' '}
-                  {Math.round(extraAdminsCostRsd).toLocaleString('sr-RS')} din
+                  {isFreePaket
+                    ? '— (samo na plaćenim paketima)'
+                    : `${extraAdmins} × ${ADMIN_PRICE_RSD.toLocaleString('sr-RS')} din = ${Math.round(extraAdminsCostRsd).toLocaleString('sr-RS')} din`}
                 </span>
               </p>
               <p className="text-base font-semibold text-emerald-700">
-                Ukupno mesečno: {Math.round(totalMonthlyRsd).toLocaleString('sr-RS')} din
+                Ukupno mesečno:{' '}
+                {isFreePaket ? 'Besplatno' : `${Math.round(totalMonthlyRsd).toLocaleString('sr-RS')} din`}
               </p>
             </div>
           </div>
