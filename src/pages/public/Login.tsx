@@ -5,44 +5,25 @@ import api from '../../services/api'
 import Loader from '../../components/Loader'
 import { getRandomHikingGreeting } from '../../data/hikingGreetings'
 
-const LS_REMEMBER_LOGIN = 'planiner_remember_login'
-const LS_SAVED_USERNAME = 'planiner_saved_username'
-
-/** Demo nalog za prezentacije; polja su unapred popunjena osim ako je uključeno „Zapamti me“. */
+/** Demo nalog — polja su unapred popunjena radi brzog ulaska (npr. prezentacije). */
 const DEMO_LOGIN_USERNAME = 'planiner'
 const DEMO_LOGIN_PASSWORD = 'admin123'
-
-function getInitialLoginFields(): { username: string; password: string; rememberMe: boolean } {
-  try {
-    if (localStorage.getItem(LS_REMEMBER_LOGIN) === '1') {
-      const saved = localStorage.getItem(LS_SAVED_USERNAME)?.trim()
-      if (saved) {
-        return { username: saved, password: '', rememberMe: true }
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return { username: DEMO_LOGIN_USERNAME, password: DEMO_LOGIN_PASSWORD, rememberMe: false }
-}
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [bootstrap] = useState(getInitialLoginFields)
-  const [username, setUsername] = useState(bootstrap.username)
-  const [password, setPassword] = useState(bootstrap.password)
+  const [username, setUsername] = useState(DEMO_LOGIN_USERNAME)
+  const [password, setPassword] = useState(DEMO_LOGIN_PASSWORD)
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(bootstrap.rememberMe)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const greeting = useMemo(() => getRandomHikingGreeting(), [])
 
+  // Provera setup-a u pozadini — bez punog ekranskog loadera: spor API (cold start, mreža) ne blokira formu.
   useEffect(() => {
     const checkSetup = async () => {
-      setLoading(true)
       try {
-        const res = await api.get('/api/setup/status')
+        const res = await api.get('/api/setup/status', { timeout: 15_000 })
 
         if (res.data.needsSuperadmin) {
           navigate('/register-superadmin', { replace: true })
@@ -55,8 +36,6 @@ export default function Login() {
         }
       } catch (err) {
         console.error('Greška pri proveri statusa', err)
-      } finally {
-        setLoading(false)
       }
     }
     checkSetup()
@@ -73,17 +52,6 @@ export default function Login() {
         username: normalizedUser,
         password,
       })
-      try {
-        if (rememberMe) {
-          localStorage.setItem(LS_REMEMBER_LOGIN, '1')
-          localStorage.setItem(LS_SAVED_USERNAME, normalizedUser)
-        } else {
-          localStorage.removeItem(LS_REMEMBER_LOGIN)
-          localStorage.removeItem(LS_SAVED_USERNAME)
-        }
-      } catch {
-        // ignore
-      }
       login(response.data)
       navigate('/home')
     } catch (err: any) {
@@ -261,20 +229,6 @@ export default function Login() {
                 </button>
               </div>
             </div>
-
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={loading}
-                className="h-4 w-4 rounded border-emerald-200 text-emerald-600 focus:ring-emerald-400/50"
-              />
-              <span className="text-xs sm:text-sm text-slate-700">Zapamti me (samo korisničko ime)</span>
-            </label>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 -mt-2">
-              Lozinka se ne čuva u pregledaču radi bezbednosti.
-            </p>
 
             <button
               type="submit"

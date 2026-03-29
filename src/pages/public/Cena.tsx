@@ -25,7 +25,7 @@ const PAKETI: Record<
 > = {
   Free: {
     name: 'Free paket',
-    description: 'Besplatno za manja društva — probajte planiner bez obaveze.',
+    description: 'Besplatno probajte planiner bez obaveze.',
     basePriceRsd: 0,
     includedUsers: 50,
     extraPricePerUserRsd: 0,
