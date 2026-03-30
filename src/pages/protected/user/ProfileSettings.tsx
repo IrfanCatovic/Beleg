@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
+import DatePartsSelect from '../../../components/DatePartsSelect'
 import Loader from '../../../components/Loader'
 import { dateToYMD } from '../../../utils/dateUtils'
 import {
@@ -503,15 +504,15 @@ export default function ProfileSettings() {
                     </div>
                     <div>
                       <label className={labelClass}>Datum rođenja</label>
-                      <CalendarDropdown
+                      <DatePartsSelect
+                        ariaLabel="Datum rođenja"
                         value={form.datumRodjenja}
                         onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
-                        placeholder="Izaberite datum"
-                        fullWidth
-                        aria-label="Datum rođenja"
-                        minDate="1900-01-01"
-                        maxDate={dateToYMD(new Date())}
-                        showTodayShortcut={false}
+                        placeholderDay="Dan"
+                        placeholderMonth="Mesec"
+                        placeholderYear="Godina"
+                        minYear={1900}
+                        maxYear={new Date().getFullYear()}
                       />
                     </div>
                   </div>

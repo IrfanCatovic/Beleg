@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth, type User } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
-import CalendarDropdown from '../../components/CalendarDropdown'
+import DatePartsSelect from '../../components/DatePartsSelect'
 import { formatDateShort } from '../../utils/dateUtils'
 import {
   PencilSquareIcon,
@@ -426,24 +426,6 @@ export default function Klub() {
                   </div>
                 </div>
               </div>
-
-              {/* Javni: osnovni pravni info (bez detalja o limitima) */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Osnovni podaci</h2>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="divide-y divide-gray-100 -mx-1">
-                    {klub.maticni_broj && <FieldRow label="Matični broj" value={klub.maticni_broj} icon={DocumentTextIcon} />}
-                    {klub.pib && <FieldRow label="PIB" value={klub.pib} icon={DocumentTextIcon} />}
-                    {klub.datum_osnivanja && <FieldRow label="Datum osnivanja" value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
-                    {!klub.maticni_broj && !klub.pib && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">Nema unetih podataka.</p>}
-                  </div>
-                </div>
-              </div>
             </div>
           </>
         ) : (
@@ -476,12 +458,15 @@ export default function Klub() {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Datum osnivanja</label>
-                        <CalendarDropdown
+                        <DatePartsSelect
+                          ariaLabel="Datum osnivanja"
                           value={form.datum_osnivanja}
                           onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
-                          placeholder="Izaberite datum osnivanja"
-                          fullWidth
-                          aria-label="Datum osnivanja"
+                          minYear={1900}
+                          maxYear={new Date().getFullYear()}
+                          placeholderDay="Dan"
+                          placeholderMonth="Mesec"
+                          placeholderYear="Godina"
                         />
                       </div>
                     </div>
