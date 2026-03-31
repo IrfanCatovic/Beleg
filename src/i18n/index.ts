@@ -13,7 +13,7 @@ i18n
     fallbackLng: 'sr',
     supportedLngs,
     defaultNS: 'common',
-    ns: ['common', 'landing', 'login', 'appLayout', 'home', 'tasks', 'actions', 'actionDetails'],
+    ns: ['common', 'landing', 'login', 'appLayout', 'home', 'tasks', 'actions', 'actionDetails', 'users'],
     interpolation: {
       escapeValue: false,
     },

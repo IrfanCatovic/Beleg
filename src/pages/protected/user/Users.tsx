@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
@@ -24,6 +25,7 @@ interface Korisnik {
 }
 
 export default function Korisnici() {
+  const { t } = useTranslation('users')
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
@@ -46,7 +48,7 @@ export default function Korisnici() {
         const res = await api.get('/api/korisnici')
         setKorisnici(res.data.korisnici || [])
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju korisnika')
+        setError(err.response?.data?.error || t('loadError'))
       } finally {
         setLoading(false)
       }
@@ -57,13 +59,13 @@ export default function Korisnici() {
 
   
   const roleOptions: { value: string; label: string }[] = [
-    { value: '', label: 'Sve uloge' },
-    { value: 'clan', label: 'Član' },
-    { value: 'vodic', label: 'Vodič' },
-    { value: 'blagajnik', label: 'Blagajnik' },
-    { value: 'sekretar', label: 'Sekretar' },
-    { value: 'menadzer-opreme', label: 'Menadžer opreme' },
-    { value: 'admin', label: 'Admin' },
+    { value: '', label: t('allRoles') },
+    { value: 'clan', label: t('roles.clan') },
+    { value: 'vodic', label: t('roles.vodic') },
+    { value: 'blagajnik', label: t('roles.blagajnik') },
+    { value: 'sekretar', label: t('roles.sekretar') },
+    { value: 'menadzer-opreme', label: t('roles.menadzerOpreme') },
+    { value: 'admin', label: t('roles.admin') },
   ]
 
   useEffect(() => {
@@ -137,17 +139,17 @@ export default function Korisnici() {
   const handleDelete = async (k: Korisnik) => {
     if (deletingId) return
     const ok = await showConfirm(
-      `Da li ste sigurni da želite da trajno obrišete korisnika ${k.fullName || k.username}? Ovaj korak se ne može poništiti.`,
-      { variant: 'danger', confirmLabel: 'Obriši' }
+      t('confirmDelete', { name: k.fullName || k.username }),
+      { variant: 'danger', confirmLabel: t('delete') }
     )
     if (!ok) return
     setDeletingId(k.id)
     try {
       await api.delete(`/api/korisnici/${k.id}`)
       setKorisnici((prev) => prev.filter((u) => u.id !== k.id))
-      await showAlert('Korisnik je obrisan.')
+      await showAlert(t('deletedSuccess'))
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri brisanju korisnika.', 'Greška')
+      await showAlert(err.response?.data?.error || t('deleteError'), t('errorTitle'))
     } finally {
       setDeletingId(null)
     }
@@ -179,7 +181,7 @@ export default function Korisnici() {
       }
       generateMemberPdf(pdfData)
     } catch (err: unknown) {
-      console.error('Greška pri generisanju PDF-a:', err)
+      console.error(t('pdfErrorLog'), err)
     } finally {
       setPrintingId(null)
     }
@@ -209,11 +211,11 @@ export default function Korisnici() {
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">
-                Članovi kluba
+                {t('title')}
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 ml-3.5 max-w-xl">
-              Pregled svih članova, uloga i ranga u klubu.
+              {t('subtitle')}
             </p>
           </div>
 
@@ -226,7 +228,7 @@ export default function Korisnici() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Dodaj novog korisnika
+                {t('addNewUser')}
               </Link>
             </div>
           )}
@@ -240,7 +242,7 @@ export default function Korisnici() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Pretraži po imenu ili username-u..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-3 sm:pl-10 sm:pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25 focus:bg-white outline-none transition-all"
@@ -259,7 +261,7 @@ export default function Korisnici() {
                 className="w-full px-3.5 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-gray-50/60 text-sm text-gray-700 flex items-center justify-between gap-2 outline-none transition-all hover:border-emerald-300 hover:bg-emerald-50/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25"
               >
                 <span className="truncate">
-                  {roleOptions.find((o) => o.value === roleFilter)?.label ?? 'Sve uloge'}
+                  {roleOptions.find((o) => o.value === roleFilter)?.label ?? t('allRoles')}
                 </span>
                 <ChevronDownIcon className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 shrink-0 transition-transform ${roleDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -300,7 +302,7 @@ export default function Korisnici() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Svi članovi
+              {t('allMembersTab')}
             </button>
             <button
               type="button"
@@ -311,7 +313,7 @@ export default function Korisnici() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Rang lista (Top 30)
+              {t('rankingTab')}
             </button>
           </nav>
         </div>
@@ -327,12 +329,15 @@ export default function Korisnici() {
               </div>
               <p className="text-sm text-gray-600 font-medium">
                 {searchTerm
-                  ? `Nema članova za pretragu "${searchTerm}"${
-                      roleFilter ? ` sa ulogom ${roleOptions.find((o) => o.value === roleFilter)?.label}` : ''
-                    }`
+                  ? roleFilter
+                    ? t('noMembersForSearchWithRole', {
+                        search: searchTerm,
+                        role: roleOptions.find((o) => o.value === roleFilter)?.label ?? '',
+                      })
+                    : t('noMembersForSearch', { search: searchTerm })
                   : roleFilter
-                    ? `Nema članova sa ulogom ${roleOptions.find((o) => o.value === roleFilter)?.label}.`
-                    : 'Još nema registrovanih članova.'}
+                    ? t('noMembersForRole', { role: roleOptions.find((o) => o.value === roleFilter)?.label ?? '' })
+                    : t('noRegisteredMembers')}
               </p>
             </div>
           ) : (
@@ -389,7 +394,7 @@ export default function Korisnici() {
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center justify-between gap-2 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-700">Uloga:</span>
+                                <span className="font-medium text-gray-700">{t('roleLabel')}</span>
                                 <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role)}`}>
                                   {getRoleLabel(k.role)}
                                 </span>
@@ -423,7 +428,7 @@ export default function Korisnici() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                               <span>
-                                Pridružio se: {formatDate(k.createdAt)}
+                                {t('joinedOn')}: {formatDate(k.createdAt)}
                               </span>
                             </div>
                           </div>
@@ -434,7 +439,7 @@ export default function Korisnici() {
                             <Link
                               to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
                               className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-                              title="Podešavanja"
+                              title={t('settings')}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <Cog6ToothIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -442,7 +447,7 @@ export default function Korisnici() {
                             <Link
                               to={`/users/${k.id}/info`}
                               className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-                              title="Sve informacije o korisniku"
+                              title={t('allUserInfo')}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <InformationCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -450,7 +455,7 @@ export default function Korisnici() {
                             <button
                               type="button"
                               className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Štampanje evidencije člana"
+                              title={t('printMemberRecord')}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handlePrint(k)
@@ -463,7 +468,7 @@ export default function Korisnici() {
                               <button
                                 type="button"
                                 className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Obriši korisnika"
+                                title={t('deleteUser')}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDelete(k)
@@ -488,16 +493,16 @@ export default function Korisnici() {
               <div className="flex items-center gap-2">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
                 <h3 className="text-base sm:text-lg font-bold text-gray-900">
-                  Ukupna rang lista članova
+                  {t('overallRanking')}
                 </h3>
               </div>
               <span className="rounded-full bg-gray-50 px-3 py-1 text-[11px] font-medium text-gray-600">
-                {rankingKorisnici.length} članova
+                {t('membersCount', { count: rankingKorisnici.length })}
               </span>
             </div>
             {rankingKorisnici.length === 0 ? (
               <p className="text-sm text-gray-600">
-                Još nema dovoljno podataka za rang listu.
+                {t('notEnoughRankingData')}
               </p>
             ) : (
               <ul className="divide-y divide-gray-100">
