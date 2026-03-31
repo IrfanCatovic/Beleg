@@ -2,6 +2,7 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { formatDateShort } from '../utils/dateUtils'
 import { getRoleLabel } from '../utils/roleUtils'
 import type { Role } from './NewTaskModal'
+import { useTranslation } from 'react-i18next'
 
 export interface TaskAssignee {
   username: string
@@ -51,6 +52,7 @@ export function TaskCardFooter({
   onEdit: (t: Task) => void
   onDelete: (t: Task) => void
 }) {
+  const { t } = useTranslation('shared')
   const isAdminOrSekretar = userRole === 'superadmin' || userRole === 'admin' || userRole === 'sekretar'
   const canTake = canTakeTask(task, userRole)
   const alreadyTaken = hasTakenTask(task, username)
@@ -62,7 +64,7 @@ export function TaskCardFooter({
         onClick={() => onLeave(task)}
         className="w-full py-2.5 text-center text-xs font-semibold text-rose-700 bg-rose-50/90 hover:bg-rose-100 border-t border-rose-100/80 transition-colors"
       >
-        Otkaži
+        {t('taskCard.cancel')}
       </button>
     ) : canTake ? (
       <button
@@ -70,10 +72,10 @@ export function TaskCardFooter({
         onClick={() => onTake(task)}
         className="w-full py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all"
       >
-        Preuzmi zadatak
+        {t('taskCard.takeTask')}
       </button>
     ) : (
-      <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">Nemaš dozvolu za ovaj zadatak</div>
+      <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">{t('taskCard.noPermission')}</div>
     )
   }
 
@@ -86,7 +88,7 @@ export function TaskCardFooter({
             onClick={() => onTake(task)}
             className="flex-1 py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all"
           >
-            Pridruži se
+            {t('taskCard.join')}
           </button>
         ) : alreadyTaken ? (
           <button
@@ -94,7 +96,7 @@ export function TaskCardFooter({
             onClick={() => onLeave(task)}
             className="flex-1 py-2.5 text-center text-xs font-semibold text-rose-700 bg-rose-50/90 hover:bg-rose-100 transition-colors"
           >
-            Otkaži
+            {t('taskCard.cancel')}
           </button>
         ) : null}
         {isAdminOrSekretar && (
@@ -104,14 +106,14 @@ export function TaskCardFooter({
               onClick={() => onEdit(task)}
               className="flex-1 py-2.5 text-center text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
-              Izmeni
+              {t('taskCard.edit')}
             </button>
             <button
               type="button"
               onClick={() => onZavrsi(task)}
               className="flex-1 py-2.5 text-center text-xs font-semibold text-amber-600 hover:bg-amber-50 transition-colors"
             >
-              Završi
+              {t('taskCard.finish')}
             </button>
           </>
         )}
@@ -126,10 +128,10 @@ export function TaskCardFooter({
       onClick={() => onDelete(task)}
       className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
     >
-      Obriši zadatak
+      {t('taskCard.deleteTask')}
     </button>
   ) : (
-    <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50/80">Završeno</div>
+    <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50/80">{t('taskCard.done')}</div>
   )
 }
 
@@ -142,6 +144,7 @@ export default function TaskCard({
   footer: ReactNode
   onOpen?: () => void
 }) {
+  const { t } = useTranslation('shared')
   const isUrgent = task.hitno
   const isFinished = task.status === 'zavrsen'
 
@@ -173,7 +176,7 @@ export default function TaskCard({
         onKeyDown={handleKeyDown}
         role={onOpen ? 'button' : undefined}
         tabIndex={onOpen ? 0 : undefined}
-        aria-label={onOpen ? `Otvori detalje: ${task.naziv}` : undefined}
+        aria-label={onOpen ? t('taskCard.openDetails', { name: task.naziv }) : undefined}
       >
         <div className="flex items-start justify-between gap-2">
           <h3
@@ -188,7 +191,7 @@ export default function TaskCard({
               isUrgent ? 'bg-rose-500 text-white' : isFinished ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-500 border border-gray-100'
             }`}
           >
-            {isUrgent ? 'HITNO' : isFinished ? 'Gotovo' : 'Zadatak'}
+            {isUrgent ? t('taskCard.urgent') : isFinished ? t('taskCard.doneShort') : t('taskCard.task')}
           </span>
         </div>
 
@@ -206,10 +209,10 @@ export default function TaskCard({
               </svg>
               <span className="font-medium">
                 {task.allowAll
-                  ? 'Svi'
+                  ? t('taskCard.everyone')
                   : task.allowedRoles?.length
                     ? task.allowedRoles.map((r) => getRoleLabel(r)).join(', ')
-                    : '—'}
+                    : t('taskCard.empty')}
               </span>
             </span>
             {task.deadline && (
@@ -234,7 +237,7 @@ export default function TaskCard({
 
           {task.assignees && task.assignees.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-50">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-0.5">Rade:</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mr-0.5">{t('taskCard.working')}:</span>
               {task.assignees.map((a) => (
                 <span
                   key={a.username}
