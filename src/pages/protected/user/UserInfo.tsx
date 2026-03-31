@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../../services/api'
 import { useAuth } from '../../../context/AuthContext'
 import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
@@ -52,13 +53,6 @@ interface BlockedUser {
   klubNaziv?: string
 }
 
-function formatPol(pol: string | undefined): string {
-  if (!pol) return '—'
-  if (pol === 'M') return 'Muški'
-  if (pol === 'Ž') return 'Ženski'
-  return pol
-}
-
 function InfoRow({ label, value, alwaysShow = false, icon: Icon }: { label: string; value: React.ReactNode; alwaysShow?: boolean; icon?: React.ComponentType<{ className?: string }> }) {
   const isEmpty = value === undefined || value === null || value === ''
   if (!alwaysShow && isEmpty) return null
@@ -75,6 +69,7 @@ function InfoRow({ label, value, alwaysShow = false, icon: Icon }: { label: stri
 }
 
 export default function UserInfo() {
+  const { t, i18n } = useTranslation('userInfo')
   const { id } = useParams<{ id: string }>()
   const { user: currentUser } = useAuth()
   const [korisnik, setKorisnik] = useState<KorisnikInfo | null>(null)
@@ -94,7 +89,7 @@ export default function UserInfo() {
         const data = res.data as KorisnikInfo
         setKorisnik(data)
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
+        setError(err.response?.data?.error || t('loadError'))
       } finally {
         setLoading(false)
       }
@@ -116,7 +111,7 @@ export default function UserInfo() {
     return (
       <div className="min-h-[40vh] flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-rose-600 font-medium">{error || 'Korisnik nije pronađen'}</p>
+          <p className="text-rose-600 font-medium">{error || t('notFound')}</p>
         </div>
       </div>
     )
@@ -131,11 +126,11 @@ export default function UserInfo() {
             <div className="flex items-center gap-4">
               <Link to="/users" className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900">
                 <ArrowLeftIcon className="h-5 w-5" />
-                Nazad na listu
+                {t('backToList')}
               </Link>
             </div>
             <Link to={`/korisnik/${korisnik.username}`} className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline shrink-0">
-              Pogledaj javni profil →
+              {t('viewPublicProfile')}
             </Link>
           </div>
           <div className="flex items-center gap-5 mt-6">
@@ -165,14 +160,14 @@ export default function UserInfo() {
               onClick={() => setActiveTab('info')}
               className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition ${activeTab === 'info' ? 'bg-emerald-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
-              Informacije
+              {t('tabs.info')}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('blocked')}
               className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition ${activeTab === 'blocked' ? 'bg-emerald-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
-              Blokirani korisnici
+              {t('tabs.blocked')}
             </button>
           </div>
         )}
@@ -180,10 +175,10 @@ export default function UserInfo() {
         {activeTab === 'blocked' && currentUser && korisnik.username === currentUser.username ? (
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-              <h2 className="text-base font-semibold text-gray-900">Blokirani korisnici</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t('blocked.title')}</h2>
             </div>
             {blockedUsers.length === 0 ? (
-              <p className="p-5 text-sm text-gray-500">Nema blokiranih korisnika.</p>
+              <p className="p-5 text-sm text-gray-500">{t('blocked.empty')}</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {blockedUsers.map((u) => (
@@ -209,18 +204,18 @@ export default function UserInfo() {
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
               <div className="flex items-center gap-2">
                 <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Osnovni podaci</h2>
+                <h2 className="text-base font-semibold text-gray-900">{t('sections.basic')}</h2>
               </div>
             </div>
             <div className="p-5 divide-y divide-gray-100 -mx-1">
 
-              <InfoRow label="Ime i prezime" value={korisnik.fullName} alwaysShow icon={UserCircleIcon} />
-              <InfoRow label="Korisničko ime" value={korisnik.username} alwaysShow icon={UserCircleIcon} />
-              <InfoRow label="Email" value={korisnik.email ? <a href={`mailto:${korisnik.email}`} className="text-emerald-600 hover:underline">{korisnik.email}</a> : undefined} alwaysShow icon={EnvelopeIcon} />
-              <InfoRow label="Telefon" value={korisnik.telefon ? <a href={`tel:${korisnik.telefon}`} className="text-emerald-600 hover:underline">{korisnik.telefon}</a> : undefined} alwaysShow icon={PhoneIcon} />
-              <InfoRow label="Uloga" value={getRoleLabel(korisnik.role)} alwaysShow icon={UserCircleIcon} />
-              <InfoRow label="Datum registracije" value={formatDate(korisnik.createdAt)} alwaysShow icon={CalendarDaysIcon} />
-              <InfoRow label="Poslednja izmena" value={formatDate(korisnik.updatedAt)} alwaysShow icon={CalendarDaysIcon} />
+              <InfoRow label={t('labels.fullName')} value={korisnik.fullName} alwaysShow icon={UserCircleIcon} />
+              <InfoRow label={t('labels.username')} value={korisnik.username} alwaysShow icon={UserCircleIcon} />
+              <InfoRow label={t('labels.email')} value={korisnik.email ? <a href={`mailto:${korisnik.email}`} className="text-emerald-600 hover:underline">{korisnik.email}</a> : undefined} alwaysShow icon={EnvelopeIcon} />
+              <InfoRow label={t('labels.phone')} value={korisnik.telefon ? <a href={`tel:${korisnik.telefon}`} className="text-emerald-600 hover:underline">{korisnik.telefon}</a> : undefined} alwaysShow icon={PhoneIcon} />
+              <InfoRow label={t('labels.role')} value={getRoleLabel(korisnik.role)} alwaysShow icon={UserCircleIcon} />
+              <InfoRow label={t('labels.registeredAt')} value={formatDate(korisnik.createdAt)} alwaysShow icon={CalendarDaysIcon} />
+              <InfoRow label={t('labels.updatedAt')} value={formatDate(korisnik.updatedAt)} alwaysShow icon={CalendarDaysIcon} />
             </div>
           </div>
 
@@ -229,16 +224,16 @@ export default function UserInfo() {
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
               <div className="flex items-center gap-2">
                 <IdentificationIcon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Lični podaci</h2>
+                <h2 className="text-base font-semibold text-gray-900">{t('sections.personal')}</h2>
               </div>
             </div>
             <div className="p-5 divide-y divide-gray-100 -mx-1">
-              <InfoRow label="Ime roditelja" value={korisnik.ime_roditelja} alwaysShow icon={IdentificationIcon} />
-              <InfoRow label="Pol" value={formatPol(korisnik.pol)} alwaysShow icon={IdentificationIcon} />
-              <InfoRow label="Datum rođenja" value={formatDate(korisnik.datum_rodjenja ?? undefined)} alwaysShow icon={CalendarDaysIcon} />
-              <InfoRow label="Državljanstvo" value={korisnik.drzavljanstvo} alwaysShow icon={IdentificationIcon} />
-              <InfoRow label="Adresa" value={korisnik.adresa} alwaysShow icon={MapPinIcon} />
-              <InfoRow label="Broj ličnog dokumenta" value={korisnik.broj_licnog_dokumenta} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.parentName')} value={korisnik.ime_roditelja} alwaysShow icon={IdentificationIcon} />
+              <InfoRow label={t('labels.gender')} value={korisnik.pol === 'M' ? t('gender.male') : korisnik.pol === 'Ž' ? t('gender.female') : '—'} alwaysShow icon={IdentificationIcon} />
+              <InfoRow label={t('labels.birthDate')} value={formatDate(korisnik.datum_rodjenja ?? undefined)} alwaysShow icon={CalendarDaysIcon} />
+              <InfoRow label={t('labels.citizenship')} value={korisnik.drzavljanstvo} alwaysShow icon={IdentificationIcon} />
+              <InfoRow label={t('labels.address')} value={korisnik.adresa} alwaysShow icon={MapPinIcon} />
+              <InfoRow label={t('labels.idCard')} value={korisnik.broj_licnog_dokumenta} alwaysShow icon={DocumentTextIcon} />
             </div>
           </div>
 
@@ -247,16 +242,16 @@ export default function UserInfo() {
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
               <div className="flex items-center gap-2">
                 <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Planinarski podaci</h2>
+                <h2 className="text-base font-semibold text-gray-900">{t('sections.hiking')}</h2>
               </div>
             </div>
             <div className="p-5 divide-y divide-gray-100 -mx-1">
-              <InfoRow label="Broj planinarske legitimacije" value={korisnik.broj_planinarske_legitimacije} alwaysShow icon={DocumentTextIcon} />
-              <InfoRow label="Broj planinarske markice" value={korisnik.broj_planinarske_markice} alwaysShow icon={DocumentTextIcon} />
-              <InfoRow label="Datum učlanjenja" value={formatDate(korisnik.datum_uclanjenja ?? undefined)} alwaysShow icon={CalendarDaysIcon} />
-              <InfoRow label="Ukupno km" value={korisnik.ukupnoKm != null ? `${Number(korisnik.ukupnoKm).toFixed(1)} km` : undefined} alwaysShow icon={DocumentTextIcon} />
-              <InfoRow label="Ukupno metara uspona" value={korisnik.ukupnoMetaraUspona != null ? `${korisnik.ukupnoMetaraUspona.toLocaleString('sr-RS')} m` : undefined} alwaysShow icon={DocumentTextIcon} />
-              <InfoRow label="Broj akcija (popeo se)" value={korisnik.brojPopeoSe != null ? String(korisnik.brojPopeoSe) : undefined} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.hikingCard')} value={korisnik.broj_planinarske_legitimacije} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.hikingBadge')} value={korisnik.broj_planinarske_markice} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.memberSince')} value={formatDate(korisnik.datum_uclanjenja ?? undefined)} alwaysShow icon={CalendarDaysIcon} />
+              <InfoRow label={t('labels.totalKm')} value={korisnik.ukupnoKm != null ? `${Number(korisnik.ukupnoKm).toFixed(1)} km` : undefined} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.totalAscent')} value={korisnik.ukupnoMetaraUspona != null ? `${korisnik.ukupnoMetaraUspona.toLocaleString(i18n.language)} m` : undefined} alwaysShow icon={DocumentTextIcon} />
+              <InfoRow label={t('labels.actionsClimbed')} value={korisnik.brojPopeoSe != null ? String(korisnik.brojPopeoSe) : undefined} alwaysShow icon={DocumentTextIcon} />
             </div>
           </div>
 
@@ -265,13 +260,13 @@ export default function UserInfo() {
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
               <div className="flex items-center gap-2">
                 <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-semibold text-gray-900">Napomene i ostalo</h2>
+                <h2 className="text-base font-semibold text-gray-900">{t('sections.notes')}</h2>
               </div>
             </div>
             <div className="p-5 divide-y divide-gray-100 -mx-1">
-              <InfoRow label="Izrečene disciplinske kazne" value={korisnik.izrecene_disciplinske_kazne} alwaysShow icon={ClipboardDocumentListIcon} />
-              <InfoRow label="Izbor u organe sportskog udruženja" value={korisnik.izbor_u_organe_sportskog_udruzenja} alwaysShow icon={ClipboardDocumentListIcon} />
-              <InfoRow label="Napomene" value={korisnik.napomene} alwaysShow icon={ClipboardDocumentListIcon} />
+              <InfoRow label={t('labels.disciplinary')} value={korisnik.izrecene_disciplinske_kazne} alwaysShow icon={ClipboardDocumentListIcon} />
+              <InfoRow label={t('labels.selectionBodies')} value={korisnik.izbor_u_organe_sportskog_udruzenja} alwaysShow icon={ClipboardDocumentListIcon} />
+              <InfoRow label={t('labels.notes')} value={korisnik.napomene} alwaysShow icon={ClipboardDocumentListIcon} />
             </div>
           </div>
         </div>
