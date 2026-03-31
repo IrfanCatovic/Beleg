@@ -1673,15 +1673,15 @@ export const resources = {
         actionImageOptional: 'Slika akcije (opciono)', imageHelp: 'Podržani formati: JPG, PNG, maksimalno 5MB.', user: 'Korisnik', pickUser: 'Izaberi korisnika',
       },
       placeholders: {
-        actionName: 'npr. Uspon na Rtanj severnom stazom', mountain: 'npr. Kopaonik, Stara planina', peak: 'npr. Midžor, Pančićev vrh',
+        actionName: 'npr. Uspon na Rtanj sjevernom stazom', mountain: 'npr. Kopaonik, Stara planina', peak: 'npr. Midžor, Pančićev vrh',
         description: 'Kratak opis ture, dužina, pauze, oprema, napomene…', secondGuideName: 'Ime i prezime drugog vodiča',
         ascentM: 'npr. 1250', lengthKm: 'npr. 14.5', peakHeightM: 'npr. 2017', fullName: 'Ime i prezime',
       },
       difficulty: { pick: 'Izaberi težinu', pickShort: '— Izaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Izaberi vodiča', optional: '— Opciono —' },
       user: { pick: '— Izaberite korisnika —' },
-      add: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspešno dodata! ID: {{id}}' },
-      edit: { onlyAdminGuide: 'Samo admin ili vodič mogu da izmijene akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Čuvanje...', saveChanges: 'Sačuvaj izmjene', success: 'Akcija uspešno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
+      add: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspješno dodata! ID: {{id}}' },
+      edit: { onlyAdminGuide: 'Samo admin ili vodič mogu da izmijene akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Čuvanje...', saveChanges: 'Sačuvaj izmjene', success: 'Akcija uspješno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
       past: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju prošlu akciju.', badge: 'Prošla planinarska akcija', title: 'Dodaj akciju na profil člana', publicActionPastHelp: 'Javna (svi su vidjeli dok je bila aktivna; završenu vidi samo klub)', addToClubHistory: 'Dodaj u istoriju akcija kluba', historyHelp: 'Ako nije čekirano, akcija će se upisati samo na profil člana i neće se pojaviti u listi završenih akcija kluba.', adding: 'Dodavanje...', submit: 'Dodaj i idi na profil' },
     },
     shared: {
