@@ -15,6 +15,7 @@ export interface FinanceReportData {
   uplate: number
   isplate: number
   saldo: number
+  currency?: 'RSD' | 'BAM' | 'HRK' | 'EUR'
 }
 
 function escapeHtml(text: string): string {
@@ -51,14 +52,14 @@ const pdfStyles = `
   .fin-pdf .table-chunk.page-break-before { page-break-before: always; break-before: page; }
 `
 
-function buildTransactionRows(transakcije: FinanceReportTransakcija[]): string {
+function buildTransactionRows(transakcije: FinanceReportTransakcija[], currency: string): string {
   if (transakcije.length === 0) {
     return '<tr><td colspan="4">Nema transakcija u periodu.</td></tr>'
   }
   return transakcije.map((t) => {
     const opis = [t.opis, t.clanarinaKorisnik?.fullName || t.clanarinaKorisnik?.username].filter(Boolean).join(' – ') || '—'
-    const uplata = t.tip === 'uplata' ? t.iznos.toLocaleString('sr-RS') : ''
-    const isplata = t.tip === 'isplata' ? `-${Math.abs(t.iznos).toLocaleString('sr-RS')}` : ''
+    const uplata = t.tip === 'uplata' ? `${t.iznos.toLocaleString('sr-RS')} ${currency}` : ''
+    const isplata = t.tip === 'isplata' ? `-${Math.abs(t.iznos).toLocaleString('sr-RS')} ${currency}` : ''
     return `
       <tr>
         <td>${escapeHtml(formatDateShort(t.datum))}</td>
@@ -70,18 +71,21 @@ function buildTransactionRows(transakcije: FinanceReportTransakcija[]): string {
   }).join('')
 }
 
-const TABLE_HEADER = `
+function tableHeader(currency: string): string {
+  return `
         <thead>
           <tr>
             <th>Datum</th>
             <th>Opis</th>
-            <th class="num">Uplata (RSD)</th>
-            <th class="num">Isplata (RSD)</th>
+            <th class="num">Uplata (${currency})</th>
+            <th class="num">Isplata (${currency})</th>
           </tr>
         </thead>
 `
+}
 
 export function generateFinanceReportPdf(data: FinanceReportData): void {
+  const currency = data.currency || 'RSD'
   const fromStr = formatDateShort(data.from)
   const toStr = formatDateShort(data.to)
 
@@ -98,19 +102,19 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
     return `
       <div class="${chunkClass}">
         <table>
-          ${TABLE_HEADER}
+          ${tableHeader(currency)}
           <tbody>
-            ${buildTransactionRows(chunk)}
+            ${buildTransactionRows(chunk, currency)}
           </tbody>
         </table>
       </div>
     `
   }).join('')
 
-  const uplateStr = data.uplate.toLocaleString('sr-RS')
-  const isplateStr = data.isplate === 0 ? '0' : `-${data.isplate.toLocaleString('sr-RS')}`
+  const uplateStr = `${data.uplate.toLocaleString('sr-RS')} ${currency}`
+  const isplateStr = data.isplate === 0 ? `0 ${currency}` : `-${data.isplate.toLocaleString('sr-RS')} ${currency}`
   const saldoClass = data.saldo >= 0 ? 'saldo-row' : 'saldo-row saldo-negative'
-  const saldoStr = data.saldo.toLocaleString('sr-RS')
+  const saldoStr = `${data.saldo.toLocaleString('sr-RS')} ${currency}`
 
   const content = `
     <style>${pdfStyles}</style>
@@ -135,7 +139,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
           </tr>
           <tr class="${saldoClass}">
             <td colspan="2">Trenutno stanje</td>
-            <td class="num" colspan="2">${escapeHtml(saldoStr)} RSD</td>
+            <td class="num" colspan="2">${escapeHtml(saldoStr)}</td>
           </tr>
         </tbody>
       </table>
