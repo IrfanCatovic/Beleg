@@ -190,6 +190,10 @@ export default function SuperadminKlubovi() {
       setFormError('Naziv kluba je obavezan.')
       return
     }
+    if (form.max_storage_gb < 0) {
+      setFormError('Limit medija (GB) ne sme biti negativan.')
+      return
+    }
     setSubmitLoading(true)
     try {
       const payload = {
@@ -511,6 +515,18 @@ export default function SuperadminKlubovi() {
                     aria-label="Subskripcija do"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Limit medija (GB)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={form.max_storage_gb}
+                  onChange={(e) => setForm((f) => ({ ...f, max_storage_gb: Number(e.target.value) || 0 }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-xs text-gray-500">Maksimalni prostor za slike/video fajlove po klubu.</p>
               </div>
                 {editingId != null && (
                   <div className="flex items-center gap-3">
