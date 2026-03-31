@@ -182,9 +182,9 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t('solve.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.
+                {t('solve.subtitle')}
               </p>
             </div>
 

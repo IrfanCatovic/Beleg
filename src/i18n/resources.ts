@@ -27,6 +27,10 @@ export const resources = {
           'Za predsednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.',
         cta: 'Zakaži prezentaciju besplatno',
       },
+      solve: {
+        title: 'Šta tačno rešavamo',
+        subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
+      },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1084,6 +1088,10 @@ export const resources = {
           'Za predsjednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.',
         cta: 'Zakaži prezentaciju besplatno',
       },
+      solve: {
+        title: 'Šta tačno rješavamo',
+        subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
+      },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1687,9 +1695,119 @@ export const resources = {
       registerUser: { imageOnlyError: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLargeError: 'Slika je prevelika (maksimum 5 MB)', pickRole: 'Izaberite ulogu.', createError: 'Greška pri kreiranju korisnika', badge: 'Novi član kluba', title: 'Registracija korisnika', createdRedirecting: 'Član uspješno registrovan! Preusmjeravam...', requiredFields: 'Obavezna polja', usernameRequired: 'Korisničko ime *', usernamePlaceholder: 'npr. pera.peric', passwordRequired: 'Lozinka * (min. 8 karaktera)', passwordPlaceholder: 'Unesi lozinku', roleRequired: 'Uloga *', pick: '— izaberi —', personalOptional: 'Lični podaci (opcionalno)', fullName: 'Puno ime', fullNamePlaceholder: 'Ime i prezime', parentName: 'Ime roditelja', gender: 'Pol', genderMale: 'Muški', genderFemale: 'Ženski', birthDate: 'Datum rođenja', citizenship: 'Državljanstvo', contactOptional: 'Kontakt (opcionalno)', email: 'Email', emailPlaceholder: 'email@primer.rs', phone: 'Telefon', phonePlaceholder: '+381...', address: 'Adresa', addressPlaceholder: 'Ulica i broj, mjesto', docsOptional: 'Dokumenti i planinarski podaci (opcionalno)', idDocNumber: 'Broj ličnog dokumenta', hikingCardNumber: 'Broj planinarske legitimacije', hikingBadgeNumber: 'Broj planinarske markice', membershipDate: 'Datum učlanjenja', notesOptional: 'Disciplinske kazne, izbor u organe, napomene (opcionalno)', disciplinary: 'Izrečene disciplinske kazne', disciplinaryPlaceholder: 'Tekst o izrečenim disciplinskim kaznama...', selectionBodies: 'Izbor u organe sportskog udruženja', selectionBodiesPlaceholder: 'Tekst o izboru u organe...', notes: 'Napomene', notesPlaceholder: 'Dodatne napomene...', avatarOptional: 'Profilna slika (opcionalno)', avatarPreviewAlt: 'Pregled profilne slike', submit: 'Kreiraj novog člana', footerHint: 'Obavezni su samo korisničko ime, lozinka i uloga. Ostala polja možete popuniti kasnije.' },
     },
     miscPages: { search: { title: 'Pretraga', subtitle: 'Pretražite članove, akcije i finansije. Rezultati su prikazani u tabovima.' }, welcome: { setupCheckErrorLog: 'Greška pri provjeri statusa', heroLine: 'Dobro došli u svijet pravih planinskih avantura', body1: 'Želimo vam bezbroj uspona, čist zrak, nove staze i nezaboravne trenutke na vrhovima.', body2: 'Spremni za putovanje koje mijenja perspektivu?', start: 'Započni avanturu', footer: 'Planinarsko društvo planiner • © {{year}}' } },
-    uiExtras: {},
-    clubs: {},
-    pdf: {},
+    uiExtras: {
+      common: { close: 'Zatvori', cancel: 'Otkaži', no: 'Ne', loading: 'Učitavam...', saving: 'Čuvanje...' },
+      buttons: { back: 'Nazad', profileInfo: 'Sve informacije o korisniku', profileSettings: 'Postavke profila', print: 'Štampanje' },
+      block: {
+        alertTitle: 'Blokiranje',
+        block: 'Blokiraj',
+        unblock: 'Odblokiraj',
+        confirmBlockTitle: 'Blokiraj korisnika',
+        confirmBlockText: 'Da li želite blokirati ovog korisnika?',
+        confirmUnblockTitle: 'Odblokiraj korisnika',
+        confirmUnblockText: 'Da li želite ukloniti korisnika sa blok liste?',
+        blockedSuccess: 'Korisnik je blokiran.',
+        unblockedSuccess: 'Korisnik je uklonjen sa blok liste.',
+        blockError: 'Greška pri blokiranju',
+        unblockError: 'Greška pri odblokiranju',
+      },
+      follow: {
+        title: 'Praćenje',
+        sendRequestError: 'Greška pri slanju zahtjeva',
+        confirmUnfollowTitle: 'Otprati korisnika',
+        confirmUnfollowText: 'Da li želite otpratiti ovog korisnika?',
+        unfollowError: 'Greška pri otpraćivanju',
+        confirmCancelRequestTitle: 'Otkaži zahtjev',
+        confirmCancelRequestText: 'Da li želite otkazati poslani zahtjev za praćenje?',
+        cancelRequestError: 'Greška pri otkazivanju zahtjeva',
+        incomingPendingHint: 'Ovaj korisnik vam je već poslao zahtjev za praćenje.',
+        youHaveRequest: 'Imaš zahtjev',
+        sending: 'Slanje...',
+        follow: 'Prati',
+        cancelRequest: 'Otkaži zahtjev',
+        unfollow: 'Otprati',
+      },
+      followList: { badge: 'Praćenje', closeEsc: 'Zatvori (Esc)', empty: 'Lista je prazna.' },
+      taskModal: {
+        errors: { enterName: 'Unesite naziv zadatka.', pickRoleOrAll: 'Izaberite barem jednu ulogu ili opciju "Svi".', create: 'Greška pri kreiranju zadatka.', save: 'Greška pri čuvanju.' },
+        newTitle: 'Novi zadatak',
+        newSubtitle: 'Popuni detalje zadatka koji članovi tima mogu preuzeti.',
+        editTitle: 'Izmjena zadatka',
+        editSubtitle: 'Izmijeni detalje zadatka. Završeni zadaci se ne mogu mijenjati.',
+        fields: { taskName: 'Naziv zadatka', deadline: 'Rok za završetak', description: 'Opis zadatka', whoCanDo: 'Ko sve može raditi ovaj zadatak?', allRoles: 'Svi (uključuje i članove kluba)', allShort: 'Svi', urgent: 'Hitno' },
+        placeholders: { taskName: 'npr. Priprema opreme za vikend akciju', taskNameShort: 'npr. Priprema opreme', pickDate: 'Izaberi datum', description: 'Ukratko opiši šta treba uraditi, koji su koraci ili očekivanja...', descriptionShort: 'Opis...' },
+        help: { allRoles: 'Ako izabereš Svi, zadatak će biti vidljiv i dostupan za preuzimanje i članovima kluba.', urgent: 'Ide na vrh liste', multiAssignees: 'Jedan zadatak može istovremeno preuzeti više korisnika.' },
+        aria: { deadline: 'Rok za završetak zadatka' },
+        creating: 'Kreiranje...',
+        saveTask: 'Sačuvaj zadatak',
+        saveChanges: 'Sačuvaj izmjene',
+      },
+      taskReadonly: {
+        badge: 'Detalji zadatka',
+        urgent: 'Hitno',
+        description: 'Opis',
+        empty: '—',
+        whoCanParticipate: 'Ko može učestvovati',
+        allMembers: 'Svi članovi',
+        deadline: 'Rok',
+        noDeadline: 'Bez roka',
+        created: 'Kreiran',
+        assignees: 'Prijavljeni',
+        noAssignees: 'Još niko nije prijavljen.',
+        status: { active: 'Aktivan', inProgress: 'U toku', finished: 'Završen' },
+      },
+    },
+    clubs: {
+      club: {
+        subtitle: 'Podaci vašeg planinarskog društva',
+        actions: { edit: 'Izmijeni podatke', save: 'Sačuvaj', cancel: 'Odustani' },
+        tabs: { public: 'Javni podaci', admin: 'Administracija kluba' },
+        sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i finansijski podaci' },
+        fields: { pickLogo: 'Izaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'Email', seat: 'Sjedište', website: 'Web sajt' },
+        empty: { contact: 'Nema unesenih kontakt podataka.' },
+        common: { saving: 'Čuvanje...', uploading: 'Upload...' },
+        errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri čuvanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri upload-u loga', loginClubHint: 'Provjerite da li ste ulogovani u klub (superadmin mora izabrati klub).' },
+      },
+      superadmin: {
+        title: 'Klubovi',
+        addClub: 'Dodaj klub',
+        empty: 'Nema klubova. Kliknite „Dodaj klub” da kreirate prvi.',
+        noAccess: 'Nemate pristup ovoj stranici.',
+        errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri čuvanju' },
+      },
+    },
+    pdf: {
+      errors: { contentMissing: 'PDF: nije pronađen sadržaj', generic: 'PDF greška:' },
+      finance: {
+        title: 'Finansijski izvještaj',
+        period: 'Period',
+        noTransactions: 'Nema transakcija u periodu.',
+        date: 'Datum',
+        description: 'Opis',
+        income: 'Uplata',
+        expense: 'Isplata',
+        totalIncome: 'Ukupne uplate',
+        totalExpense: 'Ukupne isplate',
+        currentBalance: 'Trenutno stanje',
+        filePrefix: 'finansijski-izvjestaj',
+      },
+      action: {
+        preDepartureTitle: 'AKCIJA – PRIJE POLASKA',
+        completedTitle: 'AKCIJA – ZAVRŠENA',
+        section: 'Podaci o akciji',
+        signature: 'Tačnost podataka ovjerava PSO / Klub (potpis i pečat)',
+        preDepartureFile: 'akcija-prije-polaska',
+        completedFile: 'akcija-zavrsena',
+        fields: { name: 'Naziv', mountain: 'Planina', peak: 'Vrh', date: 'Datum', description: 'Opis', difficulty: 'Težina', guide: 'Vodič / drugi vodič', addedBy: 'Dodao/la akciju', participantsCount: 'Broj polaznika', participantsNames: 'Imena polaznika', successRatio: 'Uspješno popeli / Broj prijavljenih', successNames: 'Imena uspješno popeli' },
+      },
+      member: {
+        title: 'EVIDENCIJA ČLANA',
+        genderMale: 'Muški',
+        genderFemale: 'Ženski',
+        sections: { personal: 'Lični podaci', hiking: 'Planinarski podaci', notes: 'Napomene i ostalo' },
+        fields: { fullName: 'Ime i prezime', parentName: 'Ime roditelja', gender: 'Pol', birthDate: 'Datum rođenja', citizenship: 'Državljanstvo', address: 'Adresa', phone: 'Telefon', email: 'Email', membershipDate: 'Datum učlanjenja', idNumber: 'Broj ličnog dokumenta', cardNumber: 'Broj planinarske legitimacije', badgeNumber: 'Broj planinarske markice', disciplinary: 'Izrečene disciplinske kazne', selectionBodies: 'Izbor u organe sportskog udruženja', notes: 'Napomene' },
+      },
+    },
   },
   hr: {
     common: {
@@ -1718,6 +1836,10 @@ export const resources = {
         support:
           'Za predsjednike, tajnike, vodiče, blagajnike i svakog člana koji želi više vremena na stazi, a manje za administraciju.',
         cta: 'Zakaži prezentaciju besplatno',
+      },
+      solve: {
+        title: 'Što točno rješavamo',
+        subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
       },
       highlights: {
         admin: {
@@ -2320,6 +2442,10 @@ export const resources = {
           'Für Vorsitzende, Sekretäre, Guides, Kassenwarte und jedes Mitglied, das mehr Zeit in den Bergen und weniger Zeit mit Papierkram verbringen will.',
         cta: 'Kostenlose Präsentation buchen',
       },
+      solve: {
+        title: 'Welche Probleme lösen wir konkret',
+        subtitle: 'Vom Papier- und Tabellenchaos zu einem klaren, digitalen System, das für Sie arbeitet.',
+      },
       highlights: {
         admin: {
           title: 'Weniger Verwaltung',
@@ -2920,6 +3046,10 @@ export const resources = {
         support:
           'For presidents, secretaries, guides, treasurers, and every member who wants more time outdoors and less paperwork.',
         cta: 'Book a free presentation',
+      },
+      solve: {
+        title: 'What exactly we solve',
+        subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
       },
       highlights: {
         admin: {
