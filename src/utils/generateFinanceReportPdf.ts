@@ -1,4 +1,5 @@
 import html2pdf from 'html2pdf.js'
+import i18n from '../i18n'
 
 export interface FinanceReportTransakcija {
   datum: string
@@ -54,7 +55,7 @@ const pdfStyles = `
 
 function buildTransactionRows(transakcije: FinanceReportTransakcija[], currency: string): string {
   if (transakcije.length === 0) {
-    return '<tr><td colspan="4">Nema transakcija u periodu.</td></tr>'
+    return `<tr><td colspan="4">${i18n.t('pdf:finance.noTransactions')}</td></tr>`
   }
   return transakcije.map((t) => {
     const opis = [t.opis, t.clanarinaKorisnik?.fullName || t.clanarinaKorisnik?.username].filter(Boolean).join(' – ') || '—'
@@ -75,10 +76,10 @@ function tableHeader(currency: string): string {
   return `
         <thead>
           <tr>
-            <th>Datum</th>
-            <th>Opis</th>
-            <th class="num">Uplata (${currency})</th>
-            <th class="num">Isplata (${currency})</th>
+            <th>${i18n.t('pdf:finance.date')}</th>
+            <th>${i18n.t('pdf:finance.description')}</th>
+            <th class="num">${i18n.t('pdf:finance.income')} (${currency})</th>
+            <th class="num">${i18n.t('pdf:finance.expense')} (${currency})</th>
           </tr>
         </thead>
 `
@@ -120,25 +121,25 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
     <style>${pdfStyles}</style>
     <div class="fin-pdf">
       <div class="header">
-        <h1>Finansijski izveštaj</h1>
-        <p class="period">Period: ${escapeHtml(fromStr)} – ${escapeHtml(toStr)}</p>
+        <h1>${i18n.t('pdf:finance.title')}</h1>
+        <p class="period">${i18n.t('pdf:finance.period')}: ${escapeHtml(fromStr)} – ${escapeHtml(toStr)}</p>
       </div>
       ${tablesHtml}
       <div class="totals-wrapper">
       <table>
         <tbody>
           <tr class="total-row">
-            <td colspan="2">Ukupne uplate</td>
+            <td colspan="2">${i18n.t('pdf:finance.totalIncome')}</td>
             <td class="num uplata">${escapeHtml(uplateStr)}</td>
             <td class="num"></td>
           </tr>
           <tr class="total-row">
-            <td colspan="2">Ukupne isplate</td>
+            <td colspan="2">${i18n.t('pdf:finance.totalExpense')}</td>
             <td class="num"></td>
             <td class="num isplata">${escapeHtml(isplateStr)}</td>
           </tr>
           <tr class="${saldoClass}">
-            <td colspan="2">Trenutno stanje</td>
+            <td colspan="2">${i18n.t('pdf:finance.currentBalance')}</td>
             <td class="num" colspan="2">${escapeHtml(saldoStr)}</td>
           </tr>
         </tbody>
@@ -159,7 +160,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
   const target = wrapper.querySelector('.fin-pdf') as HTMLElement
   if (!target) {
     document.body.removeChild(wrapper)
-    console.error('PDF: nije pronađen sadržaj')
+    console.error(i18n.t('pdf:errors.contentMissing'))
     return
   }
 
@@ -167,7 +168,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
   const safeTo = data.to.replace(/\D/g, '-')
   const options = {
     margin: [10, 10, 10, 10] as [number, number, number, number],
-    filename: `finansijski-izvestaj-${safeFrom}-${safeTo}.pdf`,
+    filename: `${i18n.t('pdf:finance.filePrefix')}-${safeFrom}-${safeTo}.pdf`,
     image: { type: 'jpeg' as const, quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'mm', format: 'a4', hotfixes: ['px_scaling'] },
@@ -186,7 +187,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
         .then(cleanup)
         .catch((err: unknown) => {
           cleanup()
-          console.error('PDF greška:', err)
+          console.error(i18n.t('pdf:errors.generic'), err)
         })
     })
   })

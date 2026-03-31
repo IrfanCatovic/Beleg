@@ -18,6 +18,7 @@ import {
   MapPinIcon,
   BanknotesIcon,
 } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 export interface KlubData {
   id: number
@@ -64,6 +65,7 @@ interface ClubAdminStats {
 }
 
 export default function Klub() {
+  const { t } = useTranslation('clubs')
   const { user } = useAuth()
   const { naziv } = useParams<{ naziv?: string }>()
   const navigate = useNavigate()
@@ -139,7 +141,7 @@ export default function Klub() {
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
         ? String((e.response.data as { error: unknown }).error)
-        : 'Greška pri učitavanju kluba'
+        : t('club.errors.load')
       setError(msg)
       setKlub(null)
     } finally {
@@ -197,7 +199,7 @@ export default function Klub() {
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
         ? String((e.response.data as { error: unknown }).error)
-        : 'Greška pri čuvanju'
+        : t('club.errors.save')
       setSaveError(msg)
     } finally {
       setSaveLoading(false)
@@ -230,11 +232,11 @@ export default function Klub() {
     e.target.value = ''
     setLogoError('')
     if (!file.type.startsWith('image/')) {
-      setLogoError('Dozvoljene su samo slike (jpg, png, gif...)')
+      setLogoError(t('club.errors.imageOnly'))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setLogoError('Slika je prevelika (maksimum 5 MB)')
+      setLogoError(t('club.errors.imageTooLarge'))
       return
     }
     setLogoUploading(true)
@@ -249,7 +251,7 @@ export default function Klub() {
       const msg =
         err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
           ? String((err.response.data as { error: unknown }).error)
-          : 'Greška pri upload-u loga'
+          : t('club.errors.logoUpload')
       setLogoError(msg)
     } finally {
       setLogoUploading(false)
@@ -262,7 +264,7 @@ export default function Klub() {
       <div className="min-h-[40vh] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <p className="text-rose-600 font-medium">{error}</p>
-          <p className="mt-2 text-sm text-gray-500">Proverite da li ste ulogovani u klub (superadmin mora da izabere klub).</p>
+          <p className="mt-2 text-sm text-gray-500">{t('club.errors.loginClubHint')}</p>
         </div>
       </div>
     )
@@ -299,7 +301,7 @@ export default function Klub() {
                     accept="image/*"
                     onChange={handleLogoChange}
                     className="hidden"
-                    aria-label="Izaberi logo kluba"
+                    aria-label={t('club.fields.pickLogo')}
                   />
                   <button
                     type="button"
@@ -319,7 +321,7 @@ export default function Klub() {
                     </span>
                     {logoUploading && (
                       <span className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
-                        <span className="text-white text-xs font-medium">Upload...</span>
+                        <span className="text-white text-xs font-medium">{t('club.common.uploading')}</span>
                       </span>
                     )}
                   </button>
@@ -338,27 +340,27 @@ export default function Klub() {
                     value={form.naziv}
                     onChange={(e) => setForm((f) => ({ ...f, naziv: e.target.value }))}
                     className="block w-full max-w-md rounded-xl border border-gray-300 px-4 py-2.5 text-xl font-bold text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                    placeholder="Naziv kluba"
+                    placeholder={t('club.fields.name')}
                   />
                 ) : (
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{klub.naziv}</h1>
                 )}
-                <p className="mt-1 text-sm text-gray-500">Podaci vašeg planinarskog društva</p>
+                <p className="mt-1 text-sm text-gray-500">{t('club.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {canManage && !editing && (
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 transition-colors">
-                  <PencilSquareIcon className="h-5 w-5" /> Izmeni podatke
+                  <PencilSquareIcon className="h-5 w-5" /> {t('club.actions.edit')}
                 </button>
               )}
               {canManage && editing && (
                 <>
                   <button type="button" onClick={handleSave} disabled={saveLoading || !form.naziv.trim()} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                    <CheckIcon className="h-5 w-5" /> {saveLoading ? 'Čuvanje...' : 'Sačuvaj'}
+                    <CheckIcon className="h-5 w-5" /> {saveLoading ? t('club.common.saving') : t('club.actions.save')}
                   </button>
                   <button type="button" onClick={handleCancel} disabled={saveLoading} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                    <XMarkIcon className="h-5 w-5" /> Odustani
+                    <XMarkIcon className="h-5 w-5" /> {t('club.actions.cancel')}
                   </button>
                 </>
               )}
@@ -376,7 +378,7 @@ export default function Klub() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Javni podaci
+              {t('club.tabs.public')}
             </button>
             {canManage && (
               <button
@@ -388,7 +390,7 @@ export default function Klub() {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Administracija kluba
+                {t('club.tabs.admin')}
               </button>
             )}
           </div>
@@ -412,17 +414,17 @@ export default function Klub() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Kontakt i adresa</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('club.sections.contactAddress')}</h2>
                   </div>
                 </div>
                 <div className="p-5">
                   <div className="divide-y divide-gray-100 -mx-1">
-                    {klub.adresa && <FieldRow label="Adresa" value={klub.adresa} icon={MapPinIcon} />}
-                    {klub.telefon && <FieldRow label="Telefon" value={klub.telefon} icon={PhoneIcon} />}
-                    {klub.email && <FieldRow label="Email" value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
-                    {klub.sediste && <FieldRow label="Sedište" value={klub.sediste} icon={BuildingOffice2Icon} />}
-                    {klub.web_sajt && <FieldRow label="Web sajt" value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
-                    {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">Nema unetih kontakt podataka.</p>}
+                    {klub.adresa && <FieldRow label={t('club.fields.address')} value={klub.adresa} icon={MapPinIcon} />}
+                    {klub.telefon && <FieldRow label={t('club.fields.phone')} value={klub.telefon} icon={PhoneIcon} />}
+                    {klub.email && <FieldRow label={t('club.fields.email')} value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
+                    {klub.sediste && <FieldRow label={t('club.fields.seat')} value={klub.sediste} icon={BuildingOffice2Icon} />}
+                    {klub.web_sajt && <FieldRow label={t('club.fields.website')} value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
+                    {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">{t('club.empty.contact')}</p>}
                   </div>
                 </div>
               </div>
@@ -436,7 +438,7 @@ export default function Klub() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Pravni i finansijski podaci</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('club.sections.legalFinance')}</h2>
                   </div>
                 </div>
                 <div className="p-5">

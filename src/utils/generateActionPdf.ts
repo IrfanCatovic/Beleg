@@ -1,4 +1,5 @@
 import html2pdf from 'html2pdf.js'
+import i18n from '../i18n'
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return ''
@@ -95,7 +96,7 @@ function runPdf(wrapper: HTMLDivElement, filename: string): void {
   const target = wrapper.querySelector('.pdf-wrap') as HTMLElement
   if (!target) {
     if (wrapper.parentNode) document.body.removeChild(wrapper)
-    console.error('PDF: nije pronađen sadržaj')
+    console.error(i18n.t('pdf:errors.contentMissing'))
     return
   }
   const options = {
@@ -117,7 +118,7 @@ function runPdf(wrapper: HTMLDivElement, filename: string): void {
         .then(cleanup)
         .catch((err: unknown) => {
           cleanup()
-          console.error('PDF greška:', err)
+          console.error(i18n.t('pdf:errors.generic'), err)
         })
     })
   })
@@ -129,23 +130,23 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
     <style>${pdfStyles}</style>
     <div class="pdf-wrap">
       <div class="header">
-        <h1>AKCIJA – PRE POLASKA</h1>
+        <h1>${i18n.t('pdf:action.preDepartureTitle')}</h1>
         <p>Planinarsko društvo Beleg</p>
       </div>
-      ${section('Podaci o akciji', `
-        ${row('Naziv', val(data.naziv))}
-        ${data.planina ? row('Planina', val(data.planina)) : ''}
-        ${row('Vrh', val(data.vrh))}
-        ${row('Datum', formatDate(data.datum))}
-        ${row('Opis', val(data.opis))}
-        ${row('Težina', formatTezinaLabel(data.tezina))}
-        ${row('Vodič / drugi vodič', val(data.vodicIme))}
-        ${row('Dodao/la akciju', val(data.addedBy))}
-        ${row('Broj polaznika', String(data.brojPolaznika))}
-        ${row('Imena polaznika', val(data.imenaPolaznika))}
+      ${section(i18n.t('pdf:action.section'), `
+        ${row(i18n.t('pdf:action.fields.name'), val(data.naziv))}
+        ${data.planina ? row(i18n.t('pdf:action.fields.mountain'), val(data.planina)) : ''}
+        ${row(i18n.t('pdf:action.fields.peak'), val(data.vrh))}
+        ${row(i18n.t('pdf:action.fields.date'), formatDate(data.datum))}
+        ${row(i18n.t('pdf:action.fields.description'), val(data.opis))}
+        ${row(i18n.t('pdf:action.fields.difficulty'), formatTezinaLabel(data.tezina))}
+        ${row(i18n.t('pdf:action.fields.guide'), val(data.vodicIme))}
+        ${row(i18n.t('pdf:action.fields.addedBy'), val(data.addedBy))}
+        ${row(i18n.t('pdf:action.fields.participantsCount'), String(data.brojPolaznika))}
+        ${row(i18n.t('pdf:action.fields.participantsNames'), val(data.imenaPolaznika))}
       `)}
       <div class="signature-block">
-        <div class="signature-label">Tačnost podataka overava PSO / Klub (potpis i pečat)</div>
+        <div class="signature-label">${i18n.t('pdf:action.signature')}</div>
         <span class="signature-line"></span>
       </div>
     </div>
@@ -155,7 +156,7 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
   wrapper.style.cssText = 'position: fixed; bottom: -400mm; left: 0; width: 210mm; min-height: 297mm; background: white; pointer-events: none;'
   document.body.appendChild(wrapper)
   const safeName = (data.naziv || 'akcija').replace(/\s+/g, '-').replace(/[^\w\-]/g, '')
-  runPdf(wrapper, `akcija-pre-polaska-${safeName}.pdf`)
+  runPdf(wrapper, `${i18n.t('pdf:action.preDepartureFile')}-${safeName}.pdf`)
 }
 
 /** Formular akcije – završena (naziv, vrh, datum, opis, težina, vodič, ko je dodao, broj prijavljenih / uspešno popeli, imena uspešnih). */
@@ -164,23 +165,23 @@ export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
     <style>${pdfStyles}</style>
     <div class="pdf-wrap">
       <div class="header">
-        <h1>AKCIJA – ZAVRŠENA</h1>
+        <h1>${i18n.t('pdf:action.completedTitle')}</h1>
         <p>Planinarsko društvo Beleg</p>
       </div>
-      ${section('Podaci o akciji', `
-        ${row('Naziv', val(data.naziv))}
-        ${data.planina ? row('Planina', val(data.planina)) : ''}
-        ${row('Vrh', val(data.vrh))}
-        ${row('Datum', formatDate(data.datum))}
-        ${row('Opis', val(data.opis))}
-        ${row('Težina', formatTezinaLabel(data.tezina))}
-        ${row('Vodič / drugi vodič', val(data.vodicIme))}
-        ${row('Dodao/la akciju', val(data.addedBy))}
-        ${row('Uspešno popeli / Broj prijavljenih', `${data.brojUspesnoPopeli} / ${data.brojPrijavljenih}`)}
-        ${row('Imena uspešno popeli', val(data.imenaUspesnoPopeli))}
+      ${section(i18n.t('pdf:action.section'), `
+        ${row(i18n.t('pdf:action.fields.name'), val(data.naziv))}
+        ${data.planina ? row(i18n.t('pdf:action.fields.mountain'), val(data.planina)) : ''}
+        ${row(i18n.t('pdf:action.fields.peak'), val(data.vrh))}
+        ${row(i18n.t('pdf:action.fields.date'), formatDate(data.datum))}
+        ${row(i18n.t('pdf:action.fields.description'), val(data.opis))}
+        ${row(i18n.t('pdf:action.fields.difficulty'), formatTezinaLabel(data.tezina))}
+        ${row(i18n.t('pdf:action.fields.guide'), val(data.vodicIme))}
+        ${row(i18n.t('pdf:action.fields.addedBy'), val(data.addedBy))}
+        ${row(i18n.t('pdf:action.fields.successRatio'), `${data.brojUspesnoPopeli} / ${data.brojPrijavljenih}`)}
+        ${row(i18n.t('pdf:action.fields.successNames'), val(data.imenaUspesnoPopeli))}
       `)}
       <div class="signature-block">
-        <div class="signature-label">Tačnost podataka overava PSO / Klub (potpis i pečat)</div>
+        <div class="signature-label">${i18n.t('pdf:action.signature')}</div>
         <span class="signature-line"></span>
       </div>
     </div>
@@ -190,5 +191,5 @@ export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
   wrapper.style.cssText = 'position: fixed; bottom: -400mm; left: 0; width: 210mm; min-height: 297mm; background: white; pointer-events: none;'
   document.body.appendChild(wrapper)
   const safeName = (data.naziv || 'akcija').replace(/\s+/g, '-').replace(/[^\w\-]/g, '')
-  runPdf(wrapper, `akcija-zavrsena-${safeName}.pdf`)
+  runPdf(wrapper, `${i18n.t('pdf:action.completedFile')}-${safeName}.pdf`)
 }

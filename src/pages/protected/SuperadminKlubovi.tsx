@@ -12,6 +12,7 @@ import {
   XMarkIcon,
   ArrowRightStartOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 export interface Klub {
   id: number
@@ -85,6 +86,7 @@ const defaultForm = {
 }
 
 export default function SuperadminKlubovi() {
+  const { t } = useTranslation('clubs')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [klubovi, setKlubovi] = useState<Klub[]>([])
@@ -108,7 +110,7 @@ export default function SuperadminKlubovi() {
       const res = await api.get<{ klubovi: Klub[] }>('/api/superadmin/klubovi')
       setKlubovi(res.data.klubovi ?? [])
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri učitavanju klubova'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.load')
       setError(msg)
     } finally {
       setLoading(false)
@@ -143,7 +145,7 @@ export default function SuperadminKlubovi() {
       setDeleteCountdown(0)
       await fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri brisanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.delete')
       setError(msg)
     } finally {
       setDeleteLoading(false)
@@ -187,11 +189,11 @@ export default function SuperadminKlubovi() {
     e.preventDefault()
     setFormError('')
     if (!form.naziv.trim()) {
-      setFormError('Naziv kluba je obavezan.')
+      setFormError(t('superadmin.errors.nameRequired'))
       return
     }
     if (form.max_storage_gb < 0) {
-      setFormError('Limit medija (GB) ne sme biti negativan.')
+      setFormError(t('superadmin.errors.mediaLimitNegative'))
       return
     }
     setSubmitLoading(true)
@@ -233,7 +235,7 @@ export default function SuperadminKlubovi() {
       setModalOpen(false)
       fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri čuvanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.save')
       setFormError(msg)
     } finally {
       setSubmitLoading(false)
@@ -254,7 +256,7 @@ export default function SuperadminKlubovi() {
   if (user?.role !== 'superadmin') {
     return (
       <div className="p-6 text-center text-gray-600">
-        Nemate pristup ovoj stranici.
+        {t('superadmin.noAccess')}
       </div>
     )
   }
@@ -262,14 +264,14 @@ export default function SuperadminKlubovi() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Klubovi</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
         <button
           type="button"
           onClick={openAddModal}
           className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
         >
           <PlusIcon className="h-5 w-5" />
-          Dodaj klub
+          {t('superadmin.addClub')}
         </button>
       </div>
 
@@ -283,7 +285,7 @@ export default function SuperadminKlubovi() {
         <Loader />
       ) : klubovi.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
-          Nema klubova. Kliknite „Dodaj klub” da kreirate prvi.
+          {t('superadmin.empty')}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
