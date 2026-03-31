@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import { useTranslation } from 'react-i18next'
 
 export default function Welcome() {
+  const { t } = useTranslation('miscPages')
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
 
@@ -17,7 +19,7 @@ export default function Welcome() {
         navigate('/navrhu', { replace: true })
       }
     } catch (err) {
-      console.error('Greška pri proveri statusa', err)
+      console.error(t('welcome.setupCheckErrorLog'), err)
         }
         finally {
           setLoading(false)
@@ -49,13 +51,13 @@ export default function Welcome() {
         </h1>
 
         <p className="text-xl sm:text-2xl md:text-3xl font-light text-gray-700 mb-6 md:mb-10 leading-relaxed">
-          Dobro došli u svijet pravih planinskih avantura
+            {t('welcome.heroLine')}
         </p>
 
         <p className="text-lg sm:text-xl text-gray-600 mb-12 md:mb-16 max-w-2xl mx-auto leading-relaxed">
-          Želimo vam bezbroj uspona, čist vazduh, nove staze i nezaboravne trenutke na vrhovima.
+          {t('welcome.body1')}
           <br className="hidden sm:block" />
-          Spremni ste za putovanje koje mijenja perspektivu?
+          {t('welcome.body2')}
         </p>
 
         <Link
@@ -63,11 +65,11 @@ export default function Welcome() {
           className="inline-block px-12 py-5 text-xl sm:text-2xl font-bold text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl focus:outline-none focus:ring-4 focus:ring-emerald-400/50"
           style={{ background: 'linear-gradient(135deg, #41ac53 0%, #2e8b45 100%)' }}
         >
-          Započni avanturu
+          {t('welcome.start')}
         </Link>
 
         <p className="mt-16 text-sm text-gray-500">
-          Planinarsko društvo planiner • © {new Date().getFullYear()}
+          {t('welcome.footer', { year: new Date().getFullYear() })}
         </p>
       </div>
     </div>
