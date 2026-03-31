@@ -503,7 +503,7 @@ export default function ActionDetails() {
                         </svg>
                       </div>
                       <p className="text-sm text-gray-500">
-                        <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">Prijavite se</Link> da vidite ko je prijavljen.
+                        <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t('loginToSeeMembers')}</Link> {t('loginToSeeMembersSuffix')}
                       </p>
                     </div>
                   )}
@@ -515,7 +515,7 @@ export default function ActionDetails() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                         </svg>
                       </div>
-                      <p className="text-sm text-gray-400">Još nema prijavljenih članova za ovu akciju.</p>
+                      <p className="text-sm text-gray-400">{t('noRegisteredMembersYet')}</p>
                     </div>
                   )}
 
@@ -611,7 +611,7 @@ export default function ActionDetails() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">Status</h3>
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('statusTitle')}</h3>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex items-center gap-3">
@@ -623,8 +623,8 @@ export default function ActionDetails() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Završena</p>
-                          <p className="text-[11px] text-gray-400">Akcija je uspešno završena</p>
+                          <p className="text-sm font-semibold text-gray-900">{t('completed')}</p>
+                          <p className="text-[11px] text-gray-400">{t('completedHint')}</p>
                         </div>
                       </>
                     ) : (
@@ -633,8 +633,8 @@ export default function ActionDetails() {
                           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Aktivna</p>
-                          <p className="text-[11px] text-gray-400">Prijave su otvorene</p>
+                          <p className="text-sm font-semibold text-gray-900">{t('activeHintTitle')}</p>
+                          <p className="text-[11px] text-gray-400">{t('activeHint')}</p>
                         </div>
                       </>
                     )}
@@ -643,12 +643,12 @@ export default function ActionDetails() {
                   {/* Quick stats in sidebar */}
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50/80 border border-gray-100">
-                      <span className="text-[11px] text-gray-500 font-medium">Prijavljenih</span>
+                      <span className="text-[11px] text-gray-500 font-medium">{t('registeredCountLabel')}</span>
                       <span className="text-sm font-bold text-gray-900">{memberCount}</span>
                     </div>
                     {akcija.isCompleted && user && canManageHost && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
-                        <span className="text-[11px] text-emerald-600 font-medium">Popeli se</span>
+                        <span className="text-[11px] text-emerald-600 font-medium">{t('climbedCountLabel')}</span>
                         <span className="text-sm font-bold text-emerald-700">{uspesnoPopeli.length}</span>
                       </div>
                     )}
@@ -661,7 +661,7 @@ export default function ActionDetails() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">Upravljanje</h3>
+                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('managementTitle')}</h3>
                   </div>
                   <div className="p-4 space-y-2">
                     {!akcija.isCompleted && (

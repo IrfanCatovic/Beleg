@@ -114,13 +114,76 @@ export const resources = {
       features: {
         title: 'Ključne funkcionalnosti aplikacije',
         subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do poslednjeg izveštaja blagajne.',
+        cards: {
+          members: {
+            title: 'Upravljanje članovima',
+            text1: 'Detaljni profili članova sa ličnim podacima, kontaktima i dokumentima.',
+            text2: 'Više uloga (admin, sekretar, vodič, blagajnik, član), svako vidi ono što mu je potrebno.',
+          },
+          actions: {
+            title: 'Akcije i zadaci',
+            text1: 'Kreiranje, uređivanje i praćenje planinarskih akcija i zadataka za tim.',
+            text2: 'Jasan pregled aktivnih i prošlih akcija i angažmana članova.',
+          },
+          finance: {
+            title: 'Finansije (admin i blagajnik)',
+            text1: 'Evidencija uplata i isplata, povezivanje sa članovima i akcijama.',
+            text2: 'Transparentan rad blagajnika i lakše pravdanje finansija.',
+          },
+          notifications: {
+            title: 'Obaveštenja u realnom vremenu',
+            text1: 'Interni sistem notifikacija za akcije, uplate i zadatke.',
+            text2: 'Admin jednim klikom šalje obaveštenje svim članovima ili grupama.',
+          },
+          pdf: {
+            title: 'Automatski PDF izveštaji',
+            text1: 'Planiner automatski priprema ključne PDF dokumente za slanje i arhivu.',
+            text2: 'Godišnji i pojedinačni izveštaji nastaju jednim klikom, bez prepisivanja.',
+          },
+          publicProfile: {
+            title: 'Javni profil i dostignuća',
+            text1: 'Svaki korisnik ima javni profil sa stazama, usponima i učešćem u akcijama.',
+          },
+        },
       },
-      how: { title: 'Kako funkcioniše Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.', stepPrefix: 'Korak' },
+      how: {
+        title: 'Kako funkcioniše Planiner',
+        subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.',
+        stepPrefix: 'Korak',
+        steps: {
+          1: {
+            title: 'Postavljamo klub za vas',
+            text: 'Na kratkom online sastanku upoznajemo društvo, postavljamo admina i unosimo prve članove.',
+          },
+          2: {
+            title: 'Rukovodstvo organizuje rad',
+            text: 'Vodiči planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati finansije.',
+          },
+          3: {
+            title: 'Članovi aktivno učestvuju',
+            text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang liste.',
+          },
+        },
+      },
       partner: {
         title: 'Više od softvera - partner za društvo',
         subtitle:
           'Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj je da vam damo više vremena na stazi, a manje za stolom.',
         imageCaption: 'Tim Planiner-a - podrška od prvog dana',
+        items: {
+          1: {
+            title: 'Ozbiljan tim developera',
+            text: 'Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena.',
+          },
+          2: {
+            title: 'Podrška na lokalnom jeziku',
+            text: 'E-mail, telefon i online sastanci, od obuke tima do svakodnevnih pitanja.',
+          },
+          3: {
+            title: 'Community za planinare',
+            text: 'Mreža društava koja razmenjuje prakse i predloge za nove funkcije.',
+          },
+        },
       },
       memberBand: {
         badge: 'Članovi u centru sistema',
@@ -131,16 +194,86 @@ export const resources = {
       benefits: {
         title: 'Brojevi i benefiti',
         subtitle: 'Jasne, merljive koristi koje vaše društvo dobija prelaskom na Planiner.',
+        cards: {
+          time: { title: 'Ušteda vremena', text: 'sati godišnje manje na administraciji' },
+          errors: { title: 'Manje grešaka', text: 'izgubljenih formulara i duplih unosa' },
+          communication: { title: 'Brža komunikacija', text: 'sve informacije i obaveštenja na jednom mestu' },
+          transparency: { title: 'Transparentnost', text: 'bolji pregled rada rukovodstva i blagajne' },
+        },
       },
-      testimonials: { title: 'Šta kažu korisnici' },
+      testimonials: {
+        title: 'Šta kažu korisnici',
+        items: {
+          1: {
+            quote: 'Konacno nemam 50 poruka u grupi pre svake akcije. Sve je na jednom mestu, prijave i detalji.',
+            name: 'Marko P.',
+            role: 'Vodic',
+            club: 'PD "Zeleni vrh"',
+          },
+          2: {
+            quote: 'Kao blagajnik sam trosio dane na prepisivanje uplata. Sada sve vidim u realnom vremenu.',
+            name: 'Jelena S.',
+            role: 'Blagajnik',
+            club: 'PD "Staza"',
+          },
+          3: {
+            quote: 'Moj profil sa statistikom i rangom me motivise da idem na svaku akciju.',
+            name: 'Nemanja D.',
+            role: 'Clan',
+            club: 'PD "Vrsak"',
+          },
+        },
+      },
       audience: {
         title: 'Za koga je Planiner',
         subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobija jasne benefite.',
+        cards: {
+          president: {
+            title: 'Predsednik društva',
+            subtitle: 'Sve na jednom mestu, bez iznenađenja.',
+            text: 'Jasan pregled članova, akcija, finansija i obaveštenja.',
+          },
+          secretary: {
+            title: 'Sekretar',
+            subtitle: 'Manje papira, više reda.',
+            text: 'Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke.',
+          },
+          guide: {
+            title: 'Vodič',
+            subtitle: 'Jasne prijave i komunikacija.',
+            text: 'Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.',
+          },
+          treasurer: {
+            title: 'Blagajnik',
+            subtitle: 'Čista evidencija finansija.',
+            text: 'Jasna evidencija uplata i isplata, lakše pravdanje finansija.',
+          },
+        },
       },
       showcase: {
         badge: 'Sneak peek',
         title: 'Pogledaj aplikaciju iznutra',
         subtitle: 'Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu.',
+        desktop: 'Desktop',
+        mobile: 'Mobile',
+        sections: {
+          actions: {
+            title: 'Akcije',
+            text: 'Lista akcija, prijave članova i detalji, isto iskustvo na računaru i mobilnom.',
+          },
+          profiles: {
+            title: 'Profili korisnika',
+            text: 'Javni profili članova, statistika, staze, usponi i učešće u akcijama.',
+          },
+          finance: {
+            title: 'Finansije',
+            text: 'Blagajna, uplate, isplate i pregled po akcijama, dostupno i sa mobilnog.',
+          },
+          tasks: {
+            title: 'Zadaci',
+            text: 'Praćenje obaveza, rokova i statusa za rukovodstvo, vodiče i članove.',
+          },
+        },
       },
       cta: {
         title: 'Spremni da svom društvu vratite vreme, a sebi mir?',
@@ -151,6 +284,7 @@ export const resources = {
         note: 'Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.',
         wantDemo: 'Želiš prvo da vidiš kako izgleda?',
         viewDemo: 'Pogledaj demo nalog',
+        demoCreds: 'Demo: username planiner / pw admin123',
       },
       footer: {
         about: 'O nama',
@@ -159,6 +293,7 @@ export const resources = {
         privacy: 'Politika privatnosti',
         copy: '© {{year}} Orin d.o.o. - za planinarska društva koja žele više vremena na stazi, a manje za stolom.',
         demoLabel: 'Demo nalog',
+        byline: 'by Irfan Catovic',
       },
       highlights: {
         admin: {
@@ -362,6 +497,16 @@ export const resources = {
       difficulty: 'Težina',
       actionDescription: 'Opis akcije',
       registeredMembers: 'Prijavljeni članovi',
+      loginToSeeMembers: 'Prijavite se',
+      loginToSeeMembersSuffix: 'da vidite ko je prijavljen.',
+      noRegisteredMembersYet: 'Još nema prijavljenih članova za ovu akciju.',
+      statusTitle: 'Status',
+      completedHint: 'Akcija je uspešno završena',
+      activeHintTitle: 'Aktivna',
+      activeHint: 'Prijave su otvorene',
+      registeredCountLabel: 'Prijavljenih',
+      climbedCountLabel: 'Popeli se',
+      managementTitle: 'Upravljanje',
     },
     users: {
       loadError: 'Greška pri učitavanju korisnika',
@@ -1581,6 +1726,16 @@ export const resources = {
       difficulty: 'Težina',
       actionDescription: 'Opis akcije',
       registeredMembers: 'Prijavljeni članovi',
+      loginToSeeMembers: 'Prijavite se',
+      loginToSeeMembersSuffix: 'da vidite ko je prijavljen.',
+      noRegisteredMembersYet: 'Još nema prijavljenih članova za ovu akciju.',
+      statusTitle: 'Status',
+      completedHint: 'Akcija je uspješno završena',
+      activeHintTitle: 'Aktivna',
+      activeHint: 'Prijave su otvorene',
+      registeredCountLabel: 'Prijavljenih',
+      climbedCountLabel: 'Popeli se',
+      managementTitle: 'Upravljanje',
     },
     users: {
       loadError: 'Greška pri učitavanju korisnika',
@@ -2462,6 +2617,16 @@ export const resources = {
       difficulty: 'Težina',
       actionDescription: 'Opis akcije',
       registeredMembers: 'Prijavljeni članovi',
+      loginToSeeMembers: 'Prijavite se',
+      loginToSeeMembersSuffix: 'da vidite ko je prijavljen.',
+      noRegisteredMembersYet: 'Još nema prijavljenih članova za ovu akciju.',
+      statusTitle: 'Status',
+      completedHint: 'Akcija je uspješno završena',
+      activeHintTitle: 'Aktivna',
+      activeHint: 'Prijave su otvorene',
+      registeredCountLabel: 'Prijavljenih',
+      climbedCountLabel: 'Popeli se',
+      managementTitle: 'Upravljanje',
     },
     users: {
       loadError: 'Greška pri učitavanju korisnika',
@@ -3224,6 +3389,16 @@ export const resources = {
       difficulty: 'Schwierigkeit',
       actionDescription: 'Tourbeschreibung',
       registeredMembers: 'Angemeldete Mitglieder',
+      loginToSeeMembers: 'Melde dich an',
+      loginToSeeMembersSuffix: 'um zu sehen, wer angemeldet ist.',
+      noRegisteredMembersYet: 'Noch keine angemeldeten Mitglieder für diese Tour.',
+      statusTitle: 'Status',
+      completedHint: 'Die Tour wurde erfolgreich abgeschlossen',
+      activeHintTitle: 'Aktiv',
+      activeHint: 'Anmeldungen sind offen',
+      registeredCountLabel: 'Angemeldet',
+      climbedCountLabel: 'Erfolgreich bestiegen',
+      managementTitle: 'Verwaltung',
     },
     users: {
       loadError: 'Fehler beim Laden der Benutzer',
@@ -3986,6 +4161,16 @@ export const resources = {
       difficulty: 'Difficulty',
       actionDescription: 'Activity description',
       registeredMembers: 'Registered members',
+      loginToSeeMembers: 'Log in',
+      loginToSeeMembersSuffix: 'to see who is registered.',
+      noRegisteredMembersYet: 'No members have registered for this activity yet.',
+      statusTitle: 'Status',
+      completedHint: 'The activity has been completed successfully',
+      activeHintTitle: 'Active',
+      activeHint: 'Registrations are open',
+      registeredCountLabel: 'Registered',
+      climbedCountLabel: 'Reached summit',
+      managementTitle: 'Management',
     },
     users: {
       loadError: 'Error loading users',

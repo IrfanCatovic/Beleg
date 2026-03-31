@@ -238,7 +238,7 @@ export default function AppLayout() {
                     {isNotificationsOpen && (
                       <div className="absolute right-0 top-12 w-80 rounded-2xl bg-white py-2 shadow-2xl ring-1 ring-black/5 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
-                          <p className="text-xs font-semibold text-gray-800">Obaveštenja</p>
+                          <p className="text-xs font-semibold text-gray-800">{t('notifications')}</p>
                           <LanguageSwitcher />
                         </div>
                         <div className="max-h-80 overflow-y-auto">

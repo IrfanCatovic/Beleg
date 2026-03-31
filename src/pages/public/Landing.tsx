@@ -464,7 +464,7 @@ export default function Landing() {
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{t('ranking.mock.profileLabel')}</p>
-                      <p className="text-sm font-semibold text-slate-50">Pera Perić</p>
+                      <p className="text-sm font-semibold text-slate-50">{t('ranking.mock.name')}</p>
                     </div>
                     <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
                       {t('ranking.mock.rank')}
@@ -520,13 +520,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-emerald-900">Upravljanje članovima</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-emerald-900">{t('features.cards.members.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Detaljni profili članova sa ličnim podacima, kontaktima, planinarskim dokumentima,
-                      disciplinskim merama i izborima u organe.
+                      {t('features.cards.members.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Više uloga (admin, sekretar, vodič, blagajnik, član) svako vidi ono što mu je potrebno.
+                      {t('features.cards.members.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
@@ -543,13 +542,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-blue-900">Akcije i zadaci</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-blue-900">{t('features.cards.actions.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Kreiranje, uređivanje i praćenje planinarskih akcija, prijave članova i zadaci za vodiče
-                      i organizatore.
+                      {t('features.cards.actions.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Jasan pregled aktivnih i prošlih akcija, istorije prisustva i angažmana članova.
+                      {t('features.cards.actions.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
@@ -566,12 +564,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-amber-900">Finansije (admin i blagajnik)</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-amber-900">{t('features.cards.finance.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Evidencija uplata i isplata, povezivanje sa članovima ili akcijama i pregled istorije plaćanja.
+                      {t('features.cards.finance.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Transparentan rad blagajnika i lakše pravdanje finansija prema upravnom odboru.
+                      {t('features.cards.finance.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
@@ -587,12 +585,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-violet-900">Obaveštenja u realnom vremenu</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-violet-900">{t('features.cards.notifications.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Interni sistem notifikacija za akcije, uplate, zadatke i važna saopštenja.
+                      {t('features.cards.notifications.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Admin jednim klikom šalje obaveštenje svim članovima ili ciljanim grupama.
+                      {t('features.cards.notifications.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
@@ -607,13 +605,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-rose-100 p-5 hover:shadow-lg hover:border-rose-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-rose-900">Automatski PDF izveštaji</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-rose-900">{t('features.cards.pdf.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Planiner za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
+                      {t('features.cards.pdf.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
-                      finansijski izveštaji nastaju iz sistema jednim klikom, bez dodatnog kucanja i prepisivanja.
+                      {t('features.cards.pdf.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-rose-100 group-hover:bg-rose-200 transition-colors">
@@ -630,9 +627,9 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-sky-100 p-5 hover:shadow-lg hover:border-sky-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-sky-900">Javni profil i dostignuća</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-sky-900">{t('features.cards.publicProfile.title')}</h3>
                     <p className="text-xs text-gray-600">
-                      Svaki korisnik ima svoj profil koji je javno dostupan. Na njemu može da pokaže svoja dostignuća: pređene staze, savladane uspone i učešće u akcijama.
+                      {t('features.cards.publicProfile.text1')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-sky-100 group-hover:bg-sky-200 transition-colors">
@@ -661,21 +658,9 @@ export default function Landing() {
 
             <div className="grid gap-6 md:grid-cols-3">
               {[
-                {
-                  title: 'Postavljamo klub za vas',
-                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo admina i unosimo prve članove. Obuka traje samo 30 minuta.',
-                  step: '01',
-                },
-                {
-                  title: 'Rukovodstvo organizuje rad',
-                  text: 'Vodiči planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati finansije, sve na jednom mestu bez poruka i tabela.',
-                  step: '02',
-                },
-                {
-                  title: 'Članovi aktivno učestvuju',
-                  text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang lista - Planiner postaje digitalno mesto susreta celog društva.',
-                  step: '03',
-                },
+                { title: t('how.steps.1.title'), text: t('how.steps.1.text'), step: '01' },
+                { title: t('how.steps.2.title'), text: t('how.steps.2.text'), step: '02' },
+                { title: t('how.steps.3.title'), text: t('how.steps.3.text'), step: '03' },
               ].map(({ title, text, step }, i) => {
                 const colors = [
                   'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -724,10 +709,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.1.title')}</p>
                       <p className="text-xs text-gray-600">
-                        Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena, uz
-                        brz odaziv na prijavljene bagove i probleme u radu.
+                        {t('partner.items.1.text')}
                       </p>
                     </div>
                   </div>
@@ -738,10 +722,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.2.title')}</p>
                       <p className="text-xs text-gray-600">
-                        E-mail, telefon i online sastanci  od implementacije i obuke tima do svakodnevnih pitanja, sa
-                        fokusom na brz response time i jasne, konkretne odgovore.
+                        {t('partner.items.2.text')}
                       </p>
                     </div>
                   </div>
@@ -752,10 +735,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.3.title')}</p>
                       <p className="text-xs text-gray-600">
-                        Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije,
-                        a naše izdanje prati realne potrebe i predloge iz te zajednice.
+                        {t('partner.items.3.text')}
                       </p>
                     </div>
                   </div>
@@ -845,9 +827,9 @@ export default function Landing() {
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-emerald-800 mb-1">Ušteda vremena</p>
+                <p className="text-xs font-semibold text-emerald-800 mb-1">{t('benefits.cards.time.title')}</p>
                 <p className="text-2xl font-extrabold text-emerald-700 mb-1">200+</p>
-                <p className="text-[11px] text-emerald-900/80">sati godišnje manje na administraciji</p>
+                <p className="text-[11px] text-emerald-900/80">{t('benefits.cards.time.text')}</p>
               </div>
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center hover:shadow-md transition-shadow">
                 <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-slate-200/60">
@@ -856,10 +838,10 @@ export default function Landing() {
                     <path d="M9 12l2 2 4-4" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-slate-800 mb-1">Manje grešaka</p>
+                <p className="text-xs font-semibold text-slate-800 mb-1">{t('benefits.cards.errors.title')}</p>
                 <p className="text-2xl font-extrabold text-slate-800 mb-1">0</p>
                 <p className="text-[11px] text-slate-900/80">
-                  izgubljenih formulara i duplih unosa
+                  {t('benefits.cards.errors.text')}
                 </p>
               </div>
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-5 text-center hover:shadow-md transition-shadow">
@@ -868,10 +850,10 @@ export default function Landing() {
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-yellow-900 mb-1">Brža komunikacija</p>
+                <p className="text-xs font-semibold text-yellow-900 mb-1">{t('benefits.cards.communication.title')}</p>
                 <p className="text-2xl font-extrabold text-yellow-900 mb-1">x3</p>
                 <p className="text-[11px] text-yellow-900/90">
-                  sve informacije i obaveštenja na jednom mestu
+                  {t('benefits.cards.communication.text')}
                 </p>
               </div>
               <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-5 text-center hover:shadow-md transition-shadow">
@@ -881,10 +863,10 @@ export default function Landing() {
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-violet-800 mb-1">Transparentnost</p>
+                <p className="text-xs font-semibold text-violet-800 mb-1">{t('benefits.cards.transparency.title')}</p>
                 <p className="text-2xl font-extrabold text-violet-700 mb-1">100%</p>
                 <p className="text-[11px] text-violet-900/80">
-                  bolji pregled rada rukovodstva i blagajne
+                  {t('benefits.cards.transparency.text')}
                 </p>
               </div>
             </div>
@@ -901,13 +883,13 @@ export default function Landing() {
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Konačno nemam 50 poruka u viber grupi pre svake akcije. Sve je na jednom mestu, prijave, detalji, ko je platio."
+                  {t('testimonials.items.1.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">M</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Marko P. <span className="font-normal text-gray-400"> Vodič</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Zeleni vrh"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.1.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.1.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.1.club')}</p>
                   </div>
                 </div>
               </div>
@@ -916,13 +898,13 @@ export default function Landing() {
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Kao blagajnik trošio sam dane na prepisivanje uplata iz beležnice. Sada vidim sve u realnom vremenu i mogu da izvezem izveštaj u PDF za 10 sekundi."
+                  {t('testimonials.items.2.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">J</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Jelena S. <span className="font-normal text-gray-400"> Blagajnik</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Staza"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.2.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.2.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.2.club')}</p>
                   </div>
                 </div>
               </div>
@@ -931,13 +913,13 @@ export default function Landing() {
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Moj profil sa statistikom i rangom me motiviše da idem na svaku akciju. Javni profil sam podelio na Instagramu, svi su bili oduševljeni."
+                  {t('testimonials.items.3.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-700">N</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Nemanja D. <span className="font-normal text-gray-400"> Član</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Vršak"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.3.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.3.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.3.club')}</p>
                   </div>
                 </div>
               </div>
@@ -959,12 +941,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-emerald-700 mb-1">Predsednik društva</p>
+                    <p className="text-xs font-semibold text-emerald-700 mb-1">{t('audience.cards.president.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Sve na jednom mestu, bez iznenađenja.
+                      {t('audience.cards.president.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jasan pregled članova, akcija, finansija i obaveštenja. Manji rizik, manje haosa.
+                      {t('audience.cards.president.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
@@ -977,12 +959,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-blue-700 mb-1">Sekretar</p>
+                    <p className="text-xs font-semibold text-blue-700 mb-1">{t('audience.cards.secretary.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Manje papira, više reda.
+                      {t('audience.cards.secretary.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke, manje manuelnog rada.
+                      {t('audience.cards.secretary.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
@@ -996,12 +978,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-amber-700 mb-1">Vodič</p>
+                    <p className="text-xs font-semibold text-amber-700 mb-1">{t('audience.cards.guide.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Jasne prijave i komunikacija.
+                      {t('audience.cards.guide.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.
+                      {t('audience.cards.guide.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
@@ -1015,12 +997,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-violet-700 mb-1">Blagajnik</p>
+                    <p className="text-xs font-semibold text-violet-700 mb-1">{t('audience.cards.treasurer.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Čista evidencija finansija.
+                      {t('audience.cards.treasurer.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jasna evidencija uplata i isplata, lakše pravdanje finansija pred članovima i upravom.
+                      {t('audience.cards.treasurer.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
@@ -1063,16 +1045,16 @@ export default function Landing() {
                 {/* Tekst levo */}
                 <div>
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold mb-4">1</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Akcije</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.actions.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Lista akcija, prijave članova i detalji isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
+                    {t('showcase.sections.actions.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1120,16 +1102,16 @@ export default function Landing() {
                 {/* Tekst desno */}
                 <div className="order-1 lg:order-2">
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold mb-4">2</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Profili korisnika</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.profiles.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Javni profili članova statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
+                    {t('showcase.sections.profiles.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1139,16 +1121,16 @@ export default function Landing() {
               <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1fr,1.4fr] items-center">
                 <div>
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold mb-4">3</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Finansije</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.finance.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo sve na jednom mestu, dostupno i sa mobilnog.
+                    {t('showcase.sections.finance.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1190,16 +1172,16 @@ export default function Landing() {
                 </div>
                 <div className="order-1 lg:order-2">
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-violet-500/20 text-violet-400 text-sm font-bold mb-4">4</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Zadaci</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.tasks.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Zadaci za rukovodstvo, vodiče i članove praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
+                    {t('showcase.sections.tasks.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1245,7 +1227,7 @@ export default function Landing() {
                 {t('cta.viewDemo')}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
               </button>
-              <p className="mt-2 text-[11px] text-emerald-200/80">Demo: username planiner / pw admin123</p>
+              <p className="mt-2 text-[11px] text-emerald-200/80">{t('cta.demoCreds')}</p>
             </div>
           </div>
         </section>
@@ -1259,7 +1241,7 @@ export default function Landing() {
               <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
               <div>
                 <p className="text-sm font-semibold text-white">Planiner</p>
-                <p className="text-[11px] text-slate-400">by Irfan Ćatović</p>
+                <p className="text-[11px] text-slate-400">{t('footer.byline')}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-5 text-xs text-slate-400 justify-center sm:justify-end">
