@@ -198,7 +198,7 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
                   Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.
@@ -213,7 +213,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
@@ -231,7 +231,7 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
                   Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.
@@ -246,7 +246,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
@@ -264,7 +264,7 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
                   Administracija troši sate i dane godišnje.
@@ -279,7 +279,7 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
                     Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
@@ -319,7 +319,7 @@ export default function Landing() {
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Kako radi za tebe</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.howForYou')}</h3>
                 </div>
                 <ul className="space-y-3 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
@@ -352,7 +352,7 @@ export default function Landing() {
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Zajednica i interakcija</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.community')}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
                   Ostani u toku sa društvom i drugim planinarima:
@@ -383,7 +383,7 @@ export default function Landing() {
                   <div className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100">
                     <IconSparkles className="h-5 w-5 text-amber-600" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Napredak i takmičenje</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.progress')}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
                   Svaka akcija ti donosi više od uspomene beleži se i motivira:
@@ -518,7 +518,7 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('features.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
                 Sve što planinarskom društvu treba  od prvog učlanjenja do poslednjeg izvještaja blagajne.
               </p>
@@ -661,7 +661,7 @@ export default function Landing() {
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše Planiner</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('how.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
                 Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.
               </p>
@@ -718,7 +718,7 @@ export default function Landing() {
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
               {/* Tekst levo */}
               <div className="flex-[1.1]">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera - partner za društvo</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t('partner.title')}</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
                   Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
                   je da vam damo više vremena na stazi, a manje za stolom.

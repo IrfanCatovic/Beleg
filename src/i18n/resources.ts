@@ -30,7 +30,17 @@ export const resources = {
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
+        problemLabel: 'Problem',
+        solutionLabel: 'Rešenje u Planiner',
       },
+      member: {
+        howForYou: 'Kako radi za tebe',
+        community: 'Zajednica i interakcija',
+        progress: 'Napredak i takmičenje',
+      },
+      features: { title: 'Ključne funkcionalnosti aplikacije' },
+      how: { title: 'Kako funkcioniše Planiner' },
+      partner: { title: 'Više od softvera - partner za društvo' },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1091,7 +1101,17 @@ export const resources = {
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
+        problemLabel: 'Problem',
+        solutionLabel: 'Rješenje u Planiner',
       },
+      member: {
+        howForYou: 'Kako radi za tebe',
+        community: 'Zajednica i interakcija',
+        progress: 'Napredak i takmičenje',
+      },
+      features: { title: 'Ključne funkcionalnosti aplikacije' },
+      how: { title: 'Kako funkcioniše Planiner' },
+      partner: { title: 'Više od softvera - partner za društvo' },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1840,7 +1860,17 @@ export const resources = {
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
+        problemLabel: 'Problem',
+        solutionLabel: 'Rješenje u Planiner',
       },
+      member: {
+        howForYou: 'Kako radi za tebe',
+        community: 'Zajednica i interakcija',
+        progress: 'Napredak i natjecanje',
+      },
+      features: { title: 'Ključne funkcionalnosti aplikacije' },
+      how: { title: 'Kako funkcionira Planiner' },
+      partner: { title: 'Više od softvera - partner za društvo' },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -2470,7 +2500,17 @@ export const resources = {
       solve: {
         title: 'Welche Probleme lösen wir konkret',
         subtitle: 'Vom Papier- und Tabellenchaos zu einem klaren, digitalen System, das für Sie arbeitet.',
+        problemLabel: 'Problem',
+        solutionLabel: 'Lösung in Planiner',
       },
+      member: {
+        howForYou: 'Wie es für dich funktioniert',
+        community: 'Community und Interaktion',
+        progress: 'Fortschritt und Wettbewerb',
+      },
+      features: { title: 'Wichtige App-Funktionen' },
+      how: { title: 'So funktioniert Planiner' },
+      partner: { title: 'Mehr als Software - ein Partner für den Verein' },
       highlights: {
         admin: {
           title: 'Weniger Verwaltung',
@@ -3100,7 +3140,17 @@ export const resources = {
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
+        problemLabel: 'Problem',
+        solutionLabel: 'Solution in Planiner',
       },
+      member: {
+        howForYou: 'How it works for you',
+        community: 'Community and interaction',
+        progress: 'Progress and competition',
+      },
+      features: { title: 'Key app features' },
+      how: { title: 'How Planiner works' },
+      partner: { title: 'More than software - a partner for your club' },
       highlights: {
         admin: {
           title: 'Less administration',
