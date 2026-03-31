@@ -77,8 +77,16 @@ export default function Cena() {
     if (currency === 'RSD') return amountRsd
     return Math.round(amountRsd / RSD_PER_CURRENCY[currency])
   }
-  const formatMoney = (amountRsd: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(convertFromRsd(amountRsd))
+  const formatMoney = (amountRsd: number, keepSmallDecimals = false) => {
+    const converted = convertFromRsd(amountRsd)
+    const showTwoDecimals = keepSmallDecimals && converted > 0 && converted < 1
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: showTwoDecimals ? 2 : 0,
+      maximumFractionDigits: showTwoDecimals ? 2 : 0,
+    }).format(converted)
+  }
   const basePriceRsd = selected.basePriceRsd
   const extraPricePerUserRsd = selected.extraPricePerUserRsd
   const isFreePaket = selectedPaket === 'Free'
@@ -246,7 +254,7 @@ export default function Cena() {
                 <p className={`text-xs mt-auto ${p.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>
                   {p.basePriceRsd === 0
                     ? t('card.freeFootnote')
-                    : t('card.extraUserPrice', { price: formatMoney(p.extraPricePerUserRsd) })}
+                    : t('card.extraUserPrice', { price: formatMoney(p.extraPricePerUserRsd, true) })}
                 </p>
                 {isActive && (
                   <p className={`mt-2 text-xs font-semibold ${p.highlighted ? 'text-white' : 'text-emerald-700'}`}>
@@ -299,7 +307,7 @@ export default function Cena() {
                 <span className="text-emerald-700 font-semibold">{extraUsers}</span>
               </span>
               <span className="text-gray-700">
-                {extraUsers} × {formatMoney(extraPricePerUserRsd)} ={' '}
+                {extraUsers} × {formatMoney(extraPricePerUserRsd, true)} ={' '}
                 <span className="font-semibold text-emerald-700">
                   {formatMoney(Math.round(extraUsersCostRsd))} {t('common.perMonth')}
                 </span>
@@ -383,7 +391,7 @@ export default function Cena() {
                 <span className="font-semibold">
                   {isFreePaket
                     ? t('summary.onlyPaid')
-                    : `${extraUsers} × ${formatMoney(extraPricePerUserRsd)} = ${formatMoney(Math.round(extraUsersCostRsd))}`}
+                    : `${extraUsers} × ${formatMoney(extraPricePerUserRsd, true)} = ${formatMoney(Math.round(extraUsersCostRsd))}`}
                 </span>
               </p>
               <p>
