@@ -197,7 +197,7 @@ export default function RegisterAdmin() {
               <div>
                   <label className={labelClass}>{t('registerAdmin.gender')}</label>
                 <Dropdown
-                  aria-label="Pol"
+                  aria-label={t('registerAdmin.gender')}
                   options={[
                     { value: '', label: t('registerAdmin.pick') },
                     { value: 'M', label: t('registerAdmin.genderMale') },

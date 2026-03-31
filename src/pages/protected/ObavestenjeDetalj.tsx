@@ -888,7 +888,7 @@ export default function ObavestenjeDetalj() {
             <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight tabular-nums">
               {trans.tip === 'isplata' ? '−' : '+'}
               {Math.abs(trans.iznos).toLocaleString('sr-RS')}{' '}
-              <span className="text-lg font-bold text-gray-500">RSD</span>
+              <span className="text-lg font-bold text-gray-500">{t('notificationDetails:currencyRsd')}</span>
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 text-sm">

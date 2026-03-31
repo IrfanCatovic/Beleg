@@ -324,8 +324,8 @@ export default function UserProfile() {
               type="button"
               onClick={() => setPositioning(true)}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              title="Pomeri prikaz cover slike"
-              aria-label="Pomeri prikaz cover slike"
+              title={t('cover.moveDisplay')}
+              aria-label={t('cover.moveDisplay')}
             >
               <ArrowsUpDownIcon className="h-6 w-6" aria-hidden />
             </button>
@@ -363,8 +363,8 @@ export default function UserProfile() {
               type="button"
               onClick={() => coverInputRef.current?.click()}
               disabled={coverUploading}
-              title={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
-              aria-label={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
+              title={hasCover ? t('cover.replace') : t('cover.add')}
+              aria-label={hasCover ? t('cover.replace') : t('cover.add')}
               className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
             >
               {coverUploading ? (
@@ -387,9 +387,9 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
           >
-            <p className="text-white text-center text-sm font-semibold">Pomeri cover (prikaz na računaru / širem ekranu)</p>
+            <p className="text-white text-center text-sm font-semibold">{t('cover.desktopTitle')}</p>
             <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">
-              Na telefonu je druga visina covera — tamo podešavaj posebno. Ovde se čuva samo prikaz za ekrane šire od 768px.
+              {t('cover.desktopHint')}
             </p>
             <input
               type="range"
@@ -405,7 +405,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYDesktop((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
-                aria-label="Pomeri prikaz nagore"
+                aria-label={t('cover.moveUp')}
               >
                 −
               </button>
@@ -414,7 +414,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYDesktop((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
-                aria-label="Pomeri prikaz nadole"
+                aria-label={t('cover.moveDown')}
               >
                 +
               </button>
@@ -426,14 +426,14 @@ export default function UserProfile() {
                 disabled={saving}
                 className="min-h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-lg transition disabled:opacity-50"
               >
-                {saving ? 'Čuvam…' : 'Sačuvaj'}
+                {saving ? t('cover.saving') : t('save')}
               </button>
               <button
                 type="button"
                 onClick={cancelCoverPositioning}
                 className="min-h-11 px-6 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold transition"
               >
-                Otkaži
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function UserProfile() {
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
-            aria-label="Zatvori"
+            aria-label={t('close')}
             onClick={cancelCoverPositioning}
           />
           <div
@@ -460,10 +460,10 @@ export default function UserProfile() {
           >
             <div className="mx-auto h-1 w-10 rounded-full bg-gray-200 shrink-0" aria-hidden />
             <h2 id="cover-pos-sheet-title" className="text-center text-sm font-bold text-gray-900">
-              Pomeri cover gore / dole
+              {t('cover.mobileTitle')}
             </h2>
             <p className="text-center text-[11px] text-gray-500 -mt-1">
-              Prikaz za telefon / uže ekrane (&lt; 768px). Na računaru koristi isto dugme na coveru u širem prikazu.
+              {t('cover.mobileHint')}
             </p>
             <input
               type="range"
@@ -479,7 +479,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYMobile((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label="Pomeri prikaz nagore"
+                aria-label={t('cover.moveUp')}
               >
                 −
               </button>
@@ -488,7 +488,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYMobile((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label="Pomeri prikaz nadole"
+                aria-label={t('cover.moveDown')}
               >
                 +
               </button>
@@ -499,7 +499,7 @@ export default function UserProfile() {
                 onClick={cancelCoverPositioning}
                 className="flex-1 min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
               >
-                Otkaži
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -507,7 +507,7 @@ export default function UserProfile() {
                 disabled={saving}
                 className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
               >
-                {saving ? 'Čuvam…' : 'Sačuvaj'}
+                {saving ? t('cover.saving') : t('save')}
               </button>
             </div>
           </div>
@@ -529,8 +529,8 @@ export default function UserProfile() {
                       type="button"
                       onClick={() => setAvatarLightboxOpen(true)}
                       className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                      aria-label="Prikaži profilnu sliku u punoj veličini"
-                      title="Klik za punu veličinu"
+                      aria-label={t('cover.showAvatarFull')}
+                      title={t('cover.clickForFull')}
                     >
                       <img
                         src={korisnik.avatar_url}
@@ -556,7 +556,7 @@ export default function UserProfile() {
                     <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
                     </svg>
-                    <span className="truncate">Član od {formatDate(korisnik.createdAt)}</span>
+                    <span className="truncate">{t('memberSince')} {formatDate(korisnik.createdAt)}</span>
                   </div>
                 </div>
 
@@ -607,8 +607,8 @@ export default function UserProfile() {
                     type="button"
                     onClick={() => setAvatarLightboxOpen(true)}
                     className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                    aria-label="Prikaži profilnu sliku u punoj veličini"
-                    title="Klik za punu veličinu"
+                    aria-label={t('cover.showAvatarFull')}
+                    title={t('cover.clickForFull')}
                   >
                     <img
                       src={korisnik.avatar_url}
@@ -656,7 +656,7 @@ export default function UserProfile() {
                       <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
                       </svg>
-                      Član od {formatDate(korisnik.createdAt)}
+                      {t('memberSince')} {formatDate(korisnik.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -781,13 +781,13 @@ export default function UserProfile() {
           className="fixed inset-0 z-[280] flex items-center justify-center bg-black/90 p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Profilna slika"
+          aria-label={t('cover.avatarImage')}
           onClick={() => setAvatarLightboxOpen(false)}
         >
           <button
             type="button"
             className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            aria-label="Zatvori"
+            aria-label={t('close')}
             onClick={(e) => {
               e.stopPropagation()
               setAvatarLightboxOpen(false)

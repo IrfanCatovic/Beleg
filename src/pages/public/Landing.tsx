@@ -1066,7 +1066,7 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/akcije/uspon-na-zlu-kolatu</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.actions.url')}</span>
                     </div>
                     <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt="Akcije PC prikaz" className="w-full h-auto" />
                   </div>
@@ -1089,7 +1089,7 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/korisnik/catko</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.profiles.url')}</span>
                     </div>
                     <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt="Profil PC prikaz" className="w-full h-auto" />
                   </div>
@@ -1140,7 +1140,7 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/finansije</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.finance.url')}</span>
                     </div>
                     <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt="Finansije PC prikaz" className="w-full h-auto" />
                   </div>
@@ -1160,7 +1160,7 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/zadaci</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.tasks.url')}</span>
                     </div>
                     <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt="Zadaci PC prikaz" className="w-full h-auto" />
                   </div>
@@ -1240,7 +1240,7 @@ export default function Landing() {
             <div className="flex items-center gap-3">
               <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
               <div>
-                <p className="text-sm font-semibold text-white">Planiner</p>
+                <p className="text-sm font-semibold text-white">{t('common:appName')}</p>
                 <p className="text-[11px] text-slate-400">{t('footer.byline')}</p>
               </div>
             </div>
@@ -1266,9 +1266,7 @@ export default function Landing() {
             <p className="text-[11px] text-slate-500 mb-2">
               {t('footer.copy', { year: new Date().getFullYear() })}
             </p>
-            <p className="text-[11px] text-slate-500">
-              {t('footer.demoLabel')}: username <strong>planiner</strong> / pw <strong>admin123</strong>
-            </p>
+            <p className="text-[11px] text-slate-500">{t('footer.demoCreds')}</p>
           </div>
         </div>
       </footer>

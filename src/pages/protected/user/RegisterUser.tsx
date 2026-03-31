@@ -173,7 +173,7 @@ export default function RegisterUser() {
                 <div>
                   <label className={labelClass}>{t('registerUser.roleRequired')}</label>
                   <Dropdown
-                    aria-label="Uloga"
+                    aria-label={t('registerUser.roleRequired')}
                     options={[
                       { value: '', label: t('registerUser.pick') },
                       ...roleOptions.map((role) => ({
@@ -217,7 +217,7 @@ export default function RegisterUser() {
                 <div>
                   <label className={labelClass}>{t('registerUser.gender')}</label>
                   <Dropdown
-                    aria-label="Pol"
+                    aria-label={t('registerUser.gender')}
                     options={[
                       { value: '', label: t('registerUser.pick') },
                       { value: 'M', label: t('registerUser.genderMale') },
