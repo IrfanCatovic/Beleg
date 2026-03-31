@@ -32,15 +32,105 @@ export const resources = {
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
         problemLabel: 'Problem',
         solutionLabel: 'Rešenje u Planiner',
+        cards: {
+          c1: {
+            problemTitle: 'Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.',
+            problemText: 'Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.',
+            solutionText: 'Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama (legitimacije, markice, disciplinske mere, izbor u organe).',
+          },
+          c2: {
+            problemTitle: 'Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.',
+            problemText: 'Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.',
+            solutionText: 'Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što mu treba. Vodiči, admini i blagajnici imaju posebna ovlašćenja.',
+          },
+          c3: {
+            problemTitle: 'Administracija troši sate i dane godišnje.',
+            problemText: 'Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji, sve se radi od nule.',
+            solutionTextStart: 'Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i ušteda preko',
+            solutionTextHours: 'sati godišnje',
+          },
+        },
       },
       member: {
+        badge: 'Za člana društva',
+        title: 'Tvoj put na stazi jednostavno i zanimljivo',
+        subtitle:
+          'Planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom, zajednica sa drugim planinarima i motivacija kroz napredak i takmičenje.',
         howForYou: 'Kako radi za tebe',
         community: 'Zajednica i interakcija',
         progress: 'Napredak i takmičenje',
+        howList: {
+          1: 'Uloguješ se i vidiš sve predstojeće akcije društva na jednom mestu.',
+          2: 'Prijaviš se na akciju jednim klikom bez papira, formulara i dopisivanja.',
+          3: 'Posle svake akcije automatski ti se beleže kilometri, uspon i učestvovanje.',
+          4: 'Pratiš svoj napredak i rang u društvu, sve na tvom profilu.',
+        },
+        communityIntro: 'Ostani u toku sa društvom i drugim planinarima:',
+        progressIntro: 'Svaka akcija ti donosi više od uspomene, beleži se i motiviše:',
+        ctaText: 'Želiš da tvoje društvo koristi Planiner?',
+        ctaLink: 'Predloži rukovodstvu da zakaže prezentaciju',
       },
-      features: { title: 'Ključne funkcionalnosti aplikacije' },
-      how: { title: 'Kako funkcioniše Planiner' },
-      partner: { title: 'Više od softvera - partner za društvo' },
+      mountainBand: {
+        badge: 'Samo za ozbiljne planinare',
+        title: 'Prati svoj napredak na svakoj stazi',
+        subtitle:
+          'Planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se vrhovima već dokazao. Sezona po sezona, godina po godina.',
+      },
+      ranking: {
+        badge: 'Ranking i mini takmičenja',
+        title: 'Pretvorite svaku akciju u mali izazov',
+        subtitle:
+          'Planiner vodi detaljnu statistiku za svakog člana nakon uspešne akcije: broj pređenih kilometara, ukupni uspon i osvojen rank.',
+      },
+      features: {
+        title: 'Ključne funkcionalnosti aplikacije',
+        subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do poslednjeg izveštaja blagajne.',
+      },
+      how: { title: 'Kako funkcioniše Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.', stepPrefix: 'Korak' },
+      partner: {
+        title: 'Više od softvera - partner za društvo',
+        subtitle:
+          'Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj je da vam damo više vremena na stazi, a manje za stolom.',
+        imageCaption: 'Tim Planiner-a - podrška od prvog dana',
+      },
+      memberBand: {
+        badge: 'Članovi u centru sistema',
+        title: 'Svaki član vidi svoj put na planini',
+        subtitle:
+          'Planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i vođenja tura.',
+      },
+      benefits: {
+        title: 'Brojevi i benefiti',
+        subtitle: 'Jasne, merljive koristi koje vaše društvo dobija prelaskom na Planiner.',
+      },
+      testimonials: { title: 'Šta kažu korisnici' },
+      audience: {
+        title: 'Za koga je Planiner',
+        subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobija jasne benefite.',
+      },
+      showcase: {
+        badge: 'Sneak peek',
+        title: 'Pogledaj aplikaciju iznutra',
+        subtitle: 'Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu.',
+      },
+      cta: {
+        title: 'Spremni da svom društvu vratite vreme, a sebi mir?',
+        subtitle:
+          'Pokažemo vam Planiner u 30 minuta. Bez obaveze, bez pritiska - samo iskren pregled onoga što vašem društvu može da olakša rad.',
+        bookDemo: 'Zakaži prezentaciju',
+        sendInquiry: 'Pošalji upit',
+        note: 'Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.',
+        wantDemo: 'Želiš prvo da vidiš kako izgleda?',
+        viewDemo: 'Pogledaj demo nalog',
+      },
+      footer: {
+        about: 'O nama',
+        features: 'Funkcionalnosti',
+        contact: 'Kontakt',
+        privacy: 'Politika privatnosti',
+        copy: '© {{year}} Orin d.o.o. - za planinarska društva koja žele više vremena na stazi, a manje za stolom.',
+        demoLabel: 'Demo nalog',
+      },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1103,15 +1193,105 @@ export const resources = {
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
         problemLabel: 'Problem',
         solutionLabel: 'Rješenje u Planiner',
+        cards: {
+          c1: {
+            problemTitle: 'Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.',
+            problemText: 'Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.',
+            solutionText: 'Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama (legitimacije, markice, disciplinske mjere, izbor u organe).',
+          },
+          c2: {
+            problemTitle: 'Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.',
+            problemText: 'Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.',
+            solutionText: 'Jedinstveno mjesto za akcije, zadatke, finansije i obavještenja, svaki ulogovani vidi ono što mu treba. Vodiči, admini i blagajnici imaju posebna ovlaštenja.',
+          },
+          c3: {
+            problemTitle: 'Administracija troši sate i dane godišnje.',
+            problemText: 'Upis članova, evidencija akcija, ručna obavještenja, finansijski izvještaji, sve se radi od nule.',
+            solutionTextStart: 'Automatizacija procesa (registracija članova, evidencija akcija, obavještenja, finansije) i ušteda preko',
+            solutionTextHours: 'sati godišnje',
+          },
+        },
       },
       member: {
+        badge: 'Za člana društva',
+        title: 'Tvoj put na stazi jednostavno i zanimljivo',
+        subtitle:
+          'Planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom, zajednica sa drugim planinarima i motivacija kroz napredak i takmičenje.',
         howForYou: 'Kako radi za tebe',
         community: 'Zajednica i interakcija',
         progress: 'Napredak i takmičenje',
+        howList: {
+          1: 'Uloguješ se i vidiš sve predstojeće akcije društva na jednom mjestu.',
+          2: 'Prijaviš se na akciju jednim klikom bez papira, formulara i dopisivanja.',
+          3: 'Poslije svake akcije automatski ti se bilježe kilometri, uspon i učešće.',
+          4: 'Pratiš svoj napredak i rang u društvu, sve na tvom profilu.',
+        },
+        communityIntro: 'Ostani u toku sa društvom i drugim planinarima:',
+        progressIntro: 'Svaka akcija ti donosi više od uspomene, bilježi se i motiviše:',
+        ctaText: 'Želiš da tvoje društvo koristi Planiner?',
+        ctaLink: 'Predloži rukovodstvu da zakaže prezentaciju',
       },
-      features: { title: 'Ključne funkcionalnosti aplikacije' },
-      how: { title: 'Kako funkcioniše Planiner' },
-      partner: { title: 'Više od softvera - partner za društvo' },
+      mountainBand: {
+        badge: 'Samo za ozbiljne planinare',
+        title: 'Prati svoj napredak na svakoj stazi',
+        subtitle:
+          'Planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se vrhovima već dokazao. Sezonu po sezonu, godinu po godinu.',
+      },
+      ranking: {
+        badge: 'Ranking i mini takmičenja',
+        title: 'Pretvorite svaku akciju u mali izazov',
+        subtitle:
+          'Planiner vodi detaljnu statistiku za svakog člana nakon uspješne akcije: broj pređenih kilometara, ukupni uspon i osvojen rank.',
+      },
+      features: {
+        title: 'Ključne funkcionalnosti aplikacije',
+        subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do posljednjeg izvještaja blagajne.',
+      },
+      how: { title: 'Kako funkcioniše Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sistemu.', stepPrefix: 'Korak' },
+      partner: {
+        title: 'Više od softvera - partner za društvo',
+        subtitle:
+          'Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj je da vam damo više vremena na stazi, a manje za stolom.',
+        imageCaption: 'Tim Planiner-a - podrška od prvog dana',
+      },
+      memberBand: {
+        badge: 'Članovi u centru sistema',
+        title: 'Svaki član vidi svoj put na planini',
+        subtitle:
+          'Planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i vođenja tura.',
+      },
+      benefits: {
+        title: 'Brojevi i benefiti',
+        subtitle: 'Jasne, mjerljive koristi koje vaše društvo dobija prelaskom na Planiner.',
+      },
+      testimonials: { title: 'Šta kažu korisnici' },
+      audience: {
+        title: 'Za koga je Planiner',
+        subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobija jasne benefite.',
+      },
+      showcase: {
+        badge: 'Sneak peek',
+        title: 'Pogledaj aplikaciju iznutra',
+        subtitle: 'Pridruži se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu.',
+      },
+      cta: {
+        title: 'Spremni da svom društvu vratite vrijeme, a sebi mir?',
+        subtitle:
+          'Pokažemo vam Planiner u 30 minuta. Bez obaveze, bez pritiska - samo iskren pregled onoga što vašem društvu može da olakša rad.',
+        bookDemo: 'Zakaži prezentaciju',
+        sendInquiry: 'Pošalji upit',
+        note: 'Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.',
+        wantDemo: 'Želiš prvo da vidiš kako izgleda?',
+        viewDemo: 'Pogledaj demo nalog',
+      },
+      footer: {
+        about: 'O nama',
+        features: 'Funkcionalnosti',
+        contact: 'Kontakt',
+        privacy: 'Politika privatnosti',
+        copy: '© {{year}} Orin d.o.o. - za planinarska društva koja žele više vremena na stazi, a manje za stolom.',
+        demoLabel: 'Demo nalog',
+      },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -1862,15 +2042,105 @@ export const resources = {
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
         problemLabel: 'Problem',
         solutionLabel: 'Rješenje u Planiner',
+        cards: {
+          c1: {
+            problemTitle: 'Kaos u tablicama, papirima, duplom unosu i izgubljenim obrascima.',
+            problemText: 'Podaci o članovima raspršeni su po Excelu, papirima i porukama - nitko nema potpunu sliku.',
+            solutionText: 'Centralizirana baza članova sa svim podacima, dokumentima i planinarskim informacijama.',
+          },
+          c2: {
+            problemTitle: 'Ne zna se tko je što uplatio ni na koju je akciju prijavljen.',
+            problemText: 'Tajnik, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i brojanje.',
+            solutionText: 'Jedno mjesto za akcije, zadatke, financije i obavijesti, uz jasne ovlasti po ulozi.',
+          },
+          c3: {
+            problemTitle: 'Administracija godišnje troši sate i dane rada.',
+            problemText: 'Upis članova, evidencija akcija, ručne obavijesti i financijski izvještaji rade se od nule.',
+            solutionTextStart: 'Automatizacija procesa (registracija članova, evidencija akcija, obavijesti, financije) i ušteda preko',
+            solutionTextHours: 'sati godišnje',
+          },
+        },
       },
       member: {
+        badge: 'Za člana društva',
+        title: 'Tvoj put na stazi jednostavno i zanimljivo',
+        subtitle:
+          'Planiner nije samo za vodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom, zajednica s drugim planinarima i motivacija kroz napredak i natjecanje.',
         howForYou: 'Kako radi za tebe',
         community: 'Zajednica i interakcija',
         progress: 'Napredak i natjecanje',
+        howList: {
+          1: 'Prijaviš se i vidiš sve nadolazeće akcije društva na jednom mjestu.',
+          2: 'Prijava na akciju ide jednim klikom, bez papira i dodatnog dopisivanja.',
+          3: 'Nakon svake akcije automatski se bilježe kilometri, uspon i sudjelovanje.',
+          4: 'Pratiš vlastiti napredak i rang u društvu, sve na svom profilu.',
+        },
+        communityIntro: 'Ostani u toku s društvom i drugim planinarima:',
+        progressIntro: 'Svaka akcija ti donosi više od uspomene, bilježi se i motivira:',
+        ctaText: 'Želiš da tvoje društvo koristi Planiner?',
+        ctaLink: 'Predloži vodstvu da zakaže prezentaciju',
       },
-      features: { title: 'Ključne funkcionalnosti aplikacije' },
-      how: { title: 'Kako funkcionira Planiner' },
-      partner: { title: 'Više od softvera - partner za društvo' },
+      mountainBand: {
+        badge: 'Samo za ozbiljne planinare',
+        title: 'Prati svoj napredak na svakoj stazi',
+        subtitle:
+          'Planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se vrhovima već dokazao. Sezona po sezona, godina po godina.',
+      },
+      ranking: {
+        badge: 'Ranking i mini natjecanja',
+        title: 'Pretvorite svaku akciju u mali izazov',
+        subtitle:
+          'Planiner vodi detaljnu statistiku za svakog člana nakon uspješne akcije: broj prijeđenih kilometara, ukupni uspon i osvojeni rank.',
+      },
+      features: {
+        title: 'Ključne funkcionalnosti aplikacije',
+        subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do posljednjeg izvještaja blagajne.',
+      },
+      how: { title: 'Kako funkcionira Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sustavu.', stepPrefix: 'Korak' },
+      partner: {
+        title: 'Više od softvera - partner za društvo',
+        subtitle:
+          'Planiner razvija posvećen tim developera koji aktivno surađuje s planinarskim društvima. Naš cilj je dati vam više vremena na stazi, a manje za stolom.',
+        imageCaption: 'Planiner tim - podrška od prvog dana',
+      },
+      memberBand: {
+        badge: 'Članovi u centru sustava',
+        title: 'Svaki član vidi svoj put u planini',
+        subtitle:
+          'Planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i vođenja tura.',
+      },
+      benefits: {
+        title: 'Brojevi i benefiti',
+        subtitle: 'Jasne, mjerljive koristi koje vaše društvo dobiva prelaskom na Planiner.',
+      },
+      testimonials: { title: 'Što kažu korisnici' },
+      audience: {
+        title: 'Za koga je Planiner',
+        subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobiva jasne benefite.',
+      },
+      showcase: {
+        badge: 'Sneak peek',
+        title: 'Pogledaj aplikaciju iznutra',
+        subtitle: 'Priključi se globalnoj mreži planinara. Isto iskustvo na računalu i telefonu.',
+      },
+      cta: {
+        title: 'Spremni vratiti svom društvu vrijeme, a sebi mir?',
+        subtitle:
+          'Pokazat ćemo vam Planiner u 30 minuta. Bez obveze, bez pritiska - samo iskren pregled onoga što vašem društvu može olakšati rad.',
+        bookDemo: 'Zakaži prezentaciju',
+        sendInquiry: 'Pošalji upit',
+        note: 'Možemo organizirati online sastanak s vodstvom društva, pokazati sučelje i dogovoriti sljedeće korake.',
+        wantDemo: 'Želiš prvo vidjeti kako izgleda?',
+        viewDemo: 'Pogledaj demo račun',
+      },
+      footer: {
+        about: 'O nama',
+        features: 'Funkcionalnosti',
+        contact: 'Kontakt',
+        privacy: 'Politika privatnosti',
+        copy: '© {{year}} Orin d.o.o. - za planinarska društva koja žele više vremena na stazi, a manje za stolom.',
+        demoLabel: 'Demo račun',
+      },
       highlights: {
         admin: {
           title: 'Manje administracije',
@@ -2502,15 +2772,105 @@ export const resources = {
         subtitle: 'Vom Papier- und Tabellenchaos zu einem klaren, digitalen System, das für Sie arbeitet.',
         problemLabel: 'Problem',
         solutionLabel: 'Lösung in Planiner',
+        cards: {
+          c1: {
+            problemTitle: 'Chaos in Tabellen, Papierformularen und doppelter Dateneingabe.',
+            problemText: 'Mitgliedsdaten liegen in Excel, Papier und Nachrichten verteilt - niemand hat den Gesamtüberblick.',
+            solutionText: 'Zentrale Mitgliederdatenbank mit allen Daten, Dokumenten und bergsportspezifischen Informationen.',
+          },
+          c2: {
+            problemTitle: 'Unklare Zahlungen und Anmeldungen, alles läuft über Nachrichten.',
+            problemText: 'Sekretariat, Guides und Kasse verlieren Stunden mit Nachfragen und manueller Kontrolle.',
+            solutionText: 'Ein zentraler Ort für Touren, Aufgaben, Finanzen und Benachrichtigungen mit Rollenrechten.',
+          },
+          c3: {
+            problemTitle: 'Verwaltung frisst jedes Jahr Tage an Arbeitszeit.',
+            problemText: 'Mitgliederverwaltung, Tourenlogik, Mitteilungen und Finanzberichte werden immer wieder manuell erstellt.',
+            solutionTextStart: 'Automatisierte Prozesse und eine Einsparung von über',
+            solutionTextHours: 'Stunden pro Jahr',
+          },
+        },
       },
       member: {
+        badge: 'Für Vereinsmitglieder',
+        title: 'Dein Weg auf dem Trail, einfach und motivierend',
+        subtitle:
+          'Planiner ist nicht nur für die Vereinsleitung. Als Mitglied hast du deinen eigenen Bereich: Tourenübersicht, Ein-Klick-Anmeldungen, Community und Motivation durch Fortschritt und Wettbewerb.',
         howForYou: 'Wie es für dich funktioniert',
         community: 'Community und Interaktion',
         progress: 'Fortschritt und Wettbewerb',
+        howList: {
+          1: 'Du meldest dich an und siehst alle kommenden Touren deines Vereins an einem Ort.',
+          2: 'Zur Tour meldest du dich mit einem Klick an - ohne Papier und Formulare.',
+          3: 'Nach jeder Tour werden Kilometer, Aufstieg und Teilnahme automatisch erfasst.',
+          4: 'Du verfolgst deinen Fortschritt und dein Ranking direkt in deinem Profil.',
+        },
+        communityIntro: 'Bleib mit dem Verein und anderen Bergsportlern verbunden:',
+        progressIntro: 'Jede Tour bringt dir mehr als Erinnerungen - sie wird erfasst und motiviert:',
+        ctaText: 'Willst du, dass dein Verein Planiner nutzt?',
+        ctaLink: 'Schlage der Leitung eine Präsentation vor',
       },
-      features: { title: 'Wichtige App-Funktionen' },
-      how: { title: 'So funktioniert Planiner' },
-      partner: { title: 'Mehr als Software - ein Partner für den Verein' },
+      mountainBand: {
+        badge: 'Für ambitionierte Bergsportler',
+        title: 'Verfolge deinen Fortschritt auf jedem Trail',
+        subtitle:
+          'Planiner zeigt dir deine Kilometer, den Gesamtaufstieg und auf welchen Gipfeln du dich bereits bewiesen hast.',
+      },
+      ranking: {
+        badge: 'Ranking und Mini-Wettbewerbe',
+        title: 'Macht aus jeder Tour eine kleine Herausforderung',
+        subtitle:
+          'Planiner erfasst detaillierte Statistiken pro Mitglied nach jeder erfolgreichen Tour: Kilometer, Gesamtaufstieg und Ranking.',
+      },
+      features: {
+        title: 'Wichtige App-Funktionen',
+        subtitle: 'Alles, was ein Bergsportverein braucht - vom Eintritt bis zum letzten Kassenbericht.',
+      },
+      how: { title: 'So funktioniert Planiner', subtitle: 'Klare Schritte vom Erstkontakt bis zum täglichen Einsatz im Verein.', stepPrefix: 'Schritt' },
+      partner: {
+        title: 'Mehr als Software - ein Partner für den Verein',
+        subtitle:
+          'Planiner wird von einem engagierten Entwicklerteam aufgebaut, das aktiv mit Bergsportvereinen zusammenarbeitet.',
+        imageCaption: 'Planiner-Team - Unterstützung ab Tag eins',
+      },
+      memberBand: {
+        badge: 'Mitglieder im Mittelpunkt',
+        title: 'Jedes Mitglied sieht seinen Weg am Berg',
+        subtitle:
+          'Planiner bewahrt die Berggeschichte jedes Mitglieds - von der ersten Tour bis zu großen Aufstiegen und Tourenleitung.',
+      },
+      benefits: {
+        title: 'Kennzahlen und Vorteile',
+        subtitle: 'Klare, messbare Vorteile für euren Verein mit Planiner.',
+      },
+      testimonials: { title: 'Was Nutzer sagen' },
+      audience: {
+        title: 'Für wen ist Planiner',
+        subtitle: 'Eine App, verschiedene Perspektiven - jede Rolle im Verein erhält klare Vorteile.',
+      },
+      showcase: {
+        badge: 'Sneak Peek',
+        title: 'Ein Blick in die App',
+        subtitle: 'Gleiches Erlebnis auf Desktop und Smartphone.',
+      },
+      cta: {
+        title: 'Bereit, eurem Verein Zeit und euch selbst Ruhe zurückzugeben?',
+        subtitle:
+          'Wir zeigen euch Planiner in 30 Minuten. Ohne Verpflichtung, ohne Druck - ein ehrlicher Überblick, was eure Arbeit erleichtert.',
+        bookDemo: 'Präsentation buchen',
+        sendInquiry: 'Anfrage senden',
+        note: 'Wir können ein Online-Meeting mit der Vereinsleitung organisieren und die nächsten Schritte abstimmen.',
+        wantDemo: 'Möchtest du zuerst sehen, wie es aussieht?',
+        viewDemo: 'Demo-Konto ansehen',
+      },
+      footer: {
+        about: 'Über uns',
+        features: 'Funktionen',
+        contact: 'Kontakt',
+        privacy: 'Datenschutz',
+        copy: '© {{year}} Orin d.o.o. - für Bergsportvereine, die mehr Zeit am Berg und weniger am Schreibtisch wollen.',
+        demoLabel: 'Demo-Konto',
+      },
       highlights: {
         admin: {
           title: 'Weniger Verwaltung',
@@ -3142,15 +3502,105 @@ export const resources = {
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
         problemLabel: 'Problem',
         solutionLabel: 'Solution in Planiner',
+        cards: {
+          c1: {
+            problemTitle: 'Spreadsheet chaos, paperwork, duplicate entry, and lost forms.',
+            problemText: 'Member data is scattered across Excel, paper forms, and messages, so no one has the full picture.',
+            solutionText: 'A centralized member database with all data, documents, and hiking-related information.',
+          },
+          c2: {
+            problemTitle: 'No clear view of payments or activity signups, everything runs through messages.',
+            problemText: 'Secretaries, guides, and treasurers spend hours on manual follow-ups and counting.',
+            solutionText: 'One place for activities, tasks, finances, and notifications, with role-based permissions.',
+          },
+          c3: {
+            problemTitle: 'Administration takes hours and days every year.',
+            problemText: 'Member registration, activity records, manual notifications, and finance reports are rebuilt from scratch.',
+            solutionTextStart: 'Process automation and savings of over',
+            solutionTextHours: 'hours per year',
+          },
+        },
       },
       member: {
+        badge: 'For club members',
+        title: 'Your trail journey, simple and engaging',
+        subtitle:
+          'Planiner is not just for management. As a member, you get your own space: activity overview, one-click signups, community, and motivation through progress and competition.',
         howForYou: 'How it works for you',
         community: 'Community and interaction',
         progress: 'Progress and competition',
+        howList: {
+          1: 'Log in and see all upcoming club activities in one place.',
+          2: 'Join an activity with one click, no paperwork or extra forms.',
+          3: 'After each activity, your distance, ascent, and participation are recorded automatically.',
+          4: 'Track your progress and ranking in your member profile.',
+        },
+        communityIntro: 'Stay connected with your club and other hikers:',
+        progressIntro: 'Every activity gives you more than memories - it gets recorded and motivates you:',
+        ctaText: 'Want your club to use Planiner?',
+        ctaLink: 'Suggest to your management to schedule a presentation',
       },
-      features: { title: 'Key app features' },
-      how: { title: 'How Planiner works' },
-      partner: { title: 'More than software - a partner for your club' },
+      mountainBand: {
+        badge: 'Built for serious hikers',
+        title: 'Track your progress on every trail',
+        subtitle:
+          'Planiner shows your total distance, ascent, and the peaks where you have already proven yourself.',
+      },
+      ranking: {
+        badge: 'Ranking and mini competitions',
+        title: 'Turn every activity into a challenge',
+        subtitle:
+          'Planiner keeps detailed stats for each member after successful activities: distance, total ascent, and rank.',
+      },
+      features: {
+        title: 'Key app features',
+        subtitle: 'Everything a hiking club needs - from first registration to final treasury report.',
+      },
+      how: { title: 'How Planiner works', subtitle: 'Clear steps from first contact to daily use across the whole club.', stepPrefix: 'Step' },
+      partner: {
+        title: 'More than software - a partner for your club',
+        subtitle:
+          'Planiner is built by a dedicated development team that actively collaborates with hiking clubs.',
+        imageCaption: 'Planiner team - support from day one',
+      },
+      memberBand: {
+        badge: 'Members at the center',
+        title: 'Every member sees their mountain journey',
+        subtitle:
+          'Planiner keeps each member’s story - from their first activity to major ascents and guiding tours.',
+      },
+      benefits: {
+        title: 'Numbers and benefits',
+        subtitle: 'Clear, measurable benefits your club gets by switching to Planiner.',
+      },
+      testimonials: { title: 'What users say' },
+      audience: {
+        title: 'Who Planiner is for',
+        subtitle: 'One app, different perspectives - every club role gets clear value.',
+      },
+      showcase: {
+        badge: 'Sneak peek',
+        title: 'Look inside the app',
+        subtitle: 'Same experience on desktop and mobile.',
+      },
+      cta: {
+        title: 'Ready to give your club back time and yourself peace of mind?',
+        subtitle:
+          'We will show you Planiner in 30 minutes. No obligation, no pressure - just a clear walkthrough of what can simplify your club operations.',
+        bookDemo: 'Book a presentation',
+        sendInquiry: 'Send inquiry',
+        note: 'We can organize an online meeting with your club management, show the interface, and agree on next steps.',
+        wantDemo: 'Want to see it first?',
+        viewDemo: 'View demo account',
+      },
+      footer: {
+        about: 'About us',
+        features: 'Features',
+        contact: 'Contact',
+        privacy: 'Privacy policy',
+        copy: '© {{year}} Orin d.o.o. - for hiking clubs that want more time on the trail and less at the desk.',
+        demoLabel: 'Demo account',
+      },
       highlights: {
         admin: {
           title: 'Less administration',
