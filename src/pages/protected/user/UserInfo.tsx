@@ -229,7 +229,7 @@ export default function UserInfo() {
             </div>
             <div className="p-5 divide-y divide-gray-100 -mx-1">
               <InfoRow label={t('labels.parentName')} value={korisnik.ime_roditelja} alwaysShow icon={IdentificationIcon} />
-              <InfoRow label={t('labels.gender')} value={korisnik.pol === 'M' ? t('gender.male') : korisnik.pol === 'Ž' ? t('gender.female') : '—'} alwaysShow icon={IdentificationIcon} />
+              <InfoRow label={t('labels.gender')} value={korisnik.pol === 'M' ? t('gender.male') : korisnik.pol === 'Ž' ? t('gender.female') : t('shared:taskCard.empty')} alwaysShow icon={IdentificationIcon} />
               <InfoRow label={t('labels.birthDate')} value={formatDate(korisnik.datum_rodjenja ?? undefined)} alwaysShow icon={CalendarDaysIcon} />
               <InfoRow label={t('labels.citizenship')} value={korisnik.drzavljanstvo} alwaysShow icon={IdentificationIcon} />
               <InfoRow label={t('labels.address')} value={korisnik.adresa} alwaysShow icon={MapPinIcon} />

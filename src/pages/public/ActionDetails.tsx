@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
@@ -8,6 +9,7 @@ import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../ut
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
+import { tezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
 
 interface Akcija {
   id: number
@@ -42,17 +44,20 @@ interface Prijava {
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
 }
 
-const TEZINA: Record<string, { bg: string; text: string; label: string }> = {
-  lako:      { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Lako' },
-  srednje:   { bg: 'bg-amber-50',   text: 'text-amber-700',   label: 'Srednje' },
-  tesko:     { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  'teško':   { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50',  text: 'text-violet-700',  label: 'Alpinizam' },
+const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
 }
 
-function tz(t?: string) {
-  if (!t) return { bg: 'bg-gray-50', text: 'text-gray-500', label: '—' }
-  return TEZINA[t.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', label: t }
+function tzStyle(raw: string | undefined, t: TFunction) {
+  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
+  const k = raw.toLowerCase()
+  const style = TEZINA_STYLE[k]
+  if (style) return { ...style, label: tezinaLabel(raw, t) }
+  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -60,13 +65,6 @@ const STATUS_STYLE: Record<string, string> = {
   'nije uspeo': 'bg-rose-50 text-rose-700 border-rose-200',
   'otkazano':   'bg-gray-100 text-gray-500 border-gray-200',
   'prijavljen': 'bg-emerald-50 text-emerald-600 border-emerald-200',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  'popeo se':   'Popeo se',
-  'nije uspeo': 'Nije uspeo',
-  'otkazano':   'Otkazano',
-  'prijavljen': 'Prijavljen',
 }
 
 export default function ActionDetails() {
@@ -152,10 +150,7 @@ export default function ActionDetails() {
   }, [id, user, akcija])
 
   const handleDelete = async () => {
-    const confirmed = await showConfirm(
-      'Da li si siguran da želiš da obrišeš ovu akciju? Ova akcija će biti trajno obrisana.',
-      { variant: 'danger', confirmLabel: t('delete') }
-    )
+    const confirmed = await showConfirm(t('deleteConfirmMessage'), { variant: 'danger', confirmLabel: t('delete') })
     if (!confirmed) return
     try {
       await api.delete(`/api/akcije/${id}`)
@@ -188,10 +183,11 @@ export default function ActionDetails() {
   }
 
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
-    const confirmed = await showConfirm(
-      `Da li stvarno želite da uklonite "${displayName}" sa ove akcije?`,
-      { title: t('removeMemberTitle'), confirmLabel: t('remove'), cancelLabel: t('cancel') }
-    )
+    const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
+      title: t('removeMemberTitle'),
+      confirmLabel: t('remove'),
+      cancelLabel: t('cancel'),
+    })
     if (!confirmed) return
     try {
       await api.delete(`/api/prijave/${prijavaId}`)
@@ -265,7 +261,7 @@ export default function ActionDetails() {
   const imenaPolaznika = prijave.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
-  const difficultyBadge = tz(akcija.tezina)
+  const difficultyBadge = tzStyle(akcija.tezina, t)
   const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
   const isLimitedView = !!akcija.limited
   const memberCount =
@@ -563,7 +559,7 @@ export default function ActionDetails() {
 
                             <div className="flex items-center gap-2 flex-wrap justify-end">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusCls}`}>
-                                {STATUS_LABEL[p.status] || p.status}
+                                {prijavaStatusLabel(p.status, t)}
                               </span>
                               {canManageHost && !akcija.isCompleted && (
                                 <div className="flex gap-1.5 items-center">
@@ -671,14 +667,14 @@ export default function ActionDetails() {
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          Završi akciju
+                          {t('finishAction')}
                         </button>
                         <button
                           onClick={handleEdit}
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                          Izmeni akciju
+                          {t('editAction')}
                         </button>
                       </>
                     )}
@@ -690,7 +686,7 @@ export default function ActionDetails() {
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                          Štampaj PDF
+                          {t('printPdf')}
                         </button>
                       ) : (
                         <>
@@ -699,14 +695,14 @@ export default function ActionDetails() {
                             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Štampaj – pre polaska
+                            {t('printBeforeDeparture')}
                           </button>
                           <button
                             onClick={handlePrintZavrsena}
                             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Štampaj – završena
+                            {t('printCompleted')}
                           </button>
                         </>
                       )}
@@ -718,7 +714,7 @@ export default function ActionDetails() {
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Izbriši akciju
+                        {t('deleteAction')}
                       </button>
                     </div>
                   </div>

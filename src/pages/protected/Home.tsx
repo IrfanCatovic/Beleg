@@ -6,6 +6,7 @@ import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import { formatDateShort } from '../../utils/dateUtils'
 import Loader from '../../components/Loader'
+import { tezinaLabel } from '../../utils/difficultyI18n'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 
 interface Akcija {
@@ -602,7 +603,7 @@ export default function Home() {
                             </div>
                             {a.tezina && (
                               <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${tezinaStyle}`}>
-                                {a.tezina === 'tesko' || a.tezina === 'teško' ? t('hard') : a.tezina === 'alpinizam' ? t('alpinism') : a.tezina}
+                                {tezinaLabel(a.tezina, t)}
                               </span>
                             )}
                           </div>

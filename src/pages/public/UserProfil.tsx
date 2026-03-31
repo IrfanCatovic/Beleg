@@ -13,6 +13,8 @@ import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
 import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
+import { tezinaLabel } from '../../utils/difficultyI18n'
+import type { TFunction } from 'i18next'
 import { ArrowsUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -53,18 +55,26 @@ interface Korisnik {
   klubLogoUrl?: string
 }
 
-const TEZINA: Record<string, { bg: string; text: string; border: string; label: string }> = {
-  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Lako' },
-  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Srednje' },
-  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
-  'teško': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', label: 'Alpinizam' },
+const TEZINA_BORDER: Record<string, { bg: string; text: string; border: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
 }
-const DEFAULT_TEZINA = { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Nepoznato' }
 
-function tz(t?: string) {
-  if (!t) return DEFAULT_TEZINA
-  return TEZINA[t.toLowerCase()] ?? { ...DEFAULT_TEZINA, label: t }
+function tzProfile(raw: string | undefined, t: TFunction) {
+  const fallback = {
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-200',
+    label: tezinaLabel(raw, t),
+  }
+  if (!raw) return fallback
+  const k = raw.toLowerCase()
+  const row = TEZINA_BORDER[k]
+  if (row) return { ...row, label: tezinaLabel(raw, t) }
+  return fallback
 }
 
 /** Isti breakpoint kao Tailwind `md:` — cover na širem ekranu koristi drugačiju sačuvanu poziciju. */
@@ -842,7 +852,7 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
     tezina: akcija.tezina,
     datum: akcija.datum,
   })
-  const difficultyBadge = tz(akcija.tezina)
+  const difficultyBadge = tzProfile(akcija.tezina, t)
 
   return (
     <Link

@@ -56,12 +56,6 @@ const cardBorderByStatus: Record<SubscriptionStatus, string> = {
   expired: 'border-l-red-500 bg-red-50/50',
 }
 
-const labelByStatus: Record<SubscriptionStatus, string> = {
-  active: 'Aktivna subskripcija',
-  warning: 'Ističe uskoro',
-  expired: 'Istekla',
-}
-
 const defaultForm = {
   naziv: '',
   adresa: '',
@@ -320,7 +314,7 @@ export default function SuperadminKlubovi() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {k.onHold && (
                         <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-slate-200 text-slate-800">
-                          Na hold-u
+                          {t('superadmin.onHoldBadge')}
                         </span>
                       )}
                       <span
@@ -332,7 +326,7 @@ export default function SuperadminKlubovi() {
                               : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {labelByStatus[status]}
+                        {t(`superadmin.subscriptionStatus.${status}`)}
                       </span>
                     </div>
                   </div>
@@ -540,7 +534,7 @@ export default function SuperadminKlubovi() {
                       className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <label htmlFor="form-onHold" className="text-sm font-medium text-gray-700">
-                      Klub aktivan (članovi mogu da se loguju)
+                      {t('superadmin.clubActiveLabel')}
                     </label>
                   </div>
                 )}

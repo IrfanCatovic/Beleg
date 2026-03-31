@@ -15,6 +15,8 @@ import Loader from '../../../components/Loader'
 import { AkcijaImageOrFallback } from '../../../components/AkcijaImageFallback'
 import Dropdown from '../../../components/Dropdown'
 import { computeMMRForAkcija } from '../../../utils/rankingUtils'
+import { tezinaLabel } from '../../../utils/difficultyI18n'
+import type { TFunction } from 'i18next'
 
 interface Akcija {
   id: number
@@ -35,17 +37,20 @@ interface Akcija {
   kumulativniUsponM?: number
 }
 
-const TEZINA_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  lako:      { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Lako' },
-  srednje:   { bg: 'bg-amber-50',   text: 'text-amber-700',   label: 'Srednje' },
-  tesko:     { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  'teško':   { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50',  text: 'text-violet-700',  label: 'Alpinizam' },
+const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
 }
 
-function tezinaStyle(t?: string) {
-  if (!t) return { bg: 'bg-gray-50', text: 'text-gray-500', label: 'Nepoznato' }
-  return TEZINA_STYLE[t.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', label: t }
+function tezinaStyle(raw: string | undefined, t: TFunction) {
+  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(undefined, t) }
+  const k = raw.toLowerCase()
+  const style = TEZINA_STYLE[k]
+  if (style) return { ...style, label: tezinaLabel(raw, t) }
+  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
 }
 
 export default function Actions() {
@@ -356,7 +361,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const difficultyBadge = tezinaStyle(akcija.tezina)
+                const difficultyBadge = tezinaStyle(akcija.tezina, t)
 
                 return (
                   <Link
@@ -514,7 +519,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const difficultyBadge = tezinaStyle(akcija.tezina)
+                const difficultyBadge = tezinaStyle(akcija.tezina, t)
 
                 return (
                   <Link
