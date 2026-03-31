@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
@@ -84,6 +85,7 @@ function useIsMdUpForCover() {
 /* ────────────────────────────────────────────────────────────────────── */
 
 export default function UserProfile() {
+  const { t, i18n } = useTranslation('userProfile')
   const { id, username } = useParams<{ id?: string; username?: string }>()
   const { user: currentUser } = useAuth()
   const navigate = useNavigate()
@@ -131,7 +133,7 @@ export default function UserProfile() {
       setError('')
       try {
         const idOrUsername = id ?? username
-        if (!idOrUsername) { setError('Korisnik nije pronađen'); setLoading(false); return }
+        if (!idOrUsername) { setError(t('notFound')); setLoading(false); return }
 
         const [rK, rS, rA] = await Promise.all([
           api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`),
@@ -148,7 +150,7 @@ export default function UserProfile() {
         setStats({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
         setAkcije(rA.data.uspesneAkcije || [])
       } catch (e: any) {
-        if (!cancelled) setError(e.response?.data?.error || 'Greška pri učitavanju profila')
+        if (!cancelled) setError(e.response?.data?.error || t('loadError'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -290,7 +292,7 @@ export default function UserProfile() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
       </div>
-      <p className="text-sm text-gray-500 font-medium">{error || 'Korisnik nije pronađen'}</p>
+      <p className="text-sm text-gray-500 font-medium">{error || t('notFound')}</p>
     </div>
   )
 
@@ -708,10 +710,10 @@ export default function UserProfile() {
                       className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
                     >
                       <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
-                        {followCounts.following.toLocaleString('sr-RS')}
+                        {followCounts.following.toLocaleString(i18n.language)}
                       </p>
                       <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
-                        Prati
+                        {t('following')}
                       </p>
                     </button>
                     <div className="w-px self-stretch bg-gradient-to-b from-transparent via-gray-200 to-transparent" aria-hidden />
@@ -721,10 +723,10 @@ export default function UserProfile() {
                       className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
                     >
                       <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
-                        {followCounts.followers.toLocaleString('sr-RS')}
+                        {followCounts.followers.toLocaleString(i18n.language)}
                       </p>
                       <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
-                        Pratioci
+                        {t('followers')}
                       </p>
                     </button>
                   </div>
@@ -736,9 +738,9 @@ export default function UserProfile() {
           </div>
 
           <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <StatCell value={stats.ukupnoMetaraUspona.toLocaleString('sr-RS')} unit="m" label="Uspon" accent="text-emerald-500" />
-            <StatCell value={stats.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label="Staza" accent="text-sky-500" />
-            <StatCell value={String(stats.brojPopeoSe)} label="Osvojenih" accent="text-amber-500" />
+            <StatCell value={stats.ukupnoMetaraUspona.toLocaleString(i18n.language)} unit="m" label={t('ascent')} accent="text-emerald-500" />
+            <StatCell value={stats.ukupnoKm.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label={t('trail')} accent="text-sky-500" />
+            <StatCell value={String(stats.brojPopeoSe)} label={t('climbedCount')} accent="text-amber-500" />
           </div>
         </div>
       </div>
@@ -749,7 +751,7 @@ export default function UserProfile() {
 
           <div className="flex items-center gap-2.5 mb-6">
             <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Osvojene akcije</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
             {akcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                 {akcije.length}
@@ -763,7 +765,7 @@ export default function UserProfile() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">Još nema završenih akcija.</p>
+              <p className="text-sm text-gray-400">{t('noCompletedActions')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -805,7 +807,7 @@ export default function UserProfile() {
 
       <FollowListModal
         open={followModalOpen}
-        title={followModalMode === 'following' ? 'Prati' : 'Pratioci'}
+        title={followModalMode === 'following' ? t('following') : t('followers')}
         users={followModalUsers}
         loading={followModalLoading}
         onClose={() => setFollowModalOpen(false)}
@@ -831,6 +833,7 @@ function StatCell({ value, unit, label, accent }: { value: string; unit?: string
 }
 
 function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
+  const { t, i18n } = useTranslation('userProfile')
   const mmr = computeMMRForAkcija({
     duzinaStazeKm: akcija.duzinaStazeKm,
     kumulativniUsponM: akcija.kumulativniUsponM,
@@ -839,7 +842,7 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
     tezina: akcija.tezina,
     datum: akcija.datum,
   })
-  const t = tz(akcija.tezina)
+  const difficultyBadge = tz(akcija.tezina)
 
   return (
     <Link
@@ -882,17 +885,17 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
           <span className="w-px h-3 bg-gray-200" />
           <span className="flex items-center gap-0.5">
             <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>
-            {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
+            {akcija.kumulativniUsponM?.toLocaleString(i18n.language) || '0'} m
           </span>
         </div>
 
         <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${t.bg} ${t.text} ${t.border}`}>
-            {t.label}
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${difficultyBadge.bg} ${difficultyBadge.text} ${difficultyBadge.border}`}>
+            {difficultyBadge.label}
           </span>
           <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            Popeo se
+            {t('climbed')}
           </span>
         </div>
       </div>

@@ -375,6 +375,18 @@ export const resources = {
       chooseDate: 'Izaberite datum',
       adminOnlyFields: 'Ova polja menja samo admin.',
     },
+    userProfile: {
+      notFound: 'Korisnik nije pronađen',
+      loadError: 'Greška pri učitavanju profila',
+      following: 'Prati',
+      followers: 'Pratioci',
+      ascent: 'Uspon',
+      trail: 'Staza',
+      climbedCount: 'Osvojenih',
+      completedActions: 'Osvojene akcije',
+      noCompletedActions: 'Još nema završenih akcija.',
+      climbed: 'Popeo se',
+    },
   },
   bs: {
     common: {
