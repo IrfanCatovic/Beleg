@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
+import { useTranslation } from 'react-i18next'
 
 interface Korisnik {
   id: number
@@ -14,6 +15,7 @@ interface Korisnik {
 }
 
 export default function AddAction() {
+  const { t } = useTranslation('actionForms')
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -67,7 +69,7 @@ export default function AddAction() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 font-medium">Samo admin ili vodič mogu da dodaju akcije.</p>
+        <p className="text-sm text-gray-500 font-medium">{t('add.onlyAdminGuide')}</p>
       </div>
     )
   }
@@ -79,23 +81,23 @@ export default function AddAction() {
     setSuccess('')
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
-      setError('Datum mora biti u formatu YYYY-MM-DD')
+      setError(t('errors.invalidDateFormat'))
       setLoading(false)
       return
     }
     if (datum < todayYmd) {
-      setError('Datum ne može biti u prošlosti.')
+      setError(t('errors.pastDate'))
       setLoading(false)
       return
     }
     if (!tezina.trim()) {
-      setError('Izaberite težinu.')
+      setError(t('errors.selectDifficulty'))
       setLoading(false)
       return
     }
     const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
     if (!dozvoljeneTezine.includes(tezina.trim().toLowerCase())) {
-      setError('Izaberi težinu od ponuđenih.')
+      setError(t('errors.selectDifficultyFromList'))
       setLoading(false)
       return
     }
@@ -121,10 +123,10 @@ export default function AddAction() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      setSuccess('Akcija uspešno dodata! ID: ' + res.data.akcija.id)
+      setSuccess(t('add.successWithId', { id: res.data.akcija.id }))
       navigate('/akcije')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri dodavanju akcije')
+      setError(err.response?.data?.error || t('errors.addAction'))
       console.error('Greška:', err)
     } finally {
       setLoading(false)
@@ -142,10 +144,10 @@ export default function AddAction() {
           <BackButton />
           <div className="flex-1 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
-              Nova planinarska akcija
+              {t('add.badge')}
             </p>
             <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight text-gray-900">
-              Dodaj akciju u plan
+              {t('add.title')}
             </h1>
           </div>
           <div className="w-10 sm:w-16" aria-hidden />
@@ -164,45 +166,45 @@ export default function AddAction() {
 
             <div className="grid gap-4 sm:gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className={labelClass}>Naziv akcije</label>
+                <label className={labelClass}>{t('fields.actionName')}</label>
                 <input
                   type="text"
                   value={naziv}
                   onChange={(e) => setNaziv(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Uspon na Rtanj severnom stazom"
+                  placeholder={t('placeholders.actionName')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Planina</label>
+                <label className={labelClass}>{t('fields.mountain')}</label>
                 <input
                   type="text"
                   value={planina}
                   onChange={(e) => setPlanina(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Kopaonik, Stara planina"
+                  placeholder={t('placeholders.mountain')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Vrh</label>
+                <label className={labelClass}>{t('fields.peak')}</label>
                 <input
                   type="text"
                   value={vrh}
                   onChange={(e) => setVrh(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Midžor, Pančićev vrh"
+                  placeholder={t('placeholders.peak')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Datum akcije</label>
+                <label className={labelClass}>{t('fields.actionDate')}</label>
                 <CalendarDropdown
-                  aria-label="Izaberi datum akcije"
+                  aria-label={t('fields.pickActionDate')}
                   value={datum}
                   onChange={setDatum}
                   minDate={todayYmd}
@@ -211,15 +213,15 @@ export default function AddAction() {
               </div>
 
               <div>
-                <label className={labelClass}>Težina</label>
+                <label className={labelClass}>{t('fields.difficulty')}</label>
                 <Dropdown
-                  aria-label="Izaberi težinu"
+                  aria-label={t('fields.pickDifficulty')}
                   options={[
-                    { value: '', label: 'Izaberi težinu' },
-                    { value: 'lako', label: 'Lako' },
-                    { value: 'srednje', label: 'Srednje' },
-                    { value: 'tesko', label: 'Teško' },
-                    { value: 'alpinizam', label: 'Alpinizam' },
+                    { value: '', label: t('difficulty.pick') },
+                    { value: 'lako', label: t('difficulty.easy') },
+                    { value: 'srednje', label: t('difficulty.medium') },
+                    { value: 'tesko', label: t('difficulty.hard') },
+                    { value: 'alpinizam', label: t('difficulty.alpinism') },
                   ]}
                   value={tezina}
                   onChange={setTezina}
@@ -229,12 +231,12 @@ export default function AddAction() {
             </div>
 
             <div>
-              <label className={labelClass}>Opis</label>
+              <label className={labelClass}>{t('fields.description')}</label>
               <textarea
                 value={opis}
                 onChange={(e) => setOpis(e.target.value)}
                 className={`${inputClass} min-h-[80px]`}
-                placeholder="Kratak opis ture, dužina, pauze, oprema, napomene…"
+                placeholder={t('placeholders.description')}
                 rows={4}
               />
             </div>
@@ -242,11 +244,11 @@ export default function AddAction() {
             <div className="space-y-3 pt-1 border-t border-gray-50">
               {!drugiVodicCheck && (
                 <div>
-                  <label className={labelClass}>Vodič</label>
+                  <label className={labelClass}>{t('fields.guide')}</label>
                   <Dropdown
-                    aria-label="Izaberi vodiča"
+                    aria-label={t('fields.pickGuide')}
                     options={[
-                      { value: '', label: 'Izaberi vodiča' },
+                      { value: '', label: t('guide.pick') },
                       ...vodici.map((v) => ({
                         value: String(v.id),
                         label: `${v.fullName} (@${v.username})`,
@@ -273,17 +275,17 @@ export default function AddAction() {
                   className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="drugi-vodic" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  Drugi vodič (ručni unos)
+                  {t('fields.secondGuideManual')}
                 </label>
               </div>
               {drugiVodicCheck && (
                 <div>
-                  <label className={labelClass}>Drugi vodič</label>
+                  <label className={labelClass}>{t('fields.secondGuide')}</label>
                   <input
                     type="text"
                     value={drugiVodicIme}
                     onChange={(e) => setDrugiVodicIme(e.target.value)}
-                    placeholder="Ime i prezime drugog vodiča"
+                    placeholder={t('placeholders.secondGuideName')}
                     className={inputClass}
                   />
                 </div>
@@ -292,36 +294,36 @@ export default function AddAction() {
 
             <div className="grid gap-4 sm:gap-5 sm:grid-cols-3 pt-2 border-t border-gray-50">
               <div>
-                <label className={labelClass}>Uspon (m)</label>
+                <label className={labelClass}>{t('fields.ascentM')}</label>
                 <input
                   type="number"
                   value={kumulativniUsponM}
                   onChange={(e) => setKumulativniUsponM(e.target.value)}
-                  placeholder="npr. 1250"
+                  placeholder={t('placeholders.ascentM')}
                   className={inputClass}
                   min="0"
                   step="1"
                 />
               </div>
               <div>
-                <label className={labelClass}>Dužina (km)</label>
+                <label className={labelClass}>{t('fields.lengthKm')}</label>
                 <input
                   type="number"
                   value={duzinaStazeKm}
                   onChange={(e) => setDuzinaStazeKm(e.target.value)}
-                  placeholder="npr. 14.5"
+                  placeholder={t('placeholders.lengthKm')}
                   className={inputClass}
                   min="0"
                   step="0.1"
                 />
               </div>
               <div>
-                <label className={labelClass}>Visina vrha (m)</label>
+                <label className={labelClass}>{t('fields.peakHeightM')}</label>
                 <input
                   type="number"
                   value={visinaVrhM}
                   onChange={(e) => setVisinaVrhM(e.target.value)}
-                  placeholder="npr. 2017"
+                  placeholder={t('placeholders.peakHeightM')}
                   className={inputClass}
                   min="0"
                   step="1"
@@ -339,7 +341,7 @@ export default function AddAction() {
                   className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="zimski-uspon" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  Zimski uspon
+                  {t('fields.winterAscent')}
                 </label>
               </div>
               <div className="flex items-center gap-3 p-3.5 rounded-lg bg-sky-50/60 border border-sky-100">
@@ -352,23 +354,23 @@ export default function AddAction() {
                 />
                 <div>
                   <label htmlFor="javna" className="text-xs sm:text-sm text-gray-800 font-medium">
-                    Javna akcija
+                    {t('fields.publicAction')}
                   </label>
                   <p className="text-[11px] text-gray-600 mt-0.5">
-                    Svi vide na listi aktivnih i mogu da se prijave. Završenu vidi samo klub koji ju je postavio.
+                    {t('fields.publicActionHelp')}
                   </p>
                 </div>
               </div>
 
               <div>
-                <label className={labelClass}>Slika akcije</label>
+                <label className={labelClass}>{t('fields.actionImage')}</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setSlika(e.target.files?.[0] || null)}
                   className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
                 />
-                <p className="mt-1 text-[11px] text-gray-400">Podržani formati: JPG, PNG, maksimalno 5MB.</p>
+                <p className="mt-1 text-[11px] text-gray-400">{t('fields.imageHelp')}</p>
               </div>
             </div>
 
@@ -378,7 +380,7 @@ export default function AddAction() {
                 disabled={loading}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-wait transition-all"
               >
-                {loading ? 'Dodavanje...' : 'Dodaj akciju'}
+                {loading ? t('add.adding') : t('add.submit')}
               </button>
               {success && (
                 <p className="mt-3 text-center text-xs font-medium text-emerald-600">
