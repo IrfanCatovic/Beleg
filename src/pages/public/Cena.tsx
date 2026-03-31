@@ -5,8 +5,9 @@ import api from '../../services/api'
 import { useTranslation } from 'react-i18next'
 
 const ADMIN_PRICE_RSD = 600
-const CURRENCY_BY_LANG = { sr: 'RSD', bs: 'BAM', hr: 'HRK', de: 'EUR', en: 'USD' } as const
+const CURRENCY_BY_LANG = { sr: 'RSD', bs: 'BAM', hr: 'EUR', de: 'EUR', en: 'USD' } as const
 const LOCALE_BY_LANG = { sr: 'sr-RS', bs: 'bs-BA', hr: 'hr-HR', de: 'de-DE', en: 'en-US' } as const
+const RSD_PER_CURRENCY = { RSD: 1, BAM: 57.6, EUR: 117.4, USD: 102.8 } as const
 
 type PaketKey = 'Free' | 'Starter' | 'Growth' | 'Pro'
 
@@ -32,7 +33,7 @@ const PAKETI: Record<
     admins: 1,
   },
   Starter: {
-    basePriceRsd: 2925,
+    basePriceRsd: 2950,
     includedUsers: 100,
     extraPricePerUserRsd: 47,
     spaceGb: 2,
@@ -72,8 +73,12 @@ export default function Cena() {
   const lang = (i18n.resolvedLanguage || i18n.language || 'sr').split('-')[0] as keyof typeof CURRENCY_BY_LANG
   const currency = CURRENCY_BY_LANG[lang] ?? 'RSD'
   const locale = LOCALE_BY_LANG[lang] ?? 'sr-RS'
+  const convertFromRsd = (amountRsd: number) => {
+    if (currency === 'RSD') return amountRsd
+    return Math.round(amountRsd / RSD_PER_CURRENCY[currency])
+  }
   const formatMoney = (amountRsd: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amountRsd)
+    new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(convertFromRsd(amountRsd))
   const basePriceRsd = selected.basePriceRsd
   const extraPricePerUserRsd = selected.extraPricePerUserRsd
   const isFreePaket = selectedPaket === 'Free'

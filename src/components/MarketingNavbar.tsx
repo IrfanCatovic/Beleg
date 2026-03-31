@@ -7,6 +7,9 @@ export default function MarketingNavbar() {
 
   return (
     <>
+    <div className="mb-3 md:hidden flex items-center justify-end">
+      <LanguageSwitcher />
+    </div>
     <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
       {/* Logo + home */}
       <Link
@@ -42,7 +45,9 @@ export default function MarketingNavbar() {
             {t('nav.contact')}
           </Link>
         </div>
-        <LanguageSwitcher />
+        <div className="hidden md:block">
+          <LanguageSwitcher />
+        </div>
         <Link
           to="/login"
           className="inline-flex items-center rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-md shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
