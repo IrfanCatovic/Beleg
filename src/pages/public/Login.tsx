@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from 'react'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
 import { getRandomHikingGreeting } from '../../data/hikingGreetings'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from '../../components/LanguageSwitcher'
 
 /** Demo nalog — polja su unapred popunjena radi brzog ulaska (npr. prezentacije). */
 const DEMO_LOGIN_USERNAME = 'planiner'
@@ -11,6 +13,7 @@ const DEMO_LOGIN_PASSWORD = 'admin123'
 
 export default function Login() {
   const { login } = useAuth()
+  const { t } = useTranslation('login')
   const navigate = useNavigate()
   const [username, setUsername] = useState(DEMO_LOGIN_USERNAME)
   const [password, setPassword] = useState(DEMO_LOGIN_PASSWORD)
@@ -55,7 +58,7 @@ export default function Login() {
       login(response.data)
       navigate('/home')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Pogrešno korisničko ime ili lozinka.')
+      setError(err.response?.data?.error || t('invalidCredentials'))
     } finally {
       setLoading(false)
     }
@@ -142,19 +145,20 @@ export default function Login() {
                 type="button"
                 onClick={() => navigate('/')}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-xl overflow-hidden shadow-sm hover:scale-105 transition-transform"
-                aria-label="Početna stranica"
+                aria-label={t('home')}
               >
                 <img src="/LogoP.jpg" alt="planiner" className="h-full w-full" />
               </button>
               <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-700">
-                Prijava u planiner
+                {t('badge')}
               </span>
             </div>
+            <LanguageSwitcher />
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-900">
-              Dobrodošli nazad
+              {t('title')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-md">
-              Jedan nalog za sve što vaše planinarsko društvo treba – članovi, akcije, finansije i ranking.
+              {t('subtitle')}
             </p>
             <p className="text-[11px] sm:text-xs italic text-emerald-600/70 max-w-sm">
               „{greeting}"
@@ -176,7 +180,7 @@ export default function Login() {
                 htmlFor="username"
                 className="block text-xs sm:text-sm font-medium text-slate-800"
               >
-                Korisničko ime
+                {t('username')}
               </label>
               <input
                 id="username"
@@ -184,7 +188,7 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full rounded-xl border border-emerald-100 bg-white px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
-                placeholder="Korisničko ime"
+                placeholder={t('usernamePlaceholder')}
                 required
                 disabled={loading}
               />
@@ -195,7 +199,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-xs sm:text-sm font-medium text-slate-800"
               >
-                Lozinka
+                {t('password')}
               </label>
               <div className="relative">
                 <input
@@ -204,7 +208,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="app-hide-native-password-toggle w-full rounded-xl border border-emerald-100 bg-white py-2.5 pl-3.5 pr-11 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
-                  placeholder="Unesi lozinku"
+                  placeholder={t('passwordPlaceholder')}
                   required
                   disabled={loading}
                   autoComplete="current-password"
@@ -214,7 +218,7 @@ export default function Login() {
                   onClick={() => setShowPassword((v) => !v)}
                   disabled={loading}
                   className="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-50"
-                  aria-label={showPassword ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
@@ -237,18 +241,18 @@ export default function Login() {
                 loading ? 'opacity-70 cursor-wait' : ''
               }`}
             >
-              {loading ? 'Prijavljujem…' : 'Prijava'}
+              {loading ? t('submitting') : t('submit')}
             </button>
           </form>
 
           <div className="mt-5 p-3 rounded-xl bg-emerald-50/80 border border-emerald-100 text-center">
-            <p className="text-[11px] sm:text-xs text-emerald-800 font-medium mb-0.5">Demo nalog za testiranje</p>
+            <p className="text-[11px] sm:text-xs text-emerald-800 font-medium mb-0.5">{t('demoTitle')}</p>
             <p className="text-[11px] sm:text-xs text-slate-600">
               username <strong>{DEMO_LOGIN_USERNAME}</strong> / pw <strong>{DEMO_LOGIN_PASSWORD}</strong>
             </p>
           </div>
           <p className="mt-5 text-[11px] sm:text-xs text-center text-slate-500">
-            Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.
+            {t('noAccount')}
           </p>
 
           {/* Dekorativna linija razdvajač */}
@@ -268,13 +272,13 @@ export default function Login() {
               <path d="M0,35 L15,28 L30,32 L50,18 L65,25 L80,12 L100,8 L120,15 L135,6 L150,20 L170,14 L185,22 L200,18 L200,40 L0,40 Z" fill="currentColor" opacity="0.1" />
               <circle cx="135" cy="6" r="2.5" fill="currentColor" opacity="0.8" />
             </svg>
-            <p className="text-[9px] text-emerald-500/60 tracking-wider uppercase font-medium">tvoj sledeći vrh te čeka</p>
+            <p className="text-[9px] text-emerald-500/60 tracking-wider uppercase font-medium">{t('footerTagline')}</p>
           </div>
 
           <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400">
-            <span>planiner • sistem za planinarska društva</span>
+            <span>{t('footerSystem')}</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>Sigurne evidencije, više vremena na stazi</span>
+            <span>{t('footerSafe')}</span>
           </div>
         </div>
       </div>

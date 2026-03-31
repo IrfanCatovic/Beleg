@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 interface ObavestenjeItem {
   id: number
@@ -28,6 +30,7 @@ const canSeeFinance = (role?: string) =>
   role === 'superadmin' || role === 'admin' || role === 'blagajnik'
 
 export default function AppLayout() {
+  const { t } = useTranslation('appLayout')
   const { logout, user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -155,33 +158,33 @@ export default function AppLayout() {
                 {/* Desktop nav – sakriven za superadmina bez kluba */}
                 {!isSuperadminNoClub && (
                 <nav className="hidden md:flex items-center gap-1">
-                  <NavLink to="/home" className={navLinkClass}>Naslovna</NavLink>
-                  <NavLink to="/akcije" className={navLinkClass}>Akcije</NavLink>
-                  <NavLink to="/zadaci" className={navLinkClass}>Zadaci</NavLink>
-                  <NavLink to="/users" className={navLinkClass}>Članovi</NavLink>
-                  <NavLink to="/klub" className={navLinkClass}>Klub</NavLink>
+                  <NavLink to="/home" className={navLinkClass}>{t('home')}</NavLink>
+                  <NavLink to="/akcije" className={navLinkClass}>{t('actions')}</NavLink>
+                  <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>
+                  <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>
+                  <NavLink to="/klub" className={navLinkClass}>{t('club')}</NavLink>
                   {canSeeFinance(user?.role) && (
-                    <NavLink to="/finansije" className={navLinkClass}>Finansije</NavLink>
+                    <NavLink to="/finansije" className={navLinkClass}>{t('finances')}</NavLink>
                   )}
                   {user?.role === 'superadmin' && (
-                    <NavLink to="/superadmin" className={navLinkClass}>Klubovi</NavLink>
+                    <NavLink to="/superadmin" className={navLinkClass}>{t('clubs')}</NavLink>
                   )}
                 </nav>
                 )}
                 {isSuperadminNoClub && (
-                  <span className="hidden sm:block text-sm text-white/70">Izaberite klub</span>
+                  <span className="hidden sm:block text-sm text-white/70">{t('chooseClub')}</span>
                 )}
                 {/* Superadmin sa izabranim klubom: prikaz "Ušao u: [naziv]" + Promeni klub */}
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
                   <div className="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
                     <span className="text-[12px] text-white/80 font-medium whitespace-nowrap">
-                      Ušao u: <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || 'Klub'}</span>
+                      {t('enteredClub')} <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || t('club')}</span>
                     </span>
                     <Link
                       to="/superadmin"
                       className="text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 whitespace-nowrap transition-colors"
                     >
-                      Promeni klub
+                      {t('changeClub')}
                     </Link>
                   </div>
                 )}
@@ -203,7 +206,7 @@ export default function AppLayout() {
                       setIsSearchOpen((v) => !v)
                     }}
                     className={iconBtnClass}
-                    aria-label="Pretraga"
+                    aria-label={t('search')}
                   >
                     <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.5 4.5a6 6 0 014.615 9.847l3.769 3.768-1.414 1.415-3.768-3.769A6 6 0 1110.5 4.5z" />
@@ -220,7 +223,7 @@ export default function AppLayout() {
                         setIsNotificationsOpen((v) => !v)
                       }}
                       className={`relative ${iconBtnClass}`}
-                      aria-label="Obaveštenja"
+                      aria-label={t('notifications')}
                     >
                       <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
@@ -236,12 +239,13 @@ export default function AppLayout() {
                       <div className="absolute right-0 top-12 w-80 rounded-2xl bg-white py-2 shadow-2xl ring-1 ring-black/5 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
                           <p className="text-xs font-semibold text-gray-800">Obaveštenja</p>
+                          <LanguageSwitcher />
                         </div>
                         <div className="max-h-80 overflow-y-auto">
                           {notificationsLoading ? (
-                            <p className="px-4 py-4 text-xs text-gray-500">Učitavanje...</p>
+                            <p className="px-4 py-4 text-xs text-gray-500">{t('loading')}</p>
                           ) : notifications.length === 0 ? (
-                            <p className="px-4 py-4 text-xs text-gray-500">Nema obaveštenja.</p>
+                            <p className="px-4 py-4 text-xs text-gray-500">{t('noNotifications')}</p>
                           ) : (
                             notifications.map((n) => {
                               return (
@@ -272,14 +276,14 @@ export default function AppLayout() {
                                   onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
                             className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
                           >
-                            Prikaži sva obaveštenja
+                            {t('showAllNotifications')}
                           </button>
                           <button
                             type="button"
                             className="text-[11px] text-gray-400 hover:text-gray-600"
                             onClick={() => setIsNotificationsOpen(false)}
                           >
-                            Zatvori
+                            {t('close')}
                           </button>
                         </div>
                       </div>
@@ -348,7 +352,7 @@ export default function AppLayout() {
                               <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                               </svg>
-                              Moj profil
+                              {t('myProfile')}
                             </button>
                             <button
                               type="button"
@@ -359,7 +363,7 @@ export default function AppLayout() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              Podešavanja
+                              {t('settings')}
                             </button>
                           </div>
                           <div className="border-t border-gray-100 pt-1">
@@ -371,7 +375,7 @@ export default function AppLayout() {
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                               </svg>
-                              Odjava
+                              {t('logout')}
                             </button>
                           </div>
                         </div>
@@ -386,7 +390,7 @@ export default function AppLayout() {
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none transition-all"
                     aria-expanded={isMenuOpen}
-                    aria-label={isMenuOpen ? 'Zatvori meni' : 'Otvori meni'}
+                    aria-label={isMenuOpen ? t('closeMenu') : t('openMenu')}
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {isMenuOpen ? (
@@ -414,14 +418,14 @@ export default function AppLayout() {
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
                   <div className="mb-2 pb-2 border-b border-white/10 flex flex-col gap-1.5">
                     <p className="text-[12px] text-white/70 font-medium">
-                      Ušao u: <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || 'Klub'}</span>
+                      {t('enteredClub')} <span className="text-white font-semibold">{localStorage.getItem('superadmin_club_name') || t('club')}</span>
                     </p>
                     <Link
                       to="/superadmin"
                       onClick={() => setIsMenuOpen(false)}
                       className="text-[13px] font-semibold text-emerald-300 hover:text-emerald-200"
                     >
-                      Promeni klub
+                      {t('changeClub')}
                     </Link>
                   </div>
                 )}
@@ -436,7 +440,7 @@ export default function AppLayout() {
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Akcije
+                  {t('actions')}
                 </NavLink>
                 <NavLink
                   to="/zadaci"
@@ -447,7 +451,7 @@ export default function AppLayout() {
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Zadaci
+                  {t('tasks')}
                 </NavLink>
                 <NavLink
                   to="/users"
@@ -458,7 +462,7 @@ export default function AppLayout() {
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Članovi
+                  {t('members')}
                 </NavLink>
                 <NavLink
                   to="/klub"
@@ -469,7 +473,7 @@ export default function AppLayout() {
                   }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Klub
+                  {t('club')}
                 </NavLink>
                 {canSeeFinance(user?.role) && (
                   <NavLink
@@ -481,7 +485,7 @@ export default function AppLayout() {
                     }
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Finansije
+                    {t('finances')}
                   </NavLink>
                 )}
                 {user?.role === 'superadmin' && (
@@ -494,7 +498,7 @@ export default function AppLayout() {
                     }
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Klubovi
+                    {t('clubs')}
                   </NavLink>
                 )}
                 </>
@@ -507,7 +511,7 @@ export default function AppLayout() {
                     <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    Odjava
+                    {t('logout')}
                   </button>
                 </div>
               </div>
@@ -541,7 +545,7 @@ export default function AppLayout() {
                 type="button"
                 onClick={() => navigate('/home')}
                 className="flex flex-col items-center justify-center gap-0.5"
-                aria-label="Naslovna"
+                aria-label={t('home')}
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm">
                   <svg
@@ -572,7 +576,7 @@ export default function AppLayout() {
                   setIsNotificationsOpen((v) => !v)
                 }}
                 className="relative flex flex-col items-center justify-center"
-                aria-label="Obaveštenja"
+                aria-label={t('notifications')}
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -592,7 +596,7 @@ export default function AppLayout() {
                 type="button"
                 onClick={() => navigate('/search')}
                 className="flex flex-col items-center justify-center"
-                aria-label="Pretraga"
+                aria-label={t('search')}
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -607,7 +611,7 @@ export default function AppLayout() {
                 type="button"
                 onClick={() => navigate(user ? `/korisnik/${user.username}` : '/profil')}
                 className="flex flex-col items-center justify-center"
-                aria-label="Profil"
+                aria-label={t('profile')}
               >
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 ring-2 ring-white/30 text-white overflow-hidden shadow-sm">
                   {user?.avatarUrl ? (
@@ -638,12 +642,12 @@ export default function AppLayout() {
           />
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl bg-white shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-800">Obaveštenja</p>
+              <p className="text-sm font-semibold text-gray-800">{t('notifications')}</p>
               <button
                 type="button"
                 onClick={() => setIsNotificationsOpen(false)}
                 className="p-2 -m-2 rounded-full text-gray-500 hover:bg-gray-100"
-                aria-label="Zatvori"
+                aria-label={t('close')}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -652,9 +656,9 @@ export default function AppLayout() {
             </div>
             <div className="overflow-y-auto flex-1 min-h-0">
               {notificationsLoading ? (
-                <p className="px-4 py-6 text-sm text-gray-500">Učitavanje...</p>
+                <p className="px-4 py-6 text-sm text-gray-500">{t('loading')}</p>
               ) : notifications.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-gray-500">Nema obaveštenja.</p>
+                <p className="px-4 py-6 text-sm text-gray-500">{t('noNotifications')}</p>
               ) : (
                 <div className="py-1">
                   {notifications.map((n) => {
@@ -687,14 +691,14 @@ export default function AppLayout() {
                 onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
                 className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
               >
-                Prikaži sva obaveštenja
+                {t('showAllNotifications')}
               </button>
               <button
                 type="button"
                 onClick={() => setIsNotificationsOpen(false)}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
-                Zatvori
+                {t('close')}
               </button>
             </div>
           </div>
