@@ -102,6 +102,7 @@ export const resources = {
         },
         mock: {
           profileLabel: 'Profil člana',
+          name: 'Ana M.',
           rank: 'Rank: Legenda stijena',
           totalKm: 'Ukupno km',
           totalAscent: 'Ukupan uspon',
@@ -1581,6 +1582,7 @@ export const resources = {
         },
         mock: {
           profileLabel: 'Profil člana',
+          name: 'Ana M.',
           rank: 'Rank: Legenda stijena',
           totalKm: 'Ukupno km',
           totalAscent: 'Ukupan uspon',
@@ -1593,13 +1595,76 @@ export const resources = {
       features: {
         title: 'Ključne funkcionalnosti aplikacije',
         subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do posljednjeg izvještaja blagajne.',
+        cards: {
+          members: {
+            title: 'Upravljanje članovima',
+            text1: 'Detaljni profili članova sa ličnim podacima, kontaktima i dokumentima.',
+            text2: 'Više uloga (admin, sekretar, vodič, blagajnik, član) – svako vidi ono što mu treba.',
+          },
+          actions: {
+            title: 'Akcije i zadaci',
+            text1: 'Kreiranje, uređivanje i praćenje planinarskih akcija i zadataka za tim.',
+            text2: 'Jasan pregled aktivnih i prošlih akcija i angažmana članova.',
+          },
+          finance: {
+            title: 'Finansije (admin i blagajnik)',
+            text1: 'Evidencija uplata i isplata, povezivanje sa članovima i akcijama.',
+            text2: 'Transparentan rad blagajnika i lakše pravdanje finansija.',
+          },
+          notifications: {
+            title: 'Obavještenja u realnom vremenu',
+            text1: 'Interni sistem notifikacija za akcije, uplate i zadatke.',
+            text2: 'Admin jednim klikom šalje obavještenje svim članovima ili grupama.',
+          },
+          pdf: {
+            title: 'Automatski PDF izvještaji',
+            text1: 'Planiner automatski priprema ključne PDF dokumente za slanje i arhivu.',
+            text2: 'Godišnji i pojedinačni izvještaji nastaju jednim klikom, bez prepisivanja.',
+          },
+          publicProfile: {
+            title: 'Javni profil i dostignuća',
+            text1: 'Svaki korisnik ima javni profil sa stazama, usponima i učešćem u akcijama.',
+          },
+        },
       },
-      how: { title: 'Kako funkcioniše Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sistemu.', stepPrefix: 'Korak' },
+      how: {
+        title: 'Kako funkcioniše Planiner',
+        subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sistemu.',
+        stepPrefix: 'Korak',
+        steps: {
+          1: {
+            title: 'Postavljamo klub za vas',
+            text: 'Na kratkom online sastanku upoznajemo društvo, postavljamo admina i unosimo prve članove.',
+          },
+          2: {
+            title: 'Rukovodstvo organizuje rad',
+            text: 'Vodiči planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati finansije.',
+          },
+          3: {
+            title: 'Članovi aktivno učestvuju',
+            text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang liste.',
+          },
+        },
+      },
       partner: {
         title: 'Više od softvera - partner za društvo',
         subtitle:
           'Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj je da vam damo više vremena na stazi, a manje za stolom.',
         imageCaption: 'Tim Planiner-a - podrška od prvog dana',
+        items: {
+          1: {
+            title: 'Ozbiljan tim developera',
+            text: 'Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena.',
+          },
+          2: {
+            title: 'Podrška na lokalnom jeziku',
+            text: 'E-mail, telefon i online sastanci, od obuke tima do svakodnevnih pitanja.',
+          },
+          3: {
+            title: 'Zajednica za planinare',
+            text: 'Mreža društava koja razmjenjuje prakse i prijedloge za nove funkcije.',
+          },
+        },
       },
       memberBand: {
         badge: 'Članovi u centru sistema',
@@ -1610,16 +1675,91 @@ export const resources = {
       benefits: {
         title: 'Brojevi i benefiti',
         subtitle: 'Jasne, mjerljive koristi koje vaše društvo dobija prelaskom na Planiner.',
+        cards: {
+          time: { title: 'Ušteda vremena', text: 'sati godišnje manje na administraciji' },
+          errors: { title: 'Manje grešaka', text: 'izgubljenih formulara i duplih unosa' },
+          communication: { title: 'Brža komunikacija', text: 'sve informacije i obavještenja na jednom mjestu' },
+          transparency: { title: 'Transparentnost', text: 'bolji pregled rada rukovodstva i blagajne' },
+        },
       },
-      testimonials: { title: 'Šta kažu korisnici' },
+      testimonials: {
+        title: 'Šta kažu korisnici',
+        items: {
+          1: {
+            quote:
+              'Konačno nemam 50 poruka u grupi prije svake akcije. Sve je na jednom mjestu, prijave i detalji.',
+            name: 'Marko P.',
+            role: 'Vodič',
+            club: 'PD „Zeleni vrh"',
+          },
+          2: {
+            quote: 'Kao blagajnik sam trošio dane na prepisivanje uplata. Sada sve vidim u realnom vremenu.',
+            name: 'Jelena S.',
+            role: 'Blagajnik',
+            club: 'PD „Staza"',
+          },
+          3: {
+            quote: 'Moj profil sa statistikom i rangom me motiviše da idem na svaku akciju.',
+            name: 'Nemanja D.',
+            role: 'Član',
+            club: 'PD „Vrsak"',
+          },
+        },
+      },
       audience: {
         title: 'Za koga je Planiner',
         subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobija jasne benefite.',
+        cards: {
+          president: {
+            title: 'Predsjednik društva',
+            subtitle: 'Sve na jednom mjestu, bez iznenađenja.',
+            text: 'Jasan pregled članova, akcija, finansija i obavještenja.',
+          },
+          secretary: {
+            title: 'Sekretar',
+            subtitle: 'Manje papira, više reda.',
+            text: 'Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke.',
+          },
+          guide: {
+            title: 'Vodič',
+            subtitle: 'Jasne prijave i komunikacija.',
+            text: 'Jedno mjesto za kreiranje akcija, pregled prijava i informacije za učesnike.',
+          },
+          treasurer: {
+            title: 'Blagajnik',
+            subtitle: 'Čista evidencija finansija.',
+            text: 'Jasna evidencija uplata i isplata, lakše pravdanje finansija.',
+          },
+        },
       },
       showcase: {
         badge: 'Sneak peek',
         title: 'Pogledaj aplikaciju iznutra',
         subtitle: 'Pridruži se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu.',
+        desktop: 'Desktop',
+        mobile: 'Mobile',
+        sections: {
+          actions: {
+            title: 'Akcije',
+            text: 'Lista akcija, prijave članova i detalji, isto iskustvo na računaru i mobilnom.',
+            url: 'planiner.app/akcije/uspon-na-zlu-kolatu',
+          },
+          profiles: {
+            title: 'Profili korisnika',
+            text: 'Javni profili članova, statistika, staze, usponi i učešće u akcijama.',
+            url: 'planiner.app/korisnik/catko',
+          },
+          finance: {
+            title: 'Finansije',
+            text: 'Blagajna, uplate, isplate i pregled po akcijama, dostupno i sa mobilnog.',
+            url: 'planiner.app/finansije',
+          },
+          tasks: {
+            title: 'Zadaci',
+            text: 'Praćenje obaveza, rokova i statusa za rukovodstvo, vodiče i članove.',
+            url: 'planiner.app/zadaci',
+          },
+        },
       },
       cta: {
         title: 'Spremni da svom društvu vratite vrijeme, a sebi mir?',
@@ -2508,6 +2648,7 @@ export const resources = {
         },
         mock: {
           profileLabel: 'Profil člana',
+          name: 'Ana M.',
           rank: 'Rank: Legenda stijena',
           totalKm: 'Ukupno km',
           totalAscent: 'Ukupan uspon',
@@ -2520,13 +2661,76 @@ export const resources = {
       features: {
         title: 'Ključne funkcionalnosti aplikacije',
         subtitle: 'Sve što planinarskom društvu treba od prvog učlanjenja do posljednjeg izvještaja blagajne.',
+        cards: {
+          members: {
+            title: 'Upravljanje članovima',
+            text1: 'Detaljni profili članova s osobnim podacima, kontaktima i dokumentima.',
+            text2: 'Više uloga (admin, tajnik, vodič, blagajnik, član) – svatko vidi ono što mu treba.',
+          },
+          actions: {
+            title: 'Akcije i zadaci',
+            text1: 'Stvaranje, uređivanje i praćenje planinarskih akcija i zadataka za tim.',
+            text2: 'Jasan pregled aktivnih i prošlih akcija i angažmana članova.',
+          },
+          finance: {
+            title: 'Financije (admin i blagajnik)',
+            text1: 'Evidencija uplata i isplata, povezivanje s članovima i akcijama.',
+            text2: 'Transparentan rad blagajnika i lakše pravdanje financija.',
+          },
+          notifications: {
+            title: 'Obavijesti u stvarnom vremenu',
+            text1: 'Interni sustav obavijesti za akcije, uplate i zadatke.',
+            text2: 'Admin jednim klikom šalje obavijest svim članovima ili grupama.',
+          },
+          pdf: {
+            title: 'Automatski PDF izvještaji',
+            text1: 'Planiner automatski priprema ključne PDF dokumente za slanje i arhivu.',
+            text2: 'Godišnji i pojedinačni izvještaji jednim klikom, bez prepisivanja.',
+          },
+          publicProfile: {
+            title: 'Javni profil i postignuća',
+            text1: 'Svaki korisnik ima javni profil sa stazama, usponima i sudjelovanjem u akcijama.',
+          },
+        },
       },
-      how: { title: 'Kako funkcionira Planiner', subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sustavu.', stepPrefix: 'Korak' },
+      how: {
+        title: 'Kako funkcionira Planiner',
+        subtitle: 'Jasni koraci od prvog kontakta do svakodnevnog rada cijelog društva u sustavu.',
+        stepPrefix: 'Korak',
+        steps: {
+          1: {
+            title: 'Postavljamo klub za vas',
+            text: 'Na kratkom online sastanku upoznajemo društvo, postavljamo admina i unosimo prve članove.',
+          },
+          2: {
+            title: 'Vodstvo organizira rad',
+            text: 'Vodići planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati financije.',
+          },
+          3: {
+            title: 'Članovi aktivno sudjeluju',
+            text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang-lista.',
+          },
+        },
+      },
       partner: {
         title: 'Više od softvera - partner za društvo',
         subtitle:
           'Planiner razvija posvećen tim developera koji aktivno surađuje s planinarskim društvima. Naš cilj je dati vam više vremena na stazi, a manje za stolom.',
         imageCaption: 'Planiner tim - podrška od prvog dana',
+        items: {
+          1: {
+            title: 'Ozbiljan tim developera',
+            text: 'Redovita ažuriranja, sigurnosne zakrpe i nove funkcionalnosti temeljene na iskustvu s terena.',
+          },
+          2: {
+            title: 'Podrška na lokalnom jeziku',
+            text: 'E-mail, telefon i online sastanci – od obuke tima do svakodnevnih pitanja.',
+          },
+          3: {
+            title: 'Zajednica planinara',
+            text: 'Mreža društava koja dijeli praksu i prijedloge za nove funkcije.',
+          },
+        },
       },
       memberBand: {
         badge: 'Članovi u centru sustava',
@@ -2537,16 +2741,91 @@ export const resources = {
       benefits: {
         title: 'Brojevi i benefiti',
         subtitle: 'Jasne, mjerljive koristi koje vaše društvo dobiva prelaskom na Planiner.',
+        cards: {
+          time: { title: 'Ušteda vremena', text: 'sati godišnje manje na administraciji' },
+          errors: { title: 'Manje grešaka', text: 'izgubljenih obrazaca i dvostrukog unosa' },
+          communication: { title: 'Brža komunikacija', text: 'sve informacije i obavijesti na jednom mjestu' },
+          transparency: { title: 'Transparentnost', text: 'bolji pregled rada vodstva i blagajne' },
+        },
       },
-      testimonials: { title: 'Što kažu korisnici' },
+      testimonials: {
+        title: 'Što kažu korisnici',
+        items: {
+          1: {
+            quote:
+              'Konačno nemam 50 poruka u grupi prije svake akcije. Sve je na jednom mjestu, prijave i detalji.',
+            name: 'Marko P.',
+            role: 'Vodič',
+            club: 'PD „Zeleni vrh"',
+          },
+          2: {
+            quote: 'Kao blagajnik sam trošio dane na prepisivanje uplata. Sada sve vidim u stvarnom vremenu.',
+            name: 'Jelena S.',
+            role: 'Blagajnik',
+            club: 'PD „Staza"',
+          },
+          3: {
+            quote: 'Moj profil sa statistikom i rangom motivira me da idem na svaku akciju.',
+            name: 'Nemanja D.',
+            role: 'Član',
+            club: 'PD „Vrsak"',
+          },
+        },
+      },
       audience: {
         title: 'Za koga je Planiner',
         subtitle: 'Jedna aplikacija, različiti pogledi - svaka uloga u društvu dobiva jasne benefite.',
+        cards: {
+          president: {
+            title: 'Predsjednik društva',
+            subtitle: 'Sve na jednom mjestu, bez iznenađenja.',
+            text: 'Jasan pregled članova, akcija, financija i obavijesti.',
+          },
+          secretary: {
+            title: 'Tajnik',
+            subtitle: 'Manje papira, više reda.',
+            text: 'Brzi upis i ažuriranje članova, dokumentacija nadohvat ruke.',
+          },
+          guide: {
+            title: 'Vodič',
+            subtitle: 'Jasne prijave i komunikacija.',
+            text: 'Jedno mjesto za stvaranje akcija, pregled prijava i informacije za sudionike.',
+          },
+          treasurer: {
+            title: 'Blagajnik',
+            subtitle: 'Čista evidencija financija.',
+            text: 'Jasna evidencija uplata i isplata, lakše pravdanje financija.',
+          },
+        },
       },
       showcase: {
         badge: 'Sneak peek',
         title: 'Pogledaj aplikaciju iznutra',
         subtitle: 'Priključi se globalnoj mreži planinara. Isto iskustvo na računalu i telefonu.',
+        desktop: 'Desktop',
+        mobile: 'Mobile',
+        sections: {
+          actions: {
+            title: 'Akcije',
+            text: 'Lista akcija, prijave članova i detalji, isto iskustvo na računalu i mobilnom.',
+            url: 'planiner.app/akcije/uspon-na-zlu-kolatu',
+          },
+          profiles: {
+            title: 'Korisnički profili',
+            text: 'Javni profili članova, statistika, staze, usponi i sudjelovanje u akcijama.',
+            url: 'planiner.app/korisnik/catko',
+          },
+          finance: {
+            title: 'Financije',
+            text: 'Blagajna, uplate, isplate i pregled po akcijama, dostupno i s mobilnog.',
+            url: 'planiner.app/finansije',
+          },
+          tasks: {
+            title: 'Zadaci',
+            text: 'Praćenje obveza, rokova i statusa za vodstvo, vodiče i članove.',
+            url: 'planiner.app/zadaci',
+          },
+        },
       },
       cta: {
         title: 'Spremni vratiti svom društvu vrijeme, a sebi mir?',
@@ -3309,6 +3588,7 @@ export const resources = {
         },
         mock: {
           profileLabel: 'Mitgliederprofil',
+          name: 'Anna M.',
           rank: 'Rang: Felslegende',
           totalKm: 'Gesamt-km',
           totalAscent: 'Gesamtaufstieg',
@@ -3321,13 +3601,76 @@ export const resources = {
       features: {
         title: 'Wichtige App-Funktionen',
         subtitle: 'Alles, was ein Bergsportverein braucht - vom Eintritt bis zum letzten Kassenbericht.',
+        cards: {
+          members: {
+            title: 'Mitgliederverwaltung',
+            text1: 'Detaillierte Mitgliederprofile mit persönlichen Daten, Kontakten und Dokumenten.',
+            text2: 'Mehrere Rollen (Admin, Sekretär, Guide, Kassierer, Mitglied) – jede Person sieht, was sie braucht.',
+          },
+          actions: {
+            title: 'Touren und Aufgaben',
+            text1: 'Erstellen, Bearbeiten und Nachverfolgen von Vereinsaktivitäten und Teamaufgaben.',
+            text2: 'Klare Übersicht über laufende und vergangene Touren und Mitgliederengagement.',
+          },
+          finance: {
+            title: 'Finanzen (Admin und Kassierer)',
+            text1: 'Erfassung von Ein- und Auszahlungen, Verknüpfung mit Mitgliedern und Touren.',
+            text2: 'Transparente Kassenarbeit und einfachere Finanzabrechnung.',
+          },
+          notifications: {
+            title: 'Echtzeit-Benachrichtigungen',
+            text1: 'Internes Benachrichtigungssystem für Touren, Zahlungen und Aufgaben.',
+            text2: 'Admins senden mit einem Klick Nachrichten an alle Mitglieder oder Gruppen.',
+          },
+          pdf: {
+            title: 'Automatische PDF-Berichte',
+            text1: 'Planiner erstellt zentrale PDF-Dokumente zum Versand und zur Archivierung automatisch.',
+            text2: 'Jahres- und Einzelberichte mit einem Klick, ohne Doppelarbeit.',
+          },
+          publicProfile: {
+            title: 'Öffentliches Profil und Erfolge',
+            text1: 'Jeder Nutzer hat ein öffentliches Profil mit Strecken, Aufstiegen und Tourenbeteiligung.',
+          },
+        },
       },
-      how: { title: 'So funktioniert Planiner', subtitle: 'Klare Schritte vom Erstkontakt bis zum täglichen Einsatz im Verein.', stepPrefix: 'Schritt' },
+      how: {
+        title: 'So funktioniert Planiner',
+        subtitle: 'Klare Schritte vom Erstkontakt bis zum täglichen Einsatz im Verein.',
+        stepPrefix: 'Schritt',
+        steps: {
+          1: {
+            title: 'Wir richten euren Verein ein',
+            text: 'In einem kurzen Online-Meeting lernen wir euren Verein kennen, richten Admins ein und erfassen die ersten Mitglieder.',
+          },
+          2: {
+            title: 'Die Leitung organisiert den Alltag',
+            text: 'Guides planen Touren, Admins verwalten Mitglieder und Aufgaben, der Kassierer behält die Finanzen im Blick.',
+          },
+          3: {
+            title: 'Mitglieder sind aktiv dabei',
+            text: 'Anmeldung zu Touren mit einem Klick, Beiträge und Kommentare, Fortschritt und Ranking.',
+          },
+        },
+      },
       partner: {
         title: 'Mehr als Software - ein Partner für den Verein',
         subtitle:
-          'Planiner wird von einem engagierten Entwicklerteam aufgebaut, das aktiv mit Bergsportvereinen zusammenarbeitet.',
+          'Planiner wird von einem engagierten Entwicklerteam aufgebaut, das aktiv mit Bergsportvereinen zusammenarbeitet. Unser Ziel: mehr Zeit am Berg, weniger am Schreibtisch.',
         imageCaption: 'Planiner-Team - Unterstützung ab Tag eins',
+        items: {
+          1: {
+            title: 'Ein starkes Entwicklerteam',
+            text: 'Regelmäßige Updates, Sicherheitspatches und neue Funktionen aus der Praxis der Vereine.',
+          },
+          2: {
+            title: 'Support in eurer Sprache',
+            text: 'E-Mail, Telefon und Online-Meetings – von der Teamschulung bis zu täglichen Fragen.',
+          },
+          3: {
+            title: 'Community der Bergsportler',
+            text: 'Ein Netzwerk von Vereinen, das Erfahrungen und Ideen für neue Features teilt.',
+          },
+        },
       },
       memberBand: {
         badge: 'Mitglieder im Mittelpunkt',
@@ -3338,16 +3681,91 @@ export const resources = {
       benefits: {
         title: 'Kennzahlen und Vorteile',
         subtitle: 'Klare, messbare Vorteile für euren Verein mit Planiner.',
+        cards: {
+          time: { title: 'Zeitersparnis', text: 'Stunden weniger Verwaltung pro Jahr' },
+          errors: { title: 'Weniger Fehler', text: 'keine verlorenen Formulare und kein Doppel-Eintrag' },
+          communication: { title: 'Schnellere Kommunikation', text: 'alle Infos und Benachrichtigungen an einem Ort' },
+          transparency: { title: 'Transparenz', text: 'bessere Einblicke in Leitung und Kasse' },
+        },
       },
-      testimonials: { title: 'Was Nutzer sagen' },
+      testimonials: {
+        title: 'Was Nutzer sagen',
+        items: {
+          1: {
+            quote:
+              'Endlich keine 50 Gruppennachrichten vor jeder Tour mehr. Alles an einem Ort – Anmeldungen und Details.',
+            name: 'Marko P.',
+            role: 'Guide',
+            club: 'BSV „Grüner Gipfel"',
+          },
+          2: {
+            quote: 'Als Kassierer habe ich Tage mit dem Abtippen von Zahlungen verbracht. Jetzt sehe ich alles live.',
+            name: 'Jelena S.',
+            role: 'Kassiererin',
+            club: 'BSV „Pfad"',
+          },
+          3: {
+            quote: 'Mein Profil mit Statistik und Ranking motiviert mich, bei jeder Tour dabei zu sein.',
+            name: 'Nemanja D.',
+            role: 'Mitglied',
+            club: 'BSV „Gipfel"',
+          },
+        },
+      },
       audience: {
         title: 'Für wen ist Planiner',
         subtitle: 'Eine App, verschiedene Perspektiven - jede Rolle im Verein erhält klare Vorteile.',
+        cards: {
+          president: {
+            title: 'Vereinsvorsitz',
+            subtitle: 'Alles an einem Ort, ohne Überraschungen.',
+            text: 'Klare Übersicht über Mitglieder, Touren, Finanzen und Benachrichtigungen.',
+          },
+          secretary: {
+            title: 'Sekretär',
+            subtitle: 'Weniger Papier, mehr Ordnung.',
+            text: 'Schnelle Erfassung und Aktualisierung der Mitglieder, Dokumente griffbereit.',
+          },
+          guide: {
+            title: 'Guide',
+            subtitle: 'Klare Anmeldungen und Kommunikation.',
+            text: 'Ein Ort zum Erstellen von Touren, Prüfen der Anmeldungen und Infos für Teilnehmende.',
+          },
+          treasurer: {
+            title: 'Kassierer',
+            subtitle: 'Saubere Finanzübersicht.',
+            text: 'Klare Erfassung von Ein- und Auszahlungen, einfachere Abrechnung.',
+          },
+        },
       },
       showcase: {
         badge: 'Sneak Peek',
         title: 'Ein Blick in die App',
         subtitle: 'Gleiches Erlebnis auf Desktop und Smartphone.',
+        desktop: 'Desktop',
+        mobile: 'Mobile',
+        sections: {
+          actions: {
+            title: 'Touren',
+            text: 'Tourenliste, Anmeldungen und Details – gleiche Oberfläche auf Desktop und Smartphone.',
+            url: 'planiner.app/akcije/uspon-na-zlu-kolatu',
+          },
+          profiles: {
+            title: 'Mitgliederprofile',
+            text: 'Öffentliche Profile mit Statistik, Strecken, Aufstiegen und Tourenbeteiligung.',
+            url: 'planiner.app/korisnik/catko',
+          },
+          finance: {
+            title: 'Finanzen',
+            text: 'Kasse, Ein- und Auszahlungen und Tourenübersicht – auch mobil verfügbar.',
+            url: 'planiner.app/finansije',
+          },
+          tasks: {
+            title: 'Aufgaben',
+            text: 'Fristen, Status und Verantwortliche für Leitung, Guides und Mitglieder.',
+            url: 'planiner.app/zadaci',
+          },
+        },
       },
       cta: {
         title: 'Bereit, eurem Verein Zeit und euch selbst Ruhe zurückzugeben?',
@@ -4110,6 +4528,7 @@ export const resources = {
         },
         mock: {
           profileLabel: 'Member profile',
+          name: 'Anna M.',
           rank: 'Rank: Rock Legend',
           totalKm: 'Total km',
           totalAscent: 'Total ascent',
@@ -4122,13 +4541,76 @@ export const resources = {
       features: {
         title: 'Key app features',
         subtitle: 'Everything a hiking club needs - from first registration to final treasury report.',
+        cards: {
+          members: {
+            title: 'Member management',
+            text1: 'Detailed member profiles with personal data, contacts, and documents.',
+            text2: 'Multiple roles (admin, secretary, guide, treasurer, member) – everyone sees what they need.',
+          },
+          actions: {
+            title: 'Activities and tasks',
+            text1: 'Create, edit, and track club activities and team tasks.',
+            text2: 'A clear view of current and past activities and member engagement.',
+          },
+          finance: {
+            title: 'Finances (admin and treasurer)',
+            text1: 'Record income and expenses, linked to members and activities.',
+            text2: 'Transparent treasury work and easier financial reporting.',
+          },
+          notifications: {
+            title: 'Real-time notifications',
+            text1: 'Internal notifications for activities, payments, and tasks.',
+            text2: 'Admins notify all members or groups with one click.',
+          },
+          pdf: {
+            title: 'Automatic PDF reports',
+            text1: 'Planiner prepares key PDF documents for sending and archiving automatically.',
+            text2: 'Annual and individual reports in one click, without retyping.',
+          },
+          publicProfile: {
+            title: 'Public profile and achievements',
+            text1: 'Each user has a public profile with trails, ascent, and activity participation.',
+          },
+        },
       },
-      how: { title: 'How Planiner works', subtitle: 'Clear steps from first contact to daily use across the whole club.', stepPrefix: 'Step' },
+      how: {
+        title: 'How Planiner works',
+        subtitle: 'Clear steps from first contact to daily use across the whole club.',
+        stepPrefix: 'Step',
+        steps: {
+          1: {
+            title: 'We set up your club',
+            text: 'In a short online meeting we learn about your club, set up admins, and add the first members.',
+          },
+          2: {
+            title: 'Leadership runs day-to-day work',
+            text: 'Guides plan activities, admins manage members and tasks, the treasurer tracks finances.',
+          },
+          3: {
+            title: 'Members take part actively',
+            text: 'One-click sign-ups, posts and comments, progress tracking and rankings.',
+          },
+        },
+      },
       partner: {
         title: 'More than software - a partner for your club',
         subtitle:
-          'Planiner is built by a dedicated development team that actively collaborates with hiking clubs.',
+          'Planiner is built by a dedicated development team that actively collaborates with hiking clubs. Our goal is more time on the trail, less at the desk.',
         imageCaption: 'Planiner team - support from day one',
+        items: {
+          1: {
+            title: 'A serious development team',
+            text: 'Regular updates, security fixes, and new features shaped by real club feedback.',
+          },
+          2: {
+            title: 'Support in your language',
+            text: 'Email, phone, and online sessions – from team onboarding to everyday questions.',
+          },
+          3: {
+            title: 'A community of hikers',
+            text: 'A network of clubs sharing practices and ideas for new features.',
+          },
+        },
       },
       memberBand: {
         badge: 'Members at the center',
@@ -4139,16 +4621,91 @@ export const resources = {
       benefits: {
         title: 'Numbers and benefits',
         subtitle: 'Clear, measurable benefits your club gets by switching to Planiner.',
+        cards: {
+          time: { title: 'Time saved', text: 'hours less admin work every year' },
+          errors: { title: 'Fewer mistakes', text: 'no lost forms or duplicate entry' },
+          communication: { title: 'Faster communication', text: 'all updates and notices in one place' },
+          transparency: { title: 'Transparency', text: 'better visibility into leadership and treasury' },
+        },
       },
-      testimonials: { title: 'What users say' },
+      testimonials: {
+        title: 'What users say',
+        items: {
+          1: {
+            quote:
+              'Finally no fifty group messages before every activity. Everything in one place – sign-ups and details.',
+            name: 'Marko P.',
+            role: 'Guide',
+            club: 'HC “Green Peak"',
+          },
+          2: {
+            quote: 'As treasurer I used to spend days retyping payments. Now I see everything in real time.',
+            name: 'Jelena S.',
+            role: 'Treasurer',
+            club: 'HC “Trail"',
+          },
+          3: {
+            quote: 'My profile with stats and rank motivates me to join every activity.',
+            name: 'Nemanja D.',
+            role: 'Member',
+            club: 'HC “Summit"',
+          },
+        },
+      },
       audience: {
         title: 'Who Planiner is for',
         subtitle: 'One app, different perspectives - every club role gets clear value.',
+        cards: {
+          president: {
+            title: 'Club president',
+            subtitle: 'Everything in one place, no surprises.',
+            text: 'A clear overview of members, activities, finances, and notices.',
+          },
+          secretary: {
+            title: 'Secretary',
+            subtitle: 'Less paper, more order.',
+            text: 'Quick member records and updates, documents at your fingertips.',
+          },
+          guide: {
+            title: 'Guide',
+            subtitle: 'Clear sign-ups and communication.',
+            text: 'One place to create activities, review sign-ups, and share info with participants.',
+          },
+          treasurer: {
+            title: 'Treasurer',
+            subtitle: 'Clean financial records.',
+            text: 'Clear income and expense tracking, easier reporting.',
+          },
+        },
       },
       showcase: {
         badge: 'Sneak peek',
         title: 'Look inside the app',
         subtitle: 'Same experience on desktop and mobile.',
+        desktop: 'Desktop',
+        mobile: 'Mobile',
+        sections: {
+          actions: {
+            title: 'Activities',
+            text: 'Activity list, member sign-ups and details – same on desktop and phone.',
+            url: 'planiner.app/akcije/uspon-na-zlu-kolatu',
+          },
+          profiles: {
+            title: 'Member profiles',
+            text: 'Public profiles with stats, trails, ascent, and activity participation.',
+            url: 'planiner.app/korisnik/catko',
+          },
+          finance: {
+            title: 'Finances',
+            text: 'Treasury, payments, payouts, and per-activity view – mobile too.',
+            url: 'planiner.app/finansije',
+          },
+          tasks: {
+            title: 'Tasks',
+            text: 'Track deadlines, status, and ownership for leadership, guides, and members.',
+            url: 'planiner.app/zadaci',
+          },
+        },
       },
       cta: {
         title: 'Ready to give your club back time and yourself peace of mind?',
