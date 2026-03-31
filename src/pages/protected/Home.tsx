@@ -446,7 +446,7 @@ export default function Home() {
                         </button>
                         <img
                           src={newPostImagePreview}
-                          alt="Preview"
+                          alt={t('imagePreviewAlt')}
                           className="w-full max-h-72 object-cover cursor-pointer"
                           onClick={() => openLightbox(newPostImagePreview)}
                         />

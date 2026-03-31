@@ -89,7 +89,7 @@ export default function Landing() {
                 <div className="max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
                   <img
                     src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786067/na_vrhu_prikaz_aplikacije_na_laptopu_i_telefonu_kp9o1u.png"
-                    alt="na vrhu  prikaz aplikacije na laptopu i telefonu"
+                    alt={t('alts.heroProduct')}
                     className="rounded-3xl w-full h-auto object-contain"
                   />
                 </div>
@@ -133,7 +133,7 @@ export default function Landing() {
         <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinski_pejza%C5%BE_vpdfmb.jpg"
-            alt="Planinski pejzaž"
+            alt={t('alts.mountainLandscape')}
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center center' }}
           />
@@ -750,7 +750,7 @@ export default function Landing() {
                   <div className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
                     <img
                       src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786065/teamwork_nfwwcv.jpg"
-                      alt="Tim na Planiner u online sastanku sa planinarskim društvom"
+                      alt={t('alts.partnerTeam')}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -766,7 +766,7 @@ export default function Landing() {
           <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
             <img
               src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinar_na_stazi_zaz7p3.jpg"
-              alt="Planinar na stazi"
+              alt={t('alts.hikerOnTrail')}
               className="w-full h-full object-cover filter blur-[1px] scale-105"
               style={{ objectPosition: 'center 65%' }}
             />
@@ -1068,12 +1068,12 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.actions.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt="Akcije PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt={t('alts.showcaseActionsPc')} className="w-full h-auto" />
                   </div>
                   {/* Mobilni ekrani lebde preko donjeg desnog ugla */}
                   <div className="absolute -bottom-8 -right-2 sm:-right-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon detalj" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt={t('alts.showcaseActionsMobile')} className="w-full h-auto" />
                     </div>
 
                   </div>
@@ -1091,11 +1091,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.profiles.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt="Profil PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt={t('alts.showcaseProfilesPc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599686/profil1mob_ayuax1.png" alt="Profil telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599686/profil1mob_ayuax1.png" alt={t('alts.showcaseProfilesMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1142,11 +1142,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.finance.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt="Finansije PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt={t('alts.showcaseFinancePc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -right-2 sm:-right-4">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599666/finansije1mob_khecis.png" alt="Finansije telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599666/finansije1mob_khecis.png" alt={t('alts.showcaseFinanceMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1162,11 +1162,11 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
                       <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.tasks.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt="Zadaci PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt={t('alts.showcaseTasksPc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599663/zadaci1mob_mibpje.png" alt="Zadaci telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599663/zadaci1mob_mibpje.png" alt={t('alts.showcaseTasksMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1238,7 +1238,7 @@ export default function Landing() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
+              <img src="/LogoP.jpg" alt={t('common:appName')} className="h-8 w-8 rounded-lg" />
               <div>
                 <p className="text-sm font-semibold text-white">{t('common:appName')}</p>
                 <p className="text-[11px] text-slate-400">{t('footer.byline')}</p>

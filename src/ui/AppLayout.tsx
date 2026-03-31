@@ -31,6 +31,7 @@ const canSeeFinance = (role?: string) =>
 
 export default function AppLayout() {
   const { t } = useTranslation('appLayout')
+  const { t: tCommon } = useTranslation('common')
   const { logout, user, isLoggedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -147,11 +148,11 @@ export default function AppLayout() {
                 >
                   <img
                     src="/LogoP.jpg"
-                    alt="planiner"
+                    alt={tCommon('appName')}
                     className="h-8 w-8 rounded-lg shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 transition-shadow"
                   />
                   <span className="hidden sm:block text-[15px] font-bold tracking-tight text-white">
-                    planiner
+                    {tCommon('appName')}
                   </span>
                 </Link>
 

@@ -14,6 +14,7 @@ const DEMO_LOGIN_PASSWORD = 'admin123'
 export default function Login() {
   const { login } = useAuth()
   const { t } = useTranslation('login')
+  const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
   const [username, setUsername] = useState(DEMO_LOGIN_USERNAME)
   const [password, setPassword] = useState(DEMO_LOGIN_PASSWORD)
@@ -72,7 +73,7 @@ export default function Login() {
         <div className="absolute left-[-4rem] top-0 sm:left-[-5rem] sm:top-4 w-60 h-64 sm:w-72 sm:h-80 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/60 border border-white/70 bg-white/70">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597583/hike1_pfaknd.jpg"
-            alt="Planinari na usponu"
+            alt={t('decorBg1')}
             className="w-full h-full object-cover"
           />
         </div>
@@ -80,7 +81,7 @@ export default function Login() {
         <div className="absolute right-[-3rem] top-6 sm:right-[-4.5rem] sm:top-10 w-52 h-64 sm:w-68 sm:h-80 rounded-3xl overflow-hidden shadow-xl shadow-sky-100/60 border border-white/70 bg-white/70">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597583/hike2_lu6gwc.jpg"
-            alt="Pogled sa vrha"
+            alt={t('decorBg2')}
             className="w-full h-full object-cover"
           />
         </div>
@@ -88,7 +89,7 @@ export default function Login() {
         <div className="absolute left-[-3rem] bottom-8 sm:left-[-4rem] sm:bottom-12 w-56 h-40 sm:w-72 sm:h-52 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/70 border border-white/70 bg-white/70">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597584/hike3_zml5we.jpg"
-            alt="Staza kroz šumu"
+            alt={t('decorBg3')}
             className="w-full h-full object-cover"
           />
         </div>
@@ -96,7 +97,7 @@ export default function Login() {
         <div className="absolute right-[-3rem] bottom-[-1rem] sm:right-[-4rem] sm:bottom-0 w-52 h-36 sm:w-72 sm:h-48 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100/70 border border-white/70 bg-white/70">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774597584/hike4_zhqml2.jpg"
-            alt="Planinari na grebenu"
+            alt={t('decorBg4')}
             className="w-full h-full object-cover"
           />
         </div>
@@ -147,7 +148,7 @@ export default function Login() {
                 className="inline-flex h-8 w-8 items-center justify-center rounded-xl overflow-hidden shadow-sm hover:scale-105 transition-transform"
                 aria-label={t('home')}
               >
-                <img src="/LogoP.jpg" alt="planiner" className="h-full w-full" />
+                <img src="/LogoP.jpg" alt={tCommon('appName')} className="h-full w-full" />
               </button>
               <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-emerald-700">
                 {t('badge')}
