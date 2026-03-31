@@ -123,7 +123,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
     export function useAuth() {
     const context = useContext(AuthContext)
     if (context === undefined) {
-        throw new Error('useAuth mora biti unutar AuthProvider-a')
+        throw new Error()
     }
     return context
     }

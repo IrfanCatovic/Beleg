@@ -355,19 +355,19 @@ export default function Landing() {
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Ko je na kojoj akciji vidiš ko se prijavio i ko je vodič.</span>
+                    <span>{t('member.communityList.1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Obaveštenja o novim akcijama, promenama i važnim obaveštenjima.</span>
+                    <span>{t('member.communityList.2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Javni profili članova pogledaj napredak drugih i podeli svoj.</span>
+                    <span>{t('member.communityList.3')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Jedno mesto umesto deset grupa i poruka sve na stazi, sve u Planineru.</span>
+                    <span>{t('member.communityList.4')}</span>
                   </li>
                 </ul>
               </div>
@@ -386,19 +386,19 @@ export default function Landing() {
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Kilometri, ukupan uspon, broj akcija istorija na tvom profilu.</span>
+                    <span>{t('member.progressList.1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Rank tipa „Legenda stijena“ vidiš gde stojiš u društvu.</span>
+                    <span>{t('member.progressList.2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Mini takmičenja po sezoni ko je najaktivniji, ko ima najviše uspona.</span>
+                    <span>{t('member.progressList.3')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Podeli svoj planinarski CV na društvenim mrežama i motiviraj druge.</span>
+                    <span>{t('member.progressList.4')}</span>
                   </li>
                 </ul>
               </div>
@@ -434,26 +434,25 @@ export default function Landing() {
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Personalizovani ranking za svakog člana na osnovu učestvovanja na akcijama i pređene kilometraže.
+                      {t('ranking.list.1')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Beleženje ključnih metrika posle svake akcije: broj kilometara, ukupan uspon, broj dana na terenu.
+                      {t('ranking.list.2')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Unutrašnja mini takmičenja po sezoni ili godini, ko je najaktivniji, ko je skupio najviše uspona.
+                      {t('ranking.list.3')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Deljenje profila na društvenim mrežama, članovi mogu da pokažu svoj planinarski CV
-                      prijateljima i zajednici.
+                      {t('ranking.list.4')}
                     </span>
                   </li>
                 </ul>
@@ -464,37 +463,37 @@ export default function Landing() {
                 <div className="w-full max-w-sm md:max-w-md rounded-3xl border border-emerald-500/20 bg-slate-900/60 p-4 sm:p-5 shadow-2xl shadow-black/40">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Profil člana</p>
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{t('ranking.mock.profileLabel')}</p>
                       <p className="text-sm font-semibold text-slate-50">Pera Perić</p>
                     </div>
                     <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
-                      Rank: Legenda stijena
+                      {t('ranking.mock.rank')}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center mb-4">
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Ukupno km</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.totalKm')}</p>
                       <p className="text-sm font-semibold text-slate-50">182</p>
                     </div>
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Ukupan uspon</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.totalAscent')}</p>
                       <p className="text-sm font-semibold text-slate-50">6 450 m</p>
                     </div>
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Akcije</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.actions')}</p>
                       <p className="text-sm font-semibold text-slate-50">24</p>
                     </div>
                   </div>
                   <div className="rounded-2xl bg-slate-800/80 px-3 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] text-slate-400">Mini takmičenje, prolećna sezona</p>
-                      <p className="text-xs text-slate-100">Trenutni plasman: 3. mesto u društvu</p>
+                      <p className="text-[10px] text-slate-400">{t('ranking.mock.season')}</p>
+                      <p className="text-xs text-slate-100">{t('ranking.mock.placement')}</p>
                     </div>
                     <button
                       type="button"
                       className="ml-3 inline-flex items-center rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-emerald-400 transition-colors"
                     >
-                      Podeli profil
+                      {t('ranking.mock.share')}
                     </button>
                   </div>
                 </div>

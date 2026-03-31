@@ -15,7 +15,7 @@ export default function MarketingNavbar() {
       <Link
         to="/"
         className="flex items-center gap-3 group"
-        aria-label="Početna – planiner"
+        aria-label={t('nav.homeAria')}
       >
         <img
           src="/LogoP.jpg"

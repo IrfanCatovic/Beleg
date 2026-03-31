@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatDateShort } from '../utils/dateUtils'
-
-const MONTHS_SR = [
-  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
-  'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
-]
+import { useTranslation } from 'react-i18next'
 
 /** Lokalni YYYY-MM-DD iz brojeva (m = 0..11). */
 function formatYMDParts(y: number, m: number, d: number): string {
@@ -64,7 +60,7 @@ type Part = number | ''
 export default function CalendarDropdown({
   value,
   onChange,
-  placeholder = 'Izaberite datum',
+  placeholder,
   minDate,
   maxDate,
   fullWidth = false,
@@ -73,12 +69,13 @@ export default function CalendarDropdown({
   'aria-label': ariaLabel,
   showTodayShortcut = true,
 }: CalendarDropdownProps) {
+  const { t } = useTranslation('uiExtras')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  const displayLabel = value ? formatDateShort(value) : placeholder
+  const displayLabel = value ? formatDateShort(value) : (placeholder ?? t('calendar.selectDate'))
 
   const [selD, setSelD] = useState<Part>('')
   const [selM, setSelM] = useState<Part>('')
@@ -267,12 +264,12 @@ export default function CalendarDropdown({
 
   const hint =
     minD != null && maxD != null
-      ? 'Dozvoljen je samo opseg između minimalnog i maksimalnog datuma (npr. samo budućnost za zakazivanje).'
+      ? t('calendar.hint.betweenMinMax')
       : minD != null
-        ? 'Datum ne može biti pre donje granice.'
+        ? t('calendar.hint.beforeMin')
         : maxD != null
-          ? 'Datum ne može biti posle gornje granice.'
-          : 'Izaberi dan, pa mesec, pa godinu — prikazuju se samo validne kombinacije.'
+          ? t('calendar.hint.afterMax')
+          : t('calendar.hint.pickOrder')
 
   return (
     <div
@@ -306,24 +303,24 @@ export default function CalendarDropdown({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Izbor datuma"
+          aria-label={t('calendar.dialogAria')}
           className="absolute left-0 right-0 top-full z-[9999] mt-2 w-full min-w-[280px] max-w-[420px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:left-0 sm:right-auto"
           style={!fullWidth ? { minWidth: minTriggerWidth } : undefined}
         >
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Redom: dan → mesec → godina
+            {t('calendar.orderLabel')}
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1">
-              <label className="mb-1 block text-[11px] font-medium text-gray-500">Dan</label>
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">{t('calendar.day')}</label>
               <select
                 value={selD === '' ? '' : String(selD)}
                 onChange={(e) => onDayChange(e.target.value)}
-                aria-label="Dan"
+                aria-label={t('calendar.day')}
                 className={selectClass}
               >
-                <option value="">— dan —</option>
+                <option value="">{t('calendar.dayPlaceholder')}</option>
                 {daySelectOptions.map((d) => (
                   <option key={d} value={d}>
                     {d}
@@ -332,32 +329,32 @@ export default function CalendarDropdown({
               </select>
             </div>
             <div className="min-w-0 flex-[1.35]">
-              <label className="mb-1 block text-[11px] font-medium text-gray-500">Mesec</label>
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">{t('calendar.month')}</label>
               <select
                 value={selM === '' ? '' : String(selM)}
                 onChange={(e) => onMonthChange(e.target.value)}
                 disabled={selD === ''}
-                aria-label="Mesec"
+                aria-label={t('calendar.month')}
                 className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400`}
               >
-                <option value="">{selD === '' ? 'Prvo izaberi dan' : '— mesec —'}</option>
+                <option value="">{selD === '' ? t('calendar.pickDayFirst') : t('calendar.monthPlaceholder')}</option>
                 {monthOptions.map((m) => (
                   <option key={m} value={m}>
-                    {MONTHS_SR[m]}
+                    {t(`calendar.months.${m}`)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="min-w-0 flex-1">
-              <label className="mb-1 block text-[11px] font-medium text-gray-500">Godina</label>
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">{t('calendar.year')}</label>
               <select
                 value={selY === '' ? '' : String(selY)}
                 onChange={(e) => onYearChange(e.target.value)}
                 disabled={selD === '' || selM === ''}
-                aria-label="Godina"
+                aria-label={t('calendar.year')}
                 className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400`}
               >
-                <option value="">{selM === '' ? 'Prvo mesec' : '— godina —'}</option>
+                <option value="">{selM === '' ? t('calendar.pickMonthFirst') : t('calendar.yearPlaceholder')}</option>
                 {yearOptionsFiltered.map((y) => (
                   <option key={y} value={y}>
                     {y}
@@ -377,7 +374,7 @@ export default function CalendarDropdown({
                 disabled={!todayOk}
                 className="w-full rounded-xl bg-gray-50 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#41ac53]/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Današnji datum
+                {t('calendar.today')}
               </button>
             </div>
           )}
