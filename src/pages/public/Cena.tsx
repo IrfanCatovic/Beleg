@@ -73,13 +73,14 @@ export default function Cena() {
   const lang = (i18n.resolvedLanguage || i18n.language || 'sr').split('-')[0] as keyof typeof CURRENCY_BY_LANG
   const currency = CURRENCY_BY_LANG[lang] ?? 'RSD'
   const locale = LOCALE_BY_LANG[lang] ?? 'sr-RS'
-  const convertFromRsd = (amountRsd: number) => {
+  const convertFromRsd = (amountRsd: number, roundToInteger = true) => {
     if (currency === 'RSD') return amountRsd
-    return Math.round(amountRsd / RSD_PER_CURRENCY[currency])
+    const converted = amountRsd / RSD_PER_CURRENCY[currency]
+    return roundToInteger ? Math.round(converted) : converted
   }
   const formatMoney = (amountRsd: number, keepSmallDecimals = false) => {
-    const converted = convertFromRsd(amountRsd)
-    const showTwoDecimals = keepSmallDecimals && converted > 0 && converted < 1
+    const converted = convertFromRsd(amountRsd, !keepSmallDecimals)
+    const showTwoDecimals = keepSmallDecimals
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
