@@ -425,7 +425,7 @@ export default function ObavestenjeDetalj() {
     const requesterName =
       (typeof m.requesterFullName === 'string' && m.requesterFullName.trim() !== '' ? m.requesterFullName.trim() : '') ||
       (typeof m.requesterUsername === 'string' && m.requesterUsername.trim() !== '' ? m.requesterUsername.trim() : '') ||
-      'Korisnik'
+      t('notificationDetails:follow.defaultUser')
     let cancelled = false
     ;(async () => {
       try {
@@ -449,9 +449,7 @@ export default function ObavestenjeDetalj() {
         } else if (inc === 'pending') {
           setIncomingFollowState('pending')
         } else {
-          const title = (n.title || '').toLowerCase()
-          const body = (n.body || '').toLowerCase()
-          const looksLikeHistory = title.includes('prihvaćen') || body.includes('te sada prati') || body.includes('te već prati')
+          const looksLikeHistory = n.type === 'follow_request_accepted'
           if (!looksLikeHistory) {
             await api.delete(`/api/obavestenja/${id}`).catch(() => {})
             await showAlertRef.current(t('notificationDetails:follow.requestCanceledInBetween'), t('notificationDetails:follow.title'))
@@ -531,8 +529,8 @@ export default function ObavestenjeDetalj() {
     !(expectingTask && entityLoading) &&
     !(expectingTrans && entityLoading)
 
-  const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || 'Korisnik').trim()
-  const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || 'Korisnik').trim()
+  const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || t('notificationDetails:follow.defaultUser')).trim()
+  const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || t('notificationDetails:follow.defaultUser')).trim()
 
   const handleAcceptFollow = async () => {
     if (!followMeta.followId || followBusy) return

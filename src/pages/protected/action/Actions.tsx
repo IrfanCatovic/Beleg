@@ -215,11 +215,14 @@ export default function Actions() {
       setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       const errMsg = err.response?.data?.error
-      await showAlert(typeof errMsg === 'string' ? errMsg : t('joinError'))
-      if (typeof errMsg === 'string' && errMsg.includes('Već ste prijavljeni')) {
+      const status = err?.response?.status
+      if (status === 409) {
+        await showAlert(t('alreadyJoined'))
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
+        return
       }
+      await showAlert(typeof errMsg === 'string' ? errMsg : t('joinError'))
     }
   }
 
