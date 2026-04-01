@@ -13,15 +13,20 @@ i18n
     fallbackLng: 'sr',
     supportedLngs,
     defaultNS: 'common',
-    ns: ['common', 'landing', 'login', 'appLayout', 'home', 'tasks', 'actions', 'actionDetails', 'users', 'userInfo', 'profileSettings', 'userProfile', 'finance', 'notifications', 'notificationDetails', 'pricing', 'contactPage', 'actionForms', 'shared', 'setup', 'miscPages', 'uiExtras', 'clubs', 'pdf'],
+    ns: ['common', 'landing', 'login', 'appLayout', 'home', 'tasks', 'actions', 
+      'actionDetails', 'users', 'userInfo', 'profileSettings', 'userProfile', 'finance', 
+      'notifications', 'notificationDetails', 'pricing', 'contactPage', 'actionForms', 'shared', 
+      'setup', 'miscPages', 'uiExtras', 'clubs', 'pdf'],
     interpolation: {
       escapeValue: false,
     },
-    detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      lookupLocalStorage: 'app_language',
-      caches: ['localStorage'],
-    },
+    detection: { 
+      order: ['localStorage', 'navigator', 'htmlTag'], 
+      lookupLocalStorage: 'app_language', 
+      caches: ['localStorage'], 
+    }, 
   })
 
 export default i18n
+
+

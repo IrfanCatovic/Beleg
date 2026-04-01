@@ -1,7 +1,8 @@
-import { t } from "i18next";
+import { useTranslation } from "react-i18next";
 import MarketingNavbar from "../MarketingNavbar";
 
 export default function HeroLanding() {
+  const { t } = useTranslation("landing");
   return (
     <header className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
         <div className="absolute inset-0 z-0 pointer-events-none">
