@@ -1,6 +1,9 @@
-package config 
+package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 
 var defaultOrigins = []string{
@@ -26,13 +29,22 @@ func prepareOriginSet() map[string]bool {
 	return originSet
 }
 
-// KORAK 5:
-// Ovde parsiraj CORS_ORIGINS string:
-// - podeli po zarezu
-// - trimuj razmake
-// - preskoci prazne unose
-// - dodaj samo origin koji vec nije u set-u
-
+func corsOriginsString() string {
+	defaultCSV := strings.Join(defaultOrigins, ",")
+	return getEnvOrDefault("CORS_ORIGINS", defaultCSV)
+}
+func parseExtraOriginsFromCORSString(corsOrigins string, originSet map[string]bool) []string {
+	var extra []string
+	for _, o := range strings.Split(corsOrigins, ",") {
+		o = strings.TrimSpace(o)
+		if o == "" || originSet[o] {
+			continue
+		}
+		originSet[o] = true
+		extra = append(extra, o)
+	}
+	return extra
+}
 
 // KORAK 6:
 // Ovde napravi finalnu listu origin-a:
