@@ -12,7 +12,7 @@ const PILLARS = [
       'Svako društvo je deo iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
   },
   {
-    icon: IconInfinityFree,
+    icon: IconAllIncluded,
     title: 'Nema paketa – sve je uključeno',
     text:
       'Nema Startera, Pro-a ni složenih cena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
@@ -398,15 +398,10 @@ function IconShieldCare({ className }: { className?: string }) {
   )
 }
 
-function IconInfinityFree({ className }: { className?: string }) {
+function IconAllIncluded({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-      />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8M8 12h8" opacity={0.35} />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
     </svg>
   )
 }
