@@ -29,7 +29,7 @@ export default function MarketingNavbar() {
             to="/cena"
             className="rounded-full px-3 py-1 text-xs sm:text-sm font-medium text-emerald-800 hover:bg-white hover:text-emerald-900 transition-colors"
           >
-            Cene
+            Cena
           </Link>
           <Link
             to="/kontakt"

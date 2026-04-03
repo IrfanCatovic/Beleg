@@ -369,14 +369,14 @@ export default function Kontakt() {
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/5 rounded-tl-full" />
           <div className="relative">
             <p className="text-emerald-50/95 text-sm sm:text-base mb-5 max-w-lg mx-auto leading-relaxed">
-              Želite ponudu za vaše planinarsko društvo? Popunite kratku formu na stranici Cene – poslaćemo vam
-              detaljnu ponudu prilagođenu broju članova i potrebama.
+              Registracija kluba je besplatna. Na stranici Cena možete poslati upit sa osnovnim podacima o vašem
+              planinarskom društvu – javićemo vam se sa sledećim koracima.
             </p>
             <Link
               to="/cena"
               className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-emerald-800 bg-white hover:bg-emerald-50 transition-colors shadow-lg"
             >
-              Pogledaj cene i pošalji zahtev
+              Stranica Cena – pošalji upit
               <IconArrow className="h-4 w-4" />
             </Link>
           </div>

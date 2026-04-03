@@ -42,13 +42,16 @@ func CenaZahtev(c *gin.Context) {
 	imeKluba := strings.TrimSpace(req.ImeKluba)
 	emailStr := strings.TrimSpace(req.ContactEmail)
 	phoneStr := strings.TrimSpace(req.ContactPhone)
-	isKontaktForma := strings.EqualFold(strings.TrimSpace(req.Paket), "Kontakt forma")
+	paketNorm := strings.TrimSpace(req.Paket)
+	isKontaktForma := strings.EqualFold(paketNorm, "Kontakt forma")
+	isCenaStranicaForma := strings.EqualFold(paketNorm, "Cena stranica")
+	isSimplePublicForma := isKontaktForma || isCenaStranicaForma
 
 	if imeKluba == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite ime kluba"})
 		return
 	}
-	if !isKontaktForma {
+	if !isSimplePublicForma {
 		if phoneStr == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite broj telefona"})
 			return
@@ -59,19 +62,29 @@ func CenaZahtev(c *gin.Context) {
 		}
 	} else {
 		if emailStr == "" {
-			emailStr = "(nije unet – stranica Kontakt)"
+			if isCenaStranicaForma {
+				emailStr = "(nije unet – stranica Cena)"
+			} else {
+				emailStr = "(nije unet – stranica Kontakt)"
+			}
 		}
 		if phoneStr == "" {
-			phoneStr = "(nije unet – stranica Kontakt)"
+			if isCenaStranicaForma {
+				phoneStr = "(nije unet – stranica Cena)"
+			} else {
+				phoneStr = "(nije unet – stranica Kontakt)"
+			}
 		}
 	}
 
 	subject := "NaVrhu – zahtev za ponudu (paket " + req.Paket + ")"
 	if isKontaktForma {
 		subject = "Nova zahtev za ponudu sa stranice Kontakt"
+	} else if isCenaStranicaForma {
+		subject = "Upit za registraciju kluba – stranica Cena (NaVrhu)"
 	}
 
-	body := buildCenaEmailBody(req, imeKluba, emailStr, phoneStr, isKontaktForma)
+	body := buildCenaEmailBody(req, imeKluba, emailStr, phoneStr, isKontaktForma, isCenaStranicaForma)
 
 	if err := email.SendWithTimeout(subject, body, 25*time.Second); err != nil {
 		log.Printf("[cena-zahtev] greška pri slanju emaila: %v", err)
@@ -126,19 +139,24 @@ func buildCenaEmailBody(
 	imeKluba,
 	emailStr,
 	phoneStr string,
-	isKontaktForma bool,
+	isKontaktForma, isCenaStranicaForma bool,
 ) string {
-	if isKontaktForma {
+	if isKontaktForma || isCenaStranicaForma {
 		imeKlubaNote, kontakt, mesto, pitanje := parseKontaktNote(req.Note)
 		imeKlubaFinal := imeKluba
 		if imeKlubaNote != "" {
 			imeKlubaFinal = imeKlubaNote
 		}
 
+		headline := "Nova zahtev za ponudu sa stranice Kontakt"
+		if isCenaStranicaForma {
+			headline = "Upit sa stranice Cena – registracija planinarskog kluba (besplatno)"
+		}
+
 		// Ako parse nije uspeo iz nekog razloga, vrati barem note u “fallback” formatu.
 		if kontakt == "" || mesto == "" || pitanje == "" {
 			var b strings.Builder
-			b.WriteString("Nova zahtev za ponudu sa stranice Kontakt\n\n")
+			b.WriteString(headline + "\n\n")
 			b.WriteString("---\n")
 			b.WriteString("Ime kluba: " + imeKlubaFinal + "\n\n")
 			if req.Note != "" {
@@ -149,7 +167,7 @@ func buildCenaEmailBody(
 		}
 
 		var b strings.Builder
-		b.WriteString("Nova zahtev za ponudu sa stranice Kontakt\n\n")
+		b.WriteString(headline + "\n\n")
 		b.WriteString("---\n")
 		b.WriteString(fmt.Sprintf("Ime kluba: %s\n", imeKlubaFinal))
 		b.WriteString(fmt.Sprintf("Kontakt osoba: %s\n", kontakt))
