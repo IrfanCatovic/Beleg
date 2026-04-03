@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,8 +9,11 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/email"
+	"beleg-app/backend/internal/helpers"
+	"beleg-app/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CenaZahtevRequest sadrži podatke iz forme za zahtev ponude.
@@ -25,6 +29,11 @@ type CenaZahtevRequest struct {
 	ExtraUsersCostRsd  int    `json:"extraUsersCostRsd"`
 	ExtraAdminsCostRsd int    `json:"extraAdminsCostRsd"`
 	TotalMonthlyRsd    int    `json:"totalMonthlyRsd"`
+	// Strukturisane javne forme (Kontakt / Cena stranica)
+	ContactPerson   string `json:"contactPerson"`
+	City            string `json:"city"`
+	ClubMemberCount int    `json:"clubMemberCount"`
+	AdminUsername   string `json:"adminUsername"`
 }
 
 // CenaZahtev prima zahtev za ponudu sa stranice Cena i šalje email na konfigurisani EMAIL_TO.
@@ -43,15 +52,63 @@ func CenaZahtev(c *gin.Context) {
 	emailStr := strings.TrimSpace(req.ContactEmail)
 	phoneStr := strings.TrimSpace(req.ContactPhone)
 	paketNorm := strings.TrimSpace(req.Paket)
-	isKontaktForma := strings.EqualFold(paketNorm, "Kontakt forma")
+	isKontaktForma := strings.EqualFold(paketNorm, "Kontakt forma") ||
+		strings.EqualFold(paketNorm, "Kontaktformular") ||
+		strings.EqualFold(paketNorm, "Contact form")
 	isCenaStranicaForma := strings.EqualFold(paketNorm, "Cena stranica")
 	isSimplePublicForma := isKontaktForma || isCenaStranicaForma
+	structuredPublic := isSimplePublicForma && strings.TrimSpace(req.ContactPerson) != ""
+
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
 
 	if imeKluba == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite ime kluba"})
 		return
 	}
-	if !isSimplePublicForma {
+
+	if structuredPublic {
+		if emailStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite email"})
+			return
+		}
+		city := strings.TrimSpace(req.City)
+		question := strings.TrimSpace(req.Note)
+		adminUser := helpers.NormalizeUsername(req.AdminUsername)
+		if strings.TrimSpace(req.ContactPerson) == "" || city == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Molimo popunite sva obavezna polja."})
+			return
+		}
+		if question == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite pitanje ili poruku."})
+			return
+		}
+		if req.ClubMemberCount < 1 || req.ClubMemberCount > 500000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite realan broj članova kluba (1–500000)."})
+			return
+		}
+		if adminUser == "" || len(adminUser) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite korisničko ime za prvog admina (min. 2 karaktera)."})
+			return
+		}
+		var taken models.Korisnik
+		usernameTakenErr := helpers.DBWhereUsername(db, adminUser).First(&taken).Error
+		if usernameTakenErr == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim korisničkim imenom već postoji. Izaberite drugo korisničko ime."})
+			return
+		}
+		if !errors.Is(usernameTakenErr, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri korisničkog imena"})
+			return
+		}
+		if phoneStr == "" {
+			if isCenaStranicaForma {
+				phoneStr = "(nije unet – stranica Cena)"
+			} else {
+				phoneStr = "(nije unet – stranica Kontakt)"
+			}
+		}
+	} else if !isSimplePublicForma {
 		if phoneStr == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno unesite broj telefona"})
 			return
@@ -142,6 +199,26 @@ func buildCenaEmailBody(
 	isKontaktForma, isCenaStranicaForma bool,
 ) string {
 	if isKontaktForma || isCenaStranicaForma {
+		if strings.TrimSpace(req.ContactPerson) != "" {
+			headline := "Nova zahtev sa stranice Kontakt"
+			if isCenaStranicaForma {
+				headline = "Upit sa stranice Cena – registracija planinarskog kluba (besplatno)"
+			}
+			var b strings.Builder
+			b.WriteString(headline + "\n\n")
+			b.WriteString("---\n")
+			b.WriteString(fmt.Sprintf("Ime kluba: %s\n", imeKluba))
+			b.WriteString(fmt.Sprintf("Kontakt osoba: %s\n", strings.TrimSpace(req.ContactPerson)))
+			b.WriteString(fmt.Sprintf("Email: %s\n", emailStr))
+			b.WriteString(fmt.Sprintf("Mesto: %s\n", strings.TrimSpace(req.City)))
+			b.WriteString(fmt.Sprintf("Broj članova kluba: %d\n", req.ClubMemberCount))
+			b.WriteString(fmt.Sprintf("Korisničko ime prvog admina: %s\n", helpers.NormalizeUsername(req.AdminUsername)))
+			b.WriteString("Pitanje za nas:\n" + strings.TrimSpace(req.Note) + "\n")
+			b.WriteString("---\n")
+			b.WriteString("Telefon: " + phoneStr + "\n")
+			return b.String()
+		}
+
 		imeKlubaNote, kontakt, mesto, pitanje := parseKontaktNote(req.Note)
 		imeKlubaFinal := imeKluba
 		if imeKlubaNote != "" {

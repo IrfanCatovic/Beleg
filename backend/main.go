@@ -157,6 +157,7 @@ func main() {
 	// Public rute
 	loginRateLimiter := middleware.NewIPRateLimiter(12, time.Minute)
 	cenaZahtevRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
+	usernameAvailableRateLimiter := middleware.NewIPRateLimiter(40, time.Minute)
 	registerRateLimiter := middleware.NewIPRateLimiter(8, 10*time.Minute)
 	setupAdminRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
 
@@ -463,6 +464,8 @@ func main() {
 
 	// POST /api/cena-zahtev — javna forma za zahtev ponude; šalje email na EMAIL_TO
 	r.POST("/api/cena-zahtev", cenaZahtevRateLimiter, handlers.CenaZahtev)
+
+	r.GET("/api/username-available", usernameAvailableRateLimiter, handlers.UsernameAvailable)
 
 	// Javna ruta — detalji akcije (za deljenje linka; vraća i vodiča i ko je dodao)
 	// GET /api/akcije/:id  detalji su javni (ruta registrovana iznad, van protected)

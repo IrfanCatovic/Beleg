@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
@@ -19,16 +19,46 @@ export default function Cena() {
   const [contactPerson, setContactPerson] = useState('')
   const [clubName, setClubName] = useState('')
   const [city, setCity] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [clubMemberCount, setClubMemberCount] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
   const [question, setQuestion] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [sending, setSending] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle')
+
+  useEffect(() => {
+    const u = adminUsername.trim()
+    if (u.length < 2) {
+      setUsernameStatus('idle')
+      return
+    }
+    setUsernameStatus('checking')
+    const timer = window.setTimeout(() => {
+      void api
+        .get<{ available: boolean }>('/api/username-available', {
+          params: { username: u },
+          withCredentials: false,
+        })
+        .then((res) => {
+          setUsernameStatus(res.data.available ? 'available' : 'taken')
+        })
+        .catch(() => {
+          setUsernameStatus('error')
+        })
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [adminUsername])
 
   const handleSubmit = async () => {
     const person = contactPerson.trim()
     const club = clubName.trim()
     const place = city.trim()
+    const email = contactEmail.trim()
     const q = question.trim()
+    const admin = adminUsername.trim()
+    const membersParsed = parseInt(clubMemberCount.replace(/\s/g, ''), 10)
 
     setFieldError('')
     setSubmitMessage(null)
@@ -37,11 +67,22 @@ export default function Cena() {
       setFieldError(t('validation.requiredFields'))
       return
     }
-
-    const noteIntro = t('mail.noteIntro')
-    const noteBody =
-      `${noteIntro}\n\n` +
-      `Kontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldError(t('validation.emailInvalid'))
+      return
+    }
+    if (!Number.isFinite(membersParsed) || membersParsed < 1 || membersParsed > 500000) {
+      setFieldError(t('validation.memberCountInvalid'))
+      return
+    }
+    if (admin.length < 2) {
+      setFieldError(t('validation.usernameShort'))
+      return
+    }
+    if (usernameStatus !== 'available') {
+      setFieldError(t('validation.usernameWaitOrTaken'))
+      return
+    }
 
     setSending(true)
     try {
@@ -51,10 +92,14 @@ export default function Cena() {
           paket: 'Cena stranica',
           extraUsers: 0,
           extraAdmins: 0,
-          note: noteBody,
+          note: q,
           imeKluba: club,
-          contactEmail: '',
+          contactEmail: email,
           contactPhone: '',
+          contactPerson: person,
+          city: place,
+          clubMemberCount: membersParsed,
+          adminUsername: admin,
           basePriceRsd: 0,
           extraUsersCostRsd: 0,
           extraAdminsCostRsd: 0,
@@ -66,6 +111,9 @@ export default function Cena() {
       setContactPerson('')
       setClubName('')
       setCity('')
+      setContactEmail('')
+      setClubMemberCount('')
+      setAdminUsername('')
       setQuestion('')
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -317,6 +365,81 @@ export default function Cena() {
             />
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="cena-email" className="text-xs font-medium text-gray-600">
+                {t('form.email')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="cena-email"
+                type="email"
+                autoComplete="email"
+                value={contactEmail}
+                onChange={(e) => {
+                  setContactEmail(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder={t('form.placeholders.email')}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="cena-members" className="text-xs font-medium text-gray-600">
+                {t('form.memberCount')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="cena-members"
+                type="number"
+                min={1}
+                max={500000}
+                inputMode="numeric"
+                value={clubMemberCount}
+                onChange={(e) => {
+                  setClubMemberCount(e.target.value)
+                  setFieldError('')
+                }}
+                className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                  fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+                }`}
+                placeholder={t('form.placeholders.memberCount')}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="cena-admin-username" className="text-xs font-medium text-gray-600">
+              {t('form.adminUsername')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="cena-admin-username"
+              type="text"
+              autoComplete="username"
+              value={adminUsername}
+              onChange={(e) => {
+                setAdminUsername(e.target.value)
+                setFieldError('')
+              }}
+              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+              }`}
+              placeholder={t('form.placeholders.adminUsername')}
+            />
+            {adminUsername.trim().length >= 2 && usernameStatus === 'checking' && (
+              <p className="text-xs text-gray-500">{t('form.usernameChecking')}</p>
+            )}
+            {adminUsername.trim().length >= 2 && usernameStatus === 'available' && (
+              <p className="text-xs text-emerald-600 font-medium">{t('form.usernameAvailable')}</p>
+            )}
+            {adminUsername.trim().length >= 2 && usernameStatus === 'taken' && (
+              <p className="text-xs text-red-600 font-medium">{t('form.usernameTaken')}</p>
+            )}
+            {adminUsername.trim().length >= 2 && usernameStatus === 'error' && (
+              <p className="text-xs text-amber-600">{t('form.usernameCheckError')}</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="cena-question" className="text-xs font-medium text-gray-600">
               {t('form.question')} <span className="text-red-500">*</span>
@@ -349,8 +472,11 @@ export default function Cena() {
             <p className="text-xs text-gray-500 max-w-md">{t('form.hint')}</p>
             <button
               type="button"
-              onClick={handleSubmit}
-              disabled={sending}
+              onClick={() => void handleSubmit()}
+              disabled={
+                sending ||
+                (adminUsername.trim().length >= 2 && usernameStatus !== 'available')
+              }
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors shadow-md shadow-emerald-600/20"
             >
               {sending ? t('form.sending') : t('form.submit')}
