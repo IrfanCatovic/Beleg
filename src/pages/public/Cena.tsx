@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
 import { useTranslation } from 'react-i18next'
@@ -55,6 +56,34 @@ const PAKETI: Record<
     admins: 5,
   },
 }
+
+const PILLARS = [
+  {
+    icon: IconShieldCare,
+    title: 'Brinemo o klubovima',
+    text:
+      'Svako društvo je deo iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
+  },
+  {
+    icon: IconAllIncluded,
+    title: 'Nema paketa – sve je uključeno',
+    text:
+      'Nema Startera, Pro-a ni složenih cena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
+  },
+  {
+    icon: IconMountainFamily,
+    title: 'Jedna velika porodica planinara',
+    text:
+      'Cilj nam je da povežemo planinarsku zajednicu – da klubovi dele iskustvo i osećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele da rade zajedno sa nama.',
+  },
+] as const
+
+const FREE_INCLUDES = [
+  'Članstvo i evidencija članova',
+  'Akcije, izleti i događaji',
+  'Dokumentacija i komunikacija u klubu',
+  'Ista aplikacija za mala i velika društva',
+] as const
 
 export default function Cena() {
   const { t, i18n } = useTranslation('pricing')
@@ -169,8 +198,8 @@ export default function Cena() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-emerald-50/80">
-      <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/60">
+      <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6 relative z-10">
         <MarketingNavbar />
       </header>
       <div className="mx-auto max-w-5xl px-4 pb-10 space-y-10">
@@ -488,7 +517,7 @@ export default function Cena() {
               type="button"
               onClick={handleSubmit}
               disabled={sending}
-              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors shadow-md shadow-emerald-600/20"
             >
               {sending ? t('form.sending') : t('form.submit')}
             </button>
@@ -500,5 +529,74 @@ export default function Cena() {
         </p>
       </div>
     </div>
+  )
+}
+
+function IconSpark({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    </svg>
+  )
+}
+
+function IconShieldCare({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+      />
+    </svg>
+  )
+}
+
+function IconAllIncluded({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  )
+}
+
+function IconCheck({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  )
+}
+
+function IconMountainFamily({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  )
+}
+
+function IconHeartMountain({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" opacity={0.35} />
+    </svg>
+  )
+}
+
+function IconGift({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112-2h-2.5a2.5 2.5 0 000 5H12zm0-5h2.5a2.5 2.5 0 010 5H12m-7 8h14a2 2 0 002-2v-5a2 2 0 00-2-2H5a2 2 0 00-2 2v5a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function IconPen({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
   )
 }
