@@ -2,8 +2,14 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from './LanguageSwitcher'
 
+const LANGUAGES = ['sr', 'bs', 'hr', 'de', 'en'] as const
+const SHORT: Record<string, string> = { sr: 'SR', bs: 'BS', hr: 'HR', de: 'DE', en: 'EN' }
+
 export default function MarketingNavbar() {
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('common')
+  const current = LANGUAGES.includes(i18n.resolvedLanguage as (typeof LANGUAGES)[number])
+    ? (i18n.resolvedLanguage as (typeof LANGUAGES)[number])
+    : 'sr'
 
   return (
     <nav className="mb-8 sm:mb-12 flex items-center justify-between gap-2 sm:gap-4 rounded-full border border-emerald-100/70 bg-white/80 px-3 py-2 sm:px-4 shadow-sm backdrop-blur min-w-0">
@@ -19,13 +25,12 @@ export default function MarketingNavbar() {
           className="h-9 w-9 shrink-0 rounded-2xl shadow-md shadow-emerald-500/40 group-hover:scale-105 transition-transform"
         />
         <div className="leading-tight min-w-0 max-w-[5.5rem] sm:max-w-none">
-          <p className="text-sm sm:text-lg font-semibold tracking-tight text-slate-900 truncate">
+          <p className="hidden sm:block text-sm sm:text-lg font-semibold tracking-tight text-slate-900 truncate">
             {t('appName')}
           </p>
         </div>
       </Link>
 
-      {/* Linkovi, jezik (kompaktno na mobilnom u istom redu), login */}
       <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0">
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 rounded-full bg-emerald-50/80 px-1.5 py-1 sm:px-3 sm:py-1.5 min-w-0">
           <Link
@@ -41,12 +46,35 @@ export default function MarketingNavbar() {
             {t('nav.contact')}
           </Link>
         </div>
-        <div className="shrink-0 md:hidden">
-          <LanguageSwitcher compact />
-        </div>
+
+        {/* Mobile: globe icon + 2-letter code, native select overlay */}
+        <label className="relative shrink-0 md:hidden cursor-pointer">
+          <div className="flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-1.5 text-emerald-800 hover:bg-emerald-50 transition-colors">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" />
+            </svg>
+            <span className="text-[10px] font-bold tracking-wide">{SHORT[current] ?? 'SR'}</span>
+          </div>
+          <select
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            value={current}
+            onChange={(e) => void i18n.changeLanguage(e.target.value)}
+            aria-label={t('language')}
+          >
+            {LANGUAGES.map((lng) => (
+              <option key={lng} value={lng}>
+                {t(`languages.${lng}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Desktop: full language switcher */}
         <div className="hidden md:block shrink-0">
           <LanguageSwitcher />
         </div>
+
         <Link
           to="/login"
           className="inline-flex items-center shrink-0 rounded-full px-3 sm:px-4 py-1.5 text-[11px] sm:text-sm font-semibold text-white shadow-md shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/30 whitespace-nowrap"
@@ -57,4 +85,3 @@ export default function MarketingNavbar() {
     </nav>
   )
 }
-
