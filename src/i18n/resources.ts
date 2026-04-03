@@ -1397,10 +1397,10 @@ export const resources = {
           loading: 'Učitavanje statistike...',
           unavailable: 'Statistika trenutno nije dostupna.',
           activeMembers: 'Aktivni članovi',
-          activeMembersHint: 'Registrovani u klubu (bez obrisanih naloga)',
+          activeMembersHint: 'Registrovani u klubu',
           admins: 'Administratori',
           adminsHint: 'Uloga admin u ovom klubu',
-          storage: 'Prostor za fajlove (Cloudinary)',
+          storage: 'Prostor za fajlove',
           usedPercent: 'Iskorišćeno',
           subscriptionTitle: 'Pretplata',
           validUntil: 'Važi do',
@@ -2497,6 +2497,23 @@ export const resources = {
         tabs: { public: 'Javni podaci', admin: 'Administracija kluba' },
         sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i finansijski podaci' },
         fields: { pickLogo: 'Izaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'Email', seat: 'Sjedište', website: 'Web sajt' },
+        adminStats: {
+          title: 'Statistika i limiti kluba',
+          subtitle:
+            'Podaci važe za vaš klub. Limite i trajanje pretplate postavlja superadmin.',
+          loading: 'Učitavanje statistike...',
+          unavailable: 'Statistika trenutno nije dostupna.',
+          activeMembers: 'Aktivni članovi',
+          activeMembersHint: 'Registrovani u klubu',
+          admins: 'Administratori',
+          adminsHint: 'Uloga admin u ovom klubu',
+          storage: 'Prostor za fajlove',
+          usedPercent: 'Iskorišteno',
+          subscriptionTitle: 'Pretplata',
+          validUntil: 'Važi do',
+          subscribedAt: 'Datum prijave / početak',
+          onHold: 'Klub je trenutno na pauzi (hold)',
+        },
         empty: { contact: 'Nema unesenih kontakt podataka.' },
         common: { saving: 'Čuvanje...', uploading: 'Upload...' },
         errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri čuvanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri upload-u loga', loginClubHint: 'Provjerite da li ste ulogovani u klub (superadmin mora izabrati klub).' },
@@ -3481,7 +3498,7 @@ export const resources = {
       taskReadonly: { badge: 'Detalji zadatka', urgent: 'Hitno', description: 'Opis', empty: '—', whoCanParticipate: 'Tko može sudjelovati', allMembers: 'Svi članovi', deadline: 'Rok', noDeadline: 'Bez roka', created: 'Kreiran', assignees: 'Prijavljeni', noAssignees: 'Još nitko nije prijavljen.', status: { active: 'Aktivan', inProgress: 'U tijeku', finished: 'Završen' } },
     },
     clubs: {
-      club: { subtitle: 'Podaci vašeg planinarskog društva', actions: { edit: 'Izmijeni podatke', save: 'Spremi', cancel: 'Odustani' }, tabs: { public: 'Javni podaci', admin: 'Administracija kluba' }, sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i financijski podaci' }, fields: { pickLogo: 'Odaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'E-mail', seat: 'Sjedište', website: 'Web stranica' }, empty: { contact: 'Nema unesenih kontakt podataka.' }, common: { saving: 'Spremanje...', uploading: 'Upload...' }, errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri spremanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri uploadu loga', loginClubHint: 'Provjerite jeste li prijavljeni u klub (superadmin mora odabrati klub).' } },
+      club: { subtitle: 'Podaci vašeg planinarskog društva', actions: { edit: 'Izmijeni podatke', save: 'Spremi', cancel: 'Odustani' }, tabs: { public: 'Javni podaci', admin: 'Administracija kluba' }, sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i financijski podaci' }, fields: { pickLogo: 'Odaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'E-mail', seat: 'Sjedište', website: 'Web stranica' }, adminStats: { title: 'Statistika i limiti kluba', subtitle: 'Podaci vrijede za vaš klub. Limite i trajanje pretplate postavlja superadmin.', loading: 'Učitavanje statistike...', unavailable: 'Statistika trenutno nije dostupna.', activeMembers: 'Aktivni članovi', activeMembersHint: 'Registrirani u klubu', admins: 'Administratori', adminsHint: 'Admin uloga u ovom klubu', storage: 'Prostor za datoteke', usedPercent: 'Iskorišteno', subscriptionTitle: 'Pretplata', validUntil: 'Vrijedi do', subscribedAt: 'Datum prijave / početak', onHold: 'Klub je trenutno na pauzi (hold)' }, empty: { contact: 'Nema unesenih kontakt podataka.' }, common: { saving: 'Spremanje...', uploading: 'Upload...' }, errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri spremanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri uploadu loga', loginClubHint: 'Provjerite jeste li prijavljeni u klub (superadmin mora odabrati klub).' } },
       superadmin: { title: 'Klubovi', addClub: 'Dodaj klub', empty: 'Nema klubova. Kliknite „Dodaj klub” za kreiranje prvog.', noAccess: 'Nemate pristup ovoj stranici.', clubActiveLabel: 'Klub je aktivan (članovi se mogu prijaviti)', onHoldBadge: 'Na pauzi', subscriptionStatus: { active: 'Aktivna pretplata', warning: 'Uskoro ističe', expired: 'Istekla' }, errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri spremanju' } },
     },
     pdf: {
@@ -4423,7 +4440,7 @@ export const resources = {
       taskReadonly: { badge: 'Aufgabendetails', urgent: 'Dringend', description: 'Beschreibung', empty: '—', whoCanParticipate: 'Wer kann teilnehmen', allMembers: 'Alle Mitglieder', deadline: 'Frist', noDeadline: 'Keine Frist', created: 'Erstellt', assignees: 'Zugewiesen', noAssignees: 'Noch niemand zugewiesen.', status: { active: 'Aktiv', inProgress: 'In Arbeit', finished: 'Abgeschlossen' } },
     },
     clubs: {
-      club: { subtitle: 'Daten deines Bergsportvereins', actions: { edit: 'Daten bearbeiten', save: 'Speichern', cancel: 'Abbrechen' }, tabs: { public: 'Öffentliche Daten', admin: 'Vereinsverwaltung' }, sections: { contactAddress: 'Kontakt und Adresse', legalFinance: 'Rechtliche und finanzielle Daten' }, fields: { pickLogo: 'Vereinslogo auswählen', name: 'Vereinsname', address: 'Adresse', phone: 'Telefon', email: 'E-Mail', seat: 'Sitz', website: 'Webseite' }, empty: { contact: 'Keine Kontaktdaten vorhanden.' }, common: { saving: 'Speichern...', uploading: 'Upload...' }, errors: { load: 'Fehler beim Laden des Vereins', save: 'Fehler beim Speichern', imageOnly: 'Nur Bilder erlaubt (jpg, png, gif...)', imageTooLarge: 'Bild ist zu groß (maximal 5 MB)', logoUpload: 'Fehler beim Logo-Upload', loginClubHint: 'Bitte prüfen, ob du im Verein angemeldet bist (Superadmin muss Verein wählen).' } },
+      club: { subtitle: 'Daten deines Bergsportvereins', actions: { edit: 'Daten bearbeiten', save: 'Speichern', cancel: 'Abbrechen' }, tabs: { public: 'Öffentliche Daten', admin: 'Vereinsverwaltung' }, sections: { contactAddress: 'Kontakt und Adresse', legalFinance: 'Rechtliche und finanzielle Daten' }, fields: { pickLogo: 'Vereinslogo auswählen', name: 'Vereinsname', address: 'Adresse', phone: 'Telefon', email: 'E-Mail', seat: 'Sitz', website: 'Webseite' }, adminStats: { title: 'Statistiken und Vereinslimits', subtitle: 'Die Daten gelten für deinen Verein. Limits und die Laufzeit des Abonnements setzt der Superadmin.', loading: 'Statistiken werden geladen...', unavailable: 'Statistiken sind derzeit nicht verfügbar.', activeMembers: 'Aktive Mitglieder', activeMembersHint: 'Im Verein registriert', admins: 'Administratoren', adminsHint: 'Admin-Rolle in diesem Verein', storage: 'Platz für Dateien', usedPercent: 'Verbraucht', subscriptionTitle: 'Abonnement', validUntil: 'Gültig bis', subscribedAt: 'Anmeldedatum / Start', onHold: 'Der Verein ist aktuell pausiert (Hold)' }, empty: { contact: 'Keine Kontaktdaten vorhanden.' }, common: { saving: 'Speichern...', uploading: 'Upload...' }, errors: { load: 'Fehler beim Laden des Vereins', save: 'Fehler beim Speichern', imageOnly: 'Nur Bilder erlaubt (jpg, png, gif...)', imageTooLarge: 'Bild ist zu groß (maximal 5 MB)', logoUpload: 'Fehler beim Logo-Upload', loginClubHint: 'Bitte prüfen, ob du im Verein angemeldet bist (Superadmin muss Verein wählen).' } },
       superadmin: { title: 'Vereine', addClub: 'Verein hinzufügen', empty: 'Keine Vereine. Klicke „Verein hinzufügen“, um den ersten zu erstellen.', noAccess: 'Du hast keinen Zugriff auf diese Seite.', clubActiveLabel: 'Verein aktiv (Mitglieder können sich anmelden)', onHoldBadge: 'Pausiert', subscriptionStatus: { active: 'Aktives Abonnement', warning: 'Läuft bald ab', expired: 'Abgelaufen' }, errors: { load: 'Fehler beim Laden der Vereine', delete: 'Fehler beim Löschen', nameRequired: 'Vereinsname ist erforderlich.', mediaLimitNegative: 'Medienlimit (GB) darf nicht negativ sein.', save: 'Fehler beim Speichern' } },
     },
     pdf: {
@@ -5365,7 +5382,7 @@ export const resources = {
       taskReadonly: { badge: 'Task details', urgent: 'Urgent', description: 'Description', empty: '—', whoCanParticipate: 'Who can participate', allMembers: 'All members', deadline: 'Deadline', noDeadline: 'No deadline', created: 'Created', assignees: 'Assignees', noAssignees: 'No one assigned yet.', status: { active: 'Active', inProgress: 'In progress', finished: 'Finished' } },
     },
     clubs: {
-      club: { subtitle: 'Your hiking club details', actions: { edit: 'Edit details', save: 'Save', cancel: 'Cancel' }, tabs: { public: 'Public details', admin: 'Club administration' }, sections: { contactAddress: 'Contact and address', legalFinance: 'Legal and financial details' }, fields: { pickLogo: 'Choose club logo', name: 'Club name', address: 'Address', phone: 'Phone', email: 'Email', seat: 'Seat', website: 'Website' }, empty: { contact: 'No contact data entered.' }, common: { saving: 'Saving...', uploading: 'Upload...' }, errors: { load: 'Error loading club', save: 'Error saving', imageOnly: 'Only image files are allowed (jpg, png, gif...)', imageTooLarge: 'Image is too large (maximum 5 MB)', logoUpload: 'Error uploading logo', loginClubHint: 'Check if you are logged into a club (superadmin must select a club).' } },
+      club: { subtitle: 'Your hiking club details', actions: { edit: 'Edit details', save: 'Save', cancel: 'Cancel' }, tabs: { public: 'Public details', admin: 'Club administration' }, sections: { contactAddress: 'Contact and address', legalFinance: 'Legal and financial details' }, fields: { pickLogo: 'Choose club logo', name: 'Club name', address: 'Address', phone: 'Phone', email: 'Email', seat: 'Seat', website: 'Website' }, adminStats: { title: 'Club statistics and limits', subtitle: 'The data apply to your club. Limits and subscription duration are set by the superadmin.', loading: 'Loading statistics...', unavailable: 'Statistics are currently unavailable.', activeMembers: 'Active members', activeMembersHint: 'Registered with the club', admins: 'Admins', adminsHint: 'Admin role in this club', storage: 'File storage', usedPercent: 'Used', subscriptionTitle: 'Subscription', validUntil: 'Valid until', subscribedAt: 'Subscription date / start', onHold: 'The club is currently on hold' }, empty: { contact: 'No contact data entered.' }, common: { saving: 'Saving...', uploading: 'Upload...' }, errors: { load: 'Error loading club', save: 'Error saving', imageOnly: 'Only image files are allowed (jpg, png, gif...)', imageTooLarge: 'Image is too large (maximum 5 MB)', logoUpload: 'Error uploading logo', loginClubHint: 'Check if you are logged into a club (superadmin must select a club).' } },
       superadmin: { title: 'Clubs', addClub: 'Add club', empty: 'No clubs yet. Click "Add club" to create the first one.', noAccess: 'You do not have access to this page.', clubActiveLabel: 'Club active (members can log in)', onHoldBadge: 'On hold', subscriptionStatus: { active: 'Active subscription', warning: 'Expiring soon', expired: 'Expired' }, errors: { load: 'Error loading clubs', delete: 'Error deleting club', nameRequired: 'Club name is required.', mediaLimitNegative: 'Media limit (GB) cannot be negative.', save: 'Error saving' } },
     },
     pdf: {
