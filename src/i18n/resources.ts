@@ -1004,6 +1004,100 @@ export const resources = {
         button: 'Pogledaj cene i pošalji zahtev',
       },
     },
+    cenaPage: {
+      mail: { noteIntro: 'Upit poslato sa stranice Cena:' },
+      validation: { requiredFields: 'Molimo popunite sva obavezna polja.' },
+      messages: {
+        success: 'Poruka je uspešno poslata. Javićemo vam se uskoro.',
+        timeout:
+          'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+        network: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+        sendError: 'Greška pri slanju. Pokušajte ponovo.',
+      },
+      hero: {
+        badge1: 'Bez paketa – sve besplatno',
+        badge2: 'Jedna porodica planinara',
+        titleBefore: 'Celokupna aplikacija je',
+        titleHighlight: 'besplatna',
+        titleAfter: 'za vaš klub',
+        p1Strong: 'Nema pretplatničkih paketa',
+        p1After:
+          '– ni skrivenih nivoa ni „naprednih“ verzija za koje treba da platite. Planiner je jedan zajednički dom za planinarske klubove.',
+        p2Before: 'Verujemo u',
+        p2Family: 'jednu veliku porodicu planinara',
+        p2Mid:
+          ': kad su svi dobrodošli bez cene ulaska, zajednica može da raste. Zato je ceo Planiner – sve što danas nudimo klubovima –',
+        p2Free: 'potpuno besplatno',
+        p2After: '.',
+        ctaInquiry: 'Pridružite se porodici – upit',
+      },
+      intro:
+        'Ova stranica <prices>nije o cenama i paketima</prices> – to smo uklonili namerno. Ostaje poruka koja nam je važna: <family>brinemo o klubovima kao o porodici</family>, a alat koji gradimo želimo da bude slobodno dostupan svakom društvu koje podeli tu ideju.',
+      includes: {
+        title: 'Šta je uključeno – za svaki klub, bez doplate',
+        m1: 'Članstvo i evidencija članova',
+        m2: 'Akcije, izleti i događaji',
+        m3: 'Dokumentacija i komunikacija u klubu',
+        m4: 'Ista aplikacija za mala i velika društva',
+      },
+      together: {
+        title: 'Zajedno, ne kao kupac i prodavac',
+        pBefore:
+          'Kada pošaljete upit, ne dobijate ponudu sa stavkama i cenovnikom – dobijate razgovor o tome kako vaš klub ulazi u',
+        community: 'zajednicu',
+        pMid: 'koja koristi Planiner. Registracija i podrška su besplatne jer nam je cilj da',
+        connect: 'povežemo planinare',
+        pAfter: ', ne da ih podelimo po cenovnim razredima.',
+      },
+      pillars: {
+        eyebrow: 'Naša obećanja',
+        title: 'Jedna porodica, jedna aplikacija, nula paketa',
+        care: {
+          title: 'Brinemo o klubovima',
+          text:
+            'Svako društvo je deo iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
+        },
+        all: {
+          title: 'Nema paketa – sve je uključeno',
+          text:
+            'Nema Startera, Pro-a ni složenih cena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
+        },
+        family: {
+          title: 'Jedna velika porodica planinara',
+          text:
+            'Cilj nam je da povežemo planinarsku zajednicu – da klubovi dele iskustvo i osećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele da rade zajedno sa nama.',
+        },
+      },
+      whyFree: {
+        title: 'Zašto nema cene?',
+        p1Before:
+          'Ako bismo uvodili pakete, deo klubova bi ostao ispod crte – bez alata, bez pomoći, bez mesta u mreži koja nas povezuje. Mi biramo drugačije:',
+        p1Strong: 'sve što Planiner jeste, jeste besplatno',
+        p1After: ', da bi svaka porodica planinara mogla da stane uz nas.',
+        p2Before: 'To nije promocija „prvih meseci“. To je stav –',
+        p2Strong: 'zajednica pre zarade',
+        p2After:
+          ', podrška klubovima pre naplate. Kad nam pišete, radimo sa vama kao sa članovima iste kuće, ne kao sa klijentom na ceni.',
+      },
+      form: {
+        title: 'Uđite u zajednicu – besplatno',
+        subtitle:
+          'Osnovni podaci i pitanje; javićemo vam se oko registracije kluba. Upit je označen kao sa stranice Cena (besplatno – bez paketa).',
+        contactPerson: 'Kontakt osoba',
+        clubName: 'Ime kluba',
+        city: 'Mesto',
+        question: 'Pitanje za nas',
+        placeholders: {
+          contactPerson: 'Ime i prezime kontakt osobe',
+          clubName: 'npr. Planinarsko društvo Javor',
+          city: 'Grad ili mesto u kojem je klub',
+          question: 'npr. želimo da se pridružimo zajednici, broj članova, pitanja o aplikaciji…',
+        },
+        hint: 'Nema obaveze kupovine ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj porodici planinara.',
+        sending: 'Slanje…',
+        submit: 'Pošalji upit',
+      },
+    },
     actionForms: {
       errors: {
         invalidDateFormat: 'Datum mora biti u formatu YYYY-MM-DD',
@@ -2375,6 +2469,99 @@ export const resources = {
         button: 'Pogledaj cijene i pošalji zahtjev',
       },
     },
+    cenaPage: {
+      mail: { noteIntro: 'Upit poslan sa stranice Cijene:' },
+      validation: { requiredFields: 'Molimo popunite sva obavezna polja.' },
+      messages: {
+        success: 'Poruka je uspješno poslana. Javićemo vam se uskoro.',
+        timeout: 'Zahtjev je predugo trajao. Na produkciji provjerite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+        network: 'Nema odgovora od servera. Provjerite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+        sendError: 'Greška pri slanju. Pokušajte ponovo.',
+      },
+      hero: {
+        badge1: 'Bez paketa – sve besplatno',
+        badge2: 'Jedna porodica planinara',
+        titleBefore: 'Cijela aplikacija je',
+        titleHighlight: 'besplatna',
+        titleAfter: 'za vaš klub',
+        p1Strong: 'Nema pretplatničkih paketa',
+        p1After:
+          '– ni skrivenih nivoa ni „naprednih“ verzija za koje treba platiti. Planiner je jedna zajednička kuća za planinarske klubove.',
+        p2Before: 'Vjerujemo u',
+        p2Family: 'jednu veliku porodicu planinara',
+        p2Mid:
+          ': kad su svi dobrodošli bez cijene ulaska, zajednica može rasti. Zato je cijeli Planiner – sve što danas nudimo klubovima –',
+        p2Free: 'potpuno besplatno',
+        p2After: '.',
+        ctaInquiry: 'Pridružite se porodici – upit',
+      },
+      intro:
+        'Ova stranica <prices>nije o cijenama i paketima</prices> – to smo namjerno uklonili. Ostaje poruka koja nam je važna: <family>brinemo o klubovima kao o porodici</family>, a alat koji gradimo želimo da bude slobodno dostupan svakom društvu koje dijeli tu ideju.',
+      includes: {
+        title: 'Šta je uključeno – za svaki klub, bez doplate',
+        m1: 'Članstvo i evidencija članova',
+        m2: 'Akcije, izleti i događaji',
+        m3: 'Dokumentacija i komunikacija u klubu',
+        m4: 'Ista aplikacija za mala i velika društva',
+      },
+      together: {
+        title: 'Zajedno, ne kao kupac i prodavač',
+        pBefore:
+          'Kada pošaljete upit, ne dobijate ponudu sa stavkama i cjenovnikom – dobijate razgovor o tome kako vaš klub ulazi u',
+        community: 'zajednicu',
+        pMid: 'koja koristi Planiner. Registracija i podrška su besplatne jer nam je cilj da',
+        connect: 'povežemo planinare',
+        pAfter: ', ne da ih podijelimo po cjenovnim razredima.',
+      },
+      pillars: {
+        eyebrow: 'Naša obećanja',
+        title: 'Jedna porodica, jedna aplikacija, nula paketa',
+        care: {
+          title: 'Brinemo o klubovima',
+          text:
+            'Svako društvo je dio iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
+        },
+        all: {
+          title: 'Nema paketa – sve je uključeno',
+          text:
+            'Nema Startera, Pro-a ni složenih cijena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
+        },
+        family: {
+          title: 'Jedna velika porodica planinara',
+          text:
+            'Cilj nam je da povežemo planinarsku zajednicu – da klubovi dijele iskustvo i osjećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele raditi zajedno s nama.',
+        },
+      },
+      whyFree: {
+        title: 'Zašto nema cijene?',
+        p1Before:
+          'Ako bismo uvodili pakete, dio klubova bi ostao ispod crte – bez alata, bez pomoći, bez mjesta u mreži koja nas povezuje. Mi biramo drugačije:',
+        p1Strong: 'sve što Planiner jeste, jeste besplatno',
+        p1After: ', da bi svaka porodica planinara mogla stati uz nas.',
+        p2Before: 'To nije promocija „prvih mjeseci“. To je stav –',
+        p2Strong: 'zajednica prije zarade',
+        p2After:
+          ', podrška klubovima prije naplate. Kad nam pišete, radimo s vama kao s članovima iste kuće, ne kao s klijentom na cijeni.',
+      },
+      form: {
+        title: 'Uđite u zajednicu – besplatno',
+        subtitle:
+          'Osnovni podaci i pitanje; javićemo vam se oko registracije kluba. Upit je označen kao sa stranice Cijene (besplatno – bez paketa).',
+        contactPerson: 'Kontakt osoba',
+        clubName: 'Ime kluba',
+        city: 'Mjesto',
+        question: 'Pitanje za nas',
+        placeholders: {
+          contactPerson: 'Ime i prezime kontakt osobe',
+          clubName: 'npr. Planinarsko društvo Javor',
+          city: 'Grad ili mjesto u kojem je klub',
+          question: 'npr. želimo se pridružiti zajednici, broj članova, pitanja o aplikaciji…',
+        },
+        hint: 'Nema obaveze kupovine ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj porodici planinara.',
+        sending: 'Slanje…',
+        submit: 'Pošalji upit',
+      },
+    },
     actionForms: {
       errors: {
         invalidDateFormat: 'Datum mora biti u formatu YYYY-MM-DD',
@@ -3460,6 +3647,99 @@ export const resources = {
         button: 'Pogledaj cijene i pošalji zahtjev',
       },
     },
+    cenaPage: {
+      mail: { noteIntro: 'Upit poslan sa stranice Cijene:' },
+      validation: { requiredFields: 'Molimo ispunite sva obavezna polja.' },
+      messages: {
+        success: 'Poruka je uspješno poslana. Javit ćemo vam se uskoro.',
+        timeout: 'Zahtjev je predugo trajao. Na produkciji provjerite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+        network: 'Nema odgovora sa servera. Provjerite VITE_API_URL i CORS_ORIGINS (točan URL vašeg sajta).',
+        sendError: 'Greška pri slanju. Pokušajte ponovno.',
+      },
+      hero: {
+        badge1: 'Bez paketa – sve besplatno',
+        badge2: 'Jedna obitelj planinara',
+        titleBefore: 'Cijela aplikacija je',
+        titleHighlight: 'besplatna',
+        titleAfter: 'za vaš klub',
+        p1Strong: 'Nema pretplatničkih paketa',
+        p1After:
+          '– ni skrivenih razina ni „naprednih“ verzija za koje treba platiti. Planiner je jedna zajednička kuća za planinarske klubove.',
+        p2Before: 'Vjerujemo u',
+        p2Family: 'jednu veliku obitelj planinara',
+        p2Mid:
+          ': kad su svi dobrodošli bez cijene ulaska, zajednica može rasti. Zato je cijeli Planiner – sve što danas nudimo klubovima –',
+        p2Free: 'potpuno besplatno',
+        p2After: '.',
+        ctaInquiry: 'Pridružite se obitelji – upit',
+      },
+      intro:
+        'Ova stranica <prices>nije o cijenama i paketima</prices> – to smo namjerno uklonili. Ostaje poruka koja nam je važna: <family>brinemo o klubovima kao o obitelji</family>, a alat koji gradimo želimo da bude slobodno dostupan svakom društvu koje dijeli tu ideju.',
+      includes: {
+        title: 'Što je uključeno – za svaki klub, bez doplate',
+        m1: 'Članstvo i evidencija članova',
+        m2: 'Akcije, izleti i događaji',
+        m3: 'Dokumentacija i komunikacija u klubu',
+        m4: 'Ista aplikacija za mala i velika društva',
+      },
+      together: {
+        title: 'Zajedno, ne kao kupac i prodavač',
+        pBefore:
+          'Kada pošaljete upit, ne dobivate ponudu sa stavkama i cjenikom – dobivate razgovor o tome kako vaš klub ulazi u',
+        community: 'zajednicu',
+        pMid: 'koja koristi Planiner. Registracija i podrška su besplatne jer nam je cilj da',
+        connect: 'povežemo planinare',
+        pAfter: ', a ne da ih podijelimo po cjenovnim razredima.',
+      },
+      pillars: {
+        eyebrow: 'Naša obećanja',
+        title: 'Jedna obitelj, jedna aplikacija, nula paketa',
+        care: {
+          title: 'Brinemo o klubovima',
+          text:
+            'Svako društvo je dio iste obitelji. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
+        },
+        all: {
+          title: 'Nema paketa – sve je uključeno',
+          text:
+            'Nema Startera, Pro-a ni složenih cijena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
+        },
+        family: {
+          title: 'Jedna velika obitelj planinara',
+          text:
+            'Cilj nam je povezati planinarsku zajednicu – da klubovi dijele iskustvo i osjećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele raditi zajedno s nama.',
+        },
+      },
+      whyFree: {
+        title: 'Zašto nema cijene?',
+        p1Before:
+          'Ako bismo uvodili pakete, dio klubova bi ostao ispod crte – bez alata, bez pomoći, bez mjesta u mreži koja nas povezuje. Mi biramo drugačije:',
+        p1Strong: 'sve što Planiner jest, jest besplatno',
+        p1After: ', da bi svaka obitelj planinara mogla stati uz nas.',
+        p2Before: 'To nije promocija „prvih mjeseci“. To je stav –',
+        p2Strong: 'zajednica ispred zarade',
+        p2After:
+          ', podrška klubovima prije naplate. Kad nam pišete, radimo s vama kao s članovima iste kuće, ne kao s klijentom na cijeni.',
+      },
+      form: {
+        title: 'Uđite u zajednicu – besplatno',
+        subtitle:
+          'Osnovni podaci i pitanje; javit ćemo vam se oko registracije kluba. Upit je označen kao sa stranice Cijene (besplatno – bez paketa).',
+        contactPerson: 'Kontakt osoba',
+        clubName: 'Ime kluba',
+        city: 'Mjesto',
+        question: 'Pitanje za nas',
+        placeholders: {
+          contactPerson: 'Ime i prezime kontakt osobe',
+          clubName: 'npr. Planinarsko društvo Javor',
+          city: 'Grad ili mjesto u kojem je klub',
+          question: 'npr. želimo se pridružiti zajednici, broj članova, pitanja o aplikaciji…',
+        },
+        hint: 'Nema obveze kupnje ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj obitelji planinara.',
+        sending: 'Slanje…',
+        submit: 'Pošalji upit',
+      },
+    },
     actionForms: {
       errors: { invalidDateFormat: 'Datum mora biti u formatu YYYY-MM-DD', pastDate: 'Datum ne može biti u prošlosti.', selectDifficulty: 'Odaberite težinu.', selectDifficultyFromList: 'Odaberite težinu iz ponuđenih.', addAction: 'Greška pri dodavanju akcije', editAction: 'Greška pri izmjeni akcije', loadAction: 'Greška pri učitavanju akcije', loadUsers: 'Greška pri učitavanju korisnika', selectUser: 'Odaberite korisnika.', addPastAction: 'Greška pri dodavanju prošle akcije.' },
       common: { cancel: 'Odustani' },
@@ -4402,6 +4682,99 @@ export const resources = {
         button: 'Preise ansehen und Anfrage senden',
       },
     },
+    cenaPage: {
+      mail: { noteIntro: 'Anfrage von der Seite „Cena“ (Preise):' },
+      validation: { requiredFields: 'Bitte füllen Sie alle Pflichtfelder aus.' },
+      messages: {
+        success: 'Nachricht erfolgreich gesendet. Wir melden uns bald.',
+        timeout: 'Anfrage hat zu lange gedauert. In Produktion SMTP/Resend, VITE_API_URL und CORS prüfen.',
+        network: 'Keine Antwort vom Server. VITE_API_URL und CORS_ORIGINS (exakte URL der Website) prüfen.',
+        sendError: 'Fehler beim Senden. Bitte erneut versuchen.',
+      },
+      hero: {
+        badge1: 'Keine Pakete – alles kostenlos',
+        badge2: 'Eine Familie von Bergfreunden',
+        titleBefore: 'Die gesamte App ist',
+        titleHighlight: 'kostenlos',
+        titleAfter: 'für Ihren Verein',
+        p1Strong: 'Keine Abo-Pakete',
+        p1After:
+          '– keine versteckten Stufen und keine „Pro“-Version, die Sie bezahlen müssen. Planiner ist ein gemeinsames Zuhause für Hiking-Vereine.',
+        p2Before: 'Wir glauben an',
+        p2Family: 'eine große Familie von Bergfreunden',
+        p2Mid:
+          ': Wenn alle ohne Eintrittspreis willkommen sind, kann die Gemeinschaft wachsen. Deshalb ist der gesamte Planiner – alles, was wir Vereinen heute bieten –',
+        p2Free: 'völlig kostenlos',
+        p2After: '.',
+        ctaInquiry: 'Zur Familie – Anfrage senden',
+      },
+      intro:
+        'Diese Seite <prices>handelt nicht von Preisen und Paketen</prices> – das haben wir bewusst entfernt. Wichtig ist uns: <family>Wir kümmern uns um Vereine wie um eine Familie</family>, und das Werkzeug, das wir bauen, soll für jeden Verein frei zugänglich sein, der diese Idee teilt.',
+      includes: {
+        title: 'Was enthalten ist – für jeden Verein, ohne Aufpreis',
+        m1: 'Mitgliedschaft und Mitgliederverwaltung',
+        m2: 'Aktionen, Touren und Termine',
+        m3: 'Dokumentation und Kommunikation im Verein',
+        m4: 'Dieselbe App für kleine und große Vereine',
+      },
+      together: {
+        title: 'Gemeinsam – nicht als Käufer und Verkäufer',
+        pBefore:
+          'Wenn Sie eine Anfrage senden, bekommen Sie kein Angebot mit Positionen und Preisliste – sondern ein Gespräch darüber, wie Ihr Verein in die',
+        community: 'Gemeinschaft',
+        pMid: 'einsteigt, die Planiner nutzt. Registrierung und Support sind kostenlos, weil wir',
+        connect: 'Bergfreunde verbinden',
+        pAfter: 'wollen – nicht nach Preisklassen sortieren.',
+      },
+      pillars: {
+        eyebrow: 'Unser Versprechen',
+        title: 'Eine Familie, eine App, null Pakete',
+        care: {
+          title: 'Wir kümmern uns um Vereine',
+          text:
+            'Jeder Verein ist Teil derselben Familie. Wir bauen Planiner so, dass Verwaltung, Mitgliedschaft und Organisation möglichst einfach sind – ohne Druck, ein „Paket“ zu upgraden.',
+        },
+        all: {
+          title: 'Keine Pakete – alles dabei',
+          text:
+            'Kein Starter, kein Pro, keine komplizierten Preise pro Mitglied. Eine App-Version für alle Vereine: gleiche Funktionen, gleiche Sorgfalt, keine Überraschungen auf der Rechnung – weil es keine Rechnung gibt.',
+        },
+        family: {
+          title: 'Eine große Familie von Bergfreunden',
+          text:
+            'Wir wollen die Wander-Community verbinden – Vereine teilen Erfahrungen und das Gefühl dazuzugehören. Deshalb ist der Zugang für alle kostenlos, die mit uns zusammenarbeiten wollen.',
+        },
+      },
+      whyFree: {
+        title: 'Warum gibt es keinen Preis?',
+        p1Before:
+          'Mit Paketen bliebe ein Teil der Vereine außen vor – ohne Tool, ohne Hilfe, ohne Platz im Netz, das uns verbindet. Wir entscheiden uns anders:',
+        p1Strong: 'alles, was Planiner ist, ist kostenlos',
+        p1After: ', damit jede Familie von Bergfreunden zu uns stoßen kann.',
+        p2Before: 'Das ist keine „ersten Monate gratis“-Aktion. Es ist Haltung –',
+        p2Strong: 'Gemeinschaft vor Gewinn',
+        p2After:
+          ', Unterstützung für Vereine vor Abrechnung. Wenn Sie schreiben, arbeiten wir mit Ihnen wie mit Mitgliedern eines Hauses – nicht wie mit einem Preiskunden.',
+      },
+      form: {
+        title: 'Treten Sie der Gemeinschaft bei – kostenlos',
+        subtitle:
+          'Grunddaten und Ihre Frage; wir melden uns zur Vereinsregistrierung. Die Anfrage ist als von der Seite „Cena“ markiert (kostenlos – ohne Pakete).',
+        contactPerson: 'Kontaktperson',
+        clubName: 'Vereinsname',
+        city: 'Ort',
+        question: 'Ihre Frage',
+        placeholders: {
+          contactPerson: 'Vor- und Nachname der Kontaktperson',
+          clubName: 'z. B. Bergsportverein Javor',
+          city: 'Stadt oder Ort des Vereins',
+          question: 'z. B. wir möchten der Gemeinschaft beitreten, Mitgliederzahl, Fragen zur App…',
+        },
+        hint: 'Kein Kaufzwang und keine Paketwahl – nur ein Schritt zur kostenlosen Vereinsregistrierung in unserer Familie von Bergfreunden.',
+        sending: 'Senden…',
+        submit: 'Anfrage senden',
+      },
+    },
     actionForms: {
       errors: { invalidDateFormat: 'Datum muss im Format YYYY-MM-DD sein', pastDate: 'Datum darf nicht in der Vergangenheit liegen.', selectDifficulty: 'Bitte Schwierigkeit auswählen.', selectDifficultyFromList: 'Bitte eine angebotene Schwierigkeit wählen.', addAction: 'Fehler beim Hinzufügen der Tour', editAction: 'Fehler beim Bearbeiten der Tour', loadAction: 'Fehler beim Laden der Tour', loadUsers: 'Fehler beim Laden der Benutzer', selectUser: 'Bitte Benutzer auswählen.', addPastAction: 'Fehler beim Hinzufügen der vergangenen Tour.' },
       common: { cancel: 'Abbrechen' },
@@ -5342,6 +5715,99 @@ export const resources = {
       cta: {
         text: 'Want an offer for your hiking club? Fill out the short form on the Pricing page.',
         button: 'View pricing and send request',
+      },
+    },
+    cenaPage: {
+      mail: { noteIntro: 'Inquiry sent from the Cena (pricing) page:' },
+      validation: { requiredFields: 'Please fill in all required fields.' },
+      messages: {
+        success: 'Message sent successfully. We will get back to you soon.',
+        timeout: 'Request took too long. In production check SMTP/Resend, VITE_API_URL, and CORS.',
+        network: 'No response from server. Check VITE_API_URL and CORS_ORIGINS (exact URL of your site).',
+        sendError: 'Error while sending. Please try again.',
+      },
+      hero: {
+        badge1: 'No packages – everything free',
+        badge2: 'One family of hikers',
+        titleBefore: 'The whole app is',
+        titleHighlight: 'free',
+        titleAfter: 'for your club',
+        p1Strong: 'No subscription packages',
+        p1After:
+          '– no hidden tiers or “premium” versions you must pay for. Planiner is one shared home for hiking clubs.',
+        p2Before: 'We believe in',
+        p2Family: 'one big family of hikers',
+        p2Mid:
+          ': when everyone is welcome without a paywall, the community can grow. So all of Planiner – everything we offer clubs today – is',
+        p2Free: 'completely free',
+        p2After: '.',
+        ctaInquiry: 'Join the family – send inquiry',
+      },
+      intro:
+        'This page <prices>is not about prices and packages</prices> – we removed that on purpose. What matters to us: <family>we care about clubs like family</family>, and the tool we build should be freely available to every club that shares that idea.',
+      includes: {
+        title: 'What is included – for every club, no extra charge',
+        m1: 'Membership and member records',
+        m2: 'Actions, trips, and events',
+        m3: 'Documentation and communication in the club',
+        m4: 'The same app for small and large clubs',
+      },
+      together: {
+        title: 'Together – not as buyer and seller',
+        pBefore:
+          'When you send an inquiry, you do not get a quote with line items – you get a conversation about how your club joins the',
+        community: 'community',
+        pMid: 'that uses Planiner. Registration and support are free because our goal is to',
+        connect: 'connect hikers',
+        pAfter: ', not sort them into price tiers.',
+      },
+      pillars: {
+        eyebrow: 'Our promise',
+        title: 'One family, one app, zero packages',
+        care: {
+          title: 'We care about clubs',
+          text:
+            'Every club is part of the same family. We build Planiner so administration, membership, and organisation are as simple as possible – without pressure to “upgrade” a package.',
+        },
+        all: {
+          title: 'No packages – everything included',
+          text:
+            'No Starter, no Pro, no complex per-member pricing. One version of the app for all clubs: same features, same care, no surprises on a bill – because there is no bill.',
+        },
+        family: {
+          title: 'One big family of hikers',
+          text:
+            'We want to connect the hiking community – clubs share experience and a sense of belonging. Access is free for everyone who wants to work with us.',
+        },
+      },
+      whyFree: {
+        title: 'Why is there no price?',
+        p1Before:
+          'If we introduced packages, some clubs would be left behind – no tool, no help, no place in the network that connects us. We choose differently:',
+        p1Strong: 'everything Planiner is, is free',
+        p1After: ', so every family of hikers can stand with us.',
+        p2Before: 'This is not a “first months free” promo. It is a stance –',
+        p2Strong: 'community before profit',
+        p2After:
+          ', support for clubs before billing. When you write to us, we work with you like members of one house – not like a client on a price list.',
+      },
+      form: {
+        title: 'Join the community – for free',
+        subtitle:
+          'Basic details and your question; we will follow up about club registration. The inquiry is tagged as from the Cena page (free – no packages).',
+        contactPerson: 'Contact person',
+        clubName: 'Club name',
+        city: 'City / place',
+        question: 'Question for us',
+        placeholders: {
+          contactPerson: 'Full name of contact person',
+          clubName: 'e.g. Javor Hiking Club',
+          city: 'City or place where the club is based',
+          question: 'e.g. we want to join the community, member count, questions about the app…',
+        },
+        hint: 'No purchase obligation or package choice – just a step toward free club registration in our family of hikers.',
+        sending: 'Sending…',
+        submit: 'Send inquiry',
       },
     },
     actionForms: {

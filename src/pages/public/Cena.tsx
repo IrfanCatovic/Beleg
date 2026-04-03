@@ -1,38 +1,21 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
 
-const PILLARS = [
-  {
-    icon: IconShieldCare,
-    title: 'Brinemo o klubovima',
-    text:
-      'Svako društvo je deo iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
-  },
-  {
-    icon: IconAllIncluded,
-    title: 'Nema paketa – sve je uključeno',
-    text:
-      'Nema Startera, Pro-a ni složenih cena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
-  },
-  {
-    icon: IconMountainFamily,
-    title: 'Jedna velika porodica planinara',
-    text:
-      'Cilj nam je da povežemo planinarsku zajednicu – da klubovi dele iskustvo i osećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele da rade zajedno sa nama.',
-  },
-] as const
+const PILLAR_KEYS = ['care', 'all', 'family'] as const
+const INCLUDE_KEYS = ['m1', 'm2', 'm3', 'm4'] as const
 
-const FREE_INCLUDES = [
-  'Članstvo i evidencija članova',
-  'Akcije, izleti i događaji',
-  'Dokumentacija i komunikacija u klubu',
-  'Ista aplikacija za mala i velika društva',
-] as const
+const PILLAR_ICONS = {
+  care: IconShieldCare,
+  all: IconAllIncluded,
+  family: IconMountainFamily,
+} as const
 
 export default function Cena() {
+  const { t } = useTranslation('cenaPage')
   const [contactPerson, setContactPerson] = useState('')
   const [clubName, setClubName] = useState('')
   const [city, setCity] = useState('')
@@ -51,11 +34,14 @@ export default function Cena() {
     setSubmitMessage(null)
 
     if (!person || !club || !place || !q) {
-      setFieldError('Molimo popunite sva obavezna polja.')
+      setFieldError(t('validation.requiredFields'))
       return
     }
 
-    const noteBody = `Upit poslato sa stranice Cena:\n\nKontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
+    const noteIntro = t('mail.noteIntro')
+    const noteBody =
+      `${noteIntro}\n\n` +
+      `Kontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
 
     setSending(true)
     try {
@@ -76,7 +62,7 @@ export default function Cena() {
         },
         { timeout: 45_000, withCredentials: false },
       )
-      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
+      setSubmitMessage({ type: 'success', text: t('messages.success') })
       setContactPerson('')
       setClubName('')
       setCity('')
@@ -89,17 +75,11 @@ export default function Cena() {
           code === 'ETIMEDOUT' ||
           (typeof err.message === 'string' && err.message.toLowerCase().includes('timeout'))
         if (timedOut) {
-          setSubmitMessage({
-            type: 'error',
-            text: 'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
-          })
+          setSubmitMessage({ type: 'error', text: t('messages.timeout') })
           return
         }
         if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
-          setSubmitMessage({
-            type: 'error',
-            text: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
-          })
+          setSubmitMessage({ type: 'error', text: t('messages.network') })
           return
         }
         const apiMsg = (err.response?.data as { error?: string } | undefined)?.error
@@ -112,7 +92,7 @@ export default function Cena() {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { error?: string } } }).response
           : null
-      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      const msg = res?.data?.error ?? t('messages.sendError')
       setSubmitMessage({ type: 'error', text: msg })
     } finally {
       setSending(false)
@@ -133,36 +113,39 @@ export default function Cena() {
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-emerald-50 text-xs font-semibold uppercase tracking-wider px-3 py-1 ring-1 ring-white/20 backdrop-blur-sm">
               <IconSpark className="h-3.5 w-3.5" />
-              Bez paketa – sve besplatno
+              {t('hero.badge1')}
             </span>
             <span className="inline-flex rounded-full bg-emerald-950/30 text-emerald-100 text-xs font-medium px-3 py-1 ring-1 ring-white/10">
-              Jedna porodica planinara
+              {t('hero.badge2')}
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.12] mb-6 max-w-4xl mx-auto text-balance">
-            Celokupna aplikacija je <span className="text-emerald-200">besplatna</span> za vaš klub
+            {t('hero.titleBefore')}{' '}
+            <span className="text-emerald-200">{t('hero.titleHighlight')}</span> {t('hero.titleAfter')}
           </h1>
           <p className="text-emerald-50/95 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-4">
-            <strong className="text-white font-semibold">Nema pretplatničkih paketa</strong> – ni skrivenih nivoa ni „naprednih“
-            verzija za koje treba da platite. Planiner je jedan zajednički dom za planinarske klubove.
+            <strong className="text-white font-semibold">{t('hero.p1Strong')}</strong>
+            {t('hero.p1After')}
           </p>
           <p className="text-emerald-100/90 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Verujemo u <strong className="text-white">jednu veliku porodicu planinara</strong>: kad su svi dobrodošli bez cene
-            ulaska, zajednica može da raste. Zato je ceo Planiner – sve što danas nudimo klubovima –{' '}
-            <strong className="text-white">potpuno besplatno</strong>.
+            {t('hero.p2Before')}{' '}
+            <strong className="text-white">{t('hero.p2Family')}</strong>
+            {t('hero.p2Mid')}
+            <strong className="text-white"> {t('hero.p2Free')}</strong>
+            {t('hero.p2After')}
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <a
               href="#upit-kluba"
               className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-emerald-900 bg-white hover:bg-emerald-50 shadow-lg shadow-emerald-950/20 transition-colors"
             >
-              Pridružite se porodici – upit
+              {t('hero.ctaInquiry')}
             </a>
             <Link
               to="/kontakt"
               className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white ring-2 ring-white/40 hover:bg-white/10 transition-colors"
             >
-              Kontakt
+              <Trans i18nKey="common:nav.contact" />
             </Link>
           </div>
         </div>
@@ -171,23 +154,27 @@ export default function Cena() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-6 relative z-[1]">
         <div className="rounded-2xl bg-white border border-emerald-100 shadow-lg shadow-emerald-900/5 p-6 sm:p-8 mb-8 sm:mb-10">
           <p className="text-center text-sm sm:text-base text-gray-700 leading-relaxed max-w-2xl mx-auto">
-            Ova stranica <strong className="text-gray-900">nije o cenama i paketima</strong> – to smo uklonili namerno. Ostaje
-            poruka koja nam je važna: <strong className="text-emerald-800">brinemo o klubovima kao o porodici</strong>, a alat
-            koji gradimo želimo da bude slobodno dostupan svakom društvu koje podeli tu ideju.
+            <Trans
+              i18nKey="cenaPage:intro"
+              components={{
+                prices: <strong className="text-gray-900" />,
+                family: <strong className="text-emerald-800" />,
+              }}
+            />
           </p>
         </div>
 
         <div className="rounded-2xl bg-emerald-50/80 border border-emerald-100 p-6 sm:p-8 mb-10 sm:mb-12">
           <h2 className="text-center text-sm font-bold text-emerald-900 uppercase tracking-widest mb-4">
-            Šta je uključeno – za svaki klub, bez doplate
+            {t('includes.title')}
           </h2>
           <ul className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-            {FREE_INCLUDES.map((line) => (
-              <li key={line} className="flex items-start gap-2.5 text-sm text-gray-800">
+            {INCLUDE_KEYS.map((key) => (
+              <li key={key} className="flex items-start gap-2.5 text-sm text-gray-800">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white mt-0.5">
                   <IconCheck className="h-3 w-3" />
                 </span>
-                {line}
+                {t(`includes.${key}`)}
               </li>
             ))}
           </ul>
@@ -199,38 +186,43 @@ export default function Cena() {
               <IconHeartMountain className="h-7 w-7" />
             </div>
             <div className="space-y-3 text-gray-700 text-sm sm:text-base leading-relaxed">
-              <p className="text-lg sm:text-xl font-semibold text-gray-900">Zajedno, ne kao kupac i prodavac</p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900">{t('together.title')}</p>
               <p>
-                Kada pošaljete upit, ne dobijate ponudu sa stavkama i cenovnikom – dobijate razgovor o tome kako vaš klub ulazi u{' '}
-                <strong className="text-gray-900">zajednicu</strong> koja koristi Planiner. Registracija i podrška su besplatne
-                jer nam je cilj da <strong className="text-emerald-800">povežemo planinare</strong>, ne da ih podelimo po
-                cenovnim razredima.
+                {t('together.pBefore')}{' '}
+                <strong className="text-gray-900">{t('together.community')}</strong> {t('together.pMid')}{' '}
+                <strong className="text-emerald-800">{t('together.connect')}</strong>
+                {t('together.pAfter')}
               </p>
             </div>
           </div>
         </div>
 
         <div className="mb-10 sm:mb-14">
-          <h2 className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 mb-2">Naša obećanja</h2>
+          <h2 className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 mb-2">
+            {t('pillars.eyebrow')}
+          </h2>
           <p className="text-center text-xl sm:text-2xl font-bold text-gray-900 mb-8 max-w-2xl mx-auto">
-            Jedna porodica, jedna aplikacija, nula paketa
+            {t('pillars.title')}
           </p>
           <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
-            {PILLARS.map((item) => (
-              <article
-                key={item.title}
-                className="group relative rounded-2xl border border-emerald-100/90 bg-white p-6 shadow-sm hover:shadow-md hover:border-emerald-200/90 transition-all duration-300 overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full opacity-80" />
-                <div className="relative flex flex-col h-full">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4 group-hover:bg-emerald-100 transition-colors">
-                    <item.icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed flex-1">{item.text}</p>
-                </div>
-              </article>
-            ))}
+            {PILLAR_KEYS.map((key) => {
+              const Icon = PILLAR_ICONS[key]
+              return (
+                <article
+                  key={key}
+                  className="group relative rounded-2xl border border-emerald-100/90 bg-white p-6 shadow-sm hover:shadow-md hover:border-emerald-200/90 transition-all duration-300 overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full opacity-80" />
+                  <div className="relative flex flex-col h-full">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4 group-hover:bg-emerald-100 transition-colors">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="text-base font-bold text-gray-900 mb-2">{t(`pillars.${key}.title`)}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed flex-1">{t(`pillars.${key}.text`)}</p>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         </div>
 
@@ -240,17 +232,15 @@ export default function Cena() {
           <div className="relative max-w-2xl">
             <h2 className="text-xl sm:text-2xl font-bold mb-3 flex items-center gap-2 flex-wrap">
               <IconGift className="h-7 w-7 text-emerald-200 shrink-0" />
-              Zašto nema cene?
+              {t('whyFree.title')}
             </h2>
             <p className="text-emerald-50 leading-relaxed text-sm sm:text-base mb-4">
-              Ako bismo uvodili pakete, deo klubova bi ostao ispod crte – bez alata, bez pomoći, bez mesta u mreži koja nas
-              povezuje. Mi biramo drugačije: <strong className="text-white">sve što Planiner jeste, jeste besplatno</strong>,
-              da bi svaka porodica planinara mogla da stane uz nas.
+              {t('whyFree.p1Before')} <strong className="text-white">{t('whyFree.p1Strong')}</strong>
+              {t('whyFree.p1After')}
             </p>
             <p className="text-emerald-100/95 text-sm sm:text-base leading-relaxed">
-              To nije promocija „prvih meseci“. To je stav – <strong className="text-white">zajednica pre zarade</strong>,
-              podrška klubovima pre naplate. Kad nam pišete, radimo sa vama kao sa članovima iste kuće, ne kao sa klijentom na
-              ceni.
+              {t('whyFree.p2Before')} <strong className="text-white">{t('whyFree.p2Strong')}</strong>
+              {t('whyFree.p2After')}
             </p>
           </div>
         </div>
@@ -264,18 +254,15 @@ export default function Cena() {
               <IconPen className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Uđite u zajednicu – besplatno</h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl">
-                Osnovni podaci i pitanje; javićemo vam se oko registracije kluba. Upit je označen kao sa stranice Cena
-                (besplatno – bez paketa).
-              </p>
+              <h2 className="text-lg font-semibold text-gray-900">{t('form.title')}</h2>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl">{t('form.subtitle')}</p>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="cena-contact-person" className="text-xs font-medium text-gray-600">
-                Kontakt osoba <span className="text-red-500">*</span>
+                {t('form.contactPerson')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-contact-person"
@@ -288,12 +275,12 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="Ime i prezime kontakt osobe"
+                placeholder={t('form.placeholders.contactPerson')}
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="cena-club-name" className="text-xs font-medium text-gray-600">
-                Ime kluba <span className="text-red-500">*</span>
+                {t('form.clubName')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-club-name"
@@ -306,14 +293,14 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="npr. Planinarsko društvo Javor"
+                placeholder={t('form.placeholders.clubName')}
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <label htmlFor="cena-city" className="text-xs font-medium text-gray-600">
-              Mesto <span className="text-red-500">*</span>
+              {t('form.city')} <span className="text-red-500">*</span>
             </label>
             <input
               id="cena-city"
@@ -326,13 +313,13 @@ export default function Cena() {
               className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                 fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
               }`}
-              placeholder="Grad ili mesto u kojem je klub"
+              placeholder={t('form.placeholders.city')}
             />
           </div>
 
           <div className="space-y-2">
             <label htmlFor="cena-question" className="text-xs font-medium text-gray-600">
-              Pitanje za nas <span className="text-red-500">*</span>
+              {t('form.question')} <span className="text-red-500">*</span>
             </label>
             <textarea
               id="cena-question"
@@ -343,7 +330,7 @@ export default function Cena() {
               }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
-              placeholder="npr. želimo da se pridružimo zajednici, broj članova, pitanja o aplikaciji…"
+              placeholder={t('form.placeholders.question')}
             />
           </div>
 
@@ -359,16 +346,14 @@ export default function Cena() {
           )}
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-            <p className="text-xs text-gray-500 max-w-md">
-              Nema obaveze kupovine ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj porodici planinara.
-            </p>
+            <p className="text-xs text-gray-500 max-w-md">{t('form.hint')}</p>
             <button
               type="button"
               onClick={handleSubmit}
               disabled={sending}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors shadow-md shadow-emerald-600/20"
             >
-              {sending ? 'Slanje…' : 'Pošalji upit'}
+              {sending ? t('form.sending') : t('form.submit')}
             </button>
           </div>
         </div>
