@@ -9,20 +9,27 @@ const PILLARS = [
     icon: IconShieldCare,
     title: 'Brinemo o klubovima',
     text:
-      'Vaše društvo nije samo „korisnik“ – zajedno gradimo alate koji stvarno olakšavaju administraciju, članstvo i organizaciju izleta.',
+      'Svako društvo je deo iste porodice. Gradimo Planiner tako da administracija, članstvo i organizacija budu što jednostavniji – bez pritiska da „nadogradiš“ paket.',
   },
   {
-    icon: IconLayers,
-    title: 'Deo velikog projekta',
+    icon: IconInfinityFree,
+    title: 'Nema paketa – sve je uključeno',
     text:
-      'Planiner raste kao platforma posvećena planinarstvu: jedan sistem, jasni ciljevi, manje papirologije i više vremena za staze i ljude.',
+      'Nema Startera, Pro-a ni složenih cena po članu. Jedna verzija aplikacije za sve klubove: iste mogućnosti, ista briga, bez iznenađenja na računu – jer računa nema.',
   },
   {
     icon: IconMountainFamily,
     title: 'Jedna velika porodica planinara',
     text:
-      'Želimo da povežemo klubove u širu zajednicu – deljenje iskustva, podrška i osećaj da niste sami u digitalizaciji.',
+      'Cilj nam je da povežemo planinarsku zajednicu – da klubovi dele iskustvo i osećaj pripadnosti. Zato je pristup besplatno otvoren svima koji žele da rade zajedno sa nama.',
   },
+] as const
+
+const FREE_INCLUDES = [
+  'Članstvo i evidencija članova',
+  'Akcije, izleti i događaji',
+  'Dokumentacija i komunikacija u klubu',
+  'Ista aplikacija za mala i velika društva',
 ] as const
 
 export default function Cena() {
@@ -118,7 +125,6 @@ export default function Cena() {
         <MarketingNavbar />
       </header>
 
-      {/* Hero */}
       <section className="relative overflow-hidden border-b border-emerald-900/10">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(255,255,255,0.18),transparent)]" />
@@ -127,68 +133,88 @@ export default function Cena() {
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-emerald-50 text-xs font-semibold uppercase tracking-wider px-3 py-1 ring-1 ring-white/20 backdrop-blur-sm">
               <IconSpark className="h-3.5 w-3.5" />
-              Besplatno za planinarske klubove
+              Bez paketa – sve besplatno
             </span>
             <span className="inline-flex rounded-full bg-emerald-950/30 text-emerald-100 text-xs font-medium px-3 py-1 ring-1 ring-white/10">
-              Registracija kluba bez naknade
+              Jedna porodica planinara
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.15] mb-6 max-w-4xl mx-auto text-balance">
-            Jedna platforma,{' '}
-            <span className="text-emerald-200">jedna velika porodica</span> planinara
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.12] mb-6 max-w-4xl mx-auto text-balance">
+            Celokupna aplikacija je{' '}
+            <span className="text-emerald-200">besplatna</span> za vaš klub
           </h1>
           <p className="text-emerald-50/95 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-4">
-            Planiner je deo šireg projekta koji želi da <strong className="text-white font-semibold">olakša upravljanje klubovima</strong> –
-            manje stresa oko administracije, više vremena za članove i planine.
+            <strong className="text-white font-semibold">Nema pretplatničkih paketa</strong> – ni skrivenih nivoa ni „naprednih“
+            verzija za koje treba da platite. Planiner je jedan zajednički dom za planinarske klubove.
           </p>
           <p className="text-emerald-100/90 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Brinemo o društvima koja nam poveravaju svoj rad: naš cilj je da vas povežemo u zajednicu u kojoj svaki klub
-            oseća podršku. Zato je <strong className="text-white">cela aplikacija besplatna</strong> – da niko ne ostane po strani.
+            Verujemo u <strong className="text-white">jednu veliku porodicu planinara</strong>: kad su svi dobrodošli bez cene
+            ulaska, zajednica može da raste. Zato je ceo Planiner – sve što danas nudimo klubovima –{' '}
+            <strong className="text-white">potpuno besplatno</strong>.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <a
               href="#upit-kluba"
               className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-emerald-900 bg-white hover:bg-emerald-50 shadow-lg shadow-emerald-950/20 transition-colors"
             >
-              Pošaljite upit za klub
+              Pridružite se porodici – upit
             </a>
             <Link
               to="/kontakt"
               className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white ring-2 ring-white/40 hover:bg-white/10 transition-colors"
             >
-              Kontakt stranica
+              Kontakt
             </Link>
           </div>
         </div>
       </section>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-6 relative z-[1]">
-        {/* Intro card */}
+        <div className="rounded-2xl bg-white border border-emerald-100 shadow-lg shadow-emerald-900/5 p-6 sm:p-8 mb-8 sm:mb-10">
+          <p className="text-center text-sm sm:text-base text-gray-700 leading-relaxed max-w-2xl mx-auto">
+            Ova stranica više <strong className="text-gray-900">nije o cenama i paketima</strong> – to smo uklonili namerno.
+            Ostaje samo poruka koja nam je važna: <strong className="text-emerald-800">brinemo o klubovima kao o porodici</strong>,
+            a alat koji gradimo želimo da bude slobodno dostupan svakom društvu koje podeli tu ideju.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-emerald-50/80 border border-emerald-100 p-6 sm:p-8 mb-10 sm:mb-12">
+          <h2 className="text-center text-sm font-bold text-emerald-900 uppercase tracking-widest mb-4">
+            Šta je uključeno – za svaki klub, bez doplate
+          </h2>
+          <ul className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+            {FREE_INCLUDES.map((line) => (
+              <li key={line} className="flex items-start gap-2.5 text-sm text-gray-800">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white mt-0.5">
+                  <IconCheck className="h-3 w-3" />
+                </span>
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <div className="rounded-2xl bg-white border border-emerald-100 shadow-lg shadow-emerald-900/5 p-6 sm:p-8 mb-10 sm:mb-14">
           <div className="flex flex-col sm:flex-row sm:items-start gap-5">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30">
               <IconHeartMountain className="h-7 w-7" />
             </div>
             <div className="space-y-3 text-gray-700 text-sm sm:text-base leading-relaxed">
-              <p className="text-lg sm:text-xl font-semibold text-gray-900">
-                Niste samo „još jedan klub u sistemu“
-              </p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900">Zajedno, ne kao kupac i prodavac</p>
               <p>
-                Verujemo da planinarska društva drže zajednicu živom. Zato Planiner gradimo kao dugoročan projekat: alat koji
-                raste sa vama – od članarine i evidencije do akcija i dokumentacije – bez da vas cena odvoji od digitalnog
-                koraka napred.
+                Kada pošaljete upit, ne dobijate ponudu sa stavkama i cenovnikom – dobijate razgovor o tome kako vaš klub
+                ulazi u <strong className="text-gray-900">zajednicu</strong> koja koristi Planiner. Registracija i podrška su
+                besplatne jer nam je cilj da <strong className="text-emerald-800">povežemo planinare</strong>, ne da ih podelimo
+                po cenovnim razredima.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Pillars */}
         <div className="mb-10 sm:mb-14">
-          <h2 className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 mb-2">
-            Zašto Planiner
-          </h2>
+          <h2 className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 mb-2">Naša obećanja</h2>
           <p className="text-center text-xl sm:text-2xl font-bold text-gray-900 mb-8 max-w-2xl mx-auto">
-            Zajedno činimo upravljanje klubom jednostavnijim
+            Jedna porodica, jedna aplikacija, nula paketa
           </p>
           <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
             {PILLARS.map((item) => (
@@ -209,27 +235,27 @@ export default function Cena() {
           </div>
         </div>
 
-        {/* Why free */}
         <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-8 sm:p-10 mb-12 sm:mb-16 shadow-xl shadow-emerald-600/25 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-900/30 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
           <div className="relative max-w-2xl">
             <h2 className="text-xl sm:text-2xl font-bold mb-3 flex items-center gap-2 flex-wrap">
               <IconGift className="h-7 w-7 text-emerald-200 shrink-0" />
-              Zašto je sve besplatno?
+              Zašto nema cene?
             </h2>
             <p className="text-emerald-50 leading-relaxed text-sm sm:text-base mb-4">
-              Naša misija je da <strong className="text-white">povežemo jednu veliku porodicu planinara</strong> – od malih
-              društava do aktivnih klubova. Ako naplatimo svakom klubu ulazak, deo te porodice jednostavno ne bi mogao da krene.
+              Ako bismo uvodili pakete, deo klubova bi ostao ispod crte – bez alata, bez pomoći, bez mesta u mreži koja nas
+              povezuje. Mi biramo drugačije: <strong className="text-white">sve što Planiner jeste, jeste besplatno</strong>,
+              da bi svaka porodica planinara mogla da stane uz nas.
             </p>
             <p className="text-emerald-100/95 text-sm sm:text-base leading-relaxed">
-              Besplatna aplikacija nije reklama: to je izbor da <strong className="text-white">prioritet budu klubovi i zajednica</strong>,
-              a ne brza zarada. Kad pošaljete upit, dogovaramo registraciju i podršku kao partneri, ne kao prodavci.
+              To nije promocija „prvih meseci“. To je stav –{' '}
+              <strong className="text-white">zajednica pre zarade</strong>, podrška klubovima pre naplate. Kad nam pišete,
+              radimo sa vama kao sa članovima iste kuće, ne kao sa klijentom na ceni.
             </p>
           </div>
         </div>
 
-        {/* Form */}
         <div
           id="upit-kluba"
           className="scroll-mt-24 rounded-2xl bg-white border border-emerald-100 shadow-sm p-6 sm:p-8 space-y-5"
@@ -239,10 +265,10 @@ export default function Cena() {
               <IconPen className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Pridružite se zajednici</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Uđite u zajednicu – besplatno</h2>
               <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl">
-                Ostavite osnovne podatke – odgovorićemo vam i dogovorićemo registraciju vašeg kluba. Upit je označen kao sa
-                stranice Cena.
+                Osnovni podaci i pitanje; javićemo vam se oko registracije kluba. Upit je označen kao sa stranice Cena (besplatno
+                – bez paketa).
               </p>
             </div>
           </div>
@@ -318,7 +344,7 @@ export default function Cena() {
               }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
-              placeholder="npr. želimo registraciju kluba, broj članova, pitanja o funkcijama…"
+              placeholder="npr. želimo da se pridružimo zajednici, broj članova, pitanja o aplikaciji…"
             />
           </div>
 
@@ -335,7 +361,7 @@ export default function Cena() {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <p className="text-xs text-gray-500 max-w-md">
-              Poruka stiže našem timu sa oznakom da je poslato sa stranice Cena. Hvala što gradite zajedno sa nama.
+              Nema obaveze kupovine ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj porodici planinara.
             </p>
             <button
               type="button"
@@ -372,14 +398,23 @@ function IconShieldCare({ className }: { className?: string }) {
   )
 }
 
-function IconLayers({ className }: { className?: string }) {
+function IconInfinityFree({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M4 7a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V7zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z"
+        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
       />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8M8 12h8" opacity={0.35} />
+    </svg>
+  )
+}
+
+function IconCheck({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   )
 }
