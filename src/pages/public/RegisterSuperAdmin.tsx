@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
+import { useTranslation } from 'react-i18next'
 
 export default function RegisterSuperAdmin() {
+  const { t } = useTranslation('setup')
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -23,7 +25,7 @@ export default function RegisterSuperAdmin() {
         }
       } catch (err) {
         console.error(err)
-        setError('Greška pri proveri statusa.')
+        setError(t('registerSuperadmin.checkStatusError'))
       } finally {
         setChecking(false)
       }
@@ -50,7 +52,7 @@ export default function RegisterSuperAdmin() {
 
       navigate('/login', { replace: true })
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri registraciji superadmina.')
+      setError(err.response?.data?.error || t('registerSuperadmin.submitError'))
     } finally {
       setSubmitting(false)
     }
@@ -64,11 +66,10 @@ export default function RegisterSuperAdmin() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-gray-200">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#41ac53' }}>
-          Kreiranje superadmin naloga
+          {t('registerSuperadmin.title')}
         </h1>
         <p className="text-sm text-gray-600 mb-4">
-          Ovo je jednokratni korak za kreiranje glavnog naloga (superadmin). Posle toga se svi drugi nalozi
-          kreiraju iz aplikacije.
+          {t('registerSuperadmin.subtitle')}
         </p>
 
         {error && (
@@ -95,7 +96,7 @@ export default function RegisterSuperAdmin() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Lozinka
+              {t('registerSuperadmin.password')}
             </label>
             <input
               id="password"
@@ -111,7 +112,7 @@ export default function RegisterSuperAdmin() {
 
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-              Ime i prezime (opciono)
+              {t('registerSuperadmin.fullNameOptional')}
             </label>
             <input
               id="fullName"
@@ -125,7 +126,7 @@ export default function RegisterSuperAdmin() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rola
+              {t('registerSuperadmin.role')}
             </label>
             <input
               type="text"
@@ -137,7 +138,7 @@ export default function RegisterSuperAdmin() {
 
           <div>
             <label htmlFor="avatar" className="block text-sm font-medium text-gray-700 mb-1">
-              Profilna slika (opciono)
+              {t('registerSuperadmin.avatarOptional')}
             </label>
             <input
               id="avatar"
@@ -157,7 +158,7 @@ export default function RegisterSuperAdmin() {
             }`}
             style={{ backgroundColor: '#41ac53' }}
           >
-            {submitting ? 'Kreiram...' : 'Kreiraj superadmin nalog'}
+            {submitting ? t('registerSuperadmin.creating') : t('registerSuperadmin.submit')}
           </button>
         </form>
       </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDebounce } from '../hooks/useDebounce'
 import { useGlobalSearch, type SearchKorisnik, type SearchAkcija, type SearchTransakcija } from '../hooks/useGlobalSearch'
 import { formatDateShort } from '../utils/dateUtils'
+import { useTranslation } from 'react-i18next'
 
 type SearchTab = 'clanovi' | 'akcije' | 'finansije'
 
@@ -164,6 +165,7 @@ export default function GlobalSearchPanel({
   embedded = true,
   showDetailButton = true,
 }: GlobalSearchPanelProps) {
+  const { t } = useTranslation('shared')
   const navigate = useNavigate()
   const debouncedQuery = useDebounce(searchQuery, 320)
   const [activeTab, setActiveTab] = useState<SearchTab>('clanovi')
@@ -176,9 +178,9 @@ export default function GlobalSearchPanel({
   const hasQuery = searchQuery.trim().length >= 2
 
   const tabs: { id: SearchTab; label: string; count: number }[] = [
-    { id: 'clanovi', label: 'Članovi', count: results.clanovi.length },
-    { id: 'akcije', label: 'Akcije', count: results.akcije.length },
-    ...(canSeeFinances ? [{ id: 'finansije' as const, label: 'Finansije', count: results.finansije.length }] : []),
+    { id: 'clanovi', label: t('globalSearch.tabs.members'), count: results.clanovi.length },
+    { id: 'akcije', label: t('globalSearch.tabs.actions'), count: results.akcije.length },
+    ...(canSeeFinances ? [{ id: 'finansije' as const, label: t('globalSearch.tabs.finances'), count: results.finansije.length }] : []),
   ]
 
   const goToDetailSearch = () => {
@@ -202,9 +204,9 @@ export default function GlobalSearchPanel({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Pretraži članove, akcije, finansije..."
+            placeholder={t('globalSearch.placeholder')}
             className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#41ac53] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#41ac53]/20 transition-all"
-            aria-label="Pretraga"
+            aria-label={t('globalSearch.ariaSearch')}
           />
           {embedded && (
             <button
@@ -212,7 +214,7 @@ export default function GlobalSearchPanel({
               onClick={onClose}
               className="text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
             >
-              Zatvori
+              {t('globalSearch.close')}
             </button>
           )}
         </div>
@@ -224,7 +226,7 @@ export default function GlobalSearchPanel({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            <span className="text-sm">Učitavanje rezultata...</span>
+            <span className="text-sm">{t('globalSearch.loadingResults')}</span>
           </div>
         )}
 
@@ -262,7 +264,7 @@ export default function GlobalSearchPanel({
               {activeTab === 'clanovi' && (
                 <div className="p-2">
                   {results.clanovi.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-500">Nema članova za ovu pretragu.</p>
+                    <p className="py-6 text-center text-sm text-gray-500">{t('globalSearch.emptyMembers')}</p>
                   ) : (
                     <ResultListClanovi items={results.clanovi} onPick={onClose} />
                   )}
@@ -271,7 +273,7 @@ export default function GlobalSearchPanel({
               {activeTab === 'akcije' && (
                 <div className="p-2">
                   {results.akcije.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-500">Nema akcija za ovu pretragu.</p>
+                    <p className="py-6 text-center text-sm text-gray-500">{t('globalSearch.emptyActions')}</p>
                   ) : (
                     <ResultListAkcije items={results.akcije} onPick={onClose} />
                   )}
@@ -280,7 +282,7 @@ export default function GlobalSearchPanel({
               {activeTab === 'finansije' && (
                 <div className="p-2">
                   {results.finansije.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-500">Nema transakcija za ovu pretragu.</p>
+                    <p className="py-6 text-center text-sm text-gray-500">{t('globalSearch.emptyTransactions')}</p>
                   ) : (
                     <ResultListFinansije items={results.finansije} onPick={onClose} />
                   )}
@@ -294,7 +296,7 @@ export default function GlobalSearchPanel({
         {!loading && !hasQuery && (
           <div className="max-h-72 overflow-y-auto">
             <p className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-              Brzi linkovi
+              {t('globalSearch.quickLinks')}
             </p>
             <div className="space-y-1">
               <button
@@ -308,8 +310,8 @@ export default function GlobalSearchPanel({
                   </svg>
                 </span>
                 <span>
-                  <span className="block text-xs font-medium text-gray-900">Lista članova</span>
-                  <span className="block text-[11px] text-gray-500">Prikaži sve članove i profile</span>
+                  <span className="block text-xs font-medium text-gray-900">{t('globalSearch.links.members')}</span>
+                  <span className="block text-[11px] text-gray-500">{t('globalSearch.links.membersSub')}</span>
                 </span>
               </button>
               <button
@@ -323,8 +325,8 @@ export default function GlobalSearchPanel({
                   </svg>
                 </span>
                 <span>
-                  <span className="block text-xs font-medium text-gray-900">Akcije i događaji</span>
-                  <span className="block text-[11px] text-gray-500">Otvori pregled svih akcija</span>
+                  <span className="block text-xs font-medium text-gray-900">{t('globalSearch.links.actions')}</span>
+                  <span className="block text-[11px] text-gray-500">{t('globalSearch.links.actionsSub')}</span>
                 </span>
               </button>
               {canSeeFinances && (
@@ -339,8 +341,8 @@ export default function GlobalSearchPanel({
                     </svg>
                   </span>
                   <span>
-                    <span className="block text-xs font-medium text-gray-900">Finansije i transakcije</span>
-                    <span className="block text-[11px] text-gray-500">Upravljaj uplatama i izvještajima</span>
+                    <span className="block text-xs font-medium text-gray-900">{t('globalSearch.links.finances')}</span>
+                    <span className="block text-[11px] text-gray-500">{t('globalSearch.links.financesSub')}</span>
                   </span>
                 </button>
               )}
@@ -359,7 +361,7 @@ export default function GlobalSearchPanel({
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              Detaljnija pretraga
+              {t('globalSearch.detailedSearch')}
             </button>
           </div>
         )}

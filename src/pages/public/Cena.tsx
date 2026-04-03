@@ -3,6 +3,59 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
+import { useTranslation } from 'react-i18next'
+
+const ADMIN_PRICE_RSD = 600
+const CURRENCY_BY_LANG = { sr: 'RSD', bs: 'BAM', hr: 'EUR', de: 'EUR', en: 'USD' } as const
+const LOCALE_BY_LANG = { sr: 'sr-RS', bs: 'bs-BA', hr: 'hr-HR', de: 'de-DE', en: 'en-US' } as const
+const RSD_PER_CURRENCY = { RSD: 1, BAM: 57.6, EUR: 117.4, USD: 102.8 } as const
+
+type PaketKey = 'Free' | 'Starter' | 'Growth' | 'Pro'
+
+const PAKETI: Record<
+  PaketKey,
+  {
+    basePriceRsd: number
+    includedUsers: number
+    extraPricePerUserRsd: number
+    /** Prikaz prostora u GB (ako nije zadato spaceMb). */
+    spaceGb?: number
+    /** Ako je zadato, prikazuje se umesto spaceGb (npr. besplatni paket). */
+    spaceMb?: number
+    admins: number
+    highlighted?: boolean
+  }
+> = {
+  Free: {
+    basePriceRsd: 0,
+    includedUsers: 50,
+    extraPricePerUserRsd: 0,
+    spaceMb: 500,
+    admins: 1,
+  },
+  Starter: {
+    basePriceRsd: 2950,
+    includedUsers: 100,
+    extraPricePerUserRsd: 47,
+    spaceGb: 2,
+    admins: 3,
+  },
+  Growth: {
+    basePriceRsd: 5750,
+    includedUsers: 500,
+    extraPricePerUserRsd: 21,
+    spaceGb: 5,
+    admins: 3,
+    highlighted: true,
+  },
+  Pro: {
+    basePriceRsd: 9750,
+    includedUsers: 1000,
+    extraPricePerUserRsd: 9,
+    spaceGb: 10,
+    admins: 5,
+  },
+}
 
 const PILLARS = [
   {
@@ -33,25 +86,53 @@ const FREE_INCLUDES = [
 ] as const
 
 export default function Cena() {
-  const [contactPerson, setContactPerson] = useState('')
-  const [clubName, setClubName] = useState('')
-  const [city, setCity] = useState('')
-  const [question, setQuestion] = useState('')
+  const { t, i18n } = useTranslation('pricing')
+  const [selectedPaket, setSelectedPaket] = useState<PaketKey>('Growth')
+  const [extraUsers, setExtraUsers] = useState(0)
+  const [extraAdmins, setExtraAdmins] = useState(0)
+  const [note, setNote] = useState('')
+  const [imeKluba, setImeKluba] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [sending, setSending] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleSubmit = async () => {
-    const person = contactPerson.trim()
-    const club = clubName.trim()
-    const place = city.trim()
-    const q = question.trim()
+  const selected = PAKETI[selectedPaket]
+  const lang = (i18n.resolvedLanguage || i18n.language || 'sr').split('-')[0] as keyof typeof CURRENCY_BY_LANG
+  const currency = CURRENCY_BY_LANG[lang] ?? 'RSD'
+  const locale = LOCALE_BY_LANG[lang] ?? 'sr-RS'
+  const convertFromRsd = (amountRsd: number, roundToInteger = true) => {
+    if (currency === 'RSD') return amountRsd
+    const converted = amountRsd / RSD_PER_CURRENCY[currency]
+    return roundToInteger ? Math.round(converted) : converted
+  }
+  const formatMoney = (amountRsd: number, keepSmallDecimals = false) => {
+    const converted = convertFromRsd(amountRsd, !keepSmallDecimals)
+    const showTwoDecimals = keepSmallDecimals
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: showTwoDecimals ? 2 : 0,
+      maximumFractionDigits: showTwoDecimals ? 2 : 0,
+    }).format(converted)
+  }
+  const basePriceRsd = selected.basePriceRsd
+  const extraPricePerUserRsd = selected.extraPricePerUserRsd
+  const isFreePaket = selectedPaket === 'Free'
 
     setFieldError('')
     setSubmitMessage(null)
-
-    if (!person || !club || !place || !q) {
-      setFieldError('Molimo popunite sva obavezna polja.')
+    if (!club) {
+      setFieldError(t('form.requiredClub'))
+      return
+    }
+    if (!phone) {
+      setFieldError(t('form.requiredPhone'))
+      return
+    }
+    if (!email) {
+      setFieldError(t('form.requiredEmail'))
       return
     }
 
@@ -62,10 +143,10 @@ export default function Cena() {
       await api.post(
         '/api/cena-zahtev',
         {
-          paket: 'Cena stranica',
-          extraUsers: 0,
-          extraAdmins: 0,
-          note: noteBody,
+          paket: t(`packages.${selectedPaket}.name`),
+          extraUsers,
+          extraAdmins,
+          note: note.trim(),
           imeKluba: club,
           contactEmail: '',
           contactPhone: '',
@@ -76,11 +157,11 @@ export default function Cena() {
         },
         { timeout: 45_000, withCredentials: false },
       )
-      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
-      setContactPerson('')
-      setClubName('')
-      setCity('')
-      setQuestion('')
+      setSubmitMessage({ type: 'success', text: t('messages.success') })
+      setNote('')
+      setImeKluba('')
+      setContactPhone('')
+      setContactEmail('')
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const code = err.code
@@ -91,14 +172,14 @@ export default function Cena() {
         if (timedOut) {
           setSubmitMessage({
             type: 'error',
-            text: 'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+            text: t('messages.timeout'),
           })
           return
         }
         if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
           setSubmitMessage({
             type: 'error',
-            text: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+            text: t('messages.network'),
           })
           return
         }
@@ -108,11 +189,8 @@ export default function Cena() {
           return
         }
       }
-      const res =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { error?: string } } }).response
-          : null
-      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      const res = err && typeof err === 'object' && 'response' in err ? (err as { response?: { data?: { error?: string } } }).response : null
+      const msg = res?.data?.error ?? t('messages.sendError')
       setSubmitMessage({ type: 'error', text: msg })
     } finally {
       setSending(false)
@@ -124,159 +202,250 @@ export default function Cena() {
       <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6 relative z-10">
         <MarketingNavbar />
       </header>
-
-      <section className="relative overflow-hidden border-b border-emerald-900/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(255,255,255,0.18),transparent)]" />
-        <div className="absolute inset-0 opacity-[0.07] bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 5 L55 45 L5 45 Z\' fill=\'none\' stroke=\'%23fff\' stroke-width=\'0.8\'/%3E%3C/svg%3E')] bg-[length:72px_72px]" />
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-8 py-14 sm:py-20 lg:py-24 text-center">
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-emerald-50 text-xs font-semibold uppercase tracking-wider px-3 py-1 ring-1 ring-white/20 backdrop-blur-sm">
-              <IconSpark className="h-3.5 w-3.5" />
-              Bez paketa – sve besplatno
-            </span>
-            <span className="inline-flex rounded-full bg-emerald-950/30 text-emerald-100 text-xs font-medium px-3 py-1 ring-1 ring-white/10">
-              Jedna porodica planinara
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.12] mb-6 max-w-4xl mx-auto text-balance">
-            Celokupna aplikacija je{' '}
-            <span className="text-emerald-200">besplatna</span> za vaš klub
-          </h1>
-          <p className="text-emerald-50/95 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-4">
-            <strong className="text-white font-semibold">Nema pretplatničkih paketa</strong> – ni skrivenih nivoa ni „naprednih“
-            verzija za koje treba da platite. Planiner je jedan zajednički dom za planinarske klubove.
-          </p>
-          <p className="text-emerald-100/90 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Verujemo u <strong className="text-white">jednu veliku porodicu planinara</strong>: kad su svi dobrodošli bez cene
-            ulaska, zajednica može da raste. Zato je ceo Planiner – sve što danas nudimo klubovima –{' '}
-            <strong className="text-white">potpuno besplatno</strong>.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <a
-              href="#upit-kluba"
-              className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-emerald-900 bg-white hover:bg-emerald-50 shadow-lg shadow-emerald-950/20 transition-colors"
-            >
-              Pridružite se porodici – upit
-            </a>
-            <Link
-              to="/kontakt"
-              className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white ring-2 ring-white/40 hover:bg-white/10 transition-colors"
-            >
-              Kontakt
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-6 relative z-[1]">
-        <div className="rounded-2xl bg-white border border-emerald-100 shadow-lg shadow-emerald-900/5 p-6 sm:p-8 mb-8 sm:mb-10">
-          <p className="text-center text-sm sm:text-base text-gray-700 leading-relaxed max-w-2xl mx-auto">
-            Ova stranica više <strong className="text-gray-900">nije o cenama i paketima</strong> – to smo uklonili namerno.
-            Ostaje samo poruka koja nam je važna: <strong className="text-emerald-800">brinemo o klubovima kao o porodici</strong>,
-            a alat koji gradimo želimo da bude slobodno dostupan svakom društvu koje podeli tu ideju.
+      <div className="mx-auto max-w-5xl px-4 pb-10 space-y-10">
+        <div className="text-center mt-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">{t('title')}</h1>
+          <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+            {t('subtitle')}
           </p>
         </div>
 
-        <div className="rounded-2xl bg-emerald-50/80 border border-emerald-100 p-6 sm:p-8 mb-10 sm:mb-12">
-          <h2 className="text-center text-sm font-bold text-emerald-900 uppercase tracking-widest mb-4">
-            Šta je uključeno – za svaki klub, bez doplate
-          </h2>
-          <ul className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-            {FREE_INCLUDES.map((line) => (
-              <li key={line} className="flex items-start gap-2.5 text-sm text-gray-800">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white mt-0.5">
-                  <IconCheck className="h-3 w-3" />
-                </span>
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Paketi */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {(Object.keys(PAKETI) as PaketKey[]).map((key) => {
+            const p = PAKETI[key]
+            const isActive = key === selectedPaket
+            const cardClasses = p.highlighted
+              ? 'bg-emerald-700 text-white border-emerald-700'
+              : 'bg-white/95 text-gray-900 border-emerald-100'
 
-        <div className="rounded-2xl bg-white border border-emerald-100 shadow-lg shadow-emerald-900/5 p-6 sm:p-8 mb-10 sm:mb-14">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30">
-              <IconHeartMountain className="h-7 w-7" />
-            </div>
-            <div className="space-y-3 text-gray-700 text-sm sm:text-base leading-relaxed">
-              <p className="text-lg sm:text-xl font-semibold text-gray-900">Zajedno, ne kao kupac i prodavac</p>
-              <p>
-                Kada pošaljete upit, ne dobijate ponudu sa stavkama i cenovnikom – dobijate razgovor o tome kako vaš klub
-                ulazi u <strong className="text-gray-900">zajednicu</strong> koja koristi Planiner. Registracija i podrška su
-                besplatne jer nam je cilj da <strong className="text-emerald-800">povežemo planinare</strong>, ne da ih podelimo
-                po cenovnim razredima.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-10 sm:mb-14">
-          <h2 className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 mb-2">Naša obećanja</h2>
-          <p className="text-center text-xl sm:text-2xl font-bold text-gray-900 mb-8 max-w-2xl mx-auto">
-            Jedna porodica, jedna aplikacija, nula paketa
-          </p>
-          <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
-            {PILLARS.map((item) => (
-              <article
-                key={item.title}
-                className="group relative rounded-2xl border border-emerald-100/90 bg-white p-6 shadow-sm hover:shadow-md hover:border-emerald-200/90 transition-all duration-300 overflow-hidden"
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setSelectedPaket(key)
+                  if (key === 'Free') {
+                    setExtraUsers(0)
+                    setExtraAdmins(0)
+                  }
+                }}
+                className={`rounded-2xl shadow-sm p-6 flex flex-col text-left border transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                  cardClasses
+                } ${isActive ? 'ring-2 ring-offset-2 ring-offset-emerald-50 ring-emerald-400' : ''}`}
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full opacity-80" />
-                <div className="relative flex flex-col h-full">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4 group-hover:bg-emerald-100 transition-colors">
-                    <item.icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed flex-1">{item.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+                <p
+                  className={`text-xs font-semibold uppercase tracking-[0.18em] mb-2 ${
+                    p.highlighted ? 'text-emerald-200' : 'text-emerald-600'
+                  }`}
+                >
+                  {t(`packages.${key}.name`)}
+                </p>
+                <h2 className="text-lg font-bold mb-1">{t(`packages.${key}.short`)}</h2>
+                <p
+                  className={`text-3xl font-extrabold mb-4 ${
+                    p.highlighted ? 'text-white' : 'text-emerald-700'
+                  }`}
+                >
+                  {p.basePriceRsd === 0 ? (
+                    <span className="block">{t('common.free')}</span>
+                  ) : (
+                    <>
+                      {formatMoney(p.basePriceRsd)}
+                      <span className="text-sm font-medium opacity-80"> {t('common.perMonth')}</span>
+                    </>
+                  )}
+                </p>
+                <ul className={`text-sm space-y-1 mb-4 ${p.highlighted ? 'text-emerald-50' : 'text-gray-600'}`}>
+                  <li>{t('card.upToMembers', { count: p.includedUsers.toLocaleString(locale) })}</li>
+                  <li>
+                    {t('card.upToImages', {
+                      size: p.spaceMb != null ? `${p.spaceMb.toLocaleString(locale)} MB` : `${p.spaceGb} GB`,
+                    })}
+                  </li>
+                  <li>{t('card.adminAccounts', { count: p.admins })}</li>
+                </ul>
+                <p className={`text-xs mt-auto ${p.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>
+                  {p.basePriceRsd === 0
+                    ? t('card.freeFootnote')
+                    : t('card.extraUserPrice', { price: formatMoney(p.extraPricePerUserRsd, true) })}
+                </p>
+                {isActive && (
+                  <p className={`mt-2 text-xs font-semibold ${p.highlighted ? 'text-white' : 'text-emerald-700'}`}>
+                    {t('card.selected')}
+                  </p>
+                )}
+              </button>
+            )
+          })}
         </div>
 
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-8 sm:p-10 mb-12 sm:mb-16 shadow-xl shadow-emerald-600/25 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-900/30 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
-          <div className="relative max-w-2xl">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 flex items-center gap-2 flex-wrap">
-              <IconGift className="h-7 w-7 text-emerald-200 shrink-0" />
-              Zašto nema cene?
-            </h2>
-            <p className="text-emerald-50 leading-relaxed text-sm sm:text-base mb-4">
-              Ako bismo uvodili pakete, deo klubova bi ostao ispod crte – bez alata, bez pomoći, bez mesta u mreži koja nas
-              povezuje. Mi biramo drugačije: <strong className="text-white">sve što Planiner jeste, jeste besplatno</strong>,
-              da bi svaka porodica planinara mogla da stane uz nas.
-            </p>
-            <p className="text-emerald-100/95 text-sm sm:text-base leading-relaxed">
-              To nije promocija „prvih meseci“. To je stav –{' '}
-              <strong className="text-white">zajednica pre zarade</strong>, podrška klubovima pre naplate. Kad nam pišete,
-              radimo sa vama kao sa članovima iste kuće, ne kao sa klijentom na ceni.
-            </p>
-          </div>
-        </div>
-
+        {/* Dodatni korisnici */}
         <div
-          id="upit-kluba"
-          className="scroll-mt-24 rounded-2xl bg-white border border-emerald-100 shadow-sm p-6 sm:p-8 space-y-5"
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
         >
-          <div className="flex items-start gap-4 pb-1 border-b border-emerald-100/80">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-              <IconPen className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Uđite u zajednicu – besplatno</h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-xl">
-                Osnovni podaci i pitanje; javićemo vam se oko registracije kluba. Upit je označen kao sa stranice Cena (besplatno
-                – bez paketa).
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('extraUsers.title')}</h2>
+          <p className="text-sm text-gray-600">
+            {isFreePaket ? (
+              <>
+                {t('extraUsers.freeText')}
+              </>
+            ) : (
+              <>
+                {t('extraUsers.paidText')}
+              </>
+            )}
+          </p>
+
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>{t('extraUsers.zero')}</span>
+              <span>250</span>
+              <span>{t('extraUsers.fiveHundred')}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={500}
+              step={10}
+              value={extraUsers}
+              onChange={(e) => setExtraUsers(Number(e.target.value))}
+              disabled={isFreePaket}
+              className="w-full accent-emerald-600 disabled:cursor-not-allowed"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <span className="font-medium text-gray-800">
+                {t('extraUsers.selected')}:{' '}
+                <span className="text-emerald-700 font-semibold">{extraUsers}</span>
+              </span>
+              <span className="text-gray-700">
+                {extraUsers} × {formatMoney(extraPricePerUserRsd, true)} ={' '}
+                <span className="font-semibold text-emerald-700">
+                  {formatMoney(Math.round(extraUsersCostRsd))} {t('common.perMonth')}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dodatni admini */}
+        <div
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('extraAdmins.title')}</h2>
+          <p className="text-sm text-gray-600">
+            {t('extraAdmins.text')}
+          </p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end">
+            <div className="space-y-2">
+              <label htmlFor="extra-admins" className="text-xs font-medium text-gray-600">
+                {t('extraAdmins.countLabel')}
+              </label>
+              <input
+                id="extra-admins"
+                type="number"
+                min={0}
+                max={20}
+                value={extraAdmins}
+                onChange={(e) => setExtraAdmins(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+                disabled={isFreePaket}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none disabled:cursor-not-allowed"
+              />
+            </div>
+            <div className="text-sm text-gray-700 space-y-1">
+              <p>
+                {t('extraAdmins.pricePer')}:{' '}
+                <span className="font-semibold">
+                  {formatMoney(ADMIN_PRICE_RSD)} {t('common.perMonth')}
+                </span>
+              </p>
+              <p>
+                {t('extraAdmins.total')}:{' '}
+                <span className="font-semibold text-emerald-700">
+                  {formatMoney(Math.round(extraAdminsCostRsd))} {t('common.perMonth')}
+                </span>
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Rezime i napomena */}
+        <div className="rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">{t('summary.title')}</h2>
+
+          <div className="grid gap-3 text-sm text-gray-700 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p>
+                {t('summary.package')}:{' '}
+                <span className="font-semibold text-emerald-700">
+                  {t(`packages.${selectedPaket}.name`)}
+                </span>
+              </p>
+              <p>
+                {t('summary.basePrice')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('common.free')
+                    : `${formatMoney(Math.round(basePriceRsd))} ${t('common.perMonth')}`}
+                </span>
+              </p>
+              <p>
+                {t('summary.includedUsers')}:{' '}
+                <span className="font-semibold">{selected.includedUsers.toLocaleString(locale)}</span>
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p>
+                {t('summary.extraUsers')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('summary.onlyPaid')
+                    : `${extraUsers} × ${formatMoney(extraPricePerUserRsd, true)} = ${formatMoney(Math.round(extraUsersCostRsd))}`}
+                </span>
+              </p>
+              <p>
+                {t('summary.extraAdmins')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('summary.onlyPaid')
+                    : `${extraAdmins} × ${formatMoney(ADMIN_PRICE_RSD)} = ${formatMoney(Math.round(extraAdminsCostRsd))}`}
+                </span>
+              </p>
+              <p className="text-base font-semibold text-emerald-700">
+                {t('summary.totalMonthly')}:{' '}
+                {isFreePaket ? t('common.free') : formatMoney(Math.round(totalMonthlyRsd))}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="ime-kluba" className="text-xs font-medium text-gray-600">
+              {t('form.clubName')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="ime-kluba"
+              type="text"
+              value={imeKluba}
+              onChange={(e) => {
+                setImeKluba(e.target.value)
+                setFieldError('')
+              }}
+              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+              }`}
+              placeholder={t('form.clubPlaceholder')}
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="cena-contact-person" className="text-xs font-medium text-gray-600">
-                Kontakt osoba <span className="text-red-500">*</span>
+              <label htmlFor="contact-phone" className="text-xs font-medium text-gray-600">
+                {t('form.phone')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-contact-person"
@@ -289,12 +458,12 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="Ime i prezime kontakt osobe"
+                placeholder={t('form.phonePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="cena-club-name" className="text-xs font-medium text-gray-600">
-                Ime kluba <span className="text-red-500">*</span>
+              <label htmlFor="contact-email" className="text-xs font-medium text-gray-600">
+                {t('form.email')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-club-name"
@@ -307,33 +476,14 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="npr. Planinarsko društvo Javor"
+                placeholder={t('form.emailPlaceholder')}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="cena-city" className="text-xs font-medium text-gray-600">
-              Mesto <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="cena-city"
-              type="text"
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value)
-                setFieldError('')
-              }}
-              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
-                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
-              }`}
-              placeholder="Grad ili mesto u kojem je klub"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="cena-question" className="text-xs font-medium text-gray-600">
-              Pitanje za nas <span className="text-red-500">*</span>
+            <label htmlFor="note" className="text-xs font-medium text-gray-600">
+              {t('form.notes')} <span className="text-gray-400">({t('form.optional')})</span>
             </label>
             <textarea
               id="cena-question"
@@ -344,7 +494,7 @@ export default function Cena() {
               }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
-              placeholder="npr. želimo da se pridružimo zajednici, broj članova, pitanja o aplikaciji…"
+              placeholder={t('form.notesPlaceholder')}
             />
           </div>
 
@@ -360,8 +510,8 @@ export default function Cena() {
           )}
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-            <p className="text-xs text-gray-500 max-w-md">
-              Nema obaveze kupovine ni izbora paketa – samo korak ka besplatnoj registraciji kluba u našoj porodici planinara.
+            <p className="text-xs text-gray-500">
+              {t('form.submitHint')}
             </p>
             <button
               type="button"
@@ -369,11 +519,15 @@ export default function Cena() {
               disabled={sending}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors shadow-md shadow-emerald-600/20"
             >
-              {sending ? 'Slanje…' : 'Pošalji upit'}
+              {sending ? t('form.sending') : t('form.submit')}
             </button>
           </div>
         </div>
-      </main>
+
+        <p className="text-xs text-gray-500 text-center max-w-2xl mx-auto">
+          {t('footerNote')}
+        </p>
+      </div>
     </div>
   )
 }

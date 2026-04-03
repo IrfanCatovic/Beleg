@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export type FollowListUser = {
   id: number
@@ -23,6 +24,7 @@ export default function FollowListModal({
   loading: boolean
   onClose: () => void
 }) {
+  const { t } = useTranslation('uiExtras')
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -53,15 +55,15 @@ export default function FollowListModal({
       >
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Praćenje</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{t('followList.badge')}</p>
             <h3 className="text-base font-extrabold text-gray-900 truncate">{title}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition"
-            aria-label="Zatvori"
-            title="Zatvori (Esc)"
+            aria-label={t('common.close')}
+            title={t('followList.closeEsc')}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -73,11 +75,11 @@ export default function FollowListModal({
           {loading ? (
             <div className="p-6 text-center">
               <div className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-emerald-500 border-t-transparent" />
-              <p className="mt-3 text-sm text-gray-500 font-medium">Učitavam…</p>
+              <p className="mt-3 text-sm text-gray-500 font-medium">{t('common.loading')}</p>
             </div>
           ) : users.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-sm text-gray-500 font-medium">Lista je prazna.</p>
+              <p className="text-sm text-gray-500 font-medium">{t('followList.empty')}</p>
             </div>
           ) : (
             <ul className="divide-y divide-gray-100">

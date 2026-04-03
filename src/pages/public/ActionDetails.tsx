@@ -1,5 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
@@ -7,6 +9,7 @@ import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../ut
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
+import { tezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
 
 interface Akcija {
   id: number
@@ -41,17 +44,20 @@ interface Prijava {
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
 }
 
-const TEZINA: Record<string, { bg: string; text: string; label: string }> = {
-  lako:      { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Lako' },
-  srednje:   { bg: 'bg-amber-50',   text: 'text-amber-700',   label: 'Srednje' },
-  tesko:     { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  'teško':   { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50',  text: 'text-violet-700',  label: 'Alpinizam' },
+const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
 }
 
-function tz(t?: string) {
-  if (!t) return { bg: 'bg-gray-50', text: 'text-gray-500', label: '—' }
-  return TEZINA[t.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', label: t }
+function tzStyle(raw: string | undefined, t: TFunction) {
+  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
+  const k = raw.toLowerCase()
+  const style = TEZINA_STYLE[k]
+  if (style) return { ...style, label: tezinaLabel(raw, t) }
+  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -61,14 +67,8 @@ const STATUS_STYLE: Record<string, string> = {
   'prijavljen': 'bg-emerald-50 text-emerald-600 border-emerald-200',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  'popeo se':   'Popeo se',
-  'nije uspeo': 'Nije uspeo',
-  'otkazano':   'Otkazano',
-  'prijavljen': 'Prijavljen',
-}
-
 export default function ActionDetails() {
+  const { t } = useTranslation('actionDetails')
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
@@ -88,7 +88,7 @@ export default function ActionDetails() {
         const res = await api.get(`/api/akcije/${id}`)
         if (!cancelled) setAkcija(res.data)
       } catch (err: any) {
-        if (!cancelled) setError(err.response?.data?.error || 'Greška pri učitavanju akcije')
+        if (!cancelled) setError(err.response?.data?.error || t('loadError'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -150,17 +150,14 @@ export default function ActionDetails() {
   }, [id, user, akcija])
 
   const handleDelete = async () => {
-    const confirmed = await showConfirm(
-      'Da li si siguran da želiš da obrišeš ovu akciju? Ova akcija će biti trajno obrisana.',
-      { variant: 'danger', confirmLabel: 'Obriši' }
-    )
+    const confirmed = await showConfirm(t('deleteConfirmMessage'), { variant: 'danger', confirmLabel: t('delete') })
     if (!confirmed) return
     try {
       await api.delete(`/api/akcije/${id}`)
-      await showAlert('Akcija je uspešno obrisana.')
+      await showAlert(t('deleteSuccess'))
       navigate('/akcije')
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri brisanju akcije', 'Greška')
+      await showAlert(err.response?.data?.error || t('deleteError'), t('errorTitle'))
     }
   }
 
@@ -181,15 +178,16 @@ export default function ActionDetails() {
         }))
       })
     } catch {
-      alert('Greška pri ažuriranju statusa')
+      alert(t('updateStatusError'))
     }
   }
 
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
-    const confirmed = await showConfirm(
-      `Da li stvarno želite da uklonite "${displayName}" sa ove akcije?`,
-      { title: 'Ukloni člana sa akcije', confirmLabel: 'Ukloni', cancelLabel: 'Otkaži' }
-    )
+    const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
+      title: t('removeMemberTitle'),
+      confirmLabel: t('remove'),
+      cancelLabel: t('cancel'),
+    })
     if (!confirmed) return
     try {
       await api.delete(`/api/prijave/${prijavaId}`)
@@ -204,7 +202,7 @@ export default function ActionDetails() {
         }))
       })
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri uklanjanju člana sa akcije', 'Greška')
+      await showAlert(err.response?.data?.error || t('removeMemberError'), t('errorTitle'))
     }
   }
 
@@ -212,30 +210,30 @@ export default function ActionDetails() {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')
     if (neoznaceni.length > 0) {
       await showAlert(
-        'Za završavanje akcije potrebno je da za svakog prijavljenog člana obeležiš da li se popeo ili nije uspeo.',
-        'Označi sve članove'
+        t('finishNeedStatuses'),
+        t('markAllMembers')
       )
       return
     }
 
     const confirmed = await showConfirm(
-      'Posle završavanja akcije više neće biti moguće menjati prijave ili statuse učesnika.',
+      t('finishConfirmBody'),
       {
-        title: 'Završi akciju?',
-        confirmLabel: 'Završi akciju',
-        cancelLabel: 'Otkaži',
+        title: t('finishActionTitle'),
+        confirmLabel: t('finishAction'),
+        cancelLabel: t('cancel'),
       }
     )
     if (!confirmed) return
 
     try {
       const res = await api.post(`/api/akcije/${id}/zavrsi`)
-      await showAlert('Akcija je uspešno završena.', 'Akcija završena')
+      await showAlert(t('finishSuccess'), t('actionFinishedTitle'))
       const updated = res.data?.akcija
       if (updated) setAkcija(updated)
       else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri završavanju akcije', 'Greška')
+      await showAlert(err.response?.data?.error || t('finishError'), t('errorTitle'))
     }
   }
 
@@ -254,7 +252,7 @@ export default function ActionDetails() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 font-medium">{error || 'Akcija nije pronađena'}</p>
+        <p className="text-sm text-gray-500 font-medium">{error || t('notFound')}</p>
       </div>
     )
   }
@@ -263,7 +261,7 @@ export default function ActionDetails() {
   const imenaPolaznika = prijave.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
-  const t = tz(akcija.tezina)
+  const difficultyBadge = tzStyle(akcija.tezina, t)
   const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
   const isLimitedView = !!akcija.limited
   const memberCount =
@@ -308,7 +306,7 @@ export default function ActionDetails() {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Nazad
+          {t('back')}
         </button>
 
         {/* Cover content */}
@@ -318,22 +316,22 @@ export default function ActionDetails() {
               <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-white bg-white/20 backdrop-blur-md border border-white/10">
                 {formatDate(akcija.datum)}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${t.bg} ${t.text}`}>
-                {t.label}
+              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                {difficultyBadge.label}
               </span>
               {akcija.zimskiUspon && (
                 <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-500/80 text-white backdrop-blur-sm border border-sky-400/30">
-                  Zimski uspon
+                  {t('winterAscent')}
                 </span>
               )}
               {akcija.javna && (
                 <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-500/80 text-white backdrop-blur-sm border border-violet-400/30">
-                  Javna
+                  {t('public')}
                 </span>
               )}
               {akcija.isCompleted && (
                 <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/10">
-                  Završena
+                  {t('completed')}
                 </span>
               )}
             </div>
@@ -360,26 +358,26 @@ export default function ActionDetails() {
               <StatCell
                 icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" /></svg>}
                 value={akcija.planina}
-                label="Planina"
+                label={t('mountain')}
               />
             )}
             <StatCell
               icon={<svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" /></svg>}
               value={akcija.vrh}
-              label="Vrh"
+              label={t('peak')}
             />
             {akcija.visinaVrhM != null && (
               <StatCell
                 icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
                 value={`${akcija.visinaVrhM}`}
                 unit="m"
-                label="Visina"
+                label={t('height')}
               />
             )}
             <StatCell
               icon={<svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
               value={String(memberCount)}
-              label="Prijavljenih"
+              label={t('registered')}
             />
           </div>
         </div>
@@ -389,7 +387,7 @@ export default function ActionDetails() {
         <div className="bg-amber-50/70 border-b border-amber-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <p className="text-sm text-amber-800">
-              Ova akcija nije javna. Prikazan je ograničen skup podataka. Puni detalji su dostupni samo članovima kluba domaćina.
+              {t('limitedNotice')}
             </p>
           </div>
         </div>
@@ -409,7 +407,7 @@ export default function ActionDetails() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                  <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Detalji akcije</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('actionDetails')}</h2>
                 </div>
                 <div className="p-5 sm:p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -421,7 +419,7 @@ export default function ActionDetails() {
                           </svg>
                         }
                         iconBg="bg-emerald-50"
-                        label="Vodič(i)"
+                        label={t('guides')}
                         value={vodicIme}
                       />
                     )}
@@ -433,7 +431,7 @@ export default function ActionDetails() {
                           </svg>
                         }
                         iconBg="bg-gray-50"
-                        label="Postavio/la"
+                        label={t('createdBy')}
                         value={akcija.addedBy.fullName || `@${akcija.addedBy.username}`}
                       />
                     )}
@@ -445,7 +443,7 @@ export default function ActionDetails() {
                           </svg>
                         }
                         iconBg="bg-violet-50"
-                        label="Klub"
+                        label={t('club')}
                         value={akcija.klubNaziv}
                       />
                     )}
@@ -456,7 +454,7 @@ export default function ActionDetails() {
                         </svg>
                       }
                       iconBg="bg-sky-50"
-                      label="Datum"
+                      label={t('date')}
                       value={formatDate(akcija.datum)}
                     />
                     <InfoRow
@@ -466,14 +464,14 @@ export default function ActionDetails() {
                         </svg>
                       }
                       iconBg="bg-amber-50"
-                      label="Težina"
-                      value={t.label}
+                      label={t('difficulty')}
+                      value={difficultyBadge.label}
                     />
                   </div>
 
                   {akcija.opis && (
                     <div className="pt-4 border-t border-gray-50">
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Opis akcije</h3>
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{t('actionDescription')}</h3>
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{akcija.opis}</p>
                     </div>
                   )}
@@ -485,7 +483,7 @@ export default function ActionDetails() {
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                    <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Prijavljeni članovi</h2>
+                    <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('registeredMembers')}</h2>
                   </div>
                   <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                     {memberCount}
@@ -501,7 +499,7 @@ export default function ActionDetails() {
                         </svg>
                       </div>
                       <p className="text-sm text-gray-500">
-                        <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">Prijavite se</Link> da vidite ko je prijavljen.
+                        <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t('loginToSeeMembers')}</Link> {t('loginToSeeMembersSuffix')}
                       </p>
                     </div>
                   )}
@@ -513,7 +511,7 @@ export default function ActionDetails() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                         </svg>
                       </div>
-                      <p className="text-sm text-gray-400">Još nema prijavljenih članova za ovu akciju.</p>
+                      <p className="text-sm text-gray-400">{t('noRegisteredMembersYet')}</p>
                     </div>
                   )}
 
@@ -561,7 +559,7 @@ export default function ActionDetails() {
 
                             <div className="flex items-center gap-2 flex-wrap justify-end">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusCls}`}>
-                                {STATUS_LABEL[p.status] || p.status}
+                                {prijavaStatusLabel(p.status, t)}
                               </span>
                               {canManageHost && !akcija.isCompleted && (
                                 <div className="flex gap-1.5 items-center">
@@ -570,14 +568,14 @@ export default function ActionDetails() {
                                       <button
                                         onClick={() => handleUpdateStatus(p.id, 'popeo se')}
                                         className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
-                                        title="Popeo se"
+                                        title={t('markClimbed')}
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                       </button>
                                       <button
                                         onClick={() => handleUpdateStatus(p.id, 'nije uspeo')}
                                         className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition-colors shadow-sm"
-                                        title="Nije uspeo"
+                                        title={t('markFailed')}
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                                       </button>
@@ -586,7 +584,7 @@ export default function ActionDetails() {
                                   <button
                                     onClick={() => handleRemoveFromAction(p.id, displayName)}
                                     className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gray-200 text-gray-600 hover:bg-rose-100 hover:text-rose-600 transition-colors shadow-sm"
-                                    title="Ukloni sa akcije"
+                                    title={t('removeFromAction')}
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                                   </button>
@@ -609,7 +607,7 @@ export default function ActionDetails() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">Status</h3>
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('statusTitle')}</h3>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex items-center gap-3">
@@ -621,8 +619,8 @@ export default function ActionDetails() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Završena</p>
-                          <p className="text-[11px] text-gray-400">Akcija je uspešno završena</p>
+                          <p className="text-sm font-semibold text-gray-900">{t('completed')}</p>
+                          <p className="text-[11px] text-gray-400">{t('completedHint')}</p>
                         </div>
                       </>
                     ) : (
@@ -631,8 +629,8 @@ export default function ActionDetails() {
                           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Aktivna</p>
-                          <p className="text-[11px] text-gray-400">Prijave su otvorene</p>
+                          <p className="text-sm font-semibold text-gray-900">{t('activeHintTitle')}</p>
+                          <p className="text-[11px] text-gray-400">{t('activeHint')}</p>
                         </div>
                       </>
                     )}
@@ -641,12 +639,12 @@ export default function ActionDetails() {
                   {/* Quick stats in sidebar */}
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50/80 border border-gray-100">
-                      <span className="text-[11px] text-gray-500 font-medium">Prijavljenih</span>
+                      <span className="text-[11px] text-gray-500 font-medium">{t('registeredCountLabel')}</span>
                       <span className="text-sm font-bold text-gray-900">{memberCount}</span>
                     </div>
                     {akcija.isCompleted && user && canManageHost && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
-                        <span className="text-[11px] text-emerald-600 font-medium">Popeli se</span>
+                        <span className="text-[11px] text-emerald-600 font-medium">{t('climbedCountLabel')}</span>
                         <span className="text-sm font-bold text-emerald-700">{uspesnoPopeli.length}</span>
                       </div>
                     )}
@@ -659,7 +657,7 @@ export default function ActionDetails() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">Upravljanje</h3>
+                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('managementTitle')}</h3>
                   </div>
                   <div className="p-4 space-y-2">
                     {!akcija.isCompleted && (
@@ -669,14 +667,14 @@ export default function ActionDetails() {
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          Završi akciju
+                          {t('finishAction')}
                         </button>
                         <button
                           onClick={handleEdit}
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                          Izmeni akciju
+                          {t('editAction')}
                         </button>
                       </>
                     )}
@@ -688,7 +686,7 @@ export default function ActionDetails() {
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                          Štampaj PDF
+                          {t('printPdf')}
                         </button>
                       ) : (
                         <>
@@ -697,14 +695,14 @@ export default function ActionDetails() {
                             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Štampaj – pre polaska
+                            {t('printBeforeDeparture')}
                           </button>
                           <button
                             onClick={handlePrintZavrsena}
                             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Štampaj – završena
+                            {t('printCompleted')}
                           </button>
                         </>
                       )}
@@ -716,7 +714,7 @@ export default function ActionDetails() {
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Izbriši akciju
+                        {t('deleteAction')}
                       </button>
                     </div>
                   </div>

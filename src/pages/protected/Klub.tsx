@@ -18,6 +18,7 @@ import {
   MapPinIcon,
   BanknotesIcon,
 } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 export interface KlubData {
   id: number
@@ -64,6 +65,7 @@ interface ClubAdminStats {
 }
 
 export default function Klub() {
+  const { t } = useTranslation('clubs')
   const { user } = useAuth()
   const { naziv } = useParams<{ naziv?: string }>()
   const navigate = useNavigate()
@@ -139,7 +141,7 @@ export default function Klub() {
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
         ? String((e.response.data as { error: unknown }).error)
-        : 'Greška pri učitavanju kluba'
+        : t('club.errors.load')
       setError(msg)
       setKlub(null)
     } finally {
@@ -197,7 +199,7 @@ export default function Klub() {
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
         ? String((e.response.data as { error: unknown }).error)
-        : 'Greška pri čuvanju'
+        : t('club.errors.save')
       setSaveError(msg)
     } finally {
       setSaveLoading(false)
@@ -230,11 +232,11 @@ export default function Klub() {
     e.target.value = ''
     setLogoError('')
     if (!file.type.startsWith('image/')) {
-      setLogoError('Dozvoljene su samo slike (jpg, png, gif...)')
+      setLogoError(t('club.errors.imageOnly'))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setLogoError('Slika je prevelika (maksimum 5 MB)')
+      setLogoError(t('club.errors.imageTooLarge'))
       return
     }
     setLogoUploading(true)
@@ -249,7 +251,7 @@ export default function Klub() {
       const msg =
         err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
           ? String((err.response.data as { error: unknown }).error)
-          : 'Greška pri upload-u loga'
+          : t('club.errors.logoUpload')
       setLogoError(msg)
     } finally {
       setLogoUploading(false)
@@ -262,7 +264,7 @@ export default function Klub() {
       <div className="min-h-[40vh] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <p className="text-rose-600 font-medium">{error}</p>
-          <p className="mt-2 text-sm text-gray-500">Proverite da li ste ulogovani u klub (superadmin mora da izabere klub).</p>
+          <p className="mt-2 text-sm text-gray-500">{t('club.errors.loginClubHint')}</p>
         </div>
       </div>
     )
@@ -299,7 +301,7 @@ export default function Klub() {
                     accept="image/*"
                     onChange={handleLogoChange}
                     className="hidden"
-                    aria-label="Izaberi logo kluba"
+                    aria-label={t('club.fields.pickLogo')}
                   />
                   <button
                     type="button"
@@ -319,7 +321,7 @@ export default function Klub() {
                     </span>
                     {logoUploading && (
                       <span className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
-                        <span className="text-white text-xs font-medium">Upload...</span>
+                        <span className="text-white text-xs font-medium">{t('club.common.uploading')}</span>
                       </span>
                     )}
                   </button>
@@ -338,27 +340,27 @@ export default function Klub() {
                     value={form.naziv}
                     onChange={(e) => setForm((f) => ({ ...f, naziv: e.target.value }))}
                     className="block w-full max-w-md rounded-xl border border-gray-300 px-4 py-2.5 text-xl font-bold text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                    placeholder="Naziv kluba"
+                    placeholder={t('club.fields.name')}
                   />
                 ) : (
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{klub.naziv}</h1>
                 )}
-                <p className="mt-1 text-sm text-gray-500">Podaci vašeg planinarskog društva</p>
+                <p className="mt-1 text-sm text-gray-500">{t('club.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {canManage && !editing && (
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 transition-colors">
-                  <PencilSquareIcon className="h-5 w-5" /> Izmeni podatke
+                  <PencilSquareIcon className="h-5 w-5" /> {t('club.actions.edit')}
                 </button>
               )}
               {canManage && editing && (
                 <>
                   <button type="button" onClick={handleSave} disabled={saveLoading || !form.naziv.trim()} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                    <CheckIcon className="h-5 w-5" /> {saveLoading ? 'Čuvanje...' : 'Sačuvaj'}
+                    <CheckIcon className="h-5 w-5" /> {saveLoading ? t('club.common.saving') : t('club.actions.save')}
                   </button>
                   <button type="button" onClick={handleCancel} disabled={saveLoading} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                    <XMarkIcon className="h-5 w-5" /> Odustani
+                    <XMarkIcon className="h-5 w-5" /> {t('club.actions.cancel')}
                   </button>
                 </>
               )}
@@ -376,7 +378,7 @@ export default function Klub() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Javni podaci
+              {t('club.tabs.public')}
             </button>
             {canManage && (
               <button
@@ -388,7 +390,7 @@ export default function Klub() {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Administracija kluba
+                {t('club.tabs.admin')}
               </button>
             )}
           </div>
@@ -412,17 +414,17 @@ export default function Klub() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Kontakt i adresa</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('club.sections.contactAddress')}</h2>
                   </div>
                 </div>
                 <div className="p-5">
                   <div className="divide-y divide-gray-100 -mx-1">
-                    {klub.adresa && <FieldRow label="Adresa" value={klub.adresa} icon={MapPinIcon} />}
-                    {klub.telefon && <FieldRow label="Telefon" value={klub.telefon} icon={PhoneIcon} />}
-                    {klub.email && <FieldRow label="Email" value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
-                    {klub.sediste && <FieldRow label="Sedište" value={klub.sediste} icon={BuildingOffice2Icon} />}
-                    {klub.web_sajt && <FieldRow label="Web sajt" value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
-                    {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">Nema unetih kontakt podataka.</p>}
+                    {klub.adresa && <FieldRow label={t('club.fields.address')} value={klub.adresa} icon={MapPinIcon} />}
+                    {klub.telefon && <FieldRow label={t('club.fields.phone')} value={klub.telefon} icon={PhoneIcon} />}
+                    {klub.email && <FieldRow label={t('club.fields.email')} value={<a href={`mailto:${klub.email}`} className="text-emerald-600 hover:underline">{klub.email}</a>} icon={EnvelopeIcon} />}
+                    {klub.sediste && <FieldRow label={t('club.fields.seat')} value={klub.sediste} icon={BuildingOffice2Icon} />}
+                    {klub.web_sajt && <FieldRow label={t('club.fields.website')} value={<a href={klub.web_sajt.startsWith('http') ? klub.web_sajt : `https://${klub.web_sajt}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{klub.web_sajt}</a>} icon={GlobeAltIcon} />}
+                    {!klub.adresa && !klub.telefon && !klub.email && !klub.sediste && !klub.web_sajt && <p className="text-sm text-gray-500 py-2">{t('club.empty.contact')}</p>}
                   </div>
                 </div>
               </div>
@@ -436,7 +438,7 @@ export default function Klub() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Pravni i finansijski podaci</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('club.sections.legalFinance')}</h2>
                   </div>
                 </div>
                 <div className="p-5">
@@ -444,39 +446,39 @@ export default function Klub() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Matični broj</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('club.legal.registryNumber')}</label>
                           <input type="text" value={form.maticni_broj} onChange={(e) => setForm((f) => ({ ...f, maticni_broj: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">PIB</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('club.legal.taxId')}</label>
                           <input type="text" value={form.pib} onChange={(e) => setForm((f) => ({ ...f, pib: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Žiro račun</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('club.legal.bankAccount')}</label>
                         <input type="text" value={form.ziro_racun} onChange={(e) => setForm((f) => ({ ...f, ziro_racun: e.target.value }))} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Datum osnivanja</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('club.legal.foundationDate')}</label>
                         <DatePartsSelect
-                          ariaLabel="Datum osnivanja"
+                          ariaLabel={t('club.legal.foundationDate')}
                           value={form.datum_osnivanja}
                           onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
                           minYear={1900}
                           maxYear={new Date().getFullYear()}
-                          placeholderDay="Dan"
-                          placeholderMonth="Mesec"
-                          placeholderYear="Godina"
+                          placeholderDay={t('club.dateParts.day')}
+                          placeholderMonth={t('club.dateParts.month')}
+                          placeholderYear={t('club.dateParts.year')}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100 -mx-1">
-                      {klub.maticni_broj && <FieldRow label="Matični broj" value={klub.maticni_broj} icon={DocumentTextIcon} />}
-                      {klub.pib && <FieldRow label="PIB" value={klub.pib} icon={DocumentTextIcon} />}
-                      {klub.ziro_racun && <FieldRow label="Žiro račun" value={klub.ziro_racun} icon={BanknotesIcon} />}
-                      {klub.datum_osnivanja && <FieldRow label="Datum osnivanja" value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
-                      {!klub.maticni_broj && !klub.pib && !klub.ziro_racun && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">Nema unetih pravnih podataka.</p>}
+                      {klub.maticni_broj && <FieldRow label={t('club.legal.registryNumber')} value={klub.maticni_broj} icon={DocumentTextIcon} />}
+                      {klub.pib && <FieldRow label={t('club.legal.taxId')} value={klub.pib} icon={DocumentTextIcon} />}
+                      {klub.ziro_racun && <FieldRow label={t('club.legal.bankAccount')} value={klub.ziro_racun} icon={BanknotesIcon} />}
+                      {klub.datum_osnivanja && <FieldRow label={t('club.legal.foundationDate')} value={formatDateShort(klub.datum_osnivanja)} icon={CalendarDaysIcon} />}
+                      {!klub.maticni_broj && !klub.pib && !klub.ziro_racun && !klub.datum_osnivanja && <p className="text-sm text-gray-500 py-2">{t('club.empty.legal')}</p>}
                     </div>
                   )}
                 </div>
@@ -487,38 +489,38 @@ export default function Klub() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <BuildingOffice2Icon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Statistika i limiti kluba</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('club.adminStats.title')}</h2>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    Podaci važe za vaš klub. Limite i trajanje pretplate podešava superadmin.
+                    {t('club.adminStats.subtitle')}
                   </p>
                 </div>
                 <div className="p-5 space-y-4">
                   {adminStatsLoading && (
-                    <p className="text-sm text-gray-500">Učitavanje statistike…</p>
+                    <p className="text-sm text-gray-500">{t('club.adminStats.loading')}</p>
                   )}
                   {!adminStatsLoading && !adminStats && (
-                    <p className="text-sm text-amber-700">Statistika trenutno nije dostupna.</p>
+                    <p className="text-sm text-amber-700">{t('club.adminStats.unavailable')}</p>
                   )}
                   {adminStats && (
                     <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Aktivni članovi</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('club.adminStats.activeMembers')}</p>
                           <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
                             {adminStats.activeMembers} <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxMembers}</span>
                           </p>
-                          <p className="mt-0.5 text-xs text-gray-500">Registrovani u klubu (bez obrisanih naloga)</p>
+                          <p className="mt-0.5 text-xs text-gray-500">{t('club.adminStats.activeMembersHint')}</p>
                         </div>
                         <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Administratori</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('club.adminStats.admins')}</p>
                           <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
                             {adminStats.adminCount} <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxAdmins}</span>
                           </p>
-                          <p className="mt-0.5 text-xs text-gray-500">Uloga „admin“ u ovom klubu</p>
+                          <p className="mt-0.5 text-xs text-gray-500">{t('club.adminStats.adminsHint')}</p>
                         </div>
                         <div className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 sm:col-span-2">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Prostor za fajlove (Cloudinary)</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('club.adminStats.storage')}</p>
                           <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
                             {Number(adminStats.usedStorageGb).toFixed(2)} GB{' '}
                             <span className="text-gray-400 font-semibold text-base">/ {adminStats.maxStorageGb} GB</span>
@@ -534,7 +536,7 @@ export default function Klub() {
                                 />
                               </div>
                               <p className="mt-1.5 text-xs text-gray-500">
-                                Iskorišćeno: {Math.min(100, (adminStats.usedStorageGb / adminStats.maxStorageGb) * 100).toFixed(1)}%
+                                {t('club.adminStats.usedPercent')}: {Math.min(100, (adminStats.usedStorageGb / adminStats.maxStorageGb) * 100).toFixed(1)}%
                               </p>
                             </div>
                           )}
@@ -544,17 +546,17 @@ export default function Klub() {
                       <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3">
                         <div className="flex items-center gap-2 mb-2">
                           <CalendarDaysIcon className="h-5 w-5 text-amber-600 shrink-0" />
-                          <p className="text-sm font-semibold text-gray-900">Pretplata (subscription)</p>
+                          <p className="text-sm font-semibold text-gray-900">{t('club.adminStats.subscriptionTitle')}</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Važi do</p>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('club.adminStats.validUntil')}</p>
                             <p className="mt-0.5 font-semibold text-gray-900">
                               {adminStats.subscriptionEndsAt ? formatDateShort(adminStats.subscriptionEndsAt) : '—'}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Datum prijave / početak</p>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('club.adminStats.subscribedAt')}</p>
                             <p className="mt-0.5 font-semibold text-gray-900">
                               {adminStats.subscribedAt ? formatDateShort(adminStats.subscribedAt) : '—'}
                             </p>
@@ -562,7 +564,7 @@ export default function Klub() {
                         </div>
                         {adminStats.onHold && (
                           <div className="mt-3 inline-flex rounded-lg bg-rose-100 border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-800">
-                            Klub je trenutno na pauzi (hold)
+                            {t('club.adminStats.onHold')}
                           </div>
                         )}
                       </div>

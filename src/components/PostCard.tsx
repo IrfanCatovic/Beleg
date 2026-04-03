@@ -4,6 +4,7 @@ import { useModal } from '../context/ModalContext'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
 import MentionContent from './MentionContent'
+import { useTranslation } from 'react-i18next'
 
 export interface PostUser {
   id: number
@@ -70,6 +71,7 @@ export default function PostCard({
   onOpenImage: (src: string) => void
   mentionUsers: MentionUser[]
 }) {
+  const { t } = useTranslation('shared')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -160,7 +162,7 @@ export default function PostCard({
     } catch {
       setComments([])
       setCommentCount(0)
-      await showAlert('Greška pri učitavanju komentara', 'Komentari')
+      await showAlert(t('postCard.errors.loadComments'), t('postCard.titles.comments'))
     } finally {
       setCommentsLoading(false)
       commentsFetchInFlightRef.current = false
@@ -174,7 +176,7 @@ export default function PostCard({
       setLikes(res.data.likes || [])
     } catch {
       setLikes([])
-      await showAlert('Greška pri učitavanju lajkova', 'Lajkovi')
+      await showAlert(t('postCard.errors.loadLikes'), t('postCard.titles.likes'))
     } finally {
       setLikesLoading(false)
     }
@@ -211,8 +213,8 @@ export default function PostCard({
         await fetchLikes()
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri lajkovanju objave'
-      await showAlert(msg, 'Lajk')
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('postCard.errors.likePost')
+      await showAlert(msg, t('postCard.titles.like'))
     } finally {
       setLiking(false)
     }
@@ -237,8 +239,8 @@ export default function PostCard({
       setCommentsOpen(true)
       await fetchComments()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri dodavanju komentara'
-      await showAlert(msg, 'Komentar')
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('postCard.errors.addComment')
+      await showAlert(msg, t('postCard.titles.comment'))
     } finally {
       setSubmittingComment(false)
     }
@@ -253,7 +255,7 @@ export default function PostCard({
     const content = editContent.trim()
     if (savingEdit) return
     if (content.length > 3000) {
-      await showAlert('Tekst objave je predugačak (maks. 3000 karaktera)', 'Objava')
+      await showAlert(t('postCard.errors.postTooLong'), t('postCard.titles.post'))
       return
     }
     setSavingEdit(true)
@@ -264,8 +266,8 @@ export default function PostCard({
       setEditingPost(false)
       setMenuOpen(false)
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri izmeni objave'
-      await showAlert(msg, 'Objava')
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('postCard.errors.editPost')
+      await showAlert(msg, t('postCard.titles.post'))
     } finally {
       setSavingEdit(false)
     }
@@ -276,8 +278,8 @@ export default function PostCard({
       await api.delete(`/api/posts/${post.id}/comments/${commentId}`)
       await fetchComments()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri brisanju komentara'
-      await showAlert(msg, 'Komentar')
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('postCard.errors.deleteComment')
+      await showAlert(msg, t('postCard.titles.comment'))
     }
   }
 
@@ -350,7 +352,7 @@ export default function PostCard({
                       />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125L16.862 4.487" />
                     </svg>
-                    Izmeni objavu
+                    {t('postCard.editPost')}
                   </button>
                 )}
                 <button
@@ -364,7 +366,7 @@ export default function PostCard({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                   </svg>
-                  Obriši objavu
+                  {t('postCard.deletePost')}
                 </button>
               </div>
             )}
@@ -376,12 +378,12 @@ export default function PostCard({
         <div className="fixed inset-0 z-[80] px-3 sm:px-4 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-white border border-gray-100 shadow-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">Izmeni objavu</h3>
+              <h3 className="text-sm font-bold text-gray-900">{t('postCard.editPost')}</h3>
               <button
                 type="button"
                 onClick={() => setEditingPost(false)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                aria-label="Zatvori"
+                aria-label={t('postCard.close')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -394,7 +396,7 @@ export default function PostCard({
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={5}
                 className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300"
-                placeholder="Tekst objave..."
+                placeholder={t('postCard.postTextPlaceholder')}
                 maxLength={3000}
               />
               <div className="mt-3 flex items-center justify-end gap-2">
@@ -404,7 +406,7 @@ export default function PostCard({
                   disabled={savingEdit}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                 >
-                  Otkaži
+                  {t('postCard.cancel')}
                 </button>
                 <button
                   type="button"
@@ -413,7 +415,7 @@ export default function PostCard({
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 transition-colors"
                 >
                   {savingEdit ? <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> : null}
-                  Sačuvaj
+                  {t('postCard.save')}
                 </button>
               </div>
             </div>
@@ -468,7 +470,7 @@ export default function PostCard({
           onClick={() => void handleOpenLikes()}
           disabled={likeCount <= 0}
           className="inline-flex items-center px-2 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-rose-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-default"
-          title={likeCount > 0 ? 'Prikaži ko je lajkovao' : 'Nema lajkova'}
+          title={likeCount > 0 ? t('postCard.showLikes') : t('postCard.noLikes')}
         >
           <span className="text-[13px]">{likeCount > 0 ? likeCount : 0}</span>
         </button>
@@ -491,7 +493,7 @@ export default function PostCard({
           {commentsLoading && comments.length === 0 && (
             <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
               <div className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-              Učitavanje komentara...
+              {t('postCard.loadingComments')}
             </div>
           )}
 
@@ -523,8 +525,8 @@ export default function PostCard({
                         type="button"
                         onClick={() => void handleDeleteComment(cm.id)}
                         className="self-start mt-0.5 inline-flex items-center justify-center h-7 w-7 rounded-full text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Obriši komentar"
-                        aria-label="Obriši komentar"
+                        title={t('postCard.deleteComment')}
+                        aria-label={t('postCard.deleteComment')}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           <path
@@ -542,7 +544,7 @@ export default function PostCard({
           )}
 
           {!commentsLoading && comments.length === 0 && (
-            <p className="text-[13px] text-gray-400 py-2">Još nema komentara.</p>
+            <p className="text-[13px] text-gray-400 py-2">{t('postCard.noCommentsYet')}</p>
           )}
 
           {/* Add comment */}
@@ -590,14 +592,14 @@ export default function PostCard({
                   }
                 }}
                 className="w-full border-0 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
-                placeholder="Dodaj komentar..."
+                placeholder={t('postCard.addCommentPlaceholder')}
               />
 
               {commentMentionOpen && (
                 <div className="absolute left-0 right-0 top-full mt-2 z-30">
                   <div className="rounded-xl bg-white border border-gray-200 shadow-lg overflow-hidden">
                     {commentMentionSuggestions.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-500">Nema rezultata</div>
+                      <div className="px-3 py-2 text-sm text-gray-500">{t('postCard.noResults')}</div>
                     ) : (
                       <div className="max-h-56 overflow-y-auto">
                         {commentMentionSuggestions.map((u) => (
@@ -636,7 +638,7 @@ export default function PostCard({
               {submittingComment ? (
                 <span className="h-4 w-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin inline-block" />
               ) : (
-                'Objavi'
+                t('postCard.publish')
               )}
             </button>
           </div>
@@ -647,13 +649,13 @@ export default function PostCard({
         <div className="fixed inset-0 z-[70]">
           <button
             type="button"
-            aria-label="Zatvori modal lajkova"
+            aria-label={t('postCard.closeLikesModal')}
             onClick={() => setLikesOpen(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
           />
           <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 mx-auto w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <h3 className="text-sm font-bold text-gray-900">Lajkovi ({likeCount})</h3>
+              <h3 className="text-sm font-bold text-gray-900">{t('postCard.likesCount', { count: likeCount })}</h3>
               <button
                 type="button"
                 onClick={() => setLikesOpen(false)}
@@ -668,10 +670,10 @@ export default function PostCard({
               {likesLoading ? (
                 <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
                   <div className="h-4 w-4 rounded-full border-2 border-rose-500 border-t-transparent animate-spin" />
-                  Učitavanje lajkova...
+                  {t('postCard.loadingLikes')}
                 </div>
               ) : likes.length === 0 ? (
-                <p className="text-[13px] text-gray-400 py-2">Nema lajkova.</p>
+                <p className="text-[13px] text-gray-400 py-2">{t('postCard.noLikes')}</p>
               ) : (
                 <div className="space-y-1">
                   {likes.map((u) => {

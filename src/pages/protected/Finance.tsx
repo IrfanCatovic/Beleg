@@ -7,9 +7,11 @@ import Loader from '../../components/Loader'
 import { formatDateShort, dateToYMD } from '../../utils/dateUtils'
 import { generateFinanceReportPdf } from '../../utils/generateFinanceReportPdf'
 import { PrinterIcon } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
 type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
+type CurrencyCode = 'RSD' | 'BAM' | 'HRK' | 'EUR'
 
 interface Transakcija {
   id: number
@@ -42,7 +44,9 @@ interface ClanarinaRow {
 
 export default function Finance() {
   const { user } = useAuth()
+  const { t } = useTranslation('finance')
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [currency, setCurrency] = useState<CurrencyCode>('RSD')
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
@@ -72,6 +76,9 @@ export default function Finance() {
   const [transakcijaOpis, setTransakcijaOpis] = useState('')
   const [transakcijaSubmitting, setTransakcijaSubmitting] = useState(false)
 
+  const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
+  const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
+
   const fetchDashboard = async () => {
     if (!user) return
     setDashboardLoading(true)
@@ -85,7 +92,7 @@ export default function Finance() {
         transakcije: Array.isArray(data?.transakcije) ? data.transakcije : [],
       })
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri učitavanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.load')
       setError(msg)
     } finally {
       setDashboardLoading(false)
@@ -100,7 +107,7 @@ export default function Finance() {
       const res = await api.get(`/api/finansije/clanarine?godina=${clanarineGodina}`)
       setClanarine(res.data.clanarine || [])
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri učitavanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.load')
       setError(msg)
     } finally {
       setClanarineLoading(false)
@@ -116,11 +123,11 @@ export default function Finance() {
     e.preventDefault()
     const iznos = Number(transakcijaIznos?.replace(/,/g, '.'))
     if (!iznos || iznos <= 0) {
-      setError('Unesite validan iznos.')
+      setError(t('errors.invalidAmount'))
       return
     }
     if (transakcijaDatum > todayYmd) {
-      setError('Datum ne može biti u budućnosti.')
+      setError(t('errors.futureDate'))
       return
     }
     const opis = [transakcijaUplatilac.trim(), transakcijaOpis.trim()].filter(Boolean).join(' – ') || undefined
@@ -139,7 +146,7 @@ export default function Finance() {
       setTransakcijaDatum(dateToYMD(new Date()))
       await fetchDashboard()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri čuvanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
       setError(msg)
     } finally {
       setTransakcijaSubmitting(false)
@@ -158,7 +165,7 @@ export default function Finance() {
       })
       await fetchClanarine()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.generic')
       setError(msg)
     } finally {
       setPlatiLoading(null)
@@ -182,7 +189,7 @@ export default function Finance() {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     {
       key: 'dashboard',
-      label: 'Dashboard',
+      label: t('tabs.dashboard'),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -191,7 +198,7 @@ export default function Finance() {
     },
     {
       key: 'clanarine',
-      label: 'Članarine',
+      label: t('tabs.memberships'),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -200,7 +207,7 @@ export default function Finance() {
     },
     {
       key: 'transakcije',
-      label: 'Uplate / Isplate',
+      label: t('tabs.transactions'),
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -218,37 +225,53 @@ export default function Finance() {
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Finansije</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">{t('title')}</h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 ml-3.5 max-w-xl">
-              Prati stanje blagajne, članarine i sve transakcije kluba.
+              {t('subtitle')}
             </p>
           </div>
-          {dashboardData && tab === 'dashboard' && (
-            <button
-              type="button"
-              onClick={() =>
-                generateFinanceReportPdf({
-                  from: fromDate,
-                  to: toDate,
-                  transakcije: dashboardData.transakcije,
-                  uplate: dashboardData.uplate,
-                  isplate: dashboardData.isplate,
-                  saldo: dashboardData.saldo,
-                })
-              }
-              title="Štampa PDF izveštaj za period"
-              aria-label="Štampa PDF izveštaj"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
-            >
-              <PrinterIcon className="w-4 h-4" />
-              PDF izveštaj
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <Dropdown
+              aria-label={t('currency.ariaLabel')}
+              options={[
+                { value: 'RSD', label: 'RSD' },
+                { value: 'BAM', label: 'BAM' },
+                { value: 'HRK', label: 'HRK' },
+                { value: 'EUR', label: 'EUR' },
+              ]}
+              value={currency}
+              onChange={(v) => setCurrency(v as CurrencyCode)}
+              minTriggerWidth="110px"
+              className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
+            />
+            {dashboardData && tab === 'dashboard' && (
+              <button
+                type="button"
+                onClick={() =>
+                  generateFinanceReportPdf({
+                    from: fromDate,
+                    to: toDate,
+                    transakcije: dashboardData.transakcije,
+                    uplate: dashboardData.uplate,
+                    isplate: dashboardData.isplate,
+                    saldo: dashboardData.saldo,
+                    currency,
+                  })
+                }
+                title={t('pdf.printTitle')}
+                aria-label={t('pdf.printAria')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
+              >
+                <PrinterIcon className="w-4 h-4" />
+                {t('pdf.report')}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ══════════ TABS ══════════ */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex divide-x divide-gray-100">
             {tabs.map((t) => (
               <button
@@ -283,18 +306,18 @@ export default function Finance() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">Podešavanje perioda</h3>
+                  <h3 className="text-sm font-bold text-gray-900">{t('period.title')}</h3>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    Izaberi vremenski opseg za prikaz finansija.
+                    {t('period.subtitle')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Dropdown
-                    aria-label="Filter transakcija"
+                    aria-label={t('filters.transactionsAria')}
                     options={[
-                      { value: 'sve', label: 'Sve transakcije' },
-                      { value: 'uplata', label: 'Samo uplate' },
-                      { value: 'isplata', label: 'Samo isplate' },
+                      { value: 'sve', label: t('filters.allTransactions') },
+                      { value: 'uplata', label: t('filters.onlyIncome') },
+                      { value: 'isplata', label: t('filters.onlyExpense') },
                     ]}
                     value={transakcijaFilter}
                     onChange={(v) => setTransakcijaFilter(v as TransakcijaFilter)}
@@ -306,14 +329,14 @@ export default function Finance() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">Period</span>
+                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('period.label')}</span>
                   <Dropdown
-                    aria-label="Period finansijskog izveštaja"
+                    aria-label={t('period.ariaLabel')}
                     options={[
-                      { value: 'danas', label: 'Danas' },
-                      { value: 'mesec', label: 'Ovaj mesec' },
-                      { value: 'godina', label: 'Ova godina' },
-                      { value: 'dveGodine', label: 'Prošla + ova godina' },
+                      { value: 'danas', label: t('period.today') },
+                      { value: 'mesec', label: t('period.thisMonth') },
+                      { value: 'godina', label: t('period.thisYear') },
+                      { value: 'dveGodine', label: t('period.prevPlusCurrent') },
                     ]}
                     value={periodPreset}
                     onChange={(v) => {
@@ -341,28 +364,28 @@ export default function Finance() {
                 </div>
 
                 <div className="space-y-1.5 lg:col-span-2">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">Ručni odabir datuma</span>
+                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('period.manualDateRange')}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-gray-400 font-medium">Od</span>
+                      <span className="text-[11px] text-gray-400 font-medium">{t('period.from')}</span>
                       <CalendarDropdown
                         value={fromDate}
                         onChange={setFromDate}
-                        placeholder="Od datuma"
+                        placeholder={t('period.fromDate')}
                         maxDate={toDate}
-                        aria-label="Period od"
+                        aria-label={t('period.fromAria')}
                         minTriggerWidth="160px"
                         className="w-full"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-gray-400 font-medium">Do</span>
+                      <span className="text-[11px] text-gray-400 font-medium">{t('period.to')}</span>
                       <CalendarDropdown
                         value={toDate}
                         onChange={setToDate}
-                        placeholder="Do datuma"
+                        placeholder={t('period.toDate')}
                         minDate={fromDate}
-                        aria-label="Period do"
+                        aria-label={t('period.toAria')}
                         minTriggerWidth="160px"
                         className="w-full"
                       />
@@ -386,8 +409,8 @@ export default function Finance() {
                         </svg>
                       }
                       iconBg="bg-emerald-50"
-                      value={`${dashboardData.saldo.toLocaleString('sr-RS')} RSD`}
-                      label="Stanje"
+                      value={formatAmount(dashboardData.saldo)}
+                      label={t('summary.balance')}
                       accent={dashboardData.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}
                     />
                     <SummaryCell
@@ -397,8 +420,8 @@ export default function Finance() {
                         </svg>
                       }
                       iconBg="bg-green-50"
-                      value={`${dashboardData.uplate.toLocaleString('sr-RS')} RSD`}
-                      label="Uplate"
+                      value={formatAmount(dashboardData.uplate)}
+                      label={t('summary.income')}
                       accent="text-green-600"
                     />
                     <SummaryCell
@@ -408,8 +431,8 @@ export default function Finance() {
                         </svg>
                       }
                       iconBg="bg-rose-50"
-                      value={`${dashboardData.isplate.toLocaleString('sr-RS')} RSD`}
-                      label="Isplate"
+                      value={formatAmount(dashboardData.isplate)}
+                      label={t('summary.expense')}
                       accent="text-rose-600"
                     />
                   </div>
@@ -423,7 +446,7 @@ export default function Finance() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                       </svg>
                     </span>
-                    <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Transakcije u periodu</h2>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('transactions.inPeriod')}</h2>
                     {filteredTransakcije.length > 0 && (
                       <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                         {filteredTransakcije.length}
@@ -438,8 +461,8 @@ export default function Finance() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
                         </svg>
                       }
-                      text="Nema transakcija za izabrani period i filter."
-                      sub="Pokušaj da promeniš period ili filter."
+                      text={t('transactions.empty')}
+                      sub={t('transactions.emptySub')}
                     />
                   ) : (
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -448,36 +471,36 @@ export default function Finance() {
                         <table className="min-w-full divide-y divide-gray-100">
                           <thead>
                             <tr className="bg-gray-50/80">
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Datum</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Tip</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Iznos</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Opis</th>
+                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.date')}</th>
+                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.type')}</th>
+                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.amount')}</th>
+                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.description')}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
-                            {paginatedTransakcije.map((t) => (
-                              <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-5 py-3.5 text-sm text-gray-600 font-medium">{formatDateShort(t.datum)}</td>
+                            {paginatedTransakcije.map((tx) => (
+                              <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-5 py-3.5 text-sm text-gray-600 font-medium">{formatDateShort(tx.datum)}</td>
                                 <td className="px-5 py-3.5">
                                   <span
                                     className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                      t.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                      tx.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                                     }`}
                                   >
-                                    {t.tip}
+                                    {tx.tip === 'uplata' ? t('transactions.type.income') : t('transactions.type.expense')}
                                   </span>
-                                  {t.clanarinaKorisnik && (
+                                  {tx.clanarinaKorisnik && (
                                     <span className="ml-2 text-xs text-gray-400">
-                                      ({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})
+                                      ({tx.clanarinaKorisnik.fullName || tx.clanarinaKorisnik.username})
                                     </span>
                                   )}
                                 </td>
                                 <td className="px-5 py-3.5 text-sm font-semibold text-gray-900">
-                                  {Math.abs(t.iznos).toLocaleString('sr-RS')} RSD
+                                  {formatAbsAmount(tx.iznos)}
                                 </td>
                                 <td className="px-5 py-3.5 text-sm text-gray-500 max-w-[12rem] sm:max-w-[16rem]">
-                                  <span className="block truncate" title={t.opis || undefined}>
-                                    {t.opis || '—'}
+                                  <span className="block truncate" title={tx.opis || undefined}>
+                                    {tx.opis || t('common.emptyValue')}
                                   </span>
                                 </td>
                               </tr>
@@ -488,27 +511,27 @@ export default function Finance() {
 
                       {/* Mobile cards */}
                       <div className="sm:hidden divide-y divide-gray-50">
-                        {paginatedTransakcije.map((t) => (
-                          <div key={t.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                        {paginatedTransakcije.map((tx) => (
+                          <div key={tx.id} className="p-4 hover:bg-gray-50/50 transition-colors">
                             <div className="flex justify-between items-start gap-2">
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                  t.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                  tx.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                                 }`}
                               >
-                                {t.tip}
+                                {tx.tip === 'uplata' ? t('transactions.type.income') : t('transactions.type.expense')}
                               </span>
                               <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                {Math.abs(t.iznos).toLocaleString('sr-RS')} RSD
+                                {formatAbsAmount(tx.iznos)}
                               </span>
                             </div>
-                            <p className="text-[11px] text-gray-400 font-medium mt-1.5">{formatDateShort(t.datum)}</p>
-                            <p className="text-sm text-gray-600 mt-1 truncate max-w-full" title={t.opis || undefined}>
-                              {t.opis || '—'}
+                            <p className="text-[11px] text-gray-400 font-medium mt-1.5">{formatDateShort(tx.datum)}</p>
+                            <p className="text-sm text-gray-600 mt-1 truncate max-w-full" title={tx.opis || undefined}>
+                              {tx.opis || t('common.emptyValue')}
                             </p>
-                            {t.clanarinaKorisnik && (
+                            {tx.clanarinaKorisnik && (
                               <p className="text-[11px] text-gray-400 mt-0.5">
-                                ({t.clanarinaKorisnik.fullName || t.clanarinaKorisnik.username})
+                                ({tx.clanarinaKorisnik.fullName || tx.clanarinaKorisnik.username})
                               </p>
                             )}
                           </div>
@@ -516,7 +539,19 @@ export default function Finance() {
                       </div>
 
                       {/* Pagination */}
-                      {totalPages > 1 && <Pagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} />}
+                      {totalPages > 1 && (
+                        <Pagination
+                          currentPage={safeCurrentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                          prevLabel={t('pagination.previous')}
+                          nextLabel={t('pagination.next')}
+                          prevAria={t('pagination.previousAria')}
+                          nextAria={t('pagination.nextAria')}
+                          pageAria={t('pagination.pageAria')}
+                          pageOf={t('pagination.pageOf', { currentPage: safeCurrentPage, totalPages })}
+                        />
+                      )}
                     </div>
                   )}
                 </section>
@@ -538,18 +573,18 @@ export default function Finance() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900">Nova transakcija</h3>
-                      <p className="text-[11px] text-gray-500">Dodaj uplatu ili isplatu u blagajnu kluba.</p>
+                      <h3 className="text-sm font-bold text-gray-900">{t('newTransaction.title')}</h3>
+                      <p className="text-[11px] text-gray-500">{t('newTransaction.subtitle')}</p>
                     </div>
                   </div>
 
                   <form onSubmit={handleNovaTransakcija} className="space-y-4">
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Tip</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.type')}</label>
                       <Dropdown
                         options={[
-                          { value: 'uplata', label: 'Uplata' },
-                          { value: 'isplata', label: 'Isplata' },
+                          { value: 'uplata', label: t('transactions.type.income') },
+                          { value: 'isplata', label: t('transactions.type.expense') },
                         ]}
                         value={transakcijaTip}
                         onChange={(v) => setTransakcijaTip(v as 'uplata' | 'isplata')}
@@ -558,46 +593,46 @@ export default function Finance() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                        {transakcijaTip === 'uplata' ? 'Ko je uplatio (opciono)' : 'Kome / za šta (opciono)'}
+                        {transakcijaTip === 'uplata' ? t('newTransaction.payerOptional') : t('newTransaction.payeeOptional')}
                       </label>
                       <input
                         type="text"
                         value={transakcijaUplatilac}
                         onChange={(e) => setTransakcijaUplatilac(e.target.value)}
-                        placeholder={transakcijaTip === 'uplata' ? 'npr. Ime prezime' : 'npr. Dobavljač, svrha'}
+                        placeholder={transakcijaTip === 'uplata' ? t('newTransaction.payerPlaceholder') : t('newTransaction.payeePlaceholder')}
                         className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Iznos (RSD) *</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.amountRequired', { currency })}</label>
                       <input
                         type="text"
                         inputMode="decimal"
                         value={transakcijaIznos}
                         onChange={(e) => setTransakcijaIznos(e.target.value.replace(/[^0-9,.]/g, ''))}
-                        placeholder="npr. 5000"
+                        placeholder={t('newTransaction.amountPlaceholder')}
                         required
                         className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Datum *</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.dateRequired')}</label>
                       <CalendarDropdown
                         value={transakcijaDatum}
                         onChange={setTransakcijaDatum}
-                        placeholder="Izaberite datum"
+                        placeholder={t('newTransaction.chooseDate')}
                         maxDate={todayYmd}
                         fullWidth
-                        aria-label="Datum transakcije"
+                        aria-label={t('newTransaction.dateAria')}
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Opis (opciono)</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.descriptionOptional')}</label>
                       <input
                         type="text"
                         value={transakcijaOpis}
                         onChange={(e) => setTransakcijaOpis(e.target.value)}
-                        placeholder="npr. Članarina, kupovina opreme..."
+                        placeholder={t('newTransaction.descriptionPlaceholder')}
                         className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
                       />
                     </div>
@@ -606,7 +641,7 @@ export default function Finance() {
                       disabled={transakcijaSubmitting}
                       className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {transakcijaSubmitting ? 'Čuvanje...' : 'Sačuvaj transakciju'}
+                      {transakcijaSubmitting ? t('common.saving') : t('newTransaction.save')}
                     </button>
                   </form>
                 </div>
@@ -626,7 +661,7 @@ export default function Finance() {
                 </svg>
               </span>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Status članarine računa se posebno za svaku godinu. Kada nastupi nova godina, svi članovi su za narednu godinu početno neplaćeni.
+                {t('memberships.info')}
               </p>
             </div>
 
@@ -634,9 +669,9 @@ export default function Finance() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
               <div className="flex flex-wrap gap-4 sm:gap-6 items-end">
                 <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">Godina</span>
+                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('memberships.year')}</span>
                   <Dropdown
-                    aria-label="Godina članarine"
+                    aria-label={t('memberships.yearAria')}
                     options={Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
                       .sort((a, b) => b - a)
                       .map((y) => ({ value: String(y), label: `${y}.` }))}
@@ -647,7 +682,7 @@ export default function Finance() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">Iznos članarine (RSD)</span>
+                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('memberships.amount', { currency })}</span>
                   <input
                     type="number"
                     min={1}
@@ -668,8 +703,8 @@ export default function Finance() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                   </svg>
                 }
-                text="Nema korisnika."
-                sub="Dodajte članove u klub da biste videli njihove članarine."
+                text={t('memberships.noUsers')}
+                sub={t('memberships.noUsersSub')}
               />
             ) : (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -678,8 +713,8 @@ export default function Finance() {
                   <table className="min-w-full divide-y divide-gray-100">
                     <thead>
                       <tr className="bg-gray-50/80">
-                        <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Korisnik</th>
-                        <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('memberships.table.user')}</th>
+                        <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('memberships.table.status')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -693,7 +728,7 @@ export default function Finance() {
                             {row.platio ? (
                               <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                Platio
+                                {t('memberships.paid')}
                               </span>
                             ) : (
                               <button
@@ -702,7 +737,7 @@ export default function Finance() {
                                 disabled={platiLoading === row.id}
                                 className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {platiLoading === row.id ? 'Čeka se...' : 'Plati'}
+                                {platiLoading === row.id ? t('memberships.waiting') : t('memberships.pay')}
                               </button>
                             )}
                           </td>
@@ -724,7 +759,7 @@ export default function Finance() {
                         {row.platio ? (
                           <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-sm">
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                            Platio
+                            {t('memberships.paid')}
                           </span>
                         ) : (
                           <button
@@ -733,7 +768,7 @@ export default function Finance() {
                             disabled={platiLoading === row.id}
                             className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {platiLoading === row.id ? '...' : 'Plati'}
+                            {platiLoading === row.id ? '...' : t('memberships.pay')}
                           </button>
                         )}
                       </div>
@@ -775,10 +810,16 @@ function SummaryCell({ icon, iconBg, value, label, accent }: {
   )
 }
 
-function Pagination({ currentPage, totalPages, onPageChange }: {
+function Pagination({ currentPage, totalPages, onPageChange, prevLabel, nextLabel, prevAria, nextAria, pageAria, pageOf }: {
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
+  prevLabel: string
+  nextLabel: string
+  prevAria: string
+  nextAria: string
+  pageAria: string
+  pageOf: string
 }) {
   const prevDisabled = currentPage === 1
   const nextDisabled = currentPage === totalPages
@@ -804,13 +845,13 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
           type="button"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={prevDisabled}
-          aria-label="Prethodna strana"
+          aria-label={prevAria}
           className="shrink-0 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 shadow-sm transition-all disabled:opacity-40 disabled:pointer-events-none hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="hidden sm:inline">Prethodna</span>
+          <span className="hidden sm:inline">{prevLabel}</span>
         </button>
         <div className="flex items-center justify-center gap-0.5 sm:gap-1 min-w-0 flex-1 max-w-full overflow-hidden">
           {pageNumbers.map((page, idx) =>
@@ -823,7 +864,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
                 key={page}
                 type="button"
                 onClick={() => onPageChange(page)}
-                aria-label={`Strana ${page}`}
+                aria-label={`${pageAria} ${page}`}
                 aria-current={page === currentPage ? 'page' : undefined}
                 className={`shrink-0 min-w-[2rem] w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-sm font-medium transition-all ${
                   page === currentPage
@@ -840,18 +881,16 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
           type="button"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={nextDisabled}
-          aria-label="Sledeća strana"
+          aria-label={nextAria}
           className="shrink-0 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 shadow-sm transition-all disabled:opacity-40 disabled:pointer-events-none hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100"
         >
-          <span className="hidden sm:inline">Sledeća</span>
+          <span className="hidden sm:inline">{nextLabel}</span>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
-      <p className="text-center text-[11px] text-gray-400 font-medium mt-2 sm:mt-2.5">
-        Strana {currentPage} od {totalPages}
-      </p>
+      <p className="text-center text-[11px] text-gray-400 font-medium mt-2 sm:mt-2.5">{pageOf}</p>
     </div>
   )
 }

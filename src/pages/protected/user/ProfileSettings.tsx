@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
@@ -43,6 +44,7 @@ const initialForm = {
 }
 
 export default function ProfileSettings() {
+  const { t } = useTranslation('profileSettings')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, isLoggedIn, login, refreshUser } = useAuth()
@@ -90,7 +92,7 @@ export default function ProfileSettings() {
           setRole(k.role || '')
           setTargetUsername(k.username || '')
         } catch (err: any) {
-          setError(err.response?.data?.error || 'Greška pri učitavanju profila')
+          setError(err.response?.data?.error || t('loadProfileError'))
         } finally {
           setLoading(false)
         }
@@ -125,7 +127,7 @@ export default function ProfileSettings() {
         setRole(k.role || '')
         if (k.avatar_url) setAvatarPreview(k.avatar_url)
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju profila')
+        setError(err.response?.data?.error || t('loadProfileError'))
       } finally {
         setLoading(false)
       }
@@ -142,11 +144,11 @@ export default function ProfileSettings() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setError('Dozvoljene su samo slike (jpg, png, gif...)')
+      setError(t('imageOnlyError'))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Slika je prevelika (maksimum 5 MB)')
+      setError(t('imageTooLargeError'))
       return
     }
     setError('')
@@ -163,12 +165,12 @@ export default function ProfileSettings() {
     try {
       if (isAdminEdit) {
         if (newPassword !== confirmPassword) {
-          setError('Lozinke se ne podudaraju.')
+          setError(t('passwordMismatch'))
           setSaving(false)
           return
         }
         if (newPassword && newPassword.length < 8) {
-          setError('Lozinka mora imati najmanje 8 karaktera.')
+          setError(t('passwordTooShort'))
           setSaving(false)
           return
         }
@@ -181,7 +183,7 @@ export default function ProfileSettings() {
         }
         if (newPassword) body.newPassword = newPassword
         if (isSekretarEdit && !newPassword) {
-          setError('Unesite novu lozinku korisnika.')
+          setError(t('enterNewPassword'))
           setSaving(false)
           return
         }
@@ -194,12 +196,12 @@ export default function ProfileSettings() {
       }
 
       if (newPassword !== confirmPassword) {
-        setError('Lozinke se ne podudaraju.')
+        setError(t('passwordMismatch'))
         setSaving(false)
         return
       }
       if (newPassword && newPassword.length < 8) {
-        setError('Lozinka mora imati najmanje 8 karaktera.')
+        setError(t('passwordTooShort'))
         setSaving(false)
         return
       }
@@ -240,7 +242,7 @@ export default function ProfileSettings() {
       setSuccess(true)
       setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri čuvanju profila')
+      setError(err.response?.data?.error || t('saveProfileError'))
     } finally {
       setSaving(false)
     }
@@ -271,7 +273,7 @@ export default function ProfileSettings() {
                 className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeftIcon className="h-5 w-5" />
-                Nazad
+                {t('back')}
               </Link>
               <div className="h-14 w-px bg-gray-200 hidden sm:block" />
               <div className="flex items-center gap-4">
@@ -284,7 +286,7 @@ export default function ProfileSettings() {
                       accept="image/*"
                       onChange={handleAvatarChange}
                       className="hidden"
-                      aria-label="Izaberi profilnu sliku"
+                      aria-label={t('chooseProfileImage')}
                     />
                     <button
                       type="button"
@@ -312,14 +314,14 @@ export default function ProfileSettings() {
                 )}
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">
-                    {isSekretarEdit ? 'Postavi lozinku' : isAdminEdit ? 'Podešavanja korisnika' : 'Podešavanja profila'}
+                    {isSekretarEdit ? t('setPassword') : isAdminEdit ? t('userSettings') : t('profileSettings')}
                   </h1>
                   <p className="text-sm text-gray-500 mt-0.5">
                     {isSekretarEdit
-                      ? 'Nova lozinka za korisnika (samo ako je zaboravio)'
+                      ? t('secretarySubtitle')
                       : isAdminEdit
-                      ? 'Uloga, disciplinske kazne, napomene, lozinka'
-                      : 'Lični i planinarski podaci, lozinka'}
+                      ? t('adminSubtitle')
+                      : t('selfSubtitle')}
                   </p>
                 </div>
               </div>
@@ -332,13 +334,13 @@ export default function ProfileSettings() {
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
                 >
-                  {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
+                  {saving ? t('saving') : t('saveChanges')}
                 </button>
                 <Link
                   to={backTo}
                   className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Odustani
+                  {t('cancel')}
                 </Link>
               </div>
             )}
@@ -349,7 +351,7 @@ export default function ProfileSettings() {
       {success && (
         <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800">
-            Profil sačuvan. Preusmeravam...
+            {t('savedRedirecting')}
           </div>
         </div>
       )}
@@ -368,18 +370,18 @@ export default function ProfileSettings() {
                   <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                     <div className="flex items-center gap-2">
                       <KeyIcon className="h-5 w-5 text-emerald-600" />
-                      <h2 className="text-base font-semibold text-gray-900">Postavi novu lozinku</h2>
+                      <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Samo ako je korisnik zaboravio lozinku.</p>
+                    <p className="mt-1 text-xs text-gray-500">{t('onlyIfForgotPassword')}</p>
                   </div>
                   <div className="p-5 space-y-4">
                     <div>
-                      <label className={labelClass}>Nova lozinka *</label>
-                      <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} required autoComplete="new-password" />
+                      <label className={labelClass}>{t('newPasswordRequired')}</label>
+                      <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} required autoComplete="new-password" />
                     </div>
                     <div>
-                      <label className={labelClass}>Ponovite lozinku *</label>
-                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" required autoComplete="new-password" />
+                      <label className={labelClass}>{t('repeatPasswordRequired')}</label>
+                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} required autoComplete="new-password" />
                     </div>
                   </div>
                 </div>
@@ -389,31 +391,31 @@ export default function ProfileSettings() {
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Uloga</h2>
+                        <h2 className="text-base font-semibold text-gray-900">{t('role')}</h2>
                       </div>
                     </div>
                     <div className="p-5">
-                      <Dropdown aria-label="Uloga" options={[{ value: 'clan', label: 'Clan' }, { value: 'admin', label: 'Admin' }, { value: 'vodic', label: 'Vodic' }, { value: 'blagajnik', label: 'Blagajnik' }, { value: 'sekretar', label: 'Sekretar' }, { value: 'menadzer-opreme', label: 'Menadzer opreme' }]} value={role} onChange={setRole} fullWidth />
+                      <Dropdown aria-label={t('role')} options={[{ value: 'clan', label: t('roles.clan') }, { value: 'admin', label: t('roles.admin') }, { value: 'vodic', label: t('roles.vodic') }, { value: 'blagajnik', label: t('roles.blagajnik') }, { value: 'sekretar', label: t('roles.sekretar') }, { value: 'menadzer-opreme', label: t('roles.menadzerOpreme') }]} value={role} onChange={setRole} fullWidth />
                     </div>
                   </div>
                   <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Disciplinske kazne, izbor u organe, napomene</h2>
+                        <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
                       </div>
                     </div>
                     <div className="p-5 space-y-4">
                       <div>
-                        <label className={labelClass}>Izrečene disciplinske kazne</label>
+                        <label className={labelClass}>{t('disciplinary')}</label>
                         <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} className={inputClass} />
                       </div>
                       <div>
-                        <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                        <label className={labelClass}>{t('selectionBodies')}</label>
                         <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} className={inputClass} />
                       </div>
                       <div>
-                        <label className={labelClass}>Napomene</label>
+                        <label className={labelClass}>{t('notes')}</label>
                         <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} className={inputClass} />
                       </div>
                     </div>
@@ -422,18 +424,18 @@ export default function ProfileSettings() {
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
                         <KeyIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Postavi novu lozinku</h2>
+                        <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">Ostavite prazno ako ne menjate.</p>
+                      <p className="mt-1 text-xs text-gray-500">{t('leaveEmptyIfNoChange')}</p>
                     </div>
                     <div className="p-5 space-y-4">
                       <div>
-                        <label className={labelClass}>Nova lozinka</label>
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} autoComplete="new-password" />
+                        <label className={labelClass}>{t('newPassword')}</label>
+                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} autoComplete="new-password" />
                       </div>
                       <div>
-                        <label className={labelClass}>Ponovite lozinku</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" autoComplete="new-password" />
+                        <label className={labelClass}>{t('repeatPassword')}</label>
+                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} autoComplete="new-password" />
                       </div>
                     </div>
                   </div>
@@ -441,10 +443,10 @@ export default function ProfileSettings() {
               )}
               <div className="flex gap-3">
                 <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                  {saving ? 'Čuvanje...' : isSekretarEdit ? 'Postavi lozinku' : 'Sačuvaj promene'}
+                  {saving ? t('saving') : isSekretarEdit ? t('setPassword') : t('saveChanges')}
                 </button>
                 <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Odustani
+                  {t('cancel')}
                 </Link>
               </div>
             </div>
@@ -455,25 +457,25 @@ export default function ProfileSettings() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Nalog</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('account')}</h2>
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
                   <div>
-                    <label className={labelClass}>Korisničko ime</label>
-                    <input name="username" value={form.username} onChange={handleChange} required className={inputClass} placeholder="Jedinstveno u sistemu" />
+                    <label className={labelClass}>{t('username')}</label>
+                    <input name="username" value={form.username} onChange={handleChange} required className={inputClass} placeholder={t('usernameUnique')} />
                   </div>
                   <div>
-                    <label className={labelClass}>Uloga</label>
+                    <label className={labelClass}>{t('role')}</label>
                     <input value={role} readOnly disabled className={disabledInputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Nova lozinka (ostavite prazno ako ne menjate)</label>
-                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder="Min. 8 karaktera" minLength={8} autoComplete="new-password" />
+                    <label className={labelClass}>{t('newPasswordLeaveEmpty')}</label>
+                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} autoComplete="new-password" />
                   </div>
                   <div>
-                    <label className={labelClass}>Ponovite lozinku</label>
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder="Ponovite lozinku" autoComplete="new-password" />
+                    <label className={labelClass}>{t('repeatPassword')}</label>
+                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} autoComplete="new-password" />
                   </div>
                 </div>
               </div>
@@ -483,41 +485,41 @@ export default function ProfileSettings() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <IdentificationIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Lični podaci</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('personalData')}</h2>
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Puno ime i prezime</label>
+                      <label className={labelClass}>{t('fullName')}</label>
                       <input name="fullName" value={form.fullName} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Ime roditelja</label>
+                      <label className={labelClass}>{t('parentName')}</label>
                       <input name="imeRoditelja" value={form.imeRoditelja} onChange={handleChange} className={inputClass} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Pol</label>
-                      <Dropdown aria-label="Pol" options={[{ value: '', label: '— izaberi —' }, { value: 'M', label: 'Muški' }, { value: 'Ž', label: 'Ženski' }]} value={form.pol} onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))} fullWidth />
+                      <label className={labelClass}>{t('gender')}</label>
+                      <Dropdown aria-label={t('gender')} options={[{ value: '', label: t('selectOption') }, { value: 'M', label: t('genderMale') }, { value: 'Ž', label: t('genderFemale') }]} value={form.pol} onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))} fullWidth />
                     </div>
                     <div>
-                      <label className={labelClass}>Datum rođenja</label>
+                      <label className={labelClass}>{t('birthDate')}</label>
                       <DatePartsSelect
-                        ariaLabel="Datum rođenja"
+                        ariaLabel={t('birthDate')}
                         value={form.datumRodjenja}
                         onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
-                        placeholderDay="Dan"
-                        placeholderMonth="Mesec"
-                        placeholderYear="Godina"
+                        placeholderDay={t('day')}
+                        placeholderMonth={t('month')}
+                        placeholderYear={t('year')}
                         minYear={1900}
                         maxYear={new Date().getFullYear()}
                       />
                     </div>
                   </div>
                   <div>
-                    <label className={labelClass}>Državljanstvo</label>
+                    <label className={labelClass}>{t('citizenship')}</label>
                     <input name="drzavljanstvo" value={form.drzavljanstvo} onChange={handleChange} className={inputClass} />
                   </div>
                 </div>
@@ -528,22 +530,22 @@ export default function ProfileSettings() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <PhoneIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Kontakt</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('contact')}</h2>
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Email</label>
+                      <label className={labelClass}>{t('email')}</label>
                       <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Telefon</label>
+                      <label className={labelClass}>{t('phone')}</label>
                       <input name="telefon" value={form.telefon} onChange={handleChange} className={inputClass} />
                     </div>
                   </div>
                   <div>
-                    <label className={labelClass}>Adresa</label>
+                    <label className={labelClass}>{t('address')}</label>
                     <input name="adresa" value={form.adresa} onChange={handleChange} className={inputClass} />
                   </div>
                 </div>
@@ -554,33 +556,33 @@ export default function ProfileSettings() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Dokumenti i planinarski podaci</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('documentsAndHiking')}</h2>
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Broj ličnog dokumenta</label>
+                      <label className={labelClass}>{t('idDocumentNumber')}</label>
                       <input name="brojLicnogDokumenta" value={form.brojLicnogDokumenta} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Broj planinarske legitimacije</label>
+                      <label className={labelClass}>{t('hikingCardNumber')}</label>
                       <input name="brojPlaninarskeLegitimacije" value={form.brojPlaninarskeLegitimacije} onChange={handleChange} className={inputClass} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Broj planinarske markice</label>
+                      <label className={labelClass}>{t('hikingBadgeNumber')}</label>
                       <input name="brojPlaninarskeMarkice" value={form.brojPlaninarskeMarkice} onChange={handleChange} className={inputClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Datum učlanjenja</label>
+                      <label className={labelClass}>{t('membershipDate')}</label>
                       <CalendarDropdown
                         value={form.datumUclanjenja}
                         onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
-                        placeholder="Izaberite datum"
+                        placeholder={t('chooseDate')}
                         fullWidth
-                        aria-label="Datum učlanjenja"
+                        aria-label={t('membershipDate')}
                         minDate="1900-01-01"
                         maxDate={dateToYMD(new Date())}
                       />
@@ -594,21 +596,21 @@ export default function ProfileSettings() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <div className="flex items-center gap-2">
                     <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">Disciplinske kazne, izbor u organe, napomene</h2>
+                    <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
                   </div>
-                  {!canEditAdminFields && <p className="mt-1 text-xs text-gray-500">Ova polja menja samo admin.</p>}
+                  {!canEditAdminFields && <p className="mt-1 text-xs text-gray-500">{t('adminOnlyFields')}</p>}
                 </div>
                 <div className="p-5 space-y-4">
                   <div>
-                    <label className={labelClass}>Izrečene disciplinske kazne</label>
+                    <label className={labelClass}>{t('disciplinary')}</label>
                     <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                    <label className={labelClass}>{t('selectionBodies')}</label>
                     <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Napomene</label>
+                    <label className={labelClass}>{t('notes')}</label>
                     <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
                   </div>
                 </div>
@@ -616,10 +618,10 @@ export default function ProfileSettings() {
 
               <div className="flex gap-3 lg:col-span-2 sm:hidden">
                 <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                  {saving ? 'Čuvanje...' : 'Sačuvaj promene'}
+                  {saving ? t('saving') : t('saveChanges')}
                 </button>
                 <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Odustani
+                  {t('cancel')}
                 </Link>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../../services/api'
 import Dropdown from '../../../components/Dropdown'
+import { useTranslation } from 'react-i18next'
 
 const initialForm = {
   username: '',
@@ -25,6 +26,7 @@ const initialForm = {
 }
 
 export default function RegisterAdmin() {
+  const { t } = useTranslation('setup')
   const navigate = useNavigate()
   const [form, setForm] = useState(initialForm)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -41,7 +43,7 @@ export default function RegisterAdmin() {
           navigate('/', { replace: true })
         }
       } catch (err) {
-        console.error('Greška pri proveri statusa', err)
+        console.error(t('registerAdmin.setupStatusErrorLog'), err)
       } finally {
         setLoading(false)
       }
@@ -58,11 +60,11 @@ export default function RegisterAdmin() {
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      setError('Dozvoljene su samo slike (jpg, png, gif...)')
+      setError(t('registerAdmin.imageOnlyError'))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Slika je prevelika (maksimum 5 MB)')
+      setError(t('registerAdmin.imageTooLargeError'))
       return
     }
 
@@ -102,7 +104,7 @@ export default function RegisterAdmin() {
       setSuccess(true)
       setTimeout(() => navigate('/', { replace: true }), 2000)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri kreiranju administratora')
+      setError(err.response?.data?.error || t('registerAdmin.createError'))
     }
   }
 
@@ -114,7 +116,7 @@ export default function RegisterAdmin() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Proveravam stanje aplikacije...</div>
+        <div className="text-xl text-gray-600">{t('registerAdmin.checkingState')}</div>
       </div>
     )
   }
@@ -123,12 +125,12 @@ export default function RegisterAdmin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50 px-4 py-12">
       <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-emerald-100">
         <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#41ac53' }}>
-          Kreiranje prvog administratora
+          {t('registerAdmin.title')}
         </h2>
 
         {success && (
           <div className="mb-6 p-4 bg-green-100 text-green-800 rounded-lg text-center font-medium">
-            Administrator uspešno kreiran! Preusmeravam na login...
+            {t('registerAdmin.createdRedirecting')}
           </div>
         )}
 
@@ -142,10 +144,10 @@ export default function RegisterAdmin() {
           {/* Obavezna polja */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Obavezna polja
+              {t('registerAdmin.requiredFields')}
             </h3>
             <div>
-              <label className={labelClass}>Korisničko ime *</label>
+              <label className={labelClass}>{t('registerAdmin.usernameRequired')}</label>
               <input
                 name="username"
                 value={form.username}
@@ -155,7 +157,7 @@ export default function RegisterAdmin() {
               />
             </div>
             <div>
-              <label className={labelClass}>Lozinka * (min. 8 karaktera)</label>
+              <label className={labelClass}>{t('registerAdmin.passwordRequired')}</label>
               <input
                 name="password"
                 type="password"
@@ -171,11 +173,11 @@ export default function RegisterAdmin() {
           {/* Lični podaci */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Lični podaci (opciono)
+              {t('registerAdmin.personalOptional')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Puno ime</label>
+                  <label className={labelClass}>{t('registerAdmin.fullName')}</label>
                 <input
                   name="fullName"
                   value={form.fullName}
@@ -184,7 +186,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Ime roditelja</label>
+                  <label className={labelClass}>{t('registerAdmin.parentName')}</label>
                 <input
                   name="imeRoditelja"
                   value={form.imeRoditelja}
@@ -193,13 +195,13 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Pol</label>
+                  <label className={labelClass}>{t('registerAdmin.gender')}</label>
                 <Dropdown
-                  aria-label="Pol"
+                  aria-label={t('registerAdmin.gender')}
                   options={[
-                    { value: '', label: '— izaberi —' },
-                    { value: 'M', label: 'Muški' },
-                    { value: 'Ž', label: 'Ženski' },
+                    { value: '', label: t('registerAdmin.pick') },
+                    { value: 'M', label: t('registerAdmin.genderMale') },
+                    { value: 'Ž', label: t('registerAdmin.genderFemale') },
                   ]}
                   value={form.pol}
                   onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
@@ -207,7 +209,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Datum rođenja</label>
+                  <label className={labelClass}>{t('registerAdmin.birthDate')}</label>
                 <input
                   name="datumRodjenja"
                   type="date"
@@ -217,7 +219,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={labelClass}>Državljanstvo</label>
+                  <label className={labelClass}>{t('registerAdmin.citizenship')}</label>
                 <input
                   name="drzavljanstvo"
                   value={form.drzavljanstvo}
@@ -231,11 +233,11 @@ export default function RegisterAdmin() {
           {/* Kontakt */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Kontakt (opciono)
+              {t('registerAdmin.contactOptional')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Email</label>
+                <label className={labelClass}>{t('registerAdmin.email')}</label>
                 <input
                   name="email"
                   type="email"
@@ -245,7 +247,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Telefon</label>
+                <label className={labelClass}>{t('registerAdmin.phone')}</label>
                 <input
                   name="telefon"
                   value={form.telefon}
@@ -254,7 +256,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={labelClass}>Adresa</label>
+                <label className={labelClass}>{t('registerAdmin.address')}</label>
                 <input
                   name="adresa"
                   value={form.adresa}
@@ -268,11 +270,11 @@ export default function RegisterAdmin() {
           {/* Planinarski / dokumenti */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Dokumenti i planinarski podaci (opciono)
+              {t('registerAdmin.docsOptional')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Broj ličnog dokumenta</label>
+                <label className={labelClass}>{t('registerAdmin.idDocNumber')}</label>
                 <input
                   name="brojLicnogDokumenta"
                   value={form.brojLicnogDokumenta}
@@ -281,7 +283,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Broj planinarske legitimacije</label>
+                <label className={labelClass}>{t('registerAdmin.hikingCardNumber')}</label>
                 <input
                   name="brojPlaninarskeLegitimacije"
                   value={form.brojPlaninarskeLegitimacije}
@@ -290,7 +292,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Broj planinarske markice</label>
+                <label className={labelClass}>{t('registerAdmin.hikingBadgeNumber')}</label>
                 <input
                   name="brojPlaninarskeMarkice"
                   value={form.brojPlaninarskeMarkice}
@@ -299,7 +301,7 @@ export default function RegisterAdmin() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Datum učlanjenja</label>
+                <label className={labelClass}>{t('registerAdmin.membershipDate')}</label>
                 <input
                   name="datumUclanjenja"
                   type="date"
@@ -314,40 +316,40 @@ export default function RegisterAdmin() {
           {/* Disciplinske kazne, izbor u organe, napomene */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Disciplinske kazne, izbor u organe, napomene (opciono)
+              {t('registerAdmin.notesOptional')}
             </h3>
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>Izrečene disciplinske kazne</label>
+                <label className={labelClass}>{t('registerAdmin.disciplinary')}</label>
                 <textarea
                   name="izreceneDisciplinskeKazne"
                   value={form.izreceneDisciplinskeKazne}
                   onChange={handleChange}
                   rows={3}
                   className={inputClass}
-                  placeholder="Tekst o izrečenim disciplinskim kaznama..."
+                  placeholder={t('registerAdmin.disciplinaryPlaceholder')}
                 />
               </div>
               <div>
-                <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                <label className={labelClass}>{t('registerAdmin.selectionBodies')}</label>
                 <textarea
                   name="izborUOrganeSportskogUdruzenja"
                   value={form.izborUOrganeSportskogUdruzenja}
                   onChange={handleChange}
                   rows={3}
                   className={inputClass}
-                  placeholder="Tekst o izboru u organe..."
+                  placeholder={t('registerAdmin.selectionBodiesPlaceholder')}
                 />
               </div>
               <div>
-                <label className={labelClass}>Napomene</label>
+                <label className={labelClass}>{t('registerAdmin.notes')}</label>
                 <textarea
                   name="napomene"
                   value={form.napomene}
                   onChange={handleChange}
                   rows={3}
                   className={inputClass}
-                  placeholder="Dodatne napomene..."
+                  placeholder={t('registerAdmin.notesPlaceholder')}
                 />
               </div>
             </div>
@@ -356,7 +358,7 @@ export default function RegisterAdmin() {
           {/* Avatar */}
           <div className={sectionClass}>
             <h3 className="text-lg font-semibold text-gray-800 border-b border-emerald-200 pb-2 mb-2">
-              Profilna slika (opciono)
+              {t('registerAdmin.avatarOptional')}
             </h3>
             <input
               type="file"
@@ -368,7 +370,7 @@ export default function RegisterAdmin() {
               <div className="mt-4 flex justify-center">
                 <img
                   src={avatarPreview}
-                  alt="Preview profilne slike"
+                  alt={t('registerAdmin.avatarPreviewAlt')}
                   className="w-32 h-32 object-cover rounded-full border-4 border-[#41ac53]/30 shadow-md"
                 />
               </div>
@@ -376,7 +378,7 @@ export default function RegisterAdmin() {
           </div>
 
           <div>
-            <label className={labelClass}>Uloga (automatski postavljeno)</label>
+            <label className={labelClass}>{t('registerAdmin.roleAuto')}</label>
             <input
               name="role"
               value="admin"
@@ -390,12 +392,12 @@ export default function RegisterAdmin() {
             className="w-full py-4 text-white font-bold rounded-lg shadow-md transition-all hover:bg-[#2e8b45] focus:outline-none focus:ring-2 focus:ring-[#41ac53]/50"
             style={{ backgroundColor: '#41ac53' }}
           >
-            Kreiraj prvog administratora
+            {t('registerAdmin.submit')}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-500">
-          Obavezna su samo korisničko ime i lozinka. Ostala polja možete popuniti posle prijave.
+          {t('registerAdmin.footerHint')}
         </p>
       </div>
     </div>

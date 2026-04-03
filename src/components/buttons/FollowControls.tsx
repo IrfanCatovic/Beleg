@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
+import { useTranslation } from 'react-i18next'
 
 type FollowStatusResponse = {
   outgoing: 'none' | 'pending' | 'accepted'
@@ -19,6 +20,7 @@ export default function FollowControls({
   hidden?: boolean
   onStatusChange?: () => void
 }) {
+  const { t } = useTranslation('uiExtras')
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
 
@@ -54,7 +56,7 @@ export default function FollowControls({
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri slanju zahteva', 'Follow')
+      await showAlert(err.response?.data?.error || t('follow.sendRequestError'), t('follow.title'))
     } finally {
       setSubmitting(false)
     }
@@ -62,11 +64,11 @@ export default function FollowControls({
 
   const unfollow = async () => {
     if (submitting) return
-    const ok = await showConfirm('Da li želite da otpratite ovog korisnika?', {
-      title: 'Otprati korisnika',
+    const ok = await showConfirm(t('follow.confirmUnfollowText'), {
+      title: t('follow.confirmUnfollowTitle'),
       variant: 'danger',
-      confirmLabel: 'Otprati',
-      cancelLabel: 'Otkaži',
+      confirmLabel: t('follow.unfollow'),
+      cancelLabel: t('common.cancel'),
     })
     if (!ok) return
     setSubmitting(true)
@@ -75,7 +77,7 @@ export default function FollowControls({
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri otpraćivanju', 'Follow')
+      await showAlert(err.response?.data?.error || t('follow.unfollowError'), t('follow.title'))
     } finally {
       setSubmitting(false)
     }
@@ -83,10 +85,10 @@ export default function FollowControls({
 
   const cancelOutgoing = async () => {
     if (submitting) return
-    const ok = await showConfirm('Da li želite da otkažete poslati zahtev za praćenje?', {
-      title: 'Otkaži zahtev',
-      confirmLabel: 'Otkaži zahtev',
-      cancelLabel: 'Ne',
+    const ok = await showConfirm(t('follow.confirmCancelRequestText'), {
+      title: t('follow.confirmCancelRequestTitle'),
+      confirmLabel: t('follow.cancelRequest'),
+      cancelLabel: t('common.no'),
       variant: 'danger',
     })
     if (!ok) return
@@ -96,7 +98,7 @@ export default function FollowControls({
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri otkazivanju zahteva', 'Follow')
+      await showAlert(err.response?.data?.error || t('follow.cancelRequestError'), t('follow.title'))
     } finally {
       setSubmitting(false)
     }
@@ -121,9 +123,9 @@ export default function FollowControls({
             type="button"
             className={`${baseCommon} border border-sky-200 bg-sky-50 text-sky-800`}
             disabled
-            title="Ovaj korisnik vam je već poslao zahtev za praćenje."
+            title={t('follow.incomingPendingHint')}
           >
-            Imaš zahtev
+            {t('follow.youHaveRequest')}
           </button>
         )
       }
@@ -134,7 +136,7 @@ export default function FollowControls({
           onClick={() => void follow()}
           disabled={submitting}
         >
-          {submitting ? 'Slanje...' : 'Prati'}
+          {submitting ? t('follow.sending') : t('follow.follow')}
         </button>
       )
     }
@@ -147,7 +149,7 @@ export default function FollowControls({
           onClick={() => void cancelOutgoing()}
           disabled={submitting}
         >
-          {submitting ? '...' : 'Otkaži zahtev'}
+          {submitting ? '...' : t('follow.cancelRequest')}
         </button>
       )
     }
@@ -160,7 +162,7 @@ export default function FollowControls({
         onClick={() => void unfollow()}
         disabled={submitting}
       >
-        {submitting ? '...' : 'Otprati'}
+        {submitting ? '...' : t('follow.unfollow')}
       </button>
     )
   }, [follow, isEnabled, loading, status.incoming, status.outgoing, submitting, unfollow, cancelOutgoing])

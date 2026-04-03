@@ -1,4 +1,5 @@
 import html2pdf from 'html2pdf.js'
+import i18n from '../i18n'
 
 /** Ime planinarskog društva/kluba za zaglavlje PDF-a */
 export const PDF_CLUB_NAME = 'Ime kluba'
@@ -30,8 +31,8 @@ function formatDate(value: string | null | undefined): string {
 
 function formatPol(pol: string | undefined): string {
   if (!pol) return ''
-  if (pol === 'M') return 'Muški'
-  if (pol === 'Ž') return 'Ženski'
+  if (pol === 'M') return i18n.t('pdf:member.genderMale')
+  if (pol === 'Ž') return i18n.t('pdf:member.genderFemale')
   return pol
 }
 
@@ -82,32 +83,32 @@ export function generateMemberPdf(data: MemberPdfData): void {
     </style>
     <div class="pdf-wrap">
       <div class="header">
-        <h1>EVIDENCIJA ČLANA</h1>
+        <h1>${i18n.t('pdf:member.title')}</h1>
         <p>Planinarsko društvo Beleg</p>
       </div>
 
-      ${section('Lični podaci', `
-        ${row('Ime i prezime', val(data.fullName))}
-        ${row('Ime roditelja', val(data.ime_roditelja))}
-        ${row('Pol', formatPol(data.pol))}
-        ${row('Datum rođenja', formatDate(data.datum_rodjenja ?? undefined))}
-        ${row('Državljanstvo', val(data.drzavljanstvo))}
-        ${row('Adresa', val(data.adresa))}
-        ${row('Telefon', val(data.telefon))}
-        ${row('Email', val(data.email))}
+      ${section(i18n.t('pdf:member.sections.personal'), `
+        ${row(i18n.t('pdf:member.fields.fullName'), val(data.fullName))}
+        ${row(i18n.t('pdf:member.fields.parentName'), val(data.ime_roditelja))}
+        ${row(i18n.t('pdf:member.fields.gender'), formatPol(data.pol))}
+        ${row(i18n.t('pdf:member.fields.birthDate'), formatDate(data.datum_rodjenja ?? undefined))}
+        ${row(i18n.t('pdf:member.fields.citizenship'), val(data.drzavljanstvo))}
+        ${row(i18n.t('pdf:member.fields.address'), val(data.adresa))}
+        ${row(i18n.t('pdf:member.fields.phone'), val(data.telefon))}
+        ${row(i18n.t('pdf:member.fields.email'), val(data.email))}
       `)}
 
-      ${section('Planinarski podaci', `
-        ${row('Datum učlanjenja', formatDate(data.datum_uclanjenja ?? undefined))}
-        ${row('Broj ličnog dokumenta', val(data.broj_licnog_dokumenta))}
-        ${row('Broj planinarske legitimacije', val(data.broj_planinarske_legitimacije))}
-        ${row('Broj planinarske markice', val(data.broj_planinarske_markice))}
+      ${section(i18n.t('pdf:member.sections.hiking'), `
+        ${row(i18n.t('pdf:member.fields.membershipDate'), formatDate(data.datum_uclanjenja ?? undefined))}
+        ${row(i18n.t('pdf:member.fields.idNumber'), val(data.broj_licnog_dokumenta))}
+        ${row(i18n.t('pdf:member.fields.cardNumber'), val(data.broj_planinarske_legitimacije))}
+        ${row(i18n.t('pdf:member.fields.badgeNumber'), val(data.broj_planinarske_markice))}
       `)}
 
-      ${section('Napomene i ostalo', `
-        ${row('Izrečene disciplinske kazne', val(data.izrecene_disciplinske_kazne))}
-        ${row('Izbor u organe sportskog udruženja', val(data.izbor_u_organe_sportskog_udruzenja))}
-        ${row('Napomene', val(data.napomene))}
+      ${section(i18n.t('pdf:member.sections.notes'), `
+        ${row(i18n.t('pdf:member.fields.disciplinary'), val(data.izrecene_disciplinske_kazne))}
+        ${row(i18n.t('pdf:member.fields.selectionBodies'), val(data.izbor_u_organe_sportskog_udruzenja))}
+        ${row(i18n.t('pdf:member.fields.notes'), val(data.napomene))}
       `)}
     </div>
   `
@@ -125,7 +126,7 @@ export function generateMemberPdf(data: MemberPdfData): void {
   const target = wrapper.querySelector('.pdf-wrap') as HTMLElement
   if (!target) {
     document.body.removeChild(wrapper)
-    console.error('PDF: nije pronađen sadržaj')
+    console.error(i18n.t('pdf:errors.contentMissing'))
     return
   }
 
@@ -151,7 +152,7 @@ export function generateMemberPdf(data: MemberPdfData): void {
         .then(cleanup)
         .catch((err: unknown) => {
           cleanup()
-          console.error('PDF greška:', err)
+          console.error(i18n.t('pdf:errors.generic'), err)
         })
     })
   })

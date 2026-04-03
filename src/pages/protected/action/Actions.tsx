@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
@@ -14,6 +15,8 @@ import Loader from '../../../components/Loader'
 import { AkcijaImageOrFallback } from '../../../components/AkcijaImageFallback'
 import Dropdown from '../../../components/Dropdown'
 import { computeMMRForAkcija } from '../../../utils/rankingUtils'
+import { tezinaLabel } from '../../../utils/difficultyI18n'
+import type { TFunction } from 'i18next'
 
 interface Akcija {
   id: number
@@ -34,20 +37,24 @@ interface Akcija {
   kumulativniUsponM?: number
 }
 
-const TEZINA_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  lako:      { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Lako' },
-  srednje:   { bg: 'bg-amber-50',   text: 'text-amber-700',   label: 'Srednje' },
-  tesko:     { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  'teško':   { bg: 'bg-rose-50',    text: 'text-rose-700',    label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50',  text: 'text-violet-700',  label: 'Alpinizam' },
+const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
 }
 
-function tezinaStyle(t?: string) {
-  if (!t) return { bg: 'bg-gray-50', text: 'text-gray-500', label: 'Nepoznato' }
-  return TEZINA_STYLE[t.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', label: t }
+function tezinaStyle(raw: string | undefined, t: TFunction) {
+  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(undefined, t) }
+  const k = raw.toLowerCase()
+  const style = TEZINA_STYLE[k]
+  if (style) return { ...style, label: tezinaLabel(raw, t) }
+  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
 }
 
 export default function Actions() {
+  const { t, i18n } = useTranslation('actions')
   const { isLoggedIn, user } = useAuth()
   const { showAlert, showConfirm } = useModal()
   const [aktivneAkcije, setAktivneAkcije] = useState<Akcija[]>([])
@@ -77,7 +84,7 @@ export default function Actions() {
         setPrijavljeneAkcije(new Set(ids))
         setOtkaziveAkcije(new Set(otkaziveIds))
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju podataka')
+        setError(err.response?.data?.error || t('loadError'))
       } finally {
         setLoading(false)
       }
@@ -99,7 +106,7 @@ export default function Actions() {
 
   const handleOpenAnnualReport = () => {
     if (zavrseneAkcije.length === 0) {
-      showAlert('Nema završenih akcija. Godišnji izveštaj se pravi samo za godine u kojima ima završenih akcija.')
+      showAlert(t('noCompletedForAnnual'))
       return
     }
     setSelectedYear(yearsWithCompleted[0] ?? '')
@@ -108,7 +115,7 @@ export default function Actions() {
 
   const handleGenerateAnnualReportPdf = async () => {
     if (selectedYear === '') {
-      await showAlert('Izaberite godinu.')
+      await showAlert(t('pickYear'))
       return
     }
     setLoadingReport(true)
@@ -120,7 +127,7 @@ export default function Actions() {
         return !isNaN(y) && y === selectedYear
       })
       if (actionsInYear.length === 0) {
-        await showAlert(`Nema završenih akcija za ${selectedYear}. godinu.`)
+        await showAlert(t('noCompletedForYear', { year: selectedYear }))
         setLoadingReport(false)
         return
       }
@@ -190,14 +197,14 @@ export default function Actions() {
       setShowAnnualReportModal(false)
     } catch (err: unknown) {
       console.error(err)
-      await showAlert('Greška pri pripremi podataka za godišnji izveštaj. Proverite da li backend u prijavama vraća userId (ili datum_rodjenja i pol) za učesnike.')
+      await showAlert(t('annualPrepareError'))
     } finally {
       setLoadingReport(false)
     }
   }
 
   const handlePrijavi = async (akcijaId: number, naziv: string) => {
-    const confirmed = await showConfirm(`Da li želite da se prijavite za "${naziv}"?`)
+    const confirmed = await showConfirm(t('confirmJoin', { name: naziv }))
     if (!confirmed) return
 
     try {
@@ -208,21 +215,24 @@ export default function Actions() {
       setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       const errMsg = err.response?.data?.error
-      await showAlert(typeof errMsg === 'string' ? errMsg : 'Greška pri prijavi')
-      if (typeof errMsg === 'string' && errMsg.includes('Već ste prijavljeni')) {
+      const status = err?.response?.status
+      if (status === 409) {
+        await showAlert(t('alreadyJoined'))
         setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
         setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
+        return
       }
+      await showAlert(typeof errMsg === 'string' ? errMsg : t('joinError'))
     }
   }
 
   const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
-    const confirmed = await showConfirm(`Da li zaista želiš da otkažeš prijavu za "${naziv}"?`)
+    const confirmed = await showConfirm(t('confirmCancelJoin', { name: naziv }))
     if (!confirmed) return
 
     try {
       await api.delete(`/api/akcije/${akcijaId}/prijavi`)
-      await showAlert('Uspešno ste otkazali prijavu!')
+      await showAlert(t('cancelJoinSuccess'))
 
       setPrijavljeneAkcije(prev => {
         const newSet = new Set(prev)
@@ -235,7 +245,7 @@ export default function Actions() {
         return newSet
       })
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri otkazivanju prijave')
+      await showAlert(err.response?.data?.error || t('cancelJoinError'))
     }
   }
 
@@ -247,7 +257,7 @@ export default function Actions() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 font-medium">Morate se ulogovati da biste videli akcije.</p>
+        <p className="text-sm text-gray-500 font-medium">{t('loginRequired')}</p>
       </div>
     )
   }
@@ -278,10 +288,10 @@ export default function Actions() {
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Akcije</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">{t('title')}</h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 ml-3.5">
-              Prijavi se na aktivne akcije ili pogledaj završene.
+              {t('subtitle')}
             </p>
           </div>
 
@@ -294,7 +304,7 @@ export default function Actions() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Nova akcija
+                {t('newAction')}
               </Link>
               <Link
                 to="/profil/dodaj-proslu-akciju"
@@ -303,7 +313,7 @@ export default function Actions() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Prošla akcija
+                {t('pastAction')}
               </Link>
               <button
                 type="button"
@@ -313,7 +323,7 @@ export default function Actions() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Godišnji izveštaj
+                {t('annualReport')}
               </button>
             </div>
           )}
@@ -325,7 +335,7 @@ export default function Actions() {
             <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Aktivne akcije</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('activeActions')}</h2>
             {aktivneAkcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                 {aktivneAkcije.length}
@@ -340,8 +350,8 @@ export default function Actions() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Trenutno nema aktivnih akcija.</p>
-              <p className="text-xs text-gray-400 mt-1">Proverite ponovo uskoro.</p>
+              <p className="text-sm text-gray-500 font-medium">{t('emptyActive')}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('checkSoon')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
@@ -354,7 +364,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const t = tezinaStyle(akcija.tezina)
+                const difficultyBadge = tezinaStyle(akcija.tezina, t)
 
                 return (
                   <Link
@@ -384,12 +394,12 @@ export default function Actions() {
                       </div>
                       {akcija.javna && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
-                          Javna
+                          {t('public')}
                         </span>
                       )}
                       {akcija.zimskiUspon && (
                         <span className="absolute top-2 right-2.5 text-[10px] font-bold text-white bg-sky-500/80 backdrop-blur-sm px-2 py-0.5 rounded-md">
-                          Zimski uspon
+                          {t('winterAscent')}
                         </span>
                       )}
                     </div>
@@ -427,17 +437,17 @@ export default function Actions() {
                         {akcija.kumulativniUsponM != null && (
                           <span className="flex items-center gap-0.5">
                             <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>
-                            {akcija.kumulativniUsponM.toLocaleString('sr-RS')} m
+                            {akcija.kumulativniUsponM.toLocaleString(i18n.language)} m
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-gray-50">
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${t.bg} ${t.text}`}>
-                          {t.label}
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                          {difficultyBadge.label}
                         </span>
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
-                          Aktivna
+                          {t('active')}
                         </span>
                       </div>
                     </div>
@@ -446,26 +456,26 @@ export default function Actions() {
                     <div className="border-t border-gray-100">
                       {akcija.isCompleted ? (
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">
-                          Akcija završena
+                          {t('actionCompleted')}
                         </div>
                       ) : otkaziveAkcije.has(akcija.id) ? (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv) }}
                           className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 transition-colors"
                         >
-                          Otkaži prijavu
+                          {t('cancelJoin')}
                         </button>
                       ) : prijavljeneAkcije.has(akcija.id) ? (
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-emerald-600 bg-emerald-50 flex items-center justify-center gap-1">
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                          Popeo se
+                          {t('climbed')}
                         </div>
                       ) : (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv) }}
                           className="w-full py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all"
                         >
-                          Pridruži se
+                          {t('join')}
                         </button>
                       )}
                     </div>
@@ -484,7 +494,7 @@ export default function Actions() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Završene akcije</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
             {zavrseneAkcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600">
                 {zavrseneAkcije.length}
@@ -499,7 +509,7 @@ export default function Actions() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">Još nema završenih akcija.</p>
+              <p className="text-sm text-gray-400">{t('emptyCompleted')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
@@ -512,7 +522,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const t = tezinaStyle(akcija.tezina)
+                const difficultyBadge = tezinaStyle(akcija.tezina, t)
 
                 return (
                   <Link
@@ -542,7 +552,7 @@ export default function Actions() {
                       </div>
                       {akcija.javna && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
-                          Javna
+                          {t('public')}
                         </span>
                       )}
                     </div>
@@ -567,18 +577,18 @@ export default function Actions() {
                       )}
 
                       <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-gray-50">
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${t.bg} ${t.text}`}>
-                          {t.label}
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                          {difficultyBadge.label}
                         </span>
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
-                          Završena
+                          {t('completed')}
                         </span>
                       </div>
                     </div>
 
                     <div className="border-t border-gray-100">
                       <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50/80">
-                        Akcija završena
+                        {t('actionCompleted')}
                       </div>
                     </div>
                   </Link>
@@ -599,15 +609,15 @@ export default function Actions() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">Godišnji izveštaj (PDF)</h3>
-                  <p className="text-[11px] text-gray-500">Izaberite godinu sa završenim akcijama.</p>
+                  <h3 className="text-sm font-bold text-gray-900">{t('annualReportPdf')}</h3>
+                  <p className="text-[11px] text-gray-500">{t('annualReportPickYear')}</p>
                 </div>
               </div>
 
               <Dropdown
-                aria-label="Izaberi godinu"
+                aria-label={t('chooseYear')}
                 options={[
-                  { value: '', label: '— Izaberite godinu —' },
+                  { value: '', label: t('chooseYearPlaceholder') },
                   ...yearsWithCompleted.map((y) => ({ value: String(y), label: String(y) })),
                 ]}
                 value={selectedYear === '' ? '' : String(selectedYear)}
@@ -621,7 +631,7 @@ export default function Actions() {
                   onClick={() => !loadingReport && setShowAnnualReportModal(false)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  Otkaži
+                  {t('cancel')}
                 </button>
                 <button
                   type="button"
@@ -629,7 +639,7 @@ export default function Actions() {
                   disabled={loadingReport || selectedYear === ''}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {loadingReport ? 'Priprema…' : 'Štampaj'}
+                  {loadingReport ? t('preparing') : t('print')}
                 </button>
               </div>
             </div>

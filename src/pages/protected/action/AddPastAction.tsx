@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
+import { useTranslation } from 'react-i18next'
 
 interface Korisnik {
   id: number
@@ -13,6 +14,7 @@ interface Korisnik {
 }
 
 export default function AddPastAction() {
+  const { t } = useTranslation('actionForms')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
@@ -49,7 +51,7 @@ export default function AddPastAction() {
         setKorisnici(list)
         setVodici(list.filter((k) => k.role === 'vodic'))
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju korisnika')
+        setError(err.response?.data?.error || t('errors.loadUsers'))
       } finally {
         setLoading(false)
       }
@@ -61,20 +63,20 @@ export default function AddPastAction() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!korisnikId) {
-      setError('Izaberite korisnika.')
+      setError(t('errors.selectUser'))
       return
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
-      setError('Datum mora biti u formatu YYYY-MM-DD')
+      setError(t('errors.invalidDateFormat'))
       return
     }
     if (!tezina.trim()) {
-      setError('Izaberite težinu.')
+      setError(t('errors.selectDifficulty'))
       return
     }
     const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
     if (!dozvoljeneTezine.includes(tezina.trim().toLowerCase())) {
-      setError('Izaberi težinu od ponuđenih.')
+      setError(t('errors.selectDifficultyFromList'))
       return
     }
     setError('')
@@ -107,7 +109,7 @@ export default function AddPastAction() {
         navigate('/users', { replace: true })
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri dodavanju prošle akcije.')
+      setError(err.response?.data?.error || t('errors.addPastAction'))
       setSubmitting(false)
     }
   }
@@ -120,7 +122,7 @@ export default function AddPastAction() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 font-medium">Samo admin ili vodič mogu da dodaju prošlu akciju.</p>
+        <p className="text-sm text-gray-500 font-medium">{t('past.onlyAdminGuide')}</p>
       </div>
     )
   }
@@ -144,10 +146,10 @@ export default function AddPastAction() {
           <BackButton to="/profil" />
           <div className="flex-1 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
-              Prošla planinarska akcija
+              {t('past.badge')}
             </p>
             <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight text-gray-900">
-              Dodaj akciju na profil člana
+              {t('past.title')}
             </h1>
           </div>
           <div className="w-10 sm:w-16" aria-hidden />
@@ -166,11 +168,11 @@ export default function AddPastAction() {
 
             {/* Korisnik */}
             <div>
-              <label className={labelClass}>Korisnik</label>
+              <label className={labelClass}>{t('fields.user')}</label>
               <Dropdown
-                aria-label="Izaberi korisnika"
+                aria-label={t('fields.pickUser')}
                 options={[
-                  { value: '', label: '— Izaberite korisnika —' },
+                  { value: '', label: t('user.pick') },
                   ...korisnici.map((k) => ({
                     value: String(k.id),
                     label: `${k.fullName || k.username} (@${k.username})`,
@@ -185,43 +187,43 @@ export default function AddPastAction() {
             {/* Osnovni podaci o akciji */}
             <div className="grid gap-4 sm:gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className={labelClass}>Naziv akcije</label>
+                <label className={labelClass}>{t('fields.actionName')}</label>
                 <input
                   type="text"
                   value={naziv}
                   onChange={(e) => setNaziv(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Uspon na Rtanj severnom stazom"
+                  placeholder={t('placeholders.actionName')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Planina</label>
+                <label className={labelClass}>{t('fields.mountain')}</label>
                 <input
                   type="text"
                   value={planina}
                   onChange={(e) => setPlanina(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Kopaonik, Stara planina"
+                  placeholder={t('placeholders.mountain')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Vrh</label>
+                <label className={labelClass}>{t('fields.peak')}</label>
                 <input
                   type="text"
                   value={vrh}
                   onChange={(e) => setVrh(e.target.value)}
                   className={inputClass}
-                  placeholder="npr. Midžor, Pančićev vrh"
+                  placeholder={t('placeholders.peak')}
                   required
                 />
               </div>
 
               <div>
-                <label className={labelClass}>Datum akcije</label>
+                <label className={labelClass}>{t('fields.actionDate')}</label>
                 <input
                   type="date"
                   value={datum}
@@ -232,15 +234,15 @@ export default function AddPastAction() {
               </div>
 
               <div>
-                <label className={labelClass}>Težina</label>
+                <label className={labelClass}>{t('fields.difficulty')}</label>
                 <Dropdown
-                  aria-label="Izaberi težinu"
+                  aria-label={t('fields.pickDifficulty')}
                   options={[
-                    { value: '', label: '— Izaberite —' },
-                    { value: 'lako', label: 'Lako' },
-                    { value: 'srednje', label: 'Srednje' },
-                    { value: 'tesko', label: 'Teško' },
-                    { value: 'alpinizam', label: 'Alpinizam' },
+                    { value: '', label: t('difficulty.pickShort') },
+                    { value: 'lako', label: t('difficulty.easy') },
+                    { value: 'srednje', label: t('difficulty.medium') },
+                    { value: 'tesko', label: t('difficulty.hard') },
+                    { value: 'alpinizam', label: t('difficulty.alpinism') },
                   ]}
                   value={tezina}
                   onChange={setTezina}
@@ -251,12 +253,12 @@ export default function AddPastAction() {
 
             {/* Opis */}
             <div>
-              <label className={labelClass}>Opis</label>
+              <label className={labelClass}>{t('fields.description')}</label>
               <textarea
                 value={opis}
                 onChange={(e) => setOpis(e.target.value)}
                 className={`${inputClass} min-h-[80px]`}
-                placeholder="Kratak opis ture, dužina, pauze, oprema, napomene…"
+                placeholder={t('placeholders.description')}
                 rows={3}
               />
             </div>
@@ -265,11 +267,11 @@ export default function AddPastAction() {
             <div className="space-y-3 pt-1 border-t border-gray-50">
               {!drugiVodicCheck && (
                 <div>
-                  <label className={labelClass}>Vodič</label>
+                  <label className={labelClass}>{t('fields.guide')}</label>
                   <Dropdown
-                    aria-label="Izaberi vodiča"
+                    aria-label={t('fields.pickGuide')}
                     options={[
-                      { value: '', label: '— Opciono —' },
+                      { value: '', label: t('guide.optional') },
                       ...vodici.map((v) => ({
                         value: String(v.id),
                         label: `${v.fullName || v.username} (@${v.username})`,
@@ -295,17 +297,17 @@ export default function AddPastAction() {
                   className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="drugi-vodic" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  Drugi vodič (ručni unos)
+                  {t('fields.secondGuideManual')}
                 </label>
               </div>
               {drugiVodicCheck && (
                 <div>
-                  <label className={labelClass}>Ime drugog vodiča</label>
+                  <label className={labelClass}>{t('fields.secondGuideName')}</label>
                   <input
                     type="text"
                     value={drugiVodicIme}
                     onChange={(e) => setDrugiVodicIme(e.target.value)}
-                    placeholder="Ime i prezime"
+                    placeholder={t('placeholders.fullName')}
                     className={inputClass}
                   />
                 </div>
@@ -315,12 +317,12 @@ export default function AddPastAction() {
             {/* Brojke o stazi */}
             <div className="grid gap-4 sm:gap-5 sm:grid-cols-3 pt-2 border-t border-gray-50">
               <div>
-                <label className={labelClass}>Uspon (m)</label>
+                <label className={labelClass}>{t('fields.ascentM')}</label>
                 <input
                   type="number"
                   value={kumulativniUsponM}
                   onChange={(e) => setKumulativniUsponM(e.target.value)}
-                  placeholder="npr. 1250"
+                  placeholder={t('placeholders.ascentM')}
                   className={inputClass}
                   min={0}
                   step={1}
@@ -328,12 +330,12 @@ export default function AddPastAction() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Dužina (km)</label>
+                <label className={labelClass}>{t('fields.lengthKm')}</label>
                 <input
                   type="number"
                   value={duzinaStazeKm}
                   onChange={(e) => setDuzinaStazeKm(e.target.value)}
-                  placeholder="npr. 14.5"
+                  placeholder={t('placeholders.lengthKm')}
                   className={inputClass}
                   min={0}
                   step={0.1}
@@ -341,12 +343,12 @@ export default function AddPastAction() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Visina vrha (m)</label>
+                <label className={labelClass}>{t('fields.peakHeightM')}</label>
                 <input
                   type="number"
                   value={visinaVrhM}
                   onChange={(e) => setVisinaVrhM(e.target.value)}
-                  placeholder="npr. 2017"
+                  placeholder={t('placeholders.peakHeightM')}
                   className={inputClass}
                   min={0}
                   step={1}
@@ -365,12 +367,12 @@ export default function AddPastAction() {
                   className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="zimski-uspon" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  Zimski uspon
+                  {t('fields.winterAscent')}
                 </label>
               </div>
 
               <div>
-                <label className={labelClass}>Slika akcije (opciono)</label>
+                <label className={labelClass}>{t('fields.actionImageOptional')}</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -391,7 +393,7 @@ export default function AddPastAction() {
                   className="w-4 h-4 rounded border-sky-300 text-sky-500 focus:ring-sky-500"
                 />
                 <label htmlFor="javna-past" className="text-xs sm:text-sm text-gray-800 font-medium">
-                  Javna (svi su videli dok je bila aktivna; završenu vidi samo klub)
+                  {t('past.publicActionPastHelp')}
                 </label>
               </div>
               <div className="flex items-center gap-3 p-3.5 rounded-lg bg-emerald-50/60 border border-emerald-100">
@@ -403,12 +405,11 @@ export default function AddPastAction() {
                   className="w-4 h-4 rounded border-emerald-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="dodaj-u-istoriju" className="text-xs sm:text-sm text-gray-800 font-medium">
-                  Dodaj u istoriju akcija kluba
+                  {t('past.addToClubHistory')}
                 </label>
               </div>
               <p className="text-[11px] text-gray-500">
-                Ako nije čekirano, akcija će se upisati samo na profil člana (napredak) i neće se pojaviti u listi završenih
-                akcija kluba.
+                {t('past.historyHelp')}
               </p>
             </div>
 
@@ -419,14 +420,14 @@ export default function AddPastAction() {
                 disabled={submitting}
                 className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-wait transition-all"
               >
-                {submitting ? 'Dodavanje...' : 'Dodaj i idi na profil'}
+                {submitting ? t('past.adding') : t('past.submit')}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/profil')}
                 className="inline-flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
               >
-                Odustani
+                {t('common.cancel')}
               </button>
             </div>
           </form>

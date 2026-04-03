@@ -5,6 +5,7 @@ import api from '../../services/api'
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../../utils/obavestenjeIconClass'
 import { TrashIcon } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 interface ObavestenjeItem {
   id: number
@@ -19,6 +20,7 @@ interface ObavestenjeItem {
 }
 
 export default function Obavestenja() {
+  const { t } = useTranslation('notifications')
   const { isLoggedIn, user } = useAuth()
   const navigate = useNavigate()
   const [list, setList] = useState<ObavestenjeItem[]>([])
@@ -71,7 +73,7 @@ export default function Obavestenja() {
     setBroadcastError('')
     const title = broadcastTitle.trim()
     if (!title) {
-      setBroadcastError('Naslov je obavezan.')
+      setBroadcastError(t('broadcast.titleRequired'))
       return
     }
     setBroadcastSending(true)
@@ -85,7 +87,7 @@ export default function Obavestenja() {
       .then((r) => {
         setList(r.data.obavestenja ?? [])
       })
-      .catch((err) => setBroadcastError(err.response?.data?.error || 'Greška pri slanju.'))
+      .catch((err) => setBroadcastError(err.response?.data?.error || t('broadcast.sendError')))
       .finally(() => setBroadcastSending(false))
   }
 
@@ -93,28 +95,28 @@ export default function Obavestenja() {
 
   return (
     <div className="mx-auto max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Obaveštenja</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('title')}</h1>
 
       {(user?.role === 'admin' || user?.role === 'superadmin') && (
         <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">Pošalji obaveštenje svima (samo admin)</h2>
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">{t('broadcast.title')}</h2>
           <form onSubmit={handleBroadcast} className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Naslov</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('broadcast.subject')}</label>
               <input
                 type="text"
                 value={broadcastTitle}
                 onChange={(e) => setBroadcastTitle(e.target.value)}
-                placeholder="Naslov obaveštenja"
+                placeholder={t('broadcast.subjectPlaceholder')}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tekst (opciono)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('broadcast.bodyOptional')}</label>
               <textarea
                 value={broadcastBody}
                 onChange={(e) => setBroadcastBody(e.target.value)}
-                placeholder="Tekst obaveštenja"
+                placeholder={t('broadcast.bodyPlaceholder')}
                 rows={2}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
@@ -125,16 +127,16 @@ export default function Obavestenja() {
               disabled={broadcastSending}
               className="rounded-lg bg-[#41ac53] px-4 py-2 text-sm font-medium text-white hover:bg-[#2e8b4a] disabled:opacity-50"
             >
-              {broadcastSending ? 'Šaljem...' : 'Pošalji svima'}
+              {broadcastSending ? t('broadcast.sending') : t('broadcast.sendAll')}
             </button>
           </form>
         </div>
       )}
 
       {loading ? (
-        <p className="text-gray-500">Učitavanje obaveštenja...</p>
+        <p className="text-gray-500">{t('loading')}</p>
       ) : list.length === 0 ? (
-        <p className="text-gray-500">Nema obaveštenja.</p>
+        <p className="text-gray-500">{t('empty')}</p>
       ) : (
         <ul className="space-y-0 divide-y divide-gray-100">
           {list.map((n) => (
@@ -167,8 +169,8 @@ export default function Obavestenja() {
                   type="button"
                   onClick={(e) => handleDelete(e, n)}
                   className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Obriši obaveštenje"
-                  aria-label="Obriši"
+                  title={t('deleteNotification')}
+                  aria-label={t('delete')}
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>

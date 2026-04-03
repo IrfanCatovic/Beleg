@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
@@ -12,6 +13,8 @@ import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
 import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
+import { tezinaLabel } from '../../utils/difficultyI18n'
+import type { TFunction } from 'i18next'
 import { ArrowsUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -52,18 +55,26 @@ interface Korisnik {
   klubLogoUrl?: string
 }
 
-const TEZINA: Record<string, { bg: string; text: string; border: string; label: string }> = {
-  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Lako' },
-  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Srednje' },
-  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
-  'teško': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Teško' },
-  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', label: 'Alpinizam' },
+const TEZINA_BORDER: Record<string, { bg: string; text: string; border: string }> = {
+  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  teško: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
 }
-const DEFAULT_TEZINA = { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Nepoznato' }
 
-function tz(t?: string) {
-  if (!t) return DEFAULT_TEZINA
-  return TEZINA[t.toLowerCase()] ?? { ...DEFAULT_TEZINA, label: t }
+function tzProfile(raw: string | undefined, t: TFunction) {
+  const fallback = {
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    border: 'border-gray-200',
+    label: tezinaLabel(raw, t),
+  }
+  if (!raw) return fallback
+  const k = raw.toLowerCase()
+  const row = TEZINA_BORDER[k]
+  if (row) return { ...row, label: tezinaLabel(raw, t) }
+  return fallback
 }
 
 /** Isti breakpoint kao Tailwind `md:` — cover na širem ekranu koristi drugačiju sačuvanu poziciju. */
@@ -84,6 +95,7 @@ function useIsMdUpForCover() {
 /* ────────────────────────────────────────────────────────────────────── */
 
 export default function UserProfile() {
+  const { t, i18n } = useTranslation('userProfile')
   const { id, username } = useParams<{ id?: string; username?: string }>()
   const { user: currentUser } = useAuth()
   const navigate = useNavigate()
@@ -131,7 +143,7 @@ export default function UserProfile() {
       setError('')
       try {
         const idOrUsername = id ?? username
-        if (!idOrUsername) { setError('Korisnik nije pronađen'); setLoading(false); return }
+        if (!idOrUsername) { setError(t('notFound')); setLoading(false); return }
 
         const [rK, rS, rA] = await Promise.all([
           api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`),
@@ -148,7 +160,7 @@ export default function UserProfile() {
         setStats({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
         setAkcije(rA.data.uspesneAkcije || [])
       } catch (e: any) {
-        if (!cancelled) setError(e.response?.data?.error || 'Greška pri učitavanju profila')
+        if (!cancelled) setError(e.response?.data?.error || t('loadError'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -290,7 +302,7 @@ export default function UserProfile() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
       </div>
-      <p className="text-sm text-gray-500 font-medium">{error || 'Korisnik nije pronađen'}</p>
+      <p className="text-sm text-gray-500 font-medium">{error || t('notFound')}</p>
     </div>
   )
 
@@ -322,8 +334,8 @@ export default function UserProfile() {
               type="button"
               onClick={() => setPositioning(true)}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              title="Pomeri prikaz cover slike"
-              aria-label="Pomeri prikaz cover slike"
+              title={t('cover.moveDisplay')}
+              aria-label={t('cover.moveDisplay')}
             >
               <ArrowsUpDownIcon className="h-6 w-6" aria-hidden />
             </button>
@@ -361,8 +373,8 @@ export default function UserProfile() {
               type="button"
               onClick={() => coverInputRef.current?.click()}
               disabled={coverUploading}
-              title={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
-              aria-label={hasCover ? 'Zameni cover sliku' : 'Dodaj cover sliku'}
+              title={hasCover ? t('cover.replace') : t('cover.add')}
+              aria-label={hasCover ? t('cover.replace') : t('cover.add')}
               className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
             >
               {coverUploading ? (
@@ -385,9 +397,9 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
           >
-            <p className="text-white text-center text-sm font-semibold">Pomeri cover (prikaz na računaru / širem ekranu)</p>
+            <p className="text-white text-center text-sm font-semibold">{t('cover.desktopTitle')}</p>
             <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">
-              Na telefonu je druga visina covera — tamo podešavaj posebno. Ovde se čuva samo prikaz za ekrane šire od 768px.
+              {t('cover.desktopHint')}
             </p>
             <input
               type="range"
@@ -403,7 +415,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYDesktop((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
-                aria-label="Pomeri prikaz nagore"
+                aria-label={t('cover.moveUp')}
               >
                 −
               </button>
@@ -412,7 +424,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYDesktop((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-11 min-w-11 rounded-xl bg-white/20 text-white text-lg font-bold hover:bg-white/30 active:bg-white/25"
-                aria-label="Pomeri prikaz nadole"
+                aria-label={t('cover.moveDown')}
               >
                 +
               </button>
@@ -424,14 +436,14 @@ export default function UserProfile() {
                 disabled={saving}
                 className="min-h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold shadow-lg transition disabled:opacity-50"
               >
-                {saving ? 'Čuvam…' : 'Sačuvaj'}
+                {saving ? t('cover.saving') : t('save')}
               </button>
               <button
                 type="button"
                 onClick={cancelCoverPositioning}
                 className="min-h-11 px-6 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold transition"
               >
-                Otkaži
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -449,7 +461,7 @@ export default function UserProfile() {
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
-            aria-label="Zatvori"
+            aria-label={t('close')}
             onClick={cancelCoverPositioning}
           />
           <div
@@ -458,10 +470,10 @@ export default function UserProfile() {
           >
             <div className="mx-auto h-1 w-10 rounded-full bg-gray-200 shrink-0" aria-hidden />
             <h2 id="cover-pos-sheet-title" className="text-center text-sm font-bold text-gray-900">
-              Pomeri cover gore / dole
+              {t('cover.mobileTitle')}
             </h2>
             <p className="text-center text-[11px] text-gray-500 -mt-1">
-              Prikaz za telefon / uže ekrane (&lt; 768px). Na računaru koristi isto dugme na coveru u širem prikazu.
+              {t('cover.mobileHint')}
             </p>
             <input
               type="range"
@@ -477,7 +489,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYMobile((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label="Pomeri prikaz nagore"
+                aria-label={t('cover.moveUp')}
               >
                 −
               </button>
@@ -486,7 +498,7 @@ export default function UserProfile() {
                 type="button"
                 onClick={() => setCoverYMobile((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
                 className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label="Pomeri prikaz nadole"
+                aria-label={t('cover.moveDown')}
               >
                 +
               </button>
@@ -497,7 +509,7 @@ export default function UserProfile() {
                 onClick={cancelCoverPositioning}
                 className="flex-1 min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
               >
-                Otkaži
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -505,7 +517,7 @@ export default function UserProfile() {
                 disabled={saving}
                 className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
               >
-                {saving ? 'Čuvam…' : 'Sačuvaj'}
+                {saving ? t('cover.saving') : t('save')}
               </button>
             </div>
           </div>
@@ -527,8 +539,8 @@ export default function UserProfile() {
                       type="button"
                       onClick={() => setAvatarLightboxOpen(true)}
                       className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                      aria-label="Prikaži profilnu sliku u punoj veličini"
-                      title="Klik za punu veličinu"
+                      aria-label={t('cover.showAvatarFull')}
+                      title={t('cover.clickForFull')}
                     >
                       <img
                         src={korisnik.avatar_url}
@@ -554,7 +566,7 @@ export default function UserProfile() {
                     <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
                     </svg>
-                    <span className="truncate">Član od {formatDate(korisnik.createdAt)}</span>
+                    <span className="truncate">{t('memberSince')} {formatDate(korisnik.createdAt)}</span>
                   </div>
                 </div>
 
@@ -562,18 +574,6 @@ export default function UserProfile() {
                   <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                     {getRoleLabel(korisnik.role)}
                   </span>
-                  {korisnik.klubNaziv && (
-                    <span className="inline-flex max-w-[44vw] items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
-                      {korisnik.klubLogoUrl ? (
-                        <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
-                      ) : (
-                        <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                        </svg>
-                      )}
-                      <span className="truncate">{korisnik.klubNaziv}</span>
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -594,6 +594,21 @@ export default function UserProfile() {
                   )}
                 </div>
               )}
+
+              {korisnik.klubNaziv && (
+                <div className="mt-3">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
+                    {korisnik.klubLogoUrl ? (
+                      <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                    ) : (
+                      <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                      </svg>
+                    )}
+                    <span className="truncate">{korisnik.klubNaziv}</span>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* desktop/tablet layout (existing) */}
@@ -605,8 +620,8 @@ export default function UserProfile() {
                     type="button"
                     onClick={() => setAvatarLightboxOpen(true)}
                     className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                    aria-label="Prikaži profilnu sliku u punoj veličini"
-                    title="Klik za punu veličinu"
+                    aria-label={t('cover.showAvatarFull')}
+                    title={t('cover.clickForFull')}
                   >
                     <img
                       src={korisnik.avatar_url}
@@ -654,7 +669,7 @@ export default function UserProfile() {
                       <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
                       </svg>
-                      Član od {formatDate(korisnik.createdAt)}
+                      {t('memberSince')} {formatDate(korisnik.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -708,10 +723,10 @@ export default function UserProfile() {
                       className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
                     >
                       <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
-                        {followCounts.following.toLocaleString('sr-RS')}
+                        {followCounts.following.toLocaleString(i18n.language)}
                       </p>
                       <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
-                        Prati
+                        {t('following')}
                       </p>
                     </button>
                     <div className="w-px self-stretch bg-gradient-to-b from-transparent via-gray-200 to-transparent" aria-hidden />
@@ -721,10 +736,10 @@ export default function UserProfile() {
                       className="group text-center px-3.5 sm:px-5 py-2 hover:bg-emerald-50/60 transition-colors"
                     >
                       <p className="text-sm sm:text-base font-extrabold text-gray-900 group-hover:text-emerald-700 tabular-nums leading-none">
-                        {followCounts.followers.toLocaleString('sr-RS')}
+                        {followCounts.followers.toLocaleString(i18n.language)}
                       </p>
                       <p className="mt-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400 group-hover:text-emerald-600">
-                        Pratioci
+                        {t('followers')}
                       </p>
                     </button>
                   </div>
@@ -736,9 +751,9 @@ export default function UserProfile() {
           </div>
 
           <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <StatCell value={stats.ukupnoMetaraUspona.toLocaleString('sr-RS')} unit="m" label="Uspon" accent="text-emerald-500" />
-            <StatCell value={stats.ukupnoKm.toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label="Staza" accent="text-sky-500" />
-            <StatCell value={String(stats.brojPopeoSe)} label="Osvojenih" accent="text-amber-500" />
+            <StatCell value={stats.ukupnoMetaraUspona.toLocaleString(i18n.language)} unit="m" label={t('ascent')} accent="text-emerald-500" />
+            <StatCell value={stats.ukupnoKm.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label={t('trail')} accent="text-sky-500" />
+            <StatCell value={String(stats.brojPopeoSe)} label={t('climbedCount')} accent="text-amber-500" />
           </div>
         </div>
       </div>
@@ -749,7 +764,7 @@ export default function UserProfile() {
 
           <div className="flex items-center gap-2.5 mb-6">
             <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Osvojene akcije</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
             {akcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                 {akcije.length}
@@ -763,7 +778,7 @@ export default function UserProfile() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">Još nema završenih akcija.</p>
+              <p className="text-sm text-gray-400">{t('noCompletedActions')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -779,13 +794,13 @@ export default function UserProfile() {
           className="fixed inset-0 z-[280] flex items-center justify-center bg-black/90 p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Profilna slika"
+          aria-label={t('cover.avatarImage')}
           onClick={() => setAvatarLightboxOpen(false)}
         >
           <button
             type="button"
             className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            aria-label="Zatvori"
+            aria-label={t('close')}
             onClick={(e) => {
               e.stopPropagation()
               setAvatarLightboxOpen(false)
@@ -805,7 +820,7 @@ export default function UserProfile() {
 
       <FollowListModal
         open={followModalOpen}
-        title={followModalMode === 'following' ? 'Prati' : 'Pratioci'}
+        title={followModalMode === 'following' ? t('following') : t('followers')}
         users={followModalUsers}
         loading={followModalLoading}
         onClose={() => setFollowModalOpen(false)}
@@ -831,6 +846,7 @@ function StatCell({ value, unit, label, accent }: { value: string; unit?: string
 }
 
 function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
+  const { t, i18n } = useTranslation('userProfile')
   const mmr = computeMMRForAkcija({
     duzinaStazeKm: akcija.duzinaStazeKm,
     kumulativniUsponM: akcija.kumulativniUsponM,
@@ -839,7 +855,7 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
     tezina: akcija.tezina,
     datum: akcija.datum,
   })
-  const t = tz(akcija.tezina)
+  const difficultyBadge = tzProfile(akcija.tezina, t)
 
   return (
     <Link
@@ -882,17 +898,17 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
           <span className="w-px h-3 bg-gray-200" />
           <span className="flex items-center gap-0.5">
             <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>
-            {akcija.kumulativniUsponM?.toLocaleString('sr-RS') || '0'} m
+            {akcija.kumulativniUsponM?.toLocaleString(i18n.language) || '0'} m
           </span>
         </div>
 
         <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${t.bg} ${t.text} ${t.border}`}>
-            {t.label}
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${difficultyBadge.bg} ${difficultyBadge.text} ${difficultyBadge.border}`}>
+            {difficultyBadge.label}
           </span>
           <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            Popeo se
+            {t('climbed')}
           </span>
         </div>
       </div>

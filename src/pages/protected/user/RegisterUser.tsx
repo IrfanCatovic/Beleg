@@ -5,6 +5,7 @@ import api from '../../../services/api'
 import { useAuth } from '../../../context/AuthContext'
 import Dropdown from '../../../components/Dropdown'
 import BackButton from '../../../components/buttons/BackButton'
+import { useTranslation } from 'react-i18next'
 
 const initialForm = {
   username: '',
@@ -28,6 +29,7 @@ const initialForm = {
 }
 
 export default function RegisterUser() {
+  const { t } = useTranslation('setup')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState(initialForm)
@@ -45,11 +47,11 @@ export default function RegisterUser() {
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      setError('Dozvoljene su samo slike (jpg, png, gif...)')
+      setError(t('registerUser.imageOnlyError'))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Slika je prevelika (maksimum 5 MB)')
+      setError(t('registerUser.imageTooLargeError'))
       return
     }
 
@@ -63,7 +65,7 @@ export default function RegisterUser() {
     setError('')
     setSuccess(false)
     if (!form.role.trim()) {
-      setError('Izaberite ulogu.')
+      setError(t('registerUser.pickRole'))
       return
     }
     try {
@@ -92,7 +94,7 @@ export default function RegisterUser() {
       setSuccess(true)
       setTimeout(() => navigate('/users', { replace: true }), 2000)
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri kreiranju korisnika')
+      setError(err.response?.data?.error || t('registerUser.createError'))
     }
   }
 
@@ -112,10 +114,10 @@ export default function RegisterUser() {
           <BackButton />
           <div className="flex-1 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
-              Novi član kluba
+              {t('registerUser.badge')}
             </p>
             <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight text-gray-900">
-              Registracija korisnika
+              {t('registerUser.title')}
             </h1>
           </div>
           <div className="w-10 sm:w-16" aria-hidden />
@@ -128,7 +130,7 @@ export default function RegisterUser() {
           >
             {success && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs sm:text-sm text-emerald-700 text-center font-medium">
-                Član uspešno registrovan! Preusmeravam...
+                {t('registerUser.createdRedirecting')}
               </div>
             )}
 
@@ -141,22 +143,22 @@ export default function RegisterUser() {
             {/* Obavezna polja */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Obavezna polja
+                {t('registerUser.requiredFields')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Korisničko ime *</label>
+                  <label className={labelClass}>{t('registerUser.usernameRequired')}</label>
                   <input
                     name="username"
                     value={form.username}
                     onChange={handleChange}
                     required
                     className={inputClass}
-                    placeholder="npr. pera.peric"
+                    placeholder={t('registerUser.usernamePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Lozinka * (min. 8 karaktera)</label>
+                  <label className={labelClass}>{t('registerUser.passwordRequired')}</label>
                   <input
                     name="password"
                     type="password"
@@ -165,15 +167,15 @@ export default function RegisterUser() {
                     required
                     minLength={8}
                     className={inputClass}
-                    placeholder="Unesi lozinku"
+                    placeholder={t('registerUser.passwordPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Uloga *</label>
+                  <label className={labelClass}>{t('registerUser.roleRequired')}</label>
                   <Dropdown
-                    aria-label="Uloga"
+                    aria-label={t('registerUser.roleRequired')}
                     options={[
-                      { value: '', label: '— izaberi —' },
+                      { value: '', label: t('registerUser.pick') },
                       ...roleOptions.map((role) => ({
                         value: role,
                         label: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
@@ -190,21 +192,21 @@ export default function RegisterUser() {
             {/* Lični podaci */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Lični podaci (opciono)
+              {t('registerUser.personalOptional')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div>
-                  <label className={labelClass}>Puno ime</label>
+                  <label className={labelClass}>{t('registerUser.fullName')}</label>
                   <input
                     name="fullName"
                     value={form.fullName}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Ime i prezime"
+                    placeholder={t('registerUser.fullNamePlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Ime roditelja</label>
+                  <label className={labelClass}>{t('registerUser.parentName')}</label>
                   <input
                     name="imeRoditelja"
                     value={form.imeRoditelja}
@@ -213,13 +215,13 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Pol</label>
+                  <label className={labelClass}>{t('registerUser.gender')}</label>
                   <Dropdown
-                    aria-label="Pol"
+                    aria-label={t('registerUser.gender')}
                     options={[
-                      { value: '', label: '— izaberi —' },
-                      { value: 'M', label: 'Muški' },
-                      { value: 'Ž', label: 'Ženski' },
+                      { value: '', label: t('registerUser.pick') },
+                      { value: 'M', label: t('registerUser.genderMale') },
+                      { value: 'Ž', label: t('registerUser.genderFemale') },
                     ]}
                     value={form.pol}
                     onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
@@ -227,7 +229,7 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Datum rođenja</label>
+                  <label className={labelClass}>{t('registerUser.birthDate')}</label>
                   <input
                     name="datumRodjenja"
                     type="date"
@@ -237,7 +239,7 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Državljanstvo</label>
+                  <label className={labelClass}>{t('registerUser.citizenship')}</label>
                   <input
                     name="drzavljanstvo"
                     value={form.drzavljanstvo}
@@ -251,38 +253,38 @@ export default function RegisterUser() {
             {/* Kontakt */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Kontakt (opciono)
+              {t('registerUser.contactOptional')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div>
-                  <label className={labelClass}>Email</label>
+                  <label className={labelClass}>{t('registerUser.email')}</label>
                   <input
                     name="email"
                     type="email"
                     value={form.email}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="email@primer.rs"
+                    placeholder={t('registerUser.emailPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Telefon</label>
+                  <label className={labelClass}>{t('registerUser.phone')}</label>
                   <input
                     name="telefon"
                     value={form.telefon}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="+381..."
+                    placeholder={t('registerUser.phonePlaceholder')}
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Adresa</label>
+                  <label className={labelClass}>{t('registerUser.address')}</label>
                   <input
                     name="adresa"
                     value={form.adresa}
                     onChange={handleChange}
                     className={inputClass}
-                    placeholder="Ulica i broj, mesto"
+                    placeholder={t('registerUser.addressPlaceholder')}
                   />
                 </div>
               </div>
@@ -291,11 +293,11 @@ export default function RegisterUser() {
             {/* Planinarski / dokumenti */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Dokumenti i planinarski podaci (opciono)
+              {t('registerUser.docsOptional')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div>
-                  <label className={labelClass}>Broj ličnog dokumenta</label>
+                  <label className={labelClass}>{t('registerUser.idDocNumber')}</label>
                   <input
                     name="brojLicnogDokumenta"
                     value={form.brojLicnogDokumenta}
@@ -304,7 +306,7 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Broj planinarske legitimacije</label>
+                  <label className={labelClass}>{t('registerUser.hikingCardNumber')}</label>
                   <input
                     name="brojPlaninarskeLegitimacije"
                     value={form.brojPlaninarskeLegitimacije}
@@ -313,7 +315,7 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Broj planinarske markice</label>
+                  <label className={labelClass}>{t('registerUser.hikingBadgeNumber')}</label>
                   <input
                     name="brojPlaninarskeMarkice"
                     value={form.brojPlaninarskeMarkice}
@@ -322,7 +324,7 @@ export default function RegisterUser() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Datum učlanjenja</label>
+                  <label className={labelClass}>{t('registerUser.membershipDate')}</label>
                   <input
                     name="datumUclanjenja"
                     type="date"
@@ -337,40 +339,40 @@ export default function RegisterUser() {
             {/* Disciplinske kazne, izbor u organe, napomene */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Disciplinske kazne, izbor u organe, napomene (opciono)
+                {t('registerUser.notesOptional')}
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className={labelClass}>Izrečene disciplinske kazne</label>
+                  <label className={labelClass}>{t('registerUser.disciplinary')}</label>
                   <textarea
                     name="izreceneDisciplinskeKazne"
                     value={form.izreceneDisciplinskeKazne}
                     onChange={handleChange}
                     rows={3}
                     className={`${inputClass} min-h-[72px]`}
-                    placeholder="Tekst o izrečenim disciplinskim kaznama..."
+                    placeholder={t('registerUser.disciplinaryPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Izbor u organe sportskog udruženja</label>
+                  <label className={labelClass}>{t('registerUser.selectionBodies')}</label>
                   <textarea
                     name="izborUOrganeSportskogUdruzenja"
                     value={form.izborUOrganeSportskogUdruzenja}
                     onChange={handleChange}
                     rows={3}
                     className={`${inputClass} min-h-[72px]`}
-                    placeholder="Tekst o izboru u organe..."
+                    placeholder={t('registerUser.selectionBodiesPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Napomene</label>
+                  <label className={labelClass}>{t('registerUser.notes')}</label>
                   <textarea
                     name="napomene"
                     value={form.napomene}
                     onChange={handleChange}
                     rows={3}
                     className={`${inputClass} min-h-[72px]`}
-                    placeholder="Dodatne napomene..."
+                    placeholder={t('registerUser.notesPlaceholder')}
                   />
                 </div>
               </div>
@@ -379,7 +381,7 @@ export default function RegisterUser() {
             {/* Avatar */}
             <div className={sectionClass}>
               <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
-                Profilna slika (opciono)
+                {t('registerUser.avatarOptional')}
               </h3>
               <input
                 type="file"
@@ -391,7 +393,7 @@ export default function RegisterUser() {
                 <div className="mt-4 flex justify-center">
                   <img
                     src={avatarPreview}
-                    alt="Preview profilne slike"
+                    alt={t('registerUser.avatarPreviewAlt')}
                     className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-full border-4 border-emerald-100 shadow-md"
                   />
                 </div>
@@ -403,10 +405,10 @@ export default function RegisterUser() {
                 type="submit"
                 className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-wait transition-all"
               >
-                Kreiraj novog člana
+                {t('registerUser.submit')}
               </button>
               <p className="mt-3 text-center text-[11px] text-gray-400">
-                Obavezna su samo korisničko ime, lozinka i uloga. Ostala polja možeš popuniti kasnije.
+                {t('registerUser.footerHint')}
               </p>
             </div>
           </form>
