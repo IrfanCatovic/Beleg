@@ -3,18 +3,17 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
+import { useTranslation } from 'react-i18next'
 
 const KONTAKTI = [
   {
     ime: 'Irfan',
     telefon: '+381 69 555 4991',
-    telefonLink: '0695554991',
     email: 'catovicc84@gmail.com',
   },
   {
     ime: 'Enes',
     telefon: '+381 63 830 6056',
-    telefonLink: '0638306056',
     email: 'enesh23@gmail.com',
   },
   
@@ -24,26 +23,27 @@ const TRUST_ITEMS = [
   {
     icon: IconClubs,
     value: '30+',
-    label: 'aktivnih klubova kod nas',
+    labelKey: 'trust.activeClubs',
   },
   {
     icon: IconClock,
     value: '< 1h',
-    label: 'odgovor u roku od sat vremena',
+    labelKey: 'trust.responseTime',
   },
   {
     icon: IconHeart,
     value: '100%',
-    label: 'zadovoljni klijenti',
+    labelKey: 'trust.satisfiedClients',
   },
   {
     icon: IconStar,
     value: '5.0',
-    label: 'preporuke i ocene',
+    labelKey: 'trust.reviews',
   },
 ] as const
 
 export default function Kontakt() {
+  const { t } = useTranslation('contactPage')
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const [contactPerson, setContactPerson] = useState('')
@@ -88,18 +88,18 @@ export default function Kontakt() {
     setSubmitMessage(null)
 
     if (!person || !club || !place || !q) {
-      setFieldError('Molimo popunite sva obavezna polja.')
+      setFieldError(t('form.requiredAll'))
       return
     }
 
-    const noteBody = `Pitanje poslato sa stranice Kontakt:\n\nKontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
+    const noteBody = `${t('mail.noteTitle')}\n\n${t('form.contactPerson')}: ${person}\n${t('form.clubName')}: ${club}\n${t('form.city')}: ${place}\n\n${t('form.question')}:\n${q}\n`
 
     setSending(true)
     try {
       await api.post(
         '/api/cena-zahtev',
         {
-          paket: 'Kontakt forma',
+          paket: t('mail.packageName'),
           extraUsers: 0,
           extraAdmins: 0,
           note: noteBody,
@@ -113,7 +113,7 @@ export default function Kontakt() {
         },
         { timeout: 45_000, withCredentials: false },
       )
-      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
+      setSubmitMessage({ type: 'success', text: t('messages.success') })
       setContactPerson('')
       setClubName('')
       setCity('')
@@ -128,14 +128,14 @@ export default function Kontakt() {
         if (timedOut) {
           setSubmitMessage({
             type: 'error',
-            text: 'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+            text: t('messages.timeout'),
           })
           return
         }
         if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
           setSubmitMessage({
             type: 'error',
-            text: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+            text: t('messages.network'),
           })
           return
         }
@@ -149,7 +149,7 @@ export default function Kontakt() {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { error?: string } } }).response
           : null
-      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      const msg = res?.data?.error ?? t('messages.sendError')
       setSubmitMessage({ type: 'error', text: msg })
     } finally {
       setSending(false)
@@ -169,11 +169,10 @@ export default function Kontakt() {
             <IconChat className="h-7 w-7" />
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-            Tu smo za vas
+            {t('hero.title')}
           </h1>
           <p className="text-gray-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Pitanja o planiner aplikaciji, ponudi za vaše društvo ili tehnička podrška – javite nam se.
-            Naš tim vam odgovara brzo i konkretno.
+            {t('hero.subtitle')}
           </p>
         </div>
 
@@ -181,7 +180,7 @@ export default function Kontakt() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-14">
           {TRUST_ITEMS.map((item) => (
             <div
-              key={item.label}
+              key={item.labelKey}
               className="relative rounded-2xl bg-white border border-emerald-100/80 shadow-sm hover:shadow-md hover:border-emerald-200/80 transition-all p-4 sm:p-5 text-center overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50/50 rounded-bl-full" />
@@ -190,7 +189,7 @@ export default function Kontakt() {
                   <item.icon className="h-5 w-5" />
                 </span>
                 <span className="text-xl sm:text-2xl font-bold text-emerald-700">{item.value}</span>
-                <span className="text-xs sm:text-sm text-gray-600 leading-snug">{item.label}</span>
+                <span className="text-xs sm:text-sm text-gray-600 leading-snug">{t(item.labelKey)}</span>
               </div>
             </div>
           ))}
@@ -201,7 +200,7 @@ export default function Kontakt() {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
             <IconTeam className="h-5 w-5" />
           </span>
-          <h2 className="text-lg font-semibold text-gray-900">Kontakt osobe</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('contacts.title')}</h2>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-5 sm:gap-6">
@@ -228,7 +227,7 @@ export default function Kontakt() {
                   <span className="font-medium">{osoba.telefon}</span>
                 </button>
                 {copiedPhone === osoba.telefon && (
-                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">Broj kopiran</span>
+                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">{t('contacts.phoneCopied')}</span>
                 )}
                 <button
                   type="button"
@@ -241,7 +240,7 @@ export default function Kontakt() {
                   <span className="font-medium text-sm sm:text-base">{osoba.email}</span>
                 </button>
                 {copiedEmail === osoba.email && (
-                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">Email kopiran</span>
+                  <span className="block text-[10px] text-emerald-500 mt-0.5 ml-1">{t('contacts.emailCopied')}</span>
                 )}
               </div>
             </section>
@@ -252,10 +251,9 @@ export default function Kontakt() {
         <div className="mt-12 rounded-2xl bg-white border border-emerald-100 shadow-sm p-6 sm:p-8 space-y-5">
           <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Pošaljite nam poruku</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('form.title')}</h2>
               <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-                Kratka forma za pitanja o planiner, saradnji ili demonstraciji. Odgovaramo vam direktno na kontakt koji
-                ostavite u poruci.
+                {t('form.subtitle')}
               </p>
             </div>
           </div>
@@ -263,7 +261,7 @@ export default function Kontakt() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="contact-person" className="text-xs font-medium text-gray-600">
-                Kontakt osoba <span className="text-red-500">*</span>
+                {t('form.contactPerson')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="contact-person"
@@ -276,12 +274,12 @@ export default function Kontakt() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="Ime i prezime kontakt osobe"
+                placeholder={t('form.contactPersonPlaceholder')}
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="club-name" className="text-xs font-medium text-gray-600">
-                Ime kluba <span className="text-red-500">*</span>
+                {t('form.clubName')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="club-name"
@@ -294,7 +292,7 @@ export default function Kontakt() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="npr. Planinarsko društvo Javor"
+                placeholder={t('form.clubNamePlaceholder')}
               />
             </div>
           </div>
@@ -302,7 +300,7 @@ export default function Kontakt() {
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)]">
             <div className="space-y-2">
               <label htmlFor="city" className="text-xs font-medium text-gray-600">
-                Mesto <span className="text-red-500">*</span>
+                {t('form.city')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="city"
@@ -315,14 +313,14 @@ export default function Kontakt() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="Grad ili mesto u kojem je klub"
+                placeholder={t('form.cityPlaceholder')}
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <label htmlFor="question" className="text-xs font-medium text-gray-600">
-              Pitanje za nas <span className="text-red-500">*</span>
+              {t('form.question')} <span className="text-red-500">*</span>
             </label>
             <textarea
               id="question"
@@ -333,7 +331,7 @@ export default function Kontakt() {
               }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
-              placeholder="Ukratko opišite šta vas zanima – npr. termin za prezentaciju, tehničko pitanje, predlog funkcije…"
+              placeholder={t('form.questionPlaceholder')}
             />
           </div>
 
@@ -350,7 +348,7 @@ export default function Kontakt() {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <p className="text-xs text-gray-500">
-              Klikom na „Pošalji poruku“ vaš upit stiže direktno našem timu. Odgovaramo u najkraćem roku.
+              {t('form.hint')}
             </p>
             <button
               type="button"
@@ -358,7 +356,7 @@ export default function Kontakt() {
               disabled={sending}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
-              {sending ? 'Slanje…' : 'Pošalji poruku'}
+              {sending ? t('form.sending') : t('form.submit')}
             </button>
           </div>
         </div>
@@ -369,14 +367,13 @@ export default function Kontakt() {
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/5 rounded-tl-full" />
           <div className="relative">
             <p className="text-emerald-50/95 text-sm sm:text-base mb-5 max-w-lg mx-auto leading-relaxed">
-              Registracija kluba je besplatna. Na stranici Cena možete poslati upit sa osnovnim podacima o vašem
-              planinarskom društvu – javićemo vam se sa sledećim koracima.
+              {t('cta.text')}
             </p>
             <Link
               to="/cena"
               className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-emerald-800 bg-white hover:bg-emerald-50 transition-colors shadow-lg"
             >
-              Stranica Cena – pošalji upit
+              {t('cta.button')}
               <IconArrow className="h-4 w-4" />
             </Link>
           </div>

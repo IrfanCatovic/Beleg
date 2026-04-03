@@ -12,6 +12,7 @@ import {
   XMarkIcon,
   ArrowRightStartOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 export interface Klub {
   id: number
@@ -55,12 +56,6 @@ const cardBorderByStatus: Record<SubscriptionStatus, string> = {
   expired: 'border-l-red-500 bg-red-50/50',
 }
 
-const labelByStatus: Record<SubscriptionStatus, string> = {
-  active: 'Aktivna subskripcija',
-  warning: 'Ističe uskoro',
-  expired: 'Istekla',
-}
-
 const defaultForm = {
   naziv: '',
   adresa: '',
@@ -85,6 +80,7 @@ const defaultForm = {
 }
 
 export default function SuperadminKlubovi() {
+  const { t } = useTranslation('clubs')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [klubovi, setKlubovi] = useState<Klub[]>([])
@@ -108,7 +104,7 @@ export default function SuperadminKlubovi() {
       const res = await api.get<{ klubovi: Klub[] }>('/api/superadmin/klubovi')
       setKlubovi(res.data.klubovi ?? [])
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri učitavanju klubova'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.load')
       setError(msg)
     } finally {
       setLoading(false)
@@ -143,7 +139,7 @@ export default function SuperadminKlubovi() {
       setDeleteCountdown(0)
       await fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri brisanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.delete')
       setError(msg)
     } finally {
       setDeleteLoading(false)
@@ -187,11 +183,11 @@ export default function SuperadminKlubovi() {
     e.preventDefault()
     setFormError('')
     if (!form.naziv.trim()) {
-      setFormError('Naziv kluba je obavezan.')
+      setFormError(t('superadmin.errors.nameRequired'))
       return
     }
     if (form.max_storage_gb < 0) {
-      setFormError('Limit medija (GB) ne sme biti negativan.')
+      setFormError(t('superadmin.errors.mediaLimitNegative'))
       return
     }
     setSubmitLoading(true)
@@ -233,7 +229,7 @@ export default function SuperadminKlubovi() {
       setModalOpen(false)
       fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Greška pri čuvanju'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.save')
       setFormError(msg)
     } finally {
       setSubmitLoading(false)
@@ -254,7 +250,7 @@ export default function SuperadminKlubovi() {
   if (user?.role !== 'superadmin') {
     return (
       <div className="p-6 text-center text-gray-600">
-        Nemate pristup ovoj stranici.
+        {t('superadmin.noAccess')}
       </div>
     )
   }
@@ -262,14 +258,14 @@ export default function SuperadminKlubovi() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Klubovi</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
         <button
           type="button"
           onClick={openAddModal}
           className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
         >
           <PlusIcon className="h-5 w-5" />
-          Dodaj klub
+          {t('superadmin.addClub')}
         </button>
       </div>
 
@@ -283,7 +279,7 @@ export default function SuperadminKlubovi() {
         <Loader />
       ) : klubovi.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">
-          Nema klubova. Kliknite „Dodaj klub” da kreirate prvi.
+          {t('superadmin.empty')}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -310,6 +306,11 @@ export default function SuperadminKlubovi() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-semibold text-gray-900 truncate">{k.naziv}</h2>
+                    {k.subscriptionEndsAt && (
+                      <div className="mt-1 text-center text-xs text-gray-500 sm:hidden">
+                        {t('superadmin.subscriptionUntil')}: {formatDateShort(k.subscriptionEndsAt)}
+                      </div>
+                    )}
                     {(k.sediste || k.adresa) && (
                       <p className="mt-0.5 text-sm text-gray-600 truncate" title={k.sediste || k.adresa}>
                         {k.sediste || k.adresa}
@@ -318,7 +319,7 @@ export default function SuperadminKlubovi() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {k.onHold && (
                         <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-bold bg-slate-200 text-slate-800">
-                          Na hold-u
+                          {t('superadmin.onHoldBadge')}
                         </span>
                       )}
                       <span
@@ -330,7 +331,7 @@ export default function SuperadminKlubovi() {
                               : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {labelByStatus[status]}
+                        {t(`superadmin.subscriptionStatus.${status}`)}
                       </span>
                     </div>
                   </div>
@@ -339,7 +340,7 @@ export default function SuperadminKlubovi() {
                       type="button"
                       onClick={() => openEditModal(k)}
                       className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                      title="Izmeni"
+                      title={t('superadmin.actions.edit')}
                     >
                       <PencilSquareIcon className="h-5 w-5" />
                     </button>
@@ -348,7 +349,7 @@ export default function SuperadminKlubovi() {
                         type="button"
                         onClick={() => startDelete(k.id)}
                         className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                        title="Obriši"
+                        title={t('superadmin.actions.delete')}
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -356,8 +357,8 @@ export default function SuperadminKlubovi() {
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-right text-xs font-medium text-red-600 max-w-[9rem]">
                           {countdown > 0
-                            ? `Još ${countdown}s, zatim potvrdite brisanje.`
-                            : 'Kliknite Izbriši za trajno brisanje.'}
+                            ? t('superadmin.deleteCountdown', { seconds: countdown })
+                            : t('superadmin.deleteConfirmReady')}
                         </span>
                         {countdown === 0 && (
                           <button
@@ -366,7 +367,7 @@ export default function SuperadminKlubovi() {
                             disabled={deleteLoading}
                             className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                           >
-                            Izbriši
+                            {t('superadmin.actions.delete')}
                           </button>
                         )}
                         <button
@@ -375,7 +376,7 @@ export default function SuperadminKlubovi() {
                           disabled={deleteLoading}
                           className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
                         >
-                          Odustani
+                          {t('superadmin.actions.cancel')}
                         </button>
                       </div>
                     )}
@@ -384,8 +385,8 @@ export default function SuperadminKlubovi() {
                 {/* Subskripcija + Ulazi */}
                 <div className="mt-auto border-t border-gray-200/60 px-4 py-3 bg-white/30">
                   {k.subscriptionEndsAt && (
-                    <p className="text-xs text-gray-500 mb-2">
-                      Subskripcija do: {formatDateShort(k.subscriptionEndsAt)}
+                    <p className="hidden sm:block text-xs text-gray-500 mb-2">
+                      {t('superadmin.subscriptionUntil')}: {formatDateShort(k.subscriptionEndsAt)}
                     </p>
                   )}
                   <button
@@ -398,7 +399,7 @@ export default function SuperadminKlubovi() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
                   >
                     <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
-                    Ulazi
+                    {t('superadmin.actions.enter')}
                   </button>
                 </div>
               </div>
@@ -418,7 +419,7 @@ export default function SuperadminKlubovi() {
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               <h2 className="text-lg font-semibold text-gray-900">
-                {editingId != null ? 'Izmena kluba' : 'Novi klub'}
+                {editingId != null ? t('superadmin.modal.editTitle') : t('superadmin.modal.newTitle')}
               </h2>
               <button
                 type="button"
@@ -433,7 +434,7 @@ export default function SuperadminKlubovi() {
                 <div className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{formError}</div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Naziv *</label>
+                <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.nameRequired')}</label>
                 <input
                   type="text"
                   value={form.naziv}
@@ -444,7 +445,7 @@ export default function SuperadminKlubovi() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Sediste</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.seat')}</label>
                   <input
                     type="text"
                     value={form.sediste}
@@ -453,7 +454,7 @@ export default function SuperadminKlubovi() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.email')}</label>
                   <input
                     type="email"
                     value={form.email}
@@ -463,18 +464,18 @@ export default function SuperadminKlubovi() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Datum osnivanja kluba</label>
+                <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.foundationDate')}</label>
                 <CalendarDropdown
                   value={form.datum_osnivanja}
                   onChange={(v) => setForm((f) => ({ ...f, datum_osnivanja: v }))}
-                  placeholder="Izaberite datum osnivanja"
+                  placeholder={t('superadmin.form.foundationDatePlaceholder')}
                   fullWidth
-                  aria-label="Datum osnivanja"
+                  aria-label={t('superadmin.form.foundationDate')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Limit admina</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.adminLimit')}</label>
                   <input
                     type="number"
                     min={0}
@@ -484,7 +485,7 @@ export default function SuperadminKlubovi() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Limit članova</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.memberLimit')}</label>
                   <input
                     type="number"
                     min={0}
@@ -496,28 +497,28 @@ export default function SuperadminKlubovi() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Subskripcija od</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.subscriptionFrom')}</label>
                   <CalendarDropdown
                     value={form.subscribedAt}
                     onChange={(v) => setForm((f) => ({ ...f, subscribedAt: v }))}
-                    placeholder="Datum od"
+                    placeholder={t('superadmin.form.dateFromPlaceholder')}
                     fullWidth
-                    aria-label="Subskripcija od"
+                    aria-label={t('superadmin.form.subscriptionFrom')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Subskripcija do</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.subscriptionTo')}</label>
                   <CalendarDropdown
                     value={form.subscriptionEndsAt}
                     onChange={(v) => setForm((f) => ({ ...f, subscriptionEndsAt: v }))}
-                    placeholder="Datum do"
+                    placeholder={t('superadmin.form.dateToPlaceholder')}
                     fullWidth
-                    aria-label="Subskripcija do"
+                    aria-label={t('superadmin.form.subscriptionTo')}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Limit medija (GB)</label>
+                <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.mediaLimitGb')}</label>
                 <input
                   type="number"
                   min={0}
@@ -526,7 +527,7 @@ export default function SuperadminKlubovi() {
                   onChange={(e) => setForm((f) => ({ ...f, max_storage_gb: Number(e.target.value) || 0 }))}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                 />
-                <p className="mt-1 text-xs text-gray-500">Maksimalni prostor za slike/video fajlove po klubu.</p>
+                <p className="mt-1 text-xs text-gray-500">{t('superadmin.form.mediaLimitHint')}</p>
               </div>
                 {editingId != null && (
                   <div className="flex items-center gap-3">
@@ -538,12 +539,12 @@ export default function SuperadminKlubovi() {
                       className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <label htmlFor="form-onHold" className="text-sm font-medium text-gray-700">
-                      Klub aktivan (članovi mogu da se loguju)
+                      {t('superadmin.clubActiveLabel')}
                     </label>
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Logo kluba</label>
+                  <label className="block text-sm font-medium text-gray-700">{t('superadmin.form.logo')}</label>
                 <div className="mt-1 flex items-center gap-3">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
                     {form.logoFile ? (
@@ -565,7 +566,7 @@ export default function SuperadminKlubovi() {
                       }}
                       className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
                     />
-                    <p className="mt-0.5 text-xs text-gray-500">Izaberite sliku (npr. JPG, PNG). Upload na Cloudinary pri čuvanju.</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{t('superadmin.form.logoHint')}</p>
                   </div>
                 </div>
               </div>
@@ -575,14 +576,14 @@ export default function SuperadminKlubovi() {
                   onClick={() => setModalOpen(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Odustani
+                  {t('superadmin.actions.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitLoading}
                   className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {submitLoading ? 'Čuvanje...' : editingId != null ? 'Sačuvaj' : 'Kreiraj'}
+                  {submitLoading ? t('superadmin.actions.saving') : editingId != null ? t('superadmin.actions.save') : t('superadmin.actions.create')}
                 </button>
               </div>
             </form>

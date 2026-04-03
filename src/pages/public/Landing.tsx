@@ -1,6 +1,10 @@
 // Lokalne slike zamenjene Cloudinary URL-ovima direktno u JSX
 import { useNavigate } from 'react-router-dom'
-import MarketingNavbar from '../../components/MarketingNavbar'
+import { useTranslation } from 'react-i18next'
+
+import HeroLanding from '../../components/landingPage/HeroLanding'
+import WhyPlaniner from '../../components/landingPage/WhyPlaniner'
+import Footer from '../../components/landingPage/Footer'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -44,96 +48,20 @@ function IconSparkles(props: React.SVGProps<SVGSVGElement>) {
 export default function Landing() {
 
   const navigate = useNavigate()
+  const { t } = useTranslation('landing')
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
-      {/* Hero */}
-      <header className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_100%,#41ac53_0%,transparent_55%)] opacity-20 max-md:opacity-[0.12]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,#fed74c_0%,transparent_55%)] opacity-25 max-md:opacity-[0.12]" />
-        </div>
-
-        <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 lg:pt-12 lg:pb-14">
-          <MarketingNavbar />
-
-          <div className="space-y-10">
-            {/* Naslov + opis + CTA (levo) i slika (desno) */}
-            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-10">
-              {/* Leva kolona: tekst */}
-              <div className="flex-[1.1] flex flex-col items-start gap-4">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-snug max-w-2xl">
-                  Više vremena na stazi,{' '}
-                  <span className="text-emerald-600">manje za administraciju</span>
-                </h1>
-
-                <p className="text-base sm:text-lg text-gray-700 max-w-2xl">
-                  Planiner povezuje celo društvo, rukovodstvo lakše vodi klub, a članovi aktivno učestvuju
-                  kroz objave, prijave na akcije i praćenje svog napretka. Sve na jednom mestu, bez haosa u
-                  porukama i tabelama.
-                </p>
-
-                <p className="text-sm text-gray-600 max-w-xl">
-                  Za predsednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.
-                </p>
-
-                <a
-                  href="/kontakt"
-                  className="inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                >
-                  Zakaži prezentaciju besplatno
-                </a>
-              </div>
-
-              {/* Desna kolona: slika */}
-              <div className="flex-[0.9] flex justify-center lg:justify-end">
-                <div className="max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
-                  <img
-                    src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786067/na_vrhu_prikaz_aplikacije_na_laptopu_i_telefonu_kp9o1u.png"
-                    alt="na vrhu  prikaz aplikacije na laptopu i telefonu"
-                    className="rounded-3xl w-full h-auto object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Zašto Planiner, 3 kratke kartice */}
-      <section className="bg-white py-10 sm:py-14">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-5 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
-              </div>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">Manje administracije</h3>
-              <p className="text-xs text-gray-600">Članovi, akcije, finansije i obaveštenja, sve automatizovano. Bez Excela, papira i duplih poruka.</p>
-            </div>
-            <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
-              </div>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">Aktivni članovi</h3>
-              <p className="text-xs text-gray-600">Objave, komentari, prijave na akcije jednim klikom, praćenje napretka i rang lista, svi su uključeni.</p>
-            </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/40 p-5 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-              </div>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">Jasna evidencija</h3>
-              <p className="text-xs text-gray-600">Izveštaji, statistika članova, finansije i dokumenti, sve spremno kad vam zatreba, bez kopanja.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      
+      <HeroLanding />
+      <WhyPlaniner />
+      
 
       {/* Mountain band segment sa porukom */}
       <section className="relative w-full bg-slate-900 text-white">
         <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
           <img
             src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinski_pejza%C5%BE_vpdfmb.jpg"
-            alt="Planinski pejzaž"
+            alt={t('alts.mountainLandscape')}
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center center' }}
           />
@@ -145,14 +73,13 @@ export default function Landing() {
           <div className="absolute inset-0 flex items-center justify-center px-4">
             <div className="max-w-3xl text-center">
               <p className="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-emerald-200 mb-3">
-                Samo za ozbiljne planinare
+                {t('mountainBand.badge')}
               </p>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 leading-snug">
-                Prati svoj napredak na svakoj stazi
+                {t('mountainBand.title')}
               </h2>
               <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto">
-                Planiner ti pokazuje koliko si kilometara prešao, koliko uspona savladao i na kojim si se
-                vrhovima već dokazao. Sezona po sezona, godina po godina.
+                {t('mountainBand.subtitle')}
               </p>
             </div>
           </div>
@@ -182,9 +109,9 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Šta tačno rešavamo</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t('solve.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.
+                {t('solve.subtitle')}
               </p>
             </div>
 
@@ -198,13 +125,13 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
-                  Haos u tabelama, papiri, duplo kucanje, izgubljeni formulari.
+                  {t('solve.cards.c1.problemTitle')}
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Podaci o članovima razbacani u Excelu, papirnim obrascima i porukama, niko nema kompletnu sliku.
+                  {t('solve.cards.c1.problemText')}
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -213,11 +140,10 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
-                    Centralizovana baza članova sa svim podacima, dokumentima i planinarskim informacijama
-                    (legitimacije, markice, disciplinske mere, izbor u organe).
+                    {t('solve.cards.c1.solutionText')}
                   </p>
                 </div>
               </div>
@@ -231,13 +157,13 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
-                  Ne zna se ko je šta uplatio, na koju akciju je prijavljen i sve ide preko poruka.
+                  {t('solve.cards.c2.problemTitle')}
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Sekretar, vodiči i blagajnik troše sate na dopisivanje, prepisivanje i prebrojavanje.
+                  {t('solve.cards.c2.problemText')}
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -246,11 +172,10 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
-                    Jedinstveno mesto za akcije, zadatke, finansije i obaveštenja, svaki ulogovani vidi ono što
-                    mu treba. Vodiči, admini i blagajnici imaju posebna ovlašćenja.
+                    {t('solve.cards.c2.solutionText')}
                   </p>
                 </div>
               </div>
@@ -264,13 +189,13 @@ export default function Landing() {
                       <circle cx="12" cy="16.5" r="1.2" fill="currentColor" />
                     </svg>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">Problem</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">{t('solve.problemLabel')}</p>
                 </div>
                 <p className="text-sm font-semibold mb-3">
-                  Administracija troši sate i dane godišnje.
+                  {t('solve.cards.c3.problemTitle')}
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Upis članova, evidencija akcija, ručna obaveštenja, finansijski izveštaji, sve se radi od nule.
+                  {t('solve.cards.c3.problemText')}
                 </p>
                 <div className="border-t border-dashed border-gray-200 mt-3 pt-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -279,11 +204,10 @@ export default function Landing() {
                         <path d="M20 7L10 17L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <p className="text-xs font-semibold text-emerald-700">Rešenje u Planiner</p>
+                    <p className="text-xs font-semibold text-emerald-700">{t('solve.solutionLabel')}</p>
                   </div>
                   <p className="text-xs text-gray-600">
-                    Automatizacija procesa (registracija članova, evidencija akcija, obaveštenja, finansije) i
-                    ušteda preko <span className="font-semibold">200 sati godišnje</span>.
+                    {t('solve.cards.c3.solutionTextStart')} <span className="font-semibold">200 {t('solve.cards.c3.solutionTextHours')}</span>.
                   </p>
                 </div>
               </div>
@@ -296,14 +220,13 @@ export default function Landing() {
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-12">
               <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700 mb-3">
-                Za člana društva
+                {t('member.badge')}
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-                Tvoj put na stazi jednostavno i zanimljivo
+                {t('member.title')}
               </h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Planiner nije samo za rukovodstvo. Kao član imaš svoj prostor: pregled akcija, prijave jednim klikom,
-                zajednica sa drugim planinarima i motivacija kroz napredak i takmičenje.
+                {t('member.subtitle')}
               </p>
             </div>
 
@@ -319,24 +242,24 @@ export default function Landing() {
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Kako radi za tebe</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.howForYou')}</h3>
                 </div>
                 <ul className="space-y-3 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Uloguješ se i vidiš sve predstojeće akcije društva na jednom mestu.</span>
+                    <span>{t('member.howList.1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Prijaviš se na akciju jednim klikom bez papira, formulara i dopisivanja.</span>
+                    <span>{t('member.howList.2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Posle svake akcije automatski ti se beleže kilometri, uspon i učestvovanje.</span>
+                    <span>{t('member.howList.3')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Pratiš svoj napredak i rang u društvu sve na tvom profilu.</span>
+                    <span>{t('member.howList.4')}</span>
                   </li>
                 </ul>
               </div>
@@ -352,27 +275,27 @@ export default function Landing() {
                       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Zajednica i interakcija</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.community')}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
-                  Ostani u toku sa društvom i drugim planinarima:
+                  {t('member.communityIntro')}
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Ko je na kojoj akciji vidiš ko se prijavio i ko je vodič.</span>
+                    <span>{t('member.communityList.1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Obaveštenja o novim akcijama, promenama i važnim obaveštenjima.</span>
+                    <span>{t('member.communityList.2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Javni profili članova pogledaj napredak drugih i podeli svoj.</span>
+                    <span>{t('member.communityList.3')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-blue-500 shrink-0" />
-                    <span>Jedno mesto umesto deset grupa i poruka sve na stazi, sve u Planineru.</span>
+                    <span>{t('member.communityList.4')}</span>
                   </li>
                 </ul>
               </div>
@@ -383,36 +306,36 @@ export default function Landing() {
                   <div className="shrink-0 inline-flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100">
                     <IconSparkles className="h-5 w-5 text-amber-600" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Napredak i takmičenje</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('member.progress')}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
-                  Svaka akcija ti donosi više od uspomene beleži se i motivira:
+                  {t('member.progressIntro')}
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Kilometri, ukupan uspon, broj akcija istorija na tvom profilu.</span>
+                    <span>{t('member.progressList.1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Rank tipa „Legenda stijena“ vidiš gde stojiš u društvu.</span>
+                    <span>{t('member.progressList.2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Mini takmičenja po sezoni ko je najaktivniji, ko ima najviše uspona.</span>
+                    <span>{t('member.progressList.3')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
-                    <span>Podeli svoj planinarski CV na društvenim mrežama i motiviraj druge.</span>
+                    <span>{t('member.progressList.4')}</span>
                   </li>
                 </ul>
               </div>
             </div>
 
             <p className="text-center text-sm text-gray-500 mt-8">
-              Želiš da tvoje društvo koristi Planiner?{' '}
+              {t('member.ctaText')}{' '}
               <a href="#cta" className="font-semibold text-emerald-600 hover:text-emerald-700 underline">
-                Predloži rukovodstvu da zakaže prezentaciju
+                {t('member.ctaLink')}
               </a>
               .
             </p>
@@ -427,40 +350,37 @@ export default function Landing() {
               <div className="flex-[1.1] max-w-3xl">
                 <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 mb-3">
                   <IconSparkles className="h-3.5 w-3.5 text-emerald-300" />
-                  Ranking i mini takmičenja
+                  {t('ranking.badge')}
                 </p>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-                  Pretvorite svaku akciju u mali izazov
+                  {t('ranking.title')}
                 </h2>
                 <p className="text-sm sm:text-base text-slate-200 mb-4 max-w-xl">
-                  Planiner vodi detaljnu statistiku za svakog člana nakon uspešne akcije, broj pređenih kilometara,
-                  ukupni uspon i osvojen rank. Društvo dobija motivacioni sistem koji nagrađuje aktivnost, a članovi
-                  jasnu sliku o svom napretku.
+                  {t('ranking.subtitle')}
                 </p>
                 <ul className="space-y-2 text-xs sm:text-sm text-slate-200">
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Personalizovani ranking za svakog člana na osnovu učestvovanja na akcijama i pređene kilometraže.
+                      {t('ranking.list.1')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Beleženje ključnih metrika posle svake akcije: broj kilometara, ukupan uspon, broj dana na terenu.
+                      {t('ranking.list.2')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Unutrašnja mini takmičenja po sezoni ili godini, ko je najaktivniji, ko je skupio najviše uspona.
+                      {t('ranking.list.3')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                     <span>
-                      Deljenje profila na društvenim mrežama, članovi mogu da pokažu svoj planinarski CV
-                      prijateljima i zajednici.
+                      {t('ranking.list.4')}
                     </span>
                   </li>
                 </ul>
@@ -471,37 +391,37 @@ export default function Landing() {
                 <div className="w-full max-w-sm md:max-w-md rounded-3xl border border-emerald-500/20 bg-slate-900/60 p-4 sm:p-5 shadow-2xl shadow-black/40">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Profil člana</p>
-                      <p className="text-sm font-semibold text-slate-50">Pera Perić</p>
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{t('ranking.mock.profileLabel')}</p>
+                      <p className="text-sm font-semibold text-slate-50">{t('ranking.mock.name')}</p>
                     </div>
                     <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-300">
-                      Rank: Legenda stijena
+                      {t('ranking.mock.rank')}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center mb-4">
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Ukupno km</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.totalKm')}</p>
                       <p className="text-sm font-semibold text-slate-50">182</p>
                     </div>
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Ukupan uspon</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.totalAscent')}</p>
                       <p className="text-sm font-semibold text-slate-50">6 450 m</p>
                     </div>
                     <div className="rounded-2xl bg-slate-800/70 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 mb-1">Akcije</p>
+                      <p className="text-[10px] text-slate-400 mb-1">{t('ranking.mock.actions')}</p>
                       <p className="text-sm font-semibold text-slate-50">24</p>
                     </div>
                   </div>
                   <div className="rounded-2xl bg-slate-800/80 px-3 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] text-slate-400">Mini takmičenje, prolećna sezona</p>
-                      <p className="text-xs text-slate-100">Trenutni plasman: 3. mesto u društvu</p>
+                      <p className="text-[10px] text-slate-400">{t('ranking.mock.season')}</p>
+                      <p className="text-xs text-slate-100">{t('ranking.mock.placement')}</p>
                     </div>
                     <button
                       type="button"
                       className="ml-3 inline-flex items-center rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-emerald-400 transition-colors"
                     >
-                      Podeli profil
+                      {t('ranking.mock.share')}
                     </button>
                   </div>
                 </div>
@@ -518,9 +438,9 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ključne funkcionalnosti aplikacije</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('features.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
-                Sve što planinarskom društvu treba  od prvog učlanjenja do poslednjeg izvještaja blagajne.
+                {t('features.subtitle')}
               </p>
             </div>
 
@@ -528,13 +448,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-emerald-900">Upravljanje članovima</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-emerald-900">{t('features.cards.members.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Detaljni profili članova sa ličnim podacima, kontaktima, planinarskim dokumentima,
-                      disciplinskim merama i izborima u organe.
+                      {t('features.cards.members.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Više uloga (admin, sekretar, vodič, blagajnik, član) svako vidi ono što mu je potrebno.
+                      {t('features.cards.members.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
@@ -551,13 +470,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-blue-900">Akcije i zadaci</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-blue-900">{t('features.cards.actions.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Kreiranje, uređivanje i praćenje planinarskih akcija, prijave članova i zadaci za vodiče
-                      i organizatore.
+                      {t('features.cards.actions.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Jasan pregled aktivnih i prošlih akcija, istorije prisustva i angažmana članova.
+                      {t('features.cards.actions.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
@@ -574,12 +492,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-amber-900">Finansije (admin i blagajnik)</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-amber-900">{t('features.cards.finance.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Evidencija uplata i isplata, povezivanje sa članovima ili akcijama i pregled istorije plaćanja.
+                      {t('features.cards.finance.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Transparentan rad blagajnika i lakše pravdanje finansija prema upravnom odboru.
+                      {t('features.cards.finance.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
@@ -595,12 +513,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-violet-900">Obaveštenja u realnom vremenu</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-violet-900">{t('features.cards.notifications.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Interni sistem notifikacija za akcije, uplate, zadatke i važna saopštenja.
+                      {t('features.cards.notifications.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Admin jednim klikom šalje obaveštenje svim članovima ili ciljanim grupama.
+                      {t('features.cards.notifications.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
@@ -615,13 +533,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-rose-100 p-5 hover:shadow-lg hover:border-rose-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-rose-900">Automatski PDF izveštaji</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-rose-900">{t('features.cards.pdf.title')}</h3>
                     <p className="text-xs text-gray-600 mb-3">
-                      Planiner za vas automatski priprema ključne PDF dokumente spremne za slanje i arhivu.
+                      {t('features.cards.pdf.text1')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Godišnji izveštaj o akcijama, pojedinačni izveštaji sa akcija, profil svakog člana i detaljni
-                      finansijski izveštaji nastaju iz sistema jednim klikom, bez dodatnog kucanja i prepisivanja.
+                      {t('features.cards.pdf.text2')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-rose-100 group-hover:bg-rose-200 transition-colors">
@@ -638,9 +555,9 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white shadow-sm border border-sky-100 p-5 hover:shadow-lg hover:border-sky-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold mb-2 text-sky-900">Javni profil i dostignuća</h3>
+                    <h3 className="text-sm font-semibold mb-2 text-sky-900">{t('features.cards.publicProfile.title')}</h3>
                     <p className="text-xs text-gray-600">
-                      Svaki korisnik ima svoj profil koji je javno dostupan. Na njemu može da pokaže svoja dostignuća: pređene staze, savladane uspone i učešće u akcijama.
+                      {t('features.cards.publicProfile.text1')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-11 w-11 rounded-xl bg-sky-100 group-hover:bg-sky-200 transition-colors">
@@ -661,29 +578,17 @@ export default function Landing() {
         <section id="how-it-works" className="py-16 sm:py-20 bg-white">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Kako funkcioniše Planiner</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('how.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Jasni koraci od prvog kontakta do svakodnevnog rada celog društva u sistemu.
+                {t('how.subtitle')}
               </p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
               {[
-                {
-                  title: 'Postavljamo klub za vas',
-                  text: 'Na kratkom online sastanku upoznajemo se sa vašim društvom, postavljamo admina i unosimo prve članove. Obuka traje samo 30 minuta.',
-                  step: '01',
-                },
-                {
-                  title: 'Rukovodstvo organizuje rad',
-                  text: 'Vodiči planiraju akcije, admini upravljaju članovima i zadacima, blagajnik prati finansije, sve na jednom mestu bez poruka i tabela.',
-                  step: '02',
-                },
-                {
-                  title: 'Članovi aktivno učestvuju',
-                  text: 'Prijava na akcije jednim klikom, objave i komentari, praćenje napretka i rang lista - Planiner postaje digitalno mesto susreta celog društva.',
-                  step: '03',
-                },
+                { title: t('how.steps.1.title'), text: t('how.steps.1.text'), step: '01' },
+                { title: t('how.steps.2.title'), text: t('how.steps.2.text'), step: '02' },
+                { title: t('how.steps.3.title'), text: t('how.steps.3.text'), step: '03' },
               ].map(({ title, text, step }, i) => {
                 const colors = [
                   'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -701,7 +606,7 @@ export default function Landing() {
                     className={`relative rounded-2xl border p-5 shadow-sm bg-white hover:shadow-md transition-all ${borders[i]}`}
                   >
                     <div className={`absolute -top-3 left-4 inline-flex items-center justify-center h-7 px-3 rounded-full border text-[10px] font-semibold ${colors[i]}`}>
-                      Korak {step}
+                      {t('how.stepPrefix')} {step}
                     </div>
                     <h3 className="mt-3 mb-2 text-sm font-semibold">{title}</h3>
                     <p className="text-xs text-gray-600">{text}</p>
@@ -718,10 +623,9 @@ export default function Landing() {
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12">
               {/* Tekst levo */}
               <div className="flex-[1.1]">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Više od softvera - partner za društvo</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4">{t('partner.title')}</h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-6">
-                  Planiner razvija posvećen tim developera koji aktivno sarađuje sa planinarskim društvima. Naš cilj
-                  je da vam damo više vremena na stazi, a manje za stolom.
+                  {t('partner.subtitle')}
                 </p>
 
                 <div className="space-y-5 text-sm">
@@ -733,10 +637,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Ozbiljan tim developera</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.1.title')}</p>
                       <p className="text-xs text-gray-600">
-                        Redovni update-i, sigurnosne zakrpe i nove funkcionalnosti zasnovane na iskustvu sa terena, uz
-                        brz odaziv na prijavljene bagove i probleme u radu.
+                        {t('partner.items.1.text')}
                       </p>
                     </div>
                   </div>
@@ -747,10 +650,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Podrška na lokalnom jeziku</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.2.title')}</p>
                       <p className="text-xs text-gray-600">
-                        E-mail, telefon i online sastanci  od implementacije i obuke tima do svakodnevnih pitanja, sa
-                        fokusom na brz response time i jasne, konkretne odgovore.
+                        {t('partner.items.2.text')}
                       </p>
                     </div>
                   </div>
@@ -761,10 +663,9 @@ export default function Landing() {
                       </svg>
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 mb-1">Community za planinare</p>
+                      <p className="font-semibold text-gray-800 mb-1">{t('partner.items.3.title')}</p>
                       <p className="text-xs text-gray-600">
-                        Kreiramo mrežu društava koja koriste isti sistem, razmenjuju prakse i predloge za nove funkcije,
-                        a naše izdanje prati realne potrebe i predloge iz te zajednice.
+                        {t('partner.items.3.text')}
                       </p>
                     </div>
                   </div>
@@ -777,11 +678,11 @@ export default function Landing() {
                   <div className="rounded-3xl bg-white border border-slate-100 shadow-md overflow-hidden">
                     <img
                       src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786065/teamwork_nfwwcv.jpg"
-                      alt="Tim na Planiner u online sastanku sa planinarskim društvom"
+                      alt={t('alts.partnerTeam')}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-center text-[11px] text-gray-400 mt-2">Tim Planiner-a  podrška od prvog dana</p>
+                  <p className="text-center text-[11px] text-gray-400 mt-2">{t('partner.imageCaption')}</p>
                 </div>
               </div>
             </div>
@@ -793,7 +694,7 @@ export default function Landing() {
           <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
             <img
               src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786066/planinar_na_stazi_zaz7p3.jpg"
-              alt="Planinar na stazi"
+              alt={t('alts.hikerOnTrail')}
               className="w-full h-full object-cover filter blur-[1px] scale-105"
               style={{ objectPosition: 'center 65%' }}
             />
@@ -805,14 +706,13 @@ export default function Landing() {
             <div className="absolute inset-0 flex items-center justify-center px-4">
               <div className="max-w-3xl text-center">
                 <p className="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-emerald-200 mb-3">
-                  Članovi u centru sistema
+                  {t('memberBand.badge')}
                 </p>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 leading-snug">
-                  Svaki član vidi svoj put na planini
+                  {t('memberBand.title')}
                 </h2>
                 <p className="text-sm sm:text-base text-slate-100 max-w-2xl mx-auto">
-                  Planiner čuva planinarsku priču svakog člana, od prve akcije i markice do ozbiljnih uspona i
-                  vođenja tura. Društvo dobija urednu evidenciju, a članovi lični motiv da budu još aktivniji.
+                  {t('memberBand.subtitle')}
                 </p>
               </div>
             </div>
@@ -841,9 +741,9 @@ export default function Landing() {
           </div>
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Brojevi i benefiti</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('benefits.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                Jasne, merljive koristi koje vaše društvo dobija prelaskom na Planiner.
+                {t('benefits.subtitle')}
               </p>
             </div>
 
@@ -855,9 +755,9 @@ export default function Landing() {
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-emerald-800 mb-1">Ušteda vremena</p>
+                <p className="text-xs font-semibold text-emerald-800 mb-1">{t('benefits.cards.time.title')}</p>
                 <p className="text-2xl font-extrabold text-emerald-700 mb-1">200+</p>
-                <p className="text-[11px] text-emerald-900/80">sati godišnje manje na administraciji</p>
+                <p className="text-[11px] text-emerald-900/80">{t('benefits.cards.time.text')}</p>
               </div>
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center hover:shadow-md transition-shadow">
                 <div className="mx-auto mb-3 inline-flex items-center justify-center h-10 w-10 rounded-full bg-slate-200/60">
@@ -866,10 +766,10 @@ export default function Landing() {
                     <path d="M9 12l2 2 4-4" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-slate-800 mb-1">Manje grešaka</p>
+                <p className="text-xs font-semibold text-slate-800 mb-1">{t('benefits.cards.errors.title')}</p>
                 <p className="text-2xl font-extrabold text-slate-800 mb-1">0</p>
                 <p className="text-[11px] text-slate-900/80">
-                  izgubljenih formulara i duplih unosa
+                  {t('benefits.cards.errors.text')}
                 </p>
               </div>
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-5 text-center hover:shadow-md transition-shadow">
@@ -878,10 +778,10 @@ export default function Landing() {
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-yellow-900 mb-1">Brža komunikacija</p>
+                <p className="text-xs font-semibold text-yellow-900 mb-1">{t('benefits.cards.communication.title')}</p>
                 <p className="text-2xl font-extrabold text-yellow-900 mb-1">x3</p>
                 <p className="text-[11px] text-yellow-900/90">
-                  sve informacije i obaveštenja na jednom mestu
+                  {t('benefits.cards.communication.text')}
                 </p>
               </div>
               <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-5 text-center hover:shadow-md transition-shadow">
@@ -891,10 +791,10 @@ export default function Landing() {
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                 </div>
-                <p className="text-xs font-semibold text-violet-800 mb-1">Transparentnost</p>
+                <p className="text-xs font-semibold text-violet-800 mb-1">{t('benefits.cards.transparency.title')}</p>
                 <p className="text-2xl font-extrabold text-violet-700 mb-1">100%</p>
                 <p className="text-[11px] text-violet-900/80">
-                  bolji pregled rada rukovodstva i blagajne
+                  {t('benefits.cards.transparency.text')}
                 </p>
               </div>
             </div>
@@ -904,20 +804,20 @@ export default function Landing() {
         {/* Social proof  citati korisnika */}
         <section className="py-14 sm:py-18 bg-slate-50 border-y border-slate-100">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-8">Šta kažu korisnici</p>
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-8">{t('testimonials.title')}</p>
             <div className="grid gap-6 md:grid-cols-3">
               <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
                 <div className="flex gap-0.5 mb-3">
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Konačno nemam 50 poruka u viber grupi pre svake akcije. Sve je na jednom mestu, prijave, detalji, ko je platio."
+                  {t('testimonials.items.1.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">M</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Marko P. <span className="font-normal text-gray-400"> Vodič</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Zeleni vrh"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.1.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.1.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.1.club')}</p>
                   </div>
                 </div>
               </div>
@@ -926,13 +826,13 @@ export default function Landing() {
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Kao blagajnik trošio sam dane na prepisivanje uplata iz beležnice. Sada vidim sve u realnom vremenu i mogu da izvezem izveštaj u PDF za 10 sekundi."
+                  {t('testimonials.items.2.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">J</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Jelena S. <span className="font-normal text-gray-400"> Blagajnik</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Staza"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.2.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.2.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.2.club')}</p>
                   </div>
                 </div>
               </div>
@@ -941,13 +841,13 @@ export default function Landing() {
                   {[...Array(5)].map((_, i) => <svg key={i} viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-yellow-400"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" /></svg>)}
                 </div>
                 <p className="text-sm text-gray-700 italic mb-4">
-                  „Moj profil sa statistikom i rangom me motiviše da idem na svaku akciju. Javni profil sam podelio na Instagramu, svi su bili oduševljeni."
+                  {t('testimonials.items.3.quote')}
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-700">N</div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">Nemanja D. <span className="font-normal text-gray-400"> Član</span></p>
-                    <p className="text-[11px] text-gray-400">PD „Vršak"</p>
+                    <p className="text-xs font-semibold text-gray-800">{t('testimonials.items.3.name')} <span className="font-normal text-gray-400"> {t('testimonials.items.3.role')}</span></p>
+                    <p className="text-[11px] text-gray-400">{t('testimonials.items.3.club')}</p>
                   </div>
                 </div>
               </div>
@@ -959,9 +859,9 @@ export default function Landing() {
         <section id="for-whom" className="py-16 sm:py-20 bg-emerald-50/60">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             <div className="text-center mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">Za koga je Planiner</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t('audience.title')}</h2>
               <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto">
-                Jedna aplikacija, različiti pogledi  svaka uloga u društvu dobija jasne benefite.
+                {t('audience.subtitle')}
               </p>
             </div>
 
@@ -969,12 +869,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-emerald-100 p-5 hover:shadow-lg hover:border-emerald-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-emerald-700 mb-1">Predsednik društva</p>
+                    <p className="text-xs font-semibold text-emerald-700 mb-1">{t('audience.cards.president.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Sve na jednom mestu, bez iznenađenja.
+                      {t('audience.cards.president.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jasan pregled članova, akcija, finansija i obaveštenja. Manji rizik, manje haosa.
+                      {t('audience.cards.president.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 transition-colors">
@@ -987,12 +887,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-blue-100 p-5 hover:shadow-lg hover:border-blue-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-blue-700 mb-1">Sekretar</p>
+                    <p className="text-xs font-semibold text-blue-700 mb-1">{t('audience.cards.secretary.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Manje papira, više reda.
+                      {t('audience.cards.secretary.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Brzi upis i ažuriranje članova, dokumentacija na dohvat ruke, manje manuelnog rada.
+                      {t('audience.cards.secretary.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors">
@@ -1006,12 +906,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-amber-100 p-5 hover:shadow-lg hover:border-amber-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-amber-700 mb-1">Vodič</p>
+                    <p className="text-xs font-semibold text-amber-700 mb-1">{t('audience.cards.guide.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Jasne prijave i komunikacija.
+                      {t('audience.cards.guide.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jedno mesto za kreiranje akcija, pregled prijava i informacije za učesnike.
+                      {t('audience.cards.guide.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-amber-100 group-hover:bg-amber-200 transition-colors">
@@ -1025,12 +925,12 @@ export default function Landing() {
               <div className="group rounded-2xl bg-white border border-violet-100 p-5 hover:shadow-lg hover:border-violet-200 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-violet-700 mb-1">Blagajnik</p>
+                    <p className="text-xs font-semibold text-violet-700 mb-1">{t('audience.cards.treasurer.title')}</p>
                     <p className="text-sm font-semibold mb-2">
-                      Čista evidencija finansija.
+                      {t('audience.cards.treasurer.subtitle')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Jasna evidencija uplata i isplata, lakše pravdanje finansija pred članovima i upravom.
+                      {t('audience.cards.treasurer.text')}
                     </p>
                   </div>
                   <div className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-violet-100 group-hover:bg-violet-200 transition-colors">
@@ -1057,12 +957,12 @@ export default function Landing() {
           <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
             {/* Header */}
             <div className="text-center mb-16 sm:mb-20">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400 mb-3">Sneak peek</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400 mb-3">{t('showcase.badge')}</p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 tracking-tight">
-                Pogledaj aplikaciju iznutra
+                {t('showcase.title')}
               </h2>
               <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                Priključi se globalnoj mreži planinara. Isto iskustvo na računaru i telefonu vidi i budi viđen.
+                {t('showcase.subtitle')}
               </p>
             </div>
 
@@ -1073,16 +973,16 @@ export default function Landing() {
                 {/* Tekst levo */}
                 <div>
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold mb-4">1</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Akcije</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.actions.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Lista akcija, prijave članova i detalji isto iskustvo na računaru i na mobilnom. Prijavi se na planinarsku akciju u par klikova.
+                    {t('showcase.sections.actions.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1094,14 +994,14 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/akcije/uspon-na-zlu-kolatu</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.actions.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt="Akcije PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599673/akcije1_oj61lo.png" alt={t('alts.showcaseActionsPc')} className="w-full h-auto" />
                   </div>
                   {/* Mobilni ekrani lebde preko donjeg desnog ugla */}
                   <div className="absolute -bottom-8 -right-2 sm:-right-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt="Akcije telefon detalj" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599687/akcijemob_yom0bu.png" alt={t('alts.showcaseActionsMobile')} className="w-full h-auto" />
                     </div>
 
                   </div>
@@ -1117,29 +1017,29 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/korisnik/catko</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.profiles.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt="Profil PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599671/profil1_cdpfbc.png" alt={t('alts.showcaseProfilesPc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4 flex gap-2 sm:gap-3">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599686/profil1mob_ayuax1.png" alt="Profil telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599686/profil1mob_ayuax1.png" alt={t('alts.showcaseProfilesMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
                 {/* Tekst desno */}
                 <div className="order-1 lg:order-2">
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold mb-4">2</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Profili korisnika</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.profiles.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Javni profili članova statistika, pređene staze, usponi i učešće u akcijama. Pregledaj druge planinare i pokaži svoja dostignuća.
+                    {t('showcase.sections.profiles.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1149,16 +1049,16 @@ export default function Landing() {
               <div className="grid gap-10 lg:gap-16 lg:grid-cols-[1fr,1.4fr] items-center">
                 <div>
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold mb-4">3</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Finansije</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.finance.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Blagajna, uplate, isplate i pregled po akcijama. Za blagajnike i rukovodstvo sve na jednom mestu, dostupno i sa mobilnog.
+                    {t('showcase.sections.finance.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1168,13 +1068,13 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/finansije</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.finance.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt="Finansije PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599654/finansije1_hr2nix.png" alt={t('alts.showcaseFinancePc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -right-2 sm:-right-4">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599666/finansije1mob_khecis.png" alt="Finansije telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599666/finansije1mob_khecis.png" alt={t('alts.showcaseFinanceMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
@@ -1188,28 +1088,28 @@ export default function Landing() {
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-                      <span className="ml-3 text-[10px] text-slate-400 truncate">planiner.app/zadaci</span>
+                      <span className="ml-3 text-[10px] text-slate-400 truncate">{t('showcase.sections.tasks.url')}</span>
                     </div>
-                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt="Zadaci PC prikaz" className="w-full h-auto" />
+                    <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599658/zadaci1_cp4vpj.png" alt={t('alts.showcaseTasksPc')} className="w-full h-auto" />
                   </div>
                   <div className="absolute -bottom-8 -left-2 sm:-left-4">
                     <div className="w-[90px] sm:w-[110px] rounded-xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-slate-800">
-                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599663/zadaci1mob_mibpje.png" alt="Zadaci telefon prikaz" className="w-full h-auto" />
+                      <img src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1774599663/zadaci1mob_mibpje.png" alt={t('alts.showcaseTasksMobile')} className="w-full h-auto" />
                     </div>
                   </div>
                 </div>
                 <div className="order-1 lg:order-2">
                   <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-violet-500/20 text-violet-400 text-sm font-bold mb-4">4</span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Zadaci</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{t('showcase.sections.tasks.title')}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed mb-5">
-                    Zadaci za rukovodstvo, vodiče i članove praćenje obaveza, rokova i statusa. Organizovan rad bez zaboravljenih stvari.
+                    {t('showcase.sections.tasks.text')}
                   </p>
                   <div className="flex gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Desktop
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('showcase.desktop')}
                     </span>
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />Mobile
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />{t('showcase.mobile')}
                     </span>
                   </div>
                 </div>
@@ -1223,84 +1123,46 @@ export default function Landing() {
         <section id="cta" className="py-16 sm:py-20 bg-gradient-to-br from-emerald-700 via-emerald-800 to-slate-900 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-10 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-              Spremni da svom društvu vratite vrijeme, a sebi mir?
+              {t('cta.title')}
             </h2>
             <p className="text-sm sm:text-base text-emerald-50 mb-8">
-              Pokažemo vam Planiner u 30 minuta. Bez obaveze, bez pritiska samo iskren pregled onoga što vašem društvu
-              može da olakša rad.
+              {t('cta.subtitle')}
             </p>
             <div className="flex flex-wrap gap-4 justify-center mb-3">
               <a
                 onClick={() => navigate('/kontakt')}
                 className="cursor-pointer inline-flex items-center justify-center px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
-                Zakaži prezentaciju
+                {t('cta.bookDemo')}
               </a>
               <a
                 onClick={() => navigate('/kontakt')}
                 className="cursor-pointer inline-flex items-center justify-center px-7 py-3 rounded-full text-sm sm:text-base font-semibold border border-emerald-200 text-emerald-100 bg-transparent hover:bg-emerald-700/30 hover:border-emerald-300 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                Pošalji upit
+                {t('cta.sendInquiry')}
               </a>
             </div>
             <p className="text-xs text-emerald-200/60 mb-6">
-              Možemo organizovati online sastanak sa rukovodstvom društva, pokazati interfejs i dogovoriti naredne korake.
+              {t('cta.note')}
             </p>
             <div className="border-t border-emerald-500/20 pt-5">
-              <p className="text-xs text-emerald-100/70 mb-2">Želiš prvo da vidiš kako izgleda?</p>
+              <p className="text-xs text-emerald-100/70 mb-2">{t('cta.wantDemo')}</p>
               <button
                 type="button"
                 onClick={() => navigate('/login')}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-white transition-colors"
               >
-                Pogledaj demo nalog
+                {t('cta.viewDemo')}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
               </button>
-              <p className="mt-2 text-[11px] text-emerald-200/80">Demo: username planiner / pw admin123</p>
+              <p className="mt-2 text-[11px] text-emerald-200/80">{t('cta.demoCreds')}</p>
             </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-700/50 bg-slate-900 text-slate-200">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <img src="/LogoP.jpg" alt="Planiner" className="h-8 w-8 rounded-lg" />
-              <div>
-                <p className="text-sm font-semibold text-white">Planiner</p>
-                <p className="text-[11px] text-slate-400">by Irfan Ćatović</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-5 text-xs text-slate-400 justify-center sm:justify-end">
-              <a href="#hero" className="hover:text-white transition-colors">
-                O nama
-              </a>
-              <a href="#features" className="hover:text-white transition-colors">
-                Funkcionalnosti
-              </a>
-              <a href="/kontakt" className="hover:text-white transition-colors">
-                Kontakt
-              </a>
-              <button
-                type="button"
-                className="hover:text-white transition-colors"
-              >
-                Politika privatnosti
-              </button>
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-slate-800 text-center sm:text-left">
-            <p className="text-[11px] text-slate-500 mb-2">
-              © {new Date().getFullYear()} Orin d.o.o.  za planinarska društva koja žele više vremena na stazi, a manje za stolom.
-            </p>
-            <p className="text-[11px] text-slate-500">
-              Demo nalog: username <strong>planiner</strong> / pw <strong>admin123</strong>
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

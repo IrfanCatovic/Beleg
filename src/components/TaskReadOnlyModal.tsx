@@ -1,25 +1,26 @@
 import { formatDate, formatDateShort } from '../utils/dateUtils'
 import { getRoleLabel } from '../utils/roleUtils'
 import type { Task } from './TaskCard'
-
-function statusLabel(status: Task['status']): string {
-  switch (status) {
-    case 'aktivni':
-      return 'Aktivan'
-    case 'u_toku':
-      return 'U toku'
-    case 'zavrsen':
-      return 'Završen'
-    default:
-      return status
-  }
-}
+import { useTranslation } from 'react-i18next'
 
 export default function TaskReadOnlyModal({ open, task, onClose }: { open: boolean; task: Task | null; onClose: () => void }) {
+  const { t } = useTranslation('uiExtras')
   if (!open || !task) return null
 
   const isUrgent = task.hitno
   const isFinished = task.status === 'zavrsen'
+  const statusLabel = (status: Task['status']): string => {
+    switch (status) {
+      case 'aktivni':
+        return t('taskReadonly.status.active')
+      case 'u_toku':
+        return t('taskReadonly.status.inProgress')
+      case 'zavrsen':
+        return t('taskReadonly.status.finished')
+      default:
+        return status
+    }
+  }
 
   return (
     <div
@@ -36,7 +37,7 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
       >
         <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-100 flex items-start justify-between gap-3 flex-shrink-0">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Detalji zadatka</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('taskReadonly.badge')}</p>
             <h2 id="task-readonly-title" className="text-base sm:text-lg font-bold text-gray-900 tracking-tight leading-snug">
               {task.naziv}
             </h2>
@@ -50,7 +51,7 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
               </span>
               {isUrgent && (
                 <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-rose-500 text-white">
-                  Hitno
+                  {t('taskReadonly.urgent')}
                 </span>
               )}
             </div>
@@ -59,7 +60,7 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
             type="button"
             onClick={onClose}
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-            aria-label="Zatvori"
+            aria-label={t('common.close')}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -69,29 +70,29 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
 
         <div className="px-5 sm:px-6 py-5 sm:py-6 overflow-y-auto flex-1 space-y-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Opis</p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{task.opis?.trim() ? task.opis : '—'}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">{t('taskReadonly.description')}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{task.opis?.trim() ? task.opis : t('taskReadonly.empty')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Ko može da učestvuje</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('taskReadonly.whoCanParticipate')}</p>
               <p className="text-gray-800 font-medium">
-                {task.allowAll ? 'Svi članovi' : task.allowedRoles?.length ? task.allowedRoles.map((r) => getRoleLabel(r)).join(', ') : '—'}
+                {task.allowAll ? t('taskReadonly.allMembers') : task.allowedRoles?.length ? task.allowedRoles.map((r) => getRoleLabel(r)).join(', ') : t('taskReadonly.empty')}
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Rok</p>
-              <p className="text-gray-800 font-medium">{task.deadline ? formatDate(task.deadline) : 'Bez roka'}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('taskReadonly.deadline')}</p>
+              <p className="text-gray-800 font-medium">{task.deadline ? formatDate(task.deadline) : t('taskReadonly.noDeadline')}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Kreiran</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('taskReadonly.created')}</p>
               <p className="text-gray-800 font-medium">{formatDateShort(task.createdAt)}</p>
             </div>
           </div>
 
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Prijavljeni</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">{t('taskReadonly.assignees')}</p>
             {task.assignees && task.assignees.length > 0 ? (
               <ul className="flex flex-wrap gap-2">
                 {task.assignees.map((a) => (
@@ -106,7 +107,7 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">Još niko nije prijavljen.</p>
+              <p className="text-sm text-gray-500">{t('taskReadonly.noAssignees')}</p>
             )}
           </div>
         </div>
@@ -117,7 +118,7 @@ export default function TaskReadOnlyModal({ open, task, onClose }: { open: boole
             onClick={onClose}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
           >
-            Zatvori
+            {t('common.close')}
           </button>
         </div>
       </div>

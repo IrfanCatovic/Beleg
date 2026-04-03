@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -9,6 +10,7 @@ import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
 import TaskReadOnlyModal from '../../components/TaskReadOnlyModal'
 
 export default function Zadaci() {
+  const { t } = useTranslation('tasks')
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
 
@@ -38,7 +40,7 @@ export default function Zadaci() {
         const list = Array.isArray(res.data) ? res.data : res.data.zadaci || []
         setTasks(list)
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Greška pri učitavanju zadataka.')
+        setError(err.response?.data?.error || t('loadError'))
       } finally {
         setLoading(false)
       }
@@ -54,7 +56,7 @@ export default function Zadaci() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500 font-medium">Morate se ulogovati da biste videli zadatke.</p>
+        <p className="text-sm text-gray-500 font-medium">{t('loginRequired')}</p>
       </div>
     )
   }
@@ -119,27 +121,27 @@ export default function Zadaci() {
 
   const handleTakeTask = async (task: Task) => {
     if (!canTakeTask(task) || hasTakenTask(task)) return
-    const ok = await showConfirm(`Da li želite da preuzmete zadatak "${task.naziv}"?`)
+    const ok = await showConfirm(t('takeConfirm', { name: task.naziv }))
     if (!ok) return
     try {
       const res = await api.post(`/api/zadaci/${task.id}/preuzmi`)
       const updated: Task = res.data?.zadatak || res.data
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri preuzimanju zadatka.')
+      await showAlert(err.response?.data?.error || t('takeError'))
     }
   }
 
   const handleLeaveTask = async (task: Task) => {
     if (!hasTakenTask(task)) return
-    const ok = await showConfirm(`Da li želite da se povučete sa zadatka "${task.naziv}"? Zadatak će ponovo biti dostupan za prijavu ako niko drugi ne učestvuje.`)
+    const ok = await showConfirm(t('leaveConfirm', { name: task.naziv }))
     if (!ok) return
     try {
       const res = await api.post(`/api/zadaci/${task.id}/napusti`)
       const updated: Task = res.data?.zadatak || res.data
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri otkazivanju prijave.')
+      await showAlert(err.response?.data?.error || t('leaveError'))
     }
   }
 
@@ -165,23 +167,23 @@ export default function Zadaci() {
 
   const handleZavrsi = async (task: Task) => {
     if (!isAdminOrSekretar) return
-    const ok = await showConfirm(`Označiti zadatak "${task.naziv}" kao završen?`)
+    const ok = await showConfirm(t('finishConfirm', { name: task.naziv }))
     if (!ok) return
     try {
       const res = await api.post(`/api/zadaci/${task.id}/zavrsi`)
       const updated: Task = res.data?.zadatak || res.data
       if (updated) setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška.')
+      await showAlert(err.response?.data?.error || t('genericError'))
     }
   }
 
   const handleDelete = async (task: Task) => {
     if (!isAdminOrSekretar) return
-    const confirmed = await showConfirm(`Obrisati zadatak "${task.naziv}"?`, {
+    const confirmed = await showConfirm(t('deleteConfirm', { name: task.naziv }), {
       variant: 'danger',
-      confirmLabel: 'Obriši',
-      cancelLabel: 'Otkaži',
+      confirmLabel: t('delete'),
+      cancelLabel: t('cancel'),
     })
     if (!confirmed) return
     try {
@@ -189,7 +191,7 @@ export default function Zadaci() {
       setTasks((prev) => prev.filter((t) => t.id !== task.id))
       setEditTask(null)
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri brisanju.')
+      await showAlert(err.response?.data?.error || t('deleteError'))
     }
   }
 
@@ -204,10 +206,10 @@ export default function Zadaci() {
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Zadaci kluba</h1>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">{t('pageTitle')}</h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 ml-3.5 max-w-xl">
-              Preuzmi aktivne zadatke, prati napredak i sarađuj sa timom.
+              {t('pageSubtitle')}
             </p>
           </div>
           {isAdminOrSekretar && (
@@ -219,7 +221,7 @@ export default function Zadaci() {
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Novi zadatak
+              {t('newTask')}
             </button>
           )}
         </div>
@@ -231,7 +233,7 @@ export default function Zadaci() {
               icon={<span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
               iconBg="bg-emerald-50"
               count={aktivni.length}
-              label="Aktivni"
+              label={t('active')}
               accent="text-emerald-600"
             />
             <SummaryCell
@@ -242,7 +244,7 @@ export default function Zadaci() {
               }
               iconBg="bg-amber-50"
               count={uToku.length}
-              label="U toku"
+              label={t('inProgress')}
               accent="text-amber-600"
             />
             <SummaryCell
@@ -253,7 +255,7 @@ export default function Zadaci() {
               }
               iconBg="bg-gray-50"
               count={zavrseni.length}
-              label="Završeni"
+              label={t('completed')}
               accent="text-gray-500"
             />
           </div>
@@ -291,7 +293,7 @@ export default function Zadaci() {
             <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Aktivni zadaci</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('activeTasks')}</h2>
             {aktivni.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                 {aktivni.length}
@@ -306,8 +308,8 @@ export default function Zadaci() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
                 </svg>
               }
-              text="Trenutno nema aktivnih zadataka."
-              sub="Novi zadaci će se pojaviti ovde."
+              text={t('emptyActiveText')}
+              sub={t('emptyActiveSub')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -342,7 +344,7 @@ export default function Zadaci() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Izvršavaju se</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('inProgressTasks')}</h2>
             {uToku.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
                 {uToku.length}
@@ -357,8 +359,8 @@ export default function Zadaci() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               }
-              text="Nema zadataka u toku."
-              sub="Kada neko preuzme zadatak, pojaviće se ovde."
+              text={t('emptyInProgressText')}
+              sub={t('emptyInProgressSub')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -393,7 +395,7 @@ export default function Zadaci() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Završeni zadaci</h2>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('completedTasks')}</h2>
             {zavrseni.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600">
                 {zavrseni.length}
@@ -408,7 +410,7 @@ export default function Zadaci() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               }
-              text="Nema završenih zadataka."
+              text={t('emptyCompletedText')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -1,5 +1,6 @@
 import html2pdf from 'html2pdf.js'
 import type { AnnualReportRow } from './annualReportUtils'
+import i18n from '../i18n'
 
 const pdfStyles = `
   .ar-pdf { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; color: #000; background: #fff; padding: 5mm 6mm 10mm 6mm; box-sizing: border-box; }
@@ -164,7 +165,7 @@ export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
   const target = wrapper.querySelector('.ar-pdf') as HTMLElement
   if (!target) {
     if (wrapper.parentNode) document.body.removeChild(wrapper)
-    console.error('PDF: nije pronađen sadržaj')
+    console.error(i18n.t('pdf:errors.contentMissing'))
     return
   }
 
@@ -194,7 +195,7 @@ export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
         .then(cleanup)
         .catch((err: unknown) => {
           cleanup()
-          console.error('PDF greška:', err)
+          console.error(i18n.t('pdf:errors.generic'), err)
         })
     })
   })

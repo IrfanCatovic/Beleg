@@ -10,6 +10,7 @@ import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
 import type { Role } from '../../components/NewTaskModal'
 import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
 import { TrashIcon } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 interface ObavestenjeFull {
   id: number
@@ -84,8 +85,8 @@ interface TransPayload {
 }
 
 function transakcijaTipLabel(tip: string): string {
-  if (tip === 'uplata') return 'Uplata'
-  if (tip === 'isplata') return 'Isplata'
+  if (tip === 'uplata') return 'uplata'
+  if (tip === 'isplata') return 'isplata'
   return tip
 }
 
@@ -108,6 +109,7 @@ function numFromMeta(v: unknown): number | null {
 }
 
 export default function ObavestenjeDetalj() {
+  const { t } = useTranslation(['notificationDetails', 'tasks', 'home', 'finance', 'notifications'])
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isLoggedIn, user } = useAuth()
@@ -164,10 +166,10 @@ export default function ObavestenjeDetalj() {
 
   const handleDeletePost = useCallback(
     async (postId: number) => {
-      const ok = await showConfirm('Da li želite da obrišete ovu objavu?', {
-        title: 'Obriši objavu',
-        confirmLabel: 'Obriši',
-        cancelLabel: 'Otkaži',
+      const ok = await showConfirm(t('home:confirmDeletePost'), {
+        title: t('home:deletePostTitle'),
+        confirmLabel: t('home:delete'),
+        cancelLabel: t('home:cancel'),
         variant: 'danger',
       })
       if (!ok) return
@@ -176,8 +178,8 @@ export default function ObavestenjeDetalj() {
         setPost(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri brisanju objave'
-        await showAlert(msg, 'Objava')
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('home:deletePostError')
+        await showAlert(msg, t('home:postTitle'))
       }
     },
     [navigate, showConfirm, showAlert]
@@ -201,57 +203,55 @@ export default function ObavestenjeDetalj() {
   )
 
   const handleTakeTask = useCallback(
-    async (t: Task) => {
-      if (!user || !canTakeTask(t) || hasTakenTask(t)) return
-      const ok = await showConfirm(`Da li želite da preuzmete zadatak "${t.naziv}"?`)
+    async (taskItem: Task) => {
+      if (!user || !canTakeTask(taskItem) || hasTakenTask(taskItem)) return
+      const ok = await showConfirm(t('tasks:takeConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${t.id}/preuzmi`)
+        const res = await api.post(`/api/zadaci/${taskItem.id}/preuzmi`)
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          'Greška pri preuzimanju zadatka.'
-        await showAlert(msg, 'Zadatak')
+          t('tasks:takeError')
+        await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
     [user, canTakeTask, hasTakenTask, showConfirm, showAlert]
   )
 
   const handleLeaveTask = useCallback(
-    async (t: Task) => {
-      if (!user || !hasTakenTask(t)) return
-      const ok = await showConfirm(
-        `Da li želite da se povučete sa zadatka "${t.naziv}"? Zadatak će ponovo biti dostupan za prijavu ako niko drugi ne učestvuje.`
-      )
+    async (taskItem: Task) => {
+      if (!user || !hasTakenTask(taskItem)) return
+      const ok = await showConfirm(t('tasks:leaveConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${t.id}/napusti`)
+        const res = await api.post(`/api/zadaci/${taskItem.id}/napusti`)
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          'Greška pri otkazivanju prijave.'
-        await showAlert(msg, 'Zadatak')
+          t('tasks:leaveError')
+        await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
     [user, hasTakenTask, showConfirm, showAlert]
   )
 
   const handleZavrsiTask = useCallback(
-    async (t: Task) => {
+    async (taskItem: Task) => {
       if (!isAdminOrSekretar) return
-      const ok = await showConfirm(`Označiti zadatak "${t.naziv}" kao završen?`)
+      const ok = await showConfirm(t('tasks:finishConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${t.id}/zavrsi`)
+        const res = await api.post(`/api/zadaci/${taskItem.id}/zavrsi`)
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška.'
-        await showAlert(msg, 'Zadatak')
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('tasks:genericError')
+        await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
     [isAdminOrSekretar, showConfirm, showAlert]
@@ -279,49 +279,53 @@ export default function ObavestenjeDetalj() {
   )
 
   const handleDeleteTask = useCallback(
-    async (t: Task) => {
+    async (taskItem: Task) => {
       if (!isAdminOrSekretar) return
-      const confirmed = await showConfirm(`Obrisati zadatak "${t.naziv}"?`, {
+      const confirmed = await showConfirm(t('tasks:deleteConfirm', { name: taskItem.naziv }), {
         variant: 'danger',
-        confirmLabel: 'Obriši',
-        cancelLabel: 'Otkaži',
+        confirmLabel: t('tasks:delete'),
+        cancelLabel: t('tasks:cancel'),
       })
       if (!confirmed) return
       try {
-        await api.delete(`/api/zadaci/${t.id}`)
+        await api.delete(`/api/zadaci/${taskItem.id}`)
         setTask(null)
         setEditTask(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Greška pri brisanju.'
-        await showAlert(msg, 'Zadatak')
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('tasks:deleteError')
+        await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
     [isAdminOrSekretar, showConfirm, showAlert, navigate]
   )
 
   const handleDeleteTransakcija = useCallback(
-    async (t: TransPayload) => {
+    async (tx: TransPayload) => {
       if (!canDeleteTransakcija) return
       const confirmed = await showConfirm(
-        `Obrisati transakciju od ${Math.abs(t.iznos).toLocaleString('sr-RS')} RSD (${transakcijaTipLabel(t.tip)})? Ovo utiče na prikaz stanja blagajne.`,
+        t('notificationDetails:deleteTransactionConfirm', {
+          amount: Math.abs(tx.iznos).toLocaleString('sr-RS'),
+          currency: 'RSD',
+          type: t(`notificationDetails:transactionType.${transakcijaTipLabel(tx.tip)}`),
+        }),
         {
-          title: 'Obriši transakciju',
+          title: t('notificationDetails:deleteTransactionTitle'),
           variant: 'danger',
-          confirmLabel: 'Obriši',
-          cancelLabel: 'Otkaži',
+          confirmLabel: t('home:delete'),
+          cancelLabel: t('home:cancel'),
         }
       )
       if (!confirmed) return
       try {
-        await api.delete(`/api/finansije/transakcije/${t.id}`)
+        await api.delete(`/api/finansije/transakcije/${tx.id}`)
         setTrans(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          'Greška pri brisanju transakcije.'
-        await showAlert(msg, 'Transakcija')
+          t('notificationDetails:deleteTransactionError')
+        await showAlert(msg, t('notificationDetails:transactionTitle'))
       }
     },
     [canDeleteTransakcija, showConfirm, showAlert, navigate]
@@ -333,7 +337,7 @@ export default function ObavestenjeDetalj() {
       return
     }
     if (!id) {
-      setPageError('Nevažeći ID.')
+      setPageError(t('notificationDetails:invalidId'))
       setLoading(false)
       return
     }
@@ -381,7 +385,7 @@ export default function ObavestenjeDetalj() {
             if (!cancelled && raw) setTask(normalizeApiTask(raw))
           } else if (transakcijaId != null) {
             if (!canSeeFinance) {
-              if (!cancelled) setEntityError('Nemate pristup detaljima transakcije. Otvorite finansije ako ste ovlašćeni.')
+              if (!cancelled) setEntityError(t('notificationDetails:noFinanceAccess'))
             } else {
               const fr = await api.get<TransPayload>(`/api/finansije/transakcije/${transakcijaId}`)
               if (!cancelled) setTrans(fr.data)
@@ -390,13 +394,13 @@ export default function ObavestenjeDetalj() {
         } catch (e: unknown) {
           const msg =
             (e as { response?: { data?: { error?: string }; status?: number } })?.response?.data?.error ||
-            'Nije moguće učitati povezani sadržaj.'
+            t('notificationDetails:linkedContentLoadError')
           if (!cancelled) setEntityError(msg)
         } finally {
           if (!cancelled) setEntityLoading(false)
         }
       } catch {
-        if (!cancelled) setPageError('Obaveštenje nije pronađeno ili nemate pristup.')
+        if (!cancelled) setPageError(t('notificationDetails:notFoundOrNoAccess'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -421,7 +425,7 @@ export default function ObavestenjeDetalj() {
     const requesterName =
       (typeof m.requesterFullName === 'string' && m.requesterFullName.trim() !== '' ? m.requesterFullName.trim() : '') ||
       (typeof m.requesterUsername === 'string' && m.requesterUsername.trim() !== '' ? m.requesterUsername.trim() : '') ||
-      'Korisnik'
+      t('notificationDetails:follow.defaultUser')
     let cancelled = false
     ;(async () => {
       try {
@@ -439,18 +443,16 @@ export default function ObavestenjeDetalj() {
           setIncomingFollowState('accepted')
           setNotif((prev) => prev ? {
             ...prev,
-            title: 'Zahtev je već prihvaćen',
-            body: `${requesterName} te već prati.`,
+            title: t('notificationDetails:follow.alreadyAcceptedTitle'),
+            body: t('notificationDetails:follow.alreadyFollowing', { name: requesterName }),
           } : prev)
         } else if (inc === 'pending') {
           setIncomingFollowState('pending')
         } else {
-          const title = (n.title || '').toLowerCase()
-          const body = (n.body || '').toLowerCase()
-          const looksLikeHistory = title.includes('prihvaćen') || body.includes('te sada prati') || body.includes('te već prati')
+          const looksLikeHistory = n.type === 'follow_request_accepted'
           if (!looksLikeHistory) {
             await api.delete(`/api/obavestenja/${id}`).catch(() => {})
-            await showAlertRef.current('Zahtev za praćenje je u međuvremenu otkazan.', 'Praćenje')
+            await showAlertRef.current(t('notificationDetails:follow.requestCanceledInBetween'), t('notificationDetails:follow.title'))
             navigateRef.current('/obavestenja')
             return
           }
@@ -485,9 +487,9 @@ export default function ObavestenjeDetalj() {
   if (pageError || !notif) {
     return (
       <div className="mx-auto max-w-lg px-4 py-10 text-center">
-        <p className="text-gray-600 mb-4">{pageError || 'Obaveštenje nije dostupno.'}</p>
+        <p className="text-gray-600 mb-4">{pageError || t('notificationDetails:unavailable')}</p>
         <Link to="/obavestenja" className="text-emerald-600 font-semibold hover:underline">
-          Nazad na obaveštenja
+          {t('notificationDetails:backToNotifications')}
         </Link>
       </div>
     )
@@ -527,8 +529,8 @@ export default function ObavestenjeDetalj() {
     !(expectingTask && entityLoading) &&
     !(expectingTrans && entityLoading)
 
-  const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || 'Korisnik').trim()
-  const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || 'Korisnik').trim()
+  const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || t('notificationDetails:follow.defaultUser')).trim()
+  const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || t('notificationDetails:follow.defaultUser')).trim()
 
   const handleAcceptFollow = async () => {
     if (!followMeta.followId || followBusy) return
@@ -538,12 +540,12 @@ export default function ObavestenjeDetalj() {
       setIncomingFollowState('accepted')
       setNotif((prev) => prev ? {
         ...prev,
-        title: 'Zahtev prihvaćen',
-        body: `${requesterLabel} te sada prati. Ako želiš, možeš da uzvratiš.`,
+        title: t('notificationDetails:follow.acceptedTitle'),
+        body: t('notificationDetails:follow.nowFollowingWithBack', { name: requesterLabel }),
       } : prev)
-      await showAlert('Zahtev je prihvaćen.', 'Praćenje')
+      await showAlert(t('notificationDetails:follow.accepted'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri prihvatanju zahteva.', 'Praćenje')
+      await showAlert(e.response?.data?.error || t('notificationDetails:follow.acceptError'), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -551,10 +553,10 @@ export default function ObavestenjeDetalj() {
 
   const handleRejectFollow = async () => {
     if (!followMeta.followId || followBusy) return
-    const ok = await showConfirm('Da li želite da odbijete zahtev za praćenje?', {
-      title: 'Odbij zahtev',
-      confirmLabel: 'Odbij',
-      cancelLabel: 'Otkaži',
+    const ok = await showConfirm(t('notificationDetails:follow.rejectConfirm'), {
+      title: t('notificationDetails:follow.rejectTitle'),
+      confirmLabel: t('notificationDetails:follow.reject'),
+      cancelLabel: t('home:cancel'),
       variant: 'danger',
     })
     if (!ok) return
@@ -562,10 +564,10 @@ export default function ObavestenjeDetalj() {
     try {
       await api.delete(`/api/follows/requests/${followMeta.followId}`)
       await api.delete(`/api/obavestenja/${id}`).catch(() => {})
-      await showAlert('Zahtev je odbijen.', 'Praćenje')
+      await showAlert(t('notificationDetails:follow.rejected'), t('notificationDetails:follow.title'))
       navigate('/obavestenja')
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri odbijanju zahteva.', 'Praćenje')
+      await showAlert(e.response?.data?.error || t('notificationDetails:follow.rejectError'), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -577,9 +579,9 @@ export default function ObavestenjeDetalj() {
     try {
       await api.post('/api/follows/requests', { targetId: followMeta.requesterId })
       setFollowBackStatus('outgoing_pending')
-      await showAlert('Poslat je zahtev za uzvraćeno praćenje.', 'Praćenje')
+      await showAlert(t('notificationDetails:follow.followBackSent'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri slanju zahteva.', 'Praćenje')
+      await showAlert(e.response?.data?.error || t('notificationDetails:follow.sendError'), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -587,10 +589,10 @@ export default function ObavestenjeDetalj() {
 
   const handleUnfollowBack = async () => {
     if (!followMeta.requesterId || followBusy) return
-    const ok = await showConfirm('Da li želite da otpratite ovog korisnika?', {
-      title: 'Otprati',
-      confirmLabel: 'Otprati',
-      cancelLabel: 'Otkaži',
+    const ok = await showConfirm(t('notificationDetails:follow.unfollowConfirm'), {
+      title: t('notificationDetails:follow.unfollow'),
+      confirmLabel: t('notificationDetails:follow.unfollow'),
+      cancelLabel: t('home:cancel'),
       variant: 'danger',
     })
     if (!ok) return
@@ -598,9 +600,9 @@ export default function ObavestenjeDetalj() {
     try {
       await api.delete(`/api/follows/user/${followMeta.requesterId}`)
       setFollowBackStatus('none')
-      await showAlert('Korisnik je otpraćen.', 'Praćenje')
+      await showAlert(t('notificationDetails:follow.unfollowed'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri otpraćivanju.', 'Praćenje')
+      await showAlert(e.response?.data?.error || t('notificationDetails:follow.unfollowError'), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -608,10 +610,10 @@ export default function ObavestenjeDetalj() {
 
   const handleCancelFollowBackRequest = async () => {
     if (!followMeta.requesterId || followBusy) return
-    const ok = await showConfirm('Da li želite da otkažete poslati zahtev za praćenje?', {
-      title: 'Otkaži zahtev',
-      confirmLabel: 'Otkaži',
-      cancelLabel: 'Ne',
+    const ok = await showConfirm(t('notificationDetails:follow.cancelRequestConfirm'), {
+      title: t('notificationDetails:follow.cancelRequest'),
+      confirmLabel: t('home:cancel'),
+      cancelLabel: t('notificationDetails:follow.no'),
       variant: 'danger',
     })
     if (!ok) return
@@ -619,9 +621,9 @@ export default function ObavestenjeDetalj() {
     try {
       await api.delete(`/api/follows/user/${followMeta.requesterId}`)
       setFollowBackStatus('none')
-      await showAlert('Zahtev je otkazan.', 'Praćenje')
+      await showAlert(t('notificationDetails:follow.requestCanceled'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri otkazivanju zahteva.', 'Praćenje')
+      await showAlert(e.response?.data?.error || t('notificationDetails:follow.cancelError'), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -640,8 +642,8 @@ export default function ObavestenjeDetalj() {
             type="button"
             onClick={closeLightbox}
             className="absolute top-4 right-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white/90 hover:text-white transition-all"
-            aria-label="Zatvori"
-            title="Zatvori (Esc)"
+            aria-label={t('home:close')}
+            title={t('home:closeEsc')}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -649,7 +651,7 @@ export default function ObavestenjeDetalj() {
           </button>
           <img
             src={lightboxSrc}
-            alt="Uvećana slika"
+            alt={t('home:zoomedImage')}
             onClick={(e) => e.stopPropagation()}
             className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
           />
@@ -663,7 +665,7 @@ export default function ObavestenjeDetalj() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        Sva obaveštenja
+        {t('notificationDetails:allNotifications')}
       </Link>
 
       {showNotifSummary && (
@@ -680,7 +682,7 @@ export default function ObavestenjeDetalj() {
                 to={notif.link}
                 className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                Otvori povezanu stranicu →
+                {t('notificationDetails:openLinkedPage')}
               </Link>
             </div>
           )}
@@ -703,9 +705,13 @@ export default function ObavestenjeDetalj() {
         <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
           <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
           <div className="p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Zahtev za praćenje</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:follow.request')}</p>
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {incomingFollowState === 'accepted' ? `${requesterLabel} te sada prati` : incomingFollowState === 'gone' ? `Zahtev je istekao` : `${requesterLabel} želi da te zaprati`}
+              {incomingFollowState === 'accepted'
+                ? t('notificationDetails:follow.nowFollowing', { name: requesterLabel })
+                : incomingFollowState === 'gone'
+                  ? t('notificationDetails:follow.requestExpired')
+                  : t('notificationDetails:follow.wantsToFollow', { name: requesterLabel })}
             </h2>
 
             {followMeta.requesterUsername && (
@@ -721,7 +727,7 @@ export default function ObavestenjeDetalj() {
 
             <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
               {!followStatusChecked ? (
-                <span className="text-xs text-gray-400 animate-pulse">Učitavanje...</span>
+                <span className="text-xs text-gray-400 animate-pulse">{t('notificationDetails:loading')}</span>
               ) : incomingFollowState === 'pending' ? (
                 <>
                   <button
@@ -730,7 +736,7 @@ export default function ObavestenjeDetalj() {
                     disabled={followBusy}
                     className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {followBusy ? '...' : 'Odbij'}
+                    {followBusy ? '...' : t('notificationDetails:follow.reject')}
                   </button>
                   <button
                     type="button"
@@ -738,7 +744,7 @@ export default function ObavestenjeDetalj() {
                     disabled={followBusy}
                     className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {followBusy ? '...' : 'Prihvati'}
+                    {followBusy ? '...' : t('notificationDetails:follow.accept')}
                   </button>
                 </>
               ) : incomingFollowState === 'accepted' ? (
@@ -750,7 +756,7 @@ export default function ObavestenjeDetalj() {
                       disabled={followBusy}
                       className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {followBusy ? '...' : 'Otprati'}
+                      {followBusy ? '...' : t('notificationDetails:follow.unfollow')}
                     </button>
                   ) : followBackStatus === 'outgoing_pending' ? (
                     <button
@@ -759,7 +765,7 @@ export default function ObavestenjeDetalj() {
                       disabled={followBusy}
                       className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {followBusy ? '...' : 'Otkaži zahtev'}
+                      {followBusy ? '...' : t('notificationDetails:follow.cancelRequest')}
                     </button>
                   ) : (
                     <button
@@ -768,7 +774,7 @@ export default function ObavestenjeDetalj() {
                       disabled={followBusy}
                       className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {followBusy ? '...' : 'Zaprati'}
+                      {followBusy ? '...' : t('notificationDetails:follow.followBack')}
                     </button>
                   )}
                 </>
@@ -782,7 +788,7 @@ export default function ObavestenjeDetalj() {
         <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
           <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
           <div className="p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Praćenje</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:follow.title')}</p>
             <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
               {followAcceptedTargetUsername ? (
                 <>
@@ -817,7 +823,7 @@ export default function ObavestenjeDetalj() {
           />
           <div className="mt-3 text-center">
             <Link to="/home" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-              Otvori ceo feed →
+              {t('notificationDetails:openFullFeed')}
             </Link>
           </div>
         </div>
@@ -842,7 +848,7 @@ export default function ObavestenjeDetalj() {
           />
           <div className="mt-3 text-center">
             <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-              Svi zadaci →
+              {t('notificationDetails:allTasks')}
             </Link>
           </div>
         </div>
@@ -864,8 +870,8 @@ export default function ObavestenjeDetalj() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Transakcija u blagajni</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate">{transakcijaTipLabel(trans.tip)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('notificationDetails:cashTransaction')}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{t(`notificationDetails:transactionType.${transakcijaTipLabel(trans.tip)}`)}</p>
                 </div>
               </div>
               <span
@@ -873,24 +879,24 @@ export default function ObavestenjeDetalj() {
                   trans.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-100'
                 }`}
               >
-                {trans.tip === 'uplata' ? 'Prihod' : 'Rashod'}
+                {trans.tip === 'uplata' ? t('notificationDetails:income') : t('notificationDetails:expense')}
               </span>
             </div>
 
             <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight tabular-nums">
               {trans.tip === 'isplata' ? '−' : '+'}
               {Math.abs(trans.iznos).toLocaleString('sr-RS')}{' '}
-              <span className="text-lg font-bold text-gray-500">RSD</span>
+              <span className="text-lg font-bold text-gray-500">{t('notificationDetails:currencyRsd')}</span>
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 text-sm">
               <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-3.5 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Datum</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{t('notificationDetails:date')}</p>
                 <p className="font-medium text-gray-900">{formatDate(trans.datum)}</p>
               </div>
               {(trans.korisnik?.fullName || trans.korisnik?.username) && (
                 <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-3.5 py-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">Zabeležio / la</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{t('notificationDetails:recordedBy')}</p>
                   <p className="font-medium text-gray-900 truncate">
                     {trans.korisnik?.fullName || trans.korisnik?.username}
                   </p>
@@ -898,7 +904,7 @@ export default function ObavestenjeDetalj() {
               )}
               {trans.clanarinaKorisnik && (
                 <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/80 px-3.5 py-2.5 sm:col-span-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 mb-0.5">Članarina — član</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 mb-0.5">{t('notificationDetails:membershipMember')}</p>
                   <p className="font-medium text-gray-900">
                     {trans.clanarinaKorisnik.fullName || trans.clanarinaKorisnik.username}
                   </p>
@@ -907,13 +913,13 @@ export default function ObavestenjeDetalj() {
             </div>
 
             <div className="mt-4 rounded-xl border border-gray-100 bg-white px-3.5 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Opis / napomena</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{trans.opis?.trim() ? trans.opis : '—'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:descriptionNote')}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{trans.opis?.trim() ? trans.opis : t('notificationDetails:empty')}</p>
             </div>
 
             {trans.createdAt && (
               <p className="mt-3 text-xs text-gray-400">
-                Evidentirano: {formatDateTime(trans.createdAt)}
+                {t('notificationDetails:recordedAt')}: {formatDateTime(trans.createdAt)}
               </p>
             )}
 
@@ -922,7 +928,7 @@ export default function ObavestenjeDetalj() {
                 to="/finansije"
                 className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                Otvori finansije
+                {t('notificationDetails:openFinances')}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
@@ -934,7 +940,7 @@ export default function ObavestenjeDetalj() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
                 >
                   <TrashIcon className="h-4 w-4" aria-hidden />
-                  Obriši transakciju
+                  {t('notificationDetails:deleteTransaction')}
                 </button>
               )}
             </div>
@@ -959,14 +965,14 @@ export default function ObavestenjeDetalj() {
         hasEntityKey &&
         notif.type !== 'broadcast' &&
         notif.type !== 'subskripcija' && (
-          <p className="text-sm text-gray-500 text-center py-4">Povezani sadržaj nije učitan.</p>
+          <p className="text-sm text-gray-500 text-center py-4">{t('notificationDetails:linkedContentNotLoaded')}</p>
         )}
 
       {!entityLoading &&
         !hasEntityKey &&
         ['broadcast', 'subskripcija', 'post', 'uplata', 'zadatak', 'follow'].includes(notif.type) && (
         <p className="text-sm text-gray-500 text-center py-2">
-          {notif.link ? 'Koristi link iznad za više detalja.' : 'Ovo obaveštenje nema dodatne podatke.'}
+          {notif.link ? t('notificationDetails:useLinkAbove') : t('notificationDetails:noAdditionalData')}
         </p>
       )}
     </div>

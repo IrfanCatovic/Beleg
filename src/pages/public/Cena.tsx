@@ -2,27 +2,108 @@ import { useState } from 'react'
 import axios from 'axios'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
+import { useTranslation } from 'react-i18next'
+
+const ADMIN_PRICE_RSD = 600
+const CURRENCY_BY_LANG = { sr: 'RSD', bs: 'BAM', hr: 'EUR', de: 'EUR', en: 'USD' } as const
+const LOCALE_BY_LANG = { sr: 'sr-RS', bs: 'bs-BA', hr: 'hr-HR', de: 'de-DE', en: 'en-US' } as const
+const RSD_PER_CURRENCY = { RSD: 1, BAM: 57.6, EUR: 117.4, USD: 102.8 } as const
+
+type PaketKey = 'Free' | 'Starter' | 'Growth' | 'Pro'
+
+const PAKETI: Record<
+  PaketKey,
+  {
+    basePriceRsd: number
+    includedUsers: number
+    extraPricePerUserRsd: number
+    /** Prikaz prostora u GB (ako nije zadato spaceMb). */
+    spaceGb?: number
+    /** Ako je zadato, prikazuje se umesto spaceGb (npr. besplatni paket). */
+    spaceMb?: number
+    admins: number
+    highlighted?: boolean
+  }
+> = {
+  Free: {
+    basePriceRsd: 0,
+    includedUsers: 50,
+    extraPricePerUserRsd: 0,
+    spaceMb: 500,
+    admins: 1,
+  },
+  Starter: {
+    basePriceRsd: 2950,
+    includedUsers: 100,
+    extraPricePerUserRsd: 47,
+    spaceGb: 2,
+    admins: 3,
+  },
+  Growth: {
+    basePriceRsd: 5750,
+    includedUsers: 500,
+    extraPricePerUserRsd: 21,
+    spaceGb: 5,
+    admins: 3,
+    highlighted: true,
+  },
+  Pro: {
+    basePriceRsd: 9750,
+    includedUsers: 1000,
+    extraPricePerUserRsd: 9,
+    spaceGb: 10,
+    admins: 5,
+  },
+}
 
 export default function Cena() {
-  const [contactPerson, setContactPerson] = useState('')
-  const [clubName, setClubName] = useState('')
-  const [city, setCity] = useState('')
-  const [question, setQuestion] = useState('')
+  const { t, i18n } = useTranslation('pricing')
+  const [selectedPaket, setSelectedPaket] = useState<PaketKey>('Growth')
+  const [extraUsers, setExtraUsers] = useState(0)
+  const [extraAdmins, setExtraAdmins] = useState(0)
+  const [note, setNote] = useState('')
+  const [imeKluba, setImeKluba] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [sending, setSending] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleSubmit = async () => {
-    const person = contactPerson.trim()
-    const club = clubName.trim()
-    const place = city.trim()
-    const q = question.trim()
+  const selected = PAKETI[selectedPaket]
+  const lang = (i18n.resolvedLanguage || i18n.language || 'sr').split('-')[0] as keyof typeof CURRENCY_BY_LANG
+  const currency = CURRENCY_BY_LANG[lang] ?? 'RSD'
+  const locale = LOCALE_BY_LANG[lang] ?? 'sr-RS'
+  const convertFromRsd = (amountRsd: number, roundToInteger = true) => {
+    if (currency === 'RSD') return amountRsd
+    const converted = amountRsd / RSD_PER_CURRENCY[currency]
+    return roundToInteger ? Math.round(converted) : converted
+  }
+  const formatMoney = (amountRsd: number, keepSmallDecimals = false) => {
+    const converted = convertFromRsd(amountRsd, !keepSmallDecimals)
+    const showTwoDecimals = keepSmallDecimals
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: showTwoDecimals ? 2 : 0,
+      maximumFractionDigits: showTwoDecimals ? 2 : 0,
+    }).format(converted)
+  }
+  const basePriceRsd = selected.basePriceRsd
+  const extraPricePerUserRsd = selected.extraPricePerUserRsd
+  const isFreePaket = selectedPaket === 'Free'
 
     setFieldError('')
     setSubmitMessage(null)
-
-    if (!person || !club || !place || !q) {
-      setFieldError('Molimo popunite sva obavezna polja.')
+    if (!club) {
+      setFieldError(t('form.requiredClub'))
+      return
+    }
+    if (!phone) {
+      setFieldError(t('form.requiredPhone'))
+      return
+    }
+    if (!email) {
+      setFieldError(t('form.requiredEmail'))
       return
     }
 
@@ -33,10 +114,10 @@ export default function Cena() {
       await api.post(
         '/api/cena-zahtev',
         {
-          paket: 'Cena stranica',
-          extraUsers: 0,
-          extraAdmins: 0,
-          note: noteBody,
+          paket: t(`packages.${selectedPaket}.name`),
+          extraUsers,
+          extraAdmins,
+          note: note.trim(),
           imeKluba: club,
           contactEmail: '',
           contactPhone: '',
@@ -47,11 +128,11 @@ export default function Cena() {
         },
         { timeout: 45_000, withCredentials: false },
       )
-      setSubmitMessage({ type: 'success', text: 'Poruka je uspešno poslata. Javićemo vam se uskoro.' })
-      setContactPerson('')
-      setClubName('')
-      setCity('')
-      setQuestion('')
+      setSubmitMessage({ type: 'success', text: t('messages.success') })
+      setNote('')
+      setImeKluba('')
+      setContactPhone('')
+      setContactEmail('')
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const code = err.code
@@ -62,14 +143,14 @@ export default function Cena() {
         if (timedOut) {
           setSubmitMessage({
             type: 'error',
-            text: 'Zahtev je predugo trajao. Na produkciji proverite SMTP/Resend na serveru i VITE_API_URL + CORS.',
+            text: t('messages.timeout'),
           })
           return
         }
         if (!err.response && (code === 'ERR_NETWORK' || err.message === 'Network Error')) {
           setSubmitMessage({
             type: 'error',
-            text: 'Nema odgovora od servera. Proverite VITE_API_URL i CORS_ORIGINS (tačan URL vašeg sajta).',
+            text: t('messages.network'),
           })
           return
         }
@@ -79,11 +160,8 @@ export default function Cena() {
           return
         }
       }
-      const res =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { error?: string } } }).response
-          : null
-      const msg = res?.data?.error ?? 'Greška pri slanju. Pokušajte ponovo.'
+      const res = err && typeof err === 'object' && 'response' in err ? (err as { response?: { data?: { error?: string } } }).response : null
+      const msg = res?.data?.error ?? t('messages.sendError')
       setSubmitMessage({ type: 'error', text: msg })
     } finally {
       setSending(false)
@@ -95,40 +173,250 @@ export default function Cena() {
       <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6">
         <MarketingNavbar />
       </header>
+      <div className="mx-auto max-w-5xl px-4 pb-10 space-y-10">
+        <div className="text-center mt-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">{t('title')}</h1>
+          <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+            {t('subtitle')}
+          </p>
+        </div>
 
-      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <section className="mt-8 sm:mt-12 mb-12 sm:mb-16 text-center sm:text-left">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-6 tracking-tight leading-tight">
-            Planiner je za planinarske klubove
-          </h1>
-          <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed max-w-none">
-            <p>
-              Aplikacija je namenjena planinarskim društvima i klubovima: članstvo, akcije, dokumentacija i komunikacija
-              na jednom mestu.
-            </p>
-            <p className="text-base sm:text-lg font-medium text-emerald-800">
-              Registracija vašeg kluba je potpuno besplatna.
-            </p>
-            <p>
-              Pošaljite nam upit ispod sa osnovnim podacima – kontakt osoba, ime kluba, mesto i kratko pitanje. Odgovorićemo
-              vam i dogovorićemo sledeće korake za aktivaciju.
-            </p>
+        {/* Paketi */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {(Object.keys(PAKETI) as PaketKey[]).map((key) => {
+            const p = PAKETI[key]
+            const isActive = key === selectedPaket
+            const cardClasses = p.highlighted
+              ? 'bg-emerald-700 text-white border-emerald-700'
+              : 'bg-white/95 text-gray-900 border-emerald-100'
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setSelectedPaket(key)
+                  if (key === 'Free') {
+                    setExtraUsers(0)
+                    setExtraAdmins(0)
+                  }
+                }}
+                className={`rounded-2xl shadow-sm p-6 flex flex-col text-left border transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                  cardClasses
+                } ${isActive ? 'ring-2 ring-offset-2 ring-offset-emerald-50 ring-emerald-400' : ''}`}
+              >
+                <p
+                  className={`text-xs font-semibold uppercase tracking-[0.18em] mb-2 ${
+                    p.highlighted ? 'text-emerald-200' : 'text-emerald-600'
+                  }`}
+                >
+                  {t(`packages.${key}.name`)}
+                </p>
+                <h2 className="text-lg font-bold mb-1">{t(`packages.${key}.short`)}</h2>
+                <p
+                  className={`text-3xl font-extrabold mb-4 ${
+                    p.highlighted ? 'text-white' : 'text-emerald-700'
+                  }`}
+                >
+                  {p.basePriceRsd === 0 ? (
+                    <span className="block">{t('common.free')}</span>
+                  ) : (
+                    <>
+                      {formatMoney(p.basePriceRsd)}
+                      <span className="text-sm font-medium opacity-80"> {t('common.perMonth')}</span>
+                    </>
+                  )}
+                </p>
+                <ul className={`text-sm space-y-1 mb-4 ${p.highlighted ? 'text-emerald-50' : 'text-gray-600'}`}>
+                  <li>{t('card.upToMembers', { count: p.includedUsers.toLocaleString(locale) })}</li>
+                  <li>
+                    {t('card.upToImages', {
+                      size: p.spaceMb != null ? `${p.spaceMb.toLocaleString(locale)} MB` : `${p.spaceGb} GB`,
+                    })}
+                  </li>
+                  <li>{t('card.adminAccounts', { count: p.admins })}</li>
+                </ul>
+                <p className={`text-xs mt-auto ${p.highlighted ? 'text-emerald-100' : 'text-gray-500'}`}>
+                  {p.basePriceRsd === 0
+                    ? t('card.freeFootnote')
+                    : t('card.extraUserPrice', { price: formatMoney(p.extraPricePerUserRsd, true) })}
+                </p>
+                {isActive && (
+                  <p className={`mt-2 text-xs font-semibold ${p.highlighted ? 'text-white' : 'text-emerald-700'}`}>
+                    {t('card.selected')}
+                  </p>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Dodatni korisnici */}
+        <div
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('extraUsers.title')}</h2>
+          <p className="text-sm text-gray-600">
+            {isFreePaket ? (
+              <>
+                {t('extraUsers.freeText')}
+              </>
+            ) : (
+              <>
+                {t('extraUsers.paidText')}
+              </>
+            )}
+          </p>
+
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>{t('extraUsers.zero')}</span>
+              <span>250</span>
+              <span>{t('extraUsers.fiveHundred')}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={500}
+              step={10}
+              value={extraUsers}
+              onChange={(e) => setExtraUsers(Number(e.target.value))}
+              disabled={isFreePaket}
+              className="w-full accent-emerald-600 disabled:cursor-not-allowed"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <span className="font-medium text-gray-800">
+                {t('extraUsers.selected')}:{' '}
+                <span className="text-emerald-700 font-semibold">{extraUsers}</span>
+              </span>
+              <span className="text-gray-700">
+                {extraUsers} × {formatMoney(extraPricePerUserRsd, true)} ={' '}
+                <span className="font-semibold text-emerald-700">
+                  {formatMoney(Math.round(extraUsersCostRsd))} {t('common.perMonth')}
+                </span>
+              </span>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <div className="rounded-2xl bg-white border border-emerald-100 shadow-sm p-6 sm:p-8 space-y-5">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">Upit za registraciju kluba</h2>
-            <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
-              Ista polja kao na stranici Kontakt; u predmetu emaila i u telu poruke jasno je označeno da je upit sa stranice
-              Cena.
-            </p>
+        {/* Dodatni admini */}
+        <div
+          className={`rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4 ${
+            isFreePaket ? 'opacity-60' : ''
+          }`}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('extraAdmins.title')}</h2>
+          <p className="text-sm text-gray-600">
+            {t('extraAdmins.text')}
+          </p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end">
+            <div className="space-y-2">
+              <label htmlFor="extra-admins" className="text-xs font-medium text-gray-600">
+                {t('extraAdmins.countLabel')}
+              </label>
+              <input
+                id="extra-admins"
+                type="number"
+                min={0}
+                max={20}
+                value={extraAdmins}
+                onChange={(e) => setExtraAdmins(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+                disabled={isFreePaket}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none disabled:cursor-not-allowed"
+              />
+            </div>
+            <div className="text-sm text-gray-700 space-y-1">
+              <p>
+                {t('extraAdmins.pricePer')}:{' '}
+                <span className="font-semibold">
+                  {formatMoney(ADMIN_PRICE_RSD)} {t('common.perMonth')}
+                </span>
+              </p>
+              <p>
+                {t('extraAdmins.total')}:{' '}
+                <span className="font-semibold text-emerald-700">
+                  {formatMoney(Math.round(extraAdminsCostRsd))} {t('common.perMonth')}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Rezime i napomena */}
+        <div className="rounded-2xl bg-white/95 border border-emerald-100 shadow-sm p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900">{t('summary.title')}</h2>
+
+          <div className="grid gap-3 text-sm text-gray-700 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p>
+                {t('summary.package')}:{' '}
+                <span className="font-semibold text-emerald-700">
+                  {t(`packages.${selectedPaket}.name`)}
+                </span>
+              </p>
+              <p>
+                {t('summary.basePrice')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('common.free')
+                    : `${formatMoney(Math.round(basePriceRsd))} ${t('common.perMonth')}`}
+                </span>
+              </p>
+              <p>
+                {t('summary.includedUsers')}:{' '}
+                <span className="font-semibold">{selected.includedUsers.toLocaleString(locale)}</span>
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p>
+                {t('summary.extraUsers')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('summary.onlyPaid')
+                    : `${extraUsers} × ${formatMoney(extraPricePerUserRsd, true)} = ${formatMoney(Math.round(extraUsersCostRsd))}`}
+                </span>
+              </p>
+              <p>
+                {t('summary.extraAdmins')}:{' '}
+                <span className="font-semibold">
+                  {isFreePaket
+                    ? t('summary.onlyPaid')
+                    : `${extraAdmins} × ${formatMoney(ADMIN_PRICE_RSD)} = ${formatMoney(Math.round(extraAdminsCostRsd))}`}
+                </span>
+              </p>
+              <p className="text-base font-semibold text-emerald-700">
+                {t('summary.totalMonthly')}:{' '}
+                {isFreePaket ? t('common.free') : formatMoney(Math.round(totalMonthlyRsd))}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="ime-kluba" className="text-xs font-medium text-gray-600">
+              {t('form.clubName')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="ime-kluba"
+              type="text"
+              value={imeKluba}
+              onChange={(e) => {
+                setImeKluba(e.target.value)
+                setFieldError('')
+              }}
+              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
+                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
+              }`}
+              placeholder={t('form.clubPlaceholder')}
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="cena-contact-person" className="text-xs font-medium text-gray-600">
-                Kontakt osoba <span className="text-red-500">*</span>
+              <label htmlFor="contact-phone" className="text-xs font-medium text-gray-600">
+                {t('form.phone')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-contact-person"
@@ -141,12 +429,12 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="Ime i prezime kontakt osobe"
+                placeholder={t('form.phonePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="cena-club-name" className="text-xs font-medium text-gray-600">
-                Ime kluba <span className="text-red-500">*</span>
+              <label htmlFor="contact-email" className="text-xs font-medium text-gray-600">
+                {t('form.email')} <span className="text-red-500">*</span>
               </label>
               <input
                 id="cena-club-name"
@@ -159,33 +447,14 @@ export default function Cena() {
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
                   fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
                 }`}
-                placeholder="npr. Planinarsko društvo Javor"
+                placeholder={t('form.emailPlaceholder')}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="cena-city" className="text-xs font-medium text-gray-600">
-              Mesto <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="cena-city"
-              type="text"
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value)
-                setFieldError('')
-              }}
-              className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
-                fieldError ? 'border-red-400' : 'border-gray-300 focus:border-emerald-500'
-              }`}
-              placeholder="Grad ili mesto u kojem je klub"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="cena-question" className="text-xs font-medium text-gray-600">
-              Pitanje za nas <span className="text-red-500">*</span>
+            <label htmlFor="note" className="text-xs font-medium text-gray-600">
+              {t('form.notes')} <span className="text-gray-400">({t('form.optional')})</span>
             </label>
             <textarea
               id="cena-question"
@@ -196,7 +465,7 @@ export default function Cena() {
               }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
-              placeholder="Ukratko napišite šta vas zanima – npr. želja za registracijom kluba, broj članova, dodatna pitanja…"
+              placeholder={t('form.notesPlaceholder')}
             />
           </div>
 
@@ -213,7 +482,7 @@ export default function Cena() {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <p className="text-xs text-gray-500">
-              Klikom na „Pošalji upit“ poruka stiže našem timu sa oznakom da je poslato sa stranice Cena.
+              {t('form.submitHint')}
             </p>
             <button
               type="button"
@@ -221,11 +490,15 @@ export default function Cena() {
               disabled={sending}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
-              {sending ? 'Slanje…' : 'Pošalji upit'}
+              {sending ? t('form.sending') : t('form.submit')}
             </button>
           </div>
         </div>
-      </main>
+
+        <p className="text-xs text-gray-500 text-center max-w-2xl mx-auto">
+          {t('footerNote')}
+        </p>
+      </div>
     </div>
   )
 }

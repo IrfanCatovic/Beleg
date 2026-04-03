@@ -2,6 +2,7 @@ import { useState } from 'react'
 import CalendarDropdown from './CalendarDropdown'
 import { dateToYMD } from '../utils/dateUtils'
 import { getRoleLabel } from '../utils/roleUtils'
+import { useTranslation } from 'react-i18next'
 
 export type Role = 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
 
@@ -19,6 +20,7 @@ interface NewTaskModalProps {
 }
 
 export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalProps) {
+  const { t } = useTranslation('uiExtras')
   const [naziv, setNaziv] = useState('')
   const [opis, setOpis] = useState('')
   const [deadline, setDeadline] = useState<string | null>(null)
@@ -49,11 +51,11 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!naziv.trim()) {
-      setError('Unesite naziv zadatka.')
+      setError(t('taskModal.errors.enterName'))
       return
     }
     if (!allowAll && allowedRoles.length === 0) {
-      setError('Izaberite barem jednu ulogu ili opciju "Svi".')
+      setError(t('taskModal.errors.pickRoleOrAll'))
       return
     }
     setSubmitting(true)
@@ -70,7 +72,7 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
       resetForm()
       onClose()
     } catch (err: any) {
-      setError(err?.message || 'Greška pri kreiranju zadatka.')
+      setError(err?.message || t('taskModal.errors.create'))
     } finally {
       setSubmitting(false)
     }
@@ -94,9 +96,9 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
               </svg>
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">Novi zadatak</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('taskModal.newTitle')}</h2>
               <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
-                Popuni detalje zadatka koji će članovi tima moći da preuzmu.
+                {t('taskModal.newSubtitle')}
               </p>
             </div>
           </div>
@@ -105,7 +107,7 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
             onClick={onClose}
             disabled={submitting}
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-            aria-label="Zatvori"
+            aria-label={t('common.close')}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -125,38 +127,38 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-gray-700">
-                  Naziv zadatka <span className="text-rose-500">*</span>
+                  {t('taskModal.fields.taskName')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={naziv}
                   onChange={(e) => setNaziv(e.target.value)}
-                  placeholder="npr. Priprema opreme za vikend akciju"
+                  placeholder={t('taskModal.placeholders.taskName')}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 focus:bg-white outline-none transition"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-gray-700">
-                  Rok za završetak
+                  {t('taskModal.fields.deadline')}
                 </label>
                 <CalendarDropdown
                   value={deadline ?? ''}
                   onChange={(value) => setDeadline(value || null)}
-                  placeholder="Izaberi datum"
+                  placeholder={t('taskModal.placeholders.pickDate')}
                   minDate={dateToYMD(new Date())}
-                  aria-label="Rok za završetak zadatka"
+                  aria-label={t('taskModal.aria.deadline')}
                   fullWidth
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-gray-700">Opis zadatka</label>
+              <label className="block text-xs font-medium text-gray-700">{t('taskModal.fields.description')}</label>
               <textarea
                 value={opis}
                 onChange={(e) => setOpis(e.target.value)}
                 rows={3}
-                placeholder="Ukratko opiši šta treba da se uradi, koji su koraci ili očekivanja..."
+                placeholder={t('taskModal.placeholders.description')}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 focus:bg-white outline-none transition resize-y min-h-[72px]"
               />
             </div>
@@ -164,7 +166,7 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Roles */}
               <div className="space-y-2.5 md:col-span-2">
-                <p className="text-xs font-medium text-gray-700">Ko sve može da radi ovaj zadatak?</p>
+                <p className="text-xs font-medium text-gray-700">{t('taskModal.fields.whoCanDo')}</p>
                 <div className="grid grid-cols-2 gap-2 text-[11px] sm:text-xs">
                   {(['admin', 'sekretar', 'vodic', 'blagajnik', 'menadzer-opreme'] as Role[]).map(
                     (role) => (
@@ -199,11 +201,11 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
                       onChange={(e) => setAllowAll(e.target.checked)}
                       className="h-3.5 w-3.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
                     />
-                    <span className="text-xs font-semibold">Svi (uključuje i članove kluba)</span>
+                    <span className="text-xs font-semibold">{t('taskModal.fields.allRoles')}</span>
                   </label>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-gray-400">
-                  Ako izabereš <span className="font-semibold text-gray-500">Svi</span>, zadatak će biti vidljiv i dostupan za preuzimanje i članovima kluba.
+                  {t('taskModal.help.allRoles')}
                 </p>
               </div>
 
@@ -212,9 +214,9 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
                 <div className={`rounded-xl border px-3.5 py-3 transition-all ${hitno ? 'border-rose-300 bg-rose-50' : 'border-gray-100 bg-gray-50/50'}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className={`text-xs font-semibold ${hitno ? 'text-rose-700' : 'text-gray-700'}`}>Hitno</p>
+                      <p className={`text-xs font-semibold ${hitno ? 'text-rose-700' : 'text-gray-700'}`}>{t('taskModal.fields.urgent')}</p>
                       <p className={`text-[10px] mt-0.5 ${hitno ? 'text-rose-500' : 'text-gray-400'}`}>
-                        Ide na vrh liste
+                        {t('taskModal.help.urgent')}
                       </p>
                     </div>
                     <button
@@ -238,7 +240,7 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
             {/* Footer */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-100">
               <p className="text-[10px] sm:text-[11px] text-gray-400">
-                Jedan zadatak može istovremeno da preuzme više korisnika.
+                {t('taskModal.help.multiAssignees')}
               </p>
               <div className="flex gap-2.5 justify-end">
                 <button
@@ -247,14 +249,14 @@ export default function NewTaskModal({ open, onClose, onCreate }: NewTaskModalPr
                   disabled={submitting}
                   className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
                 >
-                  Otkaži
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Kreiranje...' : 'Sačuvaj zadatak'}
+                  {submitting ? t('taskModal.creating') : t('taskModal.saveTask')}
                 </button>
               </div>
             </div>

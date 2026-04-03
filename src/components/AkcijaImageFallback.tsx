@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /** Pozadina kada akcija nema sliku ili slika ne učita — isti stil kao cover bez slike na profilu. */
 export function DefaultAkcijaCover({ className = '' }: { className?: string }) {
+  const { t } = useTranslation('uiExtras')
   return (
     <div
       className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-emerald-900/85 to-teal-800 ${className}`}
@@ -25,7 +27,7 @@ export function DefaultAkcijaCover({ className = '' }: { className?: string }) {
         />
         <circle cx="88" cy="18" r="8" fill="currentColor" opacity="0.15" />
       </svg>
-      <span className="sr-only">Nema slike akcije</span>
+      <span className="sr-only">{t('fallbacks.noActionImage')}</span>
     </div>
   )
 }

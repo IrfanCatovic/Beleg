@@ -25,6 +25,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export type ModalType = 'alert' | 'confirm'
 
@@ -68,9 +69,9 @@ const defaultState: ModalState = {
   type: 'alert',
   title: '',
   message: '',
-  confirmLabel: 'Da',
-  cancelLabel: 'Ne',
-  okLabel: 'U redu',
+  confirmLabel: '',
+  cancelLabel: '',
+  okLabel: '',
   variant: 'default',
   resolveRef: { current: null },
 }
@@ -78,6 +79,7 @@ const defaultState: ModalState = {
 const ModalContext = createContext<ModalContextType | undefined>(undefined)
 
 export function ModalProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('uiExtras')
   const [state, setState] = useState<ModalState>(defaultState)
 
   const close = useCallback(() => {
@@ -98,9 +100,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           type: 'alert',
           title: title ?? '',
           message,
-          confirmLabel: 'Da',
-          cancelLabel: 'Ne',
-          okLabel: 'U redu',
+          confirmLabel: t('modal.yes'),
+          cancelLabel: t('modal.no'),
+          okLabel: t('modal.ok'),
           variant: 'default',
           resolveRef,
         })
@@ -117,9 +119,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           type: 'alert',
           title: options.title ?? '',
           message: options.message,
-          confirmLabel: 'Da',
-          cancelLabel: 'Ne',
-          okLabel: options.okLabel ?? 'U redu',
+          confirmLabel: t('modal.yes'),
+          cancelLabel: t('modal.no'),
+          okLabel: options.okLabel ?? t('modal.ok'),
           variant: 'default',
           resolveRef,
         })
@@ -138,9 +140,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           type: 'confirm',
           title: options?.title ?? '',
           message,
-          confirmLabel: options?.confirmLabel ?? 'Da',
-          cancelLabel: options?.cancelLabel ?? 'Ne',
-          okLabel: 'U redu',
+          confirmLabel: options?.confirmLabel ?? t('modal.yes'),
+          cancelLabel: options?.cancelLabel ?? t('modal.no'),
+          okLabel: t('modal.ok'),
           variant: options?.variant ?? 'default',
           resolveRef,
         })
@@ -259,7 +261,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 export function useModal() {
   const ctx = useContext(ModalContext)
   if (ctx === undefined) {
-    throw new Error('useModal mora da se koristi unutar ModalProvider')
+    throw new Error()
   }
   return ctx
 }

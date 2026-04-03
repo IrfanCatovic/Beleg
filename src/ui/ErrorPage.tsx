@@ -1,7 +1,9 @@
 // src/pages/ErrorPage.tsx
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export default function ErrorPage() {
+  const { t } = useTranslation('miscPages')
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-emerald-900 to-gray-900 flex items-center justify-center px-4">
       {/* Pozadina sa suptilnim planinskim efektom */}
@@ -19,13 +21,12 @@ export default function ErrorPage() {
 
         {/* Naslov */}
         <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-bold text-[#fed74c] mb-6">
-          Staza ne postoji...
+          {t('error404.title')}
         </h2>
 
         {/* Tekst */}
         <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-10 leading-relaxed">
-          Izgleda da si skrenuo sa označene staze.  
-          Ili je možda ova ruta još uvek u izviđanju.
+          {t('error404.subtitle')}
         </p>
 
         {/* Animirano dugme */}
@@ -34,12 +35,12 @@ export default function ErrorPage() {
           className="inline-block px-10 py-5 text-xl sm:text-2xl font-bold text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:bg-[#fed74c] hover:text-[#41ac53] focus:outline-none focus:ring-4 focus:ring-[#fed74c]/50"
           style={{ backgroundColor: '#41ac53' }}
         >
-          Vrati se na početnu stazu
+          {t('error404.backHome')}
         </Link>
 
         {/* Mali footer */}
         <p className="mt-16 text-sm sm:text-base text-gray-500">
-          planiner • Nema vrha koji se ne može osvojiti... osim ove stranice 😅
+          {t('error404.footer')}
         </p>
       </div>
     </div>

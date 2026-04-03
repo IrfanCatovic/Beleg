@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import { formatDateShort } from '../../utils/dateUtils'
 import Loader from '../../components/Loader'
+import { tezinaLabel } from '../../utils/difficultyI18n'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 
 interface Akcija {
@@ -26,6 +28,7 @@ interface Statistika {
 const POST_LIMIT = 30
 
 export default function Home() {
+  const { t, i18n } = useTranslation('home')
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
 
@@ -188,7 +191,7 @@ export default function Home() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      void showAlert('Slika je prevelika (maksimum 5 MB).', 'Slika')
+      void showAlert(t('imageTooLarge'), t('imageTitle'))
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
@@ -235,17 +238,17 @@ export default function Home() {
       if (fileInputRef.current) fileInputRef.current.value = ''
       if (textareaRef.current) textareaRef.current.style.height = 'auto'
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri objavljivanju', 'Objava')
+      await showAlert(err.response?.data?.error || t('postError'), t('postTitle'))
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDeletePost = async (postId: number) => {
-    const ok = await showConfirm('Da li želite da obrišete ovu objavu?', {
-      title: 'Obriši objavu',
-      confirmLabel: 'Obriši',
-      cancelLabel: 'Otkaži',
+    const ok = await showConfirm(t('confirmDeletePost'), {
+      title: t('deletePostTitle'),
+      confirmLabel: t('delete'),
+      cancelLabel: t('cancel'),
       variant: 'danger',
     })
     if (!ok) return
@@ -254,7 +257,7 @@ export default function Home() {
       setPosts(prev => prev.filter(p => p.id !== postId))
       setTotal(prev => prev - 1)
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || 'Greška pri brisanju objave', 'Objava')
+      await showAlert(err.response?.data?.error || t('deletePostError'), t('postTitle'))
     }
   }
 
@@ -281,8 +284,8 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Dobrodošli u planiner</h2>
-          <p className="text-gray-600">Ulogujte se da vidite objave i novosti.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('notLoggedTitle')}</h2>
+          <p className="text-gray-600">{t('notLoggedDesc')}</p>
         </div>
       </div>
     )
@@ -308,8 +311,8 @@ export default function Home() {
             type="button"
             onClick={closeLightbox}
             className="absolute top-4 right-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white/90 hover:text-white transition-all"
-            aria-label="Zatvori"
-            title="Zatvori (Esc)"
+            aria-label={t('close')}
+            title={t('closeEsc')}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -317,7 +320,7 @@ export default function Home() {
           </button>
           <img
             src={lightboxSrc}
-            alt="Uvećana slika"
+            alt={t('zoomedImage')}
             onClick={(e) => e.stopPropagation()}
             className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
           />
@@ -373,7 +376,7 @@ export default function Home() {
                           handleSubmitPost()
                         }
                       }}
-                      placeholder="Podeli nešto sa zajednicom..."
+                      placeholder={t('sharePlaceholder')}
                       rows={1}
                       className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
                     />
@@ -382,7 +385,7 @@ export default function Home() {
                       <div className="absolute left-0 right-0 top-full mt-2 z-30">
                         <div className="rounded-xl bg-white border border-gray-200 shadow-lg overflow-hidden">
                           {mentionUsersLoading ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">Učitavam...</div>
+                            <div className="px-3 py-2 text-sm text-gray-500">{t('loadingMentions')}</div>
                           ) : (
                             (() => {
                               const q = mentionQuery.trim().toLowerCase()
@@ -395,7 +398,7 @@ export default function Home() {
                                 .slice(0, 8)
 
                               if (filtered.length === 0) {
-                                return <div className="px-3 py-2 text-sm text-gray-500">Nema rezultata</div>
+                                return <div className="px-3 py-2 text-sm text-gray-500">{t('noResults')}</div>
                               }
 
                               return (
@@ -435,7 +438,7 @@ export default function Home() {
                           type="button"
                           onClick={handleRemoveImage}
                           disabled={submitting}
-                          aria-label="Ukloni sliku"
+                          aria-label={t('removeImage')}
                           className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white transition-all disabled:opacity-50"
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -444,7 +447,7 @@ export default function Home() {
                         </button>
                         <img
                           src={newPostImagePreview}
-                          alt="Preview"
+                          alt={t('imagePreviewAlt')}
                           className="w-full max-h-72 object-cover cursor-pointer"
                           onClick={() => openLightbox(newPostImagePreview)}
                         />
@@ -459,8 +462,8 @@ export default function Home() {
                           onClick={() => fileInputRef.current?.click()}
                           disabled={submitting}
                           className="inline-flex items-center justify-center w-9 h-9 rounded-full text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 transition-colors"
-                          aria-label="Dodaj sliku"
-                          title="Dodaj sliku"
+                          aria-label={t('addImage')}
+                          title={t('addImage')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm14.625-11.25a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0z" />
@@ -474,7 +477,7 @@ export default function Home() {
                       >
                         {submitting ? (
                           <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                        ) : 'Objavi'}
+                        ) : t('publish')}
                       </button>
                     </div>
                   </div>
@@ -493,8 +496,8 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
                   </svg>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Još nema objava</h3>
-                <p className="text-sm text-gray-500 max-w-xs mx-auto">Budi prvi koji će podeliti nešto sa zajednicom!</p>
+                <h3 className="text-base font-bold text-gray-900 mb-1">{t('noPostsTitle')}</h3>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto">{t('noPostsDesc')}</p>
               </div>
             ) : (
               <div className="sm:mt-4 sm:space-y-4 divide-y divide-gray-100 sm:divide-y-0">
@@ -523,7 +526,7 @@ export default function Home() {
 
             {!hasMore && posts.length > 0 && (
               <div className="text-center py-8">
-                <p className="text-xs text-gray-400 font-medium">Sve objave su učitane</p>
+                <p className="text-xs text-gray-400 font-medium">{t('allLoaded')}</p>
               </div>
             )}
           </div>
@@ -534,7 +537,7 @@ export default function Home() {
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                <h3 className="text-sm font-bold text-gray-900">Moja statistika</h3>
+                <h3 className="text-sm font-bold text-gray-900">{t('myStats')}</h3>
               </div>
               <div className="p-4">
                 {loadingSidebar ? (
@@ -543,9 +546,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
-                    <StatCard label="Staze" value={`${statistika.ukupnoKm.toLocaleString('sr-RS', { maximumFractionDigits: 1 })} km`} />
-                    <StatCard label="Uspon" value={`${statistika.ukupnoMetaraUspona.toLocaleString('sr-RS')} m`} />
-                    <StatCard label="Akcije" value={String(statistika.brojPopeoSe)} />
+                    <StatCard label={t('trails')} value={`${statistika.ukupnoKm.toLocaleString(i18n.language, { maximumFractionDigits: 1 })} km`} />
+                    <StatCard label={t('ascent')} value={`${statistika.ukupnoMetaraUspona.toLocaleString(i18n.language)} m`} />
+                    <StatCard label={t('actions')} value={String(statistika.brojPopeoSe)} />
                   </div>
                 )}
                 <Link
@@ -555,7 +558,7 @@ export default function Home() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
-                  Pogledaj profil
+                  {t('viewProfile')}
                 </Link>
               </div>
             </div>
@@ -564,10 +567,10 @@ export default function Home() {
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-blue-400 to-indigo-600" />
-                  <h3 className="text-sm font-bold text-gray-900">Sledeće akcije</h3>
+                  <h3 className="text-sm font-bold text-gray-900">{t('nextActions')}</h3>
                 </div>
                 <Link to="/akcije" className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-                  Sve akcije
+                  {t('allActions')}
                 </Link>
               </div>
               <div className="p-4">
@@ -576,7 +579,7 @@ export default function Home() {
                     <div className="h-5 w-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
                   </div>
                 ) : sledeceAkcije.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">Nema zakazanih akcija</p>
+                  <p className="text-xs text-gray-400 text-center py-4">{t('noScheduledActions')}</p>
                 ) : (
                   <div className="space-y-2">
                     {sledeceAkcije.map(a => {
@@ -600,7 +603,7 @@ export default function Home() {
                             </div>
                             {a.tezina && (
                               <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${tezinaStyle}`}>
-                                {a.tezina === 'tesko' || a.tezina === 'teško' ? 'Teško' : a.tezina === 'alpinizam' ? 'Alpinizam' : a.tezina}
+                                {tezinaLabel(a.tezina, t)}
                               </span>
                             )}
                           </div>
@@ -615,14 +618,14 @@ export default function Home() {
             <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-400 to-purple-600" />
-                <h3 className="text-sm font-bold text-gray-900">Brzi linkovi</h3>
+                <h3 className="text-sm font-bold text-gray-900">{t('quickLinks')}</h3>
               </div>
               <div className="p-3">
                 <div className="space-y-0.5">
-                  <QuickLink to="/users" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>} label="Članovi" />
-                  <QuickLink to="/zadaci" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} label="Zadaci" />
-                  <QuickLink to="/klub" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>} label="Moj klub" />
-                  <QuickLink to="/obavestenja" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>} label="Obaveštenja" />
+                  <QuickLink to="/users" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>} label={t('members')} />
+                  <QuickLink to="/zadaci" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} label={t('tasks')} />
+                  <QuickLink to="/klub" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>} label={t('myClub')} />
+                  <QuickLink to="/obavestenja" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>} label={t('notifications')} />
                 </div>
               </div>
             </div>
