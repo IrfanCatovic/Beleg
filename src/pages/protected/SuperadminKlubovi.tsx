@@ -306,6 +306,11 @@ export default function SuperadminKlubovi() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-semibold text-gray-900 truncate">{k.naziv}</h2>
+                    {k.subscriptionEndsAt && (
+                      <div className="mt-1 text-center text-xs text-gray-500 sm:hidden">
+                        {t('superadmin.subscriptionUntil')}: {formatDateShort(k.subscriptionEndsAt)}
+                      </div>
+                    )}
                     {(k.sediste || k.adresa) && (
                       <p className="mt-0.5 text-sm text-gray-600 truncate" title={k.sediste || k.adresa}>
                         {k.sediste || k.adresa}
@@ -380,7 +385,7 @@ export default function SuperadminKlubovi() {
                 {/* Subskripcija + Ulazi */}
                 <div className="mt-auto border-t border-gray-200/60 px-4 py-3 bg-white/30">
                   {k.subscriptionEndsAt && (
-                    <p className="text-xs text-gray-500 mb-2">
+                    <p className="hidden sm:block text-xs text-gray-500 mb-2">
                       {t('superadmin.subscriptionUntil')}: {formatDateShort(k.subscriptionEndsAt)}
                     </p>
                   )}
