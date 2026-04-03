@@ -83,6 +83,7 @@ func main() {
 		}
 	}
 	origins = append(defaultOrigins, origins...)
+	
 	r.Use(middleware.SecurityHeaders(os.Getenv("SECURITY_CSP")))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,

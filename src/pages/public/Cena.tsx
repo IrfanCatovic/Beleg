@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import axios from 'axios'
 import MarketingNavbar from '../../components/MarketingNavbar'
 import api from '../../services/api'
@@ -92,23 +92,6 @@ export default function Cena() {
   const extraPricePerUserRsd = selected.extraPricePerUserRsd
   const isFreePaket = selectedPaket === 'Free'
 
-  const { extraUsersCostRsd, extraAdminsCostRsd, totalMonthlyRsd } = useMemo(() => {
-    if (isFreePaket) {
-      return { extraUsersCostRsd: 0, extraAdminsCostRsd: 0, totalMonthlyRsd: 0 }
-    }
-    const extraUsersCost = extraUsers * extraPricePerUserRsd
-    const extraAdminsCost = extraAdmins * ADMIN_PRICE_RSD
-    return {
-      extraUsersCostRsd: extraUsersCost,
-      extraAdminsCostRsd: extraAdminsCost,
-      totalMonthlyRsd: basePriceRsd + extraUsersCost + extraAdminsCost,
-    }
-  }, [extraUsers, extraAdmins, basePriceRsd, extraPricePerUserRsd, isFreePaket])
-
-  const handleSendEmail = async () => {
-    const club = imeKluba.trim()
-    const phone = contactPhone.trim()
-    const email = contactEmail.trim()
     setFieldError('')
     setSubmitMessage(null)
     if (!club) {
@@ -124,9 +107,10 @@ export default function Cena() {
       return
     }
 
+    const noteBody = `Upit poslato sa stranice Cena:\n\nKontakt osoba: ${person}\nIme kluba: ${club}\nMesto: ${place}\n\nPitanje:\n${q}\n`
+
     setSending(true)
     try {
-      // Javna forma: bez cookies — manje CORS problema kad je frontend na drugom domenu od API-ja.
       await api.post(
         '/api/cena-zahtev',
         {
@@ -135,12 +119,12 @@ export default function Cena() {
           extraAdmins,
           note: note.trim(),
           imeKluba: club,
-          contactEmail: email,
-          contactPhone: phone,
-          basePriceRsd: Math.round(basePriceRsd),
-          extraUsersCostRsd: Math.round(extraUsersCostRsd),
-          extraAdminsCostRsd: Math.round(extraAdminsCostRsd),
-          totalMonthlyRsd: Math.round(totalMonthlyRsd),
+          contactEmail: '',
+          contactPhone: '',
+          basePriceRsd: 0,
+          extraUsersCostRsd: 0,
+          extraAdminsCostRsd: 0,
+          totalMonthlyRsd: 0,
         },
         { timeout: 45_000, withCredentials: false },
       )
@@ -170,9 +154,9 @@ export default function Cena() {
           })
           return
         }
-        const msg = (err.response?.data as { error?: string } | undefined)?.error
-        if (msg) {
-          setSubmitMessage({ type: 'error', text: msg })
+        const apiMsg = (err.response?.data as { error?: string } | undefined)?.error
+        if (apiMsg) {
+          setSubmitMessage({ type: 'error', text: apiMsg })
           return
         }
       }
@@ -185,7 +169,7 @@ export default function Cena() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 via-white to-emerald-50/80">
       <header className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6">
         <MarketingNavbar />
       </header>
@@ -435,11 +419,11 @@ export default function Cena() {
                 {t('form.phone')} <span className="text-red-500">*</span>
               </label>
               <input
-                id="contact-phone"
-                type="tel"
-                value={contactPhone}
+                id="cena-contact-person"
+                type="text"
+                value={contactPerson}
                 onChange={(e) => {
-                  setContactPhone(e.target.value)
+                  setContactPerson(e.target.value)
                   setFieldError('')
                 }}
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
@@ -453,11 +437,11 @@ export default function Cena() {
                 {t('form.email')} <span className="text-red-500">*</span>
               </label>
               <input
-                id="contact-email"
-                type="email"
-                value={contactEmail}
+                id="cena-club-name"
+                type="text"
+                value={clubName}
                 onChange={(e) => {
-                  setContactEmail(e.target.value)
+                  setClubName(e.target.value)
                   setFieldError('')
                 }}
                 className={`w-full rounded-xl border px-3 py-2 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-emerald-500/30 outline-none ${
@@ -467,22 +451,25 @@ export default function Cena() {
               />
             </div>
           </div>
-          {fieldError && <p className="text-xs text-red-600">{fieldError}</p>}
 
           <div className="space-y-2">
             <label htmlFor="note" className="text-xs font-medium text-gray-600">
               {t('form.notes')} <span className="text-gray-400">({t('form.optional')})</span>
             </label>
             <textarea
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
+              id="cena-question"
+              value={question}
+              onChange={(e) => {
+                setQuestion(e.target.value)
+                setFieldError('')
+              }}
               rows={4}
               className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 outline-none resize-y"
               placeholder={t('form.notesPlaceholder')}
             />
           </div>
 
+          {fieldError && <p className="text-xs text-red-600">{fieldError}</p>}
           {submitMessage && (
             <p
               className={`text-sm font-medium ${
@@ -499,7 +486,7 @@ export default function Cena() {
             </p>
             <button
               type="button"
-              onClick={handleSendEmail}
+              onClick={handleSubmit}
               disabled={sending}
               className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
@@ -515,4 +502,3 @@ export default function Cena() {
     </div>
   )
 }
-
