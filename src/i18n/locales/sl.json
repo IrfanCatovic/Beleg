@@ -1,0 +1,1669 @@
+{
+  "common": {
+    "appName": "Planiner",
+    "language": "Jezik",
+    "languageShort": "SL",
+    "nav": {
+      "prices": "Cene",
+      "contact": "Kontakt",
+      "login": "Prijava",
+      "homeAria": "Dom - planiner"
+    },
+    "languages": {
+      "sr": "Srbščina",
+      "bs": "Bosanščina",
+      "hr": "Hrvaščina",
+      "de": "Nemščina",
+      "en": "Angleščina",
+      "sl": "Slovenščina"
+    }
+  },
+  "landing": {
+    "hero": {
+      "titleStart": "Več časa na poti,",
+      "titleAccent": "manj administracije",
+      "subtitle": "Planiner povezuje celoten klub: vodstvo lažje vodi operacije, medtem ko člani ostanejo aktivni z objavami, prijavami na dogodke in spremljanjem napredka. Vse na enem mestu, brez kaosa v sporočilih in preglednicah.",
+      "support": "Za predsednike, tajnike, vodnike, blagajnike in vse člane, ki si želijo več časa na prostem in manj papirologije.",
+      "cta": "Rezervirajte brezplačno predstavitev"
+    },
+    "solve": {
+      "title": "Kaj točno rešujemo",
+      "subtitle": "Od papirologije in kaosa s preglednicami do jasnega digitalnega sistema, ki deluje za vas.",
+      "problemLabel": "Problem",
+      "solutionLabel": "Rešitev v Planinerju",
+      "cards": {
+        "c1": {
+          "problemTitle": "Kaos v preglednicah, papirologija, podvojeni vnosi in izgubljeni obrazci.",
+          "problemText": "Podatki o članih so razpršeni po Excelu, papirnatih obrazcih in sporočilih, tako da nihče nima celotne slike.",
+          "solutionText": "Centralizirana zbirka podatkov o članih z vsemi podatki, dokumenti in informacijami, povezanimi s pohodništvom."
+        },
+        "c2": {
+          "problemTitle": "Ni jasnega pogleda na plačila ali prijave dejavnosti, vse teče prek sporočil.",
+          "problemText": "Tajnice, vodniki in blagajniki porabijo ure za ročno spremljanje in štetje.",
+          "solutionText": "Eno mesto za dejavnosti, naloge, finance in obvestila z dovoljenji glede na vlogo."
+        },
+        "c3": {
+          "problemTitle": "Administracija vsako leto traja ure in dneve.",
+          "problemText": "Registracija članov, evidence dejavnosti, ročna obvestila in finančna poročila so obnovljeni iz nič.",
+          "solutionTextStart": "Avtomatizacija procesov in prihranek več kot",
+          "solutionTextHours": "ur na leto"
+        }
+      }
+    },
+    "member": {
+      "badge": "Za člane kluba",
+      "title": "Vaše popotovanje, preprosto in privlačno",
+      "subtitle": "Planiner ni samo za upravljanje. Kot član dobite svoj prostor: pregled dejavnosti, prijave z enim klikom, skupnost in motivacijo z napredkom in tekmovanjem.",
+      "howForYou": "Kako deluje pri vas",
+      "community": "Skupnost in interakcija",
+      "progress": "Napredek in tekmovanje",
+      "howList": {
+        "1": "Prijavite se in si oglejte vse prihajajoče aktivnosti kluba na enem mestu.",
+        "2": "Pridružite se dejavnosti z enim klikom, brez papirologije ali dodatnih obrazcev.",
+        "3": "Po vsaki aktivnosti se vaša razdalja, vzpon in udeležba samodejno zabeležijo.",
+        "4": "Spremljajte svoj napredek in uvrstitev v svojem članskem profilu."
+      },
+      "communityList": {
+        "1": "Oglejte si, kdo se je pridružil posamezni dejavnosti in kdo vodi.",
+        "2": "Prejemajte obvestila o novih dejavnostih in pomembnih spremembah.",
+        "3": "Javni profili članov in skupni napredek.",
+        "4": "Eno mesto namesto številnih skupin in sporočil."
+      },
+      "progressList": {
+        "1": "Razdalja, skupni vzpon in število dejavnosti v vašem profilu.",
+        "2": "Uvrstitve, kot je »Skalna legenda«, kažejo, kje ste.",
+        "3": "Mini tekmovanja po sezoni ali letu.",
+        "4": "Delite svoj pohodniški življenjepis na družbenih medijih."
+      },
+      "communityIntro": "Ostanite povezani s svojim klubom in drugimi pohodniki:",
+      "progressIntro": "Vsaka aktivnost vam da več kot le spomine – zabeleži se in vas motivira:",
+      "ctaText": "Želite, da vaš klub uporablja Planiner?",
+      "ctaLink": "Predlagajte svojemu vodstvu, da načrtuje predstavitev"
+    },
+    "mountainBand": {
+      "badge": "Ustvarjen za resne pohodnike",
+      "title": "Spremljajte svoj napredek na vsaki poti",
+      "subtitle": "Planiner prikazuje vašo skupno razdaljo, vzpon in vrhove, kjer ste se že izkazali."
+    },
+    "ranking": {
+      "badge": "Uvrstitve in mini tekmovanja",
+      "title": "Vsako aktivnost spremenite v izziv",
+      "subtitle": "Planiner vodi podrobno statistiko za vsakega člana po uspešnih dejavnostih: razdaljo, skupni vzpon in uvrstitev.",
+      "list": {
+        "1": "Prilagojena lestvica glede na udeležbo in kilometrino.",
+        "2": "Sledenje ključnim meritvam po vsaki dejavnosti.",
+        "3": "Interna mini tekmovanja po sezonah ali letih.",
+        "4": "Delite profile na družbenih omrežjih."
+      },
+      "mock": {
+        "profileLabel": "Članski profil",
+        "name": "Anna M.",
+        "rank": "Uvrstitev: Skalna legenda",
+        "totalKm": "Skupaj km",
+        "totalAscent": "Skupni vzpon",
+        "actions": "Aktivnosti",
+        "season": "Mini tekmovanje, spomladanska sezona",
+        "placement": "Trenutna uvrstitev: 3. v klubu",
+        "share": "Delite profil"
+      }
+    },
+    "features": {
+      "title": "Ključne funkcije aplikacije",
+      "subtitle": "Vse, kar potrebuje pohodniško društvo - od prve prijave do končnega blagajniškega poročila.",
+      "cards": {
+        "members": {
+          "title": "Upravljanje članov",
+          "text1": "Podrobni profili članov z osebnimi podatki, kontakti in dokumenti.",
+          "text2": "Več vlog (administrator, tajnik, vodnik, blagajnik, član) – vsak vidi, kar potrebuje."
+        },
+        "actions": {
+          "title": "Dejavnosti in naloge",
+          "text1": "Ustvarjajte, urejajte in spremljajte klubske aktivnosti in timske naloge.",
+          "text2": "Jasen pogled na sedanje in pretekle dejavnosti ter angažiranost članov."
+        },
+        "finance": {
+          "title": "Finance (administrator in blagajnik)",
+          "text1": "Evidentirajte prihodke in odhodke, vezane na člane in dejavnosti.",
+          "text2": "Transparentno zakladniško delo in lažje finančno poročanje."
+        },
+        "notifications": {
+          "title": "Obvestila v realnem času",
+          "text1": "Interna obvestila za aktivnosti, plačila in opravila.",
+          "text2": "Skrbniki z enim klikom obvestijo vse člane ali skupine."
+        },
+        "pdf": {
+          "title": "Samodejna poročila PDF",
+          "text1": "Planiner samodejno pripravi ključne dokumente PDF za pošiljanje in arhiviranje.",
+          "text2": "Letna in individualna poročila z enim klikom, brez pretipkavanja."
+        },
+        "publicProfile": {
+          "title": "Javni profil in dosežki",
+          "text1": "Vsak uporabnik ima javni profil s potmi, vzponi in udeležbo v aktivnostih."
+        }
+      }
+    },
+    "how": {
+      "title": "Kako Planiner deluje",
+      "subtitle": "Jasni koraki od prvega stika do vsakodnevne uporabe v celotnem klubu.",
+      "stepPrefix": "korak",
+      "steps": {
+        "1": {
+          "title": "Ustanovili smo vaš klub",
+          "text": "Na kratkem spletnem sestanku se seznanimo z vašim klubom, postavimo admine in dodamo prve člane."
+        },
+        "2": {
+          "title": "Vodstvo vodi vsakodnevno delo",
+          "text": "Vodniki načrtujejo aktivnosti, skrbniki upravljajo člane in naloge, blagajnik spremlja finance."
+        },
+        "3": {
+          "title": "Člani aktivno sodelujejo",
+          "text": "Prijave z enim klikom, objave in komentarji, sledenje napredku in uvrstitve."
+        }
+      }
+    },
+    "partner": {
+      "title": "Več kot programska oprema – partner za vaš klub",
+      "subtitle": "Planiner je razvila predana razvojna ekipa, ki aktivno sodeluje s pohodniškimi klubi. Naš cilj je več časa na poti, manj za mizo.",
+      "imageCaption": "Ekipa Planiner - podpora od prvega dne",
+      "items": {
+        "1": {
+          "title": "Resna razvojna ekipa",
+          "text": "Redne posodobitve, varnostni popravki in nove funkcije, oblikovane na podlagi resničnih povratnih informacij kluba."
+        },
+        "2": {
+          "title": "Podpora v vašem jeziku",
+          "text": "E-pošta, telefon in spletne seje – od uvajanja ekipe do vsakodnevnih vprašanj."
+        },
+        "3": {
+          "title": "Skupnost pohodnikov",
+          "text": "Mreža klubov, ki si izmenjujejo prakse in ideje za nove funkcije."
+        }
+      }
+    },
+    "memberBand": {
+      "badge": "Člani v središču",
+      "title": "Vsak član vidi svojo gorsko pot",
+      "subtitle": "Planiner beleži zgodbo vsakega člana – od prve aktivnosti do večjih vzponov in vodenih tur."
+    },
+    "benefits": {
+      "title": "Številke in ugodnosti",
+      "subtitle": "Jasne, merljive koristi, ki jih vaš klub dobi s prehodom na Planiner.",
+      "cards": {
+        "time": {
+          "title": "Prihranjen čas",
+          "text": "ur manj skrbniškega dela vsako leto"
+        },
+        "errors": {
+          "title": "Manj napak",
+          "text": "brez izgubljenih obrazcev ali podvojenih vnosov"
+        },
+        "communication": {
+          "title": "Hitrejša komunikacija",
+          "text": "vse posodobitve in obvestila na enem mestu"
+        },
+        "transparency": {
+          "title": "Preglednost",
+          "text": "boljši vpogled v vodstvo in zakladnico"
+        }
+      }
+    },
+    "testimonials": {
+      "title": "Kaj pravijo uporabniki",
+      "items": {
+        "1": {
+          "quote": "Končno brez petdesetih skupinskih sporočil pred vsako aktivnostjo. Vse na enem mestu – prijave in podrobnosti.",
+          "name": "Marko P.",
+          "role": "Vodnik",
+          "club": "HC \"Zeleni vrh\""
+        },
+        "2": {
+          "quote": "Kot blagajnik sem preživljal dneve in pretipkoval plačila. Zdaj vidim vse v realnem času.",
+          "name": "Jelena S.",
+          "role": "Blagajnik",
+          "club": "HC \"Trail\""
+        },
+        "3": {
+          "quote": "Moj profil s statistiko in uvrstitvijo me motivira, da se pridružim vsaki dejavnosti.",
+          "name": "Nemanja D.",
+          "role": "član",
+          "club": "HC \"Vrh\""
+        }
+      }
+    },
+    "audience": {
+      "title": "Za koga je Planiner",
+      "subtitle": "Ena aplikacija, različne perspektive - vsaka klubska vloga dobi jasno vrednost.",
+      "cards": {
+        "president": {
+          "title": "Predsednik kluba",
+          "subtitle": "Vse na enem mestu, brez presenečenj.",
+          "text": "Jasen pregled članov, aktivnosti, financ in obvestil."
+        },
+        "secretary": {
+          "title": "sekretar",
+          "subtitle": "Manj papirja, več reda.",
+          "text": "Hitra evidenca članov in posodobitve, dokumenti na dosegu roke."
+        },
+        "guide": {
+          "title": "Vodnik",
+          "subtitle": "Jasne prijave in komunikacija.",
+          "text": "Eno mesto za ustvarjanje dejavnosti, pregledovanje prijav in deljenje informacij z udeleženci."
+        },
+        "treasurer": {
+          "title": "Blagajnik",
+          "subtitle": "Čiste finančne evidence.",
+          "text": "Jasno sledenje prihodkom in odhodkom, lažje poročanje."
+        }
+      }
+    },
+    "showcase": {
+      "badge": "Sneak peek",
+      "title": "Poglejte v aplikacijo",
+      "subtitle": "Enaka izkušnja na namizju in mobilni napravi.",
+      "desktop": "Namizje",
+      "mobile": "Mobilni",
+      "sections": {
+        "actions": {
+          "title": "dejavnosti",
+          "text": "Seznam dejavnosti, prijave članov in podrobnosti – enako na namizju in telefonu.",
+          "url": "planiner.app/akcije/uspon-na-zlu-kolatu"
+        },
+        "profiles": {
+          "title": "Profili članov",
+          "text": "Javni profili s statistiko, potmi, vzponi in udeležbo v dejavnostih.",
+          "url": "planiner.app/korisnik/catko"
+        },
+        "finance": {
+          "title": "Finance",
+          "text": "Zakladnica, plačila, izplačila in pogled na dejavnost – tudi mobilno.",
+          "url": "planiner.app/finansije"
+        },
+        "tasks": {
+          "title": "Naloge",
+          "text": "Sledite rokom, statusu in lastništvu za vodstvo, vodnike in člane.",
+          "url": "planiner.app/zadaci"
+        }
+      }
+    },
+    "cta": {
+      "title": "Ste pripravljeni vrniti svojemu klubu čas in sebi mir?",
+      "subtitle": "Čez 30 minut vam bomo pokazali Planiner. Brez obveznosti, brez pritiska - samo jasen potek tega, kar lahko poenostavi delovanje vašega kluba.",
+      "bookDemo": "Rezervirajte predstavitev",
+      "sendInquiry": "Pošlji povpraševanje",
+      "note": "Lahko organiziramo spletni sestanek z vodstvom vašega kluba, pokažemo vmesnik in se dogovorimo o naslednjih korakih.",
+      "wantDemo": "Želite najprej videti?",
+      "viewDemo": "Oglejte si demo račun"
+    },
+    "footer": {
+      "about": "O nas",
+      "features": "Lastnosti",
+      "contact": "Kontakt",
+      "privacy": "Politika zasebnosti",
+      "copy": "© {{year}} Orin d.o.o. – za pohodniške klube, ki želijo več časa na stezi in manj pri mizi.",
+      "demoLabel": "Demo račun"
+    },
+    "alts": {
+      "heroProduct": "Predogled aplikacije na prenosniku in telefonu na vrhu",
+      "mountainLandscape": "Gorska pokrajina",
+      "partnerTeam": "Ekipa na Planinerju na spletnem srečanju s pohodniškim društvom",
+      "hikerOnTrail": "Pohodnik na poti",
+      "showcaseActionsPc": "Dejavnosti, pogled namizja",
+      "showcaseActionsMobile": "Dejavnosti, podrobnosti o telefonu",
+      "showcaseProfilesPc": "Profil, namizni pogled",
+      "showcaseProfilesMobile": "Profil, pogled telefona",
+      "showcaseFinancePc": "Finance, namizni pogled",
+      "showcaseFinanceMobile": "Finance, pogled na telefon",
+      "showcaseTasksPc": "Naloge, namizni pogled",
+      "showcaseTasksMobile": "Opravila, pogled telefona"
+    },
+    "highlights": {
+      "admin": {
+        "title": "Manj administracije",
+        "text": "Člani, dejavnosti, finance in obvestila – vse avtomatizirano. Brez Excela, papirja ali podvojenih sporočil."
+      },
+      "active": {
+        "title": "Aktivni člani",
+        "text": "Objave, komentarji, prijave na dogodke z enim klikom, sledenje napredku in uvrstitve – vključeni so vsi."
+      },
+      "records": {
+        "title": "Počisti zapise",
+        "text": "Poročila, statistika članov, finance in dokumenti – pripravljeni, kadar koli jih potrebujete."
+      }
+    }
+  },
+  "login": {
+    "title": "dobrodošli nazaj",
+    "subtitle": "En račun za vse, kar potrebuje vaš pohodniški klub - člane, dejavnosti, finance in uvrstitve.",
+    "username": "Uporabniško ime",
+    "password": "Geslo",
+    "usernamePlaceholder": "Uporabniško ime",
+    "passwordPlaceholder": "Vnesite geslo",
+    "submit": "Prijava",
+    "submitting": "Prijava ...",
+    "home": "Domača stran",
+    "hidePassword": "Skrij geslo",
+    "showPassword": "Pokaži geslo",
+    "invalidCredentials": "Napačno uporabniško ime ali geslo.",
+    "demoTitle": "Demo račun za testiranje",
+    "noAccount": "Brez računa? Obrnite se na vodstvo ali skrbnika pohodniškega društva.",
+    "footerTagline": "vaš naslednji vrh čaka",
+    "footerSystem": "planiner • sistem za pohodniška društva",
+    "footerSafe": "Varni zapisi, več časa na poti",
+    "badge": "Prijavite se v planiner",
+    "decorBg1": "Pohodniki na vzponu",
+    "decorBg2": "Pogled z vrha",
+    "decorBg3": "Pot skozi gozd",
+    "decorBg4": "Pohodniki na grebenu"
+  },
+  "appLayout": {
+    "home": "domov",
+    "actions": "dejavnosti",
+    "tasks": "Naloge",
+    "members": "člani",
+    "club": "Klub",
+    "finances": "Finance",
+    "clubs": "Klubi",
+    "notifications": "Obvestila",
+    "search": "Iskanje",
+    "chooseClub": "Izberite klub",
+    "enteredClub": "Vneseno:",
+    "changeClub": "Zamenjaj klub",
+    "loading": "Nalaganje...",
+    "noNotifications": "Brez obvestil.",
+    "showAllNotifications": "Pokaži vsa obvestila",
+    "close": "Zapri",
+    "myProfile": "Moj profil",
+    "settings": "nastavitve",
+    "logout": "Odjava",
+    "openMenu": "Odpri meni",
+    "closeMenu": "Zapri meni",
+    "profile": "Profil"
+  },
+  "home": {
+    "notLoggedTitle": "Dobrodošli v planinerju",
+    "notLoggedDesc": "Prijavite se za ogled objav in posodobitev.",
+    "close": "Zapri",
+    "closeEsc": "Zapri (Esc)",
+    "zoomedImage": "Povečana slika",
+    "sharePlaceholder": "Delite nekaj s skupnostjo ...",
+    "loadingMentions": "Nalaganje...",
+    "noResults": "Brez rezultatov",
+    "removeImage": "Odstrani sliko",
+    "addImage": "Dodajte sliko",
+    "publish": "Objavi",
+    "noPostsTitle": "Ni še nobene objave",
+    "noPostsDesc": "Bodite prvi, ki bo nekaj delil s skupnostjo!",
+    "allLoaded": "Vse objave so naložene",
+    "myStats": "Moja statistika",
+    "trails": "Poti",
+    "ascent": "Vzpon",
+    "actions": "dejavnosti",
+    "viewProfile": "Prikaži profil",
+    "nextActions": "Prihajajoče dejavnosti",
+    "allActions": "Vse dejavnosti",
+    "noScheduledActions": "Ni načrtovanih dejavnosti",
+    "hard": "težko",
+    "alpinism": "Alpinizem",
+    "quickLinks": "Hitre povezave",
+    "members": "člani",
+    "tasks": "Naloge",
+    "myClub": "Moj klub",
+    "notifications": "Obvestila",
+    "imageTooLarge": "Slika je prevelika (največ 5 MB).",
+    "imageTitle": "Slika",
+    "imagePreviewAlt": "Predogled izbrane slike",
+    "postError": "Napaka pri objavi",
+    "postTitle": "Objavi",
+    "confirmDeletePost": "Ali želite izbrisati to objavo?",
+    "deletePostTitle": "Izbriši objavo",
+    "delete": "Izbriši",
+    "cancel": "Prekliči",
+    "deletePostError": "Napaka pri brisanju objave"
+  },
+  "tasks": {
+    "loginRequired": "Za ogled nalog morate biti prijavljeni.",
+    "loadError": "Napaka pri nalaganju opravil.",
+    "takeConfirm": "Ali želite prevzeti nalogo \"{{name}}\"?",
+    "takeError": "Napaka pri prevzemu naloge.",
+    "leaveConfirm": "Ali želite zapustiti nalogo \"{{name}}\"? Naloga bo znova na voljo, če ne bo sodeloval nihče drug.",
+    "leaveError": "Napaka pri preklicu sodelovanja.",
+    "finishConfirm": "Označi nalogo »{{name}}« kot dokončano?",
+    "genericError": "Napaka.",
+    "deleteConfirm": "Želite izbrisati opravilo »{{name}}«?",
+    "delete": "Izbriši",
+    "cancel": "Prekliči",
+    "deleteError": "Napaka pri brisanju.",
+    "pageTitle": "Klubske naloge",
+    "pageSubtitle": "Opravljajte aktivne naloge, spremljajte napredek in sodelujte z ekipo.",
+    "newTask": "Nova naloga",
+    "active": "Aktiven",
+    "inProgress": "V teku",
+    "completed": "Dokončano",
+    "activeTasks": "Aktivne naloge",
+    "inProgressTasks": "V teku",
+    "completedTasks": "Opravljene naloge",
+    "emptyActiveText": "Trenutno ni aktivnih nalog.",
+    "emptyActiveSub": "Tu se bodo pojavile nove naloge.",
+    "emptyInProgressText": "Ni nalog v teku.",
+    "emptyInProgressSub": "Ko nekdo prevzame nalogo, se prikaže tukaj.",
+    "emptyCompletedText": "Ni dokončanih nalog."
+  },
+  "actions": {
+    "loadError": "Napaka pri nalaganju podatkov",
+    "noCompletedForAnnual": "Ni dokončanih dejavnosti. Letno poročilo se lahko oblikuje samo za leta z opravljenimi aktivnostmi.",
+    "pickYear": "Izberite leto.",
+    "noCompletedForYear": "Ni dokončanih aktivnosti za leto {{year}}.",
+    "annualPrepareError": "Napaka pri pripravi podatkov letnega poročila.",
+    "confirmJoin": "Ali se želite prijaviti za \"{{name}}\"?",
+    "joinError": "Napaka pri prijavi",
+    "alreadyJoined": "Za to dejavnost ste že prijavljeni.",
+    "confirmCancelJoin": "Ali res želite preklicati prijavo za \"{{name}}\"?",
+    "cancelJoinSuccess": "Prijava uspešno preklicana!",
+    "cancelJoinError": "Napaka pri preklicu prijave",
+    "loginRequired": "Za ogled dejavnosti morate biti prijavljeni.",
+    "title": "dejavnosti",
+    "subtitle": "Prijavite se za aktivne dejavnosti ali si oglejte zaključene.",
+    "newAction": "Nova dejavnost",
+    "pastAction": "Pretekla dejavnost",
+    "annualReport": "Letno poročilo",
+    "activeActions": "Aktivne dejavnosti",
+    "emptyActive": "Trenutno ni aktivnih dejavnosti.",
+    "checkSoon": "Preverite znova kmalu.",
+    "public": "Javno",
+    "winterAscent": "Zimski vzpon",
+    "active": "Aktiven",
+    "actionCompleted": "Dejavnost zaključena",
+    "cancelJoin": "Prekliči prijavo",
+    "climbed": "Preplezano",
+    "join": "Pridruži se",
+    "completedActions": "Zaključene aktivnosti",
+    "emptyCompleted": "Ni še dokončanih aktivnosti.",
+    "completed": "Dokončano",
+    "annualReportPdf": "Letno poročilo (PDF)",
+    "annualReportPickYear": "Izberite leto z opravljenimi aktivnostmi.",
+    "chooseYear": "Izberite leto",
+    "chooseYearPlaceholder": "— Izberite leto —",
+    "cancel": "Prekliči",
+    "preparing": "Priprava ...",
+    "print": "Tiskanje"
+  },
+  "actionDetails": {
+    "loadError": "Napaka pri nalaganju dejavnosti",
+    "delete": "Izbriši",
+    "deleteSuccess": "Dejavnost je bila uspešno izbrisana.",
+    "deleteError": "Napaka pri brisanju dejavnosti",
+    "errorTitle": "Napaka",
+    "updateStatusError": "Napaka pri posodabljanju stanja",
+    "removeMemberTitle": "Odstrani člana iz dejavnosti",
+    "remove": "Odstrani",
+    "cancel": "Prekliči",
+    "removeMemberError": "Napaka pri odstranjevanju člana iz dejavnosti",
+    "deleteConfirmMessage": "Ali ste prepričani, da želite izbrisati to dejavnost? Trajno bo odstranjen.",
+    "removeMemberConfirm": "Ali res želite odstraniti »{{name}}« iz te dejavnosti?",
+    "printPdf": "Natisnite PDF",
+    "printBeforeDeparture": "Tiskanje – pred odhodom",
+    "printCompleted": "Natisni – dokončano",
+    "deleteAction": "Izbriši dejavnost",
+    "editAction": "Uredi dejavnost",
+    "finishNeedStatuses": "Za zaključitev te aktivnosti morate za vsakega prijavljenega člana označiti, ali je osvojil vrh ali ni uspel.",
+    "markAllMembers": "Označi vse člane",
+    "finishConfirmBody": "Po zaključku aktivnosti ne bo več mogoče spreminjati prijav ali statusov udeležencev.",
+    "finishActionTitle": "Dokončati dejavnost?",
+    "finishAction": "Končajte dejavnost",
+    "finishSuccess": "Aktivnost je bila uspešno zaključena.",
+    "actionFinishedTitle": "Dejavnost končana",
+    "finishError": "Napaka pri dokončanju dejavnosti",
+    "notFound": "Aktivnost ni bila najdena",
+    "back": "Nazaj",
+    "winterAscent": "Zimski vzpon",
+    "public": "Javno",
+    "completed": "Dokončano",
+    "mountain": "Gora",
+    "peak": "Vrh",
+    "height": "Višina",
+    "registered": "Registriran",
+    "limitedNotice": "Ta dejavnost ni javna. Prikazan je omejen nabor podatkov. Vse podrobnosti so na voljo samo članom kluba gostiteljev.",
+    "actionDetails": "Podrobnosti dejavnosti",
+    "guides": "vodniki",
+    "createdBy": "Ustvaril",
+    "club": "Klub",
+    "date": "Datum",
+    "difficulty": "Težavnost",
+    "actionDescription": "Opis dejavnosti",
+    "registeredMembers": "Registrirani člani",
+    "loginToSeeMembers": "Prijavite se",
+    "loginToSeeMembersSuffix": "da vidim kdo je prijavljen.",
+    "noRegisteredMembersYet": "Za to dejavnost se še ni registriral noben član.",
+    "statusTitle": "Stanje",
+    "completedHint": "Aktivnost je bila uspešno zaključena",
+    "activeHintTitle": "Aktiven",
+    "activeHint": "Prijave so odprte",
+    "registeredCountLabel": "Registriran",
+    "climbedCountLabel": "Dosežen vrh",
+    "managementTitle": "Upravljanje"
+  },
+  "users": {
+    "loadError": "Napaka pri nalaganju uporabnikov",
+    "allRoles": "Vse vloge",
+    "roles": {
+      "clan": "član",
+      "vodic": "Vodnik",
+      "blagajnik": "Blagajnik",
+      "sekretar": "sekretar",
+      "menadzerOpreme": "Vodja opreme",
+      "admin": "skrbnik"
+    },
+    "confirmDelete": "Ali ste prepričani, da želite trajno izbrisati uporabnika {{name}}? Tega dejanja ni mogoče razveljaviti.",
+    "delete": "Izbriši",
+    "deletedSuccess": "Uporabnik je bil izbrisan.",
+    "deleteError": "Napaka pri brisanju uporabnika.",
+    "errorTitle": "Napaka",
+    "pdfErrorLog": "Napaka pri ustvarjanju PDF-ja:",
+    "title": "Člani kluba",
+    "subtitle": "Pregled vseh članov, vlog in uvrstitev v klubu.",
+    "addNewUser": "Dodaj novega uporabnika",
+    "searchPlaceholder": "Iskanje po imenu ali uporabniškem imenu ...",
+    "allMembersTab": "Vsi člani",
+    "rankingTab": "Razvrstitev (30 najboljših)",
+    "noRegisteredMembers": "Ni še registriranih članov.",
+    "roleLabel": "Vloga:",
+    "joinedOn": "Pridružil se je",
+    "settings": "nastavitve",
+    "allUserInfo": "Vse informacije o uporabniku",
+    "printMemberRecord": "Natisni evidenco članov",
+    "deleteUser": "Izbriši uporabnika",
+    "overallRanking": "Skupna uvrstitev članov",
+    "membersCount": "{{count}} članov",
+    "notEnoughRankingData": "Ni še dovolj podatkov za uvrstitev.",
+    "noMembersForSearch": "Za iskanje \"{{search}}\" ni bil najden noben član.",
+    "noMembersForSearchWithRole": "Za iskanje \"{{search}}\" z vlogo {{role}} ni bilo mogoče najti nobenega člana.",
+    "noMembersForRole": "Ni članov z vlogo {{role}}."
+  },
+  "userInfo": {
+    "loadError": "Napaka pri nalaganju podatkov",
+    "notFound": "Uporabnik ni bil najden",
+    "backToList": "Nazaj na seznam",
+    "viewPublicProfile": "Ogled javnega profila ->",
+    "tabs": {
+      "info": "Informacije",
+      "blocked": "Blokirani uporabniki"
+    },
+    "blocked": {
+      "title": "Blokirani uporabniki",
+      "empty": "Ni blokiranih uporabnikov."
+    },
+    "sections": {
+      "basic": "Osnovne informacije",
+      "personal": "Osebni podatki",
+      "hiking": "Informacije o pohodništvu",
+      "notes": "Opombe in drugo"
+    },
+    "labels": {
+      "fullName": "Polno ime",
+      "username": "Uporabniško ime",
+      "email": "E-pošta",
+      "phone": "Telefon",
+      "role": "Vloga",
+      "registeredAt": "Datum registracije",
+      "updatedAt": "Zadnja posodobitev",
+      "parentName": "Ime starša",
+      "gender": "Spol",
+      "birthDate": "Datum rojstva",
+      "citizenship": "Državljanstvo",
+      "address": "Naslov",
+      "idCard": "Številka osebne izkaznice",
+      "hikingCard": "Številka planinske karte",
+      "hikingBadge": "Številka pohodniške značke",
+      "memberSince": "Član od",
+      "totalKm": "Skupaj km",
+      "totalAscent": "Skupni metri vzpona",
+      "actionsClimbed": "Število aktivnosti (uspešen vzpon)",
+      "disciplinary": "Disciplinske kazni",
+      "selectionBodies": "Izbor športnih teles",
+      "notes": "Opombe"
+    },
+    "gender": {
+      "male": "moški",
+      "female": "ženska"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "subtitle": "Sledite stanju gotovine, članarinam in vsem klubskim transakcijam.",
+    "errors": {
+      "load": "Napaka pri nalaganju",
+      "invalidAmount": "Vnesite veljaven znesek.",
+      "futureDate": "Datum ne more biti v prihodnosti.",
+      "save": "Napaka med shranjevanjem",
+      "generic": "Napaka"
+    },
+    "tabs": {
+      "dashboard": "Nadzorna plošča",
+      "memberships": "Članarine",
+      "transactions": "Prihodki / odhodki"
+    },
+    "currency": {
+      "ariaLabel": "Valuta"
+    },
+    "pdf": {
+      "printTitle": "Natisnite PDF poročilo za obdobje",
+      "printAria": "Natisnite PDF poročilo",
+      "report": "PDF poročilo"
+    },
+    "period": {
+      "title": "Nastavitve obdobja",
+      "subtitle": "Izberite časovni razpon za finančni pregled.",
+      "label": "Obdobje",
+      "ariaLabel": "Obdobje računovodskega poročila",
+      "today": "Danes",
+      "thisMonth": "Ta mesec",
+      "thisYear": "letos",
+      "prevPlusCurrent": "Prejšnje + tekoče leto",
+      "manualDateRange": "Ročno časovno obdobje",
+      "from": "Od",
+      "fromDate": "Od datuma",
+      "fromAria": "Obdobje od",
+      "to": "Do",
+      "toDate": "Do danes",
+      "toAria": "Obdobje do"
+    },
+    "filters": {
+      "transactionsAria": "Transakcijski filter",
+      "allTransactions": "Vse transakcije",
+      "onlyIncome": "Samo prihodki",
+      "onlyExpense": "Samo strošek"
+    },
+    "summary": {
+      "balance": "Stanje",
+      "income": "Prihodek",
+      "expense": "Stroški"
+    },
+    "transactions": {
+      "inPeriod": "Transakcije v obdobju",
+      "empty": "Za izbrano obdobje in filter ni transakcij.",
+      "emptySub": "Poskusite spremeniti obdobje ali filter.",
+      "table": {
+        "date": "Datum",
+        "type": "Vrsta",
+        "amount": "Znesek",
+        "description": "Opis"
+      },
+      "type": {
+        "income": "Prihodek",
+        "expense": "Stroški"
+      }
+    },
+    "newTransaction": {
+      "title": "Nova transakcija",
+      "subtitle": "Klubskemu denarju dodajte prihodek ali odhodek.",
+      "type": "Vrsta",
+      "payerOptional": "Kdo je plačal (neobvezno)",
+      "payeeOptional": "Komu / za kaj (neobvezno)",
+      "payerPlaceholder": "npr. Polno ime",
+      "payeePlaceholder": "npr. Dobavitelj, namen",
+      "amountRequired": "Znesek ({{currency}}) *",
+      "amountPlaceholder": "npr. 5000",
+      "dateRequired": "Datum *",
+      "chooseDate": "Izberite datum",
+      "dateAria": "Datum transakcije",
+      "descriptionOptional": "Opis (neobvezno)",
+      "descriptionPlaceholder": "npr. Članarina, nakup opreme...",
+      "save": "Shrani transakcijo"
+    },
+    "memberships": {
+      "info": "Stanje članarine se spremlja za vsako leto posebej. Na začetku novega leta so vsi člani najprej označeni kot neplačani za to leto.",
+      "year": "leto",
+      "yearAria": "Člansko leto",
+      "amount": "Višina članarine ({{currency}})",
+      "noUsers": "Ni uporabnikov.",
+      "noUsersSub": "Dodajte člane, če si želite ogledati stanje njihove članarine.",
+      "table": {
+        "user": "Uporabnik",
+        "status": "Stanje"
+      },
+      "paid": "Plačano",
+      "waiting": "Čakanje ...",
+      "pay": "plačaj"
+    },
+    "pagination": {
+      "previous": "Prejšnja",
+      "next": "Naprej",
+      "previousAria": "Prejšnja stran",
+      "nextAria": "Naslednja stran",
+      "pageAria": "Stran",
+      "pageOf": "Stran {{currentPage}} od {{totalPages}}"
+    },
+    "common": {
+      "emptyValue": "—",
+      "saving": "Shranjevanje ..."
+    }
+  },
+  "notifications": {
+    "title": "Obvestila",
+    "loading": "Nalaganje obvestil ...",
+    "empty": "Brez obvestil.",
+    "delete": "Izbriši",
+    "deleteNotification": "Izbriši obvestilo",
+    "broadcast": {
+      "title": "Pošlji obvestilo vsem (samo skrbniku)",
+      "subject": "Naslov",
+      "subjectPlaceholder": "Naslov obvestila",
+      "bodyOptional": "Besedilo (neobvezno)",
+      "bodyPlaceholder": "Besedilo obvestila",
+      "titleRequired": "Naslov je obvezen.",
+      "sendError": "Napaka pri pošiljanju.",
+      "sending": "Pošiljanje ...",
+      "sendAll": "Pošlji vsem"
+    }
+  },
+  "notificationDetails": {
+    "taskTitle": "Naloga",
+    "transactionTitle": "Transakcija",
+    "invalidId": "Neveljaven ID.",
+    "linkedContentLoadError": "Povezane vsebine ni mogoče naložiti.",
+    "notFoundOrNoAccess": "Obvestila ni bilo mogoče najti ali pa je dostop zavrnjen.",
+    "unavailable": "Obvestilo ni na voljo.",
+    "backToNotifications": "Nazaj na obvestila",
+    "allNotifications": "Vsa obvestila",
+    "openLinkedPage": "Odpri povezano stran →",
+    "loading": "Nalaganje...",
+    "openFullFeed": "Odpri celoten vir →",
+    "allTasks": "Vse naloge →",
+    "noFinanceAccess": "Nimate dostopa do podrobnosti transakcije. Odprite finance, če je pooblaščen.",
+    "deleteTransactionTitle": "Izbriši transakcijo",
+    "deleteTransactionConfirm": "Želite izbrisati transakcijo {{amount}} {{currency}} ({{type}})? To vpliva na prikaz stanja gotovine.",
+    "deleteTransactionError": "Napaka pri brisanju transakcije.",
+    "cashTransaction": "Gotovinska transakcija",
+        "income": "Prihodek",
+    "expense": "Stroški",
+    "date": "Datum",
+    "recordedBy": "Zabeležil/a",
+    "membershipMember": "Članarina — član",
+    "descriptionNote": "Opis / opomba",
+    "empty": "—",
+    "recordedAt": "Posneto ob",
+    "openFinances": "Odprte finance",
+    "deleteTransaction": "Izbriši transakcijo",
+    "linkedContentNotLoaded": "Povezana vsebina ni bila naložena.",
+    "useLinkAbove": "Za več podrobnosti uporabite zgornjo povezavo.",
+    "noAdditionalData": "To obvestilo nima dodatnih podatkov.",
+    "transactionType": {
+      "uplata": "Prihodek",
+      "isplata": "Stroški"
+    },
+    "follow": {
+      "title": "Sledi",
+      "request": "Sledite zahtevi",
+      "accept": "Sprejmi",
+      "reject": "Zavrni",
+      "followBack": "Sledite nazaj",
+      "unfollow": "Prekliči spremljanje",
+      "cancelRequest": "Prekliči zahtevo",
+      "no": "Ne",
+      "rejectConfirm": "Ali želite zavrniti to zahtevo za spremljanje?",
+      "rejectTitle": "Zavrni zahtevo",
+      "rejected": "Zahteva zavrnjena.",
+      "rejectError": "Napaka pri zavrnitvi zahteve.",
+      "followBackSent": "Povratna zahteva je poslana.",
+      "sendError": "Napaka pri pošiljanju zahteve.",
+      "unfollowConfirm": "Ali želite prenehati slediti temu uporabniku?",
+      "unfollowed": "Uporabnik je prenehal spremljati.",
+      "unfollowError": "Napaka pri prekinitvi spremljanja.",
+      "cancelRequestConfirm": "Ali želite preklicati poslano zahtevo za spremljanje?",
+      "requestCanceled": "Zahteva preklicana.",
+      "cancelError": "Napaka pri preklicu zahteve.",
+      "accepted": "Zahteva sprejeta.",
+      "acceptedTitle": "Zahteva sprejeta",
+      "acceptError": "Napaka pri sprejemanju zahteve.",
+      "alreadyAcceptedTitle": "Zahteva je že sprejeta",
+      "alreadyFollowing": "{{name}} ti že sledi.",
+      "defaultUser": "Uporabnik",
+      "requestCanceledInBetween": "Zahteva za spremljanje je bila medtem preklicana.",
+      "nowFollowing": "{{name}} te zdaj spremlja",
+      "nowFollowingWithBack": "{{name}} te zdaj spremlja. Lahko sledite nazaj.",
+      "requestExpired": "Zahteva je potekla",
+      "wantsToFollow": "{{name}} ti želi slediti"
+    }
+  },
+  "pricing": {
+    "title": "Paketi in cene",
+    "subtitle": "Izberite paket, po potrebi dodajte dodatne uporabnike in nam pošljite povpraševanje za prilagojeno ponudbo.",
+    "common": {
+      "free": "Brezplačno",
+      "perMonth": "/ mesec"
+    },
+    "packages": {
+      "Free": {
+        "name": "Brezplačni paket",
+        "short": "Preizkusite planiner brezplačno."
+      },
+      "Starter": {
+        "name": "Začetni paket",
+        "short": "Za manjše klube."
+      },
+      "Growth": {
+        "name": "Paket za rast",
+        "short": "Za aktivne klube."
+      },
+      "Pro": {
+        "name": "Pro paket",
+        "short": "Za velike klube in zveze."
+      }
+    },
+    "card": {
+      "upToMembers": "do {{count}} članov",
+      "upToImages": "do {{size}} slik",
+      "adminAccounts": "skrbniški računi: {{count}}",
+      "freeFootnote": "Brez mesečne naročnine; za več članov/shrambo izberite plačljive pakete.",
+      "extraUserPrice": "Cena za dodatne uporabnike: {{price}} / mesec",
+      "selected": "Izbrani paket"
+    },
+    "extraUsers": {
+      "title": "Dodatni uporabniki (člani)",
+      "freeText": "Brezplačni paket vključuje do 50 članov. Za več izberite Starter, Growth ali Pro.",
+      "paidText": "Poleg uporabnikov, vključenih v paket, lahko dodate več uporabnikov po fiksni ceni na uporabnika.",
+      "zero": "0 dodatnih",
+      "fiveHundred": "500 dodatnih",
+      "selected": "Izbrani dodatni uporabniki"
+    },
+    "extraAdmins": {
+      "title": "Dodatni skrbniški računi",
+      "text": "Če potrebujete več ljudi s skrbniškim dostopom, dodajte dodatne skrbniške račune (na plačljivih paketih).",
+      "countLabel": "Število dodatnih skrbniških računov",
+      "pricePer": "Cena po dodatnem adminu",
+      "total": "Skupaj za dodatne admine"
+    },
+    "summary": {
+      "title": "Pregled vaše konfiguracije",
+      "package": "Paket",
+      "basePrice": "Cena osnovnega paketa",
+      "includedUsers": "Vključeni uporabniki",
+      "extraUsers": "Dodatni uporabniki",
+      "extraAdmins": "Dodatni admini",
+      "totalMonthly": "Skupaj mesečno",
+      "onlyPaid": "— (samo plačljivi načrti)"
+    },
+    "form": {
+      "clubName": "Ime kluba",
+      "clubPlaceholder": "npr. Pohodniški klub Javor",
+      "phone": "Kontaktni telefon",
+      "phonePlaceholder": "+1 ...",
+      "email": "E-pošta",
+      "emailPlaceholder": "vi@email.com",
+      "notes": "Dodatne opombe",
+      "optional": "izbirno",
+      "notesPlaceholder": "Lahko na kratko opišete svoj klub in dodatne potrebe...",
+      "requiredClub": "Ime kluba je obvezno.",
+      "requiredPhone": "Telefonska številka je obvezna.",
+      "requiredEmail": "E-pošta je obvezna.",
+      "submitHint": "S klikom na \"Pošlji zahtevo\" bo sporočilo poslano neposredno nam.",
+      "sending": "Pošiljanje ...",
+      "submit": "Pošlji zahtevo"
+    },
+    "messages": {
+      "success": "Sporočilo je bilo uspešno poslano. Kmalu vas bomo kontaktirali.",
+      "timeout": "Časovna omejitev zahteve je potekla. Preverite nastavitev API/SMTP.",
+      "network": "Ni odgovora s strežnika. Preverite URL API in nastavitve CORS.",
+      "sendError": "Napaka pri pošiljanju. prosim poskusite znova"
+    },
+    "footerNote": "Vse cene so okvirne in se lahko po dogovoru prilagodijo."
+  },
+  "contactPage": {
+    "hero": {
+      "title": "Tukaj smo za vas",
+      "subtitle": "Vprašanja o aplikaciji Planiner, ponudbi za vaš klub ali tehnični podpori - kontaktirajte nas."
+    },
+    "trust": {
+      "activeClubs": "aktivni klubi pri nas",
+      "responseTime": "odgovor v eni uri",
+      "satisfiedClients": "zadovoljne stranke",
+      "reviews": "priporočila in ocene"
+    },
+    "contacts": {
+      "title": "Kontaktne osebe",
+      "phoneCopied": "Telefon kopiran",
+      "emailCopied": "E-pošta je kopirana"
+    },
+    "form": {
+      "title": "Pošljite nam sporočilo",
+      "subtitle": "Kratek obrazec za vprašanja o načrtovalniku, sodelovanju ali predstavitvi.",
+      "requiredAll": "Prosimo izpolnite vsa zahtevana polja.",
+      "contactPerson": "Kontaktna oseba",
+      "contactPersonPlaceholder": "Polno ime kontaktne osebe",
+      "clubName": "Ime kluba",
+      "clubNamePlaceholder": "npr. Pohodniški klub Javor",
+      "city": "Mesto",
+      "cityPlaceholder": "Mesto ali kraj, kjer se klub nahaja",
+      "question": "Vprašanje za nas",
+      "questionPlaceholder": "Na kratko opišite, kaj vas zanima...",
+      "hint": "S klikom na \"Pošlji sporočilo\" gre vaše povpraševanje neposredno naši ekipi.",
+      "sending": "Pošiljanje ...",
+      "submit": "Pošlji sporočilo"
+    },
+    "mail": {
+      "noteTitle": "Vprašanje poslano s strani Kontakt:",
+      "packageName": "Kontaktni obrazec"
+    },
+    "messages": {
+      "success": "Sporočilo je bilo uspešno poslano. Kmalu se vam bomo javili.",
+      "timeout": "Zahteva je trajala predolgo. Preverite konfiguracijo SMTP/ponovno pošiljanje in API/CORS.",
+      "network": "Ni odgovora s strežnika. Preverite URL API in CORS_ORIGINS.",
+      "sendError": "Napaka pri pošiljanju. prosim poskusite znova"
+    },
+    "cta": {
+      "text": "Želite ponudbo za vaš pohodniški klub? Izpolnite kratek obrazec na strani Cene.",
+      "button": "Oglejte si cenik in pošljite povpraševanje"
+    }
+  },
+  "cenaPage": {
+    "mail": {
+      "noteIntro": "Povpraševanje poslano s strani Cena (cene):"
+    },
+    "validation": {
+      "requiredFields": "Prosimo izpolnite vsa zahtevana polja.",
+      "emailInvalid": "Vnesite veljaven e-poštni naslov.",
+      "memberCountInvalid": "Število članov mora biti med 1 in 500000.",
+      "usernameShort": "Administratorsko uporabniško ime mora vsebovati vsaj 2 znaka.",
+      "usernameWaitOrTaken": "Počakajte na preverjanje uporabniškega imena ali izberite drugega (še ni na voljo)."
+    },
+    "messages": {
+      "success": "Sporočilo je bilo uspešno poslano. Kmalu se vam bomo javili.",
+      "timeout": "Zahteva je trajala predolgo. V proizvodnji preverite SMTP/ponovno pošiljanje, VITE_API_URL in CORS.",
+      "network": "Ni odgovora s strežnika. Preverite VITE_API_URL in CORS_ORIGINS (natančen URL vašega spletnega mesta).",
+      "sendError": "Napaka pri pošiljanju. prosim poskusite znova"
+    },
+    "hero": {
+      "badge1": "Brez paketov – vse brezplačno",
+      "badge2": "Ena družina pohodnikov",
+      "titleBefore": "Celotna aplikacija je",
+      "titleHighlight": "brezplačno",
+      "titleAfter": "za svoj klub",
+      "p1Strong": "Brez naročniških paketov",
+      "p1After": "– brez skritih stopenj ali »premium« različic, ki bi jih morali plačati. Planiner je skupni dom pohodniških klubov.",
+      "p2Before": "Verjamemo v",
+      "p2Family": "ena velika družina pohodnikov",
+      "p2Mid": ": ko so vsi dobrodošli brez plačljivega zidu, lahko skupnost raste. Torej ves Planiner – vse, kar danes ponujamo klubom – je",
+      "p2Free": "popolnoma brezplačno",
+      "p2After": ".",
+      "ctaInquiry": "Pridružite se družini – pošljite povpraševanje"
+    },
+    "intro": "Ta stran <prices>ni o cenah in paketih</prices> – to smo namerno odstranili. Za nas je pomembno: <family>skrbimo za klube kot za družino</family>, orodje, ki ga gradimo, pa naj bo prosto na voljo vsakemu klubu, ki deli to vizijo.",
+    "includes": {
+      "title": "Kaj je vključeno – za vsak klub, brez doplačila",
+      "m1": "Članstvo in evidenca članov",
+      "m2": "Akcije, izleti in dogodki",
+      "m3": "Dokumentacija in komunikacija v klubu",
+      "m4": "Ista aplikacija za majhne in velike klube"
+    },
+    "together": {
+      "title": "Skupaj – ne kot kupec in prodajalec",
+      "pBefore": "Ko pošljete povpraševanje, ne dobite ponudbe z vrsticami – dobite pogovor o tem, kako se vaš klub pridruži",
+      "community": "skupnosti",
+      "pMid": "ki uporablja Planiner. Registracija in podpora sta brezplačni, ker je naš cilj",
+      "connect": "povezovati pohodnike",
+      "pAfter": ", ne pa jih razvrščati v cenovne razrede."
+    },
+    "pillars": {
+      "eyebrow": "Naša obljuba",
+      "title": "Ena družina, ena aplikacija, nič paketov",
+      "care": {
+        "title": "Skrbimo za klube",
+        "text": "Vsak klub je del iste družine. Planiner gradimo tako, da so administracija, članstvo in organizacija čim preprostejši – brez pritiska za »nadgradnjo« paketa."
+      },
+      "all": {
+        "title": "Brez paketov - vse vključeno",
+        "text": "Brez začetnikov, brez profesionalcev in zapletenih cen na člana. Ena različica aplikacije za vse klube: enake funkcije, enaka skrb, brez presenečenj na računu – ker računa ni."
+      },
+      "family": {
+        "title": "Ena velika družina pohodnikov",
+        "text": "Želimo povezati pohodniško skupnost – klubi delijo izkušnje in občutek pripadnosti. Dostop je brezplačen za vse, ki želijo sodelovati z nami."
+      }
+    },
+    "whyFree": {
+      "title": "Zakaj ni cene?",
+      "p1Before": "Če bi uvedli pakete, bi nekateri klubi ostali zadaj – brez orodja, brez pomoči, brez mesta v mreži, ki nas povezuje. Izbiramo drugače:",
+      "p1Strong": "vse, kar je Planiner, je brezplačno",
+      "p1After": ", tako da lahko vsaka družina pohodnikov stoji z nami.",
+      "p2Before": "To ni promocija »prvi meseci brezplačno«. Je stališče –",
+      "p2Strong": "skupnost pred dobičkom",
+      "p2After": ", podpora klubom pred obračunom. Ko nam pišete, z vami delamo kot člani ene hiše – ne kot stranka na ceniku."
+    },
+    "form": {
+      "title": "Pridružite se skupnosti – brezplačno",
+      "subtitle": "Osnovni podatki in vaše vprašanje; bomo spremljali registracijo kluba. Povpraševanje je označeno kot s strani Cena (brezplačno – brez paketov).",
+      "contactPerson": "Kontaktna oseba",
+      "clubName": "Ime kluba",
+      "city": "Mesto / kraj",
+      "question": "Vprašanje za nas",
+      "placeholders": {
+        "contactPerson": "Polno ime kontaktne osebe",
+        "clubName": "npr. Pohodniški klub Javor",
+        "city": "Mesto ali kraj, kjer je sedež kluba",
+        "email": "vi@example.com",
+        "memberCount": "npr. 45",
+        "adminUsername": "npr. jovana.admin",
+        "question": "npr. želimo se pridružiti skupnosti, vprašanja o aplikaciji ..."
+      },
+      "email": "E-pošta",
+      "memberCount": "Število članov kluba",
+      "adminUsername": "Prvo skrbniško uporabniško ime",
+      "usernameChecking": "Preverjanje, ali je uporabniško ime na voljo ...",
+      "usernameAvailable": "Uporabniško ime je na voljo.",
+      "usernameTaken": "To uporabniško ime je že zasedeno.",
+      "usernameCheckError": "Uporabniškega imena ni bilo mogoče preveriti. Poskusite znova ali pošljite pozneje.",
+      "hint": "Brez obveznosti nakupa ali izbire paketa – le korak do brezplačne registracije kluba v naši družini pohodnikov.",
+      "sending": "Pošiljanje ...",
+      "submit": "Pošlji povpraševanje"
+    }
+  },
+  "actionForms": {
+    "errors": {
+      "invalidDateFormat": "Datum mora biti v obliki LLLL-MM-DD",
+      "pastDate": "Datum ne more biti v preteklosti.",
+      "selectDifficulty": "Izberite težavnost.",
+      "selectDifficultyFromList": "Prosimo izberite eno od ponujenih težav.",
+      "addAction": "Napaka pri dodajanju dejanja",
+      "editAction": "Napaka pri urejanju dejanja",
+      "loadAction": "Napaka pri nalaganju dejanja",
+      "loadUsers": "Napaka pri nalaganju uporabnikov",
+      "selectUser": "Izberite uporabnika.",
+      "addPastAction": "Napaka pri dodajanju preteklega dejanja."
+    },
+    "common": {
+      "cancel": "Prekliči"
+    },
+    "fields": {
+      "actionName": "Ime dejanja",
+      "mountain": "Gora",
+      "mountainName": "Ime gore",
+      "peak": "Vrh",
+      "actionDate": "Datum dejanja",
+      "pickActionDate": "Izberite datum dejanja",
+      "difficulty": "Težavnost",
+      "pickDifficulty": "Izberite težavnost",
+      "description": "Opis",
+      "guide": "Vodnik",
+      "pickGuide": "Izberi vodnik",
+      "secondGuide": "Drugi vodnik",
+      "secondGuideManual": "Drugi vodnik (ročni vnos)",
+      "secondGuideName": "Drugo ime vodnika",
+      "enterGuideName": "Vnesite ime vodnika",
+      "ascentM": "Vzpon (m)",
+      "lengthKm": "Dolžina (km)",
+      "peakHeightM": "Višina vrha (m)",
+      "cumulativeAscentM": "Skupni vzpon (m)",
+      "trailLengthKm": "Dolžina poti (km)",
+      "winterAscent": "Zimski vzpon",
+      "publicAction": "Javno delovanje",
+      "publicActionHelp": "Vsi ga vidijo na aktivnem seznamu in se lahko pridružijo. Končano dejanje je vidno le gostiteljskemu klubu.",
+      "publicActionEditHelp": "Javna akcija (vsi jo vidijo na seznamu aktivnih in se lahko pridružijo)",
+      "actionImage": "Akcijska slika",
+      "actionImageOptional": "Akcijska slika (neobvezno)",
+      "imageHelp": "Podprti formati: JPG, PNG, največ 5 MB.",
+      "user": "Uporabnik",
+      "pickUser": "Izberite uporabnika"
+    },
+    "placeholders": {
+      "actionName": "npr. Vzpon na Rtanj po severni poti",
+      "mountain": "npr. Kopaonik, Stara planina",
+      "peak": "npr. Midžor, Pančićev vrh",
+      "description": "Kratek opis poti, dolžina, odmori, oprema, opombe…",
+      "secondGuideName": "Polno ime drugega vodnika",
+      "ascentM": "npr. 1250",
+      "lengthKm": "npr. 14.5",
+      "peakHeightM": "npr. 2017",
+      "fullName": "Polno ime"
+    },
+    "difficulty": {
+      "pick": "Izberite težavnost",
+      "pickShort": "— Izberite —",
+      "easy": "enostavno",
+      "medium": "Srednje",
+      "hard": "težko",
+      "alpinism": "Alpinizem"
+    },
+    "guide": {
+      "pick": "Izberi vodnik",
+      "optional": "— Neobvezno —"
+    },
+    "user": {
+      "pick": "— Izberite uporabnika —"
+    },
+    "add": {
+      "onlyAdminGuide": "Samo skrbnik ali vodnik lahko dodaja dejanja.",
+      "badge": "Nova pohodniška akcija",
+      "title": "Dodajte akcijo načrtu",
+      "adding": "Dodajanje ...",
+      "submit": "Dodaj dejanje",
+      "successWithId": "Akcija je uspešno dodana! ID: {{id}}"
+    },
+    "edit": {
+      "onlyAdminGuide": "Samo skrbnik ali vodnik lahko ureja dejanja.",
+      "loading": "Nalaganje dejanja ...",
+      "title": "Uredi dejanje",
+      "saving": "Shranjevanje ...",
+      "saveChanges": "Shranite spremembe",
+      "success": "Akcija je bila uspešno posodobljena!",
+      "imageKeepHint": "Pustite prazno, da ohranite trenutno sliko. Nova datoteka nadomesti staro."
+    },
+    "past": {
+      "onlyAdminGuide": "Samo skrbnik ali vodnik lahko doda pretekla dejanja.",
+      "badge": "Pretekla pohodniška akcija",
+      "title": "Dodajte dejanje v profil člana",
+      "publicActionPastHelp": "Javno (vsakdo ga je lahko videl, ko je bil aktiven; dokončan je bil viden samo gostiteljskemu klubu)",
+      "addToClubHistory": "Dodajte v zgodovino klubskih dejanj",
+      "historyHelp": "Če ni označeno, se dejanje shrani samo v profil člana (napredek) in ni prikazano na seznamu dokončanih klubskih dejanj.",
+      "adding": "Dodajanje ...",
+      "submit": "Dodajte in pojdite na profil"
+    }
+  },
+  "shared": {
+    "postCard": {
+      "titles": {
+        "comments": "Komentarji",
+        "likes": "Všeč mi je",
+        "like": "Všeč mi je",
+        "comment": "Komentiraj",
+        "post": "Objavi"
+      },
+      "errors": {
+        "loadComments": "Napaka pri nalaganju komentarjev",
+        "loadLikes": "Napaka pri nalaganju všečkov",
+        "likePost": "Napaka pri všečkanju objave",
+        "addComment": "Napaka pri dodajanju komentarja",
+        "postTooLong": "Besedilo objave je predolgo (največ 3000 znakov)",
+        "editPost": "Napaka pri urejanju objave",
+        "deleteComment": "Napaka pri brisanju komentarja"
+      },
+      "editPost": "Uredi objavo",
+      "deletePost": "Izbriši objavo",
+      "close": "Zapri",
+      "postTextPlaceholder": "Objavi besedilo ...",
+      "cancel": "Prekliči",
+      "save": "Shrani",
+      "showLikes": "Pokaži komu je všeč",
+      "noLikes": "Brez všečkov.",
+      "loadingComments": "Nalaganje komentarjev ...",
+      "deleteComment": "Izbriši komentar",
+      "noCommentsYet": "Še ni komentarjev.",
+      "addCommentPlaceholder": "Dodaj komentar ...",
+      "noResults": "Brez rezultatov",
+      "publish": "Objavi",
+      "closeLikesModal": "Close likes modal",
+      "likesCount": "Všečki ({{count}})",
+      "loadingLikes": "Nalaganje všečkov ..."
+    },
+    "taskCard": {
+      "cancel": "Prekliči",
+      "takeTask": "Sprejmi nalogo",
+      "noPermission": "Ni dovoljenja za to nalogo",
+      "join": "Pridruži se",
+      "edit": "Uredi",
+      "finish": "Končaj",
+      "deleteTask": "Izbriši nalogo",
+      "done": "Dokončano",
+      "openDetails": "Odpri podrobnosti: {{name}}",
+      "urgent": "NUJNO",
+      "doneShort": "Končano",
+      "task": "Naloga",
+      "everyone": "Vsi",
+      "empty": "—",
+      "working": "Delo"
+    },
+    "globalSearch": {
+      "tabs": {
+        "members": "člani",
+        "actions": "Dejanja",
+        "finances": "Finance"
+      },
+      "placeholder": "Išči člane, akcije, finance ...",
+      "ariaSearch": "Iskanje",
+      "close": "Zapri",
+      "loadingResults": "Nalaganje rezultatov ...",
+      "emptyMembers": "Ni članov za to iskanje.",
+      "emptyActions": "Ni dejanj za to iskanje.",
+      "emptyTransactions": "Za to iskanje ni transakcij.",
+      "quickLinks": "Hitre povezave",
+      "links": {
+        "members": "Seznam članov",
+        "membersSub": "Prikaži vse člane in profile",
+        "actions": "Akcije in dogodki",
+        "actionsSub": "Odprite pregled vseh dejanj",
+        "finances": "Finance in transakcije",
+        "financesSub": "Upravljajte plačila in poročila"
+      },
+      "detailedSearch": "Podrobno iskanje"
+    },
+    "difficulty": {
+      "easy": "enostavno",
+      "medium": "Zmerno",
+      "hard": "težko",
+      "alpinism": "Alpinizem",
+      "unknown": "Neznano"
+    },
+    "prijavaStatus": {
+      "registered": "Prijavljen",
+      "climbed": "Na vrhu",
+      "failed": "Nisem dosegel vrha",
+      "cancelled": "Preklicano"
+    }
+  },
+  "setup": {
+    "registerSuperadmin": {
+      "checkStatusError": "Napaka pri preverjanju statusa nastavitve.",
+      "submitError": "Napaka pri registraciji superadmina.",
+      "title": "Ustvari superadmin račun",
+      "subtitle": "To je enkraten korak za ustvarjanje glavnega računa (superadmin). Po tem se iz aplikacije ustvarijo vsi drugi računi.",
+      "password": "Geslo",
+      "fullNameOptional": "Polno ime (neobvezno)",
+      "role": "Vloga",
+      "avatarOptional": "Slika profila (neobvezno)",
+      "creating": "Ustvarjanje ...",
+      "submit": "Ustvari superadmin račun"
+    },
+    "registerAdmin": {
+      "setupStatusErrorLog": "Napaka pri preverjanju statusa nastavitve",
+      "imageOnlyError": "Dovoljene so samo slikovne datoteke (jpg, png, gif...)",
+      "imageTooLargeError": "Slika je prevelika (največ 5 MB)",
+      "createError": "Napaka pri ustvarjanju skrbnika",
+      "checkingState": "Preverjanje stanja aplikacije ...",
+      "title": "Ustvari prvega skrbnika",
+      "createdRedirecting": "Skrbnik je uspešno ustvarjen! Preusmerjanje na prijavo ...",
+      "requiredFields": "Obvezna polja",
+      "usernameRequired": "uporabniško ime *",
+      "passwordRequired": "Geslo * (najmanj 8 znakov)",
+      "personalOptional": "Osebni podatki (neobvezno)",
+      "fullName": "Polno ime",
+      "parentName": "Ime starša",
+      "gender": "Spol",
+      "pick": "— izberi —",
+      "genderMale": "moški",
+      "genderFemale": "ženska",
+      "birthDate": "Datum rojstva",
+      "citizenship": "Državljanstvo",
+      "contactOptional": "Kontakt (neobvezno)",
+      "email": "E-pošta",
+      "phone": "Telefon",
+      "address": "Naslov",
+      "docsOptional": "Dokumenti in podatki o pohodu (neobvezno)",
+      "idDocNumber": "Številka osebnega dokumenta",
+      "hikingCardNumber": "Številka planinske karte",
+      "hikingBadgeNumber": "Številka pohodniške značke",
+      "membershipDate": "Datum članstva",
+      "notesOptional": "Disciplinski ukrepi, volitve komisij, opombe (neobvezno)",
+      "disciplinary": "Disciplinski ukrepi",
+      "disciplinaryPlaceholder": "Besedilo o disciplinskih ukrepih...",
+      "selectionBodies": "Izbor v organe športne organizacije",
+      "selectionBodiesPlaceholder": "Besedilo o izborih...",
+      "notes": "Opombe",
+      "notesPlaceholder": "Dodatne opombe ...",
+      "avatarOptional": "Slika profila (neobvezno)",
+      "avatarPreviewAlt": "Predogled slike profila",
+      "roleAuto": "Vloga (samodejno nastavljena)",
+      "submit": "Ustvari prvega skrbnika",
+      "footerHint": "Zahtevana sta samo uporabniško ime in geslo. Ostalo lahko dopolnite kasneje."
+    },
+    "registerUser": {
+      "imageOnlyError": "Dovoljene so samo slikovne datoteke (jpg, png, gif...)",
+      "imageTooLargeError": "Slika je prevelika (največ 5 MB)",
+      "pickRole": "Prosimo izberite vlogo.",
+      "createError": "Napaka pri ustvarjanju uporabnika",
+      "badge": "Nov član kluba",
+      "title": "Registracija uporabnika",
+      "createdRedirecting": "Član je uspešno registriran! Preusmerjanje ...",
+      "requiredFields": "Obvezna polja",
+      "usernameRequired": "uporabniško ime *",
+      "usernamePlaceholder": "npr. john.doe",
+      "passwordRequired": "Geslo * (najmanj 8 znakov)",
+      "passwordPlaceholder": "Vnesite geslo",
+      "roleRequired": "Vloga *",
+      "pick": "— izberi —",
+      "personalOptional": "Osebni podatki (neobvezno)",
+      "fullName": "Polno ime",
+      "fullNamePlaceholder": "Ime in priimek",
+      "parentName": "Ime starša",
+      "gender": "Spol",
+      "genderMale": "moški",
+      "genderFemale": "ženska",
+      "birthDate": "Datum rojstva",
+      "citizenship": "Državljanstvo",
+      "contactOptional": "Kontakt (neobvezno)",
+      "email": "E-pošta",
+      "emailPlaceholder": "email@example.com",
+      "phone": "Telefon",
+      "phonePlaceholder": "+1 ...",
+      "address": "Naslov",
+      "addressPlaceholder": "Ulica in številka, mesto",
+      "docsOptional": "Dokumenti in podatki o pohodu (neobvezno)",
+      "idDocNumber": "Številka osebnega dokumenta",
+      "hikingCardNumber": "Številka planinske karte",
+      "hikingBadgeNumber": "Številka pohodniške značke",
+      "membershipDate": "Datum članstva",
+      "notesOptional": "Disciplinski ukrepi, volitve komisij, opombe (neobvezno)",
+      "disciplinary": "Disciplinski ukrepi",
+      "disciplinaryPlaceholder": "Besedilo o disciplinskih ukrepih...",
+      "selectionBodies": "Izbor v organe športne organizacije",
+      "selectionBodiesPlaceholder": "Besedilo o izborih...",
+      "notes": "Opombe",
+      "notesPlaceholder": "Dodatne opombe ...",
+      "avatarOptional": "Slika profila (neobvezno)",
+      "avatarPreviewAlt": "Predogled slike profila",
+      "submit": "Ustvari novega člana",
+      "footerHint": "Zahtevajo se le uporabniško ime, geslo in vloga. Ostalo lahko dopolnite kasneje."
+    }
+  },
+  "miscPages": {
+    "search": {
+      "title": "Iskanje",
+      "subtitle": "Iskanje članov, dejanj in financ. Rezultati so združeni v zavihke."
+    },
+    "error404": {
+      "title": "Poti ni bilo mogoče najti ...",
+      "subtitle": "Videti je, da ste zapustili markirano pot. Ta pot je morda še v fazi raziskovanja.",
+      "backHome": "Nazaj na pot doma",
+      "footer": "planiner - Noben vrh ni nedosegljiv ... razen te strani."
+    },
+    "welcome": {
+      "setupCheckErrorLog": "Napaka pri preverjanju statusa nastavitve",
+      "heroLine": "Dobrodošli v svet pravih gorskih doživetij",
+      "body1": "Želimo vam nešteto vzponov, čist zrak, nove poti in nepozabne trenutke na vrhovih.",
+      "body2": "Ste pripravljeni na potovanje, ki spremeni perspektivo?",
+      "start": "Začni avanturo",
+      "footer": "Planiner pohodniškega kluba • © {{year}}"
+    }
+  },
+  "uiExtras": {
+    "common": {
+      "close": "Zapri",
+      "cancel": "Prekliči",
+      "no": "Ne",
+      "loading": "Nalaganje...",
+      "saving": "Shranjevanje ..."
+    },
+    "modal": {
+      "yes": "ja",
+      "no": "Ne",
+      "ok": "OK"
+    },
+    "fallbacks": {
+      "noActionImage": "Brez akcijske slike"
+    },
+    "calendar": {
+      "selectDate": "Izberite datum",
+      "dialogAria": "Izbira datuma",
+      "orderLabel": "Vrstni red: dan -> mesec -> leto",
+      "day": "Dan",
+      "month": "mesec",
+      "year": "leto",
+      "dayPlaceholder": "- dan -",
+      "monthPlaceholder": "- mesec -",
+      "yearPlaceholder": "- leto -",
+      "pickDayFirst": "Najprej izberite dan",
+      "pickMonthFirst": "Najprej izberite mesec",
+      "today": "Danes",
+      "months": {
+        "0": "januar",
+        "1": "februar",
+        "2": "marec",
+        "3": "aprila",
+        "4": "maja",
+        "5": "junija",
+        "6": "julija",
+        "7": "avgusta",
+        "8": "septembra",
+        "9": "oktobra",
+        "10": "novembra",
+        "11": "decembra"
+      },
+      "hint": {
+        "betweenMinMax": "Dovoljeni so samo datumi med min in max.",
+        "beforeMin": "Datum ne sme biti pred minimumom.",
+        "afterMax": "Datum ne sme biti po največjem.",
+        "pickOrder": "Izberite dan, nato mesec in nato leto."
+      }
+    },
+    "buttons": {
+      "back": "Nazaj",
+      "profileInfo": "Vse informacije o uporabniku",
+      "profileSettings": "Nastavitve profila",
+      "print": "Tiskanje"
+    },
+    "block": {
+      "alertTitle": "Blokiranje",
+      "block": "Blokiraj",
+      "unblock": "Odblokiraj",
+      "confirmBlockTitle": "Blokiraj uporabnika",
+      "confirmBlockText": "Ali želite blokirati tega uporabnika?",
+      "confirmUnblockTitle": "Odblokiraj uporabnika",
+      "confirmUnblockText": "Ali želite tega uporabnika odstraniti s seznama blokiranih?",
+      "blockedSuccess": "Uporabnik je bil blokiran.",
+      "unblockedSuccess": "Uporabnik je bil odstranjen s seznama blokiranih.",
+      "blockError": "Napaka pri blokiranju uporabnika",
+      "unblockError": "Napaka pri deblokiranju uporabnika"
+    },
+    "follow": {
+      "title": "Sledi",
+      "sendRequestError": "Napaka pri pošiljanju zahteve za spremljanje",
+      "confirmUnfollowTitle": "Prenehaj spremljati uporabnika",
+      "confirmUnfollowText": "Ali želite prenehati slediti temu uporabniku?",
+      "unfollowError": "Napaka pri prekinitvi spremljanja uporabnika",
+      "confirmCancelRequestTitle": "Prekliči zahtevo",
+      "confirmCancelRequestText": "Ali želite preklicati poslano zahtevo za spremljanje?",
+      "cancelRequestError": "Napaka pri preklicu zahteve za spremljanje",
+      "incomingPendingHint": "Ta uporabnik vam je že poslal zahtevo za spremljanje.",
+      "youHaveRequest": "Imate prošnjo",
+      "sending": "Pošiljanje ...",
+      "follow": "Sledi",
+      "cancelRequest": "Prekliči zahtevo",
+      "unfollow": "Prekliči spremljanje"
+    },
+    "followList": {
+      "badge": "Sledi",
+      "closeEsc": "Zapri (Esc)",
+      "empty": "Seznam je prazen."
+    },
+    "taskModal": {
+      "errors": {
+        "enterName": "Vnesite ime naloge.",
+        "pickRoleOrAll": "Izberite vsaj eno vlogo ali možnost »Vse«.",
+        "create": "Napaka pri ustvarjanju opravila.",
+        "save": "Napaka pri shranjevanju opravila."
+      },
+      "newTitle": "Nova naloga",
+      "newSubtitle": "Izpolnite podrobnosti naloge, ki jih lahko sprejmejo člani ekipe.",
+      "editTitle": "Uredi nalogo",
+      "editSubtitle": "Uredite podrobnosti naloge. Opravljenih nalog ni mogoče spremeniti.",
+      "fields": {
+        "taskName": "Ime naloge",
+        "deadline": "Rok",
+        "description": "Opis naloge",
+        "whoCanDo": "Kdo lahko opravi to nalogo?",
+        "allRoles": "Vsi (vključno s člani kluba)",
+        "allShort": "Vse",
+        "urgent": "Nujno"
+      },
+      "placeholders": {
+        "taskName": "npr. Pripravite opremo za vikend akcijo",
+        "taskNameShort": "npr. Pripravite opremo",
+        "pickDate": "Izberite datum",
+        "description": "Na kratko opišite, kaj je potrebno narediti...",
+        "descriptionShort": "Opis..."
+      },
+      "help": {
+        "allRoles": "Če izberete Vse, bo opravilo vidno tudi članom kluba.",
+        "urgent": "Pripet na vrh seznama",
+        "multiAssignees": "Eno nalogo lahko opravlja več uporabnikov hkrati."
+      },
+      "aria": {
+        "deadline": "Rok za nalogo"
+      },
+      "creating": "Ustvarjanje ...",
+      "saveTask": "Shrani nalogo",
+      "saveChanges": "Shranite spremembe"
+    },
+    "taskReadonly": {
+      "badge": "Podrobnosti naloge",
+      "urgent": "Nujno",
+      "description": "Opis",
+      "empty": "—",
+      "whoCanParticipate": "Kdo lahko sodeluje",
+      "allMembers": "Vsi člani",
+      "deadline": "Rok",
+      "noDeadline": "Brez roka",
+      "created": "Ustvarjeno",
+      "assignees": "Prejemniki",
+      "noAssignees": "Nihče še ni dodeljen.",
+      "status": {
+        "active": "Aktiven",
+        "inProgress": "V teku",
+        "finished": "Končano"
+      }
+    }
+  },
+  "clubs": {
+    "club": {
+      "subtitle": "Podatki o vašem pohodniškem klubu",
+      "actions": {
+        "edit": "Uredi podrobnosti",
+        "save": "Shrani",
+        "cancel": "Prekliči"
+      },
+      "tabs": {
+        "public": "Javne podrobnosti",
+        "admin": "Administracija kluba"
+      },
+      "sections": {
+        "contactAddress": "Kontakt in naslov",
+        "legalFinance": "Pravne in finančne podrobnosti"
+      },
+      "fields": {
+        "pickLogo": "Izberite logotip kluba",
+        "name": "Ime kluba",
+        "address": "Naslov",
+        "phone": "Telefon",
+        "email": "E-pošta",
+        "seat": "Sedež",
+        "website": "Spletna stran"
+      },
+      "adminStats": {
+        "title": "Klubska statistika in omejitve",
+        "subtitle": "Podatki veljajo za vaš klub. Omejitve in trajanje naročnine določi superadmin.",
+        "loading": "Nalaganje statistike ...",
+        "unavailable": "Statistika trenutno ni na voljo.",
+        "activeMembers": "Aktivni člani",
+        "activeMembersHint": "Registriran v klubu",
+        "admins": "Administratorji",
+        "adminsHint": "Administratorska vloga v tem klubu",
+        "storage": "Shranjevanje datotek",
+        "usedPercent": "Rabljeno",
+        "subscriptionTitle": "Naročnina",
+        "validUntil": "Velja do",
+        "subscribedAt": "Datum / začetek naročnine",
+        "onHold": "Klub je trenutno na čakanju"
+      },
+      "empty": {
+        "contact": "Vneseni niso nobeni kontaktni podatki."
+      },
+      "common": {
+        "saving": "Shranjevanje ...",
+        "uploading": "Nalaganje …"
+      },
+      "errors": {
+        "load": "Napaka pri nalaganju kluba",
+        "save": "Napaka pri shranjevanju",
+        "imageOnly": "Dovoljene so samo slikovne datoteke (jpg, png, gif...)",
+        "imageTooLarge": "Slika je prevelika (največ 5 MB)",
+        "logoUpload": "Napaka pri nalaganju logotipa",
+        "loginClubHint": "Preverite, ali ste prijavljeni v klub (superadmin mora izbrati klub)."
+      }
+    },
+    "superadmin": {
+      "title": "Klubi",
+      "addClub": "Dodaj klub",
+      "empty": "Klubov še ni. Kliknite \"Dodaj klub\", da ustvarite prvega.",
+      "noAccess": "Nimate dostopa do te strani.",
+      "clubActiveLabel": "Klub aktiven (člani se lahko prijavijo)",
+      "onHoldBadge": "Na čakanju",
+      "subscriptionStatus": {
+        "active": "Aktivna naročnina",
+        "warning": "Kmalu poteče",
+        "expired": "Potekla"
+      },
+      "errors": {
+        "load": "Napaka pri nalaganju klubov",
+        "delete": "Napaka pri brisanju kluba",
+        "nameRequired": "Ime kluba je obvezno.",
+        "mediaLimitNegative": "Medijska omejitev (GB) ne more biti negativna.",
+        "save": "Napaka pri shranjevanju"
+      }
+    }
+  },
+  "pdf": {
+    "errors": {
+      "contentMissing": "PDF: vsebine ni mogoče najti",
+      "generic": "Napaka PDF:"
+    },
+    "finance": {
+      "title": "Finančno poročilo",
+      "period": "Obdobje",
+      "noTransactions": "V izbranem obdobju ni transakcij.",
+      "date": "Datum",
+      "description": "Opis",
+      "income": "Prihodek",
+      "expense": "Odhodek",
+      "totalIncome": "Skupni prihodek",
+      "totalExpense": "Skupni odhodki",
+      "currentBalance": "Trenutno stanje",
+      "filePrefix": "finančno poročilo"
+    },
+    "action": {
+      "preDepartureTitle": "AKCIJA – PRED ODHODOM",
+      "completedTitle": "AKCIJA – KONČANA",
+      "section": "Podrobnosti o akciji",
+      "signature": "Točnost podatkov overjena s strani PSO/Kluba (podpis in žig)",
+      "preDepartureFile": "akcija-pred-odhodom",
+      "completedFile": "akcija-zaključena",
+      "fields": {
+        "name": "Ime",
+        "mountain": "Gora",
+        "peak": "Vrh",
+        "date": "Datum",
+        "description": "Opis",
+        "difficulty": "Težavnost",
+        "guide": "Vodnik / drugi vodnik",
+        "addedBy": "Dodal/a",
+        "participantsCount": "Število udeležencev",
+        "participantsNames": "Imena udeležencev",
+        "successRatio": "Uspešen vzpon / prijavljeni",
+        "successNames": "Imena pri uspešnem vzponu"
+      }
+    },
+    "member": {
+      "title": "EVIDENCA ČLANOV",
+      "genderMale": "moški",
+      "genderFemale": "ženska",
+      "sections": {
+        "personal": "Osebni podatki",
+        "hiking": "Podrobnosti o pohodništvu",
+        "notes": "Opombe in drugo"
+      },
+      "fields": {
+        "fullName": "Polno ime",
+        "parentName": "Ime starša",
+        "gender": "Spol",
+        "birthDate": "Datum rojstva",
+        "citizenship": "Državljanstvo",
+        "address": "Naslov",
+        "phone": "Telefon",
+        "email": "E-pošta",
+        "membershipDate": "Datum članstva",
+        "idNumber": "Številka osebnega dokumenta",
+        "cardNumber": "Številka planinske karte",
+        "badgeNumber": "Številka pohodniške značke",
+        "disciplinary": "Disciplinski ukrepi",
+        "selectionBodies": "Izbor v organe športne organizacije",
+        "notes": "Opombe"
+      }
+    }
+  }
+}

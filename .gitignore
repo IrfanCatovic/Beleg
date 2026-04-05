@@ -36,6 +36,9 @@ backend/.env.*
 *.sln
 *.sw?
 
+# i18n build scratch
+tmp-en-i18n.json
+
 # pgAdmin 
 .pgadmin/
 *.log

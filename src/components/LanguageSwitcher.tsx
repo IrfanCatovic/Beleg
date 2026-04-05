@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-const LANGUAGES = ['sr', 'bs', 'hr', 'de', 'en'] as const
+const LANGUAGES = ['sr', 'bs', 'hr', 'de', 'en', 'sl'] as const
 
 type LanguageSwitcherProps = { compact?: boolean }
 

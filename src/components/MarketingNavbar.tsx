@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from './LanguageSwitcher'
 
-const LANGUAGES = ['sr', 'bs', 'hr', 'de', 'en'] as const
+const LANGUAGES = ['sr', 'bs', 'hr', 'de', 'en', 'sl'] as const
 const SHORT: Record<string, string> = { sr: 'SR', bs: 'BS', hr: 'HR', de: 'DE', en: 'EN' }
 
 export default function MarketingNavbar() {

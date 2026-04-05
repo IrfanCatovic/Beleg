@@ -3,7 +3,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 import { resources } from './resources'
 
-const supportedLngs = ['sr', 'bs', 'hr', 'de', 'en'] as const
+const supportedLngs = ['sr', 'bs', 'hr', 'de', 'en', 'sl'] as const
 
 i18n
   .use(LanguageDetector)
