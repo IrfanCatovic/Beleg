@@ -1589,6 +1589,19 @@
         "warning": "Kmalu poteče",
         "expired": "Potekla"
       },
+      "stats": {
+        "tabClubs": "Klubi",
+        "tabInfo": "Info",
+        "subtitle": "Število vnesenih članov in ustvarjenih akcij po klubu ter skupaj v aplikaciji.",
+        "membersLabel": "Članov",
+        "actionsLabel": "Akcij",
+        "totalMembers": "Skupaj članov v aplikaciji",
+        "totalActions": "Skupaj akcij v aplikaciji",
+        "noClubs": "Ni registriranih klubov.",
+        "errors": {
+          "load": "Napaka pri nalaganju statistike"
+        }
+      },
       "errors": {
         "load": "Napaka pri nalaganju klubov",
         "delete": "Napaka pri brisanju kluba",

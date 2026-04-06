@@ -11,6 +11,8 @@ import {
   PlusIcon,
   XMarkIcon,
   ArrowRightStartOnRectangleIcon,
+  UserGroupIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 
@@ -38,6 +40,15 @@ export interface Klub {
 }
 
 type SubscriptionStatus = 'active' | 'warning' | 'expired'
+
+type SuperadminAppStatClub = {
+  klubId: number
+  naziv: string
+  memberCount: number
+  actionCount: number
+}
+
+type SuperadminTab = 'clubs' | 'info'
 
 function getSubscriptionStatus(endsAt: string | null | undefined): SubscriptionStatus {
   if (!endsAt) return 'expired'
@@ -97,6 +108,13 @@ export default function SuperadminKlubovi() {
   const [deleteCountdown, setDeleteCountdown] = useState(0)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const [activeTab, setActiveTab] = useState<SuperadminTab>('clubs')
+  const [statsClubs, setStatsClubs] = useState<SuperadminAppStatClub[]>([])
+  const [statsTotalMembers, setStatsTotalMembers] = useState(0)
+  const [statsTotalActions, setStatsTotalActions] = useState(0)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [statsError, setStatsError] = useState('')
+
   const fetchKlubovi = async () => {
     setLoading(true)
     setError('')
@@ -114,6 +132,37 @@ export default function SuperadminKlubovi() {
   useEffect(() => {
     fetchKlubovi()
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'info') return
+    let cancelled = false
+    ;(async () => {
+      setStatsLoading(true)
+      setStatsError('')
+      try {
+        const res = await api.get<{
+          clubs: SuperadminAppStatClub[]
+          totalMembers: number
+          totalActions: number
+        }>('/api/superadmin/app-stats')
+        if (cancelled) return
+        setStatsClubs(res.data.clubs ?? [])
+        setStatsTotalMembers(Number(res.data.totalMembers) || 0)
+        setStatsTotalActions(Number(res.data.totalActions) || 0)
+      } catch (err: unknown) {
+        if (cancelled) return
+        const msg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+          t('superadmin.stats.errors.load')
+        setStatsError(msg)
+      } finally {
+        if (!cancelled) setStatsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, t])
 
   useEffect(() => {
     if (deleteKlubId == null || deleteCountdown <= 0) return
@@ -257,25 +306,107 @@ export default function SuperadminKlubovi() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-        >
-          <PlusIcon className="h-5 w-5" />
-          {t('superadmin.addClub')}
-        </button>
+      <div className="mb-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
+          {activeTab === 'clubs' && (
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              <PlusIcon className="h-5 w-5" />
+              {t('superadmin.addClub')}
+            </button>
+          )}
+        </div>
+        <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50/80 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('clubs')}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              activeTab === 'clubs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {t('superadmin.stats.tabClubs')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('info')}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              activeTab === 'info' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {t('superadmin.stats.tabInfo')}
+          </button>
+        </div>
       </div>
 
-      {error && (
+      {error && activeTab === 'clubs' && (
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {loading ? (
+      {activeTab === 'info' && statsError && (
+        <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{statsError}</div>
+      )}
+
+      {activeTab === 'info' ? (
+        statsLoading ? (
+          <Loader />
+        ) : (
+          <div className="space-y-6">
+            <p className="text-sm text-gray-600">{t('superadmin.stats.subtitle')}</p>
+            {statsClubs.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('superadmin.stats.noClubs')}</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {statsClubs.map((row) => (
+                  <div
+                    key={row.klubId}
+                    className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <h2 className="font-semibold text-gray-900 truncate">{row.naziv}</h2>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-slate-50 px-3 py-2">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                          <UserGroupIcon className="h-4 w-4 shrink-0" />
+                          {t('superadmin.stats.membersLabel')}
+                        </div>
+                        <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{row.memberCount}</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 px-3 py-2">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                          <CalendarDaysIcon className="h-4 w-4 shrink-0" />
+                          {t('superadmin.stats.actionsLabel')}
+                        </div>
+                        <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{row.actionCount}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
+                  <UserGroupIcon className="h-5 w-5" />
+                  {t('superadmin.stats.totalMembers')}
+                </div>
+                <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">{statsTotalMembers}</p>
+              </div>
+              <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
+                  <CalendarDaysIcon className="h-5 w-5" />
+                  {t('superadmin.stats.totalActions')}
+                </div>
+                <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">{statsTotalActions}</p>
+              </div>
+            </div>
+          </div>
+        )
+      ) : loading ? (
         <Loader />
       ) : klubovi.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">

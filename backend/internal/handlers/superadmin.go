@@ -43,6 +43,68 @@ func GetKlubovi(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"klubovi": klubovi})
 }
 
+// clubAppStat jedan red za GET /superadmin/app-stats
+type clubAppStat struct {
+	KlubID       uint   `json:"klubId"`
+	Naziv        string `json:"naziv"`
+	MemberCount  int64  `json:"memberCount"`
+	ActionCount  int64  `json:"actionCount"`
+}
+
+// GetSuperadminAppStats broj članova i akcija po klubu + ukupno u aplikaciji (samo superadmin).
+func GetSuperadminAppStats(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	dbAny, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	var klubovi []models.Klubovi
+	if err := db.Order("naziv").Find(&klubovi).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju klubova"})
+		return
+	}
+
+	var totalMembers, totalActions int64
+	if err := db.Model(&models.Korisnik{}).Where("klub_id IS NOT NULL").Count(&totalMembers).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju članova"})
+		return
+	}
+	if err := db.Model(&models.Akcija{}).Count(&totalActions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju akcija"})
+		return
+	}
+
+	clubs := make([]clubAppStat, 0, len(klubovi))
+	for _, k := range klubovi {
+		var mc, ac int64
+		if err := db.Model(&models.Korisnik{}).Where("klub_id = ?", k.ID).Count(&mc).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju članova kluba"})
+			return
+		}
+		if err := db.Model(&models.Akcija{}).Where("klub_id = ?", k.ID).Count(&ac).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju akcija kluba"})
+			return
+		}
+		clubs = append(clubs, clubAppStat{
+			KlubID:       k.ID,
+			Naziv:        k.Naziv,
+			MemberCount:  mc,
+			ActionCount:  ac,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"clubs":        clubs,
+		"totalMembers": totalMembers,
+		"totalActions": totalActions,
+	})
+}
+
 // createKlubRequest body za POST /superadmin/klubovi
 type createKlubRequest struct {
 	Naziv                string   `json:"naziv"`
