@@ -32,6 +32,11 @@ type Klubovi struct {
 
 	LogoURL                     string    `gorm:"type:varchar(500)" json:"logoUrl,omitempty"`
 
+	// Invite kod za javnu samoregistraciju članova (globalno jedinstven; nil = još nije generisan)
+	InviteCode                  *string    `gorm:"size:16;uniqueIndex" json:"-"`
+	InviteLastRegeneratedAt     *time.Time `json:"-"`
+	InviteExpiresAt             *time.Time `json:"-"`
+
 	CreatedAt                   time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt                   time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }

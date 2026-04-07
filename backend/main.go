@@ -1258,6 +1258,13 @@ func main() {
 			})
 		})
 
+		inviteValidateRateLimiter := middleware.NewIPRateLimiter(40, time.Minute)
+		r.POST("/api/invite-code/validate", inviteValidateRateLimiter, handlers.ValidateInviteCode)
+		r.POST("/api/register/invite", registerRateLimiter, handlers.RegisterInvite)
+
+		protected.GET("/klub/invite-code", handlers.GetInviteCodeForAdmin)
+		protected.POST("/klub/invite-code/regenerate", handlers.RegenerateInviteCode)
+
 		// POST /api/akcije adding new action — admin, superadmin i vodič
 		protected.POST("/akcije", func(c *gin.Context) {
 			role, _ := c.Get("role")
