@@ -24,13 +24,15 @@ export default function ClubInviteCodePanel() {
   const [loadError, setLoadError] = useState(false)
   const [regenError, setRegenError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
   const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent?: boolean) => {
+    if (silent) setRefreshing(true)
+    else setLoading(true)
     setLoadError(false)
     try {
       const d = await fetchClubInviteCodeForAdmin()
@@ -40,7 +42,8 @@ export default function ClubInviteCodePanel() {
       setLoadError(true)
       setData(null)
     } finally {
-      setLoading(false)
+      if (silent) setRefreshing(false)
+      else setLoading(false)
     }
   }, [])
 
@@ -102,6 +105,9 @@ export default function ClubInviteCodePanel() {
     }
   }
 
+  const codeLikelyExpired =
+    data?.expiresAt != null && !Number.isNaN(Date.parse(data.expiresAt)) && Date.now() >= Date.parse(data.expiresAt)
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-4 text-sm text-emerald-900/80">
@@ -123,11 +129,25 @@ export default function ClubInviteCodePanel() {
   return (
     <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/90 to-white shadow-sm px-4 py-4 sm:px-5 sm:py-5">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-emerald-900 tracking-tight">{t('adminPanel.title')}</h2>
           <p className="mt-1 text-xs text-emerald-800/90 leading-relaxed max-w-xl">{t('adminPanel.subtitle')}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => load(true)}
+          disabled={loading || refreshing}
+          className="shrink-0 self-start rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+        >
+          {refreshing ? t('adminPanel.refreshing') : t('adminPanel.refresh')}
+        </button>
       </div>
+
+      {codeLikelyExpired ? (
+        <p className="mb-3 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          {t('adminPanel.expiredHint')}
+        </p>
+      ) : null}
 
       <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">

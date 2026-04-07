@@ -1609,6 +1609,9 @@ export const resources = {
         cooldownHint: 'Novi kod možeš za: {{time}}',
         loadError: 'Invite kod nije učitan. Proveri da li backend podržava /api/klub/invite-code.',
         regenError: 'Zamena koda nije uspela. Pokušaj ponovo.',
+        refresh: 'Osveži',
+        refreshing: 'Osvežavam...',
+        expiredHint: 'Kod je možda istekao. Klikni Osveži da učitaš novi (server automatski menja istekli kod).',
       },
     },
     pdf: {
@@ -2856,6 +2859,9 @@ export const resources = {
         cooldownHint: 'Novi kod možeš za: {{time}}',
         loadError: 'Invite kod nije učitan. Provjeri da li backend podržava /api/klub/invite-code.',
         regenError: 'Zamjena koda nije uspjela. Pokušaj ponovo.',
+        refresh: 'Osvježi',
+        refreshing: 'Osvježavam...',
+        expiredHint: 'Kod je možda istekao. Klikni Osvježi za novi (server automatski mijenja istekli kod).',
       },
     },
     pdf: {
@@ -3975,6 +3981,9 @@ export const resources = {
         cooldownHint: 'Novi kod možeš za: {{time}}',
         loadError: 'Invite kod nije učitan. Provjerite podržava li backend /api/klub/invite-code.',
         regenError: 'Zamjena koda nije uspjela. Pokušajte ponovno.',
+        refresh: 'Osvježi',
+        refreshing: 'Osvježavam...',
+        expiredHint: 'Kod je možda istekao. Kliknite Osvježi za novi (server automatski mijenja istekli kod).',
       },
     },
     pdf: {
@@ -5069,6 +5078,9 @@ export const resources = {
         cooldownHint: 'Neuer Code möglich in: {{time}}',
         loadError: 'Code konnte nicht geladen werden. Prüfe, ob das Backend /api/klub/invite-code unterstützt.',
         regenError: 'Code konnte nicht erneuert werden. Bitte erneut versuchen.',
+        refresh: 'Aktualisieren',
+        refreshing: 'Wird geladen...',
+        expiredHint: 'Code möglicherweise abgelaufen. Auf Aktualisieren klicken (Server ersetzt abgelaufene Codes automatisch).',
       },
     },
     pdf: {
@@ -6162,6 +6174,9 @@ export const resources = {
         cooldownHint: 'You can get a new code in: {{time}}',
         loadError: 'Could not load invite code. Check that the backend supports /api/klub/invite-code.',
         regenError: 'Could not replace the code. Try again.',
+        refresh: 'Refresh',
+        refreshing: 'Refreshing...',
+        expiredHint: 'This code may have expired. Click Refresh — the server replaces expired codes automatically.',
       },
     },
     pdf: {
@@ -7821,7 +7836,10 @@ export const resources = {
       "regenerating": "Ustvarjam ...",
       "cooldownHint": "Nova koda čez: {{time}}",
       "loadError": "Kode ni bilo mogoče naložiti. Preverite, ali strežnik podpira /api/klub/invite-code.",
-      "regenError": "Zamenjava kode ni uspela. Poskusite znova."
+      "regenError": "Zamenjava kode ni uspela. Poskusite znova.",
+      "refresh": "Osveži",
+      "refreshing": "Osvežujem ...",
+      "expiredHint": "Koda je morda potekla. Kliknite Osveži — strežnik sam zamenja potekle kode."
     }
   },
   "pdf": {

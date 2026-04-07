@@ -65,6 +65,34 @@ func NormalizeInviteCode(s string) string {
 	return strings.ToUpper(strings.TrimSpace(s))
 }
 
+// InviteCodeExpired true ako postoji kod i istekao je rok (InviteExpiresAt).
+func InviteCodeExpired(k *models.Klubovi, now time.Time) bool {
+	if k.InviteCode == nil || *k.InviteCode == "" {
+		return false
+	}
+	if k.InviteExpiresAt == nil {
+		return false
+	}
+	return !now.Before(*k.InviteExpiresAt)
+}
+
+// AutoRotateExpiredInviteCode ako je kod istekao, generiše novi bez menjanja InviteLastRegeneratedAt
+// (ručni cooldown 12h ostaje vezan za poslednji klik „Novi kod”).
+// Vraća true ako je izvršena rotacija.
+func AutoRotateExpiredInviteCode(db *gorm.DB, k *models.Klubovi, now time.Time) (bool, error) {
+	if !InviteCodeExpired(k, now) {
+		return false, nil
+	}
+	gen, err := GenerateUniqueInviteCode(db)
+	if err != nil {
+		return false, err
+	}
+	k.InviteCode = &gen
+	exp := now.Add(InviteCodeTTL)
+	k.InviteExpiresAt = &exp
+	return true, db.Save(k).Error
+}
+
 // InviteCodeMatchesKlub provera da li kod odgovara klubu i da li je još važeći.
 func InviteCodeMatchesKlub(k *models.Klubovi, code string, now time.Time) bool {
 	if k.InviteCode == nil || *k.InviteCode == "" {

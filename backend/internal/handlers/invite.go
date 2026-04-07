@@ -109,6 +109,17 @@ func GetInviteCodeForAdmin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju kluba"})
 		return
 	}
+	rotated, err := helpers.AutoRotateExpiredInviteCode(db, &k, now)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri osvežavanju isteklog koda"})
+		return
+	}
+	if rotated {
+		if err := db.First(&k, clubID).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju kluba"})
+			return
+		}
+	}
 	c.JSON(http.StatusOK, inviteAdminJSON(&k, now))
 }
 
@@ -126,7 +137,8 @@ func RegenerateInviteCode(c *gin.Context) {
 		return
 	}
 	now := time.Now()
-	if ms := helpers.RegenAvailableInMs(k.InviteLastRegeneratedAt, now); ms > 0 {
+	expired := helpers.InviteCodeExpired(&k, now)
+	if ms := helpers.RegenAvailableInMs(k.InviteLastRegeneratedAt, now); ms > 0 && !expired {
 		c.JSON(http.StatusTooManyRequests, gin.H{
 			"error":               "Novi kod možeš generisati tek posle isteka pauze.",
 			"regenAvailableInMs": ms,
