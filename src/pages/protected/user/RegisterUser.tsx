@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import BackButton from '../../../components/buttons/BackButton'
+import ClubInviteCodePanel from '../../../components/register/ClubInviteCodePanel'
 import MemberRegistrationForm from '../../../components/register/MemberRegistrationForm'
 import { useTranslation } from 'react-i18next'
 
@@ -30,7 +31,8 @@ export default function RegisterUser() {
           <div className="w-10 sm:w-16" aria-hidden />
         </div>
 
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+          <ClubInviteCodePanel />
           <MemberRegistrationForm
             variant="staff"
             roleOptions={roleOptions}
