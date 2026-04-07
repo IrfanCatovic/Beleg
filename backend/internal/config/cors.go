@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-
+// defaultOrigins are always allowed (local + hard fallback domains).
 var defaultOrigins = []string{
 	"http://localhost:5173",
 	"http://127.0.0.1:5173",
@@ -13,6 +13,7 @@ var defaultOrigins = []string{
 	"https://www.planiner.com",
 }
 
+// getEnvOrDefault returns env value or a fallback when env is empty.
 func getEnvOrDefault(envVar string, defaultValue string) string {
 	value := os.Getenv(envVar)
 	if value == "" {
@@ -21,6 +22,7 @@ func getEnvOrDefault(envVar string, defaultValue string) string {
 	return value
 }
 
+// prepareOriginSet seeds a lookup map with default origins (dedupe base).
 func prepareOriginSet() map[string]bool {
 	originSet := map[string]bool{}
 	for _, origin := range defaultOrigins {
@@ -29,11 +31,13 @@ func prepareOriginSet() map[string]bool {
 	return originSet
 }
 
+// corsOriginsString reads CORS_ORIGINS, or defaults to CSV(defaultOrigins).
 func corsOriginsString() string {
 	defaultCSV := strings.Join(defaultOrigins, ",")
 	return getEnvOrDefault("CORS_ORIGINS", defaultCSV)
 }
 
+// parseExtraOriginsFromCORSString parses CSV, trims values, skips empty/duplicate entries.
 func parseExtraOriginsFromCORSString(corsOrigins string, originSet map[string]bool) []string {
 	var extra []string
 	for _, o := range strings.Split(corsOrigins, ",") {
@@ -47,23 +51,17 @@ func parseExtraOriginsFromCORSString(corsOrigins string, originSet map[string]bo
 	return extra
 }
 
+// getCORSOrigins builds the final allow-list: defaults first, then unique extras from env.
 func getCORSOrigins() []string {
 	corsOrigins := corsOriginsString()
 	originSet := prepareOriginSet()
-	return parseExtraOriginsFromCORSString(corsOrigins, originSet)
+	extra := parseExtraOriginsFromCORSString(corsOrigins, originSet)
+	return append(defaultOrigins, extra...)
 }
-// KORAK 7:
-// Ovde vrati finalnu listu origin-a iz funkcije.
-// Funkcija treba da ima jasan ulaz i izlaz (idealno []string kao rezultat).
 
-// KORAK 8:
-// Ovde (opciono) dodaj kratku validaciju origin formata.
-// Na primer: ignorisi vrednosti bez protokola (http/https), ako to zelis.
+// BuildAllowedOrigins is the exported entrypoint used by main/router setup.
+func BuildAllowedOrigins() []string {
+	return getCORSOrigins()
+}
 
-// KORAK 9:
-// Ovde (opciono) dodaj mini helper funkcije ako osetis da je citljivije:
-// - getEnvOrDefault(...)
-// - splitAndClean(...)
-// - dedupe(...)
-// Prvo napravi da radi, pa tek onda deli na manje helper-e.
 
