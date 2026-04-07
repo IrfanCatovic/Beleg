@@ -8,6 +8,7 @@ import (
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
 	"beleg-app/backend/internal/seed"
+	"beleg-app/backend/internal/config"
 	"beleg-app/backend/middleware"
 	"context"
 	"errors"
@@ -58,32 +59,10 @@ func main() {
 	} else {
 		log.Println("OK: .env fajl je učitan")
 	}
+	
 
-	
-	defaultOrigins := []string{
-		"http://localhost:5173",
-		"http://127.0.0.1:5173",
-		"https://planiner.com",
-		"https://www.planiner.com",
-	}
-	corsOrigins := os.Getenv("CORS_ORIGINS")
-	if corsOrigins == "" {
-		corsOrigins = strings.Join(defaultOrigins, ",")
-	}
-	originSet := map[string]bool{}
-	for _, o := range defaultOrigins {
-		originSet[o] = true
-	}
-	var origins []string
-	for _, o := range strings.Split(corsOrigins, ",") {
-		o = strings.TrimSpace(o)
-		if o != "" && !originSet[o] {
-			originSet[o] = true
-			origins = append(origins, o)
-		}
-	}
-	origins = append(defaultOrigins, origins...)
-	
+	//Cors function from cors.go file
+	origins := config.BuildAllowedOrigins()
 	r.Use(middleware.SecurityHeaders(os.Getenv("SECURITY_CSP")))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
@@ -93,6 +72,7 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) < 32 {
 		log.Fatal("JWT_SECRET nije podešen ili je prekratak (minimum 32 karaktera)")
