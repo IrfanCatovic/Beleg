@@ -45,6 +45,14 @@ export async function validateInviteCodePublic(raw: string): Promise<InviteCodeV
   return { ok: false, error: data.error }
 }
 
+/**
+ * Javna registracija člana: isto telo kao POST /api/register + inviteCode (+ opciono klubId za proveru).
+ * Backend mora da validira kod, kreira korisnika sa ulogom clan i veže ga za taj klub.
+ */
+export async function registerMemberByInvite(formData: FormData): Promise<void> {
+  await api.post('/api/register/invite', formData)
+}
+
 /** POST regenerate vratio 429 milisekunde do sledećeg dozvoljenog restarta (ako backend pošalje polje). */
 export function getRegenerateCooldownMs(error: unknown): number | null {
   if (!axios.isAxiosError(error)) return null

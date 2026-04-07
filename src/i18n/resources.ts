@@ -1584,11 +1584,14 @@ export const resources = {
         errorGeneric: 'Kod nije važeći ili je istekao.',
         backToLogin: 'Nazad na prijavu',
       },
-      registerPlaceholder: {
+      registerForm: {
+        badge: 'Za nove članove',
         title: 'Registracija člana',
-        subtitle: 'Kod je prihvaćen. Kompletna forma za registraciju sledi u sledećem koraku (povezivanje sa backend-om).',
-        klubLabel: 'Klub',
-        back: 'Nazad na unos koda',
+        clubLabel: 'Klub',
+        hintLine: 'Uloga je uvek „član”; klub je vezan za kod koji si uneo.',
+        successRedirect: 'Nalog je kreiran. Preusmeravamo te na prijavu...',
+        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš kasnije.',
+        backToCode: 'Nazad na unos koda',
       },
     },
     pdf: {
@@ -2811,11 +2814,14 @@ export const resources = {
         errorGeneric: 'Kod nije važeći ili je istekao.',
         backToLogin: 'Nazad na prijavu',
       },
-      registerPlaceholder: {
+      registerForm: {
+        badge: 'Za nove članove',
         title: 'Registracija člana',
-        subtitle: 'Kod je prihvaćen. Kompletna forma slijedi u sledećem koraku (povezivanje sa backend-om).',
-        klubLabel: 'Klub',
-        back: 'Nazad na unos koda',
+        clubLabel: 'Klub',
+        hintLine: 'Uloga je uvijek „član”; klub je vezan za kod koji si unio.',
+        successRedirect: 'Račun je kreiran. Preusmjeravamo te na prijavu...',
+        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš kasnije.',
+        backToCode: 'Nazad na unos koda',
       },
     },
     pdf: {
@@ -3910,11 +3916,14 @@ export const resources = {
         errorGeneric: 'Kod nije valjan ili je istekao.',
         backToLogin: 'Natrag na prijavu',
       },
-      registerPlaceholder: {
+      registerForm: {
+        badge: 'Za nove članove',
         title: 'Registracija člana',
-        subtitle: 'Kod je prihvaćen. Potpuna forma slijedi u sljedećem koraku (povezivanje s backendom).',
-        klubLabel: 'Klub',
-        back: 'Natrag na unos koda',
+        clubLabel: 'Klub',
+        hintLine: 'Uloga je uvijek „član”; klub je vezan za kod koji si unio.',
+        successRedirect: 'Račun je kreiran. Preusmjeravamo te na prijavu...',
+        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš poslije.',
+        backToCode: 'Natrag na unos koda',
       },
     },
     pdf: {
@@ -4984,11 +4993,14 @@ export const resources = {
         errorGeneric: 'Code ungültig oder abgelaufen.',
         backToLogin: 'Zurück zur Anmeldung',
       },
-      registerPlaceholder: {
+      registerForm: {
+        badge: 'Für neue Mitglieder',
         title: 'Mitgliedsregistrierung',
-        subtitle: 'Code akzeptiert. Das vollständige Formular folgt im nächsten Schritt (Backend-Anbindung).',
-        klubLabel: 'Verein',
-        back: 'Zurück zur Codeeingabe',
+        clubLabel: 'Verein',
+        hintLine: 'Die Rolle ist immer „Mitglied“; der Verein gehört zum eingegebenen Code.',
+        successRedirect: 'Konto erstellt. Weiterleitung zur Anmeldung...',
+        footerHint: 'Nur Benutzername und Passwort sind Pflicht. Den Rest kannst du später ergänzen.',
+        backToCode: 'Zurück zur Codeeingabe',
       },
     },
     pdf: {
@@ -6057,11 +6069,14 @@ export const resources = {
         errorGeneric: 'Invalid or expired code.',
         backToLogin: 'Back to login',
       },
-      registerPlaceholder: {
+      registerForm: {
+        badge: 'For new members',
         title: 'Member registration',
-        subtitle: 'Code accepted. Full registration form comes in the next step (backend wiring).',
-        klubLabel: 'Club',
-        back: 'Back to code entry',
+        clubLabel: 'Club',
+        hintLine: 'Your role will be “member”; the club is tied to the code you entered.',
+        successRedirect: 'Account created. Redirecting to login...',
+        footerHint: 'Only username and password are required. You can fill the rest later.',
+        backToCode: 'Back to code entry',
       },
     },
     pdf: {
@@ -7698,11 +7713,14 @@ export const resources = {
       "errorGeneric": "Koda ni veljavna ali je potekla.",
       "backToLogin": "Nazaj na prijavo"
     },
-    "registerPlaceholder": {
+    "registerForm": {
+      "badge": "Za nove člane",
       "title": "Registracija člana",
-      "subtitle": "Koda je sprejeta. Celoten obrazec sledi v naslednjem koraku (povezava z strežnikom).",
-      "klubLabel": "Klub",
-      "back": "Nazaj na vnos kode"
+      "clubLabel": "Klub",
+      "hintLine": "Vloga je vedno „član”; klub je vezan na kodo, ki si jo vnesel.",
+      "successRedirect": "Račun je ustvarjen. Preusmerjamo na prijavo ...",
+      "footerHint": "Obvezna sta samo uporabniško ime in geslo. Ostalo lahko kasneje.",
+      "backToCode": "Nazaj na vnos kode"
     }
   },
   "pdf": {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
+import { normalizeInviteCodeInput } from '../../domain/invite'
 import { validateInviteCodePublic } from '../../services/invite'
 
 /**
@@ -31,7 +32,11 @@ export default function EnterClubInviteCode() {
         return
       }
       navigate('/registracija-clan', {
-        state: { klubId: result.klubId, klubNaziv: result.klubNaziv },
+        state: {
+          klubId: result.klubId,
+          klubNaziv: result.klubNaziv,
+          inviteCode: normalizeInviteCodeInput(code),
+        },
         replace: false,
       })
     } catch (err: unknown) {
