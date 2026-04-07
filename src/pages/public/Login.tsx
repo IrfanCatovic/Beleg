@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEffect, useState, useMemo } from 'react'
 import api from '../../services/api'
@@ -254,6 +254,14 @@ export default function Login() {
           </div>
           <p className="mt-5 text-[11px] sm:text-xs text-center text-slate-500">
             {t('noAccount')}
+          </p>
+          <p className="mt-2 text-[11px] sm:text-xs text-center">
+            <Link
+              to="/registracija-kod"
+              className="font-medium text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
+            >
+              {t('registerWithClubCode')}
+            </Link>
           </p>
 
           {/* Dekorativna linija razdvajač */}

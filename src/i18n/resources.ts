@@ -346,6 +346,7 @@ export const resources = {
       invalidCredentials: 'Pogrešno korisničko ime ili lozinka.',
       demoTitle: 'Demo nalog za testiranje',
       noAccount: 'Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.',
+      registerWithClubCode: 'Registruj se pomoću koda kluba',
       footerTagline: 'tvoj sledeći vrh te čeka',
       footerSystem: 'planiner • sistem za planinarska društva',
       footerSafe: 'Sigurne evidencije, više vremena na stazi',
@@ -1570,6 +1571,26 @@ export const resources = {
         errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne sme biti negativan.', save: 'Greška pri čuvanju' },
       },
     },
+    invite: {
+      enterPage: {
+        badge: 'Za nove članove',
+        title: 'Registracija pomoću koda kluba',
+        subtitle: 'Unesi osmocifreni kod koji je društvo podelilo (npr. u grupi).',
+        label: 'Kod kluba',
+        placeholder: 'npr. A1B2C3D4',
+        submit: 'Nastavi',
+        submitting: 'Proveravam...',
+        invalidFormat: 'Kod mora imati tačno 8 dozvoljenih znakova.',
+        errorGeneric: 'Kod nije važeći ili je istekao.',
+        backToLogin: 'Nazad na prijavu',
+      },
+      registerPlaceholder: {
+        title: 'Registracija člana',
+        subtitle: 'Kod je prihvaćen. Kompletna forma za registraciju sledi u sledećem koraku (povezivanje sa backend-om).',
+        klubLabel: 'Klub',
+        back: 'Nazad na unos koda',
+      },
+    },
     pdf: {
       errors: { contentMissing: 'PDF: nije pronađen sadržaj', generic: 'PDF greška:' },
       finance: {
@@ -1948,6 +1969,7 @@ export const resources = {
       invalidCredentials: 'Pogrešno korisničko ime ili lozinka.',
       demoTitle: 'Demo nalog za testiranje',
       noAccount: 'Nemaš nalog? Obrati se rukovodstvu ili administratoru svog planinarskog društva.',
+      registerWithClubCode: 'Registracija pomoću koda kluba',
       footerTagline: 'tvoj sljedeći vrh te čeka',
       footerSystem: 'planiner • sistem za planinarska društva',
       footerSafe: 'Sigurne evidencije, više vremena na stazi',
@@ -2776,6 +2798,26 @@ export const resources = {
         errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri čuvanju' },
       },
     },
+    invite: {
+      enterPage: {
+        badge: 'Za nove članove',
+        title: 'Registracija pomoću koda kluba',
+        subtitle: 'Unesi osmocifreni kod koji je društvo podijelilo (npr. u grupi).',
+        label: 'Kod kluba',
+        placeholder: 'npr. A1B2C3D4',
+        submit: 'Nastavi',
+        submitting: 'Provjeravam...',
+        invalidFormat: 'Kod mora imati tačno 8 dozvoljenih znakova.',
+        errorGeneric: 'Kod nije važeći ili je istekao.',
+        backToLogin: 'Nazad na prijavu',
+      },
+      registerPlaceholder: {
+        title: 'Registracija člana',
+        subtitle: 'Kod je prihvaćen. Kompletna forma slijedi u sledećem koraku (povezivanje sa backend-om).',
+        klubLabel: 'Klub',
+        back: 'Nazad na unos koda',
+      },
+    },
     pdf: {
       errors: { contentMissing: 'PDF: nije pronađen sadržaj', generic: 'PDF greška:' },
       finance: {
@@ -3154,6 +3196,7 @@ export const resources = {
       invalidCredentials: 'Pogrešno korisničko ime ili lozinka.',
       demoTitle: 'Demo račun za testiranje',
       noAccount: 'Nemaš račun? Obrati se vodstvu ili administratoru svog planinarskog društva.',
+      registerWithClubCode: 'Registracija pomoću koda kluba',
       footerTagline: 'tvoj sljedeći vrh te čeka',
       footerSystem: 'planiner • sustav za planinarska društva',
       footerSafe: 'Sigurne evidencije, više vremena na stazi',
@@ -3854,6 +3897,26 @@ export const resources = {
       club: { subtitle: 'Podaci vašeg planinarskog društva', actions: { edit: 'Izmijeni podatke', save: 'Spremi', cancel: 'Odustani' }, tabs: { public: 'Javni podaci', admin: 'Administracija kluba' }, sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i financijski podaci' }, fields: { pickLogo: 'Odaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'E-mail', seat: 'Sjedište', website: 'Web stranica' }, adminStats: { title: 'Statistika i limiti kluba', subtitle: 'Podaci vrijede za vaš klub. Limite i trajanje pretplate postavlja superadmin.', loading: 'Učitavanje statistike...', unavailable: 'Statistika trenutno nije dostupna.', activeMembers: 'Aktivni članovi', activeMembersHint: 'Registrirani u klubu', admins: 'Administratori', adminsHint: 'Admin uloga u ovom klubu', storage: 'Prostor za datoteke', usedPercent: 'Iskorišteno', subscriptionTitle: 'Pretplata', validUntil: 'Vrijedi do', subscribedAt: 'Datum prijave / početak', onHold: 'Klub je trenutno na pauzi (hold)' }, empty: { contact: 'Nema unesenih kontakt podataka.' }, common: { saving: 'Spremanje...', uploading: 'Upload...' }, errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri spremanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri uploadu loga', loginClubHint: 'Provjerite jeste li prijavljeni u klub (superadmin mora odabrati klub).' } },
       superadmin: { title: 'Klubovi', addClub: 'Dodaj klub', empty: 'Nema klubova. Kliknite „Dodaj klub” za kreiranje prvog.', noAccess: 'Nemate pristup ovoj stranici.', clubActiveLabel: 'Klub je aktivan (članovi se mogu prijaviti)', onHoldBadge: 'Na pauzi', subscriptionStatus: { active: 'Aktivna pretplata', warning: 'Uskoro ističe', expired: 'Istekla' }, stats: { tabClubs: 'Klubovi', tabInfo: 'Info', subtitle: 'Broj unesenih članova i kreiranih akcija po klubu, plus ukupno u cijeloj aplikaciji.', membersLabel: 'Članova', actionsLabel: 'Akcija', totalMembers: 'Ukupno članova u aplikaciji', totalActions: 'Ukupno akcija u aplikaciji', noClubs: 'Nema registrovanih klubova.', errors: { load: 'Greška pri učitavanju statistike' } }, errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri spremanju' } },
     },
+    invite: {
+      enterPage: {
+        badge: 'Za nove članove',
+        title: 'Registracija pomoću koda kluba',
+        subtitle: 'Unesi osmeroznamenkasti kod koji je društvo podijelilo (npr. u grupi).',
+        label: 'Kod kluba',
+        placeholder: 'npr. A1B2C3D4',
+        submit: 'Nastavi',
+        submitting: 'Provjeravam...',
+        invalidFormat: 'Kod mora imati točno 8 dopuštenih znakova.',
+        errorGeneric: 'Kod nije valjan ili je istekao.',
+        backToLogin: 'Natrag na prijavu',
+      },
+      registerPlaceholder: {
+        title: 'Registracija člana',
+        subtitle: 'Kod je prihvaćen. Potpuna forma slijedi u sljedećem koraku (povezivanje s backendom).',
+        klubLabel: 'Klub',
+        back: 'Natrag na unos koda',
+      },
+    },
     pdf: {
       errors: { contentMissing: 'PDF: sadržaj nije pronađen', generic: 'PDF greška:' },
       finance: { title: 'Financijski izvještaj', period: 'Razdoblje', noTransactions: 'Nema transakcija u razdoblju.', date: 'Datum', description: 'Opis', income: 'Uplata', expense: 'Isplata', totalIncome: 'Ukupne uplate', totalExpense: 'Ukupne isplate', currentBalance: 'Trenutno stanje', filePrefix: 'financijski-izvjestaj' },
@@ -4206,6 +4269,7 @@ export const resources = {
       invalidCredentials: 'Falscher Benutzername oder falsches Passwort.',
       demoTitle: 'Demo-Konto zum Testen',
       noAccount: 'Kein Konto? Wende dich an die Leitung oder den Administrator deines Vereins.',
+      registerWithClubCode: 'Mit Vereinscode registrieren',
       footerTagline: 'dein nächster Gipfel wartet',
       footerSystem: 'planiner • System für Bergsportvereine',
       footerSafe: 'Sichere Daten, mehr Zeit auf dem Trail',
@@ -4907,6 +4971,26 @@ export const resources = {
       club: { subtitle: 'Daten deines Bergsportvereins', actions: { edit: 'Daten bearbeiten', save: 'Speichern', cancel: 'Abbrechen' }, tabs: { public: 'Öffentliche Daten', admin: 'Vereinsverwaltung' }, sections: { contactAddress: 'Kontakt und Adresse', legalFinance: 'Rechtliche und finanzielle Daten' }, fields: { pickLogo: 'Vereinslogo auswählen', name: 'Vereinsname', address: 'Adresse', phone: 'Telefon', email: 'E-Mail', seat: 'Sitz', website: 'Webseite' }, adminStats: { title: 'Statistiken und Vereinslimits', subtitle: 'Die Daten gelten für deinen Verein. Limits und die Laufzeit des Abonnements setzt der Superadmin.', loading: 'Statistiken werden geladen...', unavailable: 'Statistiken sind derzeit nicht verfügbar.', activeMembers: 'Aktive Mitglieder', activeMembersHint: 'Im Verein registriert', admins: 'Administratoren', adminsHint: 'Admin-Rolle in diesem Verein', storage: 'Platz für Dateien', usedPercent: 'Verbraucht', subscriptionTitle: 'Abonnement', validUntil: 'Gültig bis', subscribedAt: 'Anmeldedatum / Start', onHold: 'Der Verein ist aktuell pausiert (Hold)' }, empty: { contact: 'Keine Kontaktdaten vorhanden.' }, common: { saving: 'Speichern...', uploading: 'Upload...' }, errors: { load: 'Fehler beim Laden des Vereins', save: 'Fehler beim Speichern', imageOnly: 'Nur Bilder erlaubt (jpg, png, gif...)', imageTooLarge: 'Bild ist zu groß (maximal 5 MB)', logoUpload: 'Fehler beim Logo-Upload', loginClubHint: 'Bitte prüfen, ob du im Verein angemeldet bist (Superadmin muss Verein wählen).' } },
       superadmin: { title: 'Vereine', addClub: 'Verein hinzufügen', empty: 'Keine Vereine. Klicke „Verein hinzufügen“, um den ersten zu erstellen.', noAccess: 'Du hast keinen Zugriff auf diese Seite.', clubActiveLabel: 'Verein aktiv (Mitglieder können sich anmelden)', onHoldBadge: 'Pausiert', subscriptionStatus: { active: 'Aktives Abonnement', warning: 'Läuft bald ab', expired: 'Abgelaufen' }, stats: { tabClubs: 'Vereine', tabInfo: 'Info', subtitle: 'Anzahl erfasster Mitglieder und erstellter Aktionen pro Verein sowie Gesamtwerte in der App.', membersLabel: 'Mitglieder', actionsLabel: 'Aktionen', totalMembers: 'Mitglieder gesamt in der App', totalActions: 'Aktionen gesamt in der App', noClubs: 'Keine Vereine registriert.', errors: { load: 'Fehler beim Laden der Statistik' } }, errors: { load: 'Fehler beim Laden der Vereine', delete: 'Fehler beim Löschen', nameRequired: 'Vereinsname ist erforderlich.', mediaLimitNegative: 'Medienlimit (GB) darf nicht negativ sein.', save: 'Fehler beim Speichern' } },
     },
+    invite: {
+      enterPage: {
+        badge: 'Für neue Mitglieder',
+        title: 'Registrierung mit Vereinscode',
+        subtitle: 'Gib den 8-stelligen Code ein, den der Verein geteilt hat (z. B. in der Gruppe).',
+        label: 'Vereinscode',
+        placeholder: 'z. B. A1B2C3D4',
+        submit: 'Weiter',
+        submitting: 'Wird geprüft...',
+        invalidFormat: 'Der Code muss genau 8 erlaubte Zeichen haben.',
+        errorGeneric: 'Code ungültig oder abgelaufen.',
+        backToLogin: 'Zurück zur Anmeldung',
+      },
+      registerPlaceholder: {
+        title: 'Mitgliedsregistrierung',
+        subtitle: 'Code akzeptiert. Das vollständige Formular folgt im nächsten Schritt (Backend-Anbindung).',
+        klubLabel: 'Verein',
+        back: 'Zurück zur Codeeingabe',
+      },
+    },
     pdf: {
       errors: { contentMissing: 'PDF: Inhalt nicht gefunden', generic: 'PDF-Fehler:' },
       finance: { title: 'Finanzbericht', period: 'Zeitraum', noTransactions: 'Keine Transaktionen im Zeitraum.', date: 'Datum', description: 'Beschreibung', income: 'Einzahlung', expense: 'Auszahlung', totalIncome: 'Gesamte Einzahlungen', totalExpense: 'Gesamte Auszahlungen', currentBalance: 'Aktueller Kontostand', filePrefix: 'finanzbericht' },
@@ -5259,6 +5343,7 @@ export const resources = {
       invalidCredentials: 'Incorrect username or password.',
       demoTitle: 'Demo account for testing',
       noAccount: 'No account? Contact your hiking club management or administrator.',
+      registerWithClubCode: 'Register with club code',
       footerTagline: 'your next summit is waiting',
       footerSystem: 'planiner • system for hiking clubs',
       footerSafe: 'Secure records, more time on the trail',
@@ -5959,6 +6044,26 @@ export const resources = {
       club: { subtitle: 'Your hiking club details', actions: { edit: 'Edit details', save: 'Save', cancel: 'Cancel' }, tabs: { public: 'Public details', admin: 'Club administration' }, sections: { contactAddress: 'Contact and address', legalFinance: 'Legal and financial details' }, fields: { pickLogo: 'Choose club logo', name: 'Club name', address: 'Address', phone: 'Phone', email: 'Email', seat: 'Seat', website: 'Website' }, adminStats: { title: 'Club statistics and limits', subtitle: 'The data apply to your club. Limits and subscription duration are set by the superadmin.', loading: 'Loading statistics...', unavailable: 'Statistics are currently unavailable.', activeMembers: 'Active members', activeMembersHint: 'Registered with the club', admins: 'Admins', adminsHint: 'Admin role in this club', storage: 'File storage', usedPercent: 'Used', subscriptionTitle: 'Subscription', validUntil: 'Valid until', subscribedAt: 'Subscription date / start', onHold: 'The club is currently on hold' }, empty: { contact: 'No contact data entered.' }, common: { saving: 'Saving...', uploading: 'Upload...' }, errors: { load: 'Error loading club', save: 'Error saving', imageOnly: 'Only image files are allowed (jpg, png, gif...)', imageTooLarge: 'Image is too large (maximum 5 MB)', logoUpload: 'Error uploading logo', loginClubHint: 'Check if you are logged into a club (superadmin must select a club).' } },
       superadmin: { title: 'Clubs', addClub: 'Add club', empty: 'No clubs yet. Click "Add club" to create the first one.', noAccess: 'You do not have access to this page.', clubActiveLabel: 'Club active (members can log in)', onHoldBadge: 'On hold', subscriptionStatus: { active: 'Active subscription', warning: 'Expiring soon', expired: 'Expired' }, stats: { tabClubs: 'Clubs', tabInfo: 'Info', subtitle: 'Members entered and actions created per club, plus totals across the app.', membersLabel: 'Members', actionsLabel: 'Actions', totalMembers: 'Total members in the app', totalActions: 'Total actions in the app', noClubs: 'No clubs registered.', errors: { load: 'Error loading statistics' } }, errors: { load: 'Error loading clubs', delete: 'Error deleting club', nameRequired: 'Club name is required.', mediaLimitNegative: 'Media limit (GB) cannot be negative.', save: 'Error saving' } },
     },
+    invite: {
+      enterPage: {
+        badge: 'For new members',
+        title: 'Register with club code',
+        subtitle: 'Enter the 8-character code your club shared (e.g. in a group chat).',
+        label: 'Club code',
+        placeholder: 'e.g. A1B2C3D4',
+        submit: 'Continue',
+        submitting: 'Checking...',
+        invalidFormat: 'The code must be exactly 8 allowed characters.',
+        errorGeneric: 'Invalid or expired code.',
+        backToLogin: 'Back to login',
+      },
+      registerPlaceholder: {
+        title: 'Member registration',
+        subtitle: 'Code accepted. Full registration form comes in the next step (backend wiring).',
+        klubLabel: 'Club',
+        back: 'Back to code entry',
+      },
+    },
     pdf: {
       errors: { contentMissing: 'PDF: content not found', generic: 'PDF error:' },
       finance: { title: 'Financial report', period: 'Period', noTransactions: 'No transactions in selected period.', date: 'Date', description: 'Description', income: 'Income', expense: 'Expense', totalIncome: 'Total income', totalExpense: 'Total expense', currentBalance: 'Current balance', filePrefix: 'financial-report' },
@@ -6314,6 +6419,7 @@ export const resources = {
     "invalidCredentials": "Napačno uporabniško ime ali geslo.",
     "demoTitle": "Demo račun za testiranje",
     "noAccount": "Brez računa? Obrnite se na vodstvo ali skrbnika pohodniškega društva.",
+    "registerWithClubCode": "Registracija s klubsko kodo",
     "footerTagline": "vaš naslednji vrh čaka",
     "footerSystem": "planiner • sistem za pohodniška društva",
     "footerSafe": "Varni zapisi, več časa na poti",
@@ -7577,6 +7683,26 @@ export const resources = {
         "mediaLimitNegative": "Medijska omejitev (GB) ne more biti negativna.",
         "save": "Napaka pri shranjevanju"
       }
+    }
+  },
+  "invite": {
+    "enterPage": {
+      "badge": "Za nove člane",
+      "title": "Registracija s klubsko kodo",
+      "subtitle": "Vnesite 8-mestno kodo, ki jo je klub delil (npr. v skupini).",
+      "label": "Klubska koda",
+      "placeholder": "npr. A1B2C3D4",
+      "submit": "Naprej",
+      "submitting": "Preverjam ...",
+      "invalidFormat": "Koda mora imeti natančno 8 dovoljenih znakov.",
+      "errorGeneric": "Koda ni veljavna ali je potekla.",
+      "backToLogin": "Nazaj na prijavo"
+    },
+    "registerPlaceholder": {
+      "title": "Registracija člana",
+      "subtitle": "Koda je sprejeta. Celoten obrazec sledi v naslednjem koraku (povezava z strežnikom).",
+      "klubLabel": "Klub",
+      "back": "Nazaj na vnos kode"
     }
   },
   "pdf": {
