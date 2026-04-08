@@ -78,6 +78,15 @@ func main() {
 		log.Fatal("JWT_SECRET nije podešen ili je prekratak (minimum 32 karaktera)")
 	}
 
+	dsn := config.BuildDatabaseDSN()
+	db, err := config.OpenDatabase(dsn)
+	if err != nil {
+		log.Fatal("Ne mogu da se povežem sa bazom:", err)
+	} else {
+		log.Println("Uspješno povezan sa bazom!")
+		log.Print(".env je ucitan")
+	}
+
 
 
 	fmt.Println("Uspješno povezan sa bazom!")
