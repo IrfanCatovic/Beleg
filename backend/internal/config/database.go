@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"log"
+
 	"os"
 
 	"gorm.io/driver/postgres"
