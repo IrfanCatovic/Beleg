@@ -78,28 +78,7 @@ func main() {
 		log.Fatal("JWT_SECRET nije podešen ili je prekratak (minimum 32 karaktera)")
 	}
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = fmt.Sprintf(
-			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
-			os.Getenv("DB_HOST"),
-			os.Getenv("DB_USER"),
-			os.Getenv("DB_PASSWORD"),
-			os.Getenv("DB_NAME"),
-			os.Getenv("DB_PORT"),
-			os.Getenv("DB_SSLMODE"),
-			os.Getenv("DB_TIMEZONE"),
-		)
-	}
 
-	// Konekcija na bazu
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Ne mogu da se povežem sa bazom:", err)
-	} else {
-		log.Println("Uspješno povezan sa bazom!")
-		log.Print(".env je ucitan")
-	}
 
 	fmt.Println("Uspješno povezan sa bazom!")
 
