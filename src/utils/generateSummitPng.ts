@@ -201,15 +201,28 @@ function drawSummitLayoutOnContext(
 
   // stacked: 3 ćelije u prvom redu, 3 u drugom, PLANINER ispod, blok vertikalno centriran
   const { compactCells } = data
-  const padXCompact =
-    aspect === '16:9' ? 20 : 40
-  const innerW = w - 2 * padXCompact
-  const third = innerW / 3
-  const cxTri: [number, number, number] = [
-    padXCompact + third / 2,
-    padXCompact + third + third / 2,
-    padXCompact + 2 * third + third / 2,
-  ]
+  let cxTri: [number, number, number]
+  if (aspect === '16:9') {
+    // Uži, zbijen blok (ne preko cele širine) — tri kolone fiksne širine, mali razmak
+    const colW = 200
+    const between = 14
+    const gridW = 3 * colW + 2 * between
+    const left = (w - gridW) / 2
+    cxTri = [
+      left + colW / 2,
+      left + colW + between + colW / 2,
+      left + 2 * (colW + between) + colW / 2,
+    ]
+  } else {
+    const padXCompact = 40
+    const innerW = w - 2 * padXCompact
+    const third = innerW / 3
+    cxTri = [
+      padXCompact + third / 2,
+      padXCompact + third + third / 2,
+      padXCompact + 2 * third + third / 2,
+    ]
+  }
 
   let labelPx = aspect === '9:16' ? 20 : 17
   let valuePx = aspect === '9:16' ? 30 : 24
