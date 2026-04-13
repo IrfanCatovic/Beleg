@@ -2,7 +2,7 @@ import { computeMMRForAkcija, type AkcijaZaRanking } from './rankingUtils'
 
 export type SummitAspect = '9:16' | '16:9'
 
-/** balanced: podaci + PLANINER pri dnu, blok centriran; stacked: PLANINER odmah ispod redova, ceo blok centriran. */
+/** balanced: podaci + PLANINER pri dnu; stacked: 3+3 u dva reda + PLANINER ispod, centrirano. */
 export type SummitLayout = 'balanced' | 'stacked'
 
 export interface SummitPngLabels {
@@ -66,11 +66,19 @@ function rowGapFor(aspect: SummitAspect): number {
   return aspect === '9:16' ? 36 : 28
 }
 
-function buildRows(
+type ClassicRow = [string, string, string, string]
+
+/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | MMR. */
+interface SummitDrawData {
+  classicRows: ClassicRow[]
+  compactCells: [string, string][]
+}
+
+function buildSummitDrawData(
   akcija: SummitPngAkcijaPayload,
   labels: SummitPngLabels,
   dateFormatted: string
-): [string, string, string, string][] {
+): SummitDrawData {
   const mmr = computeMMRForAkcija({
     duzinaStazeKm: akcija.duzinaStazeKm ?? 0,
     kumulativniUsponM: akcija.kumulativniUsponM ?? 0,
@@ -87,11 +95,20 @@ function buildRows(
     date: dateFormatted || '—',
     mmr: `+${mmr} MMR`,
   }
-  return [
+  const classicRows: ClassicRow[] = [
     [labels.mountain, values.mountain, labels.peak, values.peak],
     [labels.trail, values.trail, labels.ascent, values.ascent],
     [labels.date, values.date, labels.mmr, values.mmr],
   ]
+  const compactCells: [string, string][] = [
+    [labels.mountain, values.mountain],
+    [labels.peak, values.peak],
+    [labels.trail, values.trail],
+    [labels.ascent, values.ascent],
+    [labels.date, values.date],
+    [labels.mmr, values.mmr],
+  ]
+  return { classicRows, compactCells }
 }
 
 async function loadSummitFonts(aspect: SummitAspect): Promise<void> {
@@ -105,7 +122,6 @@ async function loadSummitFonts(aspect: SummitAspect): Promise<void> {
 
 /**
  * Crta kompoziciju u koordinatnom sistemu dizajna (npr. 1080×1920).
- * Pretpostavlja da je ctx već podešen (identitet ili scale).
  */
 function drawSummitLayoutOnContext(
   ctx: CanvasRenderingContext2D,
@@ -113,59 +129,122 @@ function drawSummitLayoutOnContext(
   h: number,
   aspect: SummitAspect,
   layout: SummitLayout,
-  rows: [string, string, string, string][]
+  data: SummitDrawData
 ): void {
-  const pad = aspect === '9:16' ? 72 : 56
-  const labelPx = aspect === '9:16' ? 24 : 20
-  const valuePx = aspect === '9:16' ? 36 : 30
-  const colGap = aspect === '9:16' ? 40 : 48
-  const innerW = w - pad * 2
-  const colW = (innerW - colGap) / 2
-  const cxLeft = pad + colW / 2
-  const cxRight = pad + colW + colGap + colW / 2
   const rowGap = rowGapFor(aspect)
-
-  const cellH = labelPx * 1.15 + 6 + valuePx * 1.2
-  const gridHeight = rows.length * cellH + (rows.length - 1) * rowGap
-
   const brandSize = aspect === '9:16' ? 132 : 88
-  const gapStacked = aspect === '9:16' ? 36 : 28
+  const gapStacked = aspect === '9:16' ? 32 : 26
   const minGapAboveBrand = aspect === '9:16' ? 56 : 40
 
-  const drawAllRows = (yStart: number): number => {
-    let y = yStart
-    let bottom = yStart
-    for (const [l1, v1, l2, v2] of rows) {
-      const h1 = drawCellCentered(ctx, cxLeft, y, l1, v1, labelPx, valuePx)
-      const h2 = drawCellCentered(ctx, cxRight, y, l2, v2, labelPx, valuePx)
-      const mh = Math.max(h1, h2)
-      bottom = y + mh
-      y = bottom + rowGap
-    }
-    return bottom
-  }
+  const padBottom = aspect === '9:16' ? 72 : 56
 
   if (layout === 'balanced') {
-    const brandY = h - pad - brandSize * 1.05
+    const { classicRows } = data
+    let labelPx: number
+    let valuePx: number
+    let cxLeft: number
+    let cxRight: number
+
+    if (aspect === '16:9') {
+      // Skoro do ivica: centri kolona na w/4 i 3w/4 (maksimalan razmak levo/desno, mala margina do teksta)
+      cxLeft = w / 4
+      cxRight = (3 * w) / 4
+      labelPx = 19
+      valuePx = 28
+    } else {
+      const padX = 72
+      const colGap = 40
+      const innerW = w - padX * 2
+      const colW = (innerW - colGap) / 2
+      cxLeft = padX + colW / 2
+      cxRight = padX + colW + colGap + colW / 2
+      labelPx = 24
+      valuePx = 36
+    }
+
+    const cellH = labelPx * 1.15 + 6 + valuePx * 1.2
+    const gridHeight = classicRows.length * cellH + (classicRows.length - 1) * rowGap
+
+    const drawClassicRows = (yStart: number): number => {
+      let y = yStart
+      let bottom = yStart
+      for (const [l1, v1, l2, v2] of classicRows) {
+        const h1 = drawCellCentered(ctx, cxLeft, y, l1, v1, labelPx, valuePx)
+        const h2 = drawCellCentered(ctx, cxRight, y, l2, v2, labelPx, valuePx)
+        const mh = Math.max(h1, h2)
+        bottom = y + mh
+        y = bottom + rowGap
+      }
+      return bottom
+    }
+
+    const brandY = h - padBottom - brandSize * 1.05
     const gridBottomLimit = brandY - minGapAboveBrand
-    const gridTop = pad + Math.max(0, (gridBottomLimit - pad - gridHeight) / 2)
-    drawAllRows(gridTop)
+
+    let gridTop: number
+    if (aspect === '9:16') {
+      const preferFromTop = 48
+      gridTop = Math.min(preferFromTop, gridBottomLimit - gridHeight)
+    } else {
+      const padTop = 36
+      gridTop = padTop + Math.max(0, (gridBottomLimit - padTop - gridHeight) / 2)
+    }
+
+    drawClassicRows(gridTop)
     ctx.fillStyle = '#ffffff'
     ctx.font = `400 ${brandSize}px ${BEBAS}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.fillText('PLANINER', w / 2, brandY)
-  } else {
-    const stackH = gridHeight + gapStacked + brandSize * 1.05
-    const gridTop = (h - stackH) / 2
-    const gridBottom = drawAllRows(gridTop)
-    const brandY = gridBottom + gapStacked
-    ctx.fillStyle = '#ffffff'
-    ctx.font = `400 ${brandSize}px ${BEBAS}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
-    ctx.fillText('PLANINER', w / 2, brandY)
+    return
   }
+
+  // stacked: 3 ćelije u prvom redu, 3 u drugom, PLANINER ispod, blok vertikalno centriran
+  const { compactCells } = data
+  const padXCompact =
+    aspect === '16:9' ? 20 : 40
+  const innerW = w - 2 * padXCompact
+  const third = innerW / 3
+  const cxTri: [number, number, number] = [
+    padXCompact + third / 2,
+    padXCompact + third + third / 2,
+    padXCompact + 2 * third + third / 2,
+  ]
+
+  let labelPx = aspect === '9:16' ? 20 : 17
+  let valuePx = aspect === '9:16' ? 30 : 24
+
+  const cellHCompact = labelPx * 1.15 + 6 + valuePx * 1.2
+  const gridHeight = 2 * cellHCompact + rowGap
+
+  const drawCompactAt = (y0: number): number => {
+    let y = y0
+    let rowMax = 0
+    for (let i = 0; i < 3; i++) {
+      const [lab, val] = compactCells[i]
+      const ch = drawCellCentered(ctx, cxTri[i], y, lab, val, labelPx, valuePx)
+      rowMax = Math.max(rowMax, ch)
+    }
+    y += rowMax + rowGap
+    rowMax = 0
+    for (let i = 0; i < 3; i++) {
+      const [lab, val] = compactCells[3 + i]
+      const ch = drawCellCentered(ctx, cxTri[i], y, lab, val, labelPx, valuePx)
+      rowMax = Math.max(rowMax, ch)
+    }
+    return y + rowMax
+  }
+
+  const stackH = gridHeight + gapStacked + brandSize * 1.05
+  const gridTop = (h - stackH) / 2
+  const gridBottom = drawCompactAt(gridTop)
+  const brandY = gridBottom + gapStacked
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `400 ${brandSize}px ${BEBAS}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText('PLANINER', w / 2, brandY)
 }
 
 /** Mini pregled (data URL) istog sadržaja kao finalni PNG, za UI izbor rasporeda. */
@@ -178,7 +257,7 @@ export async function getSummitLayoutPreviewDataUrl(
   maxWidthPx = 168
 ): Promise<string> {
   const { w: dw, h: dh } = DESIGN[aspect]
-  const rows = buildRows(akcija, labels, dateFormatted)
+  const data = buildSummitDrawData(akcija, labels, dateFormatted)
   const pw = Math.max(64, Math.round(maxWidthPx))
   const ph = Math.max(64, Math.round((pw * dh) / dw))
 
@@ -192,7 +271,7 @@ export async function getSummitLayoutPreviewDataUrl(
   ctx.clearRect(0, 0, pw, ph)
   ctx.save()
   ctx.scale(pw / dw, ph / dh)
-  drawSummitLayoutOnContext(ctx, dw, dh, aspect, layout, rows)
+  drawSummitLayoutOnContext(ctx, dw, dh, aspect, layout, data)
   ctx.restore()
 
   return canvas.toDataURL('image/png')
@@ -209,7 +288,7 @@ export async function downloadSummitSuccessPng(
   dateFormatted: string
 ): Promise<void> {
   const { w, h } = DESIGN[aspect]
-  const rows = buildRows(akcija, labels, dateFormatted)
+  const data = buildSummitDrawData(akcija, labels, dateFormatted)
 
   const canvas = document.createElement('canvas')
   canvas.width = w
@@ -219,7 +298,7 @@ export async function downloadSummitSuccessPng(
 
   ctx.clearRect(0, 0, w, h)
   await loadSummitFonts(aspect)
-  drawSummitLayoutOnContext(ctx, w, h, aspect, layout, rows)
+  drawSummitLayoutOnContext(ctx, w, h, aspect, layout, data)
 
   await new Promise<void>((resolve, reject) => {
     canvas.toBlob(

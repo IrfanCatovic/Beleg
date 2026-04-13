@@ -8,6 +8,9 @@ export function dateToYMD(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+/** Lokal za prikaz datuma u latinici (meseci tipa „januar“, ne ćirilica). */
+const DATE_LOCALE_LATN = 'sr-Latn-RS'
+
 /**
  * Formatira datum za prikaz (npr. "15. januar 2025.").
  * Za nevažeći datum vraća fallback (podrazumevano "—").
@@ -18,7 +21,9 @@ export function formatDate(
 ): string {
   if (value == null) return fallback
   const d = value instanceof Date ? value : new Date(value)
-  return isNaN(d.getTime()) ? fallback : d.toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })
+  return isNaN(d.getTime())
+    ? fallback
+    : d.toLocaleDateString(DATE_LOCALE_LATN, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /**
@@ -30,7 +35,7 @@ export function formatDateShort(
 ): string {
   if (value == null) return fallback
   const d = value instanceof Date ? value : new Date(value)
-  return isNaN(d.getTime()) ? fallback : d.toLocaleDateString('sr-RS')
+  return isNaN(d.getTime()) ? fallback : d.toLocaleDateString(DATE_LOCALE_LATN)
 }
 
 /**
@@ -42,7 +47,7 @@ export function formatDateTime(
 ): string {
   if (value == null) return fallback
   const d = value instanceof Date ? value : new Date(value)
-  return isNaN(d.getTime()) ? fallback : d.toLocaleString('sr-RS')
+  return isNaN(d.getTime()) ? fallback : d.toLocaleString(DATE_LOCALE_LATN)
 }
 
 /**
