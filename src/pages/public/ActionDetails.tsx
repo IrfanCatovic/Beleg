@@ -6,7 +6,12 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
-import { downloadSummitSuccessPng } from '../../utils/generateSummitPng'
+import {
+  downloadSummitSuccessPng,
+  getSummitLayoutPreviewDataUrl,
+  type SummitAspect,
+  type SummitLayout,
+} from '../../utils/generateSummitPng'
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
@@ -71,7 +76,7 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default function ActionDetails() {
-  const { t } = useTranslation('actionDetails')
+  const { t, i18n } = useTranslation('actionDetails')
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
@@ -82,6 +87,12 @@ export default function ActionDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [mojaPrijava, setMojaPrijava] = useState<{ status: string } | null | undefined>(undefined)
+  const [summitShareOpen, setSummitShareOpen] = useState(false)
+  const [summitShareStep, setSummitShareStep] = useState<1 | 2>(1)
+  const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
+  const [summitPreviewBalanced, setSummitPreviewBalanced] = useState<string | null>(null)
+  const [summitPreviewStacked, setSummitPreviewStacked] = useState<string | null>(null)
+  const [summitPreviewLoading, setSummitPreviewLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -102,6 +113,75 @@ export default function ActionDetails() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!summitShareOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSummitShareOpen(false)
+        setSummitShareStep(1)
+        setSummitPickedAspect(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [summitShareOpen])
+
+  useEffect(() => {
+    if (summitShareStep !== 2 || !summitPickedAspect || !akcija) {
+      setSummitPreviewBalanced(null)
+      setSummitPreviewStacked(null)
+      setSummitPreviewLoading(false)
+      return
+    }
+    let cancelled = false
+    const payload = {
+      id: akcija.id,
+      planina: akcija.planina,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      duzinaStazeKm: akcija.duzinaStazeKm,
+      kumulativniUsponM: akcija.kumulativniUsponM,
+      visinaVrhM: akcija.visinaVrhM,
+      zimskiUspon: akcija.zimskiUspon,
+      tezina: akcija.tezina,
+    }
+    const labels = {
+      mountain: t('mountain'),
+      peak: t('peak'),
+      trail: t('summitPngTrail'),
+      ascent: t('summitPngAscent'),
+      date: t('date'),
+      mmr: t('summitPngMmr'),
+    }
+    const dateFormatted = formatDate(akcija.datum)
+    setSummitPreviewBalanced(null)
+    setSummitPreviewStacked(null)
+    setSummitPreviewLoading(true)
+    void (async () => {
+      try {
+        const previewW = summitPickedAspect === '9:16' ? 140 : 200
+        const [b, s] = await Promise.all([
+          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'balanced', labels, dateFormatted, previewW),
+          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'stacked', labels, dateFormatted, previewW),
+        ])
+        if (!cancelled) {
+          setSummitPreviewBalanced(b)
+          setSummitPreviewStacked(s)
+        }
+      } catch {
+        if (!cancelled) {
+          setSummitPreviewBalanced(null)
+          setSummitPreviewStacked(null)
+        }
+      } finally {
+        if (!cancelled) setSummitPreviewLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [summitShareStep, summitPickedAspect, akcija, i18n.language, t])
 
   useEffect(() => {
     if (!user || !id) {
@@ -313,7 +393,19 @@ export default function ActionDetails() {
   const showSummitImageCard =
     !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
 
-  const handleSummitPng = async (aspect: '9:16' | '16:9') => {
+  const closeSummitShareModal = () => {
+    setSummitShareOpen(false)
+    setSummitShareStep(1)
+    setSummitPickedAspect(null)
+  }
+
+  const openSummitShareModal = () => {
+    setSummitShareStep(1)
+    setSummitPickedAspect(null)
+    setSummitShareOpen(true)
+  }
+
+  const handleSummitPngDownload = async (aspect: SummitAspect, layout: SummitLayout) => {
     try {
       await downloadSummitSuccessPng(
         {
@@ -328,6 +420,7 @@ export default function ActionDetails() {
           tezina: akcija.tezina,
         },
         aspect,
+        layout,
         {
           mountain: t('mountain'),
           peak: t('peak'),
@@ -338,6 +431,7 @@ export default function ActionDetails() {
         },
         formatDate(akcija.datum)
       )
+      closeSummitShareModal()
     } catch {
       await showAlert(t('summitPngError'), t('errorTitle'))
     }
@@ -717,28 +811,16 @@ export default function ActionDetails() {
                   </div>
                   <div className="p-5 space-y-4">
                     <p className="text-[11px] text-gray-500 leading-relaxed">{t('summitImageSubtitle')}</p>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => void handleSummitPng('9:16')}
-                        className="inline-flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl text-[11px] font-bold text-white bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm shadow-emerald-200/60 border border-emerald-400/20 transition-all"
-                      >
-                        <svg className="w-5 h-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        {t('summitDownload916')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleSummitPng('16:9')}
-                        className="inline-flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl text-[11px] font-bold text-emerald-800 bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/80 transition-all"
-                      >
-                        <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        {t('summitDownload169')}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={openSummitShareModal}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all"
+                    >
+                      <svg className="w-5 h-5 shrink-0 opacity-95" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                      {t('summitShareButton')}
+                    </button>
                   </div>
                 </div>
               )}
@@ -815,6 +897,161 @@ export default function ActionDetails() {
           </div>
         </div>
       </div>
+
+      {summitShareOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]"
+          role="presentation"
+          onClick={closeSummitShareModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summit-share-title"
+            className="relative w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/50">
+              <h2 id="summit-share-title" className="text-sm font-bold text-gray-900 tracking-tight">
+                {t('summitShareModalTitle')}
+              </h2>
+              <button
+                type="button"
+                onClick={closeSummitShareModal}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-white/80 hover:text-gray-800 transition-colors"
+                aria-label={t('summitShareClose')}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {summitShareStep === 1 && (
+                <>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('summitStepChooseFormat')}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSummitPickedAspect('9:16')
+                        setSummitShareStep(2)
+                      }}
+                      className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl text-sm font-bold text-white bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border border-emerald-400/20 shadow-sm transition-all"
+                    >
+                      <span className="text-lg font-extrabold tabular-nums">9 : 16</span>
+                      <span className="text-[10px] font-semibold opacity-90">{t('summitFormatPortraitHint')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSummitPickedAspect('16:9')
+                        setSummitShareStep(2)
+                      }}
+                      className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl text-sm font-bold text-emerald-800 bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/80 transition-all"
+                    >
+                      <span className="text-lg font-extrabold tabular-nums">16 : 9</span>
+                      <span className="text-[10px] font-semibold text-emerald-700/80">{t('summitFormatLandscapeHint')}</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {summitShareStep === 2 && summitPickedAspect && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSummitShareStep(1)}
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    {t('summitBack')}
+                  </button>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('summitStepChooseLayout')}</p>
+                  <p className="text-[11px] text-gray-400 leading-snug">{t('summitPreviewTapHint')}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleSummitPngDownload(summitPickedAspect, 'balanced')}
+                      disabled={summitPreviewLoading}
+                      className="group flex flex-col gap-2 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:pointer-events-none"
+                      aria-label={t('summitLayoutBalancedTitle')}
+                    >
+                      <div className="relative rounded-xl overflow-hidden bg-gradient-to-b from-neutral-700 to-neutral-900 ring-2 ring-white/10 shadow-inner group-hover:ring-emerald-400/80 group-focus-visible:ring-emerald-500 transition-all">
+                        {summitPreviewLoading ? (
+                          <div
+                            className="w-full animate-pulse bg-neutral-600"
+                            style={{
+                              aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9',
+                              minHeight: 120,
+                            }}
+                          />
+                        ) : summitPreviewBalanced ? (
+                          <img
+                            src={summitPreviewBalanced}
+                            alt=""
+                            className="w-full h-auto block"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div
+                            className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
+                            style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
+                          >
+                            —
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-center text-[11px] font-bold text-gray-800 group-hover:text-emerald-700">
+                        {t('summitLayoutBalancedTitle')}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSummitPngDownload(summitPickedAspect, 'stacked')}
+                      disabled={summitPreviewLoading}
+                      className="group flex flex-col gap-2 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:pointer-events-none"
+                      aria-label={t('summitLayoutStackedTitle')}
+                    >
+                      <div className="relative rounded-xl overflow-hidden bg-gradient-to-b from-neutral-700 to-neutral-900 ring-2 ring-white/10 shadow-inner group-hover:ring-emerald-400/80 group-focus-visible:ring-emerald-500 transition-all">
+                        {summitPreviewLoading ? (
+                          <div
+                            className="w-full animate-pulse bg-neutral-600"
+                            style={{
+                              aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9',
+                              minHeight: 120,
+                            }}
+                          />
+                        ) : summitPreviewStacked ? (
+                          <img
+                            src={summitPreviewStacked}
+                            alt=""
+                            className="w-full h-auto block"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div
+                            className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
+                            style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
+                          >
+                            —
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-center text-[11px] font-bold text-gray-800 group-hover:text-emerald-700">
+                        {t('summitLayoutStackedTitle')}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
