@@ -6,6 +6,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
+import { downloadSummitSuccessPng } from '../../utils/generateSummitPng'
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
@@ -33,6 +34,8 @@ interface Akcija {
   klubNaziv?: string
   klubId?: number
   limited?: boolean
+  kumulativniUsponM?: number
+  duzinaStazeKm?: number
 }
 
 interface Prijava {
@@ -78,6 +81,7 @@ export default function ActionDetails() {
   const [canSeePrijave, setCanSeePrijave] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [mojaPrijava, setMojaPrijava] = useState<{ status: string } | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
@@ -98,6 +102,26 @@ export default function ActionDetails() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!user || !id) {
+      setMojaPrijava(undefined)
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      try {
+        const res = await api.get<{ prijava: { status: string } | null }>(`/api/akcije/${id}/moja-prijava`)
+        if (!cancelled) setMojaPrijava(res.data.prijava ?? null)
+      } catch {
+        if (!cancelled) setMojaPrijava(null)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [id, user])
 
   useEffect(() => {
     const enrichWithAvatars = async (items: Prijava[]): Promise<Prijava[]> => {
@@ -284,6 +308,39 @@ export default function ActionDetails() {
       brojPrijavljenih: prijave.length, brojUspesnoPopeli: uspesnoPopeli.length,
       imenaUspesnoPopeli,
     })
+  }
+
+  const showSummitImageCard =
+    !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
+
+  const handleSummitPng = async (aspect: '9:16' | '16:9') => {
+    try {
+      await downloadSummitSuccessPng(
+        {
+          id: akcija.id,
+          planina: akcija.planina,
+          vrh: akcija.vrh,
+          datum: akcija.datum,
+          duzinaStazeKm: akcija.duzinaStazeKm,
+          kumulativniUsponM: akcija.kumulativniUsponM,
+          visinaVrhM: akcija.visinaVrhM,
+          zimskiUspon: akcija.zimskiUspon,
+          tezina: akcija.tezina,
+        },
+        aspect,
+        {
+          mountain: t('mountain'),
+          peak: t('peak'),
+          trail: t('summitPngTrail'),
+          ascent: t('summitPngAscent'),
+          date: t('date'),
+          mmr: t('summitPngMmr'),
+        },
+        formatDate(akcija.datum)
+      )
+    } catch {
+      await showAlert(t('summitPngError'), t('errorTitle'))
+    }
   }
 
   return (
@@ -651,6 +708,40 @@ export default function ActionDetails() {
                   </div>
                 </div>
               </div>
+
+              {showSummitImageCard && (
+                <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden ring-1 ring-emerald-500/10">
+                  <div className="px-5 py-4 border-b border-emerald-50 flex items-center gap-2.5 bg-gradient-to-r from-emerald-50/80 to-teal-50/40">
+                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
+                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('summitImageTitle')}</h3>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <p className="text-[11px] text-gray-500 leading-relaxed">{t('summitImageSubtitle')}</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => void handleSummitPng('9:16')}
+                        className="inline-flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl text-[11px] font-bold text-white bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm shadow-emerald-200/60 border border-emerald-400/20 transition-all"
+                      >
+                        <svg className="w-5 h-5 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {t('summitDownload916')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSummitPng('16:9')}
+                        className="inline-flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl text-[11px] font-bold text-emerald-800 bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/80 transition-all"
+                      >
+                        <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {t('summitDownload169')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ══════════ ADMIN CONTROLS (samo domaćin kluba) ══════════ */}
               {canManageHost && !isLimitedView && (
