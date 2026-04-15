@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Dropdown from '../../components/Dropdown'
@@ -12,6 +12,12 @@ import { useTranslation } from 'react-i18next'
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
 type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
 type CurrencyCode = 'RSD' | 'BAM' | 'HRK' | 'EUR'
+
+interface KlubCurrencyResponse {
+  klub?: {
+    valuta?: string
+  }
+}
 
 interface Transakcija {
   id: number
@@ -47,6 +53,7 @@ export default function Finance() {
   const { t } = useTranslation('finance')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [currency, setCurrency] = useState<CurrencyCode>('RSD')
+  const [currencySaving, setCurrencySaving] = useState(false)
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
@@ -78,6 +85,13 @@ export default function Finance() {
 
   const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
   const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
+  const canEditClubCurrency = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
+
+  const normalizeCurrency = (raw: unknown): CurrencyCode => {
+    const val = typeof raw === 'string' ? raw.toUpperCase().trim() : ''
+    if (val === 'BAM' || val === 'HRK' || val === 'EUR') return val
+    return 'RSD'
+  }
 
   const fetchDashboard = async () => {
     if (!user) return
@@ -114,10 +128,43 @@ export default function Finance() {
     }
   }
 
+  const fetchClubCurrency = useCallback(async () => {
+    if (!user) return
+    try {
+      const res = await api.get<KlubCurrencyResponse>('/api/klub')
+      const nextCurrency = normalizeCurrency(res.data?.klub?.valuta)
+      setCurrency(nextCurrency)
+    } catch {
+      setCurrency('RSD')
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchClubCurrency()
+  }, [fetchClubCurrency])
+
   useEffect(() => {
     if (tab === 'dashboard') fetchDashboard()
     else if (tab === 'clanarine') fetchClanarine()
   }, [tab, fromDate, toDate, clanarineGodina])
+
+  const handleCurrencyChange = async (nextValue: string) => {
+    const nextCurrency = normalizeCurrency(nextValue)
+    if (nextCurrency === currency) return
+    setCurrency(nextCurrency)
+    if (!canEditClubCurrency) return
+    setCurrencySaving(true)
+    setError('')
+    try {
+      await api.patch('/api/klub', { valuta: nextCurrency })
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
+      setError(msg)
+      await fetchClubCurrency()
+    } finally {
+      setCurrencySaving(false)
+    }
+  }
 
   const handleNovaTransakcija = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -232,19 +279,28 @@ export default function Finance() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Dropdown
-              aria-label={t('currency.ariaLabel')}
-              options={[
-                { value: 'RSD', label: 'RSD' },
-                { value: 'BAM', label: 'BAM' },
-                { value: 'HRK', label: 'HRK' },
-                { value: 'EUR', label: 'EUR' },
-              ]}
-              value={currency}
-              onChange={(v) => setCurrency(v as CurrencyCode)}
-              minTriggerWidth="110px"
-              className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
-            />
+            {canEditClubCurrency ? (
+              <Dropdown
+                aria-label={t('currency.ariaLabel')}
+                options={[
+                  { value: 'RSD', label: 'RSD' },
+                  { value: 'BAM', label: 'BAM' },
+                  { value: 'HRK', label: 'HRK' },
+                  { value: 'EUR', label: 'EUR' },
+                ]}
+                value={currency}
+                onChange={handleCurrencyChange}
+                minTriggerWidth="110px"
+                className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
+              />
+            ) : (
+              <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-sm min-w-[110px] justify-center">
+                {currency}
+              </div>
+            )}
+            {currencySaving && (
+              <span className="text-[11px] text-gray-500">{t('common.saving')}</span>
+            )}
             {dashboardData && tab === 'dashboard' && (
               <button
                 type="button"

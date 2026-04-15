@@ -16,6 +16,13 @@ import (
 	"gorm.io/gorm"
 )
 
+var allowedClubCurrencies = map[string]struct{}{
+	"RSD": {},
+	"BAM": {},
+	"HRK": {},
+	"EUR": {},
+}
+
 // GetMojKlub vraća podatke kluba za trenutni kontekst (effective club).
 // Svi ulogovani članovi kluba mogu da vide; superadmin mora da pošalje X-Club-Id.
 func GetMojKlub(c *gin.Context) {
@@ -104,16 +111,17 @@ func GetClubAdminStats(c *gin.Context) {
 // updateMojKlubRequest polja koja klub (admin/sekretar) može da menja.
 // Limite, subskripciju i OnHold menja samo superadmin preko superadmin ruta.
 type updateMojKlubRequest struct {
-	Naziv           *string `json:"naziv"`
-	Adresa          *string `json:"adresa"`
-	Telefon         *string `json:"telefon"`
-	Email           *string `json:"email"`
-	MaticniBroj     *string `json:"maticni_broj"`
-	PIB             *string `json:"pib"`
-	ZiroRacun       *string `json:"ziro_racun"`
-	Sediste         *string `json:"sediste"`
-	WebSajt         *string `json:"web_sajt"`
-	DatumOsnivanja  *string `json:"datum_osnivanja"` // YYYY-MM-DD
+	Naziv          *string `json:"naziv"`
+	Valuta         *string `json:"valuta"`
+	Adresa         *string `json:"adresa"`
+	Telefon        *string `json:"telefon"`
+	Email          *string `json:"email"`
+	MaticniBroj    *string `json:"maticni_broj"`
+	PIB            *string `json:"pib"`
+	ZiroRacun      *string `json:"ziro_racun"`
+	Sediste        *string `json:"sediste"`
+	WebSajt        *string `json:"web_sajt"`
+	DatumOsnivanja *string `json:"datum_osnivanja"` // YYYY-MM-DD
 }
 
 func parseOptionalDate(s string) *time.Time {
@@ -191,6 +199,14 @@ func UpdateMojKlub(c *gin.Context) {
 			return
 		}
 		klub.Naziv = n
+	}
+	if req.Valuta != nil {
+		val := strings.ToUpper(strings.TrimSpace(*req.Valuta))
+		if _, ok := allowedClubCurrencies[val]; !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća valuta (dozvoljeno: RSD, BAM, HRK, EUR)"})
+			return
+		}
+		klub.Valuta = val
 	}
 	if req.Adresa != nil {
 		klub.Adresa = strings.TrimSpace(*req.Adresa)
