@@ -771,9 +771,9 @@ export default function ActionDetails() {
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusCls}`}>
                                 {prijavaStatusLabel(p.status, t)}
                               </span>
-                              {canManageHost && !akcija.isCompleted && (
+                              {canManageHost && (
                                 <div className="flex gap-1.5 items-center">
-                                  {p.status === 'prijavljen' && (
+                                  {!akcija.isCompleted && p.status === 'prijavljen' && (
                                     <>
                                       <button
                                         onClick={() => handleUpdateStatus(p.id, 'popeo se')}
@@ -816,7 +816,6 @@ export default function ActionDetails() {
                         <div className="flex-1">
                           <Dropdown
                             aria-label="Izaberi clana za dodavanje na zavrsenu akciju"
-                            className="z-[60]"
                             options={[
                               { value: '', label: 'Izaberi clana' },
                               ...membersToAdd.map((m) => ({

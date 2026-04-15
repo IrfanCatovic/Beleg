@@ -78,7 +78,7 @@ export default function Dropdown({
       </button>
       {open && (
         <div
-          className="absolute left-0 right-0 top-full z-50 mt-1.5 w-full max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl ring-1 ring-black/5"
+          className="absolute left-0 right-0 top-full z-30 mt-1.5 w-full max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl ring-1 ring-black/5"
           style={!fullWidth ? { minWidth: minTriggerWidth } : undefined}
           role="listbox"
         >
