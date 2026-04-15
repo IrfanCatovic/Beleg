@@ -1768,6 +1768,102 @@ func main() {
 			})
 		})
 
+		// POST /api/akcije/:id/dodaj-clana-popeo-se — za završenu akciju dodaje člana kao "popeo se"
+		protected.POST("/akcije/:id/dodaj-clana-popeo-se", func(c *gin.Context) {
+			role, _ := c.Get("role")
+			if role != "admin" && role != "vodic" && role != "superadmin" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može dodati člana na završenu akciju"})
+				return
+			}
+
+			idStr := c.Param("id")
+			akcijaID, err := strconv.Atoi(idStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+				return
+			}
+
+			var req struct {
+				KorisnikID uint `json:"korisnikId" binding:"required"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil || req.KorisnikID == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći korisnikId"})
+				return
+			}
+
+			db := c.MustGet("db").(*gorm.DB)
+
+			var akcija models.Akcija
+			if err := db.First(&akcija, akcijaID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+			if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da dodaje članove na ovu akciju"})
+				return
+			}
+			if !akcija.IsCompleted {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Član se ovde može dodati tek kada je akcija završena"})
+				return
+			}
+
+			var korisnik models.Korisnik
+			if err := db.First(&korisnik, req.KorisnikID).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+				return
+			}
+			if korisnik.Role == "deleted" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Korisnik je deaktiviran"})
+				return
+			}
+			if akcija.KlubID == nil || korisnik.KlubID == nil || *korisnik.KlubID != *akcija.KlubID {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Možete dodati samo člana kluba koji je domaćin akcije"})
+				return
+			}
+
+			var prijava models.Prijava
+			err = db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju prijave"})
+				return
+			}
+
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				prijava = models.Prijava{
+					AkcijaID:   akcija.ID,
+					KorisnikID: korisnik.ID,
+					Status:     "popeo se",
+				}
+				if err := db.Create(&prijava).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju člana na akciju"})
+					return
+				}
+			} else {
+				if prijava.Status == "popeo se" {
+					c.JSON(http.StatusConflict, gin.H{"error": "Član je već označen kao uspešno popeo se"})
+					return
+				}
+				prijava.Status = "popeo se"
+				if err := db.Save(&prijava).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju prijave"})
+					return
+				}
+			}
+
+			korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
+			korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
+			korisnik.BrojPopeoSe += 1
+			if err := db.Save(&korisnik).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Član je dodat na završenu akciju kao uspešno popeo se",
+				"prijava": prijava,
+			})
+		})
+
 		// POST /api/akcije/:id/zavrsi oznaci akciju kao zavrsenu, samo admin, superadmin ili vodic
 		protected.POST("/akcije/:id/zavrsi", func(c *gin.Context) {
 			// Samo admin, superadmin ili vodič

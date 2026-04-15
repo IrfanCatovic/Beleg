@@ -15,6 +15,7 @@ import {
 import { formatDateTime, formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
+import Dropdown from '../../components/Dropdown'
 import { tezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
 
 interface Akcija {
@@ -52,6 +53,12 @@ interface Prijava {
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
 }
 
+interface ClubMember {
+  id: number
+  username: string
+  fullName?: string
+}
+
 const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
   lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
   srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
@@ -87,6 +94,10 @@ export default function ActionDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [mojaPrijava, setMojaPrijava] = useState<{ status: string } | null | undefined>(undefined)
+  const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
+  const [selectedMemberId, setSelectedMemberId] = useState('')
+  const [addingMember, setAddingMember] = useState(false)
+  const [addingMemberError, setAddingMemberError] = useState('')
   const [summitShareOpen, setSummitShareOpen] = useState(false)
   const [summitShareStep, setSummitShareStep] = useState<1 | 2>(1)
   const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
@@ -253,6 +264,27 @@ export default function ActionDetails() {
     void run()
   }, [id, user, akcija])
 
+  useEffect(() => {
+    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted) {
+      setClubMembers([])
+      setSelectedMemberId('')
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      try {
+        const res = await api.get<{ korisnici: ClubMember[] }>('/api/korisnici')
+        if (!cancelled) setClubMembers(res.data.korisnici || [])
+      } catch {
+        if (!cancelled) setClubMembers([])
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [user, akcija])
+
   const handleDelete = async () => {
     const confirmed = await showConfirm(t('deleteConfirmMessage'), { variant: 'danger', confirmLabel: t('delete') })
     if (!confirmed) return
@@ -307,6 +339,31 @@ export default function ActionDetails() {
       })
     } catch (err: any) {
       await showAlert(err.response?.data?.error || t('removeMemberError'), t('errorTitle'))
+    }
+  }
+
+  const handleAddCompletedMember = async () => {
+    if (!id || !selectedMemberId) return
+    setAddingMemberError('')
+    setAddingMember(true)
+    try {
+      await api.post(`/api/akcije/${id}/dodaj-clana-popeo-se`, { korisnikId: Number(selectedMemberId) })
+      const res = await api.get(`/api/akcije/${id}/prijave`)
+      const list: Prijava[] = res.data.prijave || []
+      setPrijave((prev) => {
+        const avatarMap = new Map<number, string | undefined>()
+        prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
+        return list.map((p) => ({
+          ...p,
+          avatarUrl: p.avatarUrl || (p as any).avatar_url || avatarMap.get(p.id),
+        }))
+      })
+      setSelectedMemberId('')
+      await showAlert('Clan je dodat i oznacen kao uspesno popeo se.')
+    } catch (err: any) {
+      setAddingMemberError(err.response?.data?.error || 'Neuspesno dodavanje clana na zavrsenu akciju.')
+    } finally {
+      setAddingMember(false)
     }
   }
 
@@ -370,6 +427,8 @@ export default function ActionDetails() {
   const isLimitedView = !!akcija.limited
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
+  const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
+  const membersToAdd = clubMembers.filter((m) => !climbedByUsername.has(m.username))
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -745,6 +804,45 @@ export default function ActionDetails() {
                           </div>
                         )
                       })}
+                    </div>
+                  )}
+
+                  {user && canSeePrijave && canManageHost && akcija.isCompleted && !isLimitedView && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 space-y-2.5">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Dodaj clana koji se uspesno popeo
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2.5">
+                        <div className="flex-1">
+                          <Dropdown
+                            aria-label="Izaberi clana za dodavanje na zavrsenu akciju"
+                            options={[
+                              { value: '', label: 'Izaberi clana' },
+                              ...membersToAdd.map((m) => ({
+                                value: String(m.id),
+                                label: `${m.fullName?.trim() || m.username} (@${m.username})`,
+                              })),
+                            ]}
+                            value={selectedMemberId}
+                            onChange={setSelectedMemberId}
+                            fullWidth
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddCompletedMember}
+                          disabled={!selectedMemberId || addingMember}
+                          className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {addingMember ? 'Dodajem...' : 'Dodaj'}
+                        </button>
+                      </div>
+                      {membersToAdd.length === 0 && (
+                        <p className="text-xs text-gray-500">Svi clanovi kluba su vec oznaceni kao uspesno popeo se.</p>
+                      )}
+                      {addingMemberError && (
+                        <p className="text-xs text-rose-600">{addingMemberError}</p>
+                      )}
                     </div>
                   )}
                 </div>
