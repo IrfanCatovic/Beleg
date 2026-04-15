@@ -689,7 +689,7 @@ export default function ActionDetails() {
               </div>
 
               {/* ── Prijavljeni članovi ── */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
@@ -816,6 +816,7 @@ export default function ActionDetails() {
                         <div className="flex-1">
                           <Dropdown
                             aria-label="Izaberi clana za dodavanje na zavrsenu akciju"
+                            className="z-[60]"
                             options={[
                               { value: '', label: 'Izaberi clana' },
                               ...membersToAdd.map((m) => ({
