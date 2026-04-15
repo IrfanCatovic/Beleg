@@ -19,13 +19,9 @@ func UsernameAvailable(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nedostaje parametar username"})
 		return
 	}
-	norm := helpers.NormalizeUsername(raw)
-	if norm == "" || len(norm) < 2 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeće korisničko ime"})
-		return
-	}
-	if len(norm) > 64 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Korisničko ime je predugačko"})
+	norm, err := helpers.ValidateUsername(raw)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -37,7 +33,7 @@ func UsernameAvailable(c *gin.Context) {
 	db := dbAny.(*gorm.DB)
 
 	var k models.Korisnik
-	err := helpers.DBWhereUsername(db, norm).First(&k).Error
+	err = helpers.DBWhereUsername(db, norm).First(&k).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusOK, gin.H{"available": true})

@@ -63,11 +63,11 @@ func inviteAdminJSON(k *models.Klubovi, now time.Time) gin.H {
 		code = *k.InviteCode
 	}
 	return gin.H{
-		"code":                 code,
-		"klubId":               k.ID,
-		"expiresAt":            expiresAt,
-		"lastRegeneratedAt":    lastReg,
-		"regenAvailableInMs":   helpers.RegenAvailableInMs(k.InviteLastRegeneratedAt, now),
+		"code":               code,
+		"klubId":             k.ID,
+		"expiresAt":          expiresAt,
+		"lastRegeneratedAt":  lastReg,
+		"regenAvailableInMs": helpers.RegenAvailableInMs(k.InviteLastRegeneratedAt, now),
 	}
 }
 
@@ -140,7 +140,7 @@ func RegenerateInviteCode(c *gin.Context) {
 	expired := helpers.InviteCodeExpired(&k, now)
 	if ms := helpers.RegenAvailableInMs(k.InviteLastRegeneratedAt, now); ms > 0 && !expired {
 		c.JSON(http.StatusTooManyRequests, gin.H{
-			"error":               "Novi kod možeš generisati tek posle isteka pauze.",
+			"error":              "Novi kod možeš generisati tek posle isteka pauze.",
 			"regenAvailableInMs": ms,
 		})
 		return
@@ -242,10 +242,14 @@ func RegisterInvite(c *gin.Context) {
 		return
 	}
 
-	username := helpers.NormalizeUsername(c.PostForm("username"))
+	username, usernameErr := helpers.ValidateUsername(c.PostForm("username"))
 	password := c.PostForm("password")
-	if username == "" || password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username i password"})
+	if usernameErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": usernameErr.Error()})
+		return
+	}
+	if password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno polje: password"})
 		return
 	}
 	if len(password) < 8 {

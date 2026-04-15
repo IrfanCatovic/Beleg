@@ -36,6 +36,22 @@ function baseFormOnly(): BaseForm {
   return { ...baseInitial }
 }
 
+const usernameAllowedRegex = /^[a-z0-9._]+$/
+
+function validateUsername(raw: string): string | null {
+  const username = raw.trim().toLowerCase()
+  if (!username) return 'Korisnicko ime je obavezno.'
+  if (username.length < 2 || username.length > 30) return 'Korisnicko ime mora imati izmedju 2 i 30 karaktera.'
+  if (!usernameAllowedRegex.test(username)) return 'Dozvoljena su samo mala slova, brojevi, tacka i donja crta.'
+  if (username.startsWith('.') || username.endsWith('.') || username.startsWith('_') || username.endsWith('_')) {
+    return 'Korisnicko ime ne sme pocinjati niti zavrsavati tackom ili donjom crtom.'
+  }
+  if (username.includes('..') || username.includes('__') || username.includes('._') || username.includes('_.')) {
+    return 'Korisnicko ime ne sme imati uzastopne specijalne znakove.'
+  }
+  return null
+}
+
 type MemberRegistrationFormProps =
   | {
       variant: 'staff'
@@ -89,6 +105,12 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
     e.preventDefault()
     setError('')
     setSuccess(false)
+
+    const usernameError = validateUsername(form.username)
+    if (usernameError) {
+      setError(usernameError)
+      return
+    }
 
     const role = isStaff ? (form as StaffForm).role.trim() : 'clan'
     if (isStaff && !role) {
@@ -189,6 +211,9 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               value={form.username}
               onChange={handleChange}
               required
+              minLength={2}
+              maxLength={30}
+              pattern="^[a-z0-9._]+$"
               className={inputClass}
               placeholder={t('registerUser.usernamePlaceholder')}
               disabled={submitting || success}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"beleg-app/backend/internal/config"
 	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/jobs"
@@ -8,7 +9,6 @@ import (
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
 	"beleg-app/backend/internal/seed"
-	"beleg-app/backend/internal/config"
 	"beleg-app/backend/middleware"
 	"context"
 	"errors"
@@ -58,7 +58,6 @@ func main() {
 	} else {
 		log.Println("OK: .env fajl je učitan")
 	}
-	
 
 	//Cors function from cors.go file
 	origins := config.BuildAllowedOrigins()
@@ -85,8 +84,6 @@ func main() {
 		log.Println("Uspješno povezan sa bazom!")
 		log.Print(".env je ucitan")
 	}
-
-
 
 	fmt.Println("Uspješno povezan sa bazom!")
 
@@ -140,8 +137,8 @@ func main() {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"hasUsers":        total > 0,
-			"hasSuperadmin":   superCount > 0,
+			"hasUsers":      total > 0,
+			"hasSuperadmin": superCount > 0,
 			// dok god nema nijednog superadmin-a, frontend treba da ide na /register-superadmin
 			"needsSuperadmin": superCount == 0,
 		})
@@ -165,17 +162,17 @@ func main() {
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"klub": gin.H{
-				"id":             klub.ID,
-				"naziv":          klub.Naziv,
-				"adresa":         klub.Adresa,
-				"telefon":        klub.Telefon,
-				"email":          klub.Email,
-				"sediste":        klub.Sediste,
-				"web_sajt":       klub.WebSajt,
+				"id":              klub.ID,
+				"naziv":           klub.Naziv,
+				"adresa":          klub.Adresa,
+				"telefon":         klub.Telefon,
+				"email":           klub.Email,
+				"sediste":         klub.Sediste,
+				"web_sajt":        klub.WebSajt,
 				"datum_osnovanja": klub.DatumOsnivanja,
-				"logoUrl":        klub.LogoURL,
-				"createdAt":      klub.CreatedAt,
-				"updatedAt":      klub.UpdatedAt,
+				"logoUrl":         klub.LogoURL,
+				"createdAt":       klub.CreatedAt,
+				"updatedAt":       klub.UpdatedAt,
 			},
 		})
 	})
@@ -188,11 +185,15 @@ func main() {
 			return
 		}
 
-		username := helpers.NormalizeUsername(c.PostForm("username"))
+		username, usernameErr := helpers.ValidateUsername(c.PostForm("username"))
 		password := c.PostForm("password")
 
-		if username == "" || password == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username i password (prema modelu Korisnik)"})
+		if usernameErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": usernameErr.Error()})
+			return
+		}
+		if password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno polje: password"})
 			return
 		}
 		if len(password) < 8 {
@@ -291,25 +292,25 @@ func main() {
 		}
 
 		korisnik := models.Korisnik{
-			Username:                    username,
-			Password:                    string(hashed),
-			FullName:                    fullName,
-			ImeRoditelja:                imeRoditelja,
-			Pol:                         pol,
-			DatumRodjenja:               datumRodjenja,
-			Drzavljanstvo:               drzavljanstvo,
-			Adresa:                      adresa,
-			Telefon:                     telefon,
-			Email:                       email,
-			BrojLicnogDokumenta:         brojLicnogDokumenta,
-			BrojPlaninarskeLegitimacije: brojPlaninarskeLegitimacije,
-			BrojPlaninarskeMarkice:      brojPlaninarskeMarkice,
-			DatumUclanjenja:             datumUclanjenja,
-			IzreceneDisciplinskeKazne:   izreceneDisciplinskeKazne,
+			Username:                       username,
+			Password:                       string(hashed),
+			FullName:                       fullName,
+			ImeRoditelja:                   imeRoditelja,
+			Pol:                            pol,
+			DatumRodjenja:                  datumRodjenja,
+			Drzavljanstvo:                  drzavljanstvo,
+			Adresa:                         adresa,
+			Telefon:                        telefon,
+			Email:                          email,
+			BrojLicnogDokumenta:            brojLicnogDokumenta,
+			BrojPlaninarskeLegitimacije:    brojPlaninarskeLegitimacije,
+			BrojPlaninarskeMarkice:         brojPlaninarskeMarkice,
+			DatumUclanjenja:                datumUclanjenja,
+			IzreceneDisciplinskeKazne:      izreceneDisciplinskeKazne,
 			IzborUOrganeSportskogUdruzenja: izborUOrganeSportskogUdruzenja,
-			Napomene:                    napomene,
-			AvatarURL:                   avatarURL,
-			Role:                        "admin",
+			Napomene:                       napomene,
+			AvatarURL:                      avatarURL,
+			Role:                           "admin",
 		}
 
 		if err := db.Create(&korisnik).Error; err != nil {
@@ -465,24 +466,24 @@ func main() {
 					}
 					return jwtSecret, nil
 				}); err == nil && token.Valid {
-						usernameClaim, _ := claims["username"].(string)
-						roleClaim, _ := claims["role"].(string)
-						usernameClaim = strings.TrimSpace(usernameClaim)
-						if usernameClaim != "" {
-							var viewer models.Korisnik
-							if err := helpers.DBWhereUsername(db, usernameClaim).First(&viewer).Error; err == nil {
-								if viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
+					usernameClaim, _ := claims["username"].(string)
+					roleClaim, _ := claims["role"].(string)
+					usernameClaim = strings.TrimSpace(usernameClaim)
+					if usernameClaim != "" {
+						var viewer models.Korisnik
+						if err := helpers.DBWhereUsername(db, usernameClaim).First(&viewer).Error; err == nil {
+							if viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
+								canSeePrivateDetails = true
+							}
+							if roleClaim == "superadmin" {
+								if selectedClubID, err := strconv.ParseUint(strings.TrimSpace(c.GetHeader("X-Club-Id")), 10, 64); err == nil && uint(selectedClubID) == *akcija.KlubID {
 									canSeePrivateDetails = true
-								}
-								if roleClaim == "superadmin" {
-									if selectedClubID, err := strconv.ParseUint(strings.TrimSpace(c.GetHeader("X-Club-Id")), 10, 64); err == nil && uint(selectedClubID) == *akcija.KlubID {
-										canSeePrivateDetails = true
-									}
 								}
 							}
 						}
 					}
 				}
+			}
 		}
 
 		if !canSeePrivateDetails {
@@ -511,7 +512,7 @@ func main() {
 			"createdAt": akcija.CreatedAt, "updatedAt": akcija.UpdatedAt,
 			"isCompleted": akcija.IsCompleted, "kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
 			"duzinaStazeKm": akcija.UkupnoKmAkcija, "visinaVrhM": akcija.VisinaVrhM, "zimskiUspon": akcija.ZimskiUspon,
-			"vodicId": akcija.VodicID,
+			"vodicId":       akcija.VodicID,
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
 			"javna": akcija.Javna,
 		}
@@ -582,20 +583,20 @@ func main() {
 			}
 		}
 		respPub := gin.H{
-			"id":              korisnik.ID,
-			"username":        korisnik.Username,
-			"fullName":        korisnik.FullName,
-			"avatar_url":      korisnik.AvatarURL,
-			"cover_image_url": korisnik.CoverImageURL,
-			"cover_position_y": korisnik.CoverPositionY,
-			"role":            korisnik.Role,
-			"createdAt":       korisnik.CreatedAt,
-			"updatedAt":       korisnik.UpdatedAt,
-			"ukupnoKm":        korisnik.UkupnoKmKorisnik,
+			"id":                 korisnik.ID,
+			"username":           korisnik.Username,
+			"fullName":           korisnik.FullName,
+			"avatar_url":         korisnik.AvatarURL,
+			"cover_image_url":    korisnik.CoverImageURL,
+			"cover_position_y":   korisnik.CoverPositionY,
+			"role":               korisnik.Role,
+			"createdAt":          korisnik.CreatedAt,
+			"updatedAt":          korisnik.UpdatedAt,
+			"ukupnoKm":           korisnik.UkupnoKmKorisnik,
 			"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
-			"brojPopeoSe":     korisnik.BrojPopeoSe,
-			"klubNaziv":       korisnik.KlubNaziv,
-			"klubLogoUrl":     korisnik.KlubLogoURL,
+			"brojPopeoSe":        korisnik.BrojPopeoSe,
+			"klubNaziv":          korisnik.KlubNaziv,
+			"klubLogoUrl":        korisnik.KlubLogoURL,
 		}
 		if korisnik.CoverPositionYMobile != nil {
 			respPub["cover_position_y_mobile"] = *korisnik.CoverPositionYMobile
@@ -908,14 +909,18 @@ func main() {
 				return
 			}
 
-			username := helpers.NormalizeUsername(c.PostForm("username"))
+			username, usernameErr := helpers.ValidateUsername(c.PostForm("username"))
 			password := c.PostForm("password")
 			role := strings.TrimSpace(c.PostForm("role"))
 
 			// ——— Kreiranje superadmina (samo ako još nema nijednog, bez auth-a) ———
 			if role == "superadmin" {
-				if username == "" || password == "" {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username i password"})
+				if usernameErr != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": usernameErr.Error()})
+					return
+				}
+				if password == "" {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno polje: password"})
 					return
 				}
 				if len(password) < 8 {
@@ -1006,25 +1011,25 @@ func main() {
 					avatarURL = uploadResult.SecureURL
 				}
 				korisnik := models.Korisnik{
-					Username:                         username,
-					Password:                         string(hashed),
-					FullName:                         fullName,
-					ImeRoditelja:                     imeRoditelja,
-					Pol:                              pol,
-					DatumRodjenja:                    datumRodjenja,
-					Drzavljanstvo:                    drzavljanstvo,
-					Adresa:                           adresa,
-					Telefon:                          telefon,
-					Email:                            email,
-					BrojLicnogDokumenta:              brojLicnogDokumenta,
-					BrojPlaninarskeLegitimacije:      brojPlaninarskeLegitimacije,
-					BrojPlaninarskeMarkice:           brojPlaninarskeMarkice,
-					DatumUclanjenja:                  datumUclanjenja,
-					IzreceneDisciplinskeKazne:        izreceneDisciplinskeKazne,
-					IzborUOrganeSportskogUdruzenja:   izborUOrganeSportskogUdruzenja,
-					Napomene:                         napomene,
-					AvatarURL:                        avatarURL,
-					Role:                             "superadmin",
+					Username:                       username,
+					Password:                       string(hashed),
+					FullName:                       fullName,
+					ImeRoditelja:                   imeRoditelja,
+					Pol:                            pol,
+					DatumRodjenja:                  datumRodjenja,
+					Drzavljanstvo:                  drzavljanstvo,
+					Adresa:                         adresa,
+					Telefon:                        telefon,
+					Email:                          email,
+					BrojLicnogDokumenta:            brojLicnogDokumenta,
+					BrojPlaninarskeLegitimacije:    brojPlaninarskeLegitimacije,
+					BrojPlaninarskeMarkice:         brojPlaninarskeMarkice,
+					DatumUclanjenja:                datumUclanjenja,
+					IzreceneDisciplinskeKazne:      izreceneDisciplinskeKazne,
+					IzborUOrganeSportskogUdruzenja: izborUOrganeSportskogUdruzenja,
+					Napomene:                       napomene,
+					AvatarURL:                      avatarURL,
+					Role:                           "superadmin",
 				}
 				var takenSuper models.Korisnik
 				if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&takenSuper).Error; err == nil {
@@ -1088,8 +1093,12 @@ func main() {
 				return
 			}
 
-			if username == "" || password == "" || role == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: username, password i role"})
+			if usernameErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": usernameErr.Error()})
+				return
+			}
+			if password == "" || role == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezna polja: password i role"})
 				return
 			}
 			if len(password) < 8 {
@@ -1202,26 +1211,26 @@ func main() {
 
 			klubIDPtr := &clubID
 			korisnik := models.Korisnik{
-				Username:                         username,
-				Password:                         string(hashed),
-				FullName:                         fullName,
-				ImeRoditelja:                     imeRoditelja,
-				Pol:                              pol,
-				DatumRodjenja:                    datumRodjenja,
-				Drzavljanstvo:                    drzavljanstvo,
-				Adresa:                           adresa,
-				Telefon:                          telefon,
-				Email:                            email,
-				BrojLicnogDokumenta:              brojLicnogDokumenta,
-				BrojPlaninarskeLegitimacije:      brojPlaninarskeLegitimacije,
-				BrojPlaninarskeMarkice:           brojPlaninarskeMarkice,
-				DatumUclanjenja:                  datumUclanjenja,
-				IzreceneDisciplinskeKazne:        izreceneDisciplinskeKazne,
-				IzborUOrganeSportskogUdruzenja:   izborUOrganeSportskogUdruzenja,
-				Napomene:                         napomene,
-				AvatarURL:                        avatarURL,
-				Role:                             role,
-				KlubID:                           klubIDPtr,
+				Username:                       username,
+				Password:                       string(hashed),
+				FullName:                       fullName,
+				ImeRoditelja:                   imeRoditelja,
+				Pol:                            pol,
+				DatumRodjenja:                  datumRodjenja,
+				Drzavljanstvo:                  drzavljanstvo,
+				Adresa:                         adresa,
+				Telefon:                        telefon,
+				Email:                          email,
+				BrojLicnogDokumenta:            brojLicnogDokumenta,
+				BrojPlaninarskeLegitimacije:    brojPlaninarskeLegitimacije,
+				BrojPlaninarskeMarkice:         brojPlaninarskeMarkice,
+				DatumUclanjenja:                datumUclanjenja,
+				IzreceneDisciplinskeKazne:      izreceneDisciplinskeKazne,
+				IzborUOrganeSportskogUdruzenja: izborUOrganeSportskogUdruzenja,
+				Napomene:                       napomene,
+				AvatarURL:                      avatarURL,
+				Role:                           role,
+				KlubID:                         klubIDPtr,
 			}
 
 			var takenMember models.Korisnik
@@ -1727,32 +1736,32 @@ func main() {
 				return
 			}
 
-		type PrijavaDTO struct {
-			ID           uint      `json:"id"`
-			Korisnik     string    `json:"korisnik"`
-			FullName     string    `json:"fullName"`
-			AvatarURL    string    `json:"avatarUrl,omitempty"`
-			PrijavljenAt time.Time `json:"prijavljenAt"`
-			Status       string    `json:"status"`
-		}
-
-		var out []PrijavaDTO
-		for _, p := range prijave {
-			fullName := ""
-			avatarURL := ""
-			if p.Korisnik.ID != 0 {
-				fullName = p.Korisnik.FullName
-				avatarURL = p.Korisnik.AvatarURL
+			type PrijavaDTO struct {
+				ID           uint      `json:"id"`
+				Korisnik     string    `json:"korisnik"`
+				FullName     string    `json:"fullName"`
+				AvatarURL    string    `json:"avatarUrl,omitempty"`
+				PrijavljenAt time.Time `json:"prijavljenAt"`
+				Status       string    `json:"status"`
 			}
-			out = append(out, PrijavaDTO{
-				ID:           p.ID,
-				Korisnik:     p.Korisnik.Username,
-				FullName:     fullName,
-				AvatarURL:    avatarURL,
-				PrijavljenAt: p.PrijavljenAt,
-				Status:       p.Status,
-			})
-		}
+
+			var out []PrijavaDTO
+			for _, p := range prijave {
+				fullName := ""
+				avatarURL := ""
+				if p.Korisnik.ID != 0 {
+					fullName = p.Korisnik.FullName
+					avatarURL = p.Korisnik.AvatarURL
+				}
+				out = append(out, PrijavaDTO{
+					ID:           p.ID,
+					Korisnik:     p.Korisnik.Username,
+					FullName:     fullName,
+					AvatarURL:    avatarURL,
+					PrijavljenAt: p.PrijavljenAt,
+					Status:       p.Status,
+				})
+			}
 
 			c.JSON(200, gin.H{
 				"prijave": out,
@@ -1952,10 +1961,12 @@ func main() {
 			if newUsername == "" {
 				newUsername = korisnik.Username
 			} else {
-				newUsername = helpers.NormalizeUsername(newUsername)
-				if newUsername == "" {
-					newUsername = korisnik.Username
+				validatedUsername, err := helpers.ValidateUsername(newUsername)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
 				}
+				newUsername = validatedUsername
 			}
 			if newUsername != korisnik.Username {
 				var existing models.Korisnik
@@ -2090,19 +2101,19 @@ func main() {
 			}
 
 			updates := map[string]interface{}{
-				"username":                     newUsername,
-				"full_name":                    fullName,
-				"ime_roditelja":                imeRoditelja,
-				"pol":                          pol,
-				"drzavljanstvo":                drzavljanstvo,
-				"adresa":                       adresa,
-				"telefon":                      telefon,
-				"email":                        email,
-				"broj_licnog_dokumenta":        brojLicnogDokumenta,
+				"username":                      newUsername,
+				"full_name":                     fullName,
+				"ime_roditelja":                 imeRoditelja,
+				"pol":                           pol,
+				"drzavljanstvo":                 drzavljanstvo,
+				"adresa":                        adresa,
+				"telefon":                       telefon,
+				"email":                         email,
+				"broj_licnog_dokumenta":         brojLicnogDokumenta,
 				"broj_planinarske_legitimacije": brojPlaninarskeLegitimacije,
-				"broj_planinarske_markice":     brojPlaninarskeMarkice,
-				"datum_rodjenja":               datumRodjenja,
-				"datum_uclanjenja":             datumUclanjenja,
+				"broj_planinarske_markice":      brojPlaninarskeMarkice,
+				"datum_rodjenja":                datumRodjenja,
+				"datum_uclanjenja":              datumUclanjenja,
 			}
 			if isAdmin {
 				updates["izrecene_disciplinske_kazne"] = izreceneDisciplinskeKazne
@@ -2223,8 +2234,8 @@ func main() {
 				return
 			}
 			out := gin.H{
-				"message":         "Pozicija sačuvana",
-				"coverPositionY":  korisnik.CoverPositionY,
+				"message":          "Pozicija sačuvana",
+				"coverPositionY":   korisnik.CoverPositionY,
 				"cover_position_y": korisnik.CoverPositionY,
 			}
 			if korisnik.CoverPositionYMobile != nil {
@@ -2352,10 +2363,10 @@ func main() {
 			}
 			var body struct {
 				Role                           string `json:"role"`
-				IzreceneDisciplinskeKazne     string `json:"izreceneDisciplinskeKazne"`
+				IzreceneDisciplinskeKazne      string `json:"izreceneDisciplinskeKazne"`
 				IzborUOrganeSportskogUdruzenja string `json:"izborUOrganeSportskogUdruzenja"`
-				Napomene                      string `json:"napomene"`
-				NewPassword                   string `json:"newPassword"`
+				Napomene                       string `json:"napomene"`
+				NewPassword                    string `json:"newPassword"`
 			}
 			_ = c.ShouldBindJSON(&body) // opciono
 
@@ -2401,10 +2412,10 @@ func main() {
 				}
 			}
 			updates := map[string]interface{}{
-				"role":                              body.Role,
-				"izrecene_disciplinske_kazne":       body.IzreceneDisciplinskeKazne,
+				"role":                               body.Role,
+				"izrecene_disciplinske_kazne":        body.IzreceneDisciplinskeKazne,
 				"izbor_u_organe_sportskog_udruzenja": body.IzborUOrganeSportskogUdruzenja,
-				"napomene":                          body.Napomene,
+				"napomene":                           body.Napomene,
 			}
 			if body.NewPassword != "" {
 				if len(body.NewPassword) < 8 {
@@ -2536,12 +2547,12 @@ func main() {
 			// Vraća samo javna polja + klub naziv/logo, uz poštovanje blokiranja.
 			if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
 				type PublicUserDTO struct {
-					ID         uint   `json:"id"`
-					Username   string `json:"username"`
-					FullName   string `json:"fullName,omitempty"`
-					AvatarURL  string `json:"avatar_url,omitempty"`
-					Role       string `json:"role"`
-					KlubNaziv  string `json:"klubNaziv,omitempty"`
+					ID          uint   `json:"id"`
+					Username    string `json:"username"`
+					FullName    string `json:"fullName,omitempty"`
+					AvatarURL   string `json:"avatar_url,omitempty"`
+					Role        string `json:"role"`
+					KlubNaziv   string `json:"klubNaziv,omitempty"`
 					KlubLogoURL string `json:"klubLogoUrl,omitempty"`
 				}
 
@@ -2649,7 +2660,6 @@ func main() {
 			}
 			c.JSON(http.StatusOK, korisnik)
 		})
-
 
 		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/superadmin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
 		protected.POST("/korisnici/:id/dodaj-proslu-akciju", func(c *gin.Context) {
@@ -3090,7 +3100,7 @@ func main() {
 
 	r.Static("/uploads", "./uploads")
 
-	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana 
+	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana
 	go jobs.RunCloudinaryPendingDeletesJob(db)
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
