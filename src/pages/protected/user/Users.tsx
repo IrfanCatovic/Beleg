@@ -381,7 +381,7 @@ export default function Korisnici() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 p-4 sm:p-5 md:p-6">
                 {filteredKorisnici.map((k) => {
-                  const rank = computeRank({
+                  const rank = rankByUserId[k.id] ?? computeRank({
                     ukupnoKm: k.ukupnoKm ?? 0,
                     ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
                   })
