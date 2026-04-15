@@ -11,7 +11,7 @@ import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
-import { computeMMRForAkcija, computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
+import { computeMMRForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura, type AkcijaZaRanking } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import { tezinaLabel } from '../../utils/difficultyI18n'
 import type { TFunction } from 'i18next'
@@ -172,13 +172,36 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!korisnik?.id || !currentUser) { setTop30(null); return }
-    api.get('/api/korisnici').then(r => {
-      const sorted = ((r.data.korisnici || []) as Array<{ id: number; ukupnoKm?: number; ukupnoMetaraUspona?: number }>)
-        .map(k => ({ ...k, rank: computeRank({ ukupnoKm: k.ukupnoKm ?? 0, ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0 }) }))
-        .sort((a, b) => b.rank.mmr - a.rank.mmr)
-      const idx = sorted.findIndex(k => k.id === korisnik.id)
-      setTop30(idx >= 0 && idx < 30 ? idx + 1 : null)
-    }).catch(() => setTop30(null))
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await api.get('/api/korisnici')
+        const baseUsers = (r.data.korisnici || []) as Array<{ id: number; ukupnoKm?: number; ukupnoMetaraUspona?: number }>
+        const rankedUsers = await Promise.all(
+          baseUsers.map(async (k) => {
+            try {
+              const actionsRes = await api.get<{ uspesneAkcije?: AkcijaZaRanking[] }>(`/api/korisnici/${k.id}/popeo-se`)
+              const akcije = actionsRes.data.uspesneAkcije || []
+              const rank = computeRank({
+                ture: akcije.map(mapAkcijaToTura),
+                ukupnoKm: k.ukupnoKm ?? 0,
+                ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+              })
+              return { ...k, rank }
+            } catch {
+              return { ...k, rank: computeRank({ ukupnoKm: k.ukupnoKm ?? 0, ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0 }) }
+            }
+          })
+        )
+        if (cancelled) return
+        const sorted = rankedUsers.sort((a, b) => b.rank.mmr - a.rank.mmr)
+        const idx = sorted.findIndex(k => k.id === korisnik.id)
+        setTop30(idx >= 0 && idx < 30 ? idx + 1 : null)
+      } catch {
+        if (!cancelled) setTop30(null)
+      }
+    })()
+    return () => { cancelled = true }
   }, [korisnik?.id, currentUser])
 
   useEffect(() => {

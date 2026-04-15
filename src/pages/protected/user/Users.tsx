@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
-import { computeRank, formatRankDisplayName } from '../../../utils/rankingUtils'
+import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult, type AkcijaZaRanking } from '../../../utils/rankingUtils'
 
 interface Korisnik {
   id: number
@@ -39,6 +39,7 @@ export default function Korisnici() {
   const [printingId, setPrintingId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'rank'>('all')
+  const [rankByUserId, setRankByUserId] = useState<Record<number, RankResult>>({})
 
   useEffect(() => {
     if (!user) return
@@ -56,6 +57,42 @@ export default function Korisnici() {
 
     fetchKorisnici()
   }, [user])
+
+  useEffect(() => {
+    if (!korisnici.length) {
+      setRankByUserId({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const entries = await Promise.all(
+        korisnici.map(async (k) => {
+          try {
+            const res = await api.get<{ uspesneAkcije?: AkcijaZaRanking[] }>(`/api/korisnici/${k.id}/popeo-se`)
+            const akcije = res.data.uspesneAkcije || []
+            const rank = computeRank({
+              ture: akcije.map(mapAkcijaToTura),
+              ukupnoKm: k.ukupnoKm ?? 0,
+              ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            })
+            return [k.id, rank] as const
+          } catch {
+            const fallbackRank = computeRank({
+              ukupnoKm: k.ukupnoKm ?? 0,
+              ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            })
+            return [k.id, fallbackRank] as const
+          }
+        })
+      )
+      if (!cancelled) {
+        setRankByUserId(Object.fromEntries(entries))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [korisnici])
 
   
   const roleOptions: { value: string; label: string }[] = [
@@ -102,14 +139,14 @@ export default function Korisnici() {
     () =>
       korisnici
         .map((k) => {
-                  const rank = computeRank({
-                    ukupnoKm: k.ukupnoKm ?? 0,
-                    ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-                  })
-                  return { ...k, rank }
+          const rank = rankByUserId[k.id] ?? computeRank({
+            ukupnoKm: k.ukupnoKm ?? 0,
+            ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+          })
+          return { ...k, rank }
         })
         .sort((a, b) => b.rank.mmr - a.rank.mmr),
-    [korisnici]
+    [korisnici, rankByUserId]
   )
 
   // Globalna pozicija po korisniku (id -> 1,2,3...)
@@ -126,14 +163,14 @@ export default function Korisnici() {
     () =>
       filteredKorisnici
         .map((k) => {
-          const rank = computeRank({
+          const rank = rankByUserId[k.id] ?? computeRank({
             ukupnoKm: k.ukupnoKm ?? 0,
             ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
           })
           return { ...k, rank, globalPosition: globalPositionByUserId[k.id] }
         })
         .sort((a, b) => b.rank.mmr - a.rank.mmr),
-    [filteredKorisnici, globalPositionByUserId]
+    [filteredKorisnici, globalPositionByUserId, rankByUserId]
   )
 
   const handleDelete = async (k: Korisnik) => {
