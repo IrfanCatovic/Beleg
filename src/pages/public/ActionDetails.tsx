@@ -614,7 +614,7 @@ export default function ActionDetails() {
             <div className="lg:col-span-2 space-y-6">
 
               {/* Vodič / Kreator card */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
                   <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('actionDetails')}</h2>
