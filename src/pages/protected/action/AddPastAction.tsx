@@ -19,7 +19,7 @@ export default function AddPastAction() {
   const navigate = useNavigate()
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [vodici, setVodici] = useState<Korisnik[]>([])
-  const [korisnikId, setKorisnikId] = useState('')
+  const [selectedKorisnikIds, setSelectedKorisnikIds] = useState<string[]>([])
   const [naziv, setNaziv] = useState('')
   const [planina, setPlanina] = useState('')
   const [vrh, setVrh] = useState('')
@@ -62,7 +62,7 @@ export default function AddPastAction() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!korisnikId) {
+    if (selectedKorisnikIds.length === 0) {
       setError(t('errors.selectUser'))
       return
     }
@@ -82,6 +82,7 @@ export default function AddPastAction() {
     setError('')
     setSubmitting(true)
     try {
+      const targetKorisnikId = selectedKorisnikIds[0]
       const formData = new FormData()
       formData.append('naziv', naziv)
       formData.append('planina', planina.trim())
@@ -97,21 +98,38 @@ export default function AddPastAction() {
       if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
       formData.append('dodaj_u_istoriju_kluba', dodajUIstorijuKluba ? 'true' : 'false')
       formData.append('javna', String(javna))
+      formData.append('korisnik_ids', selectedKorisnikIds.join(','))
       if (slika) formData.append('slika', slika)
 
-      await api.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
+      await api.post(`/api/korisnici/${targetKorisnikId}/dodaj-proslu-akciju`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      const selected = korisnici.find((k) => String(k.id) === korisnikId)
-      if (selected?.username) {
-        navigate(`/korisnik/${selected.username}`, { replace: true })
-      } else {
-        navigate('/users', { replace: true })
+      if (selectedKorisnikIds.length === 1) {
+        const selected = korisnici.find((k) => String(k.id) === targetKorisnikId)
+        if (selected?.username) {
+          navigate(`/korisnik/${selected.username}`, { replace: true })
+          return
+        }
       }
+      navigate('/users', { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.addPastAction'))
       setSubmitting(false)
     }
+  }
+
+  const toggleKorisnik = (id: string) => {
+    setSelectedKorisnikIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id],
+    )
+  }
+
+  const toggleAllKorisnici = () => {
+    if (selectedKorisnikIds.length === korisnici.length) {
+      setSelectedKorisnikIds([])
+      return
+    }
+    setSelectedKorisnikIds(korisnici.map((k) => String(k.id)))
   }
 
   if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
@@ -166,22 +184,43 @@ export default function AddPastAction() {
               </div>
             )}
 
-            {/* Korisnik */}
+            {/* Korisnici */}
             <div>
               <label className={labelClass}>{t('fields.user')}</label>
-              <Dropdown
-                aria-label={t('fields.pickUser')}
-                options={[
-                  { value: '', label: t('user.pick') },
-                  ...korisnici.map((k) => ({
-                    value: String(k.id),
-                    label: `${k.fullName || k.username} (@${k.username})`,
-                  })),
-                ]}
-                value={korisnikId}
-                onChange={setKorisnikId}
-                fullWidth
-              />
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
+                  <p className="text-xs text-gray-600">
+                    Izabrano clanova: <span className="font-semibold text-gray-900">{selectedKorisnikIds.length}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={toggleAllKorisnici}
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                  >
+                    {selectedKorisnikIds.length === korisnici.length ? 'Ponisti sve' : 'Izaberi sve'}
+                  </button>
+                </div>
+                <div className="max-h-56 overflow-y-auto divide-y divide-gray-100 bg-white">
+                  {korisnici.map((k) => {
+                    const id = String(k.id)
+                    const checked = selectedKorisnikIds.includes(id)
+                    return (
+                      <label
+                        key={k.id}
+                        className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-800 hover:bg-emerald-50/50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleKorisnik(id)}
+                          className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                        />
+                        <span className="truncate">{k.fullName || k.username} (@{k.username})</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Osnovni podaci o akciji */}

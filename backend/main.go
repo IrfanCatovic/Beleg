@@ -2661,7 +2661,7 @@ func main() {
 			c.JSON(http.StatusOK, korisnik)
 		})
 
-		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/superadmin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje korisnika kao "popeo se"
+		// POST /api/korisnici/:id/dodaj-proslu-akciju – admin/superadmin/vodič dodaje novu prošlu akciju (npr. sa drugog društva) i upisuje jednog ili više korisnika kao "popeo se"
 		protected.POST("/korisnici/:id/dodaj-proslu-akciju", func(c *gin.Context) {
 			role, _ := c.Get("role")
 			if role != "admin" && role != "vodic" && role != "superadmin" {
@@ -2684,23 +2684,9 @@ func main() {
 				return
 			}
 
-			var korisnik models.Korisnik
-			if err := db.First(&korisnik, korisnikID).Error; err != nil {
-				c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-				return
-			}
-			if korisnik.Role == "deleted" {
-				c.JSON(404, gin.H{"error": "Korisnik je deaktiviran"})
-				return
-			}
-
 			clubID, ok := helpers.GetEffectiveClubID(c, db)
 			if !ok || clubID == 0 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (superadmin) ili niste u klubu."})
-				return
-			}
-			if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Možete dodati prošlu akciju samo članu iz izabranog kluba"})
 				return
 			}
 
@@ -2708,6 +2694,53 @@ func main() {
 			if err != nil {
 				c.JSON(400, gin.H{"error": "Nevažeća forma"})
 				return
+			}
+
+			korisnikIDSet := map[uint]struct{}{uint(korisnikID): {}}
+			rawIDFields := append(form.Value["korisnik_ids"], form.Value["korisnik_ids[]"]...)
+			for _, rawField := range rawIDFields {
+				parts := strings.Split(rawField, ",")
+				for _, part := range parts {
+					part = strings.TrimSpace(part)
+					if part == "" {
+						continue
+					}
+					id64, convErr := strconv.ParseUint(part, 10, 32)
+					if convErr != nil || id64 == 0 {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID korisnika u listi"})
+						return
+					}
+					korisnikIDSet[uint(id64)] = struct{}{}
+				}
+			}
+
+			korisnikIDs := make([]uint, 0, len(korisnikIDSet))
+			for id := range korisnikIDSet {
+				korisnikIDs = append(korisnikIDs, id)
+			}
+			if len(korisnikIDs) == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Potrebno je izabrati bar jednog člana"})
+				return
+			}
+
+			var korisnici []models.Korisnik
+			if err := db.Where("id IN ?", korisnikIDs).Find(&korisnici).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju korisnika"})
+				return
+			}
+			if len(korisnici) != len(korisnikIDs) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Jedan ili više korisnika nisu pronađeni"})
+				return
+			}
+			for _, korisnik := range korisnici {
+				if korisnik.Role == "deleted" {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Nije moguće dodati deaktiviranog korisnika"})
+					return
+				}
+				if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Možete dodati prošlu akciju samo članovima iz izabranog kluba"})
+					return
+				}
 			}
 
 			naziv := c.PostForm("naziv")
@@ -2845,25 +2878,34 @@ func main() {
 				db.Save(&akcija)
 			}
 
-			prijava := models.Prijava{
-				AkcijaID:   akcija.ID,
-				KorisnikID: uint(korisnikID),
-				Status:     "popeo se",
+			prijave := make([]models.Prijava, 0, len(korisnici))
+			for _, korisnik := range korisnici {
+				prijave = append(prijave, models.Prijava{
+					AkcijaID:   akcija.ID,
+					KorisnikID: korisnik.ID,
+					Status:     "popeo se",
+				})
 			}
-			if err := db.Create(&prijava).Error; err != nil {
-				c.JSON(500, gin.H{"error": "Greška pri dodavanju prijave"})
+			if err := db.Create(&prijave).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Greška pri dodavanju prijava"})
 				return
 			}
 
-			korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
-			korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
-			korisnik.BrojPopeoSe += 1
-			if err := db.Save(&korisnik).Error; err != nil {
-				c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
-				return
+			for i := range korisnici {
+				korisnici[i].UkupnoKmKorisnik += akcija.UkupnoKmAkcija
+				korisnici[i].UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
+				korisnici[i].BrojPopeoSe += 1
+				if err := db.Save(&korisnici[i]).Error; err != nil {
+					c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
+					return
+				}
 			}
 
-			c.JSON(200, gin.H{"message": "Prošla akcija dodata", "korisnikId": korisnik.ID})
+			c.JSON(200, gin.H{
+				"message":       "Prošla akcija dodata",
+				"korisnikIds":   korisnikIDs,
+				"brojKorisnika": len(korisnikIDs),
+			})
 		})
 
 		// GET /api/moje-popeo-se lista akcija na koje se korisnik popeo, za profil page
