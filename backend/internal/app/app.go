@@ -80,7 +80,12 @@ func mustOpenDatabase() *gorm.DB {
 func migrateAndSeed(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.Akcija{},
+		&models.AkcijaSmestaj{},
+		&models.AkcijaOprema{},
+		&models.AkcijaOpremaRent{},
+		&models.AkcijaPrevoz{},
 		&models.Prijava{},
+		&models.PrijavaIzbori{},
 		&models.Korisnik{},
 		&models.Transakcija{},
 		&models.Zadatak{},

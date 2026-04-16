@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import BackButton from '../../../components/buttons/BackButton'
-import Dropdown from '../../../components/Dropdown'
-import CalendarDropdown from '../../../components/CalendarDropdown'
 import { useTranslation } from 'react-i18next'
+import { ActionWizardForm, type WizardGuide, type WizardValues } from './ActionWizardForm'
 
 interface Korisnik {
   id: number
@@ -14,31 +13,50 @@ interface Korisnik {
   role: string
 }
 
+const initialWizardValues = (tip: 'planina' | 'via_ferrata'): WizardValues => ({
+  naziv: '',
+  actionKind: tip,
+  visibility: 'klubska',
+  planina: '',
+  vrh: '',
+  datum: '',
+  opis: '',
+  tezina: '',
+  kumulativniUsponM: '',
+  duzinaStazeKm: '',
+  visinaVrhM: '',
+  zimskiUspon: false,
+  vodicId: '',
+  drugiVodicCheck: false,
+  drugiVodicIme: '',
+  trajanjeSati: '',
+  rokPrijava: '',
+  maxLjudi: '',
+  mestoPolaska: '',
+  kontaktTelefon: '',
+  brojDana: '1',
+  cenaClan: '',
+  cenaOstali: '',
+  prikaziListuPrijavljenih: true,
+  omoguciGrupniChat: false,
+  smestaj: [],
+  oprema: [],
+  prevoz: [],
+})
+
 export default function AddAction() {
   const { t } = useTranslation('actionForms')
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [vodici, setVodici] = useState<Korisnik[]>([])
-  const [naziv, setNaziv] = useState('')
-  const [planina, setPlanina] = useState('')
-  const [vrh, setVrh] = useState('')
-  const [datum, setDatum] = useState('')
-  const [opis, setOpis] = useState('')
-  const [tezina, setTezina] = useState('')
-  const [slika, setSlika] = useState<File | null>(null)
-  const [kumulativniUsponM, setKumulativniUsponM] = useState('')
-  const [duzinaStazeKm, setDuzinaStazeKm] = useState('')
-  const [vodicId, setVodicId] = useState('')
-  const [drugiVodicCheck, setDrugiVodicCheck] = useState(false)
-  const [drugiVodicIme, setDrugiVodicIme] = useState('')
-  const [visinaVrhM, setVisinaVrhM] = useState('')
-  const [zimskiUspon, setZimskiUspon] = useState(false)
-  const [javna, setJavna] = useState(false)
-
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const tipAkcije = (searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina') as 'planina' | 'via_ferrata'
+  const defaults = useMemo(() => initialWizardValues(tipAkcije), [tipAkcije])
 
   const todayYmd = (() => {
     const d = new Date()
@@ -64,39 +82,33 @@ export default function AddAction() {
   if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <div className="h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center">
-          <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-        </div>
         <p className="text-sm text-gray-500 font-medium">{t('add.onlyAdminGuide')}</p>
       </div>
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (values: WizardValues, image: File | null) => {
     setLoading(true)
     setError('')
     setSuccess('')
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.datum)) {
       setError(t('errors.invalidDateFormat'))
       setLoading(false)
       return
     }
-    if (datum < todayYmd) {
+    if (values.datum < todayYmd) {
       setError(t('errors.pastDate'))
       setLoading(false)
       return
     }
-    if (!tezina.trim()) {
+    if (!values.tezina.trim()) {
       setError(t('errors.selectDifficulty'))
       setLoading(false)
       return
     }
     const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
-    if (!dozvoljeneTezine.includes(tezina.trim().toLowerCase())) {
+    if (!dozvoljeneTezine.includes(values.tezina.trim().toLowerCase())) {
       setError(t('errors.selectDifficultyFromList'))
       setLoading(false)
       return
@@ -104,20 +116,69 @@ export default function AddAction() {
 
     try {
       const formData = new FormData()
-      formData.append('naziv', naziv)
-      formData.append('planina', planina.trim())
-      formData.append('vrh', vrh)
-      formData.append('datum', datum)
-      formData.append('opis', opis)
-      formData.append('tezina', tezina)
-      formData.append('kumulativniUsponM', kumulativniUsponM)
-      formData.append('duzinaStazeKm', duzinaStazeKm)
-      formData.append('visinaVrhM', visinaVrhM)
-      formData.append('zimskiUspon', String(zimskiUspon))
-      formData.append('javna', String(javna))
-      if (vodicId) formData.append('vodic_id', vodicId)
-      if (drugiVodicCheck && drugiVodicIme.trim()) formData.append('drugi_vodic_ime', drugiVodicIme.trim())
-      if (slika) formData.append('slika', slika)
+      formData.append('naziv', values.naziv)
+      formData.append('planina', values.planina.trim())
+      formData.append('vrh', values.vrh)
+      formData.append('datum', values.datum)
+      formData.append('opis', values.opis)
+      formData.append('tezina', values.tezina)
+      formData.append('kumulativniUsponM', values.kumulativniUsponM)
+      formData.append('duzinaStazeKm', values.duzinaStazeKm)
+      formData.append('visinaVrhM', values.visinaVrhM)
+      formData.append('zimskiUspon', String(values.zimskiUspon))
+      formData.append('javna', String(values.visibility === 'javna'))
+      formData.append('tipAkcije', values.actionKind)
+      formData.append('trajanjeSati', values.trajanjeSati)
+      formData.append('rokPrijava', values.rokPrijava)
+      formData.append('maxLjudi', values.maxLjudi)
+      formData.append('mestoPolaska', values.mestoPolaska)
+      formData.append('kontaktTelefon', values.kontaktTelefon)
+      formData.append('brojDana', values.brojDana)
+      formData.append('cenaClan', values.cenaClan)
+      formData.append('cenaOstali', values.cenaOstali)
+      formData.append('prikaziListuPrijavljenih', String(values.prikaziListuPrijavljenih))
+      formData.append('omoguciGrupniChat', String(values.omoguciGrupniChat))
+      if (values.vodicId) formData.append('vodic_id', values.vodicId)
+      if (values.drugiVodicCheck && values.drugiVodicIme.trim()) formData.append('drugi_vodic_ime', values.drugiVodicIme.trim())
+      if (image) formData.append('slika', image)
+
+      formData.append(
+        'smestajJson',
+        JSON.stringify(
+          values.smestaj
+            .filter((s) => s.naziv.trim())
+            .map((s) => ({
+              naziv: s.naziv.trim(),
+              cenaPoOsobiUkupno: Number(s.cenaPoOsobiUkupno || 0),
+              opis: s.opis.trim(),
+            })),
+        ),
+      )
+      formData.append(
+        'opremaJson',
+        JSON.stringify(
+          values.oprema
+            .filter((o) => o.naziv.trim())
+            .map((o) => ({
+              naziv: o.naziv.trim(),
+              dostupnaKolicina: Number(o.dostupnaKolicina || 0),
+              cenaPoSetu: Number(o.cenaPoSetu || 0),
+            })),
+        ),
+      )
+      formData.append(
+        'prevozJson',
+        JSON.stringify(
+          values.prevoz
+            .filter((p) => p.tipPrevoza.trim() && p.nazivGrupe.trim())
+            .map((p) => ({
+              tipPrevoza: p.tipPrevoza.trim(),
+              nazivGrupe: p.nazivGrupe.trim(),
+              kapacitet: Number(p.kapacitet || 0),
+              cenaPoOsobi: Number(p.cenaPoOsobi || 0),
+            })),
+        ),
+      )
 
       const res = await api.post('/api/akcije', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -127,268 +188,35 @@ export default function AddAction() {
       navigate('/akcije')
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.addAction'))
-      console.error('Greška:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const labelClass = 'block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-[0.16em]'
-  const inputClass =
-    'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none transition'
+  const guides: WizardGuide[] = vodici.map((v) => ({ id: v.id, username: v.username, fullName: v.fullName }))
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
           <BackButton />
-          <div className="flex-1 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
-              {t('add.badge')}
-            </p>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight text-gray-900">
-              {t('add.title')}
-            </h1>
-          </div>
           <div className="w-10 sm:w-16" aria-hidden />
         </div>
-
-        <div className="max-w-4xl mx-auto">
-          <form
+        <div className="max-w-5xl mx-auto">
+          <ActionWizardForm
+            title={t('add.title')}
+            badge={t('add.badge')}
+            submitText={t('add.submit')}
+            submitLoadingText={t('add.adding')}
+            guides={guides}
+            initialValues={defaults}
+            loading={loading}
+            error={error}
+            success={success}
+            minDate={todayYmd}
+            imageHelpText={t('fields.imageHelp')}
             onSubmit={handleSubmit}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 lg:p-7 space-y-6 sm:space-y-7"
-          >
-            {error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs sm:text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-
-            <div className="grid gap-4 sm:gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className={labelClass}>{t('fields.actionName')}</label>
-                <input
-                  type="text"
-                  value={naziv}
-                  onChange={(e) => setNaziv(e.target.value)}
-                  className={inputClass}
-                  placeholder={t('placeholders.actionName')}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>{t('fields.mountain')}</label>
-                <input
-                  type="text"
-                  value={planina}
-                  onChange={(e) => setPlanina(e.target.value)}
-                  className={inputClass}
-                  placeholder={t('placeholders.mountain')}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>{t('fields.peak')}</label>
-                <input
-                  type="text"
-                  value={vrh}
-                  onChange={(e) => setVrh(e.target.value)}
-                  className={inputClass}
-                  placeholder={t('placeholders.peak')}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>{t('fields.actionDate')}</label>
-                <CalendarDropdown
-                  aria-label={t('fields.pickActionDate')}
-                  value={datum}
-                  onChange={setDatum}
-                  minDate={todayYmd}
-                  fullWidth
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>{t('fields.difficulty')}</label>
-                <Dropdown
-                  aria-label={t('fields.pickDifficulty')}
-                  options={[
-                    { value: '', label: t('difficulty.pick') },
-                    { value: 'lako', label: t('difficulty.easy') },
-                    { value: 'srednje', label: t('difficulty.medium') },
-                    { value: 'tesko', label: t('difficulty.hard') },
-                    { value: 'alpinizam', label: t('difficulty.alpinism') },
-                  ]}
-                  value={tezina}
-                  onChange={setTezina}
-                  fullWidth
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>{t('fields.description')}</label>
-              <textarea
-                value={opis}
-                onChange={(e) => setOpis(e.target.value)}
-                className={`${inputClass} min-h-[80px]`}
-                placeholder={t('placeholders.description')}
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-3 pt-1 border-t border-gray-50">
-              {!drugiVodicCheck && (
-                <div>
-                  <label className={labelClass}>{t('fields.guide')}</label>
-                  <Dropdown
-                    aria-label={t('fields.pickGuide')}
-                    options={[
-                      { value: '', label: t('guide.pick') },
-                      ...vodici.map((v) => ({
-                        value: String(v.id),
-                        label: `${v.fullName} (@${v.username})`,
-                      })),
-                    ]}
-                    value={vodicId}
-                    onChange={setVodicId}
-                    fullWidth
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="drugi-vodic"
-                  checked={drugiVodicCheck}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setDrugiVodicCheck(checked)
-                    if (checked) setVodicId('')
-                    else setDrugiVodicIme('')
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
-                />
-                <label htmlFor="drugi-vodic" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  {t('fields.secondGuideManual')}
-                </label>
-              </div>
-              {drugiVodicCheck && (
-                <div>
-                  <label className={labelClass}>{t('fields.secondGuide')}</label>
-                  <input
-                    type="text"
-                    value={drugiVodicIme}
-                    onChange={(e) => setDrugiVodicIme(e.target.value)}
-                    placeholder={t('placeholders.secondGuideName')}
-                    className={inputClass}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-4 sm:gap-5 sm:grid-cols-3 pt-2 border-t border-gray-50">
-              <div>
-                <label className={labelClass}>{t('fields.ascentM')}</label>
-                <input
-                  type="number"
-                  value={kumulativniUsponM}
-                  onChange={(e) => setKumulativniUsponM(e.target.value)}
-                  placeholder={t('placeholders.ascentM')}
-                  className={inputClass}
-                  min="0"
-                  step="1"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>{t('fields.lengthKm')}</label>
-                <input
-                  type="number"
-                  value={duzinaStazeKm}
-                  onChange={(e) => setDuzinaStazeKm(e.target.value)}
-                  placeholder={t('placeholders.lengthKm')}
-                  className={inputClass}
-                  min="0"
-                  step="0.1"
-                />
-              </div>
-              <div>
-                <label className={labelClass}>{t('fields.peakHeightM')}</label>
-                <input
-                  type="number"
-                  value={visinaVrhM}
-                  onChange={(e) => setVisinaVrhM(e.target.value)}
-                  placeholder={t('placeholders.peakHeightM')}
-                  className={inputClass}
-                  min="0"
-                  step="1"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-2 border-t border-gray-50">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="zimski-uspon"
-                  checked={zimskiUspon}
-                  onChange={(e) => setZimskiUspon(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
-                />
-                <label htmlFor="zimski-uspon" className="text-xs sm:text-sm text-gray-700 font-medium">
-                  {t('fields.winterAscent')}
-                </label>
-              </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg bg-sky-50/60 border border-sky-100">
-                <input
-                  type="checkbox"
-                  id="javna"
-                  checked={javna}
-                  onChange={(e) => setJavna(e.target.checked)}
-                  className="w-4 h-4 rounded border-sky-300 text-sky-500 focus:ring-sky-500"
-                />
-                <div>
-                  <label htmlFor="javna" className="text-xs sm:text-sm text-gray-800 font-medium">
-                    {t('fields.publicAction')}
-                  </label>
-                  <p className="text-[11px] text-gray-600 mt-0.5">
-                    {t('fields.publicActionHelp')}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>{t('fields.actionImage')}</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setSlika(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
-                />
-                <p className="mt-1 text-[11px] text-gray-400">{t('fields.imageHelp')}</p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 disabled:opacity-60 disabled:cursor-wait transition-all"
-              >
-                {loading ? t('add.adding') : t('add.submit')}
-              </button>
-              {success && (
-                <p className="mt-3 text-center text-xs font-medium text-emerald-600">
-                  {success}
-                </p>
-              )}
-            </div>
-          </form>
+          />
         </div>
       </div>
     </div>

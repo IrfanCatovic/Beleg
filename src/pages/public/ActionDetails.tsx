@@ -42,6 +42,21 @@ interface Akcija {
   limited?: boolean
   kumulativniUsponM?: number
   duzinaStazeKm?: number
+  tipAkcije?: 'planina' | 'via_ferrata'
+  trajanjeSati?: number
+  rokPrijava?: string
+  maxLjudi?: number
+  mestoPolaska?: string
+  kontaktTelefon?: string
+  brojDana?: number
+  cenaClan?: number
+  cenaOstali?: number
+  prikaziListuPrijavljenih?: boolean
+  omoguciGrupniChat?: boolean
+  mojSaldo?: number
+  smestaj?: Array<{ id: number; naziv: string; cenaPoOsobiUkupno: number; opis?: string }>
+  opremaRent?: Array<{ id: number; nazivOpreme: string; dostupnaKolicina: number; cenaPoSetu: number }>
+  prevoz?: Array<{ id: number; tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number }>
 }
 
 interface Prijava {
@@ -93,7 +108,7 @@ export default function ActionDetails() {
   const [canSeePrijave, setCanSeePrijave] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [mojaPrijava, setMojaPrijava] = useState<{ status: string } | null | undefined>(undefined)
+  const [mojaPrijava, setMojaPrijava] = useState<{ status: string; selectedSmestajIds?: number[]; selectedPrevozIds?: number[]; selectedRentItems?: Array<{ rentId: number; kolicina: number }> } | null | undefined>(undefined)
   const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
   const [selectedMemberId, setSelectedMemberId] = useState('')
   const [addingMember, setAddingMember] = useState(false)
@@ -202,7 +217,7 @@ export default function ActionDetails() {
     let cancelled = false
     const run = async () => {
       try {
-        const res = await api.get<{ prijava: { status: string } | null }>(`/api/akcije/${id}/moja-prijava`)
+        const res = await api.get<{ prijava: { status: string; selectedSmestajIds?: number[]; selectedPrevozIds?: number[]; selectedRentItems?: Array<{ rentId: number; kolicina: number }> } | null }>(`/api/akcije/${id}/moja-prijava`)
         if (!cancelled) setMojaPrijava(res.data.prijava ?? null)
       } catch {
         if (!cancelled) setMojaPrijava(null)
@@ -679,6 +694,54 @@ export default function ActionDetails() {
                       label={t('difficulty')}
                       value={difficultyBadge.label}
                     />
+                    {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-indigo-50"
+                        label="Trajanje"
+                        value={`${akcija.trajanjeSati}h`}
+                      />
+                    )}
+                    {akcija.rokPrijava && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-rose-50"
+                        label="Rok prijava"
+                        value={formatDate(akcija.rokPrijava)}
+                      />
+                    )}
+                    {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a8.966 8.966 0 01-6 2.28 8.966 8.966 0 01-6-2.28m12 0V16.5a3 3 0 00-3-3h-6a3 3 0 00-3 3v2.22m12 0A3 3 0 0018 15.75V7.5a3 3 0 00-3-3h-.28m-5.44 0H9a3 3 0 00-3 3v8.25a3 3 0 003 3m0-14.25a3 3 0 106 0 3 3 0 00-6 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-violet-50"
+                        label="Maks učesnika"
+                        value={`${akcija.maxLjudi}`}
+                      />
+                    )}
+                    {akcija.mestoPolaska && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21c4.97-4.03 7.5-7.36 7.5-10A7.5 7.5 0 104.5 11c0 2.64 2.53 5.97 7.5 10z" />
+                          </svg>
+                        }
+                        iconBg="bg-teal-50"
+                        label="Polazak"
+                        value={akcija.mestoPolaska}
+                      />
+                    )}
                   </div>
 
                   {akcija.opis && (
@@ -687,8 +750,67 @@ export default function ActionDetails() {
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{akcija.opis}</p>
                     </div>
                   )}
+                  {(akcija.cenaClan != null || akcija.cenaOstali != null || akcija.mojSaldo != null) && (
+                    <div className="pt-4 border-t border-gray-50 rounded-xl bg-emerald-50/70 p-3.5">
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-2">Troškovi</h3>
+                      {akcija.cenaClan != null && <p className="text-sm text-gray-700">Cena za članove: <span className="font-semibold">{akcija.cenaClan.toFixed(2)}</span></p>}
+                      {akcija.javna && akcija.cenaOstali != null && <p className="text-sm text-gray-700">Cena za ostale: <span className="font-semibold">{akcija.cenaOstali.toFixed(2)}</span></p>}
+                      {akcija.mojSaldo != null && <p className="text-sm text-emerald-800 mt-1">Moj saldo za uplatu: <span className="font-bold">{akcija.mojSaldo.toFixed(2)}</span></p>}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {(akcija.prevoz?.length || akcija.smestaj?.length || akcija.opremaRent?.length) ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
+                  <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-sky-400 to-indigo-600" />
+                    <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Logistika i prevoz</h2>
+                  </div>
+                  <div className="p-5 sm:p-6 space-y-4">
+                    {!!akcija.prevoz?.length && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Prevoz kartice</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {akcija.prevoz.map((p) => (
+                            <div key={p.id} className="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-indigo-50 p-3">
+                              <p className="text-[11px] text-sky-700 font-semibold uppercase">{p.tipPrevoza}</p>
+                              <p className="text-sm font-bold text-gray-900">{p.nazivGrupe}</p>
+                              <p className="text-xs text-gray-600 mt-1">Kapacitet: {p.kapacitet} · Cena: {p.cenaPoOsobi.toFixed(2)} / osoba</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!!akcija.smestaj?.length && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Smeštaj</h3>
+                        <div className="space-y-2">
+                          {akcija.smestaj.map((s) => (
+                            <div key={s.id} className="rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+                              <p className="text-sm font-semibold text-gray-900">{s.naziv}</p>
+                              <p className="text-xs text-gray-600">Cena ukupno po osobi: {s.cenaPoOsobiUkupno.toFixed(2)}</p>
+                              {s.opis && <p className="text-xs text-gray-500 mt-1">{s.opis}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!!akcija.opremaRent?.length && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Rent opreme</h3>
+                        <div className="space-y-2">
+                          {akcija.opremaRent.map((o) => (
+                            <div key={o.id} className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-xs text-gray-700">
+                              {o.nazivOpreme} · dostupno {o.dostupnaKolicina} · {o.cenaPoSetu.toFixed(2)} po setu
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
 
               {/* ── Prijavljeni članovi ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">

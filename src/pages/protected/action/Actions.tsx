@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
@@ -66,6 +66,8 @@ export default function Actions() {
   const [showAnnualReportModal, setShowAnnualReportModal] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | ''>('')
   const [loadingReport, setLoadingReport] = useState(false)
+  const [showAddActionTypeModal, setShowAddActionTypeModal] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -111,6 +113,12 @@ export default function Actions() {
     }
     setSelectedYear(yearsWithCompleted[0] ?? '')
     setShowAnnualReportModal(true)
+  }
+
+  const handleOpenAddAction = () => setShowAddActionTypeModal(true)
+  const handlePickActionType = (tip: 'planina' | 'via_ferrata') => {
+    setShowAddActionTypeModal(false)
+    navigate(`/dodaj-akciju?tip=${tip}`)
   }
 
   const handleGenerateAnnualReportPdf = async () => {
@@ -305,15 +313,16 @@ export default function Actions() {
 
           {isAdminOrVodic && (
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to="/dodaj-akciju"
+              <button
+                type="button"
+                onClick={handleOpenAddAction}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 {t('newAction')}
-              </Link>
+              </button>
               <Link
                 to="/profil/dodaj-proslu-akciju"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
@@ -648,6 +657,30 @@ export default function Actions() {
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {loadingReport ? t('preparing') : t('print')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showAddActionTypeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddActionTypeModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Izaberite tip akcije</h3>
+              <p className="text-xs text-gray-500 mb-4">Prvo birate tip, zatim unos ide kroz logične korake.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePickActionType('planina')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                >
+                  Planina
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePickActionType('via_ferrata')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 transition-colors"
+                >
+                  Via Ferrata
                 </button>
               </div>
             </div>

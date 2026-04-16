@@ -516,9 +516,20 @@ func AddProslaAkcija(c *gin.Context) {
 		DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 		AddedByID:                currentUser.ID,
 		UIstorijiKluba:           dodajUIstorijuKluba,
+		TipAkcije:                "planina",
+		BrojDana:                 1,
+		PrikaziListuPrijavljenih: true,
+	}
+	if ok, errMsg := parseActionExtras(c, &akcija); !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+		return
 	}
 	if err := db.Create(&akcija).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
+		return
+	}
+	if err := syncActionNestedData(db, akcija.ID, c); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
