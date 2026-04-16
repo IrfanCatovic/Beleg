@@ -66,7 +66,9 @@ export default function Actions() {
   const [showAnnualReportModal, setShowAnnualReportModal] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | ''>('')
   const [loadingReport, setLoadingReport] = useState(false)
-  const [showAddActionTypeModal, setShowAddActionTypeModal] = useState(false)
+  const [showAddActionModal, setShowAddActionModal] = useState(false)
+  const [addActionModalStep, setAddActionModalStep] = useState<'type' | 'kind'>('type')
+  const [addActionTip, setAddActionTip] = useState<'planina' | 'via_ferrata' | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -115,10 +117,33 @@ export default function Actions() {
     setShowAnnualReportModal(true)
   }
 
-  const handleOpenAddAction = () => setShowAddActionTypeModal(true)
+  const handleOpenAddAction = () => {
+    setAddActionModalStep('type')
+    setAddActionTip(null)
+    setShowAddActionModal(true)
+  }
+
+  const handleCloseAddActionModal = () => {
+    setShowAddActionModal(false)
+    setAddActionModalStep('type')
+    setAddActionTip(null)
+  }
+
   const handlePickActionType = (tip: 'planina' | 'via_ferrata') => {
-    setShowAddActionTypeModal(false)
-    navigate(`/dodaj-akciju?tip=${tip}`)
+    setAddActionTip(tip)
+    setAddActionModalStep('kind')
+  }
+
+  const handlePickNovaAkcija = () => {
+    if (!addActionTip) return
+    handleCloseAddActionModal()
+    navigate(`/dodaj-akciju?tip=${addActionTip}`)
+  }
+
+  const handlePickProslaAkcija = () => {
+    if (!addActionTip) return
+    handleCloseAddActionModal()
+    navigate(`/profil/dodaj-proslu-akciju?tip=${addActionTip}`)
   }
 
   const handleGenerateAnnualReportPdf = async () => {
@@ -321,17 +346,8 @@ export default function Actions() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                {t('newAction')}
+                {t('addAction')}
               </button>
-              <Link
-                to="/profil/dodaj-proslu-akciju"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {t('pastAction')}
-              </Link>
               <button
                 type="button"
                 onClick={handleOpenAnnualReport}
@@ -662,27 +678,66 @@ export default function Actions() {
             </div>
           </div>
         )}
-        {showAddActionTypeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddActionTypeModal(false)}>
+        {showAddActionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={handleCloseAddActionModal}>
             <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">Izaberite tip akcije</h3>
-              <p className="text-xs text-gray-500 mb-4">Prvo birate tip, zatim unos ide kroz logične korake.</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePickActionType('planina')}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                >
-                  Planina
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePickActionType('via_ferrata')}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 transition-colors"
-                >
-                  Via Ferrata
-                </button>
-              </div>
+              {addActionModalStep === 'type' && (
+                <>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{t('addActionModalTypeTitle')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('addActionModalTypeHint')}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePickActionType('planina')}
+                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:scale-[0.98] transition-all"
+                    >
+                      {t('addActionModalMountain')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePickActionType('via_ferrata')}
+                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 active:scale-[0.98] transition-all"
+                    >
+                      {t('addActionModalViaFerrata')}
+                    </button>
+                  </div>
+                </>
+              )}
+              {addActionModalStep === 'kind' && addActionTip && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddActionModalStep('type')
+                      setAddActionTip(null)
+                    }}
+                    className="mb-3 text-xs font-semibold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    {t('addActionModalBack')}
+                  </button>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">{t('addActionModalKindTitle')}</h3>
+                  <p className="text-xs text-gray-500 mb-4">{t('addActionModalKindHint')}</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePickNovaAkcija}
+                      className="px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm active:scale-[0.98] transition-all"
+                    >
+                      {t('newAction')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePickProslaAkcija}
+                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 bg-white hover:border-amber-300 hover:bg-amber-50/80 hover:text-amber-900 active:scale-[0.98] transition-all"
+                    >
+                      {t('pastAction')}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import BackButton from '../../../components/buttons/BackButton'
@@ -17,6 +17,8 @@ export default function AddPastAction() {
   const { t } = useTranslation('actionForms')
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tipAkcije = searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina'
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [vodici, setVodici] = useState<Korisnik[]>([])
   const [selectedKorisnikIds, setSelectedKorisnikIds] = useState<string[]>([])
@@ -85,6 +87,7 @@ export default function AddPastAction() {
       const targetKorisnikId = selectedKorisnikIds[0]
       const formData = new FormData()
       formData.append('naziv', naziv)
+      formData.append('tipAkcije', tipAkcije)
       formData.append('planina', planina.trim())
       formData.append('vrh', vrh)
       formData.append('datum', datum)

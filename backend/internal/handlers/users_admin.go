@@ -497,6 +497,15 @@ func AddProslaAkcija(c *gin.Context) {
 		}
 	}
 
+	tipAkcije := strings.TrimSpace(strings.ToLower(c.PostForm("tipAkcije")))
+	if tipAkcije == "" {
+		tipAkcije = "planina"
+	}
+	if tipAkcije != "planina" && tipAkcije != "via_ferrata" {
+		c.JSON(400, gin.H{"error": "tipAkcije mora biti planina ili via_ferrata"})
+		return
+	}
+
 	akcija := models.Akcija{
 		Naziv:                    naziv,
 		Planina:                  planina,
@@ -516,7 +525,7 @@ func AddProslaAkcija(c *gin.Context) {
 		DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 		AddedByID:                currentUser.ID,
 		UIstorijiKluba:           dodajUIstorijuKluba,
-		TipAkcije:                "planina",
+		TipAkcije:                tipAkcije,
 		BrojDana:                 1,
 		PrikaziListuPrijavljenih: true,
 	}
