@@ -299,6 +299,13 @@ export default function Finance() {
     if (transakcijaFilter === 'sve') return true
     return t.tip === transakcijaFilter
   }) ?? []
+  const reportUplate = filteredTransakcije
+    .filter((tx) => tx.tip === 'uplata')
+    .reduce((sum, tx) => sum + Math.abs(Number(tx.iznos) || 0), 0)
+  const reportIsplate = filteredTransakcije
+    .filter((tx) => tx.tip === 'isplata')
+    .reduce((sum, tx) => sum + Math.abs(Number(tx.iznos) || 0), 0)
+  const reportSaldo = reportUplate - reportIsplate
 
   const totalPages = Math.max(1, Math.ceil(filteredTransakcije.length / PAGE_SIZE))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -382,10 +389,10 @@ export default function Finance() {
                   generateFinanceReportPdf({
                     from: fromDate,
                     to: toDate,
-                    transakcije: dashboardData.transakcije,
-                    uplate: dashboardData.uplate,
-                    isplate: dashboardData.isplate,
-                    saldo: dashboardData.saldo,
+                    transakcije: filteredTransakcije,
+                    uplate: reportUplate,
+                    isplate: reportIsplate,
+                    saldo: reportSaldo,
                     currency,
                   })
                 }
