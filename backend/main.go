@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	app.Run(routes.RegisterLegacyRoutes)
+	app.Run(routes.RegisterAppRoutes)
 }
