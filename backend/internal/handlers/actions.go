@@ -248,7 +248,7 @@ func syncActionNestedData(db *gorm.DB, akcijaID uint, c *gin.Context) error {
 }
 
 func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) float64 {
-	if strings.EqualFold(korisnik.Role, "clan") {
+	if akcija.KlubID != nil && korisnik.KlubID != nil && *akcija.KlubID == *korisnik.KlubID {
 		return akcija.CenaClan
 	}
 	if akcija.Javna {
@@ -1072,6 +1072,7 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		AvatarURL          string            `json:"avatarUrl,omitempty"`
 		PrijavljenAt       time.Time         `json:"prijavljenAt"`
 		Status             string            `json:"status"`
+		Platio             bool              `json:"platio"`
 		SelectedSmestajIDs []uint            `json:"selectedSmestajIds"`
 		SelectedPrevozIDs  []uint            `json:"selectedPrevozIds"`
 		SelectedRentItems  []prijavaRentItem `json:"selectedRentItems"`
@@ -1146,6 +1147,7 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 			AvatarURL:          avatarURL,
 			PrijavljenAt:       p.PrijavljenAt,
 			Status:             p.Status,
+			Platio:             p.Platio,
 			SelectedSmestajIDs: selSmestaj,
 			SelectedPrevozIDs:  selPrevoz,
 			SelectedRentItems:  selRent,
@@ -1559,6 +1561,55 @@ func DodajClanaPopeoSe(c *gin.Context) {
 	})
 }
 
+func UpdatePrijavaPlatioStatus(c *gin.Context) {
+	idStr := c.Param("id")
+	prijavaID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prijave"})
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+	var prijava models.Prijava
+	if err := db.First(&prijava, prijavaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
+		return
+	}
+
+	var akcija models.Akcija
+	if err := db.First(&akcija, prijava.AkcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Nemaš pravo da menjaš status uplate"})
+		return
+	}
+	if akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena i status uplate više ne može da se menja"})
+		return
+	}
+
+	var req struct {
+		Platio bool `json:"platio"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći podaci"})
+		return
+	}
+
+	prijava.Platio = req.Platio
+	if err := db.Save(&prijava).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju uplate"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Status uplate je ažuriran",
+		"platio":  prijava.Platio,
+	})
+}
+
 func ZavrsiAkciju(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" && role != "vodic" && role != "superadmin" {
@@ -1575,6 +1626,17 @@ func ZavrsiAkciju(c *gin.Context) {
 
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	var actor models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&actor).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
 
 	var akcija models.Akcija
 	if err := db.First(&akcija, id).Error; err != nil {
@@ -1591,12 +1653,98 @@ func ZavrsiAkciju(c *gin.Context) {
 		return
 	}
 
-	akcija.IsCompleted = true
-	if err := db.Save(&akcija).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju akcije"})
+	importedCount := 0
+	importedAmount := 0.0
+	err = db.Transaction(func(tx *gorm.DB) error {
+		akcija.IsCompleted = true
+		if err := tx.Save(&akcija).Error; err != nil {
+			return err
+		}
+
+		var prijave []models.Prijava
+		if err := tx.Preload("Korisnik").
+			Where("akcija_id = ? AND platio = ? AND status IN ?", akcija.ID, true, []string{"prijavljen", "popeo se", "nije uspeo"}).
+			Find(&prijave).Error; err != nil {
+			return err
+		}
+
+		if len(prijave) == 0 {
+			return nil
+		}
+
+		var smestajRows []models.AkcijaSmestaj
+		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&smestajRows).Error
+		smestajByID := map[uint]float64{}
+		for _, s := range smestajRows {
+			smestajByID[s.ID] = s.CenaPoOsobiUkupno
+		}
+
+		var prevozRows []models.AkcijaPrevoz
+		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&prevozRows).Error
+		prevozByID := map[uint]float64{}
+		for _, p := range prevozRows {
+			prevozByID[p.ID] = p.CenaPoOsobi
+		}
+
+		var rentRows []models.AkcijaOpremaRent
+		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error
+		rentByID := map[uint]float64{}
+		for _, r := range rentRows {
+			rentByID[r.ID] = r.CenaPoSetu
+		}
+
+		for _, p := range prijave {
+			saldo := computeBaseCenaForUser(akcija, p.Korisnik)
+			var izbor models.PrijavaIzbori
+			selSmestaj := []uint{}
+			selPrevoz := []uint{}
+			selRent := []prijavaRentItem{}
+			if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err == nil {
+				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
+				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+			}
+			for _, sid := range selSmestaj {
+				saldo += smestajByID[sid]
+			}
+			for _, pid := range selPrevoz {
+				saldo += prevozByID[pid]
+			}
+			for _, item := range selRent {
+				if item.Kolicina <= 0 {
+					continue
+				}
+				saldo += rentByID[item.RentID] * float64(item.Kolicina)
+			}
+			if saldo <= 0 {
+				continue
+			}
+			importedAmount += saldo
+			importedCount++
+		}
+
+		if importedAmount <= 0 {
+			return nil
+		}
+		return tx.Create(&models.Transakcija{
+			Tip:        "uplata",
+			Iznos:      importedAmount,
+			Opis:       fmt.Sprintf("Uplate sa akcije %s", strings.TrimSpace(akcija.Naziv)),
+			Datum:      time.Now(),
+			KorisnikID: actor.ID,
+		}).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri završavanju akcije"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Akcija uspešno završena", "akcija": akcija})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Akcija uspešno završena",
+		"akcija":         akcija,
+		"importedUplate": importedCount,
+		"importedIznos":  importedAmount,
+	})
 }
 
 func DeleteAkcija(c *gin.Context) {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDateTime } from '../../utils/dateUtils'
 
@@ -22,6 +23,7 @@ interface MemberDetailsModalProps {
     selectedRentItems?: SelectedRentItem[]
     saldo?: number
     isClanKluba?: boolean
+    platio?: boolean
   } | null
   smestaj: Array<{ id: number; naziv: string; cenaPoOsobiUkupno: number }>
   prevoz: Array<{ id: number; nazivGrupe: string; tipPrevoza: string; cenaPoOsobi: number }>
@@ -30,6 +32,8 @@ interface MemberDetailsModalProps {
   baseCenaOstali: number
   javna: boolean
   statusLabel: string
+  showPaymentControls?: boolean
+  onTogglePayment?: (nextPlatio: boolean) => Promise<void>
 }
 
 export default function MemberDetailsModal({
@@ -44,7 +48,10 @@ export default function MemberDetailsModal({
   baseCenaOstali,
   javna,
   statusLabel,
+  showPaymentControls = false,
+  onTogglePayment,
 }: MemberDetailsModalProps) {
+  const [togglingPayment, setTogglingPayment] = useState(false)
   if (!open || !member) return null
 
   const displayName = member.fullName?.trim() ? member.fullName : member.korisnik
@@ -130,6 +137,17 @@ export default function MemberDetailsModal({
             >
               {member.isClanKluba ? 'Član kluba' : 'Gost'}
             </span>
+            {showPaymentControls && (
+              <span
+                className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
+                  member.platio
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}
+              >
+                {member.platio ? 'Platio' : 'Nije platio'}
+              </span>
+            )}
           </div>
 
           <div className="space-y-2.5">
@@ -215,13 +233,36 @@ export default function MemberDetailsModal({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </Link>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            Zatvori
-          </button>
+          <div className="flex items-center gap-2">
+            {showPaymentControls && onTogglePayment && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setTogglingPayment(true)
+                    await onTogglePayment(!member.platio)
+                  } finally {
+                    setTogglingPayment(false)
+                  }
+                }}
+                disabled={togglingPayment}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-60 ${
+                  member.platio
+                    ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100'
+                    : 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                }`}
+              >
+                {togglingPayment ? 'Čuvam...' : member.platio ? 'Označi nije platio' : 'Označi platio'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Zatvori
+            </button>
+          </div>
         </div>
       </div>
     </div>

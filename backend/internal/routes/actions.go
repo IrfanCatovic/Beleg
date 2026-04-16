@@ -25,6 +25,7 @@ func RegisterActionRoutes(r *gin.Engine, protected *gin.RouterGroup, jwtSecret [
 
 	protected.GET("/moje-popeo-se", handlers.GetMojePopeoSe)
 	protected.POST("/prijave/:id/status", handlers.UpdatePrijavaStatus)
+	protected.PATCH("/prijave/:id/platio", handlers.UpdatePrijavaPlatioStatus)
 	protected.DELETE("/prijave/:id", handlers.DeletePrijava)
 	protected.GET("/moje-prijave", handlers.GetMojePrijave)
 }

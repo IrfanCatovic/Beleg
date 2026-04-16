@@ -74,6 +74,7 @@ interface Prijava {
   avatarUrl?: string
   prijavljenAt: string
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
+  platio?: boolean
   selectedSmestajIds?: number[]
   selectedPrevozIds?: number[]
   selectedRentItems?: Array<{ rentId: number; kolicina: number }>
@@ -542,6 +543,17 @@ export default function ActionDetails() {
     }
   }
 
+  const handleTogglePaymentStatus = async (prijavaId: number, nextPlatio: boolean) => {
+    if (!canManageHost) return
+    try {
+      await api.patch(`/api/prijave/${prijavaId}/platio`, { platio: nextPlatio })
+      setPrijave((prev) => prev.map((p) => (p.id === prijavaId ? { ...p, platio: nextPlatio } : p)))
+      setMemberModal((prev) => (prev && prev.id === prijavaId ? { ...prev, platio: nextPlatio } : prev))
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri ažuriranju statusa uplate', t('errorTitle'))
+    }
+  }
+
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
       title: t('removeMemberTitle'),
@@ -668,14 +680,26 @@ export default function ActionDetails() {
     return out
   }, [akcija?.prevoz, akcija?.smestaj, akcija?.opremaRent, selSmestaj, selPrevoz, selRent])
 
-  const totalSummary = useMemo(() => {
-    const base = akcija?.isClanKluba
+  const effectiveIsClanKluba = useMemo(() => {
+    // Prefer local club ID match when available (more robust across backend versions).
+    if (user?.klubId != null && akcija?.klubId != null) {
+      return user.klubId === akcija.klubId
+    }
+    if (typeof akcija?.isClanKluba === 'boolean') return akcija.isClanKluba
+    return false
+  }, [user?.klubId, akcija?.klubId, akcija?.isClanKluba])
+
+  const effectiveBaseCena = useMemo(() => {
+    return effectiveIsClanKluba
       ? akcija?.cenaClan ?? 0
       : akcija?.javna
         ? akcija?.cenaOstali ?? 0
         : akcija?.cenaClan ?? 0
-    return summaryRows.reduce((acc, r) => acc + r.amount, base)
-  }, [akcija?.isClanKluba, akcija?.cenaClan, akcija?.cenaOstali, akcija?.javna, summaryRows])
+  }, [effectiveIsClanKluba, akcija?.cenaClan, akcija?.cenaOstali, akcija?.javna])
+
+  const totalSummary = useMemo(() => {
+    return summaryRows.reduce((acc, r) => acc + r.amount, effectiveBaseCena)
+  }, [summaryRows, effectiveBaseCena])
 
   const handleZavrsiAkciju = async () => {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')
@@ -737,6 +761,11 @@ export default function ActionDetails() {
   const isLimitedView = !!akcija.limited
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
+  const paymentTrackedPrijave = prijave.filter((p) => p.status !== 'otkazano')
+  const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
+  const unpaidCount = paymentTrackedPrijave.length - paidCount
+  const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
+  const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
   const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
   const membersToAdd = clubMembers.filter((m) => !climbedByUsername.has(m.username))
 
@@ -1077,13 +1106,13 @@ export default function ActionDetails() {
 
                 {/* Top right overlay chips */}
                 <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                  {akcija.isClanKluba !== undefined && user && (
+                  {user && (
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md border shadow-sm ${
-                      akcija.isClanKluba
+                      effectiveIsClanKluba
                         ? 'bg-emerald-500/90 text-white border-emerald-300/30'
                         : 'bg-violet-500/90 text-white border-violet-300/30'
                     }`}>
-                      {akcija.isClanKluba ? 'Tvoj klub' : 'Gost'}
+                      {effectiveIsClanKluba ? 'Tvoj klub' : 'Gost'}
                     </span>
                   )}
                   {mojaPrijava && (
@@ -1132,13 +1161,13 @@ export default function ActionDetails() {
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 ${
-              akcija.isClanKluba
+              effectiveIsClanKluba
                 ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50'
                 : 'border-violet-200 bg-gradient-to-r from-violet-50 via-fuchsia-50/70 to-violet-50'
             }`}>
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${akcija.isClanKluba ? 'bg-emerald-500 text-white' : 'bg-violet-500 text-white'}`}>
-                  {akcija.isClanKluba ? (
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${effectiveIsClanKluba ? 'bg-emerald-500 text-white' : 'bg-violet-500 text-white'}`}>
+                  {effectiveIsClanKluba ? (
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -1149,11 +1178,11 @@ export default function ActionDetails() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-xs font-bold uppercase tracking-wider ${akcija.isClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                    {akcija.isClanKluba ? 'Tvoj status: član kluba' : 'Tvoj status: gost (van kluba)'}
+                  <p className={`text-xs font-bold uppercase tracking-wider ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
+                    {effectiveIsClanKluba ? 'Tvoj status: član kluba' : 'Tvoj status: gost (van kluba)'}
                   </p>
                   <p className="text-sm text-gray-700 mt-0.5">
-                    {akcija.isClanKluba
+                    {effectiveIsClanKluba
                       ? 'Plaćaš povlašćenu cenu za članove kluba.'
                       : akcija.javna
                         ? 'Plaćaš cenu za eksterne učesnike.'
@@ -1163,8 +1192,8 @@ export default function ActionDetails() {
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Tvoja osnovna cena</p>
-                <p className={`text-2xl font-extrabold ${akcija.isClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                  {(akcija.isClanKluba ? akcija.cenaClan ?? 0 : akcija.javna ? akcija.cenaOstali ?? 0 : akcija.cenaClan ?? 0).toFixed(2)}
+                <p className={`text-2xl font-extrabold ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
+                  {effectiveBaseCena.toFixed(2)}
                   <span className="text-sm font-bold ml-1">{clubCurrency}</span>
                 </p>
               </div>
@@ -1550,12 +1579,12 @@ export default function ActionDetails() {
                     <div className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100">
                       <span className="text-xs font-semibold text-gray-700">
                         Osnovna cena akcije{' '}
-                        <span className={`text-[10px] font-bold uppercase ml-1 ${akcija.isClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                          ({akcija.isClanKluba ? 'član kluba' : akcija.javna ? 'gost' : 'klub'})
+                        <span className={`text-[10px] font-bold uppercase ml-1 ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
+                          ({effectiveIsClanKluba ? 'član kluba' : akcija.javna ? 'gost' : 'klub'})
                         </span>
                       </span>
                       <span className="text-sm font-bold text-gray-900 tabular-nums">
-                        {(akcija.isClanKluba ? akcija.cenaClan ?? 0 : akcija.javna ? akcija.cenaOstali ?? 0 : akcija.cenaClan ?? 0).toFixed(2)} {clubCurrency}
+                        {effectiveBaseCena.toFixed(2)} {clubCurrency}
                       </span>
                     </div>
 
@@ -1632,9 +1661,16 @@ export default function ActionDetails() {
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
                   <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('registeredMembers')}</h2>
                 </div>
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                  {memberCount}
-                </span>
+                <div className="flex items-center gap-2">
+                  {canManageHost && canSeePrijave && !isLimitedView && (
+                    <span className="inline-flex items-center justify-center h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
+                      Plaćeno {paidCount}/{paymentTrackedPrijave.length}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                    {memberCount}
+                  </span>
+                </div>
               </div>
 
               <div className="p-5 sm:p-6">
@@ -1684,7 +1720,9 @@ export default function ActionDetails() {
                           key={p.id}
                           className={`group flex items-center gap-3 p-3 rounded-2xl bg-gray-50/60 border border-gray-100 transition-all duration-200 ${
                             canManageHost
-                              ? 'hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-sm cursor-pointer'
+                              ? p.platio
+                                ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/60 hover:shadow-sm cursor-pointer'
+                                : 'border-rose-200 bg-rose-50/30 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm cursor-pointer'
                               : ''
                           }`}
                           role={canManageHost ? 'button' : undefined}
@@ -1710,6 +1748,7 @@ export default function ActionDetails() {
                               {displayName}
                             </p>
                             <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${statusCls}`}>
                                 {prijavaStatusLabel(p.status, t)}
                               </span>
@@ -1758,6 +1797,28 @@ export default function ActionDetails() {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+
+                {user && canManageHost && canSeePrijave && !isLimitedView && prijave.length > 0 && (
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 to-teal-50/50 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Sve uplate</p>
+                        <p className="text-sm text-gray-700 mt-0.5">
+                          Plaćeno članova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
+                        </p>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <p className="text-xs font-semibold text-gray-500">Ukupno plaćeno</p>
+                        <p className="text-lg font-extrabold text-emerald-700 tabular-nums">
+                          {paidTotal.toFixed(2)} {clubCurrency}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          Očekivano ukupno: <span className="font-semibold text-gray-700">{expectedTotal.toFixed(2)} {clubCurrency}</span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1908,6 +1969,8 @@ export default function ActionDetails() {
             baseCenaOstali={akcija.cenaOstali ?? 0}
             javna={!!akcija.javna}
             statusLabel={memberModal ? prijavaStatusLabel(memberModal.status, t) : ''}
+            showPaymentControls={canManageHost && !akcija.isCompleted}
+            onTogglePayment={memberModal ? async (next) => handleTogglePaymentStatus(memberModal.id, next) : undefined}
           />
 
         </div>

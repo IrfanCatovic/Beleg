@@ -7,6 +7,7 @@ type Prijava struct {
 	AkcijaID     uint      `gorm:"index" json:"akcijaId"`
 	KorisnikID   uint      `gorm:"index" json:"korisnikId"`
 	Status       string    `gorm:"default:'prijavljen'" json:"status"`
+	Platio       bool      `gorm:"default:false" json:"platio"`
 	PrijavljenAt time.Time `gorm:"autoCreateTime" json:"prijavljenAt"`
 
 	// Relacije za GORM Preload
