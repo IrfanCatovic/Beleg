@@ -386,6 +386,11 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 		resp["prevoz"] = prevoz
 
 		if viewer != nil {
+			isClan := false
+			if akcija.KlubID != nil && viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
+				isClan = true
+			}
+			resp["isClanKluba"] = isClan
 			saldo := computeBaseCenaForUser(akcija, *viewer)
 			var moja models.Prijava
 			if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, viewer.ID).First(&moja).Error; err == nil {
@@ -1061,12 +1066,36 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 	}
 
 	type PrijavaDTO struct {
-		ID           uint      `json:"id"`
-		Korisnik     string    `json:"korisnik"`
-		FullName     string    `json:"fullName"`
-		AvatarURL    string    `json:"avatarUrl,omitempty"`
-		PrijavljenAt time.Time `json:"prijavljenAt"`
-		Status       string    `json:"status"`
+		ID                 uint              `json:"id"`
+		Korisnik           string            `json:"korisnik"`
+		FullName           string            `json:"fullName"`
+		AvatarURL          string            `json:"avatarUrl,omitempty"`
+		PrijavljenAt       time.Time         `json:"prijavljenAt"`
+		Status             string            `json:"status"`
+		SelectedSmestajIDs []uint            `json:"selectedSmestajIds"`
+		SelectedPrevozIDs  []uint            `json:"selectedPrevozIds"`
+		SelectedRentItems  []prijavaRentItem `json:"selectedRentItems"`
+		Saldo              float64           `json:"saldo"`
+		IsClanKluba        bool              `json:"isClanKluba"`
+	}
+
+	var smestajRows []models.AkcijaSmestaj
+	_ = db.Where("akcija_id = ?", id).Find(&smestajRows).Error
+	smestajByID := map[uint]float64{}
+	for _, s := range smestajRows {
+		smestajByID[s.ID] = s.CenaPoOsobiUkupno
+	}
+	var prevozRows []models.AkcijaPrevoz
+	_ = db.Where("akcija_id = ?", id).Find(&prevozRows).Error
+	prevozByID := map[uint]float64{}
+	for _, p := range prevozRows {
+		prevozByID[p.ID] = p.CenaPoOsobi
+	}
+	var rentRows []models.AkcijaOpremaRent
+	_ = db.Where("akcija_id = ?", id).Find(&rentRows).Error
+	rentByID := map[uint]float64{}
+	for _, r := range rentRows {
+		rentByID[r.ID] = r.CenaPoSetu
 	}
 
 	var out []PrijavaDTO
@@ -1077,17 +1106,363 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 			fullName = p.Korisnik.FullName
 			avatarURL = p.Korisnik.AvatarURL
 		}
+		selSmestaj := []uint{}
+		selPrevoz := []uint{}
+		selRent := []prijavaRentItem{}
+		var izbor models.PrijavaIzbori
+		if err := db.Where("prijava_id = ?", p.ID).First(&izbor).Error; err == nil {
+			_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
+			_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+			_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+		}
+		isClan := false
+		if p.Korisnik.ID != 0 && akcijaZaPravo.KlubID != nil && p.Korisnik.KlubID != nil && *p.Korisnik.KlubID == *akcijaZaPravo.KlubID {
+			isClan = true
+		}
+		saldo := 0.0
+		if isClan {
+			saldo += akcijaZaPravo.CenaClan
+		} else if akcijaZaPravo.Javna {
+			saldo += akcijaZaPravo.CenaOstali
+		} else {
+			saldo += akcijaZaPravo.CenaClan
+		}
+		for _, sid := range selSmestaj {
+			saldo += smestajByID[sid]
+		}
+		for _, pid := range selPrevoz {
+			saldo += prevozByID[pid]
+		}
+		for _, item := range selRent {
+			if item.Kolicina <= 0 {
+				continue
+			}
+			saldo += rentByID[item.RentID] * float64(item.Kolicina)
+		}
 		out = append(out, PrijavaDTO{
-			ID:           p.ID,
-			Korisnik:     p.Korisnik.Username,
-			FullName:     fullName,
-			AvatarURL:    avatarURL,
-			PrijavljenAt: p.PrijavljenAt,
-			Status:       p.Status,
+			ID:                 p.ID,
+			Korisnik:           p.Korisnik.Username,
+			FullName:           fullName,
+			AvatarURL:          avatarURL,
+			PrijavljenAt:       p.PrijavljenAt,
+			Status:             p.Status,
+			SelectedSmestajIDs: selSmestaj,
+			SelectedPrevozIDs:  selPrevoz,
+			SelectedRentItems:  selRent,
+			Saldo:              saldo,
+			IsClanKluba:        isClan,
 		})
 	}
 
 	c.JSON(200, gin.H{"prijave": out})
+}
+
+func UpdateMojaPrijavaIzbori(c *gin.Context) {
+	idStr := c.Param("id")
+	akcijaID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var korisnik models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	var akcija models.Akcija
+	if err := db.First(&akcija, akcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
+		return
+	}
+	var prijava models.Prijava
+	if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Niste prijavljeni na ovu akciju"})
+		return
+	}
+	if prijava.Status != "prijavljen" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete menjati izbore nakon što je status potvrđen"})
+		return
+	}
+
+	var payload prijavaChoicesPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći podaci"})
+		return
+	}
+	if len(payload.SelectedSmestajIDs) > 0 {
+		var n int64
+		db.Model(&models.AkcijaSmestaj{}).Where("akcija_id = ? AND id IN ?", akcija.ID, payload.SelectedSmestajIDs).Count(&n)
+		if int(n) != len(payload.SelectedSmestajIDs) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID smeštaja"})
+			return
+		}
+	}
+	if len(payload.SelectedPrevozIDs) > 0 {
+		var n int64
+		db.Model(&models.AkcijaPrevoz{}).Where("akcija_id = ? AND id IN ?", akcija.ID, payload.SelectedPrevozIDs).Count(&n)
+		if int(n) != len(payload.SelectedPrevozIDs) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prevoza"})
+			return
+		}
+		for _, pid := range payload.SelectedPrevozIDs {
+			var row models.AkcijaPrevoz
+			if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, pid).First(&row).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći prevoz"})
+				return
+			}
+			if row.Kapacitet <= 0 {
+				continue
+			}
+			var joined int64
+			db.Table("prijava_izbori").
+				Joins("JOIN prijave ON prijave.id = prijava_izbori.prijava_id").
+				Where("prijave.akcija_id = ? AND prijava_izbori.prijava_id <> ? AND prijava_izbori.selected_prevoz_ids LIKE ?",
+					akcija.ID, prijava.ID, "%"+strconv.FormatUint(uint64(pid), 10)+"%").
+				Count(&joined)
+			if joined >= int64(row.Kapacitet) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Prevoz '" + row.NazivGrupe + "' je pun"})
+				return
+			}
+		}
+	}
+	for _, item := range payload.SelectedRentItems {
+		if item.RentID == 0 || item.Kolicina <= 0 {
+			continue
+		}
+		var row models.AkcijaOpremaRent
+		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&row).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID rent opreme"})
+			return
+		}
+		if item.Kolicina > row.DostupnaKolicina {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nedovoljno dostupne opreme: " + row.NazivOpreme})
+			return
+		}
+	}
+
+	smestajJSON, _ := json.Marshal(payload.SelectedSmestajIDs)
+	prevozJSON, _ := json.Marshal(payload.SelectedPrevozIDs)
+	rentJSON, _ := json.Marshal(payload.SelectedRentItems)
+	var izbor models.PrijavaIzbori
+	err = db.Where("prijava_id = ?", prijava.ID).First(&izbor).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		izbor = models.PrijavaIzbori{
+			PrijavaID:            prijava.ID,
+			SelectedSmestajIDs:   string(smestajJSON),
+			SelectedPrevozIDs:    string(prevozJSON),
+			SelectedRentItemsRaw: string(rentJSON),
+		}
+		if err := db.Create(&izbor).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
+			return
+		}
+	} else {
+		izbor.SelectedSmestajIDs = string(smestajJSON)
+		izbor.SelectedPrevozIDs = string(prevozJSON)
+		izbor.SelectedRentItemsRaw = string(rentJSON)
+		if err := db.Save(&izbor).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
+			return
+		}
+	}
+	saldo := computeBaseCenaForUser(akcija, korisnik)
+	for _, sid := range payload.SelectedSmestajIDs {
+		var row models.AkcijaSmestaj
+		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, sid).First(&row).Error; err == nil {
+			saldo += row.CenaPoOsobiUkupno
+		}
+	}
+	for _, pid := range payload.SelectedPrevozIDs {
+		var row models.AkcijaPrevoz
+		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, pid).First(&row).Error; err == nil {
+			saldo += row.CenaPoOsobi
+		}
+	}
+	for _, item := range payload.SelectedRentItems {
+		if item.RentID == 0 || item.Kolicina <= 0 {
+			continue
+		}
+		var row models.AkcijaOpremaRent
+		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&row).Error; err == nil {
+			saldo += row.CenaPoSetu * float64(item.Kolicina)
+		}
+	}
+	c.JSON(200, gin.H{
+		"message":            "Izbori sačuvani",
+		"saldo":              saldo,
+		"selectedSmestajIds": payload.SelectedSmestajIDs,
+		"selectedPrevozIds":  payload.SelectedPrevozIDs,
+		"selectedRentItems":  payload.SelectedRentItems,
+	})
+}
+
+func DodajPrevozZaAkciju(c *gin.Context) {
+	idStr := c.Param("id")
+	akcijaID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var korisnik models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	var akcija models.Akcija
+	if err := db.First(&akcija, akcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
+		return
+	}
+	isHost := helpers.CanManageAkcija(c, db, akcija.KlubID)
+	if !isHost {
+		var count int64
+		db.Model(&models.Prijava{}).Where("akcija_id = ? AND korisnik_id = ? AND status = ?", akcija.ID, korisnik.ID, "prijavljen").Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Samo prijavljeni članovi mogu dodati novi prevoz"})
+			return
+		}
+	}
+
+	var req struct {
+		TipPrevoza  string  `json:"tipPrevoza"`
+		NazivGrupe  string  `json:"nazivGrupe"`
+		Kapacitet   int     `json:"kapacitet"`
+		CenaPoOsobi float64 `json:"cenaPoOsobi"`
+		Join        bool    `json:"join"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći podaci"})
+		return
+	}
+	naziv := strings.TrimSpace(req.NazivGrupe)
+	tip := strings.TrimSpace(req.TipPrevoza)
+	if naziv == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv grupe je obavezan"})
+		return
+	}
+	if tip == "" {
+		tip = "auto"
+	}
+	if req.Kapacitet < 1 || req.Kapacitet > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kapacitet mora biti između 1 i 50"})
+		return
+	}
+	if req.CenaPoOsobi < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cena ne sme biti negativna"})
+		return
+	}
+	row := models.AkcijaPrevoz{
+		AkcijaID:    akcija.ID,
+		TipPrevoza:  tip,
+		NazivGrupe:  naziv,
+		Kapacitet:   req.Kapacitet,
+		CenaPoOsobi: req.CenaPoOsobi,
+	}
+	if err := db.Create(&row).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju prevoza"})
+		return
+	}
+
+	if req.Join {
+		var prijava models.Prijava
+		if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error; err == nil {
+			var izbor models.PrijavaIzbori
+			selSmestaj := []uint{}
+			selPrevoz := []uint{}
+			selRent := []prijavaRentItem{}
+			if err := db.Where("prijava_id = ?", prijava.ID).First(&izbor).Error; err == nil {
+				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
+				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+			}
+			selPrevoz = append(selPrevoz, row.ID)
+			smJSON, _ := json.Marshal(selSmestaj)
+			prJSON, _ := json.Marshal(selPrevoz)
+			reJSON, _ := json.Marshal(selRent)
+			if izbor.ID == 0 {
+				izbor = models.PrijavaIzbori{
+					PrijavaID:            prijava.ID,
+					SelectedSmestajIDs:   string(smJSON),
+					SelectedPrevozIDs:    string(prJSON),
+					SelectedRentItemsRaw: string(reJSON),
+				}
+				_ = db.Create(&izbor).Error
+			} else {
+				izbor.SelectedPrevozIDs = string(prJSON)
+				_ = db.Save(&izbor).Error
+			}
+		}
+	}
+	c.JSON(200, gin.H{"message": "Prevoz dodat", "prevoz": row})
+}
+
+func GetPrevozPrijave(c *gin.Context) {
+	idStr := c.Param("id")
+	akcijaID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var akcija models.Akcija
+	if err := db.First(&akcija, akcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+
+	canSee := false
+	if akcija.PrikaziListuPrijavljenih && akcija.Javna {
+		canSee = true
+	} else if akcija.KlubID != nil {
+		if viewerClubID, ok := helpers.GetEffectiveClubID(c, db); ok && viewerClubID == *akcija.KlubID {
+			canSee = true
+		}
+	}
+	if !canSee {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Spisak prevoza nije dostupan"})
+		return
+	}
+
+	var prijave []models.Prijava
+	_ = db.Preload("Korisnik").Where("akcija_id = ? AND status IN ?", akcija.ID, []string{"prijavljen", "popeo se", "nije uspeo"}).Find(&prijave).Error
+	prevozMap := map[uint][]gin.H{}
+	for _, p := range prijave {
+		var izbor models.PrijavaIzbori
+		if err := db.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+			continue
+		}
+		var selPrevoz []uint
+		_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+		for _, pid := range selPrevoz {
+			prevozMap[pid] = append(prevozMap[pid], gin.H{
+				"prijavaId": p.ID,
+				"korisnik":  p.Korisnik.Username,
+				"fullName":  p.Korisnik.FullName,
+				"avatarUrl": p.Korisnik.AvatarURL,
+			})
+		}
+	}
+	c.JSON(200, gin.H{"prevozPrijave": prevozMap})
 }
 
 func DodajClanaPopeoSe(c *gin.Context) {
