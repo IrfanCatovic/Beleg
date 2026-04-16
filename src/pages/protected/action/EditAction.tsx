@@ -6,6 +6,7 @@ import BackButton from '../../../components/buttons/BackButton'
 import { canManageHostAkcija } from '../../../utils/canManageAkcija'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardGuide, type WizardValues } from './ActionWizardForm'
+import { parseClubCurrency } from '../../../utils/clubCurrency'
 
 interface Korisnik {
   id: number
@@ -86,6 +87,7 @@ export default function EditAction() {
   const { id } = useParams<{ id: string }>()
 
   const [vodici, setVodici] = useState<Korisnik[]>([])
+  const [clubCurrency, setClubCurrency] = useState(() => parseClubCurrency('RSD'))
   const [values, setValues] = useState<WizardValues>(emptyWizardValues)
   const [initialImageUrl, setInitialImageUrl] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
@@ -104,6 +106,19 @@ export default function EditAction() {
       }
     }
     fetchVodici()
+  }, [])
+
+  useEffect(() => {
+    const loadKlubValuta = async () => {
+      try {
+        const res = await api.get('/api/klub')
+        const raw = res.data?.klub?.valuta ?? res.data?.valuta
+        setClubCurrency(parseClubCurrency(raw))
+      } catch {
+        setClubCurrency(parseClubCurrency('RSD'))
+      }
+    }
+    void loadKlubValuta()
   }, [])
 
   useEffect(() => {
@@ -314,6 +329,7 @@ export default function EditAction() {
             guides={guides}
             initialValues={values}
             initialImageUrl={initialImageUrl}
+            clubCurrency={clubCurrency}
             loading={loading}
             error={error}
             success={success}

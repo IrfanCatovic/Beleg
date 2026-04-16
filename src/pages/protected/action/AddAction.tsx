@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import BackButton from '../../../components/buttons/BackButton'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardGuide, type WizardValues } from './ActionWizardForm'
+import { parseClubCurrency } from '../../../utils/clubCurrency'
 
 interface Korisnik {
   id: number
@@ -51,6 +52,7 @@ export default function AddAction() {
   const [searchParams] = useSearchParams()
 
   const [vodici, setVodici] = useState<Korisnik[]>([])
+  const [clubCurrency, setClubCurrency] = useState(() => parseClubCurrency('RSD'))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -77,6 +79,19 @@ export default function AddAction() {
       }
     }
     fetchVodici()
+  }, [])
+
+  useEffect(() => {
+    const loadKlubValuta = async () => {
+      try {
+        const res = await api.get('/api/klub')
+        const raw = res.data?.klub?.valuta ?? res.data?.valuta
+        setClubCurrency(parseClubCurrency(raw))
+      } catch {
+        setClubCurrency(parseClubCurrency('RSD'))
+      }
+    }
+    void loadKlubValuta()
   }, [])
 
   if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
@@ -210,6 +225,7 @@ export default function AddAction() {
             submitLoadingText={t('add.adding')}
             guides={guides}
             initialValues={defaults}
+            clubCurrency={clubCurrency}
             loading={loading}
             error={error}
             success={success}
