@@ -451,7 +451,18 @@ export default function ActionDetails() {
         await api.post(`/api/akcije/${id}/prijavi`, payload)
         await showAlert('Uspešno ste se prijavili!')
       } else {
-        await api.patch(`/api/akcije/${id}/moja-prijava`, payload)
+        try {
+          await api.patch(`/api/akcije/${id}/moja-prijava`, payload)
+        } catch (err: any) {
+          // Backward compatibility: older backend instances do not have PATCH /moja-prijava.
+          // In that case, recreate registration with updated choices.
+          if (err?.response?.status === 404) {
+            await api.delete(`/api/akcije/${id}/prijavi`)
+            await api.post(`/api/akcije/${id}/prijavi`, payload)
+          } else {
+            throw err
+          }
+        }
       }
       setSelectionsDirty(false)
       await reloadAkcija()
@@ -861,58 +872,256 @@ export default function ActionDetails() {
         </div>
       </div>
 
-      {/* ══════════ DESKTOP HEADER ══════════ */}
-      <div className="hidden lg:block pt-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-12 gap-6 items-stretch">
-            <div className="col-span-8 rounded-3xl border border-gray-100 bg-white shadow-sm p-7">
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
-                  {formatDate(akcija.datum)}
-                </span>
-                <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
-                  {difficultyBadge.label}
-                </span>
-                {akcija.zimskiUspon && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
-                    {t('winterAscent')}
+      {/* ══════════ DESKTOP HEADER (HERO) ══════════ */}
+      <div className="hidden lg:block pt-6 xl:pt-8 relative">
+        {/* Ambient background blobs */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-emerald-200/30 blur-3xl" />
+          <div className="absolute -top-10 right-0 w-[360px] h-[360px] rounded-full bg-sky-200/30 blur-3xl" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-12 gap-7 items-stretch">
+
+            {/* LEFT: main card */}
+            <div className="col-span-12 xl:col-span-8 relative rounded-[28px] border border-gray-100 bg-white shadow-[0_12px_40px_-12px_rgba(16,185,129,0.18)] overflow-hidden">
+              {/* Accent top bar */}
+              <div aria-hidden className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" />
+              {/* Decorative corner icon */}
+              <div aria-hidden className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-gradient-to-br from-emerald-100/60 to-teal-50/30 blur-2xl" />
+
+              <div className="relative p-7 xl:p-9">
+
+                {/* Breadcrumb / back */}
+                <button
+                  onClick={() => navigate(-1)}
+                  className="group inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-emerald-700 transition-colors mb-5"
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 group-hover:bg-emerald-100 transition-colors">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
                   </span>
-                )}
-                {akcija.javna && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700 border border-violet-200">
-                    {t('public')}
+                  {t('back')}
+                </button>
+
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    {formatDate(akcija.datum)}
                   </span>
-                )}
-                {akcija.isCompleted && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
-                    {t('completed')}
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${difficultyBadge.bg} ${difficultyBadge.text} border-current/10`}>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                    {difficultyBadge.label}
                   </span>
-                )}
-              </div>
-              <h1 className="mt-4 text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                {akcija.naziv}
-              </h1>
-              <p className="mt-2 text-sm text-gray-500 font-medium flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-                {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')}
-                {akcija.visinaVrhM != null && ` · ${akcija.visinaVrhM} m`}
-              </p>
-              {akcija.opis && (
-                <div className="mt-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 mb-2">{t('actionDescription')}</p>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{akcija.opis}</p>
+                  {akcija.zimskiUspon && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3m15.364-6.364l-12.728 12.728M18.364 18.364L5.636 5.636" />
+                      </svg>
+                      {t('winterAscent')}
+                    </span>
+                  )}
+                  {akcija.javna && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
+                      </svg>
+                      {t('public')}
+                    </span>
+                  )}
+                  {akcija.isCompleted && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t('completed')}
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {/* Title */}
+                <h1 className="mt-4 text-4xl xl:text-[2.75rem] font-extrabold tracking-tight leading-[1.08] bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-800 bg-clip-text text-transparent">
+                  {akcija.naziv}
+                </h1>
+
+                {/* Subtitle: location pill */}
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200">
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')}
+                  </span>
+                  {akcija.visinaVrhM != null && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                      </svg>
+                      {akcija.visinaVrhM} m
+                    </span>
+                  )}
+                  {akcija.klubNaziv && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15" />
+                      </svg>
+                      {akcija.klubNaziv}
+                    </span>
+                  )}
+                  {(akcija.vodic || akcija.drugiVodicIme) && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-[10px] font-extrabold">
+                        {(akcija.vodic?.fullName || akcija.drugiVodicIme || '?').charAt(0).toUpperCase()}
+                      </span>
+                      {t('guides', { defaultValue: 'Vodič' })}: {vodicIme}
+                    </span>
+                  )}
+                </div>
+
+                {/* Description block */}
+                {akcija.opis ? (
+                  <div className="mt-6 relative rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 shadow-inner overflow-hidden">
+                    <div aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-teal-500 to-sky-500" />
+                    <div className="pl-5 pr-5 py-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 shadow-sm">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h12" />
+                          </svg>
+                        </span>
+                        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-emerald-800">{t('actionDescription')}</p>
+                      </div>
+                      <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                        {akcija.opis}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-4 text-center">
+                    <p className="text-xs text-gray-400 italic">{t('noDescriptionHint', { defaultValue: 'Domaćin nije dodao opis akcije.' })}</p>
+                  </div>
+                )}
+
+                {/* Mini stats strip */}
+                <div className="mt-6 grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+                  {akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 && (
+                    <HeroMini
+                      color="sky"
+                      label={t('summitPngTrail', { defaultValue: 'Dužina' })}
+                      value={`${akcija.duzinaStazeKm} km`}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
+                        </svg>
+                      }
+                    />
+                  )}
+                  {akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0 && (
+                    <HeroMini
+                      color="amber"
+                      label={t('summitPngAscent', { defaultValue: 'Uspon' })}
+                      value={`${akcija.kumulativniUsponM} m`}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
+                        </svg>
+                      }
+                    />
+                  )}
+                  {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
+                    <HeroMini
+                      color="indigo"
+                      label={t('durationHours', { defaultValue: 'Trajanje' })}
+                      value={`${akcija.trajanjeSati} h`}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      }
+                    />
+                  )}
+                  {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                    <HeroMini
+                      color="violet"
+                      label="Mesta"
+                      value={`${memberCount}/${akcija.maxLjudi}`}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
+                        </svg>
+                      }
+                    />
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="col-span-4 rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-100 min-h-[360px]">
-              <AkcijaImageOrFallback
-                src={akcija.slikaUrl}
-                alt={akcija.naziv}
-                imgClassName="w-full h-full object-cover min-h-[360px]"
-              />
+
+            {/* RIGHT: image card */}
+            <div className="col-span-12 xl:col-span-4 relative">
+              <div className="relative rounded-[28px] overflow-hidden shadow-[0_20px_50px_-15px_rgba(15,118,110,0.35)] ring-1 ring-black/5 bg-gradient-to-br from-emerald-900 via-teal-800 to-sky-900 min-h-[440px] h-full">
+                <AkcijaImageOrFallback
+                  src={akcija.slikaUrl}
+                  alt={akcija.naziv}
+                  imgClassName="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Gradient overlay */}
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/20" />
+                <div aria-hidden className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+
+                {/* Top right overlay chips */}
+                <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                  {akcija.isClanKluba !== undefined && user && (
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md border shadow-sm ${
+                      akcija.isClanKluba
+                        ? 'bg-emerald-500/90 text-white border-emerald-300/30'
+                        : 'bg-violet-500/90 text-white border-violet-300/30'
+                    }`}>
+                      {akcija.isClanKluba ? 'Tvoj klub' : 'Gost'}
+                    </span>
+                  )}
+                  {mojaPrijava && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white/90 text-emerald-800 backdrop-blur-md border border-white/40 shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Prijavljen
+                    </span>
+                  )}
+                </div>
+
+                {/* Top left: peak altitude */}
+                {akcija.visinaVrhM != null && (
+                  <div className="absolute top-4 left-4 px-3 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/80">{t('height', { defaultValue: 'Visina' })}</p>
+                    <p className="text-xl font-extrabold text-white leading-none mt-0.5">
+                      {akcija.visinaVrhM}
+                      <span className="text-sm font-bold opacity-80 ml-1">m</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Bottom overlay: counts */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <div className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">{t('registered', { defaultValue: 'Prijavljeni' })}</p>
+                      <p className="text-2xl font-extrabold text-white leading-none mt-0.5">
+                        {memberCount}
+                        {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                          <span className="text-sm font-bold opacity-70 ml-1">/ {akcija.maxLjudi}</span>
+                        )}
+                      </p>
+                    </div>
+                    
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1473,16 +1682,22 @@ export default function ActionDetails() {
                       return (
                         <div
                           key={p.id}
-                          className="group flex items-center gap-3 p-3 rounded-2xl bg-gray-50/60 border border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-sm transition-all duration-200 cursor-pointer"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setMemberModal(p)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              setMemberModal(p)
-                            }
-                          }}
+                          className={`group flex items-center gap-3 p-3 rounded-2xl bg-gray-50/60 border border-gray-100 transition-all duration-200 ${
+                            canManageHost
+                              ? 'hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-sm cursor-pointer'
+                              : ''
+                          }`}
+                          role={canManageHost ? 'button' : undefined}
+                          tabIndex={canManageHost ? 0 : -1}
+                          onClick={canManageHost ? () => setMemberModal(p) : undefined}
+                          onKeyDown={canManageHost
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setMemberModal(p)
+                                }
+                              }
+                            : undefined}
                         >
                           <div className="relative w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white shadow-sm flex-shrink-0">
                             {avatar ? (
@@ -1498,7 +1713,7 @@ export default function ActionDetails() {
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${statusCls}`}>
                                 {prijavaStatusLabel(p.status, t)}
                               </span>
-                              {typeof p.saldo === 'number' && (
+                              {canManageHost && typeof p.saldo === 'number' && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 tabular-nums">
                                   {p.saldo.toFixed(2)} {clubCurrency}
                                 </span>
@@ -1682,10 +1897,10 @@ export default function ActionDetails() {
           />
 
           <MemberDetailsModal
-            open={!!memberModal}
+            open={canManageHost && !!memberModal}
             onClose={() => setMemberModal(null)}
             currency={clubCurrency}
-            member={memberModal as any}
+            member={canManageHost ? (memberModal as any) : null}
             smestaj={akcija.smestaj || []}
             prevoz={(akcija.prevoz || []).map((p) => ({ id: p.id, nazivGrupe: p.nazivGrupe, tipPrevoza: p.tipPrevoza, cenaPoOsobi: p.cenaPoOsobi }))}
             opremaRent={(akcija.opremaRent || []).map((o) => ({ id: o.id, nazivOpreme: o.nazivOpreme, cenaPoSetu: o.cenaPoSetu }))}
@@ -1871,6 +2086,38 @@ function StatCell({ icon, value, unit, label }: { icon: React.ReactNode; value: 
         </span>
       </div>
       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{label}</p>
+    </div>
+  )
+}
+
+function HeroMini({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  color: 'sky' | 'amber' | 'indigo' | 'violet' | 'emerald'
+}) {
+  const palette: Record<string, { bg: string; text: string; ring: string; iconBg: string }> = {
+    sky: { bg: 'bg-sky-50/80', text: 'text-sky-700', ring: 'ring-sky-100', iconBg: 'bg-sky-100 text-sky-600' },
+    amber: { bg: 'bg-amber-50/80', text: 'text-amber-700', ring: 'ring-amber-100', iconBg: 'bg-amber-100 text-amber-600' },
+    indigo: { bg: 'bg-indigo-50/80', text: 'text-indigo-700', ring: 'ring-indigo-100', iconBg: 'bg-indigo-100 text-indigo-600' },
+    violet: { bg: 'bg-violet-50/80', text: 'text-violet-700', ring: 'ring-violet-100', iconBg: 'bg-violet-100 text-violet-600' },
+    emerald: { bg: 'bg-emerald-50/80', text: 'text-emerald-700', ring: 'ring-emerald-100', iconBg: 'bg-emerald-100 text-emerald-600' },
+  }
+  const c = palette[color]
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ring-1 ${c.bg} ${c.ring}`}>
+      <div className={`shrink-0 w-8 h-8 rounded-lg ${c.iconBg} flex items-center justify-center`}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-none">{label}</p>
+        <p className={`text-sm font-extrabold ${c.text} leading-tight mt-0.5 truncate`}>{value}</p>
+      </div>
     </div>
   )
 }
