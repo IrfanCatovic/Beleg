@@ -59,17 +59,20 @@ export default function Finance() {
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
-  const todayYmd = dateToYMD(new Date())
+  const now = new Date()
+  const todayYmd = dateToYMD(now)
   const [currentPage, setCurrentPage] = useState(1)
   const PAGE_SIZE = 5
-  const currentYear = new Date().getFullYear()
-  const prevYear = currentYear - 1
-  const [fromDate, setFromDate] = useState(() => dateToYMD(new Date(prevYear, 0, 1)))
-  const [toDate, setToDate] = useState(() => dateToYMD(new Date(currentYear, 11, 31)))
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const currentMonthStart = dateToYMD(new Date(currentYear, currentMonth - 1, 1))
+  const currentMonthEnd = dateToYMD(new Date(currentYear, currentMonth, 0))
+  const [fromDate, setFromDate] = useState(() => currentMonthStart)
+  const [toDate, setToDate] = useState(() => currentMonthEnd)
   const [dateModalOpen, setDateModalOpen] = useState(false)
-  const [datePickType, setDatePickType] = useState<DatePickType>('range')
+  const [datePickType, setDatePickType] = useState<DatePickType>('month')
   const [dayValue, setDayValue] = useState(todayYmd)
-  const [monthYear, setMonthYear] = useState<{ year: number; month: number }>({ year: currentYear, month: new Date().getMonth() + 1 })
+  const [monthYear, setMonthYear] = useState<{ year: number; month: number }>({ year: currentYear, month: currentMonth })
   const [yearValue, setYearValue] = useState(currentYear)
   const [rangeStart, setRangeStart] = useState(fromDate)
   const [rangeEnd, setRangeEnd] = useState(toDate)

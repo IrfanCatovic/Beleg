@@ -151,9 +151,11 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
   const wrapper = document.createElement('div')
   wrapper.innerHTML = content
   wrapper.style.cssText = `
-    position: fixed; left: -9999px; top: 0;
+    position: fixed; left: 0; top: 0;
+    transform: translateX(-220vw);
     width: 210mm; min-height: 297mm; background: white;
     pointer-events: none;
+    z-index: -1;
   `
   document.body.appendChild(wrapper)
 
@@ -170,7 +172,7 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
     margin: [10, 10, 10, 10] as [number, number, number, number],
     filename: `${i18n.t('pdf:finance.filePrefix')}-${safeFrom}-${safeTo}.pdf`,
     image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
     jsPDF: { unit: 'mm', format: 'a4', hotfixes: ['px_scaling'] },
   }
 
@@ -180,15 +182,17 @@ export function generateFinanceReportPdf(data: FinanceReportData): void {
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      html2pdf()
-        .set(options)
-        .from(target)
-        .save()
-        .then(cleanup)
-        .catch((err: unknown) => {
-          cleanup()
-          console.error(i18n.t('pdf:errors.generic'), err)
-        })
+      setTimeout(() => {
+        html2pdf()
+          .set(options)
+          .from(target)
+          .save()
+          .then(cleanup)
+          .catch((err: unknown) => {
+            cleanup()
+            console.error(i18n.t('pdf:errors.generic'), err)
+          })
+      }, 60)
     })
   })
 }
