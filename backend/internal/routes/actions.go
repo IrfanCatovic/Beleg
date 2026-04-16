@@ -17,6 +17,7 @@ func RegisterActionRoutes(r *gin.Engine, protected *gin.RouterGroup, jwtSecret [
 	protected.PATCH("/akcije/:id/moja-prijava", handlers.UpdateMojaPrijavaIzbori)
 	protected.GET("/akcije/:id/prijave", handlers.GetPrijaveZaAkciju)
 	protected.POST("/akcije/:id/prevoz", handlers.DodajPrevozZaAkciju)
+	protected.DELETE("/akcije/:id/prevoz/:prevozId", handlers.ObrisiPrevozZaAkciju)
 	protected.GET("/akcije/:id/prevoz-prijave", handlers.GetPrevozPrijave)
 	protected.POST("/akcije/:id/dodaj-clana-popeo-se", handlers.DodajClanaPopeoSe)
 	protected.POST("/akcije/:id/zavrsi", handlers.ZavrsiAkciju)

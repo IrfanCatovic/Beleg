@@ -19,6 +19,9 @@ interface TransportCardProps {
   selected: boolean
   disabled?: boolean
   onToggle: () => void
+  /** Host/admin: small trash to remove this transport option */
+  canDelete?: boolean
+  onRequestDelete?: () => void
 }
 
 function typeIcon(tip: string) {
@@ -56,24 +59,26 @@ export default function TransportCard({
   selected,
   disabled,
   onToggle,
+  canDelete,
+  onRequestDelete,
 }: TransportCardProps) {
   const occupied = participants.length
   const isFull = kapacitet > 0 && occupied >= kapacitet && !selected
   const pct = kapacitet > 0 ? Math.min(100, Math.round((occupied / kapacitet) * 100)) : 0
 
   return (
+    <div className="relative w-full" data-prevoz-id={id}>
     <button
       type="button"
       onClick={onToggle}
       disabled={disabled || isFull}
-      className={`relative w-full text-left rounded-2xl border p-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+      className={`relative z-0 w-full text-left rounded-2xl border p-4 pr-12 pb-12 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
         selected
           ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-md shadow-emerald-100'
           : isFull
             ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
             : 'border-gray-100 bg-white hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow-sm active:scale-[0.99]'
       }`}
-      data-prevoz-id={id}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -127,5 +132,24 @@ export default function TransportCard({
         </div>
       )}
     </button>
+
+    {canDelete && onRequestDelete && (
+      <button
+        type="button"
+        aria-label="Obriši prevoz"
+        title="Obriši prevoz"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onRequestDelete()
+        }}
+        className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397M5.79 5.79a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+        </svg>
+      </button>
+    )}
+    </div>
   )
 }

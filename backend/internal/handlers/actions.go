@@ -1418,6 +1418,87 @@ func DodajPrevozZaAkciju(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Prevoz dodat", "prevoz": row})
 }
 
+func ObrisiPrevozZaAkciju(c *gin.Context) {
+	akcijaID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+	prevozID64, err := strconv.ParseUint(strings.TrimSpace(c.Param("prevozId")), 10, 32)
+	if err != nil || prevozID64 == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID prevoza"})
+		return
+	}
+	prevozID := uint(prevozID64)
+
+	db := c.MustGet("db").(*gorm.DB)
+
+	var akcija models.Akcija
+	if err := db.First(&akcija, akcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba može obrisati prevoz"})
+		return
+	}
+	if akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
+		return
+	}
+
+	var prev models.AkcijaPrevoz
+	if err := db.Where("id = ? AND akcija_id = ?", prevozID, akcija.ID).First(&prev).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Prevoz nije pronađen"})
+		return
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		var prijave []models.Prijava
+		if err := tx.Where("akcija_id = ?", akcija.ID).Find(&prijave).Error; err != nil {
+			return err
+		}
+		for _, p := range prijave {
+			var izbor models.PrijavaIzbori
+			if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
+				return err
+			}
+			var sel []uint
+			_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &sel)
+			newSel := make([]uint, 0, len(sel))
+			removed := false
+			for _, id := range sel {
+				if id == prevozID {
+					removed = true
+					continue
+				}
+				newSel = append(newSel, id)
+			}
+			if !removed {
+				continue
+			}
+			prJSON, _ := json.Marshal(newSel)
+			izbor.SelectedPrevozIDs = string(prJSON)
+			if err := tx.Save(&izbor).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Delete(&models.AkcijaPrevoz{}, prev.ID).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju prevoza"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Prevoz obrisan"})
+}
+
 func GetPrevozPrijave(c *gin.Context) {
 	idStr := c.Param("id")
 	akcijaID, err := strconv.Atoi(idStr)

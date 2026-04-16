@@ -530,6 +530,39 @@ export default function ActionDetails() {
     }
   }
 
+  const handleDeletePrevoz = async (row: { id: number; nazivGrupe: string }) => {
+    if (!id || !user || !akcija || !canManageHostAkcija(user, akcija.klubId)) return
+    const ok = await showConfirm(
+      `Da li ste sigurni da želite da obrišete prevoz „${row.nazivGrupe}”? Svi koji su bili prijavljeni na ovaj prevoz biće uklonjeni sa prevoza (neće biti automatski prebačeni na drugi prevoz).`,
+      { variant: 'danger', confirmLabel: 'Obriši', cancelLabel: 'Otkaži' }
+    )
+    if (!ok) return
+    try {
+      await api.delete(`/api/akcije/${id}/prevoz/${row.id}`)
+      setSelPrevoz((prev) => {
+        const next = new Set(prev)
+        next.delete(row.id)
+        return next
+      })
+      await reloadAkcija()
+      await refreshPrijave()
+      if (user) {
+        try {
+          const mp = await api.get(`/api/akcije/${id}/moja-prijava`)
+          const p = mp.data.prijava ?? null
+          setMojaPrijava(p)
+          if (p) {
+            setSelPrevoz(new Set(p.selectedPrevozIds || []))
+          }
+        } catch {
+          // ignore
+        }
+      }
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri brisanju prevoza', t('errorTitle'))
+    }
+  }
+
   const handleDelete = async () => {
     const confirmed = await showConfirm(t('deleteConfirmMessage'), { variant: 'danger', confirmLabel: t('delete') })
     if (!confirmed) return
@@ -1520,6 +1553,8 @@ export default function ActionDetails() {
                             selected={selPrevoz.has(p.id)}
                             disabled={!user || akcija.isCompleted || (mojaPrijava != null && mojaPrijava.status !== 'prijavljen')}
                             onToggle={() => togglePrevoz(p.id)}
+                            canDelete={!!user && canManageHostAkcija(user, akcija.klubId) && !akcija.isCompleted}
+                            onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
                           />
                         ))}
                       </div>
