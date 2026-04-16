@@ -13,4 +13,5 @@ func RegisterClubRoutes(g *gin.RouterGroup) {
 	g.GET("/klub/admin-stats", handlers.GetClubAdminStats)
 	g.GET("/klub", handlers.GetMojKlub)
 	g.PATCH("/klub", handlers.UpdateMojKlub)
+	g.PATCH("/klub/logo", handlers.UpdateMojKlubLogo)
 }

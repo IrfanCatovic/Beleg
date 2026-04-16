@@ -11,5 +11,6 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.GET("/superadmin/klubovi", handlers.GetKlubovi)
 	g.POST("/superadmin/klubovi", handlers.CreateKlub)
 	g.PATCH("/superadmin/klubovi/:id", handlers.UpdateKlub)
+	g.PATCH("/superadmin/klubovi/:id/logo", handlers.UpdateKlubLogo)
 	g.DELETE("/superadmin/klubovi/:id", handlers.DeleteKlub)
 }

@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +13,8 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
+	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -407,4 +412,77 @@ func DeleteKlub(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Klub uspešno obrisan"})
+}
+
+// UpdateKlubLogo menja logo kluba (samo superadmin).
+func UpdateKlubLogo(c *gin.Context) {
+	roleVal, _ := c.Get("role")
+	if roleVal != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo superadmin može menjati logo kluba"})
+		return
+	}
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID kluba"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var klub models.Klubovi
+	if err := db.First(&klub, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Klub nije pronađen"})
+		return
+	}
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+		return
+	}
+	files := c.Request.MultipartForm.File["logo"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite sliku (polje logo)"})
+		return
+	}
+	file := files[0]
+	if err := helpers.ValidateImageFileHeader(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna slika loga: " + err.Error()})
+		return
+	}
+	if err := helpers.CheckStorageLimit(db, uint(id), file.Size); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+		return
+	}
+	defer f.Close()
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+		return
+	}
+	ctx := context.Background()
+	uploadParams := uploader.UploadParams{
+		PublicID:       fmt.Sprintf("klubovi/klub-logo-%d-%d", id, time.Now().Unix()),
+		Folder:         helpers.CloudinaryFolderForClub(uint(id)),
+		Transformation: "q_auto:good,f_auto",
+	}
+	uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u loga: " + err.Error()})
+		return
+	}
+	helpers.AddStorageUsage(db, uint(id), file.Size)
+	helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), klub.LogoURL)
+	klub.LogoURL = uploadResult.SecureURL
+	if err := db.Save(&klub).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju kluba"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"klub": klub})
 }
