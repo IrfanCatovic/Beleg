@@ -430,19 +430,39 @@ export default function ActionDetails() {
     setSelectionsDirty(true)
   }
 
-  const buildChoicesPayload = () => ({
-    selectedSmestajIds: Array.from(selSmestaj),
-    selectedPrevozIds: Array.from(selPrevoz),
-    selectedRentItems: Object.entries(selRent).map(([rentId, kolicina]) => ({
-      rentId: Number(rentId),
-      kolicina,
-    })),
-  })
+  const buildChoicesPayload = () => {
+    const validSmestaj = new Set((akcija?.smestaj || []).map((s) => s.id))
+    const validPrevoz = new Set((akcija?.prevoz || []).map((p) => p.id))
+    const validRent = new Map((akcija?.opremaRent || []).map((r) => [r.id, r.dostupnaKolicina]))
+
+    const selectedSmestajIds = Array.from(selSmestaj).filter((sid) => validSmestaj.has(sid))
+    const selectedPrevozIds = Array.from(selPrevoz).filter((pid) => validPrevoz.has(pid))
+    const selectedRentItems = Object.entries(selRent)
+      .map(([rentIdRaw, kolicinaRaw]) => {
+        const rentId = Number(rentIdRaw)
+        const available = validRent.get(rentId)
+        if (!available) return null
+        const kolicina = Math.max(0, Math.min(Number(kolicinaRaw) || 0, available))
+        if (kolicina <= 0) return null
+        return { rentId, kolicina }
+      })
+      .filter(Boolean) as Array<{ rentId: number; kolicina: number }>
+
+    return {
+      selectedSmestajIds,
+      selectedPrevozIds,
+      selectedRentItems,
+    }
+  }
 
   const handleSavePrijavaOrUpdate = async () => {
     if (!id) return
     if (akcija?.isCompleted) {
       await showAlert('Akcija je završena.')
+      return
+    }
+    if (mojaPrijava && mojaPrijava.status !== 'prijavljen') {
+      await showAlert('Ne možete menjati izbore nakon što je status prijave promenjen.', t('errorTitle'))
       return
     }
     setSavingSelections(true)
@@ -763,7 +783,6 @@ export default function ActionDetails() {
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
   const paymentTrackedPrijave = prijave.filter((p) => p.status !== 'otkazano')
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
-  const unpaidCount = paymentTrackedPrijave.length - paidCount
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
   const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
