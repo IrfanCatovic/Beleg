@@ -63,6 +63,11 @@ const pdfStyles = `
   .pdf-wrap .signature-line { border-bottom: 1px solid #333; width: 180px; height: 28px; margin-left: auto; display: block; }
 `
 
+function resolveClubName(clubName?: string): string {
+  const name = clubName?.trim()
+  return name && name.length > 0 ? name : 'Planinarsko drustvo'
+}
+
 export interface ActionPdfPrePolaskaData {
   clubName?: string
   naziv: string
@@ -126,12 +131,13 @@ function runPdf(wrapper: HTMLDivElement, filename: string): void {
 
 /** Formular akcije – pre polaska (naziv, vrh, datum, opis, težina, vodič, ko je dodao, broj polaznika, imena). */
 export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void {
+  const clubName = resolveClubName(data.clubName)
   const content = `
     <style>${pdfStyles}</style>
     <div class="pdf-wrap">
       <div class="header">
         <h1>${i18n.t('pdf:action.preDepartureTitle')}</h1>
-        <p>Planinarsko društvo Beleg</p>
+        <p>${escapeHtml(clubName)}</p>
       </div>
       ${section(i18n.t('pdf:action.section'), `
         ${row(i18n.t('pdf:action.fields.name'), val(data.naziv))}
@@ -161,12 +167,13 @@ export function generateActionPdfPrePolaska(data: ActionPdfPrePolaskaData): void
 
 /** Formular akcije – završena (naziv, vrh, datum, opis, težina, vodič, ko je dodao, broj prijavljenih / uspešno popeli, imena uspešnih). */
 export function generateActionPdfZavrsena(data: ActionPdfZavrsenaData): void {
+  const clubName = resolveClubName(data.clubName)
   const content = `
     <style>${pdfStyles}</style>
     <div class="pdf-wrap">
       <div class="header">
         <h1>${i18n.t('pdf:action.completedTitle')}</h1>
-        <p>Planinarsko društvo Beleg</p>
+        <p>${escapeHtml(clubName)}</p>
       </div>
       ${section(i18n.t('pdf:action.section'), `
         ${row(i18n.t('pdf:action.fields.name'), val(data.naziv))}

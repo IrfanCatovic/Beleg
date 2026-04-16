@@ -432,6 +432,7 @@ export default function ActionDetails() {
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
+      clubName: akcija.klubNaziv || '',
       naziv: akcija.naziv, planina: akcija.planina || '', vrh: akcija.vrh,
       datum: akcija.datum, opis: akcija.opis || '', tezina: akcija.tezina || '',
       vodicIme, addedBy: akcija.addedBy?.fullName || '',
@@ -441,6 +442,7 @@ export default function ActionDetails() {
 
   const handlePrintZavrsena = () => {
     generateActionPdfZavrsena({
+      clubName: akcija.klubNaziv || '',
       naziv: akcija.naziv, planina: akcija.planina || '', vrh: akcija.vrh,
       datum: akcija.datum, opis: akcija.opis || '', tezina: akcija.tezina || '',
       vodicIme, addedBy: akcija.addedBy?.fullName || '',
