@@ -1,14 +1,12 @@
 package main
 
 import (
-	"beleg-app/backend/internal/config"
+	"beleg-app/backend/internal/app"
 	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/helpers"
-	"beleg-app/backend/internal/jobs"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/routes"
-	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
 	"context"
 	"errors"
@@ -22,10 +20,8 @@ import (
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -51,73 +47,10 @@ func isValidTezina(tezina string) bool {
 }
 
 func main() {
-	r := gin.Default()
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("GREŠKA: .env fajl NIJE UČITAN! Razlog:", err)
-	} else {
-		log.Println("OK: .env fajl je učitan")
-	}
+	app.Run(registerRoutes)
+}
 
-	//Cors function from cors.go file
-	origins := config.BuildAllowedOrigins()
-	r.Use(middleware.SecurityHeaders(os.Getenv("SECURITY_CSP")))
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Club-Id"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
-	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-	if len(jwtSecret) < 32 {
-		log.Fatal("JWT_SECRET nije podešen ili je prekratak (minimum 32 karaktera)")
-	}
-
-	dsn := config.BuildDatabaseDSN()
-	db, err := config.OpenDatabase(dsn)
-	if err != nil {
-		log.Fatal("Ne mogu da se povežem sa bazom:", err)
-	} else {
-		log.Println("Uspješno povezan sa bazom!")
-		log.Print(".env je ucitan")
-	}
-
-	fmt.Println("Uspješno povezan sa bazom!")
-
-	// AutoMigrate kreira ili ažurira tabele
-	err = db.AutoMigrate(
-		&models.Akcija{},
-		&models.Prijava{},
-		&models.Korisnik{},
-		&models.Transakcija{},
-		&models.Zadatak{},
-		&models.ZadatakKorisnik{},
-		&models.Obavestenje{},
-		&models.Klubovi{},
-		&models.CloudinaryPendingDelete{},
-		&models.Follow{},
-		&models.Block{},
-		&models.Post{},
-		&models.PostLike{},
-		&models.PostComment{},
-	)
-	if err != nil {
-		log.Fatal("Greška pri automigraciji tabela:", err)
-	}
-	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
-
-	// Seed: default klub + dodela postojećih korisnika (jednokratno pri prvom startu)
-	seed.RunIfEmpty(db)
-
-	// Inject db u Gin context
-	r.Use(func(c *gin.Context) {
-		c.Set("db", db)
-		c.Next()
-	})
-
+func registerRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 	// Public rute
 	loginRateLimiter := middleware.NewIPRateLimiter(12, time.Minute)
 	cenaZahtevRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
@@ -3236,16 +3169,4 @@ func main() {
 		})
 	}
 
-	r.Static("/uploads", "./uploads")
-
-	// Dnevni job: brisanje zamenjenih slika iz Cloudinary nakon 60 dana
-	go jobs.RunCloudinaryPendingDeletesJob(db)
-
-	port := strings.TrimSpace(os.Getenv("PORT"))
-	if port == "" {
-		port = "8080"
-	}
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("Neuspešno pokretanje servera:", err)
-	}
 }
