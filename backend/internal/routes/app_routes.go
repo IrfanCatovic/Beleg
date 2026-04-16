@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/middleware"
 	"time"
 
@@ -19,11 +18,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 
 	RegisterSetupPublicRoutes(r, db, setupAdminRateLimiter)
 	RegisterAuthPublicRoutes(r, db, jwtSecret, loginRateLimiter)
-
-	// POST /api/cena-zahtev — javna forma za zahtev ponude; šalje email na EMAIL_TO
-	r.POST("/api/cena-zahtev", cenaZahtevRateLimiter, handlers.CenaZahtev)
-
-	r.GET("/api/username-available", usernameAvailableRateLimiter, handlers.UsernameAvailable)
+	RegisterPublicMiscRoutes(r, cenaZahtevRateLimiter, usernameAvailableRateLimiter)
 
 	RegisterUsersPublicRoutes(r)
 
