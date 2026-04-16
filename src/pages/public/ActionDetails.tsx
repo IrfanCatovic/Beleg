@@ -516,8 +516,8 @@ export default function ActionDetails() {
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-16 md:pb-10">
 
-      {/* ══════════ COVER IMAGE ══════════ */}
-      <div className="relative h-64 sm:h-72 md:h-80 lg:h-[22rem] overflow-hidden -mt-6 w-screen left-1/2 -translate-x-1/2">
+      {/* ══════════ COVER IMAGE (mobile/tablet) ══════════ */}
+      <div className="relative h-64 sm:h-72 md:h-80 lg:hidden overflow-hidden -mt-6 w-screen left-1/2 -translate-x-1/2">
         <AkcijaImageOrFallback
           src={akcija.slikaUrl}
           alt={akcija.naziv}
@@ -577,6 +577,63 @@ export default function ActionDetails() {
         </div>
       </div>
 
+      {/* ══════════ DESKTOP HEADER ══════════ */}
+      <div className="hidden lg:block pt-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-12 gap-6 items-stretch">
+            <div className="col-span-8 rounded-3xl border border-gray-100 bg-white shadow-sm p-7">
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
+                  {formatDate(akcija.datum)}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                  {difficultyBadge.label}
+                </span>
+                {akcija.zimskiUspon && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                    {t('winterAscent')}
+                  </span>
+                )}
+                {akcija.javna && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700 border border-violet-200">
+                    {t('public')}
+                  </span>
+                )}
+                {akcija.isCompleted && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
+                    {t('completed')}
+                  </span>
+                )}
+              </div>
+              <h1 className="mt-4 text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                {akcija.naziv}
+              </h1>
+              <p className="mt-2 text-sm text-gray-500 font-medium flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')}
+                {akcija.visinaVrhM != null && ` · ${akcija.visinaVrhM} m`}
+              </p>
+              {akcija.opis && (
+                <div className="mt-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 mb-2">{t('actionDescription')}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{akcija.opis}</p>
+                </div>
+              )}
+            </div>
+            <div className="col-span-4 rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-gray-100 min-h-[360px]">
+              <AkcijaImageOrFallback
+                src={akcija.slikaUrl}
+                alt={akcija.naziv}
+                imgClassName="w-full h-full object-cover min-h-[360px]"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ══════════ STATS BAR ══════════ */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -625,13 +682,13 @@ export default function ActionDetails() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
 
           {/* ── Info grid ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             {/* Left: Details */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6 lg:contents">
 
               {/* Vodič / Kreator card */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible lg:col-span-8">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
                   <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('actionDetails')}</h2>
@@ -745,13 +802,13 @@ export default function ActionDetails() {
                   </div>
 
                   {akcija.opis && (
-                    <div className="pt-4 border-t border-gray-50">
-                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{t('actionDescription')}</h3>
+                    <div className="pt-4 border-t border-gray-50 lg:hidden">
+                      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2">{t('actionDescription')}</h3>
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{akcija.opis}</p>
                     </div>
                   )}
                   {(akcija.cenaClan != null || akcija.cenaOstali != null || akcija.mojSaldo != null) && (
-                    <div className="pt-4 border-t border-gray-50 rounded-xl bg-emerald-50/70 p-3.5">
+                    <div className="pt-4 border-t border-gray-50 rounded-xl bg-emerald-50/70 p-3.5 lg:hidden">
                       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-2">Troškovi</h3>
                       {akcija.cenaClan != null && <p className="text-sm text-gray-700">Cena za članove: <span className="font-semibold">{akcija.cenaClan.toFixed(2)}</span></p>}
                       {akcija.javna && akcija.cenaOstali != null && <p className="text-sm text-gray-700">Cena za ostale: <span className="font-semibold">{akcija.cenaOstali.toFixed(2)}</span></p>}
@@ -762,7 +819,7 @@ export default function ActionDetails() {
               </div>
 
               {(akcija.prevoz?.length || akcija.smestaj?.length || akcija.opremaRent?.length) ? (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible lg:col-span-8">
                   <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-sky-400 to-indigo-600" />
                     <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Logistika i prevoz</h2>
@@ -813,7 +870,7 @@ export default function ActionDetails() {
               ) : null}
 
               {/* ── Prijavljeni članovi ── */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible lg:col-span-12">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
@@ -974,7 +1031,36 @@ export default function ActionDetails() {
             </div>
 
             {/* Right: sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-6 lg:col-span-4 lg:row-start-2">
+
+              {(akcija.cenaClan != null || akcija.cenaOstali != null || akcija.mojSaldo != null) && (
+                <div className="hidden lg:block bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden ring-1 ring-emerald-500/10">
+                  <div className="px-5 py-4 border-b border-emerald-50 flex items-center gap-2.5 bg-gradient-to-r from-emerald-50/80 to-teal-50/40">
+                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
+                    <h3 className="text-sm font-bold text-gray-900 tracking-tight">Troškovi akcije</h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {akcija.cenaClan != null && (
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Cena za članove</p>
+                        <p className="mt-1 text-2xl font-extrabold text-emerald-800">{akcija.cenaClan.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {akcija.javna && akcija.cenaOstali != null && (
+                      <div className="rounded-xl border border-violet-100 bg-violet-50/70 p-3.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-700">Cena za ostale</p>
+                        <p className="mt-1 text-2xl font-extrabold text-violet-800">{akcija.cenaOstali.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {akcija.mojSaldo != null && (
+                      <div className="rounded-xl border border-teal-100 bg-teal-50/70 p-3.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-700">Moj saldo za uplatu</p>
+                        <p className="mt-1 text-xl font-bold text-teal-800">{akcija.mojSaldo.toFixed(2)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Status card */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
