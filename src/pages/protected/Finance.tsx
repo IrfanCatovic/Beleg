@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Dropdown from '../../components/Dropdown'
 import CalendarDropdown from '../../components/CalendarDropdown'
+import DatePartsSelect from '../../components/DatePartsSelect'
 import Loader from '../../components/Loader'
 import { formatDateShort, dateToYMD } from '../../utils/dateUtils'
 import { generateFinanceReportPdf } from '../../utils/generateFinanceReportPdf'
@@ -12,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 type Tab = 'dashboard' | 'clanarine' | 'transakcije'
 type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
 type CurrencyCode = 'RSD' | 'BAM' | 'HRK' | 'EUR'
+type DatePickType = 'day' | 'month' | 'year' | 'range'
 
 interface KlubCurrencyResponse {
   klub?: {
@@ -61,12 +63,16 @@ export default function Finance() {
   const [currentPage, setCurrentPage] = useState(1)
   const PAGE_SIZE = 5
   const currentYear = new Date().getFullYear()
-  const firstDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
-  const lastDayOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0)
   const prevYear = currentYear - 1
   const [fromDate, setFromDate] = useState(() => dateToYMD(new Date(prevYear, 0, 1)))
   const [toDate, setToDate] = useState(() => dateToYMD(new Date(currentYear, 11, 31)))
-  const [periodPreset, setPeriodPreset] = useState<'danas' | 'mesec' | 'godina' | 'dveGodine'>('dveGodine')
+  const [dateModalOpen, setDateModalOpen] = useState(false)
+  const [datePickType, setDatePickType] = useState<DatePickType>('range')
+  const [dayValue, setDayValue] = useState(todayYmd)
+  const [monthYear, setMonthYear] = useState<{ year: number; month: number }>({ year: currentYear, month: new Date().getMonth() + 1 })
+  const [yearValue, setYearValue] = useState(currentYear)
+  const [rangeStart, setRangeStart] = useState(fromDate)
+  const [rangeEnd, setRangeEnd] = useState(toDate)
   const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
 
   const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
@@ -86,6 +92,24 @@ export default function Finance() {
   const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
   const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
   const canEditClubCurrency = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
+  const selectableYears = Array.from({ length: 61 }, (_, i) => currentYear + 5 - i)
+  const monthOptions = [
+    { value: 1, label: 'Januar' },
+    { value: 2, label: 'Februar' },
+    { value: 3, label: 'Mart' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'Maj' },
+    { value: 6, label: 'Jun' },
+    { value: 7, label: 'Jul' },
+    { value: 8, label: 'Avgust' },
+    { value: 9, label: 'Septembar' },
+    { value: 10, label: 'Oktobar' },
+    { value: 11, label: 'Novembar' },
+    { value: 12, label: 'Decembar' },
+  ]
+
+  const daysInMonth = (year: number, month1to12: number) => new Date(year, month1to12, 0).getDate()
+  const periodLabel = `${formatDateShort(fromDate)} - ${formatDateShort(toDate)}`
 
   const normalizeCurrency = (raw: unknown): CurrencyCode => {
     const val = typeof raw === 'string' ? raw.toUpperCase().trim() : ''
@@ -164,6 +188,40 @@ export default function Finance() {
     } finally {
       setCurrencySaving(false)
     }
+  }
+
+  const applyDateSelection = () => {
+    if (datePickType === 'day') {
+      setFromDate(dayValue)
+      setToDate(dayValue)
+      setDateModalOpen(false)
+      return
+    }
+    if (datePickType === 'month') {
+      const start = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-01`
+      const end = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-${String(daysInMonth(monthYear.year, monthYear.month)).padStart(2, '0')}`
+      setFromDate(start)
+      setToDate(end)
+      setDateModalOpen(false)
+      return
+    }
+    if (datePickType === 'year') {
+      setFromDate(`${yearValue}-01-01`)
+      setToDate(`${yearValue}-12-31`)
+      setDateModalOpen(false)
+      return
+    }
+    if (!rangeStart || !rangeEnd) {
+      setError('Izaberi početni i završni datum.')
+      return
+    }
+    if (rangeStart > rangeEnd) {
+      setError('Početni datum mora biti pre završnog.')
+      return
+    }
+    setFromDate(rangeStart)
+    setToDate(rangeEnd)
+    setDateModalOpen(false)
   }
 
   const handleNovaTransakcija = async (e: React.FormEvent) => {
@@ -355,6 +413,136 @@ export default function Finance() {
           </div>
         )}
 
+        {dateModalOpen && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl">
+              <div className="border-b border-gray-100 px-5 py-4">
+                <h3 className="text-base font-bold text-gray-900">Izbor datuma izveštaja</h3>
+                <p className="mt-1 text-xs text-gray-500">Izaberi tip perioda pa unesi datum(e) jednostavno kroz padajuće liste.</p>
+              </div>
+
+              <div className="space-y-4 px-5 py-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Tip perioda</label>
+                  <Dropdown
+                    options={[
+                      { value: 'day', label: 'Dan' },
+                      { value: 'month', label: 'Mesec' },
+                      { value: 'year', label: 'Godina' },
+                      { value: 'range', label: 'Period' },
+                    ]}
+                    value={datePickType}
+                    onChange={(v) => setDatePickType(v as DatePickType)}
+                    fullWidth
+                  />
+                </div>
+
+                {datePickType === 'day' && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Odaberi dan</label>
+                    <DatePartsSelect
+                      value={dayValue}
+                      onChange={setDayValue}
+                      placeholderDay="Dan"
+                      placeholderMonth="Mesec"
+                      placeholderYear="Godina"
+                      maxYear={currentYear + 5}
+                    />
+                  </div>
+                )}
+
+                {datePickType === 'month' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Godina</label>
+                      <select
+                        className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        value={monthYear.year}
+                        onChange={(e) => setMonthYear((p) => ({ ...p, year: Number(e.target.value) }))}
+                      >
+                        {selectableYears.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Mesec</label>
+                      <select
+                        className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                        value={monthYear.month}
+                        onChange={(e) => setMonthYear((p) => ({ ...p, month: Number(e.target.value) }))}
+                      >
+                        {monthOptions.map((m) => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {datePickType === 'year' && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Godina</label>
+                    <select
+                      className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                      value={yearValue}
+                      onChange={(e) => setYearValue(Number(e.target.value))}
+                    >
+                      {selectableYears.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {datePickType === 'range' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Početni datum</label>
+                      <DatePartsSelect
+                        value={rangeStart}
+                        onChange={setRangeStart}
+                        placeholderDay="Dan"
+                        placeholderMonth="Mesec"
+                        placeholderYear="Godina"
+                        maxYear={currentYear + 5}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Završni datum</label>
+                      <DatePartsSelect
+                        value={rangeEnd}
+                        onChange={setRangeEnd}
+                        placeholderDay="Dan"
+                        placeholderMonth="Mesec"
+                        placeholderYear="Godina"
+                        maxYear={currentYear + 5}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => setDateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  Otkaži
+                </button>
+                <button
+                  type="button"
+                  onClick={applyDateSelection}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300"
+                >
+                  Primeni
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ══════════ DASHBOARD TAB ══════════ */}
         {tab === 'dashboard' && (
           <div className="space-y-6">
@@ -383,70 +571,22 @@ export default function Finance() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('period.label')}</span>
-                  <Dropdown
-                    aria-label={t('period.ariaLabel')}
-                    options={[
-                      { value: 'danas', label: t('period.today') },
-                      { value: 'mesec', label: t('period.thisMonth') },
-                      { value: 'godina', label: t('period.thisYear') },
-                      { value: 'dveGodine', label: t('period.prevPlusCurrent') },
-                    ]}
-                    value={periodPreset}
-                    onChange={(v) => {
-                      const value = v as 'danas' | 'mesec' | 'godina' | 'dveGodine'
-                      setPeriodPreset(value)
-                      const now = new Date()
-                      if (value === 'danas') {
-                        const ymd = dateToYMD(now)
-                        setFromDate(ymd)
-                        setToDate(ymd)
-                      } else if (value === 'mesec') {
-                        setFromDate(dateToYMD(firstDayOfMonth(now)))
-                        setToDate(dateToYMD(lastDayOfMonth(now)))
-                      } else if (value === 'godina') {
-                        setFromDate(`${currentYear}-01-01`)
-                        setToDate(`${currentYear}-12-31`)
-                      } else {
-                        setFromDate(`${prevYear}-01-01`)
-                        setToDate(`${currentYear}-12-31`)
-                      }
+              <div className="space-y-1.5">
+                <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">Odabrani period</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRangeStart(fromDate)
+                      setRangeEnd(toDate)
+                      setDayValue(fromDate)
+                      setDateModalOpen(true)
                     }}
-                    minTriggerWidth="180px"
-                    className="[&_button]:min-h-[38px] [&_button]:w-full [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
-                  />
-                </div>
-
-                <div className="space-y-1.5 lg:col-span-2">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('period.manualDateRange')}</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-gray-400 font-medium">{t('period.from')}</span>
-                      <CalendarDropdown
-                        value={fromDate}
-                        onChange={setFromDate}
-                        placeholder={t('period.fromDate')}
-                        maxDate={toDate}
-                        aria-label={t('period.fromAria')}
-                        minTriggerWidth="160px"
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-gray-400 font-medium">{t('period.to')}</span>
-                      <CalendarDropdown
-                        value={toDate}
-                        onChange={setToDate}
-                        placeholder={t('period.toDate')}
-                        minDate={fromDate}
-                        aria-label={t('period.toAria')}
-                        minTriggerWidth="160px"
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold bg-white border border-gray-200 text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/40 transition-all"
+                  >
+                    Odaberi datum
+                  </button>
+                  <span className="text-sm text-gray-600 font-medium">{periodLabel}</span>
                 </div>
               </div>
             </div>
