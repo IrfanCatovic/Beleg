@@ -193,7 +193,15 @@ export default function Actions() {
           counts,
         })
       }
-      generateAnnualReportPdf(rows)
+      let clubName = sorted.find((a) => a.klubNaziv)?.klubNaziv || ''
+      try {
+        const klubRes = await api.get('/api/klub')
+        const naziv = (klubRes.data?.klub?.naziv as string | undefined) || (klubRes.data?.naziv as string | undefined)
+        if (naziv?.trim()) clubName = naziv.trim()
+      } catch {
+        // fallback ostaje iz akcije ako postoji
+      }
+      generateAnnualReportPdf(rows, { clubName })
       setShowAnnualReportModal(false)
     } catch (err: unknown) {
       console.error(err)

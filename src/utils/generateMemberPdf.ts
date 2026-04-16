@@ -1,9 +1,6 @@
 import html2pdf from 'html2pdf.js'
 import i18n from '../i18n'
 
-/** Ime planinarskog društva/kluba za zaglavlje PDF-a */
-export const PDF_CLUB_NAME = 'Ime kluba'
-
 export interface MemberPdfData {
   clubName?: string
   fullName?: string
@@ -68,6 +65,7 @@ function section(title: string, rows: string): string {
 }
 
 export function generateMemberPdf(data: MemberPdfData): void {
+  const clubName = data.clubName?.trim() || 'Planinarsko drustvo'
   const content = `
     <style>
       .pdf-wrap { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; color: #111; line-height: 1.5; padding: 24px; background: white; min-width: 180mm; }
@@ -84,7 +82,7 @@ export function generateMemberPdf(data: MemberPdfData): void {
     <div class="pdf-wrap">
       <div class="header">
         <h1>${i18n.t('pdf:member.title')}</h1>
-        <p>Planinarsko društvo Beleg</p>
+        <p>${escapeHtml(clubName)}</p>
       </div>
 
       ${section(i18n.t('pdf:member.sections.personal'), `

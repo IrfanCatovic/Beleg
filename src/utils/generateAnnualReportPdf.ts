@@ -95,7 +95,14 @@ function dataRowsHtml(rows: AnnualReportRow[]): string {
  * Ako je prosleđen niz redova, tabela se puni tim podacima (R.Б. 1, 2, …); inače se štampa prazan obrazac.
  * Logo: /psslogo.png (public folder).
  */
-export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
+export interface AnnualReportPdfMeta {
+  clubName?: string
+  placeName?: string
+}
+
+export function generateAnnualReportPdf(rows?: AnnualReportRow[], meta?: AnnualReportPdfMeta): void {
+  const clubName = meta?.clubName?.trim() || 'Planinarsko drustvo'
+  const placeName = meta?.placeName?.trim() || ''
   const tbodyContent = rows && rows.length > 0 ? dataRowsHtml(rows) : emptyRowsHtml()
   const content = `
     <style>${pdfStyles}</style>
@@ -114,8 +121,8 @@ export function generateAnnualReportPdf(rows?: AnnualReportRow[]): void {
       <div class="ar-fields">
         <div class="ar-fields-between">
           <div class="ar-fields-row">
-            <div style="flex: 1;"><span class="label">ПСО / Клуб:</span> Beleg</div>
-            <div style="flex: 1;"><span class="label">Место:</span> Tutin</div>
+            <div style="flex: 1;"><span class="label">ПСО / Клуб:</span> ${escapeHtml(clubName)}</div>
+            <div style="flex: 1;"><span class="label">Место:</span> ${escapeHtml(placeName)}</div>
           </div>
         </div>
       </div>

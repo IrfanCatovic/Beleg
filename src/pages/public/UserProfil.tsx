@@ -368,7 +368,12 @@ export default function UserProfile() {
             userId={String(korisnik.id)}
             isOwnProfile={!!isOwn}
             currentUser={currentUser}
-            onPrintClick={() => generateMemberPdf(korisnik as unknown as MemberPdfData)}
+            onPrintClick={() =>
+              generateMemberPdf({
+                ...(korisnik as unknown as MemberPdfData),
+                clubName: korisnik.klubNaziv || '',
+              })
+            }
           >
             {!isOwn && currentUser && (
               <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />

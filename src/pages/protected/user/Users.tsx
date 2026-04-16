@@ -198,8 +198,13 @@ export default function Korisnici() {
     try {
       const res = await api.get(`/api/korisnici/${k.id}`)
       const data = res.data as Record<string, unknown>
+      const clubNameFromApi =
+        (data.klubNaziv as string | undefined) ||
+        (data.clubName as string | undefined) ||
+        (k.klubNaziv as string | undefined) ||
+        ''
       const pdfData: MemberPdfData = {
-        clubName: undefined,
+        clubName: clubNameFromApi,
         fullName: (data.fullName as string) || k.username,
         ime_roditelja: data.ime_roditelja as string | undefined,
         pol: data.pol as string | undefined,
