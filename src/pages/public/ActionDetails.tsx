@@ -578,6 +578,7 @@ export default function ActionDetails() {
   const handleEdit = () => navigate(`/akcije/${id}/izmeni`)
 
   const handleUpdateStatus = async (prijavaId: number, newStatus: string) => {
+    if (!canManageHost) return
     try {
       await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
       const res = await api.get(`/api/akcije/${id}/prijave`)
@@ -608,6 +609,7 @@ export default function ActionDetails() {
   }
 
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
+    if (!canManageHost) return
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
       title: t('removeMemberTitle'),
       confirmLabel: t('remove'),
@@ -812,6 +814,15 @@ export default function ActionDetails() {
   const difficultyBadge = tzStyle(akcija.tezina, t)
   const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
   const isLimitedView = !!akcija.limited
+  /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
+  const isHostClubPlainMember =
+    !!user &&
+    user.role === 'clan' &&
+    user.klubId != null &&
+    akcija.klubId != null &&
+    Number(user.klubId) === Number(akcija.klubId)
+  /** Blagajnik, sekretar, menadžer opreme, itd. mogu da vide modal; admin/vodič i dalje `canManageHost` za tri akcije. */
+  const canOpenMemberModal = !!user && canSeePrijave && !isLimitedView && !isHostClubPlainMember
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
   const paymentTrackedPrijave = prijave.filter((p) => p.status !== 'otkazano')
@@ -1773,16 +1784,18 @@ export default function ActionDetails() {
                         <div
                           key={p.id}
                           className={`group flex items-center gap-3 p-3 rounded-2xl bg-gray-50/60 border border-gray-100 transition-all duration-200 ${
-                            canManageHost
-                              ? p.platio
-                                ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/60 hover:shadow-sm cursor-pointer'
-                                : 'border-rose-200 bg-rose-50/30 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm cursor-pointer'
+                            canOpenMemberModal
+                              ? canManageHost
+                                ? p.platio
+                                  ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/60 hover:shadow-sm cursor-pointer'
+                                  : 'border-rose-200 bg-rose-50/30 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm cursor-pointer'
+                                : 'border-gray-100 hover:border-emerald-200/80 hover:bg-emerald-50/25 hover:shadow-sm cursor-pointer'
                               : ''
                           }`}
-                          role={canManageHost ? 'button' : undefined}
-                          tabIndex={canManageHost ? 0 : -1}
-                          onClick={canManageHost ? () => setMemberModal(p) : undefined}
-                          onKeyDown={canManageHost
+                          role={canOpenMemberModal ? 'button' : undefined}
+                          tabIndex={canOpenMemberModal ? 0 : -1}
+                          onClick={canOpenMemberModal ? () => setMemberModal(p) : undefined}
+                          onKeyDown={canOpenMemberModal
                             ? (e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
@@ -2012,10 +2025,10 @@ export default function ActionDetails() {
           />
 
           <MemberDetailsModal
-            open={canManageHost && !!memberModal}
+            open={canOpenMemberModal && !!memberModal}
             onClose={() => setMemberModal(null)}
             currency={clubCurrency}
-            member={canManageHost ? (memberModal as any) : null}
+            member={canOpenMemberModal ? (memberModal as any) : null}
             smestaj={akcija.smestaj || []}
             prevoz={(akcija.prevoz || []).map((p) => ({ id: p.id, nazivGrupe: p.nazivGrupe, tipPrevoza: p.tipPrevoza, cenaPoOsobi: p.cenaPoOsobi }))}
             opremaRent={(akcija.opremaRent || []).map((o) => ({ id: o.id, nazivOpreme: o.nazivOpreme, cenaPoSetu: o.cenaPoSetu }))}
