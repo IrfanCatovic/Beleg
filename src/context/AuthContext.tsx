@@ -4,7 +4,7 @@ import api, { setUnauthorizedHandler, setAuthToken } from "../services/api";
 export interface User {
     username: string;
     fullName: string;
-    role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' ;
+    role: '' | 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme';
     ukupnoKm?: number;
     ukupnoMetaraUspona?: number;
     brojPopeoSe?: number;
@@ -87,7 +87,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                 .then((res) => {
                     if (res.status === 401) return
                     const data = res.data as { username?: string; fullName?: string; role?: string }
-                    if (data?.username && data?.role) {
+                    if (data?.username && typeof data?.role === 'string') {
                         const userData: User = {
                             username: data.username,
                             fullName: data.fullName ?? '',

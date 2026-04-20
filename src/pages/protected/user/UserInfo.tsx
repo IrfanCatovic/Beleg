@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../../services/api'
 import { useAuth } from '../../../context/AuthContext'
-import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
+import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
 import {
@@ -144,9 +144,11 @@ export default function UserInfo() {
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{korisnik.fullName || korisnik.username}</h1>
               <p className="text-gray-500 mt-0.5">@{korisnik.username}</p>
-              <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${getRoleStyle(korisnik.role)}`}>
-                {getRoleLabel(korisnik.role)}
-              </span>
+              {hasVisibleRole(korisnik.role) && (
+                <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${getRoleStyle(korisnik.role)}`}>
+                  {getRoleLabel(korisnik.role)}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -213,7 +215,7 @@ export default function UserInfo() {
               <InfoRow label={t('labels.username')} value={korisnik.username} alwaysShow icon={UserCircleIcon} />
               <InfoRow label={t('labels.email')} value={korisnik.email ? <a href={`mailto:${korisnik.email}`} className="text-emerald-600 hover:underline">{korisnik.email}</a> : undefined} alwaysShow icon={EnvelopeIcon} />
               <InfoRow label={t('labels.phone')} value={korisnik.telefon ? <a href={`tel:${korisnik.telefon}`} className="text-emerald-600 hover:underline">{korisnik.telefon}</a> : undefined} alwaysShow icon={PhoneIcon} />
-              <InfoRow label={t('labels.role')} value={getRoleLabel(korisnik.role)} alwaysShow icon={UserCircleIcon} />
+              <InfoRow label={t('labels.role')} value={getRoleLabel(korisnik.role)} icon={UserCircleIcon} />
               <InfoRow label={t('labels.registeredAt')} value={formatDate(korisnik.createdAt)} alwaysShow icon={CalendarDaysIcon} />
               <InfoRow label={t('labels.updatedAt')} value={formatDate(korisnik.updatedAt)} alwaysShow icon={CalendarDaysIcon} />
             </div>

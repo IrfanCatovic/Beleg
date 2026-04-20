@@ -4,7 +4,7 @@ import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon, Tra
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
-import { getRoleLabel, getRoleStyle } from '../../../utils/roleUtils'
+import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
 import { formatDate } from '../../../utils/dateUtils'
@@ -442,10 +442,14 @@ export default function Korisnici() {
                           <div className="mt-4 space-y-2">
                             <div className="flex items-center justify-between gap-2 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-700">{t('roleLabel')}</span>
-                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role)}`}>
-                                  {getRoleLabel(k.role)}
-                                </span>
+                                {hasVisibleRole(k.role) && (
+                                  <>
+                                    <span className="font-medium text-gray-700">{t('roleLabel')}</span>
+                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role)}`}>
+                                      {getRoleLabel(k.role)}
+                                    </span>
+                                  </>
+                                )}
                               </div>
                               <div
                                 className="sm:hidden inline-flex flex-col items-end rounded-xl px-2.5 py-1 text-right bg-gray-50"

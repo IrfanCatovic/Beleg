@@ -297,7 +297,10 @@ func AcceptClubJoinRequest(c *gin.Context) {
 		if acceptedUser.KlubID != nil && *acceptedUser.KlubID != 0 {
 			return fmt.Errorf("korisnik je već član drugog kluba")
 		}
-		if err := tx.Model(&acceptedUser).Update("klub_id", clubID).Error; err != nil {
+		if err := tx.Model(&acceptedUser).Updates(map[string]any{
+			"klub_id": clubID,
+			"role":    "clan",
+		}).Error; err != nil {
 			return err
 		}
 		if err := tx.Model(&models.ClubJoinRequest{}).
@@ -445,7 +448,10 @@ func LeaveCurrentClub(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Niste član nijednog kluba."})
 		return
 	}
-	if err := db.Model(user).Update("klub_id", nil).Error; err != nil {
+	if err := db.Model(user).Updates(map[string]any{
+		"klub_id": nil,
+		"role":    "",
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri napuštanju kluba"})
 		return
 	}
@@ -474,7 +480,10 @@ func RemoveMemberFromClub(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Korisnik nije član vašeg kluba"})
 		return
 	}
-	if err := db.Model(&user).Update("klub_id", nil).Error; err != nil {
+	if err := db.Model(&user).Updates(map[string]any{
+		"klub_id": nil,
+		"role":    "",
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri izbacivanju člana"})
 		return
 	}

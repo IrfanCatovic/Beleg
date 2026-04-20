@@ -7,7 +7,7 @@ import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
 import FollowControls from '../../components/buttons/FollowControls'
 import BlockUserButton from '../../components/buttons/BlockUserButton'
 import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
-import { getRoleLabel, getRoleStyle } from '../../utils/roleUtils'
+import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
@@ -45,7 +45,7 @@ interface Korisnik {
   cover_position_y_mobile?: number
   email?: string
   telefon?: string
-  role: 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
+  role: '' | 'superadmin' | 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
   createdAt: string
   updatedAt: string
   ukupnoKm: number
@@ -598,11 +598,13 @@ export default function UserProfile() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
-                    {getRoleLabel(korisnik.role)}
-                  </span>
-                </div>
+                {hasVisibleRole(korisnik.role) && (
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
+                      {getRoleLabel(korisnik.role)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* contact pills */}
@@ -675,9 +677,11 @@ export default function UserProfile() {
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
-                    <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
-                      {getRoleLabel(korisnik.role)}
-                    </span>
+                    {hasVisibleRole(korisnik.role) && (
+                      <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
+                        {getRoleLabel(korisnik.role)}
+                      </span>
+                    )}
                     {korisnik.klubNaziv && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
                         {korisnik.klubLogoUrl ? (

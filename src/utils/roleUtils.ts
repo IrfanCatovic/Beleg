@@ -27,9 +27,15 @@ const ROLE_STYLES: Record<string, string> = {
 };
 
 export function getRoleLabel(role: string): string {
+  if (!role || !role.trim()) return ''
   return ROLE_LABELS[role] ?? role
 }
 
 export function getRoleStyle(role: string): string {
+  if (!role || !role.trim()) return ''
   return ROLE_STYLES[role] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+}
+
+export function hasVisibleRole(role?: string): boolean {
+  return Boolean(role && role.trim())
 }

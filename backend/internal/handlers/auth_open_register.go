@@ -110,7 +110,7 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 		korisnik := models.Korisnik{
 			Username: username,
 			Password: string(hashed),
-			Role:     "clan",
+			Role:     "",
 			Email:    emailStr,
 			FullName: strings.TrimSpace(req.FullName),
 			KlubID:   nil,

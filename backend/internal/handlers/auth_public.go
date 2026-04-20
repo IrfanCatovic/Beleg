@@ -69,7 +69,12 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Nalog je deaktiviran."})
 			return
 		}
-		if korisnik.Role == "clan" && korisnik.KlubID == nil && strings.TrimSpace(korisnik.Email) != "" && korisnik.EmailVerifiedAt == nil {
+		// Van kluba uloga nije aktivna; zadržavamo samo superadmina kao globalnu ulogu.
+		if korisnik.KlubID == nil && korisnik.Role != "superadmin" && korisnik.Role != "" {
+			_ = db.Model(&korisnik).Update("role", "").Error
+			korisnik.Role = ""
+		}
+		if korisnik.KlubID == nil && korisnik.Role != "superadmin" && strings.TrimSpace(korisnik.Email) != "" && korisnik.EmailVerifiedAt == nil {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":       "Potvrdite email adresu pre prijave.",
 				"code":        "EMAIL_NOT_VERIFIED",
