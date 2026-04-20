@@ -3,57 +3,54 @@ package models
 import "time"
 
 type Korisnik struct {
-	ID                         uint      `gorm:"primaryKey" json:"id"`
+	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Obavezna polja (username unique, password hashed)
-	Username                   string    `gorm:"unique;not null" json:"username"` // jedinstveno, obavezno
-	Password                   string    `json:"-"`                               // hashed, obavezno, ne vraća se u JSON
+	Username string `gorm:"unique;not null" json:"username"` // jedinstveno, obavezno
+	Password string `json:"-"`                               // hashed, obavezno, ne vraća se u JSON
 	// Opciono korisnik sam popunjava posle registracije
-	FullName                   string    `gorm:"type:varchar(100)" json:"fullName,omitempty"`
-	ImeRoditelja               string    `gorm:"type:varchar(100)" json:"ime_roditelja,omitempty"`
-	Pol                        string    `gorm:"type:varchar(20)" json:"pol,omitempty"` // "M", "Ž"
-	DatumRodjenja              *time.Time `json:"datum_rodjenja,omitempty"`               // pointer da može biti null
-	Drzavljanstvo              string    `gorm:"type:varchar(100)" json:"drzavljanstvo,omitempty"`
-	Adresa                     string    `gorm:"type:varchar(255)" json:"adresa,omitempty"`
-	Telefon                    string    `gorm:"type:varchar(50)" json:"telefon,omitempty"`
-	Email                      string    `gorm:"type:varchar(255)" json:"email,omitempty"` // može biti unique ako želiš
-	EmailVerifiedAt            *time.Time `json:"email_verified_at,omitempty"`
-	BrojLicnogDokumenta        string    `gorm:"type:varchar(50)" json:"broj_licnog_dokumenta,omitempty"`
-	BrojPlaninarskeLegitimacije string    `gorm:"type:varchar(50);unique_index" json:"broj_planinarske_legitimacije,omitempty"` // unique ako želiš
-	BrojPlaninarskeMarkice     string    `gorm:"type:varchar(50)" json:"broj_planinarske_markice,omitempty"`
-	DatumUclanjenja            *time.Time `json:"datum_uclanjenja,omitempty"`
-	
+	FullName                    string     `gorm:"type:varchar(100)" json:"fullName,omitempty"`
+	ImeRoditelja                string     `gorm:"type:varchar(100)" json:"ime_roditelja,omitempty"`
+	Pol                         string     `gorm:"type:varchar(20)" json:"pol,omitempty"` // "M", "Ž"
+	DatumRodjenja               *time.Time `json:"datum_rodjenja,omitempty"`              // pointer da može biti null
+	Drzavljanstvo               string     `gorm:"type:varchar(100)" json:"drzavljanstvo,omitempty"`
+	Adresa                      string     `gorm:"type:varchar(255)" json:"adresa,omitempty"`
+	Telefon                     string     `gorm:"type:varchar(50)" json:"telefon,omitempty"`
+	Email                       string     `gorm:"type:varchar(255)" json:"email,omitempty"` // može biti unique ako želiš
+	EmailVerifiedAt             *time.Time `json:"email_verified_at,omitempty"`
+	BrojLicnogDokumenta         string     `gorm:"type:varchar(50)" json:"broj_licnog_dokumenta,omitempty"`
+	BrojPlaninarskeLegitimacije string     `gorm:"type:varchar(50);unique_index" json:"broj_planinarske_legitimacije,omitempty"` // unique ako želiš
+	BrojPlaninarskeMarkice      string     `gorm:"type:varchar(50)" json:"broj_planinarske_markice,omitempty"`
+	DatumUclanjenja             *time.Time `json:"datum_uclanjenja,omitempty"`
+
 	// Opciona tekstualna polja
-	IzreceneDisciplinskeKazne  string    `gorm:"type:text" json:"izrecene_disciplinske_kazne,omitempty"`
+	IzreceneDisciplinskeKazne      string `gorm:"type:text" json:"izrecene_disciplinske_kazne,omitempty"`
 	IzborUOrganeSportskogUdruzenja string `gorm:"type:text" json:"izbor_u_organe_sportskog_udruzenja,omitempty"`
-	Napomene                   string    `gorm:"type:text" json:"napomene,omitempty"`
+	Napomene                       string `gorm:"type:text" json:"napomene,omitempty"`
 
 	// Slike (opciono)
-	AvatarURL                  string    `gorm:"type:varchar(500)" json:"avatar_url,omitempty"`
-	CoverImageURL              string    `gorm:"type:varchar(500)" json:"cover_image_url,omitempty"`
-	CoverPositionY             float64   `gorm:"type:float;default:0.5" json:"cover_position_y,omitempty"` // 0 = vrh, 1 = dno; za širi ekran (md+)
+	AvatarURL      string  `gorm:"type:varchar(500)" json:"avatar_url,omitempty"`
+	CoverImageURL  string  `gorm:"type:varchar(500)" json:"cover_image_url,omitempty"`
+	CoverPositionY float64 `gorm:"type:float;default:0.5" json:"cover_position_y,omitempty"` // 0 = vrh, 1 = dno; za širi ekran (md+)
 	// Opciono: vertikalni fokus na uskom ekranu; ako je NULL, koristi se CoverPositionY (isti kadro kao na PC).
-	CoverPositionYMobile       *float64  `gorm:"type:float" json:"cover_position_y_mobile,omitempty"`
+	CoverPositionYMobile *float64 `gorm:"type:float" json:"cover_position_y_mobile,omitempty"`
 	// Role i status
-	Role                       string    `gorm:"type:varchar(20);not null;default:'clan'" json:"role"`
+	Role string `gorm:"type:varchar(20);not null;default:'clan'" json:"role"`
 	// Statistika (opciono, default 0)
-	UkupnoKmKorisnik           float64   `gorm:"default:0" json:"ukupnoKm"`
-	UkupnoMetaraUsponaKorisnik int       `gorm:"default:0" json:"ukupnoMetaraUspona"`
-	BrojPopeoSe                int       `gorm:"default:0" json:"brojPopeoSe"`
+	UkupnoKmKorisnik           float64 `gorm:"default:0" json:"ukupnoKm"`
+	UkupnoMetaraUsponaKorisnik int     `gorm:"default:0" json:"ukupnoMetaraUspona"`
+	BrojPopeoSe                int     `gorm:"default:0" json:"brojPopeoSe"`
 
 	// Timestamps (automatski)
-	CreatedAt                  time.Time      `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt                  time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 
-
-	KlubID *uint     `json:"klubId,omitempty"`
-	Klub   *Klubovi  `gorm:"foreignKey:KlubID" json:"-"`
+	KlubID *uint    `json:"klubId,omitempty"`
+	Klub   *Klubovi `gorm:"foreignKey:KlubID" json:"-"`
 
 	KlubNaziv   string `gorm:"-" json:"klubNaziv,omitempty"`
 	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
 }
-
-
 
 func (Korisnik) TableName() string {
 	return "korisnici" //name of talbe in PgAdmin

@@ -71,10 +71,10 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		}
 		if korisnik.Role == "clan" && korisnik.KlubID == nil && strings.TrimSpace(korisnik.Email) != "" && korisnik.EmailVerifiedAt == nil {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":          "Potvrdite email adresu pre prijave.",
-				"code":           "EMAIL_NOT_VERIFIED",
-				"email":          korisnik.Email,
-				"needsVerify":    true,
+				"error":       "Potvrdite email adresu pre prijave.",
+				"code":        "EMAIL_NOT_VERIFIED",
+				"email":       korisnik.Email,
+				"needsVerify": true,
 			})
 			return
 		}
