@@ -24,6 +24,7 @@ import RegisterUser from './pages/protected/user/RegisterUser'
 
 //routes
 import ProtectedRoute from './components/routes/ProtectedRoute'
+import ClubScopedRoute from './components/routes/ClubScopedRoute'
 import RoleRoute from './components/routes/RoleRoute'
 import RegisterAdmin from './pages/protected/user/RegisterAdmin'
 import ProfileSettings from './pages/protected/user/ProfileSettings'
@@ -135,7 +136,10 @@ const router = createBrowserRouter([
 
           // Akcije svi ulogovani vide listu i detalje, prijavljuju se
           { path: '/akcije', element: <Actions /> },
-          { path: '/zadaci', element: <Zadaci /> },
+          {
+            element: <ClubScopedRoute />,
+            children: [{ path: '/zadaci', element: <Zadaci /> }],
+          },
           { path: '/klub', element: <Klub /> },
           { path: '/klubovi/:naziv', element: <Klub /> },
 

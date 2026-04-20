@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
+import { userHasClubContext } from '../utils/clubContext'
 import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 
@@ -38,8 +39,7 @@ export default function AppLayout() {
 
   const isSuperadminNoClub =
     user?.role === 'superadmin' && !localStorage.getItem('superadmin_club_id')
-  const hasClubContext =
-    user?.role === 'superadmin' || (user?.klubId != null && Number(user.klubId) !== 0)
+  const hasClubContext = userHasClubContext(user)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
@@ -163,7 +163,7 @@ export default function AppLayout() {
                 <nav className="hidden md:flex items-center gap-1">
                   <NavLink to="/home" className={navLinkClass}>{t('home')}</NavLink>
                   <NavLink to="/akcije" className={navLinkClass}>{t('actions')}</NavLink>
-                  <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>
+                  {hasClubContext && <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>}
                   {hasClubContext && <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>}
                   <NavLink to="/klub" className={navLinkClass}>{t('club')}</NavLink>
                   {canSeeFinance(user?.role) && (
@@ -445,17 +445,19 @@ export default function AppLayout() {
                 >
                   {t('actions')}
                 </NavLink>
-                <NavLink
-                  to="/zadaci"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                    }`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t('tasks')}
-                </NavLink>
+                {hasClubContext && (
+                  <NavLink
+                    to="/zadaci"
+                    className={({ isActive }) =>
+                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                      }`
+                    }
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('tasks')}
+                  </NavLink>
+                )}
                 {hasClubContext && (
                   <NavLink
                     to="/users"

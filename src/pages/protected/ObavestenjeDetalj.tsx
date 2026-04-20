@@ -9,6 +9,7 @@ import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
 import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
 import type { Role } from '../../components/NewTaskModal'
 import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
+import { userHasClubContext } from '../../utils/clubContext'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 
@@ -846,11 +847,13 @@ export default function ObavestenjeDetalj() {
               />
             }
           />
-          <div className="mt-3 text-center">
-            <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-              {t('notificationDetails:allTasks')}
-            </Link>
-          </div>
+          {userHasClubContext(user) && (
+            <div className="mt-3 text-center">
+              <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+                {t('notificationDetails:allTasks')}
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
