@@ -59,6 +59,12 @@ export default function Login() {
       login(response.data)
       navigate('/home')
     } catch (err: any) {
+      const code = err.response?.data?.code
+      const email = err.response?.data?.email
+      if (code === 'EMAIL_NOT_VERIFIED' && typeof email === 'string' && email.trim()) {
+        navigate('/registracija-email-provera', { replace: false, state: { email } })
+        return
+      }
       setError(err.response?.data?.error || t('invalidCredentials'))
     } finally {
       setLoading(false)
@@ -261,6 +267,14 @@ export default function Login() {
               className="font-medium text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
             >
               {t('registerWithClubCode')}
+            </Link>
+          </p>
+          <p className="mt-2 text-[11px] sm:text-xs text-center">
+            <Link
+              to="/registracija"
+              className="font-medium text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
+            >
+              Registracija bez kluba
             </Link>
           </p>
 

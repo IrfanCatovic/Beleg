@@ -17,6 +17,7 @@ type Korisnik struct {
 	Adresa                     string    `gorm:"type:varchar(255)" json:"adresa,omitempty"`
 	Telefon                    string    `gorm:"type:varchar(50)" json:"telefon,omitempty"`
 	Email                      string    `gorm:"type:varchar(255)" json:"email,omitempty"` // može biti unique ako želiš
+	EmailVerifiedAt            *time.Time `json:"email_verified_at,omitempty"`
 	BrojLicnogDokumenta        string    `gorm:"type:varchar(50)" json:"broj_licnog_dokumenta,omitempty"`
 	BrojPlaninarskeLegitimacije string    `gorm:"type:varchar(50);unique_index" json:"broj_planinarske_legitimacije,omitempty"` // unique ako želiš
 	BrojPlaninarskeMarkice     string    `gorm:"type:varchar(50)" json:"broj_planinarske_markice,omitempty"`

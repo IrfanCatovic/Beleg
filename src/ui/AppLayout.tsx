@@ -38,6 +38,8 @@ export default function AppLayout() {
 
   const isSuperadminNoClub =
     user?.role === 'superadmin' && !localStorage.getItem('superadmin_club_id')
+  const hasClubContext =
+    user?.role === 'superadmin' || (user?.klubId != null && Number(user.klubId) !== 0)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
@@ -162,7 +164,7 @@ export default function AppLayout() {
                   <NavLink to="/home" className={navLinkClass}>{t('home')}</NavLink>
                   <NavLink to="/akcije" className={navLinkClass}>{t('actions')}</NavLink>
                   <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>
-                  <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>
+                  {hasClubContext && <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>}
                   <NavLink to="/klub" className={navLinkClass}>{t('club')}</NavLink>
                   {canSeeFinance(user?.role) && (
                     <NavLink to="/finansije" className={navLinkClass}>{t('finances')}</NavLink>
@@ -454,17 +456,19 @@ export default function AppLayout() {
                 >
                   {t('tasks')}
                 </NavLink>
-                <NavLink
-                  to="/users"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                    }`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t('members')}
-                </NavLink>
+                {hasClubContext && (
+                  <NavLink
+                    to="/users"
+                    className={({ isActive }) =>
+                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                      }`
+                    }
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {t('members')}
+                  </NavLink>
+                )}
                 <NavLink
                   to="/klub"
                   className={({ isActive }) =>

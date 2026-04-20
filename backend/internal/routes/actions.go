@@ -23,6 +23,8 @@ func RegisterActionRoutes(r *gin.Engine, protected *gin.RouterGroup, jwtSecret [
 	protected.POST("/akcije/:id/zavrsi", handlers.ZavrsiAkciju)
 	protected.DELETE("/akcije/:id", handlers.DeleteAkcija)
 	protected.DELETE("/akcije/:id/prijavi", handlers.OtkaziPrijavuNaAkciju)
+	protected.POST("/akcije/:id/invite-link/regenerate", handlers.CreateOrRegenerateActionInviteLink)
+	protected.POST("/akcije/:id/invite-link/revoke", handlers.RevokeActionInviteLink)
 
 	protected.GET("/moje-popeo-se", handlers.GetMojePopeoSe)
 	protected.POST("/prijave/:id/status", handlers.UpdatePrijavaStatus)

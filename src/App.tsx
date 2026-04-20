@@ -38,6 +38,9 @@ import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
 import Klub from './pages/protected/Klub'
 import EnterClubInviteCode from './pages/public/EnterClubInviteCode'
 import RegisterMemberByInvite from './pages/public/RegisterMemberByInvite'
+import RegisterOpen from './pages/public/RegisterOpen'
+import EmailVerificationPending from './pages/public/EmailVerificationPending'
+import VerifyEmail from './pages/public/VerifyEmail'
 
 
 const router = createBrowserRouter([
@@ -65,6 +68,21 @@ const router = createBrowserRouter([
   {
     path: '/registracija-clan',
     element: <RegisterMemberByInvite />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/registracija',
+    element: <RegisterOpen />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/registracija-email-provera',
+    element: <EmailVerificationPending />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/verifikuj-email',
+    element: <VerifyEmail />,
     errorElement: <ErrorPage />,
   },
   {

@@ -16,7 +16,7 @@ import (
 // Minimalno na Renderu: RESEND_API_KEY + EMAIL_TO (ili SMTP_USER kao primaoc).
 // RESEND_FROM — opciono; ako je prazno: Planiner <onboarding@resend.dev> (test: primaoc mora biti email isti kao Resend nalog, ili verifikuj domen).
 // Za produkciju: verifikuj domen na resend.com i postavi npr. "Planiner <noreply@tvoj-domen.com>".
-func sendViaResendIfConfigured(subject, body string) (bool, error) {
+func sendViaResendIfConfigured(toAddrs []string, subject, body string) (bool, error) {
 	key := strings.TrimSpace(os.Getenv("RESEND_API_KEY"))
 	key = strings.TrimPrefix(key, "Bearer ")
 	key = strings.TrimSpace(key)
@@ -30,23 +30,24 @@ func sendViaResendIfConfigured(subject, body string) (bool, error) {
 		from = "Planiner <onboarding@resend.dev>"
 	}
 
-	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
-	toRaw := strings.TrimSpace(os.Getenv("EMAIL_TO"))
-	var toAddrs []string
-	if toRaw == "" {
-		if user == "" {
-			return true, fmt.Errorf("postavite EMAIL_TO ili SMTP_USER kao primaoca za Resend")
-		}
-		toAddrs = []string{user}
-	} else {
-		for _, p := range strings.Split(toRaw, ",") {
-			p = strings.TrimSpace(p)
-			if p != "" {
-				toAddrs = append(toAddrs, p)
+	if len(toAddrs) == 0 {
+		user := strings.TrimSpace(os.Getenv("SMTP_USER"))
+		toRaw := strings.TrimSpace(os.Getenv("EMAIL_TO"))
+		if toRaw == "" {
+			if user == "" {
+				return true, fmt.Errorf("postavite EMAIL_TO ili SMTP_USER kao primaoca za Resend")
 			}
-		}
-		if len(toAddrs) == 0 {
-			return true, fmt.Errorf("EMAIL_TO nema validnih adresa")
+			toAddrs = []string{user}
+		} else {
+			for _, p := range strings.Split(toRaw, ",") {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					toAddrs = append(toAddrs, p)
+				}
+			}
+			if len(toAddrs) == 0 {
+				return true, fmt.Errorf("EMAIL_TO nema validnih adresa")
+			}
 		}
 	}
 

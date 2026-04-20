@@ -43,6 +43,12 @@ export default function Korisnici() {
 
   useEffect(() => {
     if (!user) return
+    if (user.role !== 'superadmin' && (user.klubId == null || Number(user.klubId) === 0)) {
+      setKorisnici([])
+      setLoading(false)
+      setError('Niste član nijednog kluba.')
+      return
+    }
 
     const fetchKorisnici = async () => {
       try {

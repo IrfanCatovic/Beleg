@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -114,6 +114,7 @@ const STATUS_STYLE: Record<string, string> = {
 export default function ActionDetails() {
   const { t, i18n } = useTranslation('actionDetails')
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
   const navigate = useNavigate()
@@ -142,6 +143,7 @@ export default function ActionDetails() {
   const [savingSelections, setSavingSelections] = useState(false)
   const [addTransportOpen, setAddTransportOpen] = useState(false)
   const [memberModal, setMemberModal] = useState<Prijava | null>(null)
+  const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
 
   useEffect(() => {
     let cancelled = false
@@ -149,7 +151,7 @@ export default function ActionDetails() {
       setLoading(true)
       setError('')
       try {
-        const res = await api.get(`/api/akcije/${id}`)
+        const res = await api.get(`/api/akcije/${id}`, inviteToken ? { params: { inviteToken } } : undefined)
         if (!cancelled) setAkcija(res.data)
       } catch (err: any) {
         if (!cancelled) setError(err.response?.data?.error || t('loadError'))
@@ -161,7 +163,7 @@ export default function ActionDetails() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, inviteToken])
 
   useEffect(() => {
     if (!summitShareOpen) return
@@ -393,7 +395,7 @@ export default function ActionDetails() {
   const reloadAkcija = async () => {
     if (!id) return
     try {
-      const res = await api.get(`/api/akcije/${id}`)
+      const res = await api.get(`/api/akcije/${id}`, inviteToken ? { params: { inviteToken } } : undefined)
       setAkcija(res.data)
     } catch {
       // ignore
@@ -469,17 +471,17 @@ export default function ActionDetails() {
     try {
       const payload = buildChoicesPayload()
       if (!mojaPrijava) {
-        await api.post(`/api/akcije/${id}/prijavi`, payload)
+        await api.post(`/api/akcije/${id}/prijavi`, inviteToken ? { ...payload, inviteToken } : payload)
         await showAlert('Uspešno ste se prijavili!')
       } else {
         try {
-          await api.patch(`/api/akcije/${id}/moja-prijava`, payload)
+          await api.patch(`/api/akcije/${id}/moja-prijava`, inviteToken ? { ...payload, inviteToken } : payload)
         } catch (err: any) {
           // Backward compatibility: older backend instances do not have PATCH /moja-prijava.
           // In that case, recreate registration with updated choices.
           if (err?.response?.status === 404) {
             await api.delete(`/api/akcije/${id}/prijavi`)
-            await api.post(`/api/akcije/${id}/prijavi`, payload)
+            await api.post(`/api/akcije/${id}/prijavi`, inviteToken ? { ...payload, inviteToken } : payload)
           } else {
             throw err
           }

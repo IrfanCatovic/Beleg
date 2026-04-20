@@ -19,6 +19,7 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+import NoClubJoinView from '../../components/club/NoClubJoinView'
 
 export interface KlubData {
   id: number
@@ -93,6 +94,8 @@ export default function Klub() {
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public')
   const [adminStats, setAdminStats] = useState<ClubAdminStats | null>(null)
   const [adminStatsLoading, setAdminStatsLoading] = useState(false)
+
+  const isNoClubUser = user?.role !== 'superadmin' && (user?.klubId == null || Number(user.klubId) === 0)
 
   const fetchKlub = useCallback(async () => {
     setLoading(true)
@@ -258,6 +261,7 @@ export default function Klub() {
     }
   }
 
+  if (isNoClubUser) return <NoClubJoinView />
   if (loading) return <Loader />
   if (error) {
     return (

@@ -276,6 +276,9 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 		canSeePrivateDetails := akcija.Javna
 		var viewer *models.Korisnik
 		if !akcija.Javna && akcija.KlubID != nil {
+			if hasValidActionInviteLink(db, akcija.ID, c.Query("inviteToken")) {
+				canSeePrivateDetails = true
+			}
 			tokenStr := middleware.GetTokenFromRequest(c)
 			if tokenStr != "" {
 				claims := jwt.MapClaims{}
@@ -449,7 +452,18 @@ func GetAkcije(c *gin.Context) {
 		return
 	}
 	if clubID == 0 {
-		c.JSON(http.StatusOK, gin.H{"aktivne": []models.Akcija{}, "zavrsene": []models.Akcija{}})
+		var aktivne []models.Akcija
+		where := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
+		if err := gormDb.Preload("Klub").Where(where, false, true, true).Find(&aktivne).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
+			return
+		}
+		for i := range aktivne {
+			if aktivne[i].Klub != nil {
+				aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
 		return
 	}
 
@@ -677,10 +691,18 @@ func CreateAkcija(c *gin.Context) {
 		db.Save(&akcija)
 	}
 
-	c.JSON(201, gin.H{
+	resp := gin.H{
 		"message": "Akcija dodata",
 		"akcija":  akcija,
-	})
+	}
+	if !akcija.Javna {
+		if rawToken, err := createActionInviteLinkForAkcija(db, akcija); err == nil {
+			resp["inviteToken"] = rawToken
+			resp["inviteUrl"] = fmt.Sprintf("%s/akcije/%d?inviteToken=%s", actionInvitePublicBaseURL(), akcija.ID, rawToken)
+		}
+	}
+
+	c.JSON(201, resp)
 }
 
 func UpdateAkcija(c *gin.Context) {
@@ -888,6 +910,22 @@ func PrijaviNaAkciju(c *gin.Context) {
 	if akcija.IsCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 		return
+	}
+	if !akcija.Javna {
+		isClubMember := akcija.KlubID != nil && korisnik.KlubID != nil && *akcija.KlubID == *korisnik.KlubID
+		if !isClubMember {
+			inviteToken := strings.TrimSpace(c.Query("inviteToken"))
+			if inviteToken == "" {
+				inviteToken = strings.TrimSpace(c.GetHeader("X-Action-Invite-Token"))
+			}
+			if inviteToken == "" {
+				inviteToken = strings.TrimSpace(c.PostForm("inviteToken"))
+			}
+			if !hasValidActionInviteLink(db, akcija.ID, inviteToken) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Za klupsku akciju morate biti član kluba ili imati važeći invite link."})
+				return
+			}
+		}
 	}
 	if akcija.RokPrijava != nil {
 		now := time.Now()

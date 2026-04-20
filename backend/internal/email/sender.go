@@ -23,7 +23,58 @@ import (
 //
 // Port 465: TLS od prvog bajta (SMTPS). Port 587/25: običan TCP pa STARTTLS ako server podržava.
 func Send(subject, body string) error {
-	if used, err := sendViaResendIfConfigured(subject, body); used {
+	return sendTo(defaultRecipients(), subject, body)
+}
+
+func SendToWithTimeout(toEmail, subject, body string, timeout time.Duration) error {
+	to := strings.TrimSpace(toEmail)
+	if to == "" {
+		return fmt.Errorf("email primaoca je obavezan")
+	}
+	return sendToWithTimeout([]string{to}, subject, body, timeout)
+}
+
+func sendToWithTimeout(toAddrs []string, subject, body string, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = 25 * time.Second
+	}
+	ch := make(chan error, 1)
+	go func() { ch <- sendTo(toAddrs, subject, body) }()
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(timeout):
+		return fmt.Errorf("SMTP nije odgovorio u roku od %v (proverite SMTP_HOST/PORT i mrežu servera)", timeout)
+	}
+}
+
+func defaultRecipients() []string {
+	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
+	toRaw := strings.TrimSpace(os.Getenv("EMAIL_TO"))
+	var toAddrs []string
+	if toRaw == "" {
+		if user != "" {
+			toAddrs = []string{user}
+		}
+		return toAddrs
+	}
+	for _, p := range strings.Split(toRaw, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			toAddrs = append(toAddrs, p)
+		}
+	}
+	if len(toAddrs) == 0 && user != "" {
+		toAddrs = []string{user}
+	}
+	return toAddrs
+}
+
+func sendTo(toAddrs []string, subject, body string) error {
+	if len(toAddrs) == 0 {
+		return fmt.Errorf("nije pronađena nijedna email adresa primaoca")
+	}
+	if used, err := sendViaResendIfConfigured(toAddrs, subject, body); used {
 		return err
 	}
 
@@ -38,22 +89,6 @@ func Send(subject, body string) error {
 		return fmt.Errorf("email nije konfigurisan: postavite SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS u .env")
 	}
 
-	toRaw := strings.TrimSpace(os.Getenv("EMAIL_TO"))
-	var toAddrs []string
-	if toRaw == "" {
-		toAddrs = []string{user}
-	} else {
-		for _, p := range strings.Split(toRaw, ",") {
-			p = strings.TrimSpace(p)
-			if p != "" {
-				toAddrs = append(toAddrs, p)
-			}
-		}
-		if len(toAddrs) == 0 {
-			toAddrs = []string{user}
-		}
-	}
-
 	from := strings.TrimSpace(os.Getenv("EMAIL_FROM"))
 	if from == "" {
 		from = user
@@ -61,7 +96,6 @@ func Send(subject, body string) error {
 
 	toHeader := strings.Join(toAddrs, ", ")
 	auth := smtp.PlainAuth("", user, pass, host)
-
 	client, closeFn, err := dialSMTP(host, port)
 	if err != nil {
 		return err
@@ -163,15 +197,5 @@ func dialSMTP(host, port string) (*smtp.Client, func(), error) {
 
 // SendWithTimeout poziva Send u gorutini; ako SMTP ne odgovori u roku, vraća grešku (da HTTP zahtev ne visi beskonačno).
 func SendWithTimeout(subject, body string, timeout time.Duration) error {
-	if timeout <= 0 {
-		timeout = 25 * time.Second
-	}
-	ch := make(chan error, 1)
-	go func() { ch <- Send(subject, body) }()
-	select {
-	case err := <-ch:
-		return err
-	case <-time.After(timeout):
-		return fmt.Errorf("SMTP nije odgovorio u roku od %v (proverite SMTP_HOST/PORT i mrežu servera)", timeout)
-	}
+	return sendToWithTimeout(defaultRecipients(), subject, body, timeout)
 }
