@@ -346,6 +346,11 @@ func RegisterInvite(c *gin.Context) {
 		_ = helpers.AddStorageUsage(db, clubID, file.Size)
 	}
 
+	if strings.TrimSpace(email) != "" && helpers.IsNonEmptyEmailTaken(db, email, 0) {
+		c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
+		return
+	}
+
 	klubIDPtr := &clubID
 	korisnik := models.Korisnik{
 		Username:                       username,

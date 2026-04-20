@@ -103,6 +103,16 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		adresa := post("adresa")
 		telefon := post("telefon")
 		email := post("email")
+		newEmailNorm := strings.ToLower(strings.TrimSpace(email))
+		currentEmailNorm := strings.ToLower(strings.TrimSpace(korisnik.Email))
+		if newEmailNorm != "" && newEmailNorm != currentEmailNorm && helpers.IsNonEmptyEmailTaken(db, newEmailNorm, korisnik.ID) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email adresa je već u upotrebi"})
+			return
+		}
+		emailToStore := strings.TrimSpace(email)
+		if emailToStore != "" {
+			emailToStore = strings.ToLower(emailToStore)
+		}
 		brojLicnogDokumenta := post("brojLicnogDokumenta")
 		brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije")
 		brojPlaninarskeMarkice := post("brojPlaninarskeMarkice")
@@ -226,7 +236,7 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			"drzavljanstvo":                 drzavljanstvo,
 			"adresa":                        adresa,
 			"telefon":                       telefon,
-			"email":                         email,
+			"email":                         emailToStore,
 			"broj_licnog_dokumenta":         brojLicnogDokumenta,
 			"broj_planinarske_legitimacije": brojPlaninarskeLegitimacije,
 			"broj_planinarske_markice":      brojPlaninarskeMarkice,

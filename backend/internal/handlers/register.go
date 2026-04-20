@@ -125,6 +125,10 @@ func RegisterUser(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 				}
 				avatarURL = uploadResult.SecureURL
 			}
+			if strings.TrimSpace(email) != "" && helpers.IsNonEmptyEmailTaken(db, email, 0) {
+				c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
+				return
+			}
 			korisnik := models.Korisnik{
 				Username:                       username,
 				Password:                       string(hashed),
@@ -315,6 +319,11 @@ func RegisterUser(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			}
 			avatarURL = uploadResult.SecureURL
 			_ = helpers.AddStorageUsage(db, clubID, file.Size)
+		}
+
+		if strings.TrimSpace(email) != "" && helpers.IsNonEmptyEmailTaken(db, email, 0) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
+			return
 		}
 
 		klubIDPtr := &clubID

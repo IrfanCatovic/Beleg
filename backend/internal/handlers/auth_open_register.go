@@ -40,9 +40,15 @@ func appPublicBaseURL() string {
 
 func sendVerificationEmail(toEmail string, rawToken string) error {
 	verifyURL := fmt.Sprintf("%s/verifikuj-email?token=%s", appPublicBaseURL(), rawToken)
-	subject := "Potvrda email adrese"
+	subject := "Aktivacija naloga – PLANINER"
 	body := fmt.Sprintf(
-		"Zdravo,\n\nKliknite na link ispod da potvrdite email adresu:\n%s\n\nAko niste vi pokrenuli registraciju, slobodno ignorišite ovu poruku.\n",
+		"Zdravo,\n\n"+
+			"Uspešno ste kreirali nalog na PLANINER aplikaciji.\n\n"+
+			"Kliknite na link ispod da potvrdite email adresu:\n%s\n\n"+
+			"Želimo vam puno osvojenih vrhova i svu sreću.\n\n"+
+			"Ako niste vi pokrenuli registraciju, slobodno ignorišite ovu poruku.\n\n"+
+			"Planinarski pozdrav,\n"+
+			"Team PLANINER\n",
 		verifyURL,
 	)
 	return email.SendToWithTimeout(toEmail, subject, body, 20*time.Second)
@@ -98,6 +104,10 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 		var existing models.Korisnik
 		if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&existing).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
+			return
+		}
+		if helpers.IsNonEmptyEmailTaken(db, emailStr, 0) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
 			return
 		}
 
