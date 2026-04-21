@@ -1603,7 +1603,7 @@
         "subtitle": "Število vnesenih članov in ustvarjenih akcij po klubu ter skupaj v aplikaciji.",
         "membersLabel": "Članov",
         "actionsLabel": "Akcij",
-        "totalMembers": "Skupaj članov v aplikaciji",
+        "totalMembers": "Skupaj uporabnikov / članov klubov",
         "totalActions": "Skupaj akcij v aplikaciji",
         "noClubs": "Ni registriranih klubov.",
         "errors": {

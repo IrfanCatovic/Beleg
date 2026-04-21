@@ -74,8 +74,12 @@ func GetSuperadminAppStats(c *gin.Context) {
 		return
 	}
 
-	var totalMembers, totalActions int64
-	if err := db.Model(&models.Korisnik{}).Where("klub_id IS NOT NULL").Count(&totalMembers).Error; err != nil {
+	var totalUsers, totalClubMembers, totalActions int64
+	if err := db.Model(&models.Korisnik{}).Count(&totalUsers).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju korisnika"})
+		return
+	}
+	if err := db.Model(&models.Korisnik{}).Where("klub_id IS NOT NULL").Count(&totalClubMembers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju članova"})
 		return
 	}
@@ -104,8 +108,11 @@ func GetSuperadminAppStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"clubs":        clubs,
-		"totalMembers": totalMembers,
+		"clubs":            clubs,
+		"totalUsers":       totalUsers,
+		"totalClubMembers": totalClubMembers,
+		// Backward-compat: postojeći klijenti očekuju totalMembers.
+		"totalMembers": totalClubMembers,
 		"totalActions": totalActions,
 	})
 }

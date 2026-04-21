@@ -110,7 +110,8 @@ export default function SuperadminKlubovi() {
 
   const [activeTab, setActiveTab] = useState<SuperadminTab>('clubs')
   const [statsClubs, setStatsClubs] = useState<SuperadminAppStatClub[]>([])
-  const [statsTotalMembers, setStatsTotalMembers] = useState(0)
+  const [statsTotalUsers, setStatsTotalUsers] = useState(0)
+  const [statsTotalClubMembers, setStatsTotalClubMembers] = useState(0)
   const [statsTotalActions, setStatsTotalActions] = useState(0)
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsError, setStatsError] = useState('')
@@ -142,12 +143,15 @@ export default function SuperadminKlubovi() {
       try {
         const res = await api.get<{
           clubs: SuperadminAppStatClub[]
+          totalUsers?: number
+          totalClubMembers?: number
           totalMembers: number
           totalActions: number
         }>('/api/superadmin/app-stats')
         if (cancelled) return
         setStatsClubs(res.data.clubs ?? [])
-        setStatsTotalMembers(Number(res.data.totalMembers) || 0)
+        setStatsTotalUsers(Number(res.data.totalUsers) || 0)
+        setStatsTotalClubMembers(Number(res.data.totalClubMembers ?? res.data.totalMembers) || 0)
         setStatsTotalActions(Number(res.data.totalActions) || 0)
       } catch (err: unknown) {
         if (cancelled) return
@@ -394,7 +398,9 @@ export default function SuperadminKlubovi() {
                   <UserGroupIcon className="h-5 w-5" />
                   {t('superadmin.stats.totalMembers')}
                 </div>
-                <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">{statsTotalMembers}</p>
+                <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">
+                  {statsTotalUsers} / {statsTotalClubMembers}
+                </p>
               </div>
               <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
                 <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
