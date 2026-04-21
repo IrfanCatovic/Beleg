@@ -480,38 +480,82 @@ export default function SuperadminKlubovi() {
         noClubLoading ? (
           <Loader />
         ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">{t('superadmin.stats.otherUsersSubtitle')}</p>
-            <input
-              type="search"
-              value={noClubSearch}
-              onChange={(e) => setNoClubSearch(e.target.value)}
-              placeholder={t('superadmin.stats.otherUsersSearchPlaceholder')}
-              className="w-full max-w-md rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none"
-              aria-label={t('superadmin.stats.otherUsersSearchPlaceholder')}
-            />
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <UserGroupIcon className="h-4 w-4" />
+                    {noClubUsers.length}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-gray-600">
+                    {t('superadmin.stats.otherUsersSubtitle')}
+                  </p>
+                </div>
+                <div className="w-full sm:max-w-md">
+                  <input
+                    type="search"
+                    value={noClubSearch}
+                    onChange={(e) => setNoClubSearch(e.target.value)}
+                    placeholder={t('superadmin.stats.otherUsersSearchPlaceholder')}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-400/30 outline-none transition"
+                    aria-label={t('superadmin.stats.otherUsersSearchPlaceholder')}
+                  />
+                </div>
+              </div>
+            </div>
+
             {noClubUsers.length === 0 ? (
-              <p className="text-sm text-gray-500">{t('superadmin.stats.otherUsersEmpty')}</p>
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">
+                {t('superadmin.stats.otherUsersEmpty')}
+              </div>
             ) : (
-              <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                {noClubUsers.map((u) => (
-                  <li key={u.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{u.fullName || u.username}</p>
-                      <p className="text-xs text-gray-500 truncate">
-                        @{u.username}
-                        {u.email ? ` · ${u.email}` : ''}
-                      </p>
-                    </div>
-                    <Link
-                      to={`/korisnik/${encodeURIComponent(u.username)}`}
-                      className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+              <ul className="space-y-3">
+                {noClubUsers.map((u) => {
+                  const displayName = u.fullName || u.username
+                  const initials = displayName
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part.charAt(0).toUpperCase())
+                    .join('') || u.username.slice(0, 2).toUpperCase()
+
+                  return (
+                    <li
+                      key={u.id}
+                      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md"
                     >
-                      {t('superadmin.stats.otherUsersProfile')}
-                      <ChevronRightIcon className="h-4 w-4" />
-                    </Link>
-                  </li>
-                ))}
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 flex items-start gap-3">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-sm font-bold text-emerald-700">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+                                {displayName}
+                              </p>
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                                ID {u.id}
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-sm text-gray-600">@{u.username}</p>
+                            {u.email && (
+                              <p className="mt-1 truncate text-xs text-gray-500">{u.email}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Link
+                          to={`/korisnik/${encodeURIComponent(u.username)}`}
+                          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+                        >
+                          {t('superadmin.stats.otherUsersProfile')}
+                          <ChevronRightIcon className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
