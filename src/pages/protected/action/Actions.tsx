@@ -69,6 +69,7 @@ export default function Actions() {
   const [showAddActionModal, setShowAddActionModal] = useState(false)
   const [addActionModalStep, setAddActionModalStep] = useState<'type' | 'kind'>('type')
   const [addActionTip, setAddActionTip] = useState<'planina' | 'via_ferrata' | null>(null)
+  const isViaFerrataComingSoon = true
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -696,9 +697,20 @@ export default function Actions() {
                     <button
                       type="button"
                       onClick={() => handlePickActionType('via_ferrata')}
-                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 active:scale-[0.98] transition-all"
+                      disabled={isViaFerrataComingSoon}
+                      title={isViaFerrataComingSoon ? t('checkSoon') : undefined}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                        isViaFerrataComingSoon
+                          ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed'
+                          : 'border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 active:scale-[0.98]'
+                      }`}
                     >
-                      {t('addActionModalViaFerrata')}
+                      <span>{t('addActionModalViaFerrata')}</span>
+                      {isViaFerrataComingSoon && (
+                        <span className="ml-1.5 inline-flex rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 border border-gray-200">
+                          {t('checkSoon')}
+                        </span>
+                      )}
                     </button>
                   </div>
                 </>
