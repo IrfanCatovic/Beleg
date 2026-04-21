@@ -493,3 +493,49 @@ func UpdateKlubLogo(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"klub": klub})
 }
+
+// GetSuperadminNoClubUsers GET /api/superadmin/korisnici/bez-kluba?q= — korisnici sa klub_id IS NULL (osim obrisanih).
+func GetSuperadminNoClubUsers(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	dbAny, ok := c.Get("db")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Baza nije dostupna"})
+		return
+	}
+	db := dbAny.(*gorm.DB)
+
+	q := strings.TrimSpace(c.Query("q"))
+	q = strings.ReplaceAll(strings.ReplaceAll(q, "%", ""), "_", "")
+
+	type rowDTO struct {
+		ID       uint   `json:"id"`
+		Username string `json:"username"`
+		FullName string `json:"fullName,omitempty"`
+		Email    string `json:"email,omitempty"`
+	}
+
+	query := db.Model(&models.Korisnik{}).Where("klub_id IS NULL AND role <> ?", "deleted")
+	if q != "" {
+		pat := "%" + strings.ToLower(q) + "%"
+		query = query.Where("(LOWER(username) LIKE ? OR LOWER(full_name) LIKE ?)", pat, pat)
+	}
+
+	var rows []models.Korisnik
+	if err := query.Order("username ASC").Limit(500).Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju korisnika"})
+		return
+	}
+
+	out := make([]rowDTO, 0, len(rows))
+	for i := range rows {
+		out = append(out, rowDTO{
+			ID:       rows[i].ID,
+			Username: rows[i].Username,
+			FullName: rows[i].FullName,
+			Email:    rows[i].Email,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"korisnici": out})
+}

@@ -122,6 +122,18 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
       return
     }
 
+    if (!isStaff) {
+      const em = form.email.trim()
+      if (!em) {
+        setError(tInvite('registerForm.emailRequired'))
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+        setError(tInvite('registerForm.emailInvalid'))
+        return
+      }
+    }
+
     setSubmitting(true)
     try {
       const formData = new FormData()
@@ -336,6 +348,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               onChange={handleChange}
               className={inputClass}
               placeholder={t('registerUser.emailPlaceholder')}
+              required={!isStaff}
               disabled={submitting || success}
             />
           </div>

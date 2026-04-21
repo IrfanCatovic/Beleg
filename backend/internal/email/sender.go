@@ -3,6 +3,7 @@ package email
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net"
 	"net/smtp"
 	"os"
@@ -98,27 +99,32 @@ func sendTo(toAddrs []string, subject, body string) error {
 	auth := smtp.PlainAuth("", user, pass, host)
 	client, closeFn, err := dialSMTP(host, port)
 	if err != nil {
+		log.Printf("email: SMTP konekcija na %s:%s nije uspela: %v", host, port, err)
 		return err
 	}
 	defer closeFn()
 
 	if ok, _ := client.Extension("AUTH"); ok {
 		if err = client.Auth(auth); err != nil {
+			log.Printf("email: SMTP AUTH na %s:%s nije uspeo: %v", host, port, err)
 			return fmt.Errorf("SMTP autentifikacija: %w", err)
 		}
 	}
 
 	if err = client.Mail(from); err != nil {
+		log.Printf("email: SMTP MAIL FROM <%s> na %s:%s nije uspeo: %v", from, host, port, err)
 		return fmt.Errorf("SMTP MAIL FROM: %w", err)
 	}
 	for _, addr := range toAddrs {
 		if err = client.Rcpt(addr); err != nil {
+			log.Printf("email: SMTP RCPT TO <%s> na %s:%s nije uspeo: %v", addr, host, port, err)
 			return fmt.Errorf("SMTP RCPT TO %s: %w", addr, err)
 		}
 	}
 
 	w, err := client.Data()
 	if err != nil {
+		log.Printf("email: SMTP DATA (početak poruke) na %s:%s nije uspeo: %v", host, port, err)
 		return fmt.Errorf("SMTP DATA: %w", err)
 	}
 
@@ -130,6 +136,7 @@ func sendTo(toAddrs []string, subject, body string) error {
 		return err
 	}
 	if err = w.Close(); err != nil {
+		log.Printf("email: SMTP završetak poruke (DATA .) na %s:%s nije uspeo: %v", host, port, err)
 		return fmt.Errorf("završetak poruke: %w", err)
 	}
 	_ = client.Quit()

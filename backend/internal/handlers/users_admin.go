@@ -273,24 +273,24 @@ func GetKorisnici(c *gin.Context) {
 			}
 		}
 
-		var others []models.Korisnik
-		if err := db.Preload("Klub").Where("klub_id IS NOT NULL AND klub_id <> ? AND role <> ?", clubID, "deleted").Find(&others).Error; err != nil {
+		var all []models.Korisnik
+		if err := db.Preload("Klub").Where("role <> ?", "deleted").Find(&all).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
 			return
 		}
 
-		out := make([]PublicUserDTO, 0, len(others))
-		for i := range others {
-			if others[i].ID == currentUser.ID {
+		out := make([]PublicUserDTO, 0, len(all))
+		for i := range all {
+			if all[i].ID == currentUser.ID {
 				continue
 			}
-			if _, blocked := blockedSet[others[i].ID]; blocked {
+			if _, blocked := blockedSet[all[i].ID]; blocked {
 				continue
 			}
-			dto := PublicUserDTO{ID: others[i].ID, Username: others[i].Username, FullName: others[i].FullName, AvatarURL: others[i].AvatarURL, Role: others[i].Role}
-			if others[i].Klub != nil {
-				dto.KlubNaziv = others[i].Klub.Naziv
-				dto.KlubLogoURL = others[i].Klub.LogoURL
+			dto := PublicUserDTO{ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName, AvatarURL: all[i].AvatarURL, Role: all[i].Role}
+			if all[i].Klub != nil {
+				dto.KlubNaziv = all[i].Klub.Naziv
+				dto.KlubLogoURL = all[i].Klub.LogoURL
 			}
 			out = append(out, dto)
 		}

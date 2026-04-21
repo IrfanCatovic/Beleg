@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Loader from '../../components/Loader'
@@ -11,6 +11,7 @@ import {
   PlusIcon,
   XMarkIcon,
   ArrowRightStartOnRectangleIcon,
+  ChevronRightIcon,
   UserGroupIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
@@ -48,7 +49,14 @@ type SuperadminAppStatClub = {
   actionCount: number
 }
 
-type SuperadminTab = 'clubs' | 'info'
+type SuperadminTab = 'clubs' | 'info' | 'otherUsers'
+
+type NoClubUserRow = {
+  id: number
+  username: string
+  fullName?: string
+  email?: string
+}
 
 function getSubscriptionStatus(endsAt: string | null | undefined): SubscriptionStatus {
   if (!endsAt) return 'expired'
@@ -116,6 +124,12 @@ export default function SuperadminKlubovi() {
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsError, setStatsError] = useState('')
 
+  const [noClubUsers, setNoClubUsers] = useState<NoClubUserRow[]>([])
+  const [noClubLoading, setNoClubLoading] = useState(false)
+  const [noClubError, setNoClubError] = useState('')
+  const [noClubSearch, setNoClubSearch] = useState('')
+  const [debouncedNoClubSearch, setDebouncedNoClubSearch] = useState('')
+
   const fetchKlubovi = async () => {
     setLoading(true)
     setError('')
@@ -170,6 +184,40 @@ export default function SuperadminKlubovi() {
       cancelled = true
     }
   }, [activeTab, t])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedNoClubSearch(noClubSearch), 300)
+    return () => window.clearTimeout(timer)
+  }, [noClubSearch])
+
+  useEffect(() => {
+    if (activeTab !== 'otherUsers') return
+    let cancelled = false
+    ;(async () => {
+      setNoClubLoading(true)
+      setNoClubError('')
+      try {
+        const q = debouncedNoClubSearch.trim()
+        const res = await api.get<{ korisnici: NoClubUserRow[] }>(
+          '/api/superadmin/korisnici/bez-kluba',
+          { params: q ? { q } : {} },
+        )
+        if (!cancelled) setNoClubUsers(res.data.korisnici ?? [])
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const msg =
+            (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+            t('superadmin.stats.otherUsersError')
+          setNoClubError(msg)
+        }
+      } finally {
+        if (!cancelled) setNoClubLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, debouncedNoClubSearch, t])
 
   useEffect(() => {
     if (deleteKlubId == null || deleteCountdown <= 0) return
@@ -346,6 +394,15 @@ export default function SuperadminKlubovi() {
           >
             {t('superadmin.stats.tabInfo')}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('otherUsers')}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              activeTab === 'otherUsers' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {t('superadmin.stats.tabOtherUsers')}
+          </button>
         </div>
       </div>
 
@@ -357,6 +414,10 @@ export default function SuperadminKlubovi() {
 
       {activeTab === 'info' && statsError && (
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{statsError}</div>
+      )}
+
+      {activeTab === 'otherUsers' && noClubError && (
+        <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{noClubError}</div>
       )}
 
       {activeTab === 'info' ? (
@@ -413,6 +474,46 @@ export default function SuperadminKlubovi() {
                 <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">{statsTotalActions}</p>
               </div>
             </div>
+          </div>
+        )
+      ) : activeTab === 'otherUsers' ? (
+        noClubLoading ? (
+          <Loader />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">{t('superadmin.stats.otherUsersSubtitle')}</p>
+            <input
+              type="search"
+              value={noClubSearch}
+              onChange={(e) => setNoClubSearch(e.target.value)}
+              placeholder={t('superadmin.stats.otherUsersSearchPlaceholder')}
+              className="w-full max-w-md rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none"
+              aria-label={t('superadmin.stats.otherUsersSearchPlaceholder')}
+            />
+            {noClubUsers.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('superadmin.stats.otherUsersEmpty')}</p>
+            ) : (
+              <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                {noClubUsers.map((u) => (
+                  <li key={u.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{u.fullName || u.username}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        @{u.username}
+                        {u.email ? ` · ${u.email}` : ''}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/korisnik/${encodeURIComponent(u.username)}`}
+                      className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                    >
+                      {t('superadmin.stats.otherUsersProfile')}
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )
       ) : loading ? (

@@ -4,7 +4,9 @@ import (
 	"beleg-app/backend/internal/email"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/mail"
 	"os"
@@ -43,8 +45,8 @@ func sendVerificationEmail(toEmail string, rawToken string) error {
 	subject := "Aktivacija naloga – PLANINER"
 	body := fmt.Sprintf(
 		"Zdravo,\n\n"+
-			"Uspešno ste kreirali nalog na PLANINER aplikaciji.\n\n"+
-			"Kliknite na link ispod da potvrdite email adresu:\n%s\n\n"+
+			"Započeli ste registraciju na PLANINER aplikaciji.\n\n"+
+			"Kliknite na link ispod da potvrdite email adresu i završite kreiranje naloga:\n%s\n\n"+
 			"Želimo vam puno osvojenih vrhova i svu sreću.\n\n"+
 			"Ako niste vi pokrenuli registraciju, slobodno ignorišite ovu poruku.\n\n"+
 			"Planinarski pozdrav,\n"+
@@ -110,6 +112,10 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
 			return
 		}
+		if helpers.IsOpenRegistrationPendingConflict(db, username, emailStr) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Registracija sa ovim korisničkim imenom ili emailom je već u toku. Proverite email ili pokušajte kasnije."})
+			return
+		}
 
 		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
@@ -117,33 +123,103 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		korisnik := models.Korisnik{
-			Username: username,
-			Password: string(hashed),
-			Role:     "",
-			Email:    emailStr,
-			FullName: strings.TrimSpace(req.FullName),
-			KlubID:   nil,
-		}
-		if err := db.Create(&korisnik).Error; err != nil {
-			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
-			return
-		}
-
-		rawToken, err := createEmailVerificationToken(db, korisnik.ID)
+		rawToken, tokenHash, err := helpers.GenerateEmailVerificationToken()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju verifikacionog tokena"})
 			return
 		}
-		if err := sendVerificationEmail(korisnik.Email, rawToken); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Nalog je kreiran, ali slanje verifikacionog emaila nije uspelo"})
+
+		pending := models.PendingOpenRegistration{
+			Username:     username,
+			PasswordHash: string(hashed),
+			Email:        emailStr,
+			FullName:     strings.TrimSpace(req.FullName),
+			TokenHash:    tokenHash,
+			ExpiresAt:    time.Now().Add(24 * time.Hour),
+		}
+		if err := db.Create(&pending).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju registracije"})
+			return
+		}
+
+		if err := sendVerificationEmail(pending.Email, rawToken); err != nil {
+			log.Printf("RegisterOpen: slanje verifikacionog emaila nije uspelo (proverite SMTP/Resend i APP_PUBLIC_URL): %v", err)
+			if delErr := db.Delete(&models.PendingOpenRegistration{}, pending.ID).Error; delErr != nil {
+				log.Printf("RegisterOpen: brisanje pending reda nakon neuspešnog slanja: %v", delErr)
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Slanje verifikacionog emaila nije uspelo. Proverite email podešavanja servera (SMTP ili Resend) i APP_PUBLIC_URL."})
 			return
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Nalog je kreiran. Proverite email i potvrdite adresu.",
+			"message": "Poslali smo link za potvrdu na email. Nalog nastaje tek nakon što otvorite link.",
 		})
 	}
+}
+
+func verifyEmailFromPending(c *gin.Context, db *gorm.DB, pending *models.PendingOpenRegistration, hash string) {
+	if pending.UsedAt != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Email je već potvrđen"})
+		return
+	}
+	if time.Now().After(pending.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token je istekao"})
+		return
+	}
+
+	now := time.Now()
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var p models.PendingOpenRegistration
+		if err := tx.Where("id = ? AND used_at IS NULL", pending.ID).First(&p).Error; err != nil {
+			return err
+		}
+		if time.Now().After(p.ExpiresAt) {
+			return errors.New("expired")
+		}
+		if p.TokenHash != hash {
+			return errors.New("token_mismatch")
+		}
+
+		var takenUser models.Korisnik
+		if err := helpers.DBWhereUsername(tx, p.Username).First(&takenUser).Error; err == nil {
+			return errors.New("username_taken")
+		}
+		if helpers.IsNonEmptyEmailTaken(tx, p.Email, 0) {
+			return errors.New("email_taken")
+		}
+
+		korisnik := models.Korisnik{
+			Username:        p.Username,
+			Password:        p.PasswordHash,
+			Role:            "",
+			Email:           p.Email,
+			FullName:        p.FullName,
+			KlubID:          nil,
+			EmailVerifiedAt: &now,
+		}
+		if err := tx.Create(&korisnik).Error; err != nil {
+			return err
+		}
+		return tx.Model(&models.PendingOpenRegistration{}).Where("id = ? AND used_at IS NULL", p.ID).Update("used_at", now).Error
+	})
+
+	if err != nil {
+		switch err.Error() {
+		case "expired":
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Token je istekao"})
+			return
+		case "username_taken", "email_taken":
+			c.JSON(http.StatusConflict, gin.H{"error": "Korisničko ime ili email su u međuvremenu zauzeti. Započnite registraciju ponovo."})
+			return
+		case "token_mismatch":
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Token nije validan"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri potvrdi email adrese"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email adresa je uspešno potvrđena"})
 }
 
 func VerifyEmail(c *gin.Context) {
@@ -154,6 +230,12 @@ func VerifyEmail(c *gin.Context) {
 		return
 	}
 	hash := helpers.HashEmailVerificationToken(rawToken)
+
+	var pending models.PendingOpenRegistration
+	if err := db.Where("token_hash = ?", hash).First(&pending).Error; err == nil {
+		verifyEmailFromPending(c, db, &pending, hash)
+		return
+	}
 
 	var row models.EmailVerificationToken
 	if err := db.Where("token_hash = ?", hash).First(&row).Error; err != nil {
@@ -203,9 +285,34 @@ func ResendVerificationEmail(c *gin.Context) {
 		return
 	}
 
+	var pending models.PendingOpenRegistration
+	if err := db.Where("LOWER(email) = ? AND used_at IS NULL", emailStr).
+		Order("id DESC").
+		First(&pending).Error; err == nil {
+		rawToken, tokenHash, err := helpers.GenerateEmailVerificationToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju verifikacionog tokena"})
+			return
+		}
+		exp := time.Now().Add(24 * time.Hour)
+		if err := db.Model(&pending).Updates(map[string]interface{}{
+			"token_hash": tokenHash,
+			"expires_at": exp,
+		}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri osvežavanju tokena"})
+			return
+		}
+		if err := sendVerificationEmail(pending.Email, rawToken); err != nil {
+			log.Printf("ResendVerificationEmail (pending registracija): %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Slanje verifikacionog emaila nije uspelo"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Verifikacioni email je poslat."})
+		return
+	}
+
 	var korisnik models.Korisnik
 	if err := db.Where("LOWER(email) = ?", emailStr).First(&korisnik).Error; err != nil {
-		// Bez otkrivanja da li email postoji.
 		c.JSON(http.StatusOK, gin.H{"message": "Ako email postoji u sistemu, verifikacioni link je poslat."})
 		return
 	}
@@ -220,6 +327,7 @@ func ResendVerificationEmail(c *gin.Context) {
 		return
 	}
 	if err := sendVerificationEmail(korisnik.Email, rawToken); err != nil {
+		log.Printf("ResendVerificationEmail (korisnik id=%d): %v", korisnik.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Slanje verifikacionog emaila nije uspelo"})
 		return
 	}

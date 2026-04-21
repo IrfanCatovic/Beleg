@@ -1293,6 +1293,7 @@ export const resources = {
         working: 'Rade',
       },
       globalSearch: {
+        noClubUser: 'Bez kluba',
         tabs: { members: 'Članovi', actions: 'Akcije', finances: 'Finansije' },
         placeholder: 'Pretraži članove, akcije, finansije...',
         ariaSearch: 'Pretraga',
@@ -1602,6 +1603,12 @@ export const resources = {
         stats: {
           tabClubs: 'Klubovi',
           tabInfo: 'Info',
+          tabOtherUsers: 'Ostali korisnici',
+          otherUsersSubtitle: 'Korisnici bez planinarskog društva (nalog bez kluba).',
+          otherUsersSearchPlaceholder: 'Pretraži po imenu ili korisničkom imenu',
+          otherUsersEmpty: 'Nema korisnika koji odgovaraju pretrazi.',
+          otherUsersError: 'Greška pri učitavanju liste',
+          otherUsersProfile: 'Profil',
           subtitle: 'Broj unetih članova i kreiranih akcija po klubu, plus ukupno u celoj aplikaciji.',
           membersLabel: 'Članova',
           actionsLabel: 'Akcija',
@@ -1630,9 +1637,11 @@ export const resources = {
         badge: 'Za nove članove',
         title: 'Registracija člana',
         clubLabel: 'Klub',
+        emailRequired: 'Email je obavezan.',
+        emailInvalid: 'Unesite ispravnu email adresu.',
         hintLine: 'Uloga je uvek „član”; klub je vezan za kod koji si uneo.',
         successRedirect: 'Nalog je kreiran. Preusmeravamo te na prijavu...',
-        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš kasnije.',
+        footerHint: 'Obavezni su korisničko ime, lozinka i email. Ostalo možeš kasnije.',
         backToCode: 'Nazad na unos koda',
       },
       adminPanel: {
@@ -2764,7 +2773,7 @@ export const resources = {
     shared: {
       postCard: { titles: { comments: 'Komentari', likes: 'Lajkovi', like: 'Lajk', comment: 'Komentar', post: 'Objava' }, errors: { loadComments: 'Greška pri učitavanju komentara', loadLikes: 'Greška pri učitavanju lajkova', likePost: 'Greška pri lajkovanju objave', addComment: 'Greška pri dodavanju komentara', postTooLong: 'Tekst objave je predugačak (maks. 3000 karaktera)', editPost: 'Greška pri izmjeni objave', deleteComment: 'Greška pri brisanju komentara' }, editPost: 'Izmijeni objavu', deletePost: 'Obriši objavu', close: 'Zatvori', postTextPlaceholder: 'Tekst objave...', cancel: 'Otkaži', save: 'Sačuvaj', showLikes: 'Prikaži ko je lajkovao', noLikes: 'Nema lajkova.', loadingComments: 'Učitavanje komentara...', deleteComment: 'Obriši komentar', noCommentsYet: 'Još nema komentara.', addCommentPlaceholder: 'Dodaj komentar...', noResults: 'Nema rezultata', publish: 'Objavi', closeLikesModal: 'Zatvori modal lajkova', likesCount: 'Lajkovi ({{count}})', loadingLikes: 'Učitavanje lajkova...' },
       taskCard: { cancel: 'Otkaži', takeTask: 'Preuzmi zadatak', noPermission: 'Nemaš dozvolu za ovaj zadatak', join: 'Pridruži se', edit: 'Izmijeni', finish: 'Završi', deleteTask: 'Obriši zadatak', done: 'Završeno', openDetails: 'Otvori detalje: {{name}}', urgent: 'HITNO', doneShort: 'Gotovo', task: 'Zadatak', everyone: 'Svi', empty: '—', working: 'Rade' },
-      globalSearch: { tabs: { members: 'Članovi', actions: 'Akcije', finances: 'Finansije' }, placeholder: 'Pretraži članove, akcije, finansije...', ariaSearch: 'Pretraga', close: 'Zatvori', loadingResults: 'Učitavanje rezultata...', emptyMembers: 'Nema članova za ovu pretragu.', emptyActions: 'Nema akcija za ovu pretragu.', emptyTransactions: 'Nema transakcija za ovu pretragu.', quickLinks: 'Brzi linkovi', links: { members: 'Lista članova', membersSub: 'Prikaži sve članove i profile', actions: 'Akcije i događaji', actionsSub: 'Otvori pregled svih akcija', finances: 'Finansije i transakcije', financesSub: 'Upravljaj uplatama i izvještajima' }, detailedSearch: 'Detaljnija pretraga' },
+      globalSearch: { noClubUser: 'Bez kluba', tabs: { members: 'Članovi', actions: 'Akcije', finances: 'Finansije' }, placeholder: 'Pretraži članove, akcije, finansije...', ariaSearch: 'Pretraga', close: 'Zatvori', loadingResults: 'Učitavanje rezultata...', emptyMembers: 'Nema članova za ovu pretragu.', emptyActions: 'Nema akcija za ovu pretragu.', emptyTransactions: 'Nema transakcija za ovu pretragu.', quickLinks: 'Brzi linkovi', links: { members: 'Lista članova', membersSub: 'Prikaži sve članove i profile', actions: 'Akcije i događaji', actionsSub: 'Otvori pregled svih akcija', finances: 'Finansije i transakcije', financesSub: 'Upravljaj uplatama i izvještajima' }, detailedSearch: 'Detaljnija pretraga' },
       difficulty: { easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam', unknown: 'Nepoznato' },
       prijavaStatus: { registered: 'Prijavljen', climbed: 'Popeo se', failed: 'Nije uspio', cancelled: 'Otkazano' },
     },
@@ -2882,6 +2891,12 @@ export const resources = {
         stats: {
           tabClubs: 'Klubovi',
           tabInfo: 'Info',
+          tabOtherUsers: 'Ostali korisnici',
+          otherUsersSubtitle: 'Korisnici bez planinarskog društva (nalog bez kluba).',
+          otherUsersSearchPlaceholder: 'Pretraži po imenu ili korisničkom imenu',
+          otherUsersEmpty: 'Nema korisnika koji odgovaraju pretrazi.',
+          otherUsersError: 'Greška pri učitavanju liste',
+          otherUsersProfile: 'Profil',
           subtitle: 'Broj unesenih članova i kreiranih akcija po klubu, plus ukupno u cijeloj aplikaciji.',
           membersLabel: 'Članova',
           actionsLabel: 'Akcija',
@@ -2910,9 +2925,11 @@ export const resources = {
         badge: 'Za nove članove',
         title: 'Registracija člana',
         clubLabel: 'Klub',
+        emailRequired: 'Email je obavezan.',
+        emailInvalid: 'Unesite ispravnu email adresu.',
         hintLine: 'Uloga je uvijek „član”; klub je vezan za kod koji si unio.',
         successRedirect: 'Račun je kreiran. Preusmjeravamo te na prijavu...',
-        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš kasnije.',
+        footerHint: 'Obavezni su korisničko ime, lozinka i email. Ostalo možeš kasnije.',
         backToCode: 'Nazad na unos koda',
       },
       adminPanel: {
@@ -4019,7 +4036,7 @@ export const resources = {
     shared: {
       postCard: { titles: { comments: 'Komentari', likes: 'Lajkovi', like: 'Lajk', comment: 'Komentar', post: 'Objava' }, errors: { loadComments: 'Greška pri učitavanju komentara', loadLikes: 'Greška pri učitavanju lajkova', likePost: 'Greška pri lajkanju objave', addComment: 'Greška pri dodavanju komentara', postTooLong: 'Tekst objave je predugačak (maks. 3000 znakova)', editPost: 'Greška pri izmjeni objave', deleteComment: 'Greška pri brisanju komentara' }, editPost: 'Izmijeni objavu', deletePost: 'Obriši objavu', close: 'Zatvori', postTextPlaceholder: 'Tekst objave...', cancel: 'Otkaži', save: 'Spremi', showLikes: 'Prikaži tko je lajkao', noLikes: 'Nema lajkova.', loadingComments: 'Učitavanje komentara...', deleteComment: 'Obriši komentar', noCommentsYet: 'Još nema komentara.', addCommentPlaceholder: 'Dodaj komentar...', noResults: 'Nema rezultata', publish: 'Objavi', closeLikesModal: 'Zatvori modal lajkova', likesCount: 'Lajkovi ({{count}})', loadingLikes: 'Učitavanje lajkova...' },
       taskCard: { cancel: 'Otkaži', takeTask: 'Preuzmi zadatak', noPermission: 'Nemaš dozvolu za ovaj zadatak', join: 'Pridruži se', edit: 'Izmijeni', finish: 'Završi', deleteTask: 'Obriši zadatak', done: 'Završeno', openDetails: 'Otvori detalje: {{name}}', urgent: 'HITNO', doneShort: 'Gotovo', task: 'Zadatak', everyone: 'Svi', empty: '—', working: 'Rade' },
-      globalSearch: { tabs: { members: 'Članovi', actions: 'Akcije', finances: 'Financije' }, placeholder: 'Pretraži članove, akcije, financije...', ariaSearch: 'Pretraga', close: 'Zatvori', loadingResults: 'Učitavanje rezultata...', emptyMembers: 'Nema članova za ovu pretragu.', emptyActions: 'Nema akcija za ovu pretragu.', emptyTransactions: 'Nema transakcija za ovu pretragu.', quickLinks: 'Brzi linkovi', links: { members: 'Lista članova', membersSub: 'Prikaži sve članove i profile', actions: 'Akcije i događaji', actionsSub: 'Otvori pregled svih akcija', finances: 'Financije i transakcije', financesSub: 'Upravljaj uplatama i izvještajima' }, detailedSearch: 'Detaljnija pretraga' },
+      globalSearch: { noClubUser: 'Bez kluba', tabs: { members: 'Članovi', actions: 'Akcije', finances: 'Financije' }, placeholder: 'Pretraži članove, akcije, financije...', ariaSearch: 'Pretraga', close: 'Zatvori', loadingResults: 'Učitavanje rezultata...', emptyMembers: 'Nema članova za ovu pretragu.', emptyActions: 'Nema akcija za ovu pretragu.', emptyTransactions: 'Nema transakcija za ovu pretragu.', quickLinks: 'Brzi linkovi', links: { members: 'Lista članova', membersSub: 'Prikaži sve članove i profile', actions: 'Akcije i događaji', actionsSub: 'Otvori pregled svih akcija', finances: 'Financije i transakcije', financesSub: 'Upravljaj uplatama i izvještajima' }, detailedSearch: 'Detaljnija pretraga' },
       difficulty: { easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam', unknown: 'Nepoznato' },
       prijavaStatus: { registered: 'Prijavljen', climbed: 'Popeo se', failed: 'Nije uspio', cancelled: 'Otkazano' },
     },
@@ -4043,7 +4060,7 @@ export const resources = {
     },
     clubs: {
       club: { subtitle: 'Podaci vašeg planinarskog društva', actions: { edit: 'Izmijeni podatke', save: 'Spremi', cancel: 'Odustani' }, tabs: { public: 'Javni podaci', admin: 'Administracija kluba' }, sections: { contactAddress: 'Kontakt i adresa', legalFinance: 'Pravni i financijski podaci' }, fields: { pickLogo: 'Odaberi logo kluba', name: 'Naziv kluba', address: 'Adresa', phone: 'Telefon', email: 'E-mail', seat: 'Sjedište', website: 'Web stranica' }, adminStats: { title: 'Statistika i limiti kluba', subtitle: 'Podaci vrijede za vaš klub. Limite i trajanje pretplate postavlja superadmin.', loading: 'Učitavanje statistike...', unavailable: 'Statistika trenutno nije dostupna.', activeMembers: 'Aktivni članovi', activeMembersHint: 'Registrirani u klubu', admins: 'Administratori', adminsHint: 'Admin uloga u ovom klubu', storage: 'Prostor za datoteke', usedPercent: 'Iskorišteno', subscriptionTitle: 'Pretplata', validUntil: 'Vrijedi do', subscribedAt: 'Datum prijave / početak', onHold: 'Klub je trenutno na pauzi (hold)' }, empty: { contact: 'Nema unesenih kontakt podataka.' }, common: { saving: 'Spremanje...', uploading: 'Upload...' }, errors: { load: 'Greška pri učitavanju kluba', save: 'Greška pri spremanju', imageOnly: 'Dozvoljene su samo slike (jpg, png, gif...)', imageTooLarge: 'Slika je prevelika (maksimum 5 MB)', logoUpload: 'Greška pri uploadu loga', loginClubHint: 'Provjerite jeste li prijavljeni u klub (superadmin mora odabrati klub).' } },
-      superadmin: { title: 'Klubovi', addClub: 'Dodaj klub', empty: 'Nema klubova. Kliknite „Dodaj klub” za kreiranje prvog.', noAccess: 'Nemate pristup ovoj stranici.', clubActiveLabel: 'Klub je aktivan (članovi se mogu prijaviti)', onHoldBadge: 'Na pauzi', subscriptionStatus: { active: 'Aktivna pretplata', warning: 'Uskoro ističe', expired: 'Istekla' }, stats: { tabClubs: 'Klubovi', tabInfo: 'Info', subtitle: 'Broj unesenih članova i kreiranih akcija po klubu, plus ukupno u cijeloj aplikaciji.', membersLabel: 'Članova', actionsLabel: 'Akcija', totalMembers: 'Članovi klubova / ukupno korisnika', totalActions: 'Ukupno akcija u aplikaciji', noClubs: 'Nema registrovanih klubova.', errors: { load: 'Greška pri učitavanju statistike' } }, errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri spremanju' } },
+      superadmin: { title: 'Klubovi', addClub: 'Dodaj klub', empty: 'Nema klubova. Kliknite „Dodaj klub” za kreiranje prvog.', noAccess: 'Nemate pristup ovoj stranici.', clubActiveLabel: 'Klub je aktivan (članovi se mogu prijaviti)', onHoldBadge: 'Na pauzi', subscriptionStatus: { active: 'Aktivna pretplata', warning: 'Uskoro ističe', expired: 'Istekla' }, stats: { tabClubs: 'Klubovi', tabInfo: 'Info', tabOtherUsers: 'Ostali korisnici', otherUsersSubtitle: 'Korisnici bez planinarskog društva.', otherUsersSearchPlaceholder: 'Pretraži po imenu ili korisničkom imenu', otherUsersEmpty: 'Nema korisnika koji odgovaraju pretrazi.', otherUsersError: 'Greška pri učitavanju liste', otherUsersProfile: 'Profil', subtitle: 'Broj unesenih članova i kreiranih akcija po klubu, plus ukupno u cijeloj aplikaciji.', membersLabel: 'Članova', actionsLabel: 'Akcija', totalMembers: 'Članovi klubova / ukupno korisnika', totalActions: 'Ukupno akcija u aplikaciji', noClubs: 'Nema registrovanih klubova.', errors: { load: 'Greška pri učitavanju statistike' } }, errors: { load: 'Greška pri učitavanju klubova', delete: 'Greška pri brisanju', nameRequired: 'Naziv kluba je obavezan.', mediaLimitNegative: 'Limit medija (GB) ne smije biti negativan.', save: 'Greška pri spremanju' } },
     },
     invite: {
       enterPage: {
@@ -4062,9 +4079,11 @@ export const resources = {
         badge: 'Za nove članove',
         title: 'Registracija člana',
         clubLabel: 'Klub',
+        emailRequired: 'Email je obavezan.',
+        emailInvalid: 'Unesite ispravnu email adresu.',
         hintLine: 'Uloga je uvijek „član”; klub je vezan za kod koji si unio.',
         successRedirect: 'Račun je kreiran. Preusmjeravamo te na prijavu...',
-        footerHint: 'Obavezni su samo korisničko ime i lozinka. Ostalo možeš poslije.',
+        footerHint: 'Obavezni su korisničko ime, lozinka i email. Ostalo možeš poslije.',
         backToCode: 'Natrag na unos koda',
       },
       adminPanel: {
@@ -5146,7 +5165,7 @@ export const resources = {
     shared: {
       postCard: { titles: { comments: 'Kommentare', likes: 'Likes', like: 'Like', comment: 'Kommentar', post: 'Beitrag' }, errors: { loadComments: 'Fehler beim Laden der Kommentare', loadLikes: 'Fehler beim Laden der Likes', likePost: 'Fehler beim Liken des Beitrags', addComment: 'Fehler beim Hinzufügen des Kommentars', postTooLong: 'Beitragstext ist zu lang (max. 3000 Zeichen)', editPost: 'Fehler beim Bearbeiten des Beitrags', deleteComment: 'Fehler beim Löschen des Kommentars' }, editPost: 'Beitrag bearbeiten', deletePost: 'Beitrag löschen', close: 'Schließen', postTextPlaceholder: 'Beitragstext...', cancel: 'Abbrechen', save: 'Speichern', showLikes: 'Anzeigen, wer geliked hat', noLikes: 'Keine Likes.', loadingComments: 'Kommentare werden geladen...', deleteComment: 'Kommentar löschen', noCommentsYet: 'Noch keine Kommentare.', addCommentPlaceholder: 'Kommentar hinzufügen...', noResults: 'Keine Ergebnisse', publish: 'Veröffentlichen', closeLikesModal: 'Likes-Modal schließen', likesCount: 'Likes ({{count}})', loadingLikes: 'Likes werden geladen...' },
       taskCard: { cancel: 'Abbrechen', takeTask: 'Aufgabe übernehmen', noPermission: 'Keine Berechtigung für diese Aufgabe', join: 'Beitreten', edit: 'Bearbeiten', finish: 'Abschließen', deleteTask: 'Aufgabe löschen', done: 'Abgeschlossen', openDetails: 'Details öffnen: {{name}}', urgent: 'DRINGEND', doneShort: 'Fertig', task: 'Aufgabe', everyone: 'Alle', empty: '—', working: 'Arbeiten' },
-      globalSearch: { tabs: { members: 'Mitglieder', actions: 'Touren', finances: 'Finanzen' }, placeholder: 'Mitglieder, Touren, Finanzen suchen...', ariaSearch: 'Suche', close: 'Schließen', loadingResults: 'Ergebnisse werden geladen...', emptyMembers: 'Keine Mitglieder für diese Suche.', emptyActions: 'Keine Touren für diese Suche.', emptyTransactions: 'Keine Transaktionen für diese Suche.', quickLinks: 'Schnellzugriffe', links: { members: 'Mitgliederliste', membersSub: 'Alle Mitglieder und Profile anzeigen', actions: 'Touren und Ereignisse', actionsSub: 'Übersicht aller Touren öffnen', finances: 'Finanzen und Transaktionen', financesSub: 'Einzahlungen und Berichte verwalten' }, detailedSearch: 'Detaillierte Suche' },
+      globalSearch: { noClubUser: 'Ohne Verein', tabs: { members: 'Mitglieder', actions: 'Touren', finances: 'Finanzen' }, placeholder: 'Mitglieder, Touren, Finanzen suchen...', ariaSearch: 'Suche', close: 'Schließen', loadingResults: 'Ergebnisse werden geladen...', emptyMembers: 'Keine Mitglieder für diese Suche.', emptyActions: 'Keine Touren für diese Suche.', emptyTransactions: 'Keine Transaktionen für diese Suche.', quickLinks: 'Schnellzugriffe', links: { members: 'Mitgliederliste', membersSub: 'Alle Mitglieder und Profile anzeigen', actions: 'Touren und Ereignisse', actionsSub: 'Übersicht aller Touren öffnen', finances: 'Finanzen und Transaktionen', financesSub: 'Einzahlungen und Berichte verwalten' }, detailedSearch: 'Detaillierte Suche' },
       difficulty: { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer', alpinism: 'Alpinismus', unknown: 'Unbekannt' },
       prijavaStatus: { registered: 'Angemeldet', climbed: 'Aufgestiegen', failed: 'Nicht geschafft', cancelled: 'Abgesagt' },
     },
@@ -5170,7 +5189,7 @@ export const resources = {
     },
     clubs: {
       club: { subtitle: 'Daten deines Bergsportvereins', actions: { edit: 'Daten bearbeiten', save: 'Speichern', cancel: 'Abbrechen' }, tabs: { public: 'Öffentliche Daten', admin: 'Vereinsverwaltung' }, sections: { contactAddress: 'Kontakt und Adresse', legalFinance: 'Rechtliche und finanzielle Daten' }, fields: { pickLogo: 'Vereinslogo auswählen', name: 'Vereinsname', address: 'Adresse', phone: 'Telefon', email: 'E-Mail', seat: 'Sitz', website: 'Webseite' }, adminStats: { title: 'Statistiken und Vereinslimits', subtitle: 'Die Daten gelten für deinen Verein. Limits und die Laufzeit des Abonnements setzt der Superadmin.', loading: 'Statistiken werden geladen...', unavailable: 'Statistiken sind derzeit nicht verfügbar.', activeMembers: 'Aktive Mitglieder', activeMembersHint: 'Im Verein registriert', admins: 'Administratoren', adminsHint: 'Admin-Rolle in diesem Verein', storage: 'Platz für Dateien', usedPercent: 'Verbraucht', subscriptionTitle: 'Abonnement', validUntil: 'Gültig bis', subscribedAt: 'Anmeldedatum / Start', onHold: 'Der Verein ist aktuell pausiert (Hold)' }, empty: { contact: 'Keine Kontaktdaten vorhanden.' }, common: { saving: 'Speichern...', uploading: 'Upload...' }, errors: { load: 'Fehler beim Laden des Vereins', save: 'Fehler beim Speichern', imageOnly: 'Nur Bilder erlaubt (jpg, png, gif...)', imageTooLarge: 'Bild ist zu groß (maximal 5 MB)', logoUpload: 'Fehler beim Logo-Upload', loginClubHint: 'Bitte prüfen, ob du im Verein angemeldet bist (Superadmin muss Verein wählen).' } },
-      superadmin: { title: 'Vereine', addClub: 'Verein hinzufügen', empty: 'Keine Vereine. Klicke „Verein hinzufügen“, um den ersten zu erstellen.', noAccess: 'Du hast keinen Zugriff auf diese Seite.', clubActiveLabel: 'Verein aktiv (Mitglieder können sich anmelden)', onHoldBadge: 'Pausiert', subscriptionStatus: { active: 'Aktives Abonnement', warning: 'Läuft bald ab', expired: 'Abgelaufen' }, stats: { tabClubs: 'Vereine', tabInfo: 'Info', subtitle: 'Anzahl erfasster Mitglieder und erstellter Aktionen pro Verein sowie Gesamtwerte in der App.', membersLabel: 'Mitglieder', actionsLabel: 'Aktionen', totalMembers: 'Vereinsmitglieder / Nutzer gesamt', totalActions: 'Aktionen gesamt in der App', noClubs: 'Keine Vereine registriert.', errors: { load: 'Fehler beim Laden der Statistik' } }, errors: { load: 'Fehler beim Laden der Vereine', delete: 'Fehler beim Löschen', nameRequired: 'Vereinsname ist erforderlich.', mediaLimitNegative: 'Medienlimit (GB) darf nicht negativ sein.', save: 'Fehler beim Speichern' } },
+      superadmin: { title: 'Vereine', addClub: 'Verein hinzufügen', empty: 'Keine Vereine. Klicke „Verein hinzufügen“, um den ersten zu erstellen.', noAccess: 'Du hast keinen Zugriff auf diese Seite.', clubActiveLabel: 'Verein aktiv (Mitglieder können sich anmelden)', onHoldBadge: 'Pausiert', subscriptionStatus: { active: 'Aktives Abonnement', warning: 'Läuft bald ab', expired: 'Abgelaufen' }, stats: { tabClubs: 'Vereine', tabInfo: 'Info', tabOtherUsers: 'Weitere Nutzer', otherUsersSubtitle: 'Nutzer ohne Verein.', otherUsersSearchPlaceholder: 'Suche nach Name oder Benutzername', otherUsersEmpty: 'Keine passenden Nutzer.', otherUsersError: 'Fehler beim Laden der Liste', otherUsersProfile: 'Profil', subtitle: 'Anzahl erfasster Mitglieder und erstellter Aktionen pro Verein sowie Gesamtwerte in der App.', membersLabel: 'Mitglieder', actionsLabel: 'Aktionen', totalMembers: 'Vereinsmitglieder / Nutzer gesamt', totalActions: 'Aktionen gesamt in der App', noClubs: 'Keine Vereine registriert.', errors: { load: 'Fehler beim Laden der Statistik' } }, errors: { load: 'Fehler beim Laden der Vereine', delete: 'Fehler beim Löschen', nameRequired: 'Vereinsname ist erforderlich.', mediaLimitNegative: 'Medienlimit (GB) darf nicht negativ sein.', save: 'Fehler beim Speichern' } },
     },
     invite: {
       enterPage: {
@@ -5189,9 +5208,11 @@ export const resources = {
         badge: 'Für neue Mitglieder',
         title: 'Mitgliedsregistrierung',
         clubLabel: 'Verein',
+        emailRequired: 'E-Mail ist erforderlich.',
+        emailInvalid: 'Bitte eine gültige E-Mail-Adresse eingeben.',
         hintLine: 'Die Rolle ist immer „Mitglied“; der Verein gehört zum eingegebenen Code.',
         successRedirect: 'Konto erstellt. Weiterleitung zur Anmeldung...',
-        footerHint: 'Nur Benutzername und Passwort sind Pflicht. Den Rest kannst du später ergänzen.',
+        footerHint: 'Benutzername, Passwort und E-Mail sind Pflicht. Den Rest kannst du später ergänzen.',
         backToCode: 'Zurück zur Codeeingabe',
       },
       adminPanel: {
@@ -6272,7 +6293,7 @@ export const resources = {
     shared: {
       postCard: { titles: { comments: 'Comments', likes: 'Likes', like: 'Like', comment: 'Comment', post: 'Post' }, errors: { loadComments: 'Error loading comments', loadLikes: 'Error loading likes', likePost: 'Error liking post', addComment: 'Error adding comment', postTooLong: 'Post text is too long (max 3000 characters)', editPost: 'Error editing post', deleteComment: 'Error deleting comment' }, editPost: 'Edit post', deletePost: 'Delete post', close: 'Close', postTextPlaceholder: 'Post text...', cancel: 'Cancel', save: 'Save', showLikes: 'Show who liked', noLikes: 'No likes.', loadingComments: 'Loading comments...', deleteComment: 'Delete comment', noCommentsYet: 'No comments yet.', addCommentPlaceholder: 'Add comment...', noResults: 'No results', publish: 'Post', closeLikesModal: 'Close likes modal', likesCount: 'Likes ({{count}})', loadingLikes: 'Loading likes...' },
       taskCard: { cancel: 'Cancel', takeTask: 'Take task', noPermission: 'No permission for this task', join: 'Join', edit: 'Edit', finish: 'Finish', deleteTask: 'Delete task', done: 'Completed', openDetails: 'Open details: {{name}}', urgent: 'URGENT', doneShort: 'Done', task: 'Task', everyone: 'Everyone', empty: '—', working: 'Working' },
-      globalSearch: { tabs: { members: 'Members', actions: 'Actions', finances: 'Finances' }, placeholder: 'Search members, actions, finances...', ariaSearch: 'Search', close: 'Close', loadingResults: 'Loading results...', emptyMembers: 'No members for this search.', emptyActions: 'No actions for this search.', emptyTransactions: 'No transactions for this search.', quickLinks: 'Quick links', links: { members: 'Members list', membersSub: 'Show all members and profiles', actions: 'Actions and events', actionsSub: 'Open overview of all actions', finances: 'Finances and transactions', financesSub: 'Manage payments and reports' }, detailedSearch: 'Detailed search' },
+      globalSearch: { noClubUser: 'No club', tabs: { members: 'Members', actions: 'Actions', finances: 'Finances' }, placeholder: 'Search members, actions, finances...', ariaSearch: 'Search', close: 'Close', loadingResults: 'Loading results...', emptyMembers: 'No members for this search.', emptyActions: 'No actions for this search.', emptyTransactions: 'No transactions for this search.', quickLinks: 'Quick links', links: { members: 'Members list', membersSub: 'Show all members and profiles', actions: 'Actions and events', actionsSub: 'Open overview of all actions', finances: 'Finances and transactions', financesSub: 'Manage payments and reports' }, detailedSearch: 'Detailed search' },
       difficulty: { easy: 'Easy', medium: 'Moderate', hard: 'Hard', alpinism: 'Alpinism', unknown: 'Unknown' },
       prijavaStatus: { registered: 'Signed up', climbed: 'Summited', failed: 'Did not summit', cancelled: 'Cancelled' },
     },
@@ -6296,7 +6317,7 @@ export const resources = {
     },
     clubs: {
       club: { subtitle: 'Your hiking club details', actions: { edit: 'Edit details', save: 'Save', cancel: 'Cancel' }, tabs: { public: 'Public details', admin: 'Club administration' }, sections: { contactAddress: 'Contact and address', legalFinance: 'Legal and financial details' }, fields: { pickLogo: 'Choose club logo', name: 'Club name', address: 'Address', phone: 'Phone', email: 'Email', seat: 'Seat', website: 'Website' }, adminStats: { title: 'Club statistics and limits', subtitle: 'The data apply to your club. Limits and subscription duration are set by the superadmin.', loading: 'Loading statistics...', unavailable: 'Statistics are currently unavailable.', activeMembers: 'Active members', activeMembersHint: 'Registered with the club', admins: 'Admins', adminsHint: 'Admin role in this club', storage: 'File storage', usedPercent: 'Used', subscriptionTitle: 'Subscription', validUntil: 'Valid until', subscribedAt: 'Subscription date / start', onHold: 'The club is currently on hold' }, empty: { contact: 'No contact data entered.' }, common: { saving: 'Saving...', uploading: 'Upload...' }, errors: { load: 'Error loading club', save: 'Error saving', imageOnly: 'Only image files are allowed (jpg, png, gif...)', imageTooLarge: 'Image is too large (maximum 5 MB)', logoUpload: 'Error uploading logo', loginClubHint: 'Check if you are logged into a club (superadmin must select a club).' } },
-      superadmin: { title: 'Clubs', addClub: 'Add club', empty: 'No clubs yet. Click "Add club" to create the first one.', noAccess: 'You do not have access to this page.', clubActiveLabel: 'Club active (members can log in)', onHoldBadge: 'On hold', subscriptionStatus: { active: 'Active subscription', warning: 'Expiring soon', expired: 'Expired' }, stats: { tabClubs: 'Clubs', tabInfo: 'Info', subtitle: 'Members entered and actions created per club, plus totals across the app.', membersLabel: 'Members', actionsLabel: 'Actions', totalMembers: 'Club members / total users', totalActions: 'Total actions in the app', noClubs: 'No clubs registered.', errors: { load: 'Error loading statistics' } }, errors: { load: 'Error loading clubs', delete: 'Error deleting club', nameRequired: 'Club name is required.', mediaLimitNegative: 'Media limit (GB) cannot be negative.', save: 'Error saving' } },
+      superadmin: { title: 'Clubs', addClub: 'Add club', empty: 'No clubs yet. Click "Add club" to create the first one.', noAccess: 'You do not have access to this page.', clubActiveLabel: 'Club active (members can log in)', onHoldBadge: 'On hold', subscriptionStatus: { active: 'Active subscription', warning: 'Expiring soon', expired: 'Expired' }, stats: { tabClubs: 'Clubs', tabInfo: 'Info', tabOtherUsers: 'Other users', otherUsersSubtitle: 'Users without a hiking club account.', otherUsersSearchPlaceholder: 'Search by name or username', otherUsersEmpty: 'No matching users.', otherUsersError: 'Error loading list', otherUsersProfile: 'Profile', subtitle: 'Members entered and actions created per club, plus totals across the app.', membersLabel: 'Members', actionsLabel: 'Actions', totalMembers: 'Club members / total users', totalActions: 'Total actions in the app', noClubs: 'No clubs registered.', errors: { load: 'Error loading statistics' } }, errors: { load: 'Error loading clubs', delete: 'Error deleting club', nameRequired: 'Club name is required.', mediaLimitNegative: 'Media limit (GB) cannot be negative.', save: 'Error saving' } },
     },
     invite: {
       enterPage: {
@@ -6315,9 +6336,11 @@ export const resources = {
         badge: 'For new members',
         title: 'Member registration',
         clubLabel: 'Club',
+        emailRequired: 'Email is required.',
+        emailInvalid: 'Please enter a valid email address.',
         hintLine: 'Your role will be “member”; the club is tied to the code you entered.',
         successRedirect: 'Account created. Redirecting to login...',
-        footerHint: 'Only username and password are required. You can fill the rest later.',
+        footerHint: 'Username, password, and email are required. You can fill the rest later.',
         backToCode: 'Back to code entry',
       },
       adminPanel: {
@@ -7679,6 +7702,7 @@ export const resources = {
       "working": "Delo"
     },
     "globalSearch": {
+      "noClubUser": "Brez kluba",
       "tabs": {
         "members": "člani",
         "actions": "Dejanja",
@@ -8060,6 +8084,12 @@ export const resources = {
       "stats": {
         "tabClubs": "Klubi",
         "tabInfo": "Info",
+        "tabOtherUsers": "Drugi uporabniki",
+        "otherUsersSubtitle": "Uporabniki brez planinskega društva.",
+        "otherUsersSearchPlaceholder": "Iskanje po imenu ali uporabniškem imenu",
+        "otherUsersEmpty": "Ni uporabnikov, ki bi ustrezali iskanju.",
+        "otherUsersError": "Napaka pri nalaganju seznama",
+        "otherUsersProfile": "Profil",
         "subtitle": "Število vnesenih članov in ustvarjenih akcij po klubu ter skupaj v aplikaciji.",
         "membersLabel": "Članov",
         "actionsLabel": "Akcij",
@@ -8096,9 +8126,11 @@ export const resources = {
       "badge": "Za nove člane",
       "title": "Registracija člana",
       "clubLabel": "Klub",
+      "emailRequired": "E-pošta je obvezna.",
+      "emailInvalid": "Vnesite veljaven e-poštni naslov.",
       "hintLine": "Vloga je vedno „član”; klub je vezan na kodo, ki si jo vnesel.",
       "successRedirect": "Račun je ustvarjen. Preusmerjamo na prijavo ...",
-      "footerHint": "Obvezna sta samo uporabniško ime in geslo. Ostalo lahko kasneje.",
+      "footerHint": "Obvezna so uporabniško ime, geslo in e-pošta. Ostalo lahko kasneje.",
       "backToCode": "Nazaj na vnos kode"
     },
     "adminPanel": {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"os"
 	"strconv"
 	"strings"
@@ -283,7 +284,21 @@ func RegisterInvite(c *gin.Context) {
 	drzavljanstvo := post("drzavljanstvo")
 	adresa := post("adresa")
 	telefon := post("telefon")
-	email := post("email")
+	emailRaw := post("email")
+	email := strings.TrimSpace(emailRaw)
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email je obavezan"})
+		return
+	}
+	emailLower := strings.ToLower(email)
+	if _, err := mail.ParseAddress(emailLower); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna email adresa"})
+		return
+	}
+	if helpers.IsNonEmptyEmailTaken(db, emailLower, 0) {
+		c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
+		return
+	}
 	brojLicnogDokumenta := post("brojLicnogDokumenta", "broj_licnog_dokumenta")
 	brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije", "broj_planinarske_legitimacije")
 	brojPlaninarskeMarkice := post("brojPlaninarskeMarkice", "broj_planinarske_markice")
@@ -346,11 +361,6 @@ func RegisterInvite(c *gin.Context) {
 		_ = helpers.AddStorageUsage(db, clubID, file.Size)
 	}
 
-	if strings.TrimSpace(email) != "" && helpers.IsNonEmptyEmailTaken(db, email, 0) {
-		c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovom email adresom već postoji"})
-		return
-	}
-
 	klubIDPtr := &clubID
 	korisnik := models.Korisnik{
 		Username:                       username,
@@ -362,7 +372,7 @@ func RegisterInvite(c *gin.Context) {
 		Drzavljanstvo:                  drzavljanstvo,
 		Adresa:                         adresa,
 		Telefon:                        telefon,
-		Email:                          email,
+		Email:                          emailLower,
 		BrojLicnogDokumenta:            brojLicnogDokumenta,
 		BrojPlaninarskeLegitimacije:    brojPlaninarskeLegitimacije,
 		BrojPlaninarskeMarkice:         brojPlaninarskeMarkice,

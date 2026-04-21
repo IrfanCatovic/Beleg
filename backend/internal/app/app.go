@@ -96,6 +96,7 @@ func migrateAndSeed(db *gorm.DB) {
 		&models.ClubJoinBlock{},
 		&models.ActionInviteLink{},
 		&models.EmailVerificationToken{},
+		&models.PendingOpenRegistration{},
 		&models.CloudinaryPendingDelete{},
 		&models.Follow{},
 		&models.Block{},
