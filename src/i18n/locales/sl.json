@@ -1147,6 +1147,90 @@
       "navigation": {
         "back": "Nazaj",
         "nextStep": "Naslednji korak"
+      },
+      "labels": {
+        "actionType": "Vrsta akcije",
+        "visibility": "Vidnost",
+        "viaFerrataLocation": "Lokacija via ferrate",
+        "viaFerrataName": "Ime via ferrate",
+        "durationHours": "Trajanje (ure)",
+        "registrationDeadline": "Rok prijav",
+        "maxPeople": "Maks. število ljudi",
+        "departurePlace": "Kraj odhoda",
+        "contactPhone": "Kontaktni telefon",
+        "numberOfDays": "Število dni",
+        "memberPrice": "Cena za člane ({{currency}})",
+        "othersPrice": "Cena za ostale ({{currency}})"
+      },
+      "aria": {
+        "actionType": "Vrsta akcije",
+        "visibility": "Vidnost akcije"
+      },
+      "actionType": {
+        "mountain": "Gora",
+        "viaFerrata": "Via Ferrata",
+        "lockedHint": "Vrsta akcije je zaklenjena glede na prejšnjo izbiro."
+      },
+      "visibility": {
+        "club": "Klubska",
+        "public": "Javna"
+      },
+      "currency": {
+        "title": "Valuta kluba:",
+        "help": "Vse cene v naslednjih korakih vnesite v {{currency}} (kot v financah kluba)."
+      },
+      "image": {
+        "currentAlreadySet": "Trenutna slika je že nastavljena."
+      },
+      "step2": {
+        "amountsInCurrency": "Vse zneske vnesite v valuti kluba:",
+        "lodging": {
+          "title": "Nastanitev",
+          "add": "Dodaj nastanitev",
+          "optionalHint": "Nastanitev je neobvezna. Nastavite število dni na več kot 1 za lažje načrtovanje.",
+          "whereToSleepPlaceholder": "Kje se spi",
+          "totalPerPersonPlaceholder": "Skupna cena na osebo ({{currency}})",
+          "descriptionPlaceholder": "Opis nastanitve"
+        }
+      },
+      "step3": {
+        "rentalPricesIn": "Cene najema v",
+        "equipment": {
+          "title": "Obvezna oprema + najem",
+          "add": "Dodaj opremo",
+          "emptyHint": "Dodajte postavke opreme. Ista postavka se samodejno uporabi tudi za ponudbo najema.",
+          "namePlaceholder": "Ime opreme",
+          "rentQtyPlaceholder": "Količina za najem",
+          "perSetPricePlaceholder": "Cena na set ({{currency}})"
+        }
+      },
+      "step4": {
+        "reviewBeforeSubmit": "Pregled pred oddajo",
+        "summary": {
+          "action": "Akcija:",
+          "date": "Datum:",
+          "difficulty": "Težavnost:",
+          "visibility": "Vidnost:",
+          "currency": "Valuta:"
+        },
+        "transport": {
+          "title": "Prevoz",
+          "add": "Dodaj prevoz",
+          "typePlaceholder": "Tip (avto, letalo...)",
+          "groupPlaceholder": "Ime skupine / karte",
+          "capacityPlaceholder": "Kapaciteta",
+          "pricePerPersonPlaceholder": "Cena na osebo ({{currency}})"
+        },
+        "options": {
+          "showRegisteredList": "Prikaži drugim seznam prijavljenih",
+          "enableGroupChat": "Odpri skupinski klepet za udeležence"
+        },
+        "costPreview": {
+          "title": "Hiter pregled stroška na uporabnika ({{currency}})",
+          "memberBase": "Osnovna cena član:",
+          "othersBase": "Osnovna cena ostali:",
+          "optionalAddons": "Potencialni dodatni stroški:"
+        }
       }
     },
     "add": {

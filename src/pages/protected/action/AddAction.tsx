@@ -231,6 +231,7 @@ export default function AddAction() {
             success={success}
             minDate={todayYmd}
             imageHelpText={t('fields.imageHelp')}
+            lockActionKind
             onSubmit={handleSubmit}
           />
         </div>

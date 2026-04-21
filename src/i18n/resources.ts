@@ -1207,6 +1207,15 @@ export const resources = {
       wizard: {
         tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prevoz i opcije' },
         navigation: { back: 'Nazad', nextStep: 'Sledeći korak' },
+        labels: { actionType: 'Tip akcije', visibility: 'Vidljivost', viaFerrataLocation: 'Lokacija via ferrate', viaFerrataName: 'Naziv via ferrate', durationHours: 'Trajanje (sati)', registrationDeadline: 'Rok prijava', maxPeople: 'Maks. broj ljudi', departurePlace: 'Mesto polaska', contactPhone: 'Kontakt telefon', numberOfDays: 'Broj dana', memberPrice: 'Cena za članove ({{currency}})', othersPrice: 'Cena za ostale ({{currency}})' },
+        aria: { actionType: 'Tip akcije', visibility: 'Vidljivost akcije' },
+        actionType: { mountain: 'Planina', viaFerrata: 'Via Ferrata', lockedHint: 'Tip akcije je zaključan prema prethodnom izboru.' },
+        visibility: { club: 'Klubska', public: 'Javna' },
+        currency: { title: 'Valuta kluba:', help: 'Sve cene u sledećim koracima unosite u {{currency}} (kao u finansijama kluba).' },
+        image: { currentAlreadySet: 'Trenutna slika je već postavljena.' },
+        step2: { amountsInCurrency: 'Sve iznose unosite u valuti kluba:', lodging: { title: 'Smeštaj', add: 'Dodaj smeštaj', optionalHint: 'Smeštaj je opcionalan. Postavite broj dana veći od 1 da biste ga lakše planirali.', whereToSleepPlaceholder: 'Gde se spava', totalPerPersonPlaceholder: 'Cena po osobi ukupno ({{currency}})', descriptionPlaceholder: 'Opis smeštaja' } },
+        step3: { rentalPricesIn: 'Cene renta u', equipment: { title: 'Obavezna oprema + iznajmljivanje', add: 'Dodaj opremu', emptyHint: 'Dodajte stavke opreme. Ista stavka automatski služi i za rent ponudu.', namePlaceholder: 'Naziv opreme', rentQtyPlaceholder: 'Količina za rent', perSetPricePlaceholder: 'Cena po setu ({{currency}})' } },
+        step4: { reviewBeforeSubmit: 'Pregled pre slanja', summary: { action: 'Akcija:', date: 'Datum:', difficulty: 'Težina:', visibility: 'Vidljivost:', currency: 'Valuta:' }, transport: { title: 'Prevoz', add: 'Dodaj prevoz', typePlaceholder: 'Tip (auto, avion...)', groupPlaceholder: 'Ime grupe / kartice', capacityPlaceholder: 'Kapacitet', pricePerPersonPlaceholder: 'Cena po osobi ({{currency}})' }, options: { showRegisteredList: 'Prikaži drugima listu prijavljenih', enableGroupChat: 'Otvori grupni chat za učesnike' }, costPreview: { title: 'Brzi pregled troška po korisniku ({{currency}})', memberBase: 'Osnovna cena član:', othersBase: 'Osnovna cena ostali:', optionalAddons: 'Potencijalni opcioni dodaci:' } },
       },
       add: {
         onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.',
@@ -2747,7 +2756,7 @@ export const resources = {
       difficulty: { pick: 'Izaberi težinu', pickShort: '— Izaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Izaberi vodiča', optional: '— Opciono —' },
       user: { pick: '— Izaberite korisnika —' },
-      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prevoz i opcije' }, navigation: { back: 'Nazad', nextStep: 'Sledeći korak' } },
+      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prevoz i opcije' }, navigation: { back: 'Nazad', nextStep: 'Sledeći korak' }, labels: { actionType: 'Tip akcije', visibility: 'Vidljivost', viaFerrataLocation: 'Lokacija via ferrate', viaFerrataName: 'Naziv via ferrate', durationHours: 'Trajanje (sati)', registrationDeadline: 'Rok prijava', maxPeople: 'Maks. broj ljudi', departurePlace: 'Mjesto polaska', contactPhone: 'Kontakt telefon', numberOfDays: 'Broj dana', memberPrice: 'Cijena za članove ({{currency}})', othersPrice: 'Cijena za ostale ({{currency}})' }, aria: { actionType: 'Tip akcije', visibility: 'Vidljivost akcije' }, actionType: { mountain: 'Planina', viaFerrata: 'Via Ferrata', lockedHint: 'Tip akcije je zaključan prema prethodnom izboru.' }, visibility: { club: 'Klubska', public: 'Javna' }, currency: { title: 'Valuta kluba:', help: 'Sve cijene u sljedećim koracima unosite u {{currency}} (kao u finansijama kluba).' }, image: { currentAlreadySet: 'Trenutna slika je već postavljena.' }, step2: { amountsInCurrency: 'Sve iznose unosite u valuti kluba:', lodging: { title: 'Smještaj', add: 'Dodaj smještaj', optionalHint: 'Smještaj je opcionalan. Postavite broj dana veći od 1 da biste ga lakše planirali.', whereToSleepPlaceholder: 'Gdje se spava', totalPerPersonPlaceholder: 'Cijena po osobi ukupno ({{currency}})', descriptionPlaceholder: 'Opis smještaja' } }, step3: { rentalPricesIn: 'Cijene renta u', equipment: { title: 'Obavezna oprema + iznajmljivanje', add: 'Dodaj opremu', emptyHint: 'Dodajte stavke opreme. Ista stavka automatski služi i za rent ponudu.', namePlaceholder: 'Naziv opreme', rentQtyPlaceholder: 'Količina za rent', perSetPricePlaceholder: 'Cijena po setu ({{currency}})' } }, step4: { reviewBeforeSubmit: 'Pregled prije slanja', summary: { action: 'Akcija:', date: 'Datum:', difficulty: 'Težina:', visibility: 'Vidljivost:', currency: 'Valuta:' }, transport: { title: 'Prevoz', add: 'Dodaj prevoz', typePlaceholder: 'Tip (auto, avion...)', groupPlaceholder: 'Ime grupe / kartice', capacityPlaceholder: 'Kapacitet', pricePerPersonPlaceholder: 'Cijena po osobi ({{currency}})' }, options: { showRegisteredList: 'Prikaži drugima listu prijavljenih', enableGroupChat: 'Otvori grupni chat za učesnike' }, costPreview: { title: 'Brzi pregled troška po korisniku ({{currency}})', memberBase: 'Osnovna cijena član:', othersBase: 'Osnovna cijena ostali:', optionalAddons: 'Potencijalni opcioni dodaci:' } } },
       add: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspješno dodata! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Samo admin ili vodič mogu da izmijene akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Čuvanje...', saveChanges: 'Sačuvaj izmjene', success: 'Akcija uspješno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
       past: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju prošlu akciju.', badge: 'Prošla planinarska akcija', title: 'Dodaj akciju na profil člana', publicActionPastHelp: 'Javna (svi su vidjeli dok je bila aktivna; završenu vidi samo klub)', addToClubHistory: 'Dodaj u istoriju akcija kluba', historyHelp: 'Ako nije čekirano, akcija će se upisati samo na profil člana i neće se pojaviti u listi završenih akcija kluba.', adding: 'Dodavanje...', submit: 'Dodaj i idi na profil' },
@@ -4002,7 +4011,7 @@ export const resources = {
       difficulty: { pick: 'Odaberi težinu', pickShort: '— Odaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Odaberi vodiča', optional: '— Opcionalno —' },
       user: { pick: '— Odaberite korisnika —' },
-      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prijevoz i opcije' }, navigation: { back: 'Natrag', nextStep: 'Sljedeći korak' } },
+      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prijevoz i opcije' }, navigation: { back: 'Natrag', nextStep: 'Sljedeći korak' }, labels: { actionType: 'Tip akcije', visibility: 'Vidljivost', viaFerrataLocation: 'Lokacija via ferrate', viaFerrataName: 'Naziv via ferrate', durationHours: 'Trajanje (sati)', registrationDeadline: 'Rok prijava', maxPeople: 'Maks. broj ljudi', departurePlace: 'Mjesto polaska', contactPhone: 'Kontakt telefon', numberOfDays: 'Broj dana', memberPrice: 'Cijena za članove ({{currency}})', othersPrice: 'Cijena za ostale ({{currency}})' }, aria: { actionType: 'Tip akcije', visibility: 'Vidljivost akcije' }, actionType: { mountain: 'Planina', viaFerrata: 'Via Ferrata', lockedHint: 'Tip akcije je zaključan prema prethodnom odabiru.' }, visibility: { club: 'Klubska', public: 'Javna' }, currency: { title: 'Valuta kluba:', help: 'Sve cijene u sljedećim koracima unosite u {{currency}} (kao u financijama kluba).' }, image: { currentAlreadySet: 'Trenutna slika je već postavljena.' }, step2: { amountsInCurrency: 'Sve iznose unosite u valuti kluba:', lodging: { title: 'Smještaj', add: 'Dodaj smještaj', optionalHint: 'Smještaj je opcionalan. Postavite broj dana veći od 1 kako biste ga lakše planirali.', whereToSleepPlaceholder: 'Gdje se spava', totalPerPersonPlaceholder: 'Cijena po osobi ukupno ({{currency}})', descriptionPlaceholder: 'Opis smještaja' } }, step3: { rentalPricesIn: 'Cijene najma u', equipment: { title: 'Obavezna oprema + najam', add: 'Dodaj opremu', emptyHint: 'Dodajte stavke opreme. Ista stavka automatski služi i za ponudu najma.', namePlaceholder: 'Naziv opreme', rentQtyPlaceholder: 'Količina za najam', perSetPricePlaceholder: 'Cijena po setu ({{currency}})' } }, step4: { reviewBeforeSubmit: 'Pregled prije slanja', summary: { action: 'Akcija:', date: 'Datum:', difficulty: 'Težina:', visibility: 'Vidljivost:', currency: 'Valuta:' }, transport: { title: 'Prijevoz', add: 'Dodaj prijevoz', typePlaceholder: 'Tip (auto, avion...)', groupPlaceholder: 'Ime grupe / karte', capacityPlaceholder: 'Kapacitet', pricePerPersonPlaceholder: 'Cijena po osobi ({{currency}})' }, options: { showRegisteredList: 'Prikaži drugima popis prijavljenih', enableGroupChat: 'Otvori grupni chat za sudionike' }, costPreview: { title: 'Brzi pregled troška po korisniku ({{currency}})', memberBase: 'Osnovna cijena član:', othersBase: 'Osnovna cijena ostali:', optionalAddons: 'Potencijalni opcionalni dodaci:' } } },
       add: { onlyAdminGuide: 'Samo admin ili vodič mogu dodavati akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspješno dodana! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Samo admin ili vodič mogu mijenjati akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Spremanje...', saveChanges: 'Spremi izmjene', success: 'Akcija uspješno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
       past: { onlyAdminGuide: 'Samo admin ili vodič mogu dodati prošlu akciju.', badge: 'Prošla planinarska akcija', title: 'Dodaj akciju na profil člana', publicActionPastHelp: 'Javna (svi su je vidjeli dok je bila aktivna; završenu vidi samo klub)', addToClubHistory: 'Dodaj u istoriju akcija kluba', historyHelp: 'Ako nije označeno, akcija će biti upisana samo na profil člana i neće se pojaviti u listi završenih akcija kluba.', adding: 'Dodavanje...', submit: 'Dodaj i idi na profil' },
@@ -5129,7 +5138,7 @@ export const resources = {
       difficulty: { pick: 'Schwierigkeit wählen', pickShort: '— Bitte wählen —', easy: 'Leicht', medium: 'Mittel', hard: 'Schwer', alpinism: 'Alpinismus' },
       guide: { pick: 'Guide wählen', optional: '— Optional —' },
       user: { pick: '— Benutzer wählen —' },
-      wizard: { tabs: { basic: 'Grunddaten', logistics: 'Logistik', equipment: 'Ausrüstung', transportOptions: 'Transport und Optionen' }, navigation: { back: 'Zurück', nextStep: 'Nächster Schritt' } },
+      wizard: { tabs: { basic: 'Grunddaten', logistics: 'Logistik', equipment: 'Ausrüstung', transportOptions: 'Transport und Optionen' }, navigation: { back: 'Zurück', nextStep: 'Nächster Schritt' }, labels: { actionType: 'Tourtyp', visibility: 'Sichtbarkeit', viaFerrataLocation: 'Via-Ferrata-Ort', viaFerrataName: 'Via-Ferrata-Name', durationHours: 'Dauer (Stunden)', registrationDeadline: 'Anmeldeschluss', maxPeople: 'Max. Personen', departurePlace: 'Abfahrtsort', contactPhone: 'Kontakttelefon', numberOfDays: 'Anzahl der Tage', memberPrice: 'Preis für Mitglieder ({{currency}})', othersPrice: 'Preis für andere ({{currency}})' }, aria: { actionType: 'Tourtyp', visibility: 'Toursichtbarkeit' }, actionType: { mountain: 'Berg', viaFerrata: 'Via Ferrata', lockedHint: 'Der Tourtyp ist entsprechend der vorherigen Auswahl gesperrt.' }, visibility: { club: 'Vereinsintern', public: 'Öffentlich' }, currency: { title: 'Vereinswährung:', help: 'Alle Preise in den nächsten Schritten bitte in {{currency}} eingeben (wie in den Vereinsfinanzen).' }, image: { currentAlreadySet: 'Das aktuelle Bild ist bereits gesetzt.' }, step2: { amountsInCurrency: 'Alle Beträge in Vereinswährung eingeben:', lodging: { title: 'Unterkunft', add: 'Unterkunft hinzufügen', optionalHint: 'Unterkunft ist optional. Setze die Anzahl der Tage auf mehr als 1, um besser zu planen.', whereToSleepPlaceholder: 'Wo wird übernachtet', totalPerPersonPlaceholder: 'Gesamtpreis pro Person ({{currency}})', descriptionPlaceholder: 'Beschreibung der Unterkunft' } }, step3: { rentalPricesIn: 'Mietpreise in', equipment: { title: 'Pflichtausrüstung + Verleih', add: 'Ausrüstung hinzufügen', emptyHint: 'Ausrüstung hinzufügen. Derselbe Eintrag wird automatisch auch für den Verleih genutzt.', namePlaceholder: 'Ausrüstungsname', rentQtyPlaceholder: 'Menge für Verleih', perSetPricePlaceholder: 'Preis pro Set ({{currency}})' } }, step4: { reviewBeforeSubmit: 'Übersicht vor dem Senden', summary: { action: 'Tour:', date: 'Datum:', difficulty: 'Schwierigkeit:', visibility: 'Sichtbarkeit:', currency: 'Währung:' }, transport: { title: 'Transport', add: 'Transport hinzufügen', typePlaceholder: 'Typ (Auto, Flug...)', groupPlaceholder: 'Gruppenname / Ticket', capacityPlaceholder: 'Kapazität', pricePerPersonPlaceholder: 'Preis pro Person ({{currency}})' }, options: { showRegisteredList: 'Teilnehmerliste anderen anzeigen', enableGroupChat: 'Gruppenchat für Teilnehmer öffnen' }, costPreview: { title: 'Schnellübersicht Kosten pro Nutzer ({{currency}})', memberBase: 'Grundpreis Mitglied:', othersBase: 'Grundpreis andere:', optionalAddons: 'Mögliche optionale Zuschläge:' } } },
       add: { onlyAdminGuide: 'Nur Admin oder Guide können Touren hinzufügen.', badge: 'Neue Bergtour', title: 'Tour zum Plan hinzufügen', adding: 'Wird hinzugefügt...', submit: 'Tour hinzufügen', successWithId: 'Tour erfolgreich hinzugefügt! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Nur Admin oder Guide können Touren bearbeiten.', loading: 'Tour wird geladen...', title: 'Tour bearbeiten', saving: 'Speichern...', saveChanges: 'Änderungen speichern', success: 'Tour erfolgreich bearbeitet!', imageKeepHint: 'Leer lassen, um aktuelles Bild zu behalten. Neue Datei ersetzt die alte.' },
       past: { onlyAdminGuide: 'Nur Admin oder Guide können vergangene Touren hinzufügen.', badge: 'Vergangene Bergtour', title: 'Tour zum Mitgliederprofil hinzufügen', publicActionPastHelp: 'Öffentlich (war aktiv sichtbar; abgeschlossen nur für Host-Club sichtbar)', addToClubHistory: 'Zur Vereinshistorie hinzufügen', historyHelp: 'Wenn nicht markiert, wird die Tour nur im Mitgliederprofil (Fortschritt) gespeichert und nicht in der Liste abgeschlossener Vereinestouren.', adding: 'Wird hinzugefügt...', submit: 'Hinzufügen und Profil öffnen' },
@@ -6255,7 +6264,7 @@ export const resources = {
       difficulty: { pick: 'Pick difficulty', pickShort: '— Select —', easy: 'Easy', medium: 'Medium', hard: 'Hard', alpinism: 'Alpinism' },
       guide: { pick: 'Pick guide', optional: '— Optional —' },
       user: { pick: '— Select user —' },
-      wizard: { tabs: { basic: 'Basic info', logistics: 'Logistics', equipment: 'Equipment', transportOptions: 'Transport and options' }, navigation: { back: 'Back', nextStep: 'Next step' } },
+      wizard: { tabs: { basic: 'Basic info', logistics: 'Logistics', equipment: 'Equipment', transportOptions: 'Transport and options' }, navigation: { back: 'Back', nextStep: 'Next step' }, labels: { actionType: 'Action type', visibility: 'Visibility', viaFerrataLocation: 'Via ferrata location', viaFerrataName: 'Via ferrata name', durationHours: 'Duration (hours)', registrationDeadline: 'Registration deadline', maxPeople: 'Max people', departurePlace: 'Departure place', contactPhone: 'Contact phone', numberOfDays: 'Number of days', memberPrice: 'Price for members ({{currency}})', othersPrice: 'Price for others ({{currency}})' }, aria: { actionType: 'Action type', visibility: 'Action visibility' }, actionType: { mountain: 'Mountain', viaFerrata: 'Via ferrata', lockedHint: 'Action type is locked by your previous selection.' }, visibility: { club: 'Club-only', public: 'Public' }, currency: { title: 'Club currency:', help: 'Enter all prices in next steps in {{currency}} (same as club finances).' }, image: { currentAlreadySet: 'Current image is already set.' }, step2: { amountsInCurrency: 'Enter all amounts in club currency:', lodging: { title: 'Lodging', add: 'Add lodging', optionalHint: 'Lodging is optional. Set number of days greater than 1 for easier planning.', whereToSleepPlaceholder: 'Where you sleep', totalPerPersonPlaceholder: 'Total per person ({{currency}})', descriptionPlaceholder: 'Lodging description' } }, step3: { rentalPricesIn: 'Rental prices in', equipment: { title: 'Required equipment + rental', add: 'Add equipment', emptyHint: 'Add equipment items. The same item is automatically used for rental offer.', namePlaceholder: 'Equipment name', rentQtyPlaceholder: 'Rental quantity', perSetPricePlaceholder: 'Price per set ({{currency}})' } }, step4: { reviewBeforeSubmit: 'Review before submit', summary: { action: 'Action:', date: 'Date:', difficulty: 'Difficulty:', visibility: 'Visibility:', currency: 'Currency:' }, transport: { title: 'Transport', add: 'Add transport', typePlaceholder: 'Type (car, flight...)', groupPlaceholder: 'Group / ticket name', capacityPlaceholder: 'Capacity', pricePerPersonPlaceholder: 'Price per person ({{currency}})' }, options: { showRegisteredList: 'Show registered list to others', enableGroupChat: 'Open group chat for participants' }, costPreview: { title: 'Quick cost preview per user ({{currency}})', memberBase: 'Base member price:', othersBase: 'Base others price:', optionalAddons: 'Potential optional add-ons:' } } },
       add: { onlyAdminGuide: 'Only admin or guide can add actions.', badge: 'New hiking action', title: 'Add action to plan', adding: 'Adding...', submit: 'Add action', successWithId: 'Action added successfully! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Only admin or guide can edit actions.', loading: 'Loading action...', title: 'Edit action', saving: 'Saving...', saveChanges: 'Save changes', success: 'Action updated successfully!', imageKeepHint: 'Leave empty to keep current image. New file replaces the old one.' },
       past: { onlyAdminGuide: 'Only admin or guide can add past action.', badge: 'Past hiking action', title: 'Add action to member profile', publicActionPastHelp: 'Public (everyone could see it while active; completed one visible only to hosting club)', addToClubHistory: 'Add to club action history', historyHelp: 'If unchecked, action is saved only on member profile (progress) and not shown in completed club actions list.', adding: 'Adding...', submit: 'Add and go to profile' },
@@ -7502,6 +7511,90 @@ export const resources = {
       "navigation": {
         "back": "Nazaj",
         "nextStep": "Naslednji korak"
+      },
+      "labels": {
+        "actionType": "Vrsta akcije",
+        "visibility": "Vidnost",
+        "viaFerrataLocation": "Lokacija via ferrate",
+        "viaFerrataName": "Ime via ferrate",
+        "durationHours": "Trajanje (ure)",
+        "registrationDeadline": "Rok prijav",
+        "maxPeople": "Maks. število ljudi",
+        "departurePlace": "Kraj odhoda",
+        "contactPhone": "Kontaktni telefon",
+        "numberOfDays": "Število dni",
+        "memberPrice": "Cena za člane ({{currency}})",
+        "othersPrice": "Cena za ostale ({{currency}})"
+      },
+      "aria": {
+        "actionType": "Vrsta akcije",
+        "visibility": "Vidnost akcije"
+      },
+      "actionType": {
+        "mountain": "Gora",
+        "viaFerrata": "Via Ferrata",
+        "lockedHint": "Vrsta akcije je zaklenjena glede na prejšnjo izbiro."
+      },
+      "visibility": {
+        "club": "Klubska",
+        "public": "Javna"
+      },
+      "currency": {
+        "title": "Valuta kluba:",
+        "help": "Vse cene v naslednjih korakih vnesite v {{currency}} (kot v financah kluba)."
+      },
+      "image": {
+        "currentAlreadySet": "Trenutna slika je že nastavljena."
+      },
+      "step2": {
+        "amountsInCurrency": "Vse zneske vnesite v valuti kluba:",
+        "lodging": {
+          "title": "Nastanitev",
+          "add": "Dodaj nastanitev",
+          "optionalHint": "Nastanitev je neobvezna. Nastavite število dni na več kot 1 za lažje načrtovanje.",
+          "whereToSleepPlaceholder": "Kje se spi",
+          "totalPerPersonPlaceholder": "Skupna cena na osebo ({{currency}})",
+          "descriptionPlaceholder": "Opis nastanitve"
+        }
+      },
+      "step3": {
+        "rentalPricesIn": "Cene najema v",
+        "equipment": {
+          "title": "Obvezna oprema + najem",
+          "add": "Dodaj opremo",
+          "emptyHint": "Dodajte postavke opreme. Ista postavka se samodejno uporabi tudi za ponudbo najema.",
+          "namePlaceholder": "Ime opreme",
+          "rentQtyPlaceholder": "Količina za najem",
+          "perSetPricePlaceholder": "Cena na set ({{currency}})"
+        }
+      },
+      "step4": {
+        "reviewBeforeSubmit": "Pregled pred oddajo",
+        "summary": {
+          "action": "Akcija:",
+          "date": "Datum:",
+          "difficulty": "Težavnost:",
+          "visibility": "Vidnost:",
+          "currency": "Valuta:"
+        },
+        "transport": {
+          "title": "Prevoz",
+          "add": "Dodaj prevoz",
+          "typePlaceholder": "Tip (avto, letalo...)",
+          "groupPlaceholder": "Ime skupine / karte",
+          "capacityPlaceholder": "Kapaciteta",
+          "pricePerPersonPlaceholder": "Cena na osebo ({{currency}})"
+        },
+        "options": {
+          "showRegisteredList": "Prikaži drugim seznam prijavljenih",
+          "enableGroupChat": "Odpri skupinski klepet za udeležence"
+        },
+        "costPreview": {
+          "title": "Hiter pregled stroška na uporabnika ({{currency}})",
+          "memberBase": "Osnovna cena član:",
+          "othersBase": "Osnovna cena ostali:",
+          "optionalAddons": "Potencialni dodatni stroški:"
+        }
       }
     },
     "add": {

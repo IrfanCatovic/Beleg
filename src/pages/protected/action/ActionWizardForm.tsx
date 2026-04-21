@@ -81,6 +81,7 @@ interface ActionWizardFormProps {
   success: string
   minDate?: string
   imageHelpText?: string
+  lockActionKind?: boolean
   onSubmit: (values: WizardValues, image: File | null) => void | Promise<void>
 }
 
@@ -111,6 +112,7 @@ export function ActionWizardForm({
   success,
   minDate,
   imageHelpText,
+  lockActionKind = false,
   onSubmit,
 }: ActionWizardFormProps) {
   const { t } = useTranslation('actionForms')
@@ -140,6 +142,7 @@ export function ActionWizardForm({
     if (currentStep === 3) return t('wizard.tabs.equipment')
     return t('wizard.tabs.transportOptions')
   }
+  const visibilityLabel = values.visibility === 'javna' ? t('wizard.visibility.public') : t('wizard.visibility.club')
 
   const addSmestaj = () =>
     patch({
@@ -198,25 +201,31 @@ export function ActionWizardForm({
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Tip akcije</label>
-              <Dropdown
-                aria-label="Tip akcije"
-                options={[
-                  { value: 'planina', label: 'Planina' },
-                  { value: 'via_ferrata', label: 'Via Ferrata' },
-                ]}
-                value={values.actionKind}
-                onChange={(v) => patch({ actionKind: v as ActionKind })}
-                fullWidth
-              />
+              <label className={labelClass}>{t('wizard.labels.actionType')}</label>
+              {lockActionKind ? (
+                <div className={`${baseInput} text-gray-700 bg-gray-50 cursor-not-allowed`} title={t('wizard.actionType.lockedHint')}>
+                  {values.actionKind === 'via_ferrata' ? t('wizard.actionType.viaFerrata') : t('wizard.actionType.mountain')}
+                </div>
+              ) : (
+                <Dropdown
+                  aria-label={t('wizard.aria.actionType')}
+                  options={[
+                    { value: 'planina', label: t('wizard.actionType.mountain') },
+                    { value: 'via_ferrata', label: t('wizard.actionType.viaFerrata') },
+                  ]}
+                  value={values.actionKind}
+                  onChange={(v) => patch({ actionKind: v as ActionKind })}
+                  fullWidth
+                />
+              )}
             </div>
             <div>
-              <label className={labelClass}>Vidljivost</label>
+              <label className={labelClass}>{t('wizard.labels.visibility')}</label>
               <Dropdown
-                aria-label="Vidljivost akcije"
+                aria-label={t('wizard.aria.visibility')}
                 options={[
-                  { value: 'klubska', label: 'Klubska' },
-                  { value: 'javna', label: 'Javna' },
+                  { value: 'klubska', label: t('wizard.visibility.club') },
+                  { value: 'javna', label: t('wizard.visibility.public') },
                 ]}
                 value={values.visibility}
                 onChange={(v) => patch({ visibility: v as VisibilityKind })}
@@ -224,31 +233,31 @@ export function ActionWizardForm({
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelClass}>Naziv akcije</label>
-              <input required value={values.naziv} onChange={(e) => patch({ naziv: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{t('fields.actionName')}</label>
+              <input required value={values.naziv} onChange={(e) => patch({ naziv: e.target.value })} placeholder={t('placeholders.actionName')} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>{values.actionKind === 'planina' ? 'Planina' : 'Lokacija Via Ferrata'}</label>
-              <input required value={values.planina} onChange={(e) => patch({ planina: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{values.actionKind === 'planina' ? t('fields.mountain') : t('wizard.labels.viaFerrataLocation')}</label>
+              <input required value={values.planina} onChange={(e) => patch({ planina: e.target.value })} placeholder={t('placeholders.mountain')} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>{values.actionKind === 'planina' ? 'Vrh' : 'Naziv ferrate'}</label>
-              <input required value={values.vrh} onChange={(e) => patch({ vrh: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{values.actionKind === 'planina' ? t('fields.peak') : t('wizard.labels.viaFerrataName')}</label>
+              <input required value={values.vrh} onChange={(e) => patch({ vrh: e.target.value })} placeholder={t('placeholders.peak')} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Datum</label>
-              <CalendarDropdown aria-label="Datum akcije" value={values.datum} onChange={(v) => patch({ datum: v })} minDate={minDate} fullWidth />
+              <label className={labelClass}>{t('fields.actionDate')}</label>
+              <CalendarDropdown aria-label={t('fields.actionDate')} value={values.datum} onChange={(v) => patch({ datum: v })} minDate={minDate} fullWidth />
             </div>
             <div>
-              <label className={labelClass}>Težina</label>
+              <label className={labelClass}>{t('fields.difficulty')}</label>
               <Dropdown
-                aria-label="Težina"
+                aria-label={t('fields.difficulty')}
                 options={[
-                  { value: '', label: 'Izaberi težinu' },
-                  { value: 'lako', label: 'Lako' },
-                  { value: 'srednje', label: 'Srednje' },
-                  { value: 'tesko', label: 'Teško' },
-                  { value: 'alpinizam', label: 'Alpinizam' },
+                  { value: '', label: t('difficulty.pick') },
+                  { value: 'lako', label: t('difficulty.easy') },
+                  { value: 'srednje', label: t('difficulty.medium') },
+                  { value: 'tesko', label: t('difficulty.hard') },
+                  { value: 'alpinizam', label: t('difficulty.alpinism') },
                 ]}
                 value={values.tezina}
                 onChange={(v) => patch({ tezina: v })}
@@ -256,28 +265,28 @@ export function ActionWizardForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Trajanje (sati)</label>
+              <label className={labelClass}>{t('wizard.labels.durationHours')}</label>
               <input type="number" min="0.1" step="0.1" required value={values.trajanjeSati} onChange={(e) => patch({ trajanjeSati: e.target.value })} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Rok prijava</label>
-              <CalendarDropdown aria-label="Rok prijava" value={values.rokPrijava} onChange={(v) => patch({ rokPrijava: v })} fullWidth />
+              <label className={labelClass}>{t('wizard.labels.registrationDeadline')}</label>
+              <CalendarDropdown aria-label={t('wizard.labels.registrationDeadline')} value={values.rokPrijava} onChange={(v) => patch({ rokPrijava: v })} fullWidth />
             </div>
             <div>
-              <label className={labelClass}>Maks broj ljudi</label>
+              <label className={labelClass}>{t('wizard.labels.maxPeople')}</label>
               <input type="number" min="0" step="1" value={values.maxLjudi} onChange={(e) => patch({ maxLjudi: e.target.value })} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Uspon (m)</label>
-              <input type="number" min="0" step="1" required value={values.kumulativniUsponM} onChange={(e) => patch({ kumulativniUsponM: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{t('fields.ascentM')}</label>
+              <input type="number" min="0" step="1" required value={values.kumulativniUsponM} onChange={(e) => patch({ kumulativniUsponM: e.target.value })} placeholder={t('placeholders.ascentM')} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Dužina staze (km)</label>
-              <input type="number" min="0" step="0.1" required value={values.duzinaStazeKm} onChange={(e) => patch({ duzinaStazeKm: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{t('fields.trailLengthKm')}</label>
+              <input type="number" min="0" step="0.1" required value={values.duzinaStazeKm} onChange={(e) => patch({ duzinaStazeKm: e.target.value })} placeholder={t('placeholders.lengthKm')} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Visina vrha (m)</label>
-              <input type="number" min="0" step="1" value={values.visinaVrhM} onChange={(e) => patch({ visinaVrhM: e.target.value })} className={baseInput} />
+              <label className={labelClass}>{t('fields.peakHeightM')}</label>
+              <input type="number" min="0" step="1" value={values.visinaVrhM} onChange={(e) => patch({ visinaVrhM: e.target.value })} placeholder={t('placeholders.peakHeightM')} className={baseInput} />
             </div>
             <div className="sm:col-span-2 flex items-center gap-2 pt-1">
               <input
@@ -288,28 +297,28 @@ export function ActionWizardForm({
                 className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
               />
               <label htmlFor="zimski-uspon-wizard" className="text-sm text-gray-700 font-medium">
-                Zimski uspon
+                {t('fields.winterAscent')}
               </label>
             </div>
           </div>
           <div>
-            <label className={labelClass}>Opis</label>
-            <textarea rows={4} value={values.opis} onChange={(e) => patch({ opis: e.target.value })} className={`${baseInput} min-h-[90px]`} />
+            <label className={labelClass}>{t('fields.description')}</label>
+            <textarea rows={4} value={values.opis} onChange={(e) => patch({ opis: e.target.value })} placeholder={t('placeholders.description')} className={`${baseInput} min-h-[90px]`} />
           </div>
 
           <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-950">
-            <span className="font-semibold">Valuta kluba:</span> {cur}. Sve cene u sledećim koracima unosite u {cur} (kao u finansijama kluba).
+            <span className="font-semibold">{t('wizard.currency.title')}</span> {cur}. {t('wizard.currency.help', { currency: cur })}
           </div>
 
           <div className="border-t border-gray-100 pt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               {!values.drugiVodicCheck && (
                 <div>
-                  <label className={labelClass}>Vodič</label>
+                  <label className={labelClass}>{t('fields.guide')}</label>
                   <Dropdown
-                    aria-label="Vodič"
+                    aria-label={t('fields.guide')}
                     options={[
-                      { value: '', label: 'Izaberi vodiča' },
+                      { value: '', label: t('guide.pick') },
                       ...guides.map((v) => ({ value: String(v.id), label: `${v.fullName} (@${v.username})` })),
                     ]}
                     value={values.vodicId}
@@ -330,26 +339,26 @@ export function ActionWizardForm({
                   className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                 />
                 <label htmlFor="drugi-vodic" className="text-sm text-gray-700">
-                  Drugi vodič (ručni unos)
+                  {t('fields.secondGuideManual')}
                 </label>
               </div>
             </div>
             {values.drugiVodicCheck && (
               <div>
-                <label className={labelClass}>Ime drugog vodiča</label>
-                <input value={values.drugiVodicIme} onChange={(e) => patch({ drugiVodicIme: e.target.value })} className={baseInput} />
+                <label className={labelClass}>{t('fields.secondGuideName')}</label>
+                <input value={values.drugiVodicIme} onChange={(e) => patch({ drugiVodicIme: e.target.value })} placeholder={t('placeholders.secondGuideName')} className={baseInput} />
               </div>
             )}
 
             <div>
-              <label className={labelClass}>Slika akcije</label>
+              <label className={labelClass}>{t('fields.actionImage')}</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImage(e.target.files?.[0] || null)}
                 className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
               />
-              {initialImageUrl && !image && <p className="mt-1 text-[11px] text-gray-500">Trenutna slika je već postavljena.</p>}
+              {initialImageUrl && !image && <p className="mt-1 text-[11px] text-gray-500">{t('wizard.image.currentAlreadySet')}</p>}
               {imageHelpText && <p className="mt-1 text-[11px] text-gray-400">{imageHelpText}</p>}
             </div>
           </div>
@@ -359,28 +368,29 @@ export function ActionWizardForm({
       {step === 2 && (
         <div className="space-y-5">
           <p className="text-xs text-gray-500">
-            Sve iznose unosite u valuti kluba: <span className="font-semibold text-gray-800">{cur}</span>
+            {t('wizard.step2.amountsInCurrency')}{' '}
+            <span className="font-semibold text-gray-800">{cur}</span>
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Mesto polaska</label>
+              <label className={labelClass}>{t('wizard.labels.departurePlace')}</label>
               <input required value={values.mestoPolaska} onChange={(e) => patch({ mestoPolaska: e.target.value })} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Kontakt telefon</label>
+              <label className={labelClass}>{t('wizard.labels.contactPhone')}</label>
               <input required value={values.kontaktTelefon} onChange={(e) => patch({ kontaktTelefon: e.target.value })} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Broj dana</label>
+              <label className={labelClass}>{t('wizard.labels.numberOfDays')}</label>
               <input type="number" min="1" step="1" value={values.brojDana} onChange={(e) => patch({ brojDana: e.target.value })} className={baseInput} />
             </div>
             <div>
-              <label className={labelClass}>Cena za članove ({cur})</label>
+              <label className={labelClass}>{t('wizard.labels.memberPrice', { currency: cur })}</label>
               <input type="number" min="0" step="0.01" value={values.cenaClan} onChange={(e) => patch({ cenaClan: e.target.value })} className={baseInput} />
             </div>
             {isPublic && (
               <div>
-                <label className={labelClass}>Cena za ostale ({cur})</label>
+                <label className={labelClass}>{t('wizard.labels.othersPrice', { currency: cur })}</label>
                 <input type="number" min="0" step="0.01" value={values.cenaOstali} onChange={(e) => patch({ cenaOstali: e.target.value })} className={baseInput} />
               </div>
             )}
@@ -388,29 +398,29 @@ export function ActionWizardForm({
 
           <div className="space-y-3 border-t border-gray-100 pt-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800">Smeštaj</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('wizard.step2.lodging.title')}</h3>
               <button
                 type="button"
                 onClick={addSmestaj}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 active:scale-[0.97]"
               >
-                Dodaj smeštaj
+                {t('wizard.step2.lodging.add')}
               </button>
             </div>
-            {!showSmestaj && <p className="text-xs text-gray-500">Smeštaj je opcionalan. Postavite broj dana veći od 1 da biste ga lakše planirali.</p>}
+            {!showSmestaj && <p className="text-xs text-gray-500">{t('wizard.step2.lodging.optionalHint')}</p>}
             {values.smestaj.map((s) => (
               <div key={s.localId} className="grid gap-3 sm:grid-cols-4 p-3 rounded-xl border border-gray-100 bg-gray-50/60">
-                <input placeholder="Gde se spava" value={s.naziv} onChange={(e) => patch({ smestaj: values.smestaj.map((it) => (it.localId === s.localId ? { ...it, naziv: e.target.value } : it)) })} className={baseInput} />
+                <input placeholder={t('wizard.step2.lodging.whereToSleepPlaceholder')} value={s.naziv} onChange={(e) => patch({ smestaj: values.smestaj.map((it) => (it.localId === s.localId ? { ...it, naziv: e.target.value } : it)) })} className={baseInput} />
                 <input
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder={`Cena po osobi ukupno (${cur})`}
+                  placeholder={t('wizard.step2.lodging.totalPerPersonPlaceholder', { currency: cur })}
                   value={s.cenaPoOsobiUkupno}
                   onChange={(e) => patch({ smestaj: values.smestaj.map((it) => (it.localId === s.localId ? { ...it, cenaPoOsobiUkupno: e.target.value } : it)) })}
                   className={baseInput}
                 />
-                <input placeholder="Opis smeštaja" value={s.opis} onChange={(e) => patch({ smestaj: values.smestaj.map((it) => (it.localId === s.localId ? { ...it, opis: e.target.value } : it)) })} className={`${baseInput} sm:col-span-2`} />
+                <input placeholder={t('wizard.step2.lodging.descriptionPlaceholder')} value={s.opis} onChange={(e) => patch({ smestaj: values.smestaj.map((it) => (it.localId === s.localId ? { ...it, opis: e.target.value } : it)) })} className={`${baseInput} sm:col-span-2`} />
               </div>
             ))}
           </div>
@@ -420,28 +430,29 @@ export function ActionWizardForm({
       {step === 3 && (
         <div className="space-y-4">
           <p className="text-xs text-gray-500">
-            Cene renta u <span className="font-semibold text-gray-800">{cur}</span>
+            {t('wizard.step3.rentalPricesIn')}{' '}
+            <span className="font-semibold text-gray-800">{cur}</span>
           </p>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800">Obavezna oprema + iznajmljivanje</h3>
+            <h3 className="text-sm font-semibold text-gray-800">{t('wizard.step3.equipment.title')}</h3>
             <button
               type="button"
               onClick={addOprema}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 active:scale-[0.97]"
             >
-              Dodaj opremu
+              {t('wizard.step3.equipment.add')}
             </button>
           </div>
-          {values.oprema.length === 0 && <p className="text-xs text-gray-500">Dodajte stavke opreme. Ista stavka automatski služi i za rent ponudu.</p>}
+          {values.oprema.length === 0 && <p className="text-xs text-gray-500">{t('wizard.step3.equipment.emptyHint')}</p>}
           {values.oprema.map((o) => (
             <div key={o.localId} className="grid gap-3 sm:grid-cols-4 p-3 rounded-xl border border-gray-100 bg-gray-50/60">
-              <input placeholder="Naziv opreme" value={o.naziv} onChange={(e) => patch({ oprema: values.oprema.map((it) => (it.localId === o.localId ? { ...it, naziv: e.target.value } : it)) })} className={`${baseInput} sm:col-span-2`} />
-              <input type="number" min="0" step="1" placeholder="Količina za rent" value={o.dostupnaKolicina} onChange={(e) => patch({ oprema: values.oprema.map((it) => (it.localId === o.localId ? { ...it, dostupnaKolicina: e.target.value } : it)) })} className={baseInput} />
+              <input placeholder={t('wizard.step3.equipment.namePlaceholder')} value={o.naziv} onChange={(e) => patch({ oprema: values.oprema.map((it) => (it.localId === o.localId ? { ...it, naziv: e.target.value } : it)) })} className={`${baseInput} sm:col-span-2`} />
+              <input type="number" min="0" step="1" placeholder={t('wizard.step3.equipment.rentQtyPlaceholder')} value={o.dostupnaKolicina} onChange={(e) => patch({ oprema: values.oprema.map((it) => (it.localId === o.localId ? { ...it, dostupnaKolicina: e.target.value } : it)) })} className={baseInput} />
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder={`Cena po setu (${cur})`}
+                placeholder={t('wizard.step3.equipment.perSetPricePlaceholder', { currency: cur })}
                 value={o.cenaPoSetu}
                 onChange={(e) => patch({ oprema: values.oprema.map((it) => (it.localId === o.localId ? { ...it, cenaPoSetu: e.target.value } : it)) })}
                 className={baseInput}
@@ -454,38 +465,38 @@ export function ActionWizardForm({
       {step === 4 && (
         <div className="space-y-5">
           <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 space-y-2 text-sm text-gray-700">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Pregled pre slanja</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('wizard.step4.reviewBeforeSubmit')}</p>
             <p>
-              <span className="text-gray-500">Akcija:</span> {values.naziv || '—'} · {values.planina || '—'} — {values.vrh || '—'}
+              <span className="text-gray-500">{t('wizard.step4.summary.action')}</span> {values.naziv || '—'} · {values.planina || '—'} — {values.vrh || '—'}
             </p>
             <p>
-              <span className="text-gray-500">Datum:</span> {values.datum || '—'} · <span className="text-gray-500">Težina:</span> {values.tezina || '—'}
+              <span className="text-gray-500">{t('wizard.step4.summary.date')}</span> {values.datum || '—'} · <span className="text-gray-500">{t('wizard.step4.summary.difficulty')}</span> {values.tezina || '—'}
             </p>
             <p>
-              <span className="text-gray-500">Vidljivost:</span> {values.visibility === 'javna' ? 'Javna' : 'Klubska'} · <span className="text-gray-500">Valuta:</span>{' '}
+              <span className="text-gray-500">{t('wizard.step4.summary.visibility')}</span> {visibilityLabel} · <span className="text-gray-500">{t('wizard.step4.summary.currency')}</span>{' '}
               <span className="font-semibold text-emerald-800">{cur}</span>
             </p>
           </div>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800">Prevoz</h3>
+            <h3 className="text-sm font-semibold text-gray-800">{t('wizard.step4.transport.title')}</h3>
             <button
               type="button"
               onClick={addPrevoz}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 active:scale-[0.97]"
             >
-              Dodaj prevoz
+              {t('wizard.step4.transport.add')}
             </button>
           </div>
           {values.prevoz.map((p) => (
             <div key={p.localId} className="grid gap-3 sm:grid-cols-4 p-3 rounded-xl border border-gray-100 bg-gray-50/60">
-              <input placeholder="Tip (auto, avion...)" value={p.tipPrevoza} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, tipPrevoza: e.target.value } : it)) })} className={baseInput} />
-              <input placeholder="Ime grupe / kartice" value={p.nazivGrupe} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, nazivGrupe: e.target.value } : it)) })} className={baseInput} />
-              <input type="number" min="0" step="1" placeholder="Kapacitet" value={p.kapacitet} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, kapacitet: e.target.value } : it)) })} className={baseInput} />
+              <input placeholder={t('wizard.step4.transport.typePlaceholder')} value={p.tipPrevoza} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, tipPrevoza: e.target.value } : it)) })} className={baseInput} />
+              <input placeholder={t('wizard.step4.transport.groupPlaceholder')} value={p.nazivGrupe} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, nazivGrupe: e.target.value } : it)) })} className={baseInput} />
+              <input type="number" min="0" step="1" placeholder={t('wizard.step4.transport.capacityPlaceholder')} value={p.kapacitet} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, kapacitet: e.target.value } : it)) })} className={baseInput} />
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder={`Cena po osobi (${cur})`}
+                placeholder={t('wizard.step4.transport.pricePerPersonPlaceholder', { currency: cur })}
                 value={p.cenaPoOsobi}
                 onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, cenaPoOsobi: e.target.value } : it)) })}
                 className={baseInput}
@@ -496,32 +507,32 @@ export function ActionWizardForm({
           <div className="grid gap-3 sm:grid-cols-2 border-t border-gray-100 pt-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={values.prikaziListuPrijavljenih} onChange={(e) => patch({ prikaziListuPrijavljenih: e.target.checked })} />
-              Prikaži drugima listu prijavljenih
+              {t('wizard.step4.options.showRegisteredList')}
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={values.omoguciGrupniChat} onChange={(e) => patch({ omoguciGrupniChat: e.target.checked })} />
-              Otvori grupni chat za učesnike
+              {t('wizard.step4.options.enableGroupChat')}
             </label>
           </div>
 
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-gray-700">
-            <p className="font-semibold text-emerald-700 mb-1">Brzi pregled troška po korisniku ({cur})</p>
+            <p className="font-semibold text-emerald-700 mb-1">{t('wizard.step4.costPreview.title', { currency: cur })}</p>
             <p>
-              Osnovna cena član:{' '}
+              {t('wizard.step4.costPreview.memberBase')}{' '}
               <span className="font-semibold">
                 {Number(values.cenaClan || 0).toFixed(2)} {cur}
               </span>
             </p>
             {isPublic && (
               <p>
-                Osnovna cena ostali:{' '}
+                {t('wizard.step4.costPreview.othersBase')}{' '}
                 <span className="font-semibold">
                   {Number(values.cenaOstali || 0).toFixed(2)} {cur}
                 </span>
               </p>
             )}
             <p>
-              Potencijalni opcioni dodaci:{' '}
+              {t('wizard.step4.costPreview.optionalAddons')}{' '}
               <span className="font-semibold">
                 {totalOptionalPreview.toFixed(2)} {cur}
               </span>
