@@ -1137,6 +1137,18 @@
     "user": {
       "pick": "— Izberite uporabnika —"
     },
+    "wizard": {
+      "tabs": {
+        "basic": "Osnovni podatki",
+        "logistics": "Logistika",
+        "equipment": "Oprema",
+        "transportOptions": "Prevoz in možnosti"
+      },
+      "navigation": {
+        "back": "Nazaj",
+        "nextStep": "Naslednji korak"
+      }
+    },
     "add": {
       "onlyAdminGuide": "Samo skrbnik ali vodnik lahko dodaja dejanja.",
       "badge": "Nova pohodniška akcija",

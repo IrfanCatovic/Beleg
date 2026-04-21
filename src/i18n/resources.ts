@@ -1204,6 +1204,10 @@ export const resources = {
       difficulty: { pick: 'Izaberi težinu', pickShort: '— Izaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Izaberi vodiča', optional: '— Opciono —' },
       user: { pick: '— Izaberite korisnika —' },
+      wizard: {
+        tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prevoz i opcije' },
+        navigation: { back: 'Nazad', nextStep: 'Sledeći korak' },
+      },
       add: {
         onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.',
         badge: 'Nova planinarska akcija',
@@ -2743,6 +2747,7 @@ export const resources = {
       difficulty: { pick: 'Izaberi težinu', pickShort: '— Izaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Izaberi vodiča', optional: '— Opciono —' },
       user: { pick: '— Izaberite korisnika —' },
+      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prevoz i opcije' }, navigation: { back: 'Nazad', nextStep: 'Sledeći korak' } },
       add: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspješno dodata! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Samo admin ili vodič mogu da izmijene akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Čuvanje...', saveChanges: 'Sačuvaj izmjene', success: 'Akcija uspješno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
       past: { onlyAdminGuide: 'Samo admin ili vodič mogu da dodaju prošlu akciju.', badge: 'Prošla planinarska akcija', title: 'Dodaj akciju na profil člana', publicActionPastHelp: 'Javna (svi su vidjeli dok je bila aktivna; završenu vidi samo klub)', addToClubHistory: 'Dodaj u istoriju akcija kluba', historyHelp: 'Ako nije čekirano, akcija će se upisati samo na profil člana i neće se pojaviti u listi završenih akcija kluba.', adding: 'Dodavanje...', submit: 'Dodaj i idi na profil' },
@@ -3997,6 +4002,7 @@ export const resources = {
       difficulty: { pick: 'Odaberi težinu', pickShort: '— Odaberite —', easy: 'Lako', medium: 'Srednje', hard: 'Teško', alpinism: 'Alpinizam' },
       guide: { pick: 'Odaberi vodiča', optional: '— Opcionalno —' },
       user: { pick: '— Odaberite korisnika —' },
+      wizard: { tabs: { basic: 'Osnovni podaci', logistics: 'Logistika', equipment: 'Oprema', transportOptions: 'Prijevoz i opcije' }, navigation: { back: 'Natrag', nextStep: 'Sljedeći korak' } },
       add: { onlyAdminGuide: 'Samo admin ili vodič mogu dodavati akcije.', badge: 'Nova planinarska akcija', title: 'Dodaj akciju u plan', adding: 'Dodavanje...', submit: 'Dodaj akciju', successWithId: 'Akcija uspješno dodana! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Samo admin ili vodič mogu mijenjati akcije.', loading: 'Učitavanje akcije...', title: 'Izmijeni akciju', saving: 'Spremanje...', saveChanges: 'Spremi izmjene', success: 'Akcija uspješno izmijenjena!', imageKeepHint: 'Ostavite prazno da zadržite trenutnu sliku. Novi fajl zamjenjuje staru.' },
       past: { onlyAdminGuide: 'Samo admin ili vodič mogu dodati prošlu akciju.', badge: 'Prošla planinarska akcija', title: 'Dodaj akciju na profil člana', publicActionPastHelp: 'Javna (svi su je vidjeli dok je bila aktivna; završenu vidi samo klub)', addToClubHistory: 'Dodaj u istoriju akcija kluba', historyHelp: 'Ako nije označeno, akcija će biti upisana samo na profil člana i neće se pojaviti u listi završenih akcija kluba.', adding: 'Dodavanje...', submit: 'Dodaj i idi na profil' },
@@ -5123,6 +5129,7 @@ export const resources = {
       difficulty: { pick: 'Schwierigkeit wählen', pickShort: '— Bitte wählen —', easy: 'Leicht', medium: 'Mittel', hard: 'Schwer', alpinism: 'Alpinismus' },
       guide: { pick: 'Guide wählen', optional: '— Optional —' },
       user: { pick: '— Benutzer wählen —' },
+      wizard: { tabs: { basic: 'Grunddaten', logistics: 'Logistik', equipment: 'Ausrüstung', transportOptions: 'Transport und Optionen' }, navigation: { back: 'Zurück', nextStep: 'Nächster Schritt' } },
       add: { onlyAdminGuide: 'Nur Admin oder Guide können Touren hinzufügen.', badge: 'Neue Bergtour', title: 'Tour zum Plan hinzufügen', adding: 'Wird hinzugefügt...', submit: 'Tour hinzufügen', successWithId: 'Tour erfolgreich hinzugefügt! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Nur Admin oder Guide können Touren bearbeiten.', loading: 'Tour wird geladen...', title: 'Tour bearbeiten', saving: 'Speichern...', saveChanges: 'Änderungen speichern', success: 'Tour erfolgreich bearbeitet!', imageKeepHint: 'Leer lassen, um aktuelles Bild zu behalten. Neue Datei ersetzt die alte.' },
       past: { onlyAdminGuide: 'Nur Admin oder Guide können vergangene Touren hinzufügen.', badge: 'Vergangene Bergtour', title: 'Tour zum Mitgliederprofil hinzufügen', publicActionPastHelp: 'Öffentlich (war aktiv sichtbar; abgeschlossen nur für Host-Club sichtbar)', addToClubHistory: 'Zur Vereinshistorie hinzufügen', historyHelp: 'Wenn nicht markiert, wird die Tour nur im Mitgliederprofil (Fortschritt) gespeichert und nicht in der Liste abgeschlossener Vereinestouren.', adding: 'Wird hinzugefügt...', submit: 'Hinzufügen und Profil öffnen' },
@@ -6248,6 +6255,7 @@ export const resources = {
       difficulty: { pick: 'Pick difficulty', pickShort: '— Select —', easy: 'Easy', medium: 'Medium', hard: 'Hard', alpinism: 'Alpinism' },
       guide: { pick: 'Pick guide', optional: '— Optional —' },
       user: { pick: '— Select user —' },
+      wizard: { tabs: { basic: 'Basic info', logistics: 'Logistics', equipment: 'Equipment', transportOptions: 'Transport and options' }, navigation: { back: 'Back', nextStep: 'Next step' } },
       add: { onlyAdminGuide: 'Only admin or guide can add actions.', badge: 'New hiking action', title: 'Add action to plan', adding: 'Adding...', submit: 'Add action', successWithId: 'Action added successfully! ID: {{id}}' },
       edit: { onlyAdminGuide: 'Only admin or guide can edit actions.', loading: 'Loading action...', title: 'Edit action', saving: 'Saving...', saveChanges: 'Save changes', success: 'Action updated successfully!', imageKeepHint: 'Leave empty to keep current image. New file replaces the old one.' },
       past: { onlyAdminGuide: 'Only admin or guide can add past action.', badge: 'Past hiking action', title: 'Add action to member profile', publicActionPastHelp: 'Public (everyone could see it while active; completed one visible only to hosting club)', addToClubHistory: 'Add to club action history', historyHelp: 'If unchecked, action is saved only on member profile (progress) and not shown in completed club actions list.', adding: 'Adding...', submit: 'Add and go to profile' },
@@ -7483,6 +7491,18 @@ export const resources = {
     },
     "user": {
       "pick": "— Izberite uporabnika —"
+    },
+    "wizard": {
+      "tabs": {
+        "basic": "Osnovni podatki",
+        "logistics": "Logistika",
+        "equipment": "Oprema",
+        "transportOptions": "Prevoz in možnosti"
+      },
+      "navigation": {
+        "back": "Nazaj",
+        "nextStep": "Naslednji korak"
+      }
     },
     "add": {
       "onlyAdminGuide": "Samo skrbnik ali vodnik lahko dodaja dejanja.",

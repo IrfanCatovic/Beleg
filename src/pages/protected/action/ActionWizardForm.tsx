@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import type { ClubCurrencyCode } from '../../../utils/clubCurrency'
+import { useTranslation } from 'react-i18next'
 
 type ActionKind = 'planina' | 'via_ferrata'
 type VisibilityKind = 'klubska' | 'javna'
@@ -96,13 +97,6 @@ const navBtnPrimary =
 const navBtnSubmit =
   `${navBtnBase} text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 hover:shadow-md disabled:opacity-60 disabled:cursor-wait disabled:active:scale-100`
 
-function toStepLabel(step: number) {
-  if (step === 1) return 'Osnovni podaci'
-  if (step === 2) return 'Logistika'
-  if (step === 3) return 'Oprema'
-  return 'Prevoz i opcije'
-}
-
 export function ActionWizardForm({
   title,
   badge,
@@ -119,6 +113,7 @@ export function ActionWizardForm({
   imageHelpText,
   onSubmit,
 }: ActionWizardFormProps) {
+  const { t } = useTranslation('actionForms')
   const [step, setStep] = useState(1)
   const [values, setValues] = useState<WizardValues>(initialValues)
   const [image, setImage] = useState<File | null>(null)
@@ -139,6 +134,12 @@ export function ActionWizardForm({
   }, [values])
 
   const patch = (data: Partial<WizardValues>) => setValues((prev) => ({ ...prev, ...data }))
+  const toStepLabel = (currentStep: number) => {
+    if (currentStep === 1) return t('wizard.tabs.basic')
+    if (currentStep === 2) return t('wizard.tabs.logistics')
+    if (currentStep === 3) return t('wizard.tabs.equipment')
+    return t('wizard.tabs.transportOptions')
+  }
 
   const addSmestaj = () =>
     patch({
@@ -531,12 +532,12 @@ export function ActionWizardForm({
 
       <div className="flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-gray-100">
         <button type="button" disabled={step === 1} onClick={() => setStep((s) => Math.max(1, s - 1))} className={navBtnSecondary}>
-          Nazad
+          {t('wizard.navigation.back')}
         </button>
         <div className="flex flex-wrap gap-2 justify-end">
           {step < 4 && (
             <button type="button" onClick={() => setStep((s) => Math.min(4, s + 1))} className={navBtnPrimary}>
-              Sledeći korak
+              {t('wizard.navigation.nextStep')}
             </button>
           )}
           {step === 4 && (
