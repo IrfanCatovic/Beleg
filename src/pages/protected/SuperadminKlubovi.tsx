@@ -150,8 +150,11 @@ export default function SuperadminKlubovi() {
         }>('/api/superadmin/app-stats')
         if (cancelled) return
         setStatsClubs(res.data.clubs ?? [])
-        setStatsTotalUsers(Number(res.data.totalUsers) || 0)
-        setStatsTotalClubMembers(Number(res.data.totalClubMembers ?? res.data.totalMembers) || 0)
+        const totalClubMembers = Number(res.data.totalClubMembers ?? res.data.totalMembers) || 0
+        // Fallback na totalMembers za slučaj da backend još uvek šalje stari payload.
+        const totalUsers = Number(res.data.totalUsers ?? res.data.totalMembers) || 0
+        setStatsTotalUsers(totalUsers)
+        setStatsTotalClubMembers(totalClubMembers)
         setStatsTotalActions(Number(res.data.totalActions) || 0)
       } catch (err: unknown) {
         if (cancelled) return
@@ -399,7 +402,7 @@ export default function SuperadminKlubovi() {
                   {t('superadmin.stats.totalMembers')}
                 </div>
                 <p className="mt-2 text-3xl font-bold tabular-nums text-emerald-950">
-                  {statsTotalUsers} / {statsTotalClubMembers}
+                  {statsTotalClubMembers} / {statsTotalUsers}
                 </p>
               </div>
               <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
