@@ -3,18 +3,23 @@ import { Link, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 
-const usernameAllowedRegex = /^[a-z0-9._]+$/
+/** Dozvoljeno pri unosu (i velika slova); u bazi se čuva malim slovima — kao na backendu. */
+const usernameCharsetRegex = /^[a-zA-Z0-9._]+$/
 
 function validateUsername(raw: string): string | null {
-  const username = raw.trim().toLowerCase()
-  if (!username) return 'Korisnicko ime je obavezno.'
-  if (username.length < 2 || username.length > 30) return 'Korisnicko ime mora imati izmedju 2 i 30 karaktera.'
-  if (!usernameAllowedRegex.test(username)) return 'Dozvoljena su samo mala slova, brojevi, tacka i donja crta.'
-  if (username.startsWith('.') || username.endsWith('.') || username.startsWith('_') || username.endsWith('_')) {
-    return 'Korisnicko ime ne sme pocinjati niti zavrsavati tackom ili donjom crtom.'
+  const trimmed = raw.trim()
+  if (!trimmed) return 'Korisničko ime je obavezno.'
+  if (/\s/.test(trimmed)) return 'Korisničko ime ne sme sadržati razmake.'
+  if (!usernameCharsetRegex.test(trimmed)) {
+    return 'Dozvoljena su samo slova, brojevi, tačka i donja crta (bez razmaka, crtica i drugih znakova).'
   }
-  if (username.includes('..') || username.includes('__') || username.includes('._') || username.includes('_.')) {
-    return 'Korisnicko ime ne sme imati uzastopne specijalne znakove.'
+  const lower = trimmed.toLowerCase()
+  if (lower.length < 2 || lower.length > 30) return 'Korisničko ime mora imati između 2 i 30 karaktera.'
+  if (lower.startsWith('.') || lower.endsWith('.') || lower.startsWith('_') || lower.endsWith('_')) {
+    return 'Korisničko ime ne sme počinjati niti završavati tačkom ili donjom crtom.'
+  }
+  if (lower.includes('..') || lower.includes('__') || lower.includes('._') || lower.includes('_.')) {
+    return 'Korisničko ime ne sme imati uzastopne specijalne znakove.'
   }
   return null
 }
@@ -91,7 +96,7 @@ export default function RegisterOpen() {
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Korisnicko ime"
+            placeholder="Korisničko ime (npr. Catko — čuva se kao catko)"
             className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
             disabled={loading}
           />

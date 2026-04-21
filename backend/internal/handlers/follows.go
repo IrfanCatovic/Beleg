@@ -64,7 +64,7 @@ func getUserByIDOrUsername(db *gorm.DB, param string) (models.Korisnik, bool) {
 	}
 	// username
 	var u models.Korisnik
-	if err := helpers.DBWhereUsername(db, helpers.NormalizeUsername(param)).First(&u).Error; err != nil {
+	if err := helpers.DBWhereUsername(db, param).First(&u).Error; err != nil {
 		return models.Korisnik{}, false
 	}
 	if u.Role == "deleted" {

@@ -4,28 +4,36 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"gorm.io/gorm"
 )
 
-var usernameAllowedPattern = regexp.MustCompile(`^[a-z0-9._]+$`)
+// Dozvoljeni znakovi pri unosu (velika/mala slova OK); u bazi i JWT uvek mala slova.
+var usernameCharsetPattern = regexp.MustCompile(`^[a-zA-Z0-9._]+$`)
 
-// NormalizeUsername skida razmake i pretvara u mala slova (jedinstveni oblik u bazi i za login).
+// NormalizeUsername skida razmake sa ivica i pretvara u mala slova (kanonski oblik u bazi i za login).
 func NormalizeUsername(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-// ValidateUsername normalizuje i proverava da li je username u bezbednom formatu.
+// ValidateUsername: prihvata unos sa velikim slovima, odbija razmake i nedozvoljene znakove; vraća uvek mala slova.
 func ValidateUsername(raw string) (string, error) {
-	username := NormalizeUsername(raw)
-	if username == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return "", errors.New("Korisničko ime je obavezno")
 	}
+	for _, r := range trimmed {
+		if unicode.IsSpace(r) {
+			return "", errors.New("Korisničko ime ne sme sadržati razmake")
+		}
+	}
+	if !usernameCharsetPattern.MatchString(trimmed) {
+		return "", errors.New("Korisničko ime može sadržati samo slova, brojeve, tačku i donju crtu (bez razmaka, crtica i drugih znakova)")
+	}
+	username := strings.ToLower(trimmed)
 	if len(username) < 2 || len(username) > 30 {
 		return "", errors.New("Korisničko ime mora imati između 2 i 30 karaktera")
-	}
-	if !usernameAllowedPattern.MatchString(username) {
-		return "", errors.New("Korisničko ime može sadržati samo mala slova, brojeve, tačku i donju crtu")
 	}
 	if strings.HasPrefix(username, ".") || strings.HasSuffix(username, ".") ||
 		strings.HasPrefix(username, "_") || strings.HasSuffix(username, "_") {
@@ -43,8 +51,8 @@ func DBWhereUsername(db *gorm.DB, username string) *gorm.DB {
 	return db.Where("LOWER(username) = ?", NormalizeUsername(username))
 }
 
-// UsernameFromContext vrednost iz gin konteksta (nakon AuthMiddleware uvek normalizovano mala slova).
+// UsernameFromContext vrednost iz gin konteksta (nakon AuthMiddleware uvek mala slova).
 func UsernameFromContext(usernameVal any) string {
 	s, _ := usernameVal.(string)
-	return s
+	return NormalizeUsername(s)
 }

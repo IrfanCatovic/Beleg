@@ -51,9 +51,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const normalizedUser = username.trim().toLowerCase()
       const response = await api.post('/login', {
-        username: normalizedUser,
+        username: username.trim(),
         password,
       })
       login(response.data)
