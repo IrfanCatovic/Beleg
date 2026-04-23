@@ -229,7 +229,8 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               required
               minLength={2}
               maxLength={30}
-              pattern="^[a-z0-9._]+$"
+              pattern="^[a-zA-Z0-9._]+$"
+              title="Dozvoljena su slova (mala i velika), brojevi, tačka i donja crta; bez razmaka."
               className={inputClass}
               placeholder={t('registerUser.usernamePlaceholder')}
               disabled={submitting || success}
