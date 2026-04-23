@@ -214,7 +214,7 @@ export default function AddAction() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
-          <BackButton />
+
           <div className="w-10 sm:w-16" aria-hidden />
         </div>
         <div className="max-w-5xl mx-auto">

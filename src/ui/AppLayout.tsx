@@ -55,6 +55,11 @@ export default function AppLayout() {
   const mobileNotificationsPanelRef = useRef<HTMLDivElement>(null)
   const mobileNotificationsButtonRef = useRef<HTMLButtonElement>(null)
   const profileBlockRef = useRef<HTMLDivElement>(null)
+  const pullStartYRef = useRef<number | null>(null)
+  const pullDistanceRef = useRef(0)
+  const pullTrackingRef = useRef(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [pullRefreshing, setPullRefreshing] = useState(false)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -105,6 +110,75 @@ export default function AppLayout() {
       .finally(() => setNotificationsLoading(false))
   }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen])
 
+  useEffect(() => {
+    pullDistanceRef.current = pullDistance
+  }, [pullDistance])
+
+  // Global mobile pull-to-refresh (all protected screens)
+  useEffect(() => {
+    if (!isLoggedIn) return
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
+    if (!coarsePointer) return
+
+    const threshold = 72
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (pullRefreshing) return
+      if (event.touches.length !== 1) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (window.scrollY > 0) return
+      pullStartYRef.current = event.touches[0].clientY
+      pullTrackingRef.current = true
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!pullTrackingRef.current || pullStartYRef.current == null || pullRefreshing) return
+      const currentY = event.touches[0].clientY
+      const delta = currentY - pullStartYRef.current
+
+      if (delta <= 0) {
+        setPullDistance(0)
+        return
+      }
+      if (window.scrollY > 0) {
+        setPullDistance(0)
+        return
+      }
+
+      const damped = Math.min(110, delta * 0.55)
+      setPullDistance(damped)
+      if (delta > 8) event.preventDefault()
+    }
+
+    const endPull = () => {
+      pullTrackingRef.current = false
+      pullStartYRef.current = null
+      if (pullRefreshing) return
+
+      if (pullDistanceRef.current >= threshold) {
+        setPullRefreshing(true)
+        setPullDistance(threshold)
+        window.setTimeout(() => {
+          window.location.reload()
+        }, 140)
+        return
+      }
+      setPullDistance(0)
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', endPull, { passive: true })
+    window.addEventListener('touchcancel', endPull, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', endPull)
+      window.removeEventListener('touchcancel', endPull)
+    }
+  }, [isLoggedIn, pullRefreshing])
+
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
@@ -138,6 +212,18 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {(pullDistance > 0 || pullRefreshing) && (
+        <div
+          className="fixed left-1/2 z-[70] -translate-x-1/2 rounded-full bg-slate-900/90 px-3 py-1.5 text-white shadow-lg backdrop-blur-sm md:hidden"
+          style={{ top: `${Math.min(16 + pullDistance * 0.5, 56)}px` }}
+          aria-hidden="true"
+        >
+          <span className="inline-flex items-center gap-2 text-[11px] font-semibold">
+            <span className={`inline-block h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white ${pullRefreshing ? 'animate-spin' : ''}`} />
+            {pullRefreshing ? 'Osvezavanje...' : pullDistance >= 72 ? 'Pusti da osvezis' : 'Povuci nadole'}
+          </span>
+        </div>
+      )}
       {isLoggedIn && (
         <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-white/[0.06]">
           <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
