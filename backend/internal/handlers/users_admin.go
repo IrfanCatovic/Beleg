@@ -258,6 +258,7 @@ func GetKorisnici(c *gin.Context) {
 			FullName    string `json:"fullName,omitempty"`
 			AvatarURL   string `json:"avatar_url,omitempty"`
 			Role        string `json:"role"`
+			KlubID      *uint  `json:"klubId,omitempty"`
 			KlubNaziv   string `json:"klubNaziv,omitempty"`
 			KlubLogoURL string `json:"klubLogoUrl,omitempty"`
 		}
@@ -287,7 +288,7 @@ func GetKorisnici(c *gin.Context) {
 			if _, blocked := blockedSet[all[i].ID]; blocked {
 				continue
 			}
-			dto := PublicUserDTO{ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName, AvatarURL: all[i].AvatarURL, Role: all[i].Role}
+			dto := PublicUserDTO{ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName, AvatarURL: all[i].AvatarURL, Role: all[i].Role, KlubID: all[i].KlubID}
 			if all[i].Klub != nil {
 				dto.KlubNaziv = all[i].Klub.Naziv
 				dto.KlubLogoURL = all[i].Klub.LogoURL

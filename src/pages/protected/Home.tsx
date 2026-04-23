@@ -35,6 +35,10 @@ interface Statistika {
   brojPopeoSe: number
 }
 
+interface DiscoverUser extends MentionUser {
+  klubId?: number
+}
+
 const POST_LIMIT = 30
 
 export default function Home() {
@@ -69,6 +73,7 @@ export default function Home() {
   const [mentionEnd, setMentionEnd] = useState<number | null>(null)
   const postMentionWrapperRef = useRef<HTMLDivElement>(null)
   const [followingUserIds, setFollowingUserIds] = useState<number[]>([])
+  const [discoverUsers, setDiscoverUsers] = useState<DiscoverUser[]>([])
 
   const hasMore = posts.length < total
 
@@ -94,6 +99,16 @@ export default function Home() {
       })
       .catch(() => setMentionUsers([]))
       .finally(() => setMentionUsersLoading(false))
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    api
+      .get('/api/korisnici', { params: { scope: 'global' } })
+      .then((res) => {
+        setDiscoverUsers((res.data.korisnici as DiscoverUser[]) || [])
+      })
+      .catch(() => setDiscoverUsers([]))
   }, [isLoggedIn])
 
   useEffect(() => {
@@ -311,12 +326,14 @@ export default function Home() {
   }, [aktivneAkcije, shuffleAndTake])
 
   const suggestedUsers = useMemo(() => {
-    const ownId = mentionUsers.find((u) => u.username === user?.username)?.id
     const blockedIds = new Set<number>(followingUserIds)
-    if (typeof ownId === 'number') blockedIds.add(ownId)
-    const pool = mentionUsers.filter((u) => !blockedIds.has(u.id))
+    const pool = discoverUsers.filter((u) => {
+      if (blockedIds.has(u.id)) return false
+      if (typeof user?.klubId === 'number' && typeof u.klubId === 'number' && u.klubId === user.klubId) return false
+      return true
+    })
     return shuffleAndTake(pool, 2)
-  }, [mentionUsers, followingUserIds, shuffleAndTake, user?.username])
+  }, [discoverUsers, followingUserIds, shuffleAndTake, user?.klubId])
 
   const handleShareInvite = useCallback(() => {
     const registerUrl = `${window.location.origin}/registracija`

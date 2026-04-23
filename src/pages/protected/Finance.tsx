@@ -94,6 +94,7 @@ export default function Finance() {
   const [transakcijaOpis, setTransakcijaOpis] = useState('')
   const [transakcijaSubmitting, setTransakcijaSubmitting] = useState(false)
   const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
+  const [pendingDeleteTx, setPendingDeleteTx] = useState<Transakcija | null>(null)
 
   const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
   const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
@@ -313,18 +314,17 @@ export default function Finance() {
     setTimeout(() => setClanarinaSaving(false), 250)
   }
 
-  const handleDeleteTransakcija = async (tx: Transakcija) => {
+  const handleDeleteTransakcija = (tx: Transakcija) => {
     if (!canDeleteTransactions || deleteLoadingId !== null) return
-    const isMembershipPayment = tx.tip === 'uplata' && !!tx.clanarinaKorisnikId
-    const confirmMessage = isMembershipPayment
-      ? 'Obrisati uplatu članarine? Korisnik će se vratiti na spisak kao da nije platio.'
-      : 'Obrisati ovu transakciju?'
-    if (!window.confirm(confirmMessage)) return
+    setPendingDeleteTx(tx)
+  }
 
-    setDeleteLoadingId(tx.id)
+  const confirmDeleteTransakcija = async () => {
+    if (!pendingDeleteTx) return
+    setDeleteLoadingId(pendingDeleteTx.id)
     setError('')
     try {
-      await api.delete(`/api/finansije/transakcije/${tx.id}`)
+      await api.delete(`/api/finansije/transakcije/${pendingDeleteTx.id}`)
       await fetchDashboard()
       await fetchClanarine()
     } catch (err: unknown) {
@@ -332,6 +332,7 @@ export default function Finance() {
       setError(msg)
     } finally {
       setDeleteLoadingId(null)
+      setPendingDeleteTx(null)
     }
   }
 
@@ -634,6 +635,41 @@ export default function Finance() {
                   className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all bg-gradient-to-r from-emerald-500 via-emerald-500 to-teal-500 hover:from-emerald-400 hover:via-emerald-500 hover:to-teal-400"
                 >
                   Primeni
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {pendingDeleteTx && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px] p-4">
+            <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_32px_100px_-24px_rgba(15,23,42,0.45)]">
+              <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
+                <h3 className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
+                  Da li želite da izbrišete transakciju?
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  {pendingDeleteTx.tip === 'uplata' && pendingDeleteTx.clanarinaKorisnikId
+                    ? 'Brisanjem uplate članarine korisnik se vraća na status da nije platio članarinu.'
+                    : 'Ova akcija će trajno ukloniti stavku iz istorije.'}
+                </p>
+              </div>
+              <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteTx(null)}
+                  disabled={deleteLoadingId === pendingDeleteTx.id}
+                  className="px-4 py-2.5 rounded-2xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Otkaži
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteTransakcija}
+                  disabled={deleteLoadingId === pendingDeleteTx.id}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition-all bg-gradient-to-r from-rose-500 via-rose-500 to-red-500 hover:from-rose-400 hover:via-rose-500 hover:to-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleteLoadingId === pendingDeleteTx.id ? 'Brisanje...' : 'Obriši'}
                 </button>
               </div>
             </div>

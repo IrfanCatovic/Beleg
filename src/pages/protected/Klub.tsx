@@ -65,6 +65,17 @@ interface ClubAdminStats {
   onHold?: boolean
 }
 
+interface ClubJoinRequestItem {
+  id: number
+  userId: number
+  username: string
+  fullName?: string
+  email?: string
+  status: 'pending' | 'accepted' | 'rejected' | 'blocked' | 'cancelled' | string
+  createdAt: string
+  updatedAt: string
+}
+
 export default function Klub() {
   const { t } = useTranslation('clubs')
   const { user } = useAuth()
@@ -94,6 +105,10 @@ export default function Klub() {
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public')
   const [adminStats, setAdminStats] = useState<ClubAdminStats | null>(null)
   const [adminStatsLoading, setAdminStatsLoading] = useState(false)
+  const [joinRequests, setJoinRequests] = useState<ClubJoinRequestItem[]>([])
+  const [joinRequestsLoading, setJoinRequestsLoading] = useState(false)
+  const [joinRequestsError, setJoinRequestsError] = useState('')
+  const [joinRequestBusyId, setJoinRequestBusyId] = useState<number | null>(null)
 
   const isNoClubUser = user?.role !== 'superadmin' && (user?.klubId == null || Number(user.klubId) === 0)
 
@@ -178,6 +193,61 @@ export default function Klub() {
       cancelled = true
     }
   }, [klub?.id, user?.klubId, user?.role])
+
+  const fetchJoinRequests = useCallback(async () => {
+    if (!klub?.id || !canManageThisClub(user, klub.id)) {
+      setJoinRequests([])
+      return
+    }
+    setJoinRequestsLoading(true)
+    setJoinRequestsError('')
+    try {
+      const res = await api.get<{ requests: ClubJoinRequestItem[] }>('/api/club-membership/requests', {
+        params: { status: 'pending' },
+      })
+      setJoinRequests((res.data?.requests || []) as ClubJoinRequestItem[])
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
+          ? String((e.response.data as { error: unknown }).error)
+          : 'Greška pri učitavanju zahteva za prijem.'
+      setJoinRequestsError(msg)
+      setJoinRequests([])
+    } finally {
+      setJoinRequestsLoading(false)
+    }
+  }, [klub?.id, user])
+
+  useEffect(() => {
+    if (!klub?.id || !canManageThisClub(user, klub.id)) return
+    void fetchJoinRequests()
+  }, [fetchJoinRequests, klub?.id, user])
+
+  const handleJoinRequestAction = useCallback(
+    async (requestId: number, action: 'accept' | 'reject' | 'block') => {
+      const confirmations: Record<'accept' | 'reject' | 'block', string> = {
+        accept: 'Da li želite da prihvatite ovaj zahtev?',
+        reject: 'Da li želite da odbijete ovaj zahtev?',
+        block: 'Da li želite da blokirate korisnika za dalje zahteve?',
+      }
+      if (!window.confirm(confirmations[action])) return
+      setJoinRequestBusyId(requestId)
+      setJoinRequestsError('')
+      try {
+        await api.post(`/api/club-membership/requests/${requestId}/${action}`)
+        await fetchJoinRequests()
+      } catch (e: unknown) {
+        const msg =
+          e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
+            ? String((e.response.data as { error: unknown }).error)
+            : 'Akcija nad zahtevom nije uspela.'
+        setJoinRequestsError(msg)
+      } finally {
+        setJoinRequestBusyId(null)
+      }
+    },
+    [fetchJoinRequests]
+  )
 
   const handleSave = async () => {
     if (!klub) return
@@ -394,7 +464,14 @@ export default function Klub() {
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {t('club.tabs.admin')}
+                <span className="inline-flex items-center gap-2">
+                  {t('club.tabs.admin')}
+                  {joinRequests.length > 0 && (
+                    <span className="inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                      {joinRequests.length}
+                    </span>
+                  )}
+                </span>
               </button>
             )}
           </div>
@@ -573,6 +650,91 @@ export default function Klub() {
                         )}
                       </div>
                     </>
+                  )}
+                </div>
+              </div>
+
+              {/* Admin: zahtevi za prijem */}
+              <div id="zahtevi" className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden lg:col-span-2">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">Zahtevi za prijem</h2>
+                    <p className="mt-1 text-xs text-gray-500">Pregled i obrada novih zahteva za članstvo.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void fetchJoinRequests()}
+                    className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Osveži
+                  </button>
+                </div>
+
+                <div className="p-4 sm:p-5 space-y-3">
+                  {joinRequestsError ? (
+                    <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{joinRequestsError}</p>
+                  ) : null}
+
+                  {joinRequestsLoading ? (
+                    <p className="text-sm text-gray-500">Učitavanje zahteva...</p>
+                  ) : joinRequests.length === 0 ? (
+                    <p className="text-sm text-gray-500">Nema pending zahteva.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {joinRequests.map((req) => {
+                        const name = req.fullName?.trim() || req.username || `Korisnik #${req.userId}`
+                        const initial = name.charAt(0).toUpperCase()
+                        const busy = joinRequestBusyId === req.id
+
+                        return (
+                          <article key={req.id} className="rounded-xl border border-gray-200 p-3 sm:p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 min-w-0">
+                                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold">
+                                  {initial}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
+                                  <p className="text-xs text-gray-500 truncate">@{req.username}</p>
+                                  {req.email && <p className="text-xs text-gray-500 truncate">{req.email}</p>}
+                                  <p className="mt-1 text-[11px] text-gray-400">Poslato: {formatDateShort(req.createdAt)}</p>
+                                </div>
+                              </div>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700">
+                                Pending
+                              </span>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleJoinRequestAction(req.id, 'accept')}
+                                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                              >
+                                Prihvati
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleJoinRequestAction(req.id, 'reject')}
+                                className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                              >
+                                Odbij
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleJoinRequestAction(req.id, 'block')}
+                                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                              >
+                                Blokiraj
+                              </button>
+                            </div>
+                          </article>
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
