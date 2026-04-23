@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
@@ -21,7 +22,10 @@ interface Akcija {
   javna?: boolean
   klubNaziv?: string
   addedById?: number
+  slikaUrl?: string
+  opis?: string
   isCompleted: boolean
+  createdAt?: string
 }
 
 interface Statistika {
@@ -567,84 +571,33 @@ export default function Home() {
             {/* ── Divider on mobile ── */}
             <div className="h-2 bg-gray-100 sm:hidden" />
 
-            {/* ── Discovery strip (mobile-first) ── */}
-            {(suggestedActions.length > 0 || suggestedUsers.length > 0) && (
-              <div className="sm:mt-4 sm:rounded-2xl sm:border sm:border-gray-200/60 sm:bg-white sm:shadow-sm overflow-hidden">
-                <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-gray-100">
-                  <h3 className="text-sm font-bold text-gray-900">Sta je novo za tebe</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Nove akcije, ljudi i brzi poziv za ekipu.</p>
+            {/* ── Predlozene akcije kao samostalne "objave" ── */}
+            {suggestedActions.length > 0 && (
+              <div className="sm:mt-4 space-y-3 sm:space-y-4">
+                {suggestedActions.map((akcija) => (
+                  <SuggestedActionCard
+                    key={`suggested-action-${akcija.id}`}
+                    akcija={akcija}
+                    addedBy={typeof akcija.addedById === 'number' ? usersById.get(akcija.addedById) : undefined}
+                    t={t}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* ── Predlozeni ljudi + WhatsApp CTA ── */}
+            {(suggestedUsers.length > 0) && (
+              <div className="mt-3 sm:mt-4 bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm">
+                <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2.5">
+                  <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
+                  <h3 className="text-sm font-bold text-gray-900">Ljudi za zapratiti</h3>
                 </div>
-
-                {suggestedActions.length > 0 && (
-                  <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-2.5 bg-white">
-                    {suggestedActions.map((akcija) => {
-                      const addedBy = typeof akcija.addedById === 'number' ? usersById.get(akcija.addedById) : null
-                      return (
-                        <Link
-                          key={`suggested-action-${akcija.id}`}
-                          to={`/akcije/${akcija.id}`}
-                          className="block rounded-xl border border-gray-200/80 bg-gradient-to-r from-white to-gray-50/40 p-3 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                                {akcija.javna ? 'Javna akcija' : 'Klubska akcija'}
-                              </p>
-                              <p className="text-sm font-bold text-gray-900 truncate mt-0.5">{akcija.naziv}</p>
-                              <p className="text-[11px] text-gray-500 mt-0.5 truncate">
-                                {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')} · {formatDateShort(akcija.datum)}
-                              </p>
-                              <p className="text-[11px] text-gray-400 mt-1 truncate">
-                                Dodao/la: {addedBy?.fullName?.trim() || addedBy?.username || akcija.klubNaziv || 'Clan kluba'}
-                              </p>
-                            </div>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${akcija.javna ? 'bg-emerald-50 text-emerald-700' : 'bg-violet-50 text-violet-700'}`}>
-                              {akcija.javna ? 'Javno' : 'Klub'}
-                            </span>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-
-                <div className="px-4 sm:px-5 pb-4">
-                  <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="flex gap-3">
-                      {suggestedUsers.map((u) => (
-                        <div
-                          key={`suggested-user-${u.id}`}
-                          className="min-w-[220px] flex-1 rounded-xl border border-gray-200 bg-white p-3"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">
-                              {(u.fullName?.trim() || u.username || '?').charAt(0).toUpperCase()}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-gray-900 truncate">{u.fullName?.trim() || u.username}</p>
-                              <p className="text-xs text-gray-500 truncate">@{u.username}</p>
-                            </div>
-                          </div>
-                          <div className="mt-3">
-                            <FollowControls targetId={u.id} />
-                          </div>
-                        </div>
-                      ))}
-
-                      <div className="min-w-[220px] flex-1 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Pozovi ekipu</p>
-                        <p className="mt-1 text-sm font-bold text-emerald-900">
-                          Otvori WhatsApp i posalji poruku samo za registraciju.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={handleShareInvite}
-                          className="mt-3 inline-flex items-center justify-center w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-                        >
-                          Pozovi na WhatsApp
-                        </button>
-                      </div>
-                    </div>
+                <div className="px-4 sm:px-5 pb-4 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex gap-3 snap-x snap-mandatory">
+                    {suggestedUsers.map((u) => (
+                      <SuggestedUserCard key={`suggested-user-${u.id}`} user={u} />
+                    ))}
+                    <InviteFriendsCard onInvite={handleShareInvite} />
                   </div>
                 </div>
               </div>
@@ -803,6 +756,204 @@ export default function Home() {
 /* ═════════════════════════════════════════════════════════════════════ */
 /* Sub-components */
 /* ═════════════════════════════════════════════════════════════════════ */
+
+function SuggestedActionCard({
+  akcija,
+  addedBy,
+  t,
+}: {
+  akcija: Akcija
+  addedBy?: MentionUser
+  t: TFunction
+}) {
+  const posterName = akcija.klubNaziv?.trim() || addedBy?.fullName?.trim() || addedBy?.username || 'Clan kluba'
+  const posterInitial = posterName.charAt(0).toUpperCase()
+  const isKlub = !!akcija.klubNaziv && !akcija.javna
+  const location = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
+  const addedByName = addedBy?.fullName?.trim() || addedBy?.username
+
+  return (
+    <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden border-b border-gray-100 sm:border-b">
+      {/* Header: ko je izbacio akciju */}
+      <div className="px-4 sm:px-5 pt-3.5 pb-3 flex items-center gap-3">
+        <span
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold shadow-sm ${
+            isKlub
+              ? 'bg-gradient-to-br from-violet-400 to-purple-600'
+              : 'bg-gradient-to-br from-emerald-400 to-teal-600'
+          }`}
+          aria-hidden="true"
+        >
+          {posterInitial}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate">{posterName}</p>
+            <span
+              className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                isKlub ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              {isKlub ? 'Klub' : 'Javno'}
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-500 truncate">
+            {addedByName ? <>Dodao/la <span className="text-gray-700 font-medium">{addedByName}</span></> : 'Predlog za tebe'}
+          </p>
+        </div>
+        <span
+          className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-600"
+          aria-hidden="true"
+        >
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2M12 22a10 10 0 110-20 10 10 0 010 20z" />
+          </svg>
+          Akcija
+        </span>
+      </div>
+
+      {/* Slika akcije */}
+      {akcija.slikaUrl ? (
+        <Link to={`/akcije/${akcija.id}`} className="block">
+          <div className="relative aspect-[16/9] w-full bg-gray-100 overflow-hidden">
+            <img
+              src={akcija.slikaUrl}
+              alt={akcija.naziv}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+              <h4 className="text-white text-base font-bold leading-tight drop-shadow">{akcija.naziv}</h4>
+              {location && <p className="text-white/90 text-xs mt-0.5 drop-shadow">{location}</p>}
+            </div>
+          </div>
+        </Link>
+      ) : (
+        <Link
+          to={`/akcije/${akcija.id}`}
+          className="block relative h-28 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 overflow-hidden"
+        >
+          <svg className="absolute inset-0 w-full h-full text-white/10" fill="currentColor" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points="0,100 25,40 45,70 65,20 85,55 100,30 100,100" />
+          </svg>
+          <div className="relative px-4 py-4 flex items-center h-full">
+            <div>
+              <h4 className="text-white text-base font-bold leading-tight drop-shadow">{akcija.naziv}</h4>
+              {location && <p className="text-white/90 text-xs mt-0.5">{location}</p>}
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* Body: datum / tezina / opis */}
+      <div className="px-4 sm:px-5 py-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-50 text-gray-700 font-semibold">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {formatDateShort(akcija.datum)}
+          </span>
+          {akcija.tezina && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-semibold">
+              {tezinaLabel(akcija.tezina, t)}
+            </span>
+          )}
+          {!akcija.slikaUrl && location && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-50 text-gray-600 font-medium truncate max-w-[60%]">
+              {location}
+            </span>
+          )}
+        </div>
+
+        {akcija.opis && akcija.opis.trim().length > 0 && (
+          <p className="text-sm text-gray-700 leading-relaxed line-clamp-3 whitespace-pre-wrap break-words">
+            {akcija.opis}
+          </p>
+        )}
+
+        <Link
+          to={`/akcije/${akcija.id}`}
+          className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 transition-colors"
+        >
+          Pogledaj akciju
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
+    </article>
+  )
+}
+
+function SuggestedUserCard({ user }: { user: MentionUser }) {
+  const name = user.fullName?.trim() || user.username
+  const initial = (name || '?').charAt(0).toUpperCase()
+  const stopLink: React.MouseEventHandler = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  return (
+    <Link
+      to={`/korisnik/${user.username}`}
+      className="group snap-start min-w-[200px] max-w-[220px] flex-shrink-0 rounded-2xl border border-gray-200 bg-white p-3 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col"
+    >
+      <div className="flex items-center gap-3">
+        {user.avatar_url ? (
+          <img
+            src={user.avatar_url}
+            alt={name}
+            className="h-12 w-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+            loading="lazy"
+          />
+        ) : (
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-sm font-bold ring-2 ring-white shadow-sm">
+            {initial}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-700 transition-colors">
+            {name}
+          </p>
+          <p className="text-[11px] text-gray-500 truncate">@{user.username}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-gray-100" onClick={stopLink}>
+        <FollowControls targetId={user.id} />
+      </div>
+    </Link>
+  )
+}
+
+function InviteFriendsCard({ onInvite }: { onInvite: () => void }) {
+  return (
+    <div className="snap-start min-w-[220px] max-w-[240px] flex-shrink-0 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-50/80 to-teal-50 p-3 flex flex-col">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.75 20.25a7.5 7.5 0 1115 0v.75H3.75v-.75zM18 9v6m3-3h-6" />
+          </svg>
+        </span>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Pozovi ekipu</p>
+      </div>
+      <p className="mt-2 text-xs text-emerald-900/80 leading-snug flex-1">
+        Otvori WhatsApp i posalji link za brzu registraciju.
+      </p>
+      <button
+        type="button"
+        onClick={onInvite}
+        className="mt-3 inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-sm"
+      >
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+        </svg>
+        Pozovi na WhatsApp
+      </button>
+    </div>
+  )
+}
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
