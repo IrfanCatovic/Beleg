@@ -127,6 +127,7 @@ export default function SuperadminKlubovi() {
   const [noClubUsers, setNoClubUsers] = useState<NoClubUserRow[]>([])
   const [noClubLoading, setNoClubLoading] = useState(false)
   const [noClubError, setNoClubError] = useState('')
+  const [noClubDeleteId, setNoClubDeleteId] = useState<number | null>(null)
   const [noClubSearch, setNoClubSearch] = useState('')
   const [debouncedNoClubSearch, setDebouncedNoClubSearch] = useState('')
 
@@ -247,6 +248,27 @@ export default function SuperadminKlubovi() {
       setError(msg)
     } finally {
       setDeleteLoading(false)
+    }
+  }
+
+  const handleDeleteNoClubUser = async (u: NoClubUserRow) => {
+    if (noClubDeleteId != null) return
+    const displayName = (u.fullName || u.username || '').trim() || `#${u.id}`
+    const ok = window.confirm(`Obrisati korisnika "${displayName}"?`)
+    if (!ok) return
+
+    setNoClubDeleteId(u.id)
+    setNoClubError('')
+    try {
+      await api.delete(`/api/korisnici/${u.id}`)
+      setNoClubUsers((prev) => prev.filter((x) => x.id !== u.id))
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+        'Brisanje korisnika nije uspelo.'
+      setNoClubError(msg)
+    } finally {
+      setNoClubDeleteId(null)
     }
   }
 
@@ -520,6 +542,8 @@ export default function SuperadminKlubovi() {
                     .map((part) => part.charAt(0).toUpperCase())
                     .join('') || u.username.slice(0, 2).toUpperCase()
 
+                  const deleting = noClubDeleteId === u.id
+
                   return (
                     <li
                       key={u.id}
@@ -545,13 +569,25 @@ export default function SuperadminKlubovi() {
                             )}
                           </div>
                         </div>
-                        <Link
-                          to={`/korisnik/${encodeURIComponent(u.username)}`}
-                          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
-                        >
-                          {t('superadmin.stats.otherUsersProfile')}
-                          <ChevronRightIcon className="h-4 w-4" />
-                        </Link>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Link
+                            to={`/korisnik/${encodeURIComponent(u.username)}`}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+                          >
+                            {t('superadmin.stats.otherUsersProfile')}
+                            <ChevronRightIcon className="h-4 w-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteNoClubUser(u)}
+                            disabled={deleting || noClubDeleteId != null}
+                            className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                            title="Obriši korisnika"
+                            aria-label="Obriši korisnika"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </li>
                   )
