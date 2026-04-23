@@ -220,6 +220,7 @@ export default function UserProfile() {
   const isOwn = currentUser?.username === korisnik?.username
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
+  const showRoleBadge = !!korisnik && hasVisibleRole(korisnik.role) && (korisnik.role === 'superadmin' || !!korisnik.klubNaziv)
 
   const coverInputRef = useRef<HTMLInputElement>(null)
 
@@ -598,7 +599,7 @@ export default function UserProfile() {
                   </div>
                 </div>
 
-                {hasVisibleRole(korisnik.role) && (
+                {showRoleBadge && (
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                       {getRoleLabel(korisnik.role)}
@@ -677,7 +678,7 @@ export default function UserProfile() {
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
-                    {hasVisibleRole(korisnik.role) && (
+                    {showRoleBadge && (
                       <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                         {getRoleLabel(korisnik.role)}
                       </span>
