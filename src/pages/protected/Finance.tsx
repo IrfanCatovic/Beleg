@@ -83,6 +83,8 @@ export default function Finance() {
   const [clanarineGodina, setClanarineGodina] = useState(Math.max(2026, new Date().getFullYear()))
   const [platiLoading, setPlatiLoading] = useState<number | null>(null)
   const [clanarinaIznos, setClanarinaIznos] = useState(2320)
+  const [clanarinaIznosDraft, setClanarinaIznosDraft] = useState('2320')
+  const [clanarinaSaving, setClanarinaSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [transakcijaTip, setTransakcijaTip] = useState<'uplata' | 'isplata'>('uplata')
@@ -91,10 +93,12 @@ export default function Finance() {
   const [transakcijaUplatilac, setTransakcijaUplatilac] = useState('')
   const [transakcijaOpis, setTransakcijaOpis] = useState('')
   const [transakcijaSubmitting, setTransakcijaSubmitting] = useState(false)
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
 
   const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
   const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
   const canEditClubCurrency = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
+  const canDeleteTransactions = user?.role === 'superadmin' || user?.role === 'admin'
   const selectableYears = Array.from({ length: 61 }, (_, i) => currentYear + 5 - i)
   const monthOptions = [
     { value: 1, label: 'Januar' },
@@ -293,6 +297,41 @@ export default function Finance() {
       setError(msg)
     } finally {
       setPlatiLoading(null)
+    }
+  }
+
+  const handlePromeniClanarinu = () => {
+    const parsed = Number(clanarinaIznosDraft.replace(/,/g, '.'))
+    if (!parsed || parsed <= 0) {
+      setError('Unesite ispravan iznos članarine.')
+      return
+    }
+    setClanarinaSaving(true)
+    setError('')
+    setClanarinaIznos(parsed)
+    setClanarinaIznosDraft(String(parsed))
+    setTimeout(() => setClanarinaSaving(false), 250)
+  }
+
+  const handleDeleteTransakcija = async (tx: Transakcija) => {
+    if (!canDeleteTransactions || deleteLoadingId !== null) return
+    const isMembershipPayment = tx.tip === 'uplata' && !!tx.clanarinaKorisnikId
+    const confirmMessage = isMembershipPayment
+      ? 'Obrisati uplatu članarine? Korisnik će se vratiti na spisak kao da nije platio.'
+      : 'Obrisati ovu transakciju?'
+    if (!window.confirm(confirmMessage)) return
+
+    setDeleteLoadingId(tx.id)
+    setError('')
+    try {
+      await api.delete(`/api/finansije/transakcije/${tx.id}`)
+      await fetchDashboard()
+      await fetchClanarine()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
+      setError(msg)
+    } finally {
+      setDeleteLoadingId(null)
     }
   }
 
@@ -747,6 +786,9 @@ export default function Finance() {
                               <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.type')}</th>
                               <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.amount')}</th>
                               <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.description')}</th>
+                              {canDeleteTransactions && (
+                                <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Akcija</th>
+                              )}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
@@ -775,6 +817,18 @@ export default function Finance() {
                                     {tx.opis || t('common.emptyValue')}
                                   </span>
                                 </td>
+                                {canDeleteTransactions && (
+                                  <td className="px-5 py-3.5 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTransakcija(tx)}
+                                      disabled={deleteLoadingId === tx.id}
+                                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                      {deleteLoadingId === tx.id ? '...' : 'Obriši'}
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
@@ -805,6 +859,18 @@ export default function Finance() {
                               <p className="text-[11px] text-gray-400 mt-0.5">
                                 ({tx.clanarinaKorisnik.fullName || tx.clanarinaKorisnik.username})
                               </p>
+                            )}
+                            {canDeleteTransactions && (
+                              <div className="mt-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTransakcija(tx)}
+                                  disabled={deleteLoadingId === tx.id}
+                                  className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {deleteLoadingId === tx.id ? '...' : 'Obriši'}
+                                </button>
+                              </div>
                             )}
                           </div>
                         ))}
@@ -962,13 +1028,23 @@ export default function Finance() {
                 </div>
                 <div className="space-y-1.5">
                   <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('memberships.amount', { currency })}</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={clanarinaIznos}
-                    onChange={(e) => setClanarinaIznos(Number(e.target.value) || 0)}
-                    className="w-24 sm:w-28 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={clanarinaIznosDraft}
+                      onChange={(e) => setClanarinaIznosDraft(e.target.value.replace(/[^0-9,.]/g, ''))}
+                      className="w-24 sm:w-28 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handlePromeniClanarinu}
+                      disabled={clanarinaSaving}
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {clanarinaSaving ? '...' : 'Promeni članarinu'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
