@@ -77,11 +77,32 @@ func GetPublicKorisnikStatistika(c *gin.Context) {
 		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
+
+	var prijave []models.Prijava
+	if err := db.Where("korisnik_id = ? AND status = ?", korisnik.ID, "popeo se").
+		Preload("Akcija").
+		Find(&prijave).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju statistike", "details": err.Error()})
+		return
+	}
+
+	var ukupnoKm float64
+	var ukupnoMetaraUspona int
+	var brojPopeoSe int
+	for _, p := range prijave {
+		if p.Akcija.ID == 0 {
+			continue
+		}
+		ukupnoKm += p.Akcija.UkupnoKmAkcija
+		ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
+		brojPopeoSe++
+	}
+
 	c.JSON(200, gin.H{
 		"statistika": map[string]interface{}{
-			"ukupnoKm":           korisnik.UkupnoKmKorisnik,
-			"ukupnoMetaraUspona": korisnik.UkupnoMetaraUsponaKorisnik,
-			"brojPopeoSe":        korisnik.BrojPopeoSe,
+			"ukupnoKm":           ukupnoKm,
+			"ukupnoMetaraUspona": ukupnoMetaraUspona,
+			"brojPopeoSe":        brojPopeoSe,
 		},
 	})
 }

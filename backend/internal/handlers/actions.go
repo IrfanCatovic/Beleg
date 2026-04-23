@@ -2039,15 +2039,32 @@ func UpdatePrijavaStatus(c *gin.Context) {
 		return
 	}
 
-	if req.Status == "popeo se" && prijava.Status != "popeo se" {
+	wasPopeoSe := prijava.Status == "popeo se"
+	willBePopeoSe := req.Status == "popeo se"
+	if wasPopeoSe != willBePopeoSe {
 		var korisnik models.Korisnik
 		if err := db.First(&korisnik, prijava.KorisnikID).Error; err != nil {
 			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 			return
 		}
-		korisnik.UkupnoKmKorisnik += prijava.Akcija.UkupnoKmAkcija
-		korisnik.UkupnoMetaraUsponaKorisnik += prijava.Akcija.UkupnoMetaraUsponaAkcija
-		korisnik.BrojPopeoSe += 1
+		if willBePopeoSe {
+			korisnik.UkupnoKmKorisnik += prijava.Akcija.UkupnoKmAkcija
+			korisnik.UkupnoMetaraUsponaKorisnik += prijava.Akcija.UkupnoMetaraUsponaAkcija
+			korisnik.BrojPopeoSe += 1
+		} else {
+			korisnik.UkupnoKmKorisnik -= prijava.Akcija.UkupnoKmAkcija
+			korisnik.UkupnoMetaraUsponaKorisnik -= prijava.Akcija.UkupnoMetaraUsponaAkcija
+			korisnik.BrojPopeoSe -= 1
+			if korisnik.UkupnoKmKorisnik < 0 {
+				korisnik.UkupnoKmKorisnik = 0
+			}
+			if korisnik.UkupnoMetaraUsponaKorisnik < 0 {
+				korisnik.UkupnoMetaraUsponaKorisnik = 0
+			}
+			if korisnik.BrojPopeoSe < 0 {
+				korisnik.BrojPopeoSe = 0
+			}
+		}
 		if err := db.Save(&korisnik).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
 			return
