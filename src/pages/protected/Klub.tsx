@@ -78,7 +78,7 @@ interface ClubJoinRequestItem {
 
 export default function Klub() {
   const { t } = useTranslation('clubs')
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { naziv } = useParams<{ naziv?: string }>()
   const navigate = useNavigate()
   const [klub, setKlub] = useState<KlubData | null>(null)
@@ -109,6 +109,7 @@ export default function Klub() {
   const [joinRequestsLoading, setJoinRequestsLoading] = useState(false)
   const [joinRequestsError, setJoinRequestsError] = useState('')
   const [joinRequestBusyId, setJoinRequestBusyId] = useState<number | null>(null)
+  const [leaveBusy, setLeaveBusy] = useState(false)
 
   const isNoClubUser = user?.role !== 'superadmin' && (user?.klubId == null || Number(user.klubId) === 0)
 
@@ -331,6 +332,26 @@ export default function Klub() {
     }
   }
 
+  const handleLeaveClub = async () => {
+    if (leaveBusy) return
+    const ok = window.confirm('Da li ste sigurni da želite da napustite klub?')
+    if (!ok) return
+    setLeaveBusy(true)
+    try {
+      await api.post('/api/club-membership/leave')
+      await refreshUser()
+      navigate('/klub', { replace: true })
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
+          ? String((err.response.data as { error: unknown }).error)
+          : 'Greška pri napuštanju kluba.'
+      setSaveError(msg)
+    } finally {
+      setLeaveBusy(false)
+    }
+  }
+
   if (isNoClubUser) return <NoClubJoinView />
   if (loading) return <Loader />
   if (error) {
@@ -423,6 +444,16 @@ export default function Klub() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {user?.role !== 'superadmin' && !editing && (
+                <button
+                  type="button"
+                  onClick={() => void handleLeaveClub()}
+                  disabled={leaveBusy}
+                  className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {leaveBusy ? 'Napustanje...' : 'Napusti klub'}
+                </button>
+              )}
               {canManage && !editing && (
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 transition-colors">
                   <PencilSquareIcon className="h-5 w-5" /> {t('club.actions.edit')}

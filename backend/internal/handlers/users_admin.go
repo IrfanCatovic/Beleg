@@ -160,10 +160,8 @@ func UpdateKorisnikByAdmin(c *gin.Context) {
 func DeleteKorisnikByAdmin(c *gin.Context) {
 	roleVal, _ := c.Get("role")
 	roleStr, _ := roleVal.(string)
-	isAdmin := roleStr == "admin" || roleStr == "superadmin"
-	isSekretar := roleStr == "sekretar"
-	if !isAdmin && !isSekretar {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu da obrišu korisnika"})
+	if roleStr != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo superadmin može da obriše korisnika"})
 		return
 	}
 	idStr := c.Param("id")
@@ -189,18 +187,6 @@ func DeleteKorisnikByAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Korisnik je već deaktiviran"})
 		return
 	}
-	if roleStr != "superadmin" {
-		clubID, ok := helpers.GetEffectiveClubID(c, db)
-		if !ok || clubID == 0 {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Nemate izabran klub"})
-			return
-		}
-		if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Možete obrisati samo članove svog kluba"})
-			return
-		}
-	}
-
 	var transCount int64
 	if err := db.Model(&models.Transakcija{}).Where("korisnik_id = ?", id).Count(&transCount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri transakcija"})

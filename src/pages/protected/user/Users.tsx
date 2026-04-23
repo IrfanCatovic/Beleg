@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
@@ -37,7 +37,7 @@ export default function Korisnici() {
   const roleDropdownRef = useRef<HTMLDivElement>(null)
   const [avatarFailed, setAvatarFailed] = useState<Record<number, boolean>>({})
   const [printingId, setPrintingId] = useState<number | null>(null)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [kickingId, setKickingId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'rank'>('all')
   const [rankByUserId, setRankByUserId] = useState<Record<number, RankResult>>({})
 
@@ -179,22 +179,22 @@ export default function Korisnici() {
     [filteredKorisnici, globalPositionByUserId, rankByUserId]
   )
 
-  const handleDelete = async (k: Korisnik) => {
-    if (deletingId) return
+  const handleKickFromClub = async (k: Korisnik) => {
+    if (kickingId) return
     const ok = await showConfirm(
-      t('confirmDelete', { name: k.fullName || k.username }),
-      { variant: 'danger', confirmLabel: t('delete') }
+      `Da li želite da izbacite korisnika ${k.fullName || k.username} iz kluba?`,
+      { variant: 'danger', confirmLabel: 'Izbaci iz kluba' }
     )
     if (!ok) return
-    setDeletingId(k.id)
+    setKickingId(k.id)
     try {
-      await api.delete(`/api/korisnici/${k.id}`)
+      await api.post('/api/club-membership/remove', { userId: k.id, reason: '' })
       setKorisnici((prev) => prev.filter((u) => u.id !== k.id))
-      await showAlert(t('deletedSuccess'))
+      await showAlert('Korisnik je izbačen iz kluba.')
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('deleteError'), t('errorTitle'))
+      await showAlert(err.response?.data?.error || 'Greška pri izbacivanju korisnika iz kluba.', t('errorTitle'))
     } finally {
-      setDeletingId(null)
+      setKickingId(null)
     }
   }
 
@@ -520,14 +520,14 @@ export default function Korisnici() {
                               <button
                                 type="button"
                                 className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={t('deleteUser')}
+                                title="Izbaci iz kluba"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDelete(k)
+                                  handleKickFromClub(k)
                                 }}
-                                disabled={deletingId === k.id}
+                                disabled={kickingId === k.id}
                               >
-                                <TrashIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${deletingId === k.id ? 'animate-pulse' : ''}`} />
+                                <ArrowRightStartOnRectangleIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${kickingId === k.id ? 'animate-pulse' : ''}`} />
                               </button>
                             )}
                           </div>
