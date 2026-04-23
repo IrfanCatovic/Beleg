@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -117,6 +117,7 @@ export default function ActionDetails() {
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
+  const location = useLocation()
   const navigate = useNavigate()
   const [akcija, setAkcija] = useState<Akcija | null>(null)
   const [prijave, setPrijave] = useState<Prijava[]>([])
@@ -1647,7 +1648,14 @@ export default function ActionDetails() {
                     )}
                     {!user && !!akcija.prevoz?.length && (
                       <p className="mt-4 text-[11px] text-gray-500 text-center">
-                        <Link to="/login" className="text-sky-600 font-bold hover:text-sky-700">Prijavite se</Link> da biste mogli da odaberete prevoz.
+                        <Link
+                          to="/login"
+                          state={{ returnTo: `${location.pathname}${location.search}` }}
+                          className="text-sky-600 font-bold hover:text-sky-700"
+                        >
+                          Prijavite se
+                        </Link>{' '}
+                        da biste mogli da odaberete prevoz.
                       </p>
                     )}
                   </div>
@@ -1824,7 +1832,14 @@ export default function ActionDetails() {
                       </svg>
                     </div>
                     <p className="text-sm text-gray-500">
-                      <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">Prijavite se</Link> na akciju, ako nemate nalog{' '}
+                      <Link
+                        to="/login"
+                        state={{ returnTo: `${location.pathname}${location.search}` }}
+                        className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
+                      >
+                        Prijavite se
+                      </Link>{' '}
+                      na akciju, ako nemate nalog{' '}
                       <button
                         type="button"
                         onClick={() => setRegisterOptionsOpen(true)}

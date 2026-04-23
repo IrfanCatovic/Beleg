@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEffect, useState, useMemo } from 'react'
 import api from '../../services/api'
@@ -16,6 +16,7 @@ export default function Login() {
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
+  const location = useLocation()
   const [username, setUsername] = useState(DEMO_LOGIN_USERNAME)
   const [password, setPassword] = useState(DEMO_LOGIN_PASSWORD)
   const [showPassword, setShowPassword] = useState(false)
@@ -56,7 +57,12 @@ export default function Login() {
         password,
       })
       login(response.data)
-      navigate('/home')
+      const returnToRaw = (location.state as { returnTo?: string } | null)?.returnTo
+      const returnTo =
+        typeof returnToRaw === 'string' && returnToRaw.startsWith('/')
+          ? returnToRaw
+          : '/home'
+      navigate(returnTo, { replace: true })
     } catch (err: any) {
       const code = err.response?.data?.code
       const email = err.response?.data?.email
