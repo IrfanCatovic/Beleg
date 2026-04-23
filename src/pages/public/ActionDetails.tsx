@@ -129,11 +129,15 @@ export default function ActionDetails() {
   const [addingMember, setAddingMember] = useState(false)
   const [addingMemberError, setAddingMemberError] = useState('')
   const [summitShareOpen, setSummitShareOpen] = useState(false)
-  const [summitShareStep, setSummitShareStep] = useState<1 | 2>(1)
+  const [summitShareStep, setSummitShareStep] = useState<0 | 1 | 2>(0)
   const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
   const [summitPreviewBalanced, setSummitPreviewBalanced] = useState<string | null>(null)
   const [summitPreviewStacked, setSummitPreviewStacked] = useState<string | null>(null)
   const [summitPreviewLoading, setSummitPreviewLoading] = useState(false)
+  const [actionShareUrl, setActionShareUrl] = useState('')
+  const [actionShareLoading, setActionShareLoading] = useState(false)
+  const [actionShareCopied, setActionShareCopied] = useState(false)
+  const [actionShareError, setActionShareError] = useState('')
   const [clubCurrency, setClubCurrency] = useState('RSD')
   const [prevozPrijave, setPrevozPrijave] = useState<Record<number, PrevozParticipant[]>>({})
   const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
@@ -170,7 +174,7 @@ export default function ActionDetails() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSummitShareOpen(false)
-        setSummitShareStep(1)
+        setSummitShareStep(0)
         setSummitPickedAspect(null)
       }
     }
@@ -855,19 +859,76 @@ export default function ActionDetails() {
     })
   }
 
-  const showSummitImageCard =
+  const showSummitImageCard = !!user
+  const canClaimSummitReward =
     !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
 
   const closeSummitShareModal = () => {
     setSummitShareOpen(false)
-    setSummitShareStep(1)
+    setSummitShareStep(0)
     setSummitPickedAspect(null)
+    setActionShareCopied(false)
+    setActionShareError('')
   }
 
-  const openSummitShareModal = () => {
-    setSummitShareStep(1)
+  const resolveActionPublicUrl = () => {
+    const base =
+      (typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : '').replace(/\/$/, '')
+    if (base) return `${base}/akcije/${akcija.id}`
+    return `/akcije/${akcija.id}`
+  }
+
+  const ensureShareUrl = async () => {
+    setActionShareError('')
+    setActionShareCopied(false)
+
+    if (inviteToken) {
+      setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
+      return
+    }
+    if (akcija.javna) {
+      setActionShareUrl(resolveActionPublicUrl())
+      return
+    }
+    if (!canManageHost) {
+      setActionShareUrl(resolveActionPublicUrl())
+      return
+    }
+    if (actionShareUrl) {
+      return
+    }
+
+    setActionShareLoading(true)
+    try {
+      const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${id}/invite-link/regenerate`)
+      const inviteUrl = (res.data?.inviteUrl || '').trim()
+      setActionShareUrl(inviteUrl || resolveActionPublicUrl())
+    } catch (err: any) {
+      setActionShareError(err?.response?.data?.error || 'Neuspešno kreiranje share linka.')
+      setActionShareUrl(resolveActionPublicUrl())
+    } finally {
+      setActionShareLoading(false)
+    }
+  }
+
+  const openSummitShareModal = async () => {
+    setSummitShareStep(0)
     setSummitPickedAspect(null)
     setSummitShareOpen(true)
+    await ensureShareUrl()
+  }
+
+  const copyActionShareLink = async () => {
+    if (!actionShareUrl) return
+    try {
+      await navigator.clipboard.writeText(actionShareUrl)
+      setActionShareCopied(true)
+      window.setTimeout(() => setActionShareCopied(false), 1600)
+    } catch {
+      await showAlert('Kopiranje nije uspelo. Link možete ručno kopirati.', t('errorTitle'))
+    }
   }
 
   const handleSummitPngDownload = async (aspect: SummitAspect, layout: SummitLayout) => {
@@ -1942,7 +2003,9 @@ export default function ActionDetails() {
                       <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('summitImageTitle')}</h3>
                     </div>
                     <div className="p-5 space-y-4">
-                      <p className="text-[12px] text-gray-500 leading-relaxed">{t('summitImageSubtitle')}</p>
+                      <p className="text-[12px] text-gray-500 leading-relaxed">
+                        Podeli link akcije i pozovi ekipu jednim klikom. Nagradu možeš preuzeti nakon uspešnog uspona.
+                      </p>
                       <button
                         type="button"
                         onClick={openSummitShareModal}
@@ -1955,7 +2018,7 @@ export default function ActionDetails() {
                       </button>
                     </div>
                   </div>
-                )}
+                )}``
 
                 {canManageHost && !isLimitedView && (
                   <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -2075,8 +2138,60 @@ export default function ActionDetails() {
             </div>
 
             <div className="p-5 space-y-4">
+              {summitShareStep === 0 && (
+                <>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Link akcije</p>
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                      <p className="text-[11px] text-gray-500 mb-1">Podelite ovaj link u grupi:</p>
+                      <p className="text-xs font-medium text-gray-800 break-all">
+                        {actionShareLoading ? 'Kreiram link...' : actionShareUrl || resolveActionPublicUrl()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void copyActionShareLink()}
+                      disabled={actionShareLoading || !actionShareUrl}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      Kopiraj
+                    </button>
+                    {actionShareCopied && (
+                      <p className="text-xs text-emerald-700 text-center">Link je kopiran.</p>
+                    )}
+                    {actionShareError && (
+                      <p className="text-xs text-rose-600">{actionShareError}</p>
+                    )}
+                  </div>
+
+                  {!canClaimSummitReward ? (
+                    <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                      Popni akciju i preuzmi nagradu
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSummitShareStep(1)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all"
+                    >
+                      Preuzmi nagradu
+                    </button>
+                  )}
+                </>
+              )}
+
               {summitShareStep === 1 && (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => setSummitShareStep(0)}
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    {t('summitBack')}
+                  </button>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('summitStepChooseFormat')}</p>
                   <div className="grid grid-cols-2 gap-3">
                     <button
