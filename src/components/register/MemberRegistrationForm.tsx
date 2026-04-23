@@ -122,16 +122,14 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
       return
     }
 
-    if (!isStaff) {
-      const em = form.email.trim()
-      if (!em) {
-        setError(tInvite('registerForm.emailRequired'))
-        return
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
-        setError(tInvite('registerForm.emailInvalid'))
-        return
-      }
+    const em = form.email.trim()
+    if (!em) {
+      setError(tInvite('registerForm.emailRequired'))
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      setError(tInvite('registerForm.emailInvalid'))
+      return
     }
 
     setSubmitting(true)
@@ -339,9 +337,10 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
         <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
           {t('registerUser.contactOptional')}
         </h3>
+        <p className="text-xs text-emerald-700 -mt-1 mb-2">{tInvite('registerForm.emailRequired')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
-            <label className={labelClass}>{t('registerUser.email')}</label>
+            <label className={labelClass}>{t('registerUser.email')} *</label>
             <input
               name="email"
               type="email"
@@ -349,7 +348,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               onChange={handleChange}
               className={inputClass}
               placeholder={t('registerUser.emailPlaceholder')}
-              required={!isStaff}
+              required
               disabled={submitting || success}
             />
           </div>
