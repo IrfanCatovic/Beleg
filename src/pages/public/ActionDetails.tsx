@@ -1794,29 +1794,7 @@ export default function ActionDetails() {
               </div>
             )}
 
-            {!user && !akcija.isCompleted && (
-              <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-white via-emerald-50/70 to-teal-50/50 shadow-sm p-5 sm:p-6">
-                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-                  Prijavite se na akciju, ako nemate nalog registrujte se.
-                </p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all"
-                  >
-                    Prijavite se
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegisterOptionsOpen(true)}
-                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-50 transition-all"
-                  >
-                    Registrujte se
-                  </button>
-                </div>
-              </div>
-            )}
+          
 
             {/* ════════ ROW 4: Members list (FULL WIDTH) ════════ */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
@@ -2039,9 +2017,9 @@ export default function ActionDetails() {
 
             {/* ════════ ROW 5: Summit share + Admin ════════ */}
             {(showSummitImageCard || (canManageHost && !isLimitedView)) && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {showSummitImageCard && (
-                  <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden ring-1 ring-emerald-500/10">
+                  <div className="lg:order-1 bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden ring-1 ring-emerald-500/10">
                     <div className="px-5 py-4 border-b border-emerald-50 flex items-center gap-2.5 bg-gradient-to-r from-emerald-50/80 to-teal-50/40">
                       <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
                       <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('summitImageTitle')}</h3>
@@ -2062,10 +2040,10 @@ export default function ActionDetails() {
                       </button>
                     </div>
                   </div>
-                )}``
+                )}
 
                 {canManageHost && !isLimitedView && (
-                  <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="lg:order-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                       <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
                       <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('managementTitle')}</h3>
