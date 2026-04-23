@@ -138,6 +138,7 @@ export default function ActionDetails() {
   const [actionShareLoading, setActionShareLoading] = useState(false)
   const [actionShareCopied, setActionShareCopied] = useState(false)
   const [actionShareError, setActionShareError] = useState('')
+  const [registerOptionsOpen, setRegisterOptionsOpen] = useState(false)
   const [clubCurrency, setClubCurrency] = useState('RSD')
   const [prevozPrijave, setPrevozPrijave] = useState<Record<number, PrevozParticipant[]>>({})
   const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
@@ -181,6 +182,17 @@ export default function ActionDetails() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [summitShareOpen])
+
+  useEffect(() => {
+    if (!registerOptionsOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setRegisterOptionsOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [registerOptionsOpen])
 
   useEffect(() => {
     if (summitShareStep !== 2 || !summitPickedAspect || !akcija) {
@@ -1782,6 +1794,30 @@ export default function ActionDetails() {
               </div>
             )}
 
+            {!user && !akcija.isCompleted && (
+              <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-white via-emerald-50/70 to-teal-50/50 shadow-sm p-5 sm:p-6">
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+                  Prijavite se na akciju, ako nemate nalog registrujte se.
+                </p>
+                <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all"
+                  >
+                    Prijavite se
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegisterOptionsOpen(true)}
+                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-50 transition-all"
+                  >
+                    Registrujte se
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ════════ ROW 4: Members list (FULL WIDTH) ════════ */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
               <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
@@ -1810,7 +1846,15 @@ export default function ActionDetails() {
                       </svg>
                     </div>
                     <p className="text-sm text-gray-500">
-                      <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t('loginToSeeMembers')}</Link> {t('loginToSeeMembersSuffix')}
+                      <Link to="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">Prijavite se</Link> na akciju, ako nemate nalog{' '}
+                      <button
+                        type="button"
+                        onClick={() => setRegisterOptionsOpen(true)}
+                        className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors underline-offset-2 hover:underline"
+                      >
+                        registrujte se
+                      </button>
+                      .
                     </p>
                   </div>
                 )}
@@ -2310,6 +2354,61 @@ export default function ActionDetails() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {registerOptionsOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]"
+          role="presentation"
+          onClick={() => setRegisterOptionsOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="register-options-title"
+            className="relative w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/50">
+              <h2 id="register-options-title" className="text-sm font-bold text-gray-900 tracking-tight">
+                Izaberite način registracije
+              </h2>
+              <button
+                type="button"
+                onClick={() => setRegisterOptionsOpen(false)}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-white/80 hover:text-gray-800 transition-colors"
+                aria-label="Zatvori"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setRegisterOptionsOpen(false)
+                  navigate('/registracija-kod')
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 transition-all"
+              >
+                Imam kod kluba
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegisterOptionsOpen(false)
+                  navigate('/registracija')
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-all"
+              >
+                Registracija bez koda
+              </button>
             </div>
           </div>
         </div>
