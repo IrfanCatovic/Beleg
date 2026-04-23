@@ -461,6 +461,7 @@ func GetAkcije(c *gin.Context) {
 		for i := range aktivne {
 			if aktivne[i].Klub != nil {
 				aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+				aktivne[i].KlubLogoURL = aktivne[i].Klub.LogoURL
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
@@ -477,6 +478,7 @@ func GetAkcije(c *gin.Context) {
 		for i := range aktivne {
 			if aktivne[i].Klub != nil {
 				aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+				aktivne[i].KlubLogoURL = aktivne[i].Klub.LogoURL
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
@@ -498,11 +500,13 @@ func GetAkcije(c *gin.Context) {
 	for i := range aktivne {
 		if aktivne[i].Klub != nil {
 			aktivne[i].KlubNaziv = aktivne[i].Klub.Naziv
+			aktivne[i].KlubLogoURL = aktivne[i].Klub.LogoURL
 		}
 	}
 	for i := range zavrsene {
 		if zavrsene[i].Klub != nil {
 			zavrsene[i].KlubNaziv = zavrsene[i].Klub.Naziv
+			zavrsene[i].KlubLogoURL = zavrsene[i].Klub.LogoURL
 		}
 	}
 

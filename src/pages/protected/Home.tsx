@@ -21,6 +21,7 @@ interface Akcija {
   tezina?: string
   javna?: boolean
   klubNaziv?: string
+  klubLogoUrl?: string
   addedById?: number
   slikaUrl?: string
   opis?: string
@@ -769,6 +770,7 @@ function SuggestedActionCard({
   const posterName = akcija.klubNaziv?.trim() || addedBy?.fullName?.trim() || addedBy?.username || 'Clan kluba'
   const posterInitial = posterName.charAt(0).toUpperCase()
   const isKlub = !!akcija.klubNaziv && !akcija.javna
+  const posterAvatar = akcija.klubLogoUrl || addedBy?.avatar_url
   const location = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
   const addedByName = addedBy?.fullName?.trim() || addedBy?.username
 
@@ -776,16 +778,20 @@ function SuggestedActionCard({
     <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden border-b border-gray-100 sm:border-b">
       {/* Header: ko je izbacio akciju */}
       <div className="px-4 sm:px-5 pt-3.5 pb-3 flex items-center gap-3">
-        <span
-          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold shadow-sm ${
+        <div
+          className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold shadow-sm overflow-hidden ${
             isKlub
               ? 'bg-gradient-to-br from-violet-400 to-purple-600'
               : 'bg-gradient-to-br from-emerald-400 to-teal-600'
           }`}
           aria-hidden="true"
         >
-          {posterInitial}
-        </span>
+          {posterAvatar ? (
+            <img src={posterAvatar} alt={posterName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <span>{posterInitial}</span>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate">{posterName}</p>

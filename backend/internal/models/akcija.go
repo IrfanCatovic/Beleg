@@ -31,7 +31,8 @@ type Akcija struct {
 	KlubID *uint    `json:"klubId,omitempty"`
 	Klub   *Klubovi `gorm:"foreignKey:KlubID" json:"-"`
 
-	KlubNaziv string `gorm:"-" json:"klubNaziv,omitempty"`
+	KlubNaziv   string `gorm:"-" json:"klubNaziv,omitempty"`
+	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
 
 	TipAkcije                string     `gorm:"type:varchar(30);default:'planina'" json:"tipAkcije"`
 	TrajanjeSati             float64    `gorm:"default:0" json:"trajanjeSati"`
