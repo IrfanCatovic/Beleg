@@ -9,6 +9,7 @@ import Loader from '../../components/Loader'
 import { tezinaLabel } from '../../utils/difficultyI18n'
 import { userHasClubContext } from '../../utils/clubContext'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
+import FollowControls from '../../components/buttons/FollowControls'
 
 interface Akcija {
   id: number
@@ -17,6 +18,9 @@ interface Akcija {
   vrh: string
   datum: string
   tezina?: string
+  javna?: boolean
+  klubNaziv?: string
+  addedById?: number
   isCompleted: boolean
 }
 
@@ -59,6 +63,7 @@ export default function Home() {
   const [mentionStart, setMentionStart] = useState<number | null>(null)
   const [mentionEnd, setMentionEnd] = useState<number | null>(null)
   const postMentionWrapperRef = useRef<HTMLDivElement>(null)
+  const [followingUserIds, setFollowingUserIds] = useState<number[]>([])
 
   const hasMore = posts.length < total
 
@@ -273,6 +278,66 @@ export default function Home() {
     el.style.height = Math.min(el.scrollHeight, 200) + 'px'
   }
 
+  const shuffleAndTake = useCallback(<T,>(arr: T[], count: number): T[] => {
+    if (!Array.isArray(arr) || arr.length === 0 || count <= 0) return []
+    const shuffled = [...arr]
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const tmp = shuffled[i]
+      shuffled[i] = shuffled[j]
+      shuffled[j] = tmp
+    }
+    return shuffled.slice(0, count)
+  }, [])
+
+  const usersById = useMemo(() => {
+    const map = new Map<number, MentionUser>()
+    for (const u of mentionUsers) {
+      if (typeof u.id === 'number') map.set(u.id, u)
+    }
+    return map
+  }, [mentionUsers])
+
+  const suggestedActions = useMemo(() => {
+    const now = new Date()
+    const candidates = aktivneAkcije
+      .filter((a) => !a.isCompleted && (a.datum ? new Date(a.datum) >= now : true))
+    return shuffleAndTake(candidates, 2)
+  }, [aktivneAkcije, shuffleAndTake])
+
+  const suggestedUsers = useMemo(() => {
+    const ownId = mentionUsers.find((u) => u.username === user?.username)?.id
+    const blockedIds = new Set<number>(followingUserIds)
+    if (typeof ownId === 'number') blockedIds.add(ownId)
+    const pool = mentionUsers.filter((u) => !blockedIds.has(u.id))
+    return shuffleAndTake(pool, 2)
+  }, [mentionUsers, followingUserIds, shuffleAndTake, user?.username])
+
+  const handleShareInvite = useCallback(() => {
+    const registerUrl = `${window.location.origin}/registracija`
+    const message =
+      `Hej! Ja koristim Planiner.\n` +
+      `Pridruzi se akciji: registruj se ovde ${registerUrl}`
+    const encoded = encodeURIComponent(message)
+    const appUrl = `whatsapp://send?text=${encoded}`
+    const webUrl = `https://wa.me/?text=${encoded}`
+    const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent)
+
+    if (isMobile) {
+      const startedAt = Date.now()
+      window.location.href = appUrl
+      window.setTimeout(() => {
+        // Ako app deep-link nije uspeo, padamo na web share.
+        if (Date.now() - startedAt < 1600) {
+          window.open(webUrl, '_blank', 'noopener,noreferrer')
+        }
+      }, 900)
+      return
+    }
+
+    window.open(webUrl, '_blank', 'noopener,noreferrer')
+  }, [])
+
   const sledeceAkcije = useMemo(() => {
     const now = new Date()
     return [...aktivneAkcije]
@@ -280,6 +345,19 @@ export default function Home() {
       .sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
       .slice(0, 5)
   }, [aktivneAkcije])
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.username) return
+    api
+      .get<{ users?: Array<{ id: number }> }>(`/api/follows/user/${encodeURIComponent(user.username)}/following`)
+      .then((res) => {
+        const ids = (res.data.users || [])
+          .map((u) => Number(u.id))
+          .filter((id) => Number.isFinite(id) && id > 0)
+        setFollowingUserIds(ids)
+      })
+      .catch(() => setFollowingUserIds([]))
+  }, [isLoggedIn, user?.username])
 
   if (!isLoggedIn) {
     return (
@@ -488,6 +566,89 @@ export default function Home() {
 
             {/* ── Divider on mobile ── */}
             <div className="h-2 bg-gray-100 sm:hidden" />
+
+            {/* ── Discovery strip (mobile-first) ── */}
+            {(suggestedActions.length > 0 || suggestedUsers.length > 0) && (
+              <div className="sm:mt-4 sm:rounded-2xl sm:border sm:border-gray-200/60 sm:bg-white sm:shadow-sm overflow-hidden">
+                <div className="px-4 sm:px-5 pt-4 pb-3 border-b border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-900">Sta je novo za tebe</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Nove akcije, ljudi i brzi poziv za ekipu.</p>
+                </div>
+
+                {suggestedActions.length > 0 && (
+                  <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-2.5 bg-white">
+                    {suggestedActions.map((akcija) => {
+                      const addedBy = typeof akcija.addedById === 'number' ? usersById.get(akcija.addedById) : null
+                      return (
+                        <Link
+                          key={`suggested-action-${akcija.id}`}
+                          to={`/akcije/${akcija.id}`}
+                          className="block rounded-xl border border-gray-200/80 bg-gradient-to-r from-white to-gray-50/40 p-3 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                                {akcija.javna ? 'Javna akcija' : 'Klubska akcija'}
+                              </p>
+                              <p className="text-sm font-bold text-gray-900 truncate mt-0.5">{akcija.naziv}</p>
+                              <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                                {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')} · {formatDateShort(akcija.datum)}
+                              </p>
+                              <p className="text-[11px] text-gray-400 mt-1 truncate">
+                                Dodao/la: {addedBy?.fullName?.trim() || addedBy?.username || akcija.klubNaziv || 'Clan kluba'}
+                              </p>
+                            </div>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${akcija.javna ? 'bg-emerald-50 text-emerald-700' : 'bg-violet-50 text-violet-700'}`}>
+                              {akcija.javna ? 'Javno' : 'Klub'}
+                            </span>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <div className="px-4 sm:px-5 pb-4">
+                  <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="flex gap-3">
+                      {suggestedUsers.map((u) => (
+                        <div
+                          key={`suggested-user-${u.id}`}
+                          className="min-w-[220px] flex-1 rounded-xl border border-gray-200 bg-white p-3"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-bold">
+                              {(u.fullName?.trim() || u.username || '?').charAt(0).toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">{u.fullName?.trim() || u.username}</p>
+                              <p className="text-xs text-gray-500 truncate">@{u.username}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <FollowControls targetId={u.id} />
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="min-w-[220px] flex-1 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Pozovi ekipu</p>
+                        <p className="mt-1 text-sm font-bold text-emerald-900">
+                          Otvori WhatsApp i posalji poruku samo za registraciju.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleShareInvite}
+                          className="mt-3 inline-flex items-center justify-center w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
+                        >
+                          Pozovi na WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ── Post List ── */}
             {posts.length === 0 && !loadingPosts ? (
