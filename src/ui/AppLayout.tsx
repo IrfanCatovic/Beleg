@@ -20,6 +20,15 @@ interface ObavestenjeItem {
   createdAt: string
 }
 
+interface PendingParticipationRequest {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+}
+
+interface PendingFollowRequest {
+  followId: number
+}
+
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `relative px-3.5 py-1.5 text-[13px] font-semibold tracking-wide rounded-lg transition-all duration-200 ${
     isActive
@@ -49,6 +58,8 @@ export default function AppLayout() {
   const [notifications, setNotifications] = useState<ObavestenjeItem[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingActionRequestsCount, setPendingActionRequestsCount] = useState(0)
+  const [pendingFollowRequestsCount, setPendingFollowRequestsCount] = useState(0)
   const searchPanelRef = useRef<HTMLDivElement>(null)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const notificationsBlockRef = useRef<HTMLDivElement>(null)
@@ -97,6 +108,24 @@ export default function AppLayout() {
     if (!isLoggedIn || isSuperadminNoClub) return
     api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
   }, [isLoggedIn, isSuperadminNoClub])
+
+  useEffect(() => {
+    if (!isLoggedIn || isSuperadminNoClub) return
+    const loadRequestCounts = async () => {
+      try {
+        const [actionRes, followRes] = await Promise.all([
+          api.get<{ requests: PendingParticipationRequest[] }>('/api/moja-ucesca-zahtevi', { params: { status: 'pending' } }),
+          api.get<{ requests: PendingFollowRequest[] }>('/api/follows/requests/pending'),
+        ])
+        setPendingActionRequestsCount((actionRes.data.requests || []).filter((req) => req.status === 'pending').length)
+        setPendingFollowRequestsCount((followRes.data.requests || []).length)
+      } catch {
+        setPendingActionRequestsCount(0)
+        setPendingFollowRequestsCount(0)
+      }
+    }
+    void loadRequestCounts()
+  }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen, location.pathname])
 
   useEffect(() => {
     if (!isLoggedIn || isSuperadminNoClub || !isNotificationsOpen) return
@@ -209,6 +238,11 @@ export default function AppLayout() {
 
   const iconBtnClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
+  const totalPendingRequests = pendingActionRequestsCount + pendingFollowRequestsCount
+  const hasPendingRequests = totalPendingRequests > 0
+  const requestsSummaryMobileClass = hasPendingRequests
+    ? 'border-amber-200 bg-amber-50 text-amber-800'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-700'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -311,7 +345,7 @@ export default function AppLayout() {
                         setIsProfileMenuOpen(false)
                         setIsNotificationsOpen((v) => !v)
                       }}
-                      className={`relative ${iconBtnClass}`}
+                      className={`relative ${iconBtnClass} ${hasPendingRequests ? 'ring-2 ring-amber-300/60 bg-amber-500/15 text-amber-100 hover:text-amber-50 hover:bg-amber-500/25' : ''}`}
                       aria-label={t('notifications')}
                     >
                       <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -329,6 +363,20 @@ export default function AppLayout() {
                         <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
                           <p className="text-xs font-semibold text-gray-800">{t('notifications')}</p>
                           <LanguageSwitcher />
+                        </div>
+                        <div className="px-4 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
+                            className={`w-full rounded-xl border px-3 py-2 text-left text-[11px] font-semibold transition-colors ${requestsSummaryMobileClass}`}
+                          >
+                            <p className="uppercase tracking-wider">Trenutni zahtevi</p>
+                            {hasPendingRequests ? (
+                              <p className="mt-1 normal-case">Trenutno imate: {totalPendingRequests} zahteva</p>
+                            ) : (
+                              <p className="mt-1 normal-case">Nemate zahteva</p>
+                            )}
+                          </button>
                         </div>
                         <div className="max-h-80 overflow-y-auto">
                           {notificationsLoading ? (
@@ -671,7 +719,9 @@ export default function AppLayout() {
                 className="relative flex flex-col items-center justify-center"
                 aria-label={t('notifications')}
               >
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white shadow-sm">
+                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm ${
+                  hasPendingRequests ? 'bg-amber-500/30 ring-2 ring-amber-300/60' : 'bg-white/20'
+                }`}>
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
                   </svg>
@@ -745,6 +795,20 @@ export default function AppLayout() {
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
+              </button>
+            </div>
+            <div className="px-4 pt-3">
+              <button
+                type="button"
+                onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
+                className={`w-full rounded-xl border px-3 py-2.5 text-left text-xs font-semibold ${requestsSummaryMobileClass}`}
+              >
+                <p className="uppercase tracking-wider">Trenutni zahtevi</p>
+                {hasPendingRequests ? (
+                  <p className="mt-1 normal-case">Trenutno imate: {totalPendingRequests} zahteva</p>
+                ) : (
+                  <p className="mt-1 normal-case">Nemate zahteva</p>
+                )}
               </button>
             </div>
             <div className="overflow-y-auto flex-1 min-h-0">

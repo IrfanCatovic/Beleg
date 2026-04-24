@@ -46,6 +46,18 @@ interface ParticipationRequestItem {
   }
 }
 
+interface FollowRequestItem {
+  followId: number
+  requester: {
+    id: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+    klubNaziv?: string
+  }
+  createdAt: string
+}
+
 export default function Obavestenja() {
   const { t } = useTranslation('notifications')
   const { isLoggedIn, user } = useAuth()
@@ -53,9 +65,11 @@ export default function Obavestenja() {
   const navigate = useNavigate()
   const [list, setList] = useState<ObavestenjeItem[]>([])
   const [participationRequests, setParticipationRequests] = useState<ParticipationRequestItem[]>([])
+  const [followRequests, setFollowRequests] = useState<FollowRequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [requestsLoading, setRequestsLoading] = useState(true)
   const [requestActionId, setRequestActionId] = useState<number | null>(null)
+  const [followActionId, setFollowActionId] = useState<number | null>(null)
   const [broadcastTitle, setBroadcastTitle] = useState('')
   const [broadcastBody, setBroadcastBody] = useState('')
   const [broadcastSending, setBroadcastSending] = useState(false)
@@ -75,6 +89,15 @@ export default function Obavestenja() {
     }
   }
 
+  const loadFollowRequests = async () => {
+    try {
+      const res = await api.get<{ requests: FollowRequestItem[] }>('/api/follows/requests/pending')
+      setFollowRequests(res.data.requests ?? [])
+    } catch {
+      setFollowRequests([])
+    }
+  }
+
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/', { replace: true })
@@ -89,6 +112,7 @@ export default function Obavestenja() {
       .catch(() => setList([]))
       .finally(() => setLoading(false))
     void loadParticipationRequests()
+    void loadFollowRequests()
   }, [isLoggedIn, navigate])
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
@@ -137,6 +161,32 @@ export default function Obavestenja() {
       await showAlert(err?.response?.data?.error || 'Greška pri obradi zahteva.')
     } finally {
       setRequestActionId(null)
+    }
+  }
+
+  const handleFollowRequestAction = async (request: FollowRequestItem, decision: 'accept' | 'reject') => {
+    const requesterLabel = request.requester.fullName?.trim() || request.requester.username
+    if (decision === 'reject') {
+      const confirmed = await showConfirm(`Da li želite da odbijete zahtev za praćenje od ${requesterLabel}?`, {
+        title: 'Odbij zahtev',
+        confirmLabel: 'Odbij',
+        cancelLabel: 'Nazad',
+        variant: 'danger',
+      })
+      if (!confirmed) return
+    }
+    setFollowActionId(request.followId)
+    try {
+      if (decision === 'accept') {
+        await api.patch(`/api/follows/requests/${request.followId}/accept`)
+      } else {
+        await api.delete(`/api/follows/requests/${request.followId}`)
+      }
+      await loadFollowRequests()
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri obradi follow zahteva.')
+    } finally {
+      setFollowActionId(null)
     }
   }
 
@@ -292,6 +342,70 @@ export default function Obavestenja() {
                       </button>
                     </div>
                   )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+
+      <div className="mb-8 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Zahtevi za praćenje</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Ovde prihvataš ili odbijaš korisnike koji žele da te prate.
+            </p>
+          </div>
+          <span className="inline-flex items-center rounded-full bg-white border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
+            Pending: {followRequests.length}
+          </span>
+        </div>
+        <div className="mt-4 space-y-3">
+          {requestsLoading ? (
+            <p className="text-sm text-gray-500">Učitavanje zahteva...</p>
+          ) : followRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">Trenutno nemate zahteve za praćenje.</p>
+          ) : (
+            followRequests.map((request) => {
+              const requesterLabel = request.requester.fullName?.trim() || request.requester.username
+              return (
+                <div key={request.followId} className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{requesterLabel}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        @{request.requester.username}
+                        {request.requester.klubNaziv ? ` · ${request.requester.klubNaziv}` : ''}
+                      </p>
+                      <p className="text-xs text-gray-500">Poslato: {formatDateTime(request.createdAt)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/korisnik/${request.requester.username}`)}
+                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                    >
+                      Otvori profil
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleFollowRequestAction(request, 'reject')}
+                      disabled={followActionId === request.followId}
+                      className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                    >
+                      {followActionId === request.followId ? '...' : 'Odbij'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleFollowRequestAction(request, 'accept')}
+                      disabled={followActionId === request.followId}
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+                    >
+                      {followActionId === request.followId ? '...' : 'Prihvati'}
+                    </button>
+                  </div>
                 </div>
               )
             })
