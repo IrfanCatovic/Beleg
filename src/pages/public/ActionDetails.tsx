@@ -200,6 +200,8 @@ export default function ActionDetails() {
   const [externalCandidates, setExternalCandidates] = useState<ExternalUserCandidate[]>([])
   const [externalLoading, setExternalLoading] = useState(false)
   const [externalError, setExternalError] = useState('')
+  const [externalOffset, setExternalOffset] = useState(0)
+  const [externalHasMore, setExternalHasMore] = useState(true)
   const [sendingExternalRequestId, setSendingExternalRequestId] = useState<number | null>(null)
   const [actionParticipationRequests, setActionParticipationRequests] = useState<ActionParticipationRequest[]>([])
   const [requestsLoading, setRequestsLoading] = useState(false)
@@ -469,27 +471,49 @@ export default function ActionDetails() {
   }, [user, akcija, id])
 
   useEffect(() => {
+    setExternalCandidates([])
+    setExternalOffset(0)
+    setExternalHasMore(true)
+  }, [externalScope, externalSearch])
+
+  useEffect(() => {
     if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted || !id) {
       setExternalCandidates([])
       setExternalError('')
+      setExternalOffset(0)
+      setExternalHasMore(true)
       return
     }
     let cancelled = false
     const run = async () => {
+      if (!externalHasMore && externalOffset > 0) return
       setExternalLoading(true)
       setExternalError('')
       try {
+        const pageSize = 5
         const res = await api.get<{ users: ExternalUserCandidate[] }>(`/api/akcije/${id}/eligible-external-users`, {
           params: {
             scope: externalScope,
             q: externalSearch.trim(),
-            limit: 12,
+            limit: pageSize,
+            offset: externalOffset,
           },
         })
-        if (!cancelled) setExternalCandidates(res.data.users || [])
+        if (cancelled) return
+        const received = res.data.users || []
+        setExternalCandidates((prev) => {
+          if (externalOffset === 0) return received
+          const seen = new Set(prev.map((x) => x.id))
+          const merged = [...prev]
+          for (const item of received) {
+            if (!seen.has(item.id)) merged.push(item)
+          }
+          return merged
+        })
+        setExternalHasMore(received.length === pageSize)
       } catch (err: any) {
         if (!cancelled) {
-          setExternalCandidates([])
+          if (externalOffset === 0) setExternalCandidates([])
           setExternalError(err?.response?.data?.error || 'Greška pri pretrazi korisnika van kluba.')
         }
       } finally {
@@ -503,7 +527,7 @@ export default function ActionDetails() {
       cancelled = true
       window.clearTimeout(timeout)
     }
-  }, [user, akcija, id, externalScope, externalSearch])
+  }, [user, akcija, id, externalScope, externalSearch, externalOffset, externalHasMore])
 
   const refreshPrijave = async () => {
     if (!id) return
@@ -874,6 +898,7 @@ export default function ActionDetails() {
       const created = res.data.request
       setActionParticipationRequests((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
       setExternalCandidates((prev) => prev.filter((item) => item.id !== candidate.id))
+      setExternalHasMore(true)
       await showAlert('Zahtev je poslat. Korisnik će dobiti obaveštenje i potvrditi učešće iz svog dela aplikacije.')
     } catch (err: any) {
       setExternalError(err?.response?.data?.error || 'Slanje zahteva nije uspelo.')
@@ -1075,6 +1100,14 @@ export default function ActionDetails() {
   const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
   const membersToAdd = clubMembers.filter((m) => !climbedByUsername.has(m.username))
   const pendingExternalRequestCount = actionParticipationRequests.filter((req) => req.status === 'pending').length
+  const handleExternalCandidatesScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (externalLoading || !externalHasMore) return
+    const el = e.currentTarget
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    if (distanceFromBottom <= 24) {
+      setExternalOffset((prev) => prev + 5)
+    }
+  }
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -2391,40 +2424,48 @@ export default function ActionDetails() {
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          {externalLoading ? (
+                        <div
+                          className="space-y-2 max-h-[360px] overflow-y-auto pr-1"
+                          onScroll={handleExternalCandidatesScroll}
+                        >
+                          {externalCandidates.length === 0 && externalLoading ? (
                             <p className="text-xs text-gray-500">Pretražujem korisnike...</p>
                           ) : externalCandidates.length === 0 ? (
                             <p className="text-xs text-gray-500">
                               {externalSearch.trim()
                                 ? 'Nema korisnika za ovu pretragu.'
-                                : 'Prikazujemo ograničen broj rezultata. Unesite ime ili @username za precizniju pretragu.'}
+                                : 'Prikazujemo 5 profila. Skrolom naniže učitava se sledećih 5.'}
                             </p>
                           ) : (
-                            externalCandidates.map((candidate) => {
-                              const displayName = candidate.fullName?.trim() || candidate.username
-                              const clubLabel = candidate.klubNaziv?.trim() || 'Bez kluba'
-                              return (
-                                <div
-                                  key={candidate.id}
-                                  className="rounded-2xl border border-gray-200 bg-white px-3 py-3 flex items-center justify-between gap-3"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-                                    <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
-                                    <p className="text-[11px] text-gray-400 truncate">{clubLabel}</p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleSendExternalRequest(candidate)}
-                                    disabled={sendingExternalRequestId === candidate.id}
-                                    className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            <>
+                              {externalCandidates.map((candidate) => {
+                                const displayName = candidate.fullName?.trim() || candidate.username
+                                const clubLabel = candidate.klubNaziv?.trim() || 'Bez kluba'
+                                return (
+                                  <div
+                                    key={candidate.id}
+                                    className="rounded-2xl border border-gray-200 bg-white px-3 py-3 flex items-center justify-between gap-3"
                                   >
-                                    {sendingExternalRequestId === candidate.id ? 'Šaljem...' : 'Pošalji zahtev'}
-                                  </button>
-                                </div>
-                              )
-                            })
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                                      <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
+                                      <p className="text-[11px] text-gray-400 truncate">{clubLabel}</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleSendExternalRequest(candidate)}
+                                      disabled={sendingExternalRequestId === candidate.id}
+                                      className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {sendingExternalRequestId === candidate.id ? 'Šaljem...' : 'Pošalji zahtev'}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                              {externalLoading && (
+                                <p className="text-xs text-gray-500 text-center py-1">Učitavam još 5 profila...</p>
+                              )}
+                            </>
                           )}
                         </div>
                         {externalError && <p className="text-xs text-rose-600">{externalError}</p>}

@@ -195,6 +195,12 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 			limit = parsed
 		}
 	}
+	offset := 0
+	if raw := strings.TrimSpace(c.Query("offset")); raw != "" {
+		if parsed, convErr := strconv.Atoi(raw); convErr == nil && parsed >= 0 && parsed <= 5000 {
+			offset = parsed
+		}
+	}
 
 	participantIDs := db.Model(&models.Prijava{}).Select("korisnik_id").Where("akcija_id = ?", akcija.ID)
 	pendingTargetIDs := db.Model(&models.ActionParticipationRequest{}).
@@ -221,7 +227,7 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 	}
 
 	var users []models.Korisnik
-	if err := q.Order("CASE WHEN full_name = '' THEN username ELSE full_name END ASC").Limit(limit).Find(&users).Error; err != nil {
+	if err := q.Order("CASE WHEN full_name = '' THEN username ELSE full_name END ASC").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri pretrazi korisnika"})
 		return
 	}
