@@ -7,7 +7,6 @@ import { getRandomHikingGreeting } from '../../data/hikingGreetings'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 
-/** Demo nalog — polja su unapred popunjena radi brzog ulaska (npr. prezentacije). */
 const DEMO_LOGIN_USERNAME = 'planiner'
 const DEMO_LOGIN_PASSWORD = 'admin123'
 
@@ -17,8 +16,8 @@ export default function Login() {
   const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
-  const [username, setUsername] = useState(DEMO_LOGIN_USERNAME)
-  const [password, setPassword] = useState(DEMO_LOGIN_PASSWORD)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
