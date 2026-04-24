@@ -513,6 +513,20 @@ export const resources = {
         month: {
           label: 'Mesec',
           all: 'Svi meseci',
+          names: {
+            1: 'Jan',
+            2: 'Feb',
+            3: 'Mar',
+            4: 'Apr',
+            5: 'Maj',
+            6: 'Jun',
+            7: 'Jul',
+            8: 'Avg',
+            9: 'Sep',
+            10: 'Okt',
+            11: 'Nov',
+            12: 'Dec',
+          },
         },
         duration: {
           label: 'Trajanje',
@@ -2244,6 +2258,20 @@ export const resources = {
         month: {
           label: 'Mjesec',
           all: 'Svi mjeseci',
+          names: {
+            1: 'Jan',
+            2: 'Feb',
+            3: 'Mar',
+            4: 'Apr',
+            5: 'Maj',
+            6: 'Jun',
+            7: 'Jul',
+            8: 'Avg',
+            9: 'Sep',
+            10: 'Okt',
+            11: 'Nov',
+            12: 'Dec',
+          },
         },
         duration: {
           label: 'Trajanje',
@@ -3566,6 +3594,20 @@ export const resources = {
         month: {
           label: 'Mjesec',
           all: 'Svi mjeseci',
+          names: {
+            1: 'Sij',
+            2: 'Velj',
+            3: 'Ožu',
+            4: 'Tra',
+            5: 'Svi',
+            6: 'Lip',
+            7: 'Srp',
+            8: 'Kol',
+            9: 'Ruj',
+            10: 'Lis',
+            11: 'Stu',
+            12: 'Pro',
+          },
         },
         duration: {
           label: 'Trajanje',
@@ -4728,6 +4770,20 @@ export const resources = {
         month: {
           label: 'Monat',
           all: 'Alle Monate',
+          names: {
+            1: 'Jan',
+            2: 'Feb',
+            3: 'Mar',
+            4: 'Apr',
+            5: 'Mai',
+            6: 'Jun',
+            7: 'Jul',
+            8: 'Aug',
+            9: 'Sep',
+            10: 'Okt',
+            11: 'Nov',
+            12: 'Dez',
+          },
         },
         duration: {
           label: 'Dauer',
@@ -5891,6 +5947,20 @@ export const resources = {
         month: {
           label: 'Month',
           all: 'All months',
+          names: {
+            1: 'Jan',
+            2: 'Feb',
+            3: 'Mar',
+            4: 'Apr',
+            5: 'May',
+            6: 'Jun',
+            7: 'Jul',
+            8: 'Aug',
+            9: 'Sep',
+            10: 'Oct',
+            11: 'Nov',
+            12: 'Dec',
+          },
         },
         duration: {
           label: 'Duration',
@@ -7047,7 +7117,21 @@ export const resources = {
       },
       "month": {
         "label": "Mesec",
-        "all": "Vsi meseci"
+        "all": "Vsi meseci",
+        "names": {
+          "1": "Jan",
+          "2": "Feb",
+          "3": "Mar",
+          "4": "Apr",
+          "5": "Maj",
+          "6": "Jun",
+          "7": "Jul",
+          "8": "Avg",
+          "9": "Sep",
+          "10": "Okt",
+          "11": "Nov",
+          "12": "Dec"
+        }
       },
       "duration": {
         "label": "Trajanje",

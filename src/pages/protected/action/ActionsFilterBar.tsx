@@ -348,13 +348,11 @@ export default function ActionsFilterBar({
   visibleCount,
   mobileActions,
 }: Props) {
-  const { t, i18n } = useTranslation('actions')
+  const { t } = useTranslation('actions')
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const monthLabel = (m: number): string => {
-    const d = new Date(2000, m - 1, 1)
-    const raw = d.toLocaleDateString(i18n.language, { month: 'long' })
-    return raw.charAt(0).toUpperCase() + raw.slice(1)
+    return t(`filters.month.names.${m}`)
   }
 
   const visibilityOpts: ChipOption[] = [

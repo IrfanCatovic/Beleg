@@ -96,7 +96,7 @@ export default function RegisterOpen() {
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Korisničko ime (npr. Catko — čuva se kao catko)"
+            placeholder="Korisničko ime "
             className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
             disabled={loading}
           />
