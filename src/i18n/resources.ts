@@ -495,6 +495,40 @@ export const resources = {
       cancel: 'Otkaži',
       preparing: 'Priprema...',
       print: 'Štampaj',
+      filters: {
+        title: 'Filteri',
+        reset: 'Poništi',
+        apply: 'Primeni',
+        close: 'Zatvori',
+        resultsCount: '{{visible}} od {{total}}',
+        resultsCountShort: '{{visible}} / {{total}}',
+        noResultsActive: 'Nijedna aktivna akcija ne odgovara filterima.',
+        noResultsCompleted: 'Nijedna završena akcija ne odgovara filterima.',
+        visibility: {
+          label: 'Tip',
+          all: 'Sve',
+          klubske: 'Klubske',
+          javne: 'Javne',
+        },
+        month: {
+          label: 'Mesec',
+          all: 'Svi meseci',
+        },
+        duration: {
+          label: 'Trajanje',
+          all: 'Sve',
+          oneDay: 'Jednodnevne',
+          multiDay: 'Višednevne',
+        },
+        difficulty: {
+          label: 'Težina',
+          all: 'Sve',
+          lako: 'Lako',
+          srednje: 'Srednje',
+          tesko: 'Teško',
+          alpinizam: 'Alpinizam',
+        },
+      },
     },
     actionDetails: {
       loadError: 'Greška pri učitavanju akcije',
@@ -2192,6 +2226,40 @@ export const resources = {
       cancel: 'Otkaži',
       preparing: 'Priprema...',
       print: 'Štampaj',
+      filters: {
+        title: 'Filteri',
+        reset: 'Poništi',
+        apply: 'Primijeni',
+        close: 'Zatvori',
+        resultsCount: '{{visible}} od {{total}}',
+        resultsCountShort: '{{visible}} / {{total}}',
+        noResultsActive: 'Nijedna aktivna akcija ne odgovara filterima.',
+        noResultsCompleted: 'Nijedna završena akcija ne odgovara filterima.',
+        visibility: {
+          label: 'Tip',
+          all: 'Sve',
+          klubske: 'Klubske',
+          javne: 'Javne',
+        },
+        month: {
+          label: 'Mjesec',
+          all: 'Svi mjeseci',
+        },
+        duration: {
+          label: 'Trajanje',
+          all: 'Sve',
+          oneDay: 'Jednodnevne',
+          multiDay: 'Višednevne',
+        },
+        difficulty: {
+          label: 'Težina',
+          all: 'Sve',
+          lako: 'Lako',
+          srednje: 'Srednje',
+          tesko: 'Teško',
+          alpinizam: 'Alpinizam',
+        },
+      },
     },
     actionDetails: {
       loadError: 'Greška pri učitavanju akcije',
@@ -3480,6 +3548,40 @@ export const resources = {
       cancel: 'Otkaži',
       preparing: 'Priprema...',
       print: 'Ispis',
+      filters: {
+        title: 'Filteri',
+        reset: 'Poništi',
+        apply: 'Primijeni',
+        close: 'Zatvori',
+        resultsCount: '{{visible}} od {{total}}',
+        resultsCountShort: '{{visible}} / {{total}}',
+        noResultsActive: 'Nijedna aktivna akcija ne odgovara filterima.',
+        noResultsCompleted: 'Nijedna završena akcija ne odgovara filterima.',
+        visibility: {
+          label: 'Tip',
+          all: 'Sve',
+          klubske: 'Klupske',
+          javne: 'Javne',
+        },
+        month: {
+          label: 'Mjesec',
+          all: 'Svi mjeseci',
+        },
+        duration: {
+          label: 'Trajanje',
+          all: 'Sve',
+          oneDay: 'Jednodnevne',
+          multiDay: 'Višednevne',
+        },
+        difficulty: {
+          label: 'Težina',
+          all: 'Sve',
+          lako: 'Lako',
+          srednje: 'Srednje',
+          tesko: 'Teško',
+          alpinizam: 'Alpinizam',
+        },
+      },
     },
     actionDetails: {
       loadError: 'Greška pri učitavanju akcije',
@@ -4608,6 +4710,40 @@ export const resources = {
       cancel: 'Abbrechen',
       preparing: 'Wird vorbereitet...',
       print: 'Drucken',
+      filters: {
+        title: 'Filter',
+        reset: 'Zurücksetzen',
+        apply: 'Anwenden',
+        close: 'Schließen',
+        resultsCount: '{{visible}} von {{total}}',
+        resultsCountShort: '{{visible}} / {{total}}',
+        noResultsActive: 'Keine aktiven Touren entsprechen den Filtern.',
+        noResultsCompleted: 'Keine abgeschlossenen Touren entsprechen den Filtern.',
+        visibility: {
+          label: 'Typ',
+          all: 'Alle',
+          klubske: 'Vereinsintern',
+          javne: 'Öffentlich',
+        },
+        month: {
+          label: 'Monat',
+          all: 'Alle Monate',
+        },
+        duration: {
+          label: 'Dauer',
+          all: 'Alle',
+          oneDay: 'Eintägig',
+          multiDay: 'Mehrtägig',
+        },
+        difficulty: {
+          label: 'Schwierigkeit',
+          all: 'Alle',
+          lako: 'Leicht',
+          srednje: 'Mittel',
+          tesko: 'Schwer',
+          alpinizam: 'Alpinismus',
+        },
+      },
     },
     actionDetails: {
       loadError: 'Fehler beim Laden der Tour',
@@ -5737,6 +5873,40 @@ export const resources = {
       cancel: 'Cancel',
       preparing: 'Preparing...',
       print: 'Print',
+      filters: {
+        title: 'Filters',
+        reset: 'Reset',
+        apply: 'Apply',
+        close: 'Close',
+        resultsCount: '{{visible}} of {{total}}',
+        resultsCountShort: '{{visible}} / {{total}}',
+        noResultsActive: 'No active activities match the filters.',
+        noResultsCompleted: 'No completed activities match the filters.',
+        visibility: {
+          label: 'Type',
+          all: 'All',
+          klubske: 'Club only',
+          javne: 'Public',
+        },
+        month: {
+          label: 'Month',
+          all: 'All months',
+        },
+        duration: {
+          label: 'Duration',
+          all: 'All',
+          oneDay: 'One-day',
+          multiDay: 'Multi-day',
+        },
+        difficulty: {
+          label: 'Difficulty',
+          all: 'All',
+          lako: 'Easy',
+          srednje: 'Medium',
+          tesko: 'Hard',
+          alpinizam: 'Alpinism',
+        },
+      },
     },
     actionDetails: {
       loadError: 'Error loading activity',
@@ -6859,7 +7029,41 @@ export const resources = {
     "chooseYearPlaceholder": "— Izberite leto —",
     "cancel": "Prekliči",
     "preparing": "Priprava ...",
-    "print": "Tiskanje"
+    "print": "Tiskanje",
+    "filters": {
+      "title": "Filtri",
+      "reset": "Ponastavi",
+      "apply": "Uporabi",
+      "close": "Zapri",
+      "resultsCount": "{{visible}} od {{total}}",
+      "resultsCountShort": "{{visible}} / {{total}}",
+      "noResultsActive": "Nobena aktivna dejavnost ne ustreza filtrom.",
+      "noResultsCompleted": "Nobena zaključena dejavnost ne ustreza filtrom.",
+      "visibility": {
+        "label": "Tip",
+        "all": "Vse",
+        "klubske": "Klubske",
+        "javne": "Javne"
+      },
+      "month": {
+        "label": "Mesec",
+        "all": "Vsi meseci"
+      },
+      "duration": {
+        "label": "Trajanje",
+        "all": "Vse",
+        "oneDay": "Enodnevne",
+        "multiDay": "Večdnevne"
+      },
+      "difficulty": {
+        "label": "Težavnost",
+        "all": "Vse",
+        "lako": "Lahko",
+        "srednje": "Srednje",
+        "tesko": "Težko",
+        "alpinizam": "Alpinizem"
+      }
+    }
   },
   "actionDetails": {
     "loadError": "Napaka pri nalaganju dejavnosti",

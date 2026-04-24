@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
@@ -17,6 +17,15 @@ import Dropdown from '../../../components/Dropdown'
 import { computeMMRForAkcija } from '../../../utils/rankingUtils'
 import { tezinaLabel } from '../../../utils/difficultyI18n'
 import type { TFunction } from 'i18next'
+import ActionsFilterBar, {
+  type ActionsFilters,
+  type VisibilityFilter,
+  type MonthFilter,
+  type DurationFilter,
+  type DifficultyFilter,
+  EMPTY_ACTIONS_FILTERS,
+  countActiveFilters,
+} from './ActionsFilterBar'
 
 interface Akcija {
   id: number
@@ -35,6 +44,7 @@ interface Akcija {
   klubNaziv?: string
   duzinaStazeKm?: number
   kumulativniUsponM?: number
+  brojDana?: number
 }
 
 const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
@@ -71,6 +81,89 @@ export default function Actions() {
   const [addActionTip, setAddActionTip] = useState<'planina' | 'via_ferrata' | null>(null)
   const isViaFerrataComingSoon = true
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const filters: ActionsFilters = useMemo(() => {
+    const v = searchParams.get('tip')
+    const m = searchParams.get('mesec')
+    const d = searchParams.get('trajanje')
+    const tez = searchParams.get('tezina')
+    const validVisibility: VisibilityFilter[] = ['all', 'klubske', 'javne']
+    const validDuration: DurationFilter[] = ['all', 'oneDay', 'multiDay']
+    const validDifficulty: DifficultyFilter[] = ['all', 'lako', 'srednje', 'tesko', 'alpinizam']
+    const monthNum = m ? Number(m) : NaN
+    const monthValid = Number.isInteger(monthNum) && monthNum >= 1 && monthNum <= 12
+    return {
+      visibility: (v && (validVisibility as string[]).includes(v) ? v : 'all') as VisibilityFilter,
+      month: (monthValid ? (monthNum as MonthFilter) : 'all') as MonthFilter,
+      duration: (d && (validDuration as string[]).includes(d) ? d : 'all') as DurationFilter,
+      difficulty: (tez && (validDifficulty as string[]).includes(tez) ? tez : 'all') as DifficultyFilter,
+    }
+  }, [searchParams])
+
+  const setFilters = (next: ActionsFilters) => {
+    const params = new URLSearchParams(searchParams)
+    const writeOrDelete = (key: string, val: string) => {
+      if (val === 'all') params.delete(key)
+      else params.set(key, val)
+    }
+    writeOrDelete('tip', next.visibility)
+    writeOrDelete('mesec', next.month === 'all' ? 'all' : String(next.month))
+    writeOrDelete('trajanje', next.duration)
+    writeOrDelete('tezina', next.difficulty)
+    setSearchParams(params, { replace: true })
+  }
+
+  const matchesFilters = (a: Akcija): boolean => {
+    if (filters.visibility === 'klubske' && a.javna) return false
+    if (filters.visibility === 'javne' && !a.javna) return false
+
+    if (filters.month !== 'all') {
+      if (!a.datum) return false
+      const d = new Date(a.datum)
+      if (isNaN(d.getTime())) return false
+      if (d.getMonth() + 1 !== filters.month) return false
+    }
+
+    if (filters.duration !== 'all') {
+      const days = a.brojDana ?? 1
+      if (filters.duration === 'oneDay' && days > 1) return false
+      if (filters.duration === 'multiDay' && days <= 1) return false
+    }
+
+    if (filters.difficulty !== 'all') {
+      const raw = (a.tezina ?? '').toLowerCase()
+      const norm = raw === 'teško' ? 'tesko' : raw
+      if (norm !== filters.difficulty) return false
+    }
+    return true
+  }
+
+  const filteredAktivne = useMemo(
+    () => aktivneAkcije.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [aktivneAkcije, filters],
+  )
+  const filteredZavrsene = useMemo(
+    () => zavrseneAkcije.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [zavrseneAkcije, filters],
+  )
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<number>()
+    const all = [...aktivneAkcije, ...zavrseneAkcije]
+    all.forEach((a) => {
+      if (!a.datum) return
+      const d = new Date(a.datum)
+      if (!isNaN(d.getTime())) months.add(d.getMonth() + 1)
+    })
+    return Array.from(months).sort((a, b) => a - b)
+  }, [aktivneAkcije, zavrseneAkcije])
+
+  const totalCount = aktivneAkcije.length + zavrseneAkcije.length
+  const visibleCount = filteredAktivne.length + filteredZavrsene.length
+  const activeFilterCount = countActiveFilters(filters)
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -363,6 +456,17 @@ export default function Actions() {
           )}
         </div>
 
+        {/* ══════════ FILTER BAR ══════════ */}
+        {totalCount > 0 && (
+          <ActionsFilterBar
+            filters={filters}
+            onChange={setFilters}
+            availableMonths={availableMonths}
+            totalCount={totalCount}
+            visibleCount={visibleCount}
+          />
+        )}
+
         {/* ══════════ AKTIVNE AKCIJE ══════════ */}
         <section className="mb-12 sm:mb-16">
           <div className="flex items-center gap-2 mb-5">
@@ -372,24 +476,39 @@ export default function Actions() {
             <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('activeActions')}</h2>
             {aktivneAkcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                {aktivneAkcije.length}
+                {activeFilterCount > 0 ? `${filteredAktivne.length}/${aktivneAkcije.length}` : aktivneAkcije.length}
               </span>
             )}
           </div>
 
-          {aktivneAkcije.length === 0 ? (
+          {filteredAktivne.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 mb-4">
                 <svg className="w-7 h-7 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500 font-medium">{t('emptyActive')}</p>
-              <p className="text-xs text-gray-400 mt-1">{t('checkSoon')}</p>
+              {activeFilterCount > 0 && aktivneAkcije.length > 0 ? (
+                <>
+                  <p className="text-sm text-gray-500 font-medium">{t('filters.noResultsActive')}</p>
+                  <button
+                    type="button"
+                    onClick={() => setFilters(EMPTY_ACTIONS_FILTERS)}
+                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                  >
+                    {t('filters.reset')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500 font-medium">{t('emptyActive')}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('checkSoon')}</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-              {aktivneAkcije.map((akcija) => {
+              {filteredAktivne.map((akcija) => {
                 const mmr = computeMMRForAkcija({
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
@@ -531,23 +650,36 @@ export default function Actions() {
             <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
             {zavrseneAkcije.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600">
-                {zavrseneAkcije.length}
+                {activeFilterCount > 0 ? `${filteredZavrsene.length}/${zavrseneAkcije.length}` : zavrseneAkcije.length}
               </span>
             )}
           </div>
 
-          {zavrseneAkcije.length === 0 ? (
+          {filteredZavrsene.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">
                 <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">{t('emptyCompleted')}</p>
+              {activeFilterCount > 0 && zavrseneAkcije.length > 0 ? (
+                <>
+                  <p className="text-sm text-gray-500 font-medium">{t('filters.noResultsCompleted')}</p>
+                  <button
+                    type="button"
+                    onClick={() => setFilters(EMPTY_ACTIONS_FILTERS)}
+                    className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                  >
+                    {t('filters.reset')}
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">{t('emptyCompleted')}</p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
-              {zavrseneAkcije.map((akcija) => {
+              {filteredZavrsene.map((akcija) => {
                 const mmr = computeMMRForAkcija({
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
