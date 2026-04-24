@@ -510,10 +510,11 @@ func GetSuperadminNoClubUsers(c *gin.Context) {
 	q = strings.ReplaceAll(strings.ReplaceAll(q, "%", ""), "_", "")
 
 	type rowDTO struct {
-		ID       uint   `json:"id"`
-		Username string `json:"username"`
-		FullName string `json:"fullName,omitempty"`
-		Email    string `json:"email,omitempty"`
+		ID        uint   `json:"id"`
+		Username  string `json:"username"`
+		FullName  string `json:"fullName,omitempty"`
+		Email     string `json:"email,omitempty"`
+		AvatarURL string `json:"avatar_url,omitempty"`
 	}
 
 	query := db.Model(&models.Korisnik{}).Where("klub_id IS NULL AND role <> ?", "deleted")
@@ -531,10 +532,11 @@ func GetSuperadminNoClubUsers(c *gin.Context) {
 	out := make([]rowDTO, 0, len(rows))
 	for i := range rows {
 		out = append(out, rowDTO{
-			ID:       rows[i].ID,
-			Username: rows[i].Username,
-			FullName: rows[i].FullName,
-			Email:    rows[i].Email,
+			ID:        rows[i].ID,
+			Username:  rows[i].Username,
+			FullName:  rows[i].FullName,
+			Email:     rows[i].Email,
+			AvatarURL: rows[i].AvatarURL,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"korisnici": out})

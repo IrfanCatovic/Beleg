@@ -56,6 +56,7 @@ type NoClubUserRow = {
   username: string
   fullName?: string
   email?: string
+  avatar_url?: string
 }
 
 function getSubscriptionStatus(endsAt: string | null | undefined): SubscriptionStatus {
@@ -551,8 +552,16 @@ export default function SuperadminKlubovi() {
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0 flex items-start gap-3">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-sm font-bold text-emerald-700">
-                            {initials}
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-emerald-100 text-sm font-bold text-emerald-700">
+                            {u.avatar_url ? (
+                              <img
+                                src={u.avatar_url}
+                                alt={displayName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              initials
+                            )}
                           </div>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
