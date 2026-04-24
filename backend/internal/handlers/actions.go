@@ -21,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var allowedTezine = map[string]bool{"lako": true, "srednje": true, "tesko": true, "alpinizam": true}
@@ -57,6 +58,95 @@ type prijavaChoicesPayload struct {
 	SelectedSmestajIDs []uint            `json:"selectedSmestajIds"`
 	SelectedPrevozIDs  []uint            `json:"selectedPrevozIds"`
 	SelectedRentItems  []prijavaRentItem `json:"selectedRentItems"`
+}
+
+func normalizeRentItems(items []prijavaRentItem) []prijavaRentItem {
+	if len(items) == 0 {
+		return nil
+	}
+	byRent := make(map[uint]int, len(items))
+	for _, item := range items {
+		if item.RentID == 0 || item.Kolicina <= 0 {
+			continue
+		}
+		byRent[item.RentID] += item.Kolicina
+	}
+	out := make([]prijavaRentItem, 0, len(byRent))
+	for rentID, qty := range byRent {
+		if qty > 0 {
+			out = append(out, prijavaRentItem{RentID: rentID, Kolicina: qty})
+		}
+	}
+	return out
+}
+
+func loadReservedRentByAction(db *gorm.DB, akcijaID uint, excludePrijavaID *uint) (map[uint]int, error) {
+	type rentRawRow struct {
+		SelectedRentItemsRaw string `gorm:"column:selected_rent_items_raw"`
+	}
+	q := db.Table("prijava_izbori").
+		Select("prijava_izbori.selected_rent_items_raw").
+		Joins("JOIN prijave ON prijave.id = prijava_izbori.prijava_id").
+		Where("prijave.akcija_id = ? AND prijave.status = ?", akcijaID, "prijavljen")
+	if excludePrijavaID != nil {
+		q = q.Where("prijava_izbori.prijava_id <> ?", *excludePrijavaID)
+	}
+	var rows []rentRawRow
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	reserved := map[uint]int{}
+	for _, row := range rows {
+		if strings.TrimSpace(row.SelectedRentItemsRaw) == "" {
+			continue
+		}
+		var items []prijavaRentItem
+		if err := json.Unmarshal([]byte(row.SelectedRentItemsRaw), &items); err != nil {
+			continue
+		}
+		for _, item := range items {
+			if item.RentID == 0 || item.Kolicina <= 0 {
+				continue
+			}
+			reserved[item.RentID] += item.Kolicina
+		}
+	}
+	return reserved, nil
+}
+
+func validateRentAvailability(db *gorm.DB, akcijaID uint, requested []prijavaRentItem, excludePrijavaID *uint) error {
+	requested = normalizeRentItems(requested)
+	if len(requested) == 0 {
+		return nil
+	}
+	var rentRows []models.AkcijaOpremaRent
+	if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("akcija_id = ?", akcijaID).
+		Find(&rentRows).Error; err != nil {
+		return err
+	}
+	stockByID := make(map[uint]models.AkcijaOpremaRent, len(rentRows))
+	for _, row := range rentRows {
+		stockByID[row.ID] = row
+	}
+	reservedByID, err := loadReservedRentByAction(db, akcijaID, excludePrijavaID)
+	if err != nil {
+		return err
+	}
+	for _, item := range requested {
+		row, ok := stockByID[item.RentID]
+		if !ok {
+			return errors.New("Nevažeći ID rent opreme")
+		}
+		remaining := row.DostupnaKolicina - reservedByID[item.RentID]
+		if remaining < 0 {
+			remaining = 0
+		}
+		if item.Kolicina > remaining {
+			return errors.New("Nedovoljno dostupne opreme: " + row.NazivOpreme)
+		}
+	}
+	return nil
 }
 
 func parseBoolWithDefault(raw string, fallback bool) bool {
@@ -381,6 +471,14 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 		_ = db.Where("akcija_id = ?", akcija.ID).Find(&oprema).Error
 		var rent []models.AkcijaOpremaRent
 		_ = db.Where("akcija_id = ?", akcija.ID).Find(&rent).Error
+		reservedByRentID, _ := loadReservedRentByAction(db, akcija.ID, nil)
+		for i := range rent {
+			remaining := rent[i].DostupnaKolicina - reservedByRentID[rent[i].ID]
+			if remaining < 0 {
+				remaining = 0
+			}
+			rent[i].DostupnaKolicina = remaining
+		}
 		var prevoz []models.AkcijaPrevoz
 		_ = db.Where("akcija_id = ?", akcija.ID).Find(&prevoz).Error
 		resp["smestaj"] = smestaj
@@ -971,26 +1069,38 @@ func PrijaviNaAkciju(c *gin.Context) {
 			_ = json.Unmarshal([]byte(raw), &choices.SelectedRentItems)
 		}
 	}
-
-	prijava := models.Prijava{
-		AkcijaID:   uint(akcijaID),
-		KorisnikID: korisnik.ID,
-	}
-	if err := db.Create(&prijava).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prijavi", "details": err.Error()})
+	choices.SelectedRentItems = normalizeRentItems(choices.SelectedRentItems)
+	var prijava models.Prijava
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := validateRentAvailability(tx, uint(akcijaID), choices.SelectedRentItems, nil); err != nil {
+			return err
+		}
+		prijava = models.Prijava{
+			AkcijaID:   uint(akcijaID),
+			KorisnikID: korisnik.ID,
+		}
+		if err := tx.Create(&prijava).Error; err != nil {
+			return err
+		}
+		smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
+		prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
+		rentJSON, _ := json.Marshal(choices.SelectedRentItems)
+		izbor := models.PrijavaIzbori{
+			PrijavaID:            prijava.ID,
+			SelectedSmestajIDs:   string(smestajJSON),
+			SelectedPrevozIDs:    string(prevozJSON),
+			SelectedRentItemsRaw: string(rentJSON),
+		}
+		return tx.Create(&izbor).Error
+	}); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "rent opreme") || strings.Contains(errMsg, "Nedovoljno dostupne opreme") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prijavi", "details": errMsg})
 		return
 	}
-
-	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
-	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
-	rentJSON, _ := json.Marshal(choices.SelectedRentItems)
-	izbor := models.PrijavaIzbori{
-		PrijavaID:            prijava.ID,
-		SelectedSmestajIDs:   string(smestajJSON),
-		SelectedPrevozIDs:    string(prevozJSON),
-		SelectedRentItemsRaw: string(rentJSON),
-	}
-	_ = db.Create(&izbor).Error
 
 	saldo := computeBaseCenaForUser(akcija, korisnik)
 	if len(choices.SelectedSmestajIDs) > 0 {
@@ -1279,45 +1389,41 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 			}
 		}
 	}
-	for _, item := range payload.SelectedRentItems {
-		if item.RentID == 0 || item.Kolicina <= 0 {
-			continue
+	payload.SelectedRentItems = normalizeRentItems(payload.SelectedRentItems)
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		exclude := prijava.ID
+		if err := validateRentAvailability(tx, akcija.ID, payload.SelectedRentItems, &exclude); err != nil {
+			return err
 		}
-		var row models.AkcijaOpremaRent
-		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&row).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID rent opreme"})
-			return
+		smestajJSON, _ := json.Marshal(payload.SelectedSmestajIDs)
+		prevozJSON, _ := json.Marshal(payload.SelectedPrevozIDs)
+		rentJSON, _ := json.Marshal(payload.SelectedRentItems)
+		var izbor models.PrijavaIzbori
+		err = tx.Where("prijava_id = ?", prijava.ID).First(&izbor).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			izbor = models.PrijavaIzbori{
+				PrijavaID:            prijava.ID,
+				SelectedSmestajIDs:   string(smestajJSON),
+				SelectedPrevozIDs:    string(prevozJSON),
+				SelectedRentItemsRaw: string(rentJSON),
+			}
+			return tx.Create(&izbor).Error
 		}
-		if item.Kolicina > row.DostupnaKolicina {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Nedovoljno dostupne opreme: " + row.NazivOpreme})
-			return
+		if err != nil {
+			return err
 		}
-	}
-
-	smestajJSON, _ := json.Marshal(payload.SelectedSmestajIDs)
-	prevozJSON, _ := json.Marshal(payload.SelectedPrevozIDs)
-	rentJSON, _ := json.Marshal(payload.SelectedRentItems)
-	var izbor models.PrijavaIzbori
-	err = db.Where("prijava_id = ?", prijava.ID).First(&izbor).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		izbor = models.PrijavaIzbori{
-			PrijavaID:            prijava.ID,
-			SelectedSmestajIDs:   string(smestajJSON),
-			SelectedPrevozIDs:    string(prevozJSON),
-			SelectedRentItemsRaw: string(rentJSON),
-		}
-		if err := db.Create(&izbor).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
-			return
-		}
-	} else {
 		izbor.SelectedSmestajIDs = string(smestajJSON)
 		izbor.SelectedPrevozIDs = string(prevozJSON)
 		izbor.SelectedRentItemsRaw = string(rentJSON)
-		if err := db.Save(&izbor).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
+		return tx.Save(&izbor).Error
+	}); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "rent opreme") || strings.Contains(errMsg, "Nedovoljno dostupne opreme") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
+		return
 	}
 	saldo := computeBaseCenaForUser(akcija, korisnik)
 	for _, sid := range payload.SelectedSmestajIDs {

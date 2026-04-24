@@ -21,9 +21,9 @@ export default function EquipmentItem({
   disabled,
   onChange,
 }: EquipmentItemProps) {
-  const rentable = !!rent && rent.dostupnaKolicina > 0
-  const unavailable = !!rent && rent.dostupnaKolicina === 0
-  const maxQty = rent ? rent.dostupnaKolicina : 0
+  const maxQty = rent ? rent.dostupnaKolicina + selectedKolicina : 0
+  const rentable = !!rent && (rent.dostupnaKolicina > 0 || selectedKolicina > 0)
+  const unavailable = !!rent && rent.dostupnaKolicina === 0 && selectedKolicina === 0
 
   return (
     <div
@@ -74,8 +74,8 @@ export default function EquipmentItem({
       {rent && (
         <div className="flex items-center gap-1.5 shrink-0">
           {unavailable ? (
-            <span className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200">
-              Nema na stanju
+            <span className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200">
+              Članovi su dužni da donesu sopstvenu
             </span>
           ) : (
             <>
