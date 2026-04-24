@@ -227,16 +227,8 @@ func GetKorisnici(c *gin.Context) {
 		return
 	}
 
-	clubID, ok := helpers.GetEffectiveClubID(c, db)
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "korisnici": []models.Korisnik{}})
-		return
-	}
-	if clubID == 0 {
-		c.JSON(200, gin.H{"korisnici": []models.Korisnik{}})
-		return
-	}
-
+	// Global search treba da radi i bez izabranog kluba.
+	// Koristi se za pronalazak korisnika (profil/follow) preko header pretrage.
 	if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
 		type PublicUserDTO struct {
 			ID          uint   `json:"id"`
@@ -283,6 +275,16 @@ func GetKorisnici(c *gin.Context) {
 		}
 
 		c.JSON(200, gin.H{"korisnici": out})
+		return
+	}
+
+	clubID, ok := helpers.GetEffectiveClubID(c, db)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "korisnici": []models.Korisnik{}})
+		return
+	}
+	if clubID == 0 {
+		c.JSON(200, gin.H{"korisnici": []models.Korisnik{}})
 		return
 	}
 
