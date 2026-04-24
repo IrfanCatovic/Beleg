@@ -1302,11 +1302,10 @@ export default function ActionDetails() {
           <div className="absolute -top-10 right-0 w-[360px] h-[360px] rounded-full bg-sky-200/30 blur-3xl" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-12 gap-7 items-stretch">
-
+        <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col xl:flex-row gap-7 items-stretch">
             {/* LEFT: main card */}
-            <div className="col-span-12 xl:col-span-8 relative rounded-[28px] border border-gray-100 bg-white shadow-[0_12px_40px_-12px_rgba(16,185,129,0.18)] overflow-hidden">
+            <div className="w-full xl:max-w-[50rem] xl:shrink-0 relative rounded-[28px] border border-gray-100 bg-white shadow-[0_12px_40px_-12px_rgba(16,185,129,0.18)] overflow-hidden">
               {/* Accent top bar */}
               <div aria-hidden className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" />
               {/* Decorative corner icon */}
@@ -1468,7 +1467,7 @@ export default function ActionDetails() {
             </div>
 
             {/* RIGHT: image card */}
-            <div className="col-span-12 xl:col-span-4 relative">
+            <div className="w-full xl:flex-1 xl:min-w-0 relative">
               <div className="relative rounded-[28px] overflow-hidden shadow-[0_20px_50px_-15px_rgba(15,118,110,0.35)] ring-1 ring-black/5 bg-gradient-to-br from-emerald-900 via-teal-800 to-sky-900 min-h-[440px] h-full">
                 <AkcijaImageOrFallback
                   src={akcija.slikaUrl}
@@ -1534,7 +1533,7 @@ export default function ActionDetails() {
       {/* ══════════ MEMBERSHIP / PRICE BANNER ══════════ */}
       {user && !isLimitedView && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
         <div className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 ${
               effectiveIsClanKluba
                 ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50'
@@ -1579,7 +1578,7 @@ export default function ActionDetails() {
 
       {/* ══════════ STATS BAR ══════════ */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
             {akcija.planina && (
               <StatCell
@@ -1612,7 +1611,7 @@ export default function ActionDetails() {
 
       {isLimitedView && (
         <div className="bg-amber-50/70 border-b border-amber-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <p className="text-sm text-amber-800">
               {t('limitedNotice')}
             </p>
@@ -1622,7 +1621,7 @@ export default function ActionDetails() {
 
       {/* ══════════ BODY ══════════ */}
       <div className="bg-gray-50/80 min-h-[40vh]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
 
           {/* ════════ ROW 1: Vodič (lg:8) + Status (lg:4) ════════ */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
