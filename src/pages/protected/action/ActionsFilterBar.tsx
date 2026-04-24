@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export type VisibilityFilter = 'all' | 'klubske' | 'javne'
@@ -337,6 +337,7 @@ interface Props {
   availableMonths: number[]
   totalCount: number
   visibleCount: number
+  mobileActions?: ReactNode
 }
 
 export default function ActionsFilterBar({
@@ -345,6 +346,7 @@ export default function ActionsFilterBar({
   availableMonths,
   totalCount,
   visibleCount,
+  mobileActions,
 }: Props) {
   const { t, i18n } = useTranslation('actions')
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -384,25 +386,28 @@ export default function ActionsFilterBar({
     <div className="mb-6 sm:mb-8">
       {/* Mobile: single Filteri button */}
       <div className="flex items-center justify-between gap-2 sm:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
-            filtered
-              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm shadow-emerald-100'
-              : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <svg className={`w-4 h-4 ${filtered ? 'text-emerald-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18M6 12h12m-9 7.5h6" />
-          </svg>
-          {t('filters.title')}
-          {activeCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-              {activeCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
+              filtered
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm shadow-emerald-100'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <svg className={`w-4 h-4 ${filtered ? 'text-emerald-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18M6 12h12m-9 7.5h6" />
+            </svg>
+            {t('filters.title')}
+            {activeCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                {activeCount}
+              </span>
+            )}
+          </button>
+          {mobileActions}
+        </div>
         {filtered && (
           <span className="text-[11px] text-gray-500 font-medium">
             {t('filters.resultsCountShort', { visible: visibleCount, total: totalCount })}
