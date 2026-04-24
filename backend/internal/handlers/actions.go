@@ -1814,11 +1814,6 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemaš pravo da menjaš status uplate"})
 		return
 	}
-	if akcija.IsCompleted {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena i status uplate više ne može da se menja"})
-		return
-	}
-
 	var req struct {
 		Platio bool `json:"platio"`
 	}
@@ -1827,15 +1822,122 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		return
 	}
 
-	prijava.Platio = req.Platio
-	if err := db.Save(&prijava).Error; err != nil {
+	// Nakon završetka akcije dozvoljavamo samo naknadnu potvrdu uplate (false -> true).
+	// Povrat sa true -> false bi razvezao finansijsku evidenciju koja je već importovana.
+	if akcija.IsCompleted && prijava.Platio && !req.Platio {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Za završenu akciju nije dozvoljeno vraćanje uplate na neplaćeno"})
+		return
+	}
+
+	alreadyPaid := prijava.Platio
+	if alreadyPaid == req.Platio {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Status uplate je ažuriran",
+			"platio":  prijava.Platio,
+		})
+		return
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.First(&prijava, prijava.ID).Error; err != nil {
+			return err
+		}
+		if prijava.Platio == req.Platio {
+			return nil
+		}
+		prijava.Platio = req.Platio
+		if err := tx.Save(&prijava).Error; err != nil {
+			return err
+		}
+
+		// Ako je akcija završena i sad je član označen kao plaćen,
+		// odmah upisujemo pojedinačnu uplatu u finansije.
+		if akcija.IsCompleted && !alreadyPaid && req.Platio {
+			username, exists := c.Get("username")
+			if !exists {
+				return errors.New("Niste ulogovani")
+			}
+			var actor models.Korisnik
+			if err := helpers.DBWhereUsername(tx, helpers.UsernameFromContext(username)).First(&actor).Error; err != nil {
+				return err
+			}
+
+			var prijavaWithUser models.Prijava
+			if err := tx.Preload("Korisnik").First(&prijavaWithUser, prijava.ID).Error; err != nil {
+				return err
+			}
+
+			saldo := computeBaseCenaForUser(akcija, prijavaWithUser.Korisnik)
+			var izbor models.PrijavaIzbori
+			selSmestaj := []uint{}
+			selPrevoz := []uint{}
+			selRent := []prijavaRentItem{}
+			if err := tx.Where("prijava_id = ?", prijava.ID).First(&izbor).Error; err == nil {
+				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
+				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+			}
+
+			if len(selSmestaj) > 0 {
+				var smestajRows []models.AkcijaSmestaj
+				if err := tx.Where("akcija_id = ? AND id IN ?", akcija.ID, selSmestaj).Find(&smestajRows).Error; err == nil {
+					for _, row := range smestajRows {
+						saldo += row.CenaPoOsobiUkupno
+					}
+				}
+			}
+			if len(selPrevoz) > 0 {
+				var prevozRows []models.AkcijaPrevoz
+				if err := tx.Where("akcija_id = ? AND id IN ?", akcija.ID, selPrevoz).Find(&prevozRows).Error; err == nil {
+					for _, row := range prevozRows {
+						saldo += row.CenaPoOsobi
+					}
+				}
+			}
+			if len(selRent) > 0 {
+				var rentRows []models.AkcijaOpremaRent
+				if err := tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error; err == nil {
+					rentByID := map[uint]float64{}
+					for _, r := range rentRows {
+						rentByID[r.ID] = r.CenaPoSetu
+					}
+					for _, item := range selRent {
+						if item.Kolicina > 0 {
+							saldo += rentByID[item.RentID] * float64(item.Kolicina)
+						}
+					}
+				}
+			}
+
+			if saldo > 0 {
+				displayName := strings.TrimSpace(prijavaWithUser.Korisnik.FullName)
+				if displayName == "" {
+					displayName = strings.TrimSpace(prijavaWithUser.Korisnik.Username)
+				}
+				if displayName == "" {
+					displayName = fmt.Sprintf("član #%d", prijavaWithUser.KorisnikID)
+				}
+				opis := fmt.Sprintf("Uplata za akciju (%s) - %s", strings.TrimSpace(akcija.Naziv), displayName)
+				if err := tx.Create(&models.Transakcija{
+					Tip:        "uplata",
+					Iznos:      saldo,
+					Opis:       opis,
+					Datum:      time.Now(),
+					KorisnikID: actor.ID,
+				}).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju uplate"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Status uplate je ažuriran",
-		"platio":  prijava.Platio,
+		"platio":  req.Platio,
 	})
 }
 
