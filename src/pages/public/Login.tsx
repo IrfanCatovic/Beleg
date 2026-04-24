@@ -11,7 +11,7 @@ const DEMO_LOGIN_USERNAME = 'planiner'
 const DEMO_LOGIN_PASSWORD = 'admin123'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, refreshUser, logout } = useAuth()
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
@@ -56,6 +56,16 @@ export default function Login() {
         password,
       })
       login(response.data)
+      const ok = await refreshUser()
+      if (!ok) {
+        await logout()
+        setError(
+          t('profileLoadError', {
+            defaultValue: 'Podaci naloga nisu učitani. Pokušaj ponovo.',
+          }),
+        )
+        return
+      }
       const returnToRaw = (location.state as { returnTo?: string } | null)?.returnTo
       const returnTo =
         typeof returnToRaw === 'string' && returnToRaw.startsWith('/')

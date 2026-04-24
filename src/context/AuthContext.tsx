@@ -16,7 +16,7 @@ export interface User {
 
 export interface LoginResponse {
   role: string;
-  user: { username: string; fullName: string; avatar_url?: string };
+  user: { username: string; fullName: string; avatar_url?: string; klubId?: number };
   /** JWT kada cookie nije moguć (cross-origin); šalje se kao Authorization Bearer */
   token?: string;
 }
@@ -68,17 +68,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
         }, [])
 
         const login = useCallback((data: LoginResponse) => {
-            const userData: User = {
-                username: data.user.username,
-                fullName: data.user.fullName,
-                role: data.role as User['role'],
-                avatarUrl: data.user.avatar_url,
-            }
-            setUser(userData)
-            localStorage.setItem('user', JSON.stringify(userData))
             if (data.token && data.token.length > 10) {
                 setAuthToken(data.token)
             }
+            setUser((prev) => {
+                const next: User = {
+                    username: data.user.username,
+                    fullName: data.user.fullName,
+                    role: data.role as User['role'],
+                    avatarUrl: data.user.avatar_url ?? prev?.avatarUrl,
+                    klubId:
+                        typeof data.user.klubId === 'number' && !Number.isNaN(data.user.klubId)
+                            ? data.user.klubId
+                            : prev?.klubId,
+                }
+                localStorage.setItem('user', JSON.stringify(next))
+                return next
+            })
             setIsLoggedIn(true)
         }, [])
 
@@ -86,12 +92,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
             api.get('/api/me', { validateStatus: (s) => s === 200 || s === 401 })
                 .then((res) => {
                     if (res.status === 401) return
-                    const data = res.data as { username?: string; fullName?: string; role?: string }
+                    const data = res.data as {
+                        username?: string
+                        fullName?: string
+                        role?: string
+                        avatar_url?: string
+                        klubId?: number
+                    }
                     if (data?.username && typeof data?.role === 'string') {
                         const userData: User = {
                             username: data.username,
                             fullName: data.fullName ?? '',
                             role: data.role as User['role'],
+                            avatarUrl: data.avatar_url,
+                            klubId: data.klubId,
                         }
                         setUser(userData)
                         setIsLoggedIn(true)

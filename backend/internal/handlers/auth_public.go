@@ -108,14 +108,18 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		sameSiteNone := os.Getenv("COOKIE_SAMESITE_NONE") == "true"
 		middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
 
+		userPayload := gin.H{
+			"username":   korisnik.Username,
+			"fullName":   korisnik.FullName,
+			"avatar_url": korisnik.AvatarURL,
+		}
+		if korisnik.KlubID != nil {
+			userPayload["klubId"] = *korisnik.KlubID
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"role":  korisnik.Role,
 			"token": tokenString,
-			"user": gin.H{
-				"username":   korisnik.Username,
-				"fullName":   korisnik.FullName,
-				"avatar_url": korisnik.AvatarURL,
-			},
+			"user":  userPayload,
 		})
 	}
 }
