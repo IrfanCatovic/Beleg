@@ -327,18 +327,28 @@ func GetKorisnikInfo(c *gin.Context) {
 		return
 	}
 	db := c.MustGet("db").(*gorm.DB)
-	clubID, ok := helpers.GetEffectiveClubID(c, db)
-	if !ok || clubID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub"})
-		return
-	}
 
 	param := c.Param("id")
 	korisnik := getKorisnikByIDOrUsernameAdmin(db, param)
-	if korisnik == nil || korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+	if korisnik == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
+
+	// Admin je ograničen na svoj/izabrani klub.
+	// Superadmin može da otvori info za bilo kog korisnika (uključujući korisnike bez kluba).
+	if roleStr == "admin" {
+		clubID, ok := helpers.GetEffectiveClubID(c, db)
+		if !ok || clubID == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub"})
+			return
+		}
+		if korisnik.KlubID == nil || *korisnik.KlubID != clubID {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, korisnik)
 }
 
