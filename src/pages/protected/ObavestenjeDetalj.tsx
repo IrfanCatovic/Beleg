@@ -751,9 +751,29 @@ export default function ObavestenjeDetalj() {
             <div className="mt-4">
               <Link
                 to={notif.link}
-                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                className="group inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
               >
+                <svg
+                  className="h-4 w-4 text-emerald-600 transition-transform group-hover:translate-x-0.5"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 4.5h8v8M15.5 4.5l-11 11" />
+                </svg>
                 {t('notificationDetails:openLinkedPage')}
+                <svg
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 10h6m0 0-2.5-2.5M13 10l-2.5 2.5" />
+                </svg>
               </Link>
             </div>
           )}
