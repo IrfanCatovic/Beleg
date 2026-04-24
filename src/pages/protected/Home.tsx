@@ -39,7 +39,11 @@ interface DiscoverUser extends MentionUser {
   klubId?: number
 }
 
-const POST_LIMIT = 30
+const POST_LIMIT = 10
+
+type FeedItem =
+  | { kind: 'post'; createdAtMs: number; post: Post }
+  | { kind: 'action'; createdAtMs: number; action: Akcija; addedBy?: MentionUser }
 
 export default function Home() {
   const { t, i18n } = useTranslation('home')
@@ -318,12 +322,30 @@ export default function Home() {
     return map
   }, [mentionUsers])
 
-  const suggestedActions = useMemo(() => {
-    const now = new Date()
-    const candidates = aktivneAkcije
-      .filter((a) => !a.isCompleted && (a.datum ? new Date(a.datum) >= now : true))
-    return shuffleAndTake(candidates, 2)
-  }, [aktivneAkcije, shuffleAndTake])
+  const feedItems = useMemo<FeedItem[]>(() => {
+    const actionItems: FeedItem[] = aktivneAkcije
+      .filter((a) => !a.isCompleted)
+      .map((action) => {
+        const createdAtMs = action.createdAt ? new Date(action.createdAt).getTime() : 0
+        return {
+          kind: 'action',
+          createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : 0,
+          action,
+          addedBy: typeof action.addedById === 'number' ? usersById.get(action.addedById) : undefined,
+        }
+      })
+
+    const postItems: FeedItem[] = posts.map((post) => {
+      const createdAtMs = post.createdAt ? new Date(post.createdAt).getTime() : 0
+      return {
+        kind: 'post',
+        createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : 0,
+        post,
+      }
+    })
+
+    return [...actionItems, ...postItems].sort((a, b) => b.createdAtMs - a.createdAtMs)
+  }, [aktivneAkcije, posts, usersById])
 
   const suggestedUsers = useMemo(() => {
     const blockedIds = new Set<number>(followingUserIds)
@@ -589,20 +611,6 @@ export default function Home() {
             {/* ── Divider on mobile ── */}
             <div className="h-2 bg-gray-100 sm:hidden" />
 
-            {/* ── Predlozene akcije kao samostalne "objave" ── */}
-            {suggestedActions.length > 0 && (
-              <div className="sm:mt-4 space-y-3 sm:space-y-4">
-                {suggestedActions.map((akcija) => (
-                  <SuggestedActionCard
-                    key={`suggested-action-${akcija.id}`}
-                    akcija={akcija}
-                    addedBy={typeof akcija.addedById === 'number' ? usersById.get(akcija.addedById) : undefined}
-                    t={t}
-                  />
-                ))}
-              </div>
-            )}
-
             {/* ── Predlozeni ljudi + WhatsApp CTA ── */}
             {(suggestedUsers.length > 0) && (
               <div className="mt-3 sm:mt-4 bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm">
@@ -621,8 +629,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* ── Post List ── */}
-            {posts.length === 0 && !loadingPosts ? (
+            {/* ── Jedinstveni hronoloski feed: akcije + objave ── */}
+            {feedItems.length === 0 && !loadingPosts ? (
               <div className="px-4 py-16 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                   <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -634,18 +642,30 @@ export default function Home() {
               </div>
             ) : (
               <div className="sm:mt-4 sm:space-y-4 divide-y divide-gray-100 sm:divide-y-0">
-                {posts.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    currentUsername={user?.username}
-                    currentRole={user?.role}
-                    onDelete={handleDeletePost}
-                    onUpdate={handleUpdatePost}
-                    onOpenImage={openLightbox}
-                    mentionUsers={mentionUsers}
-                  />
-                ))}
+                {feedItems.map((item) => {
+                  if (item.kind === 'action') {
+                    return (
+                      <SuggestedActionCard
+                        key={`feed-action-${item.action.id}`}
+                        akcija={item.action}
+                        addedBy={item.addedBy}
+                        t={t}
+                      />
+                    )
+                  }
+                  return (
+                    <PostCard
+                      key={item.post.id}
+                      post={item.post}
+                      currentUsername={user?.username}
+                      currentRole={user?.role}
+                      onDelete={handleDeletePost}
+                      onUpdate={handleUpdatePost}
+                      onOpenImage={openLightbox}
+                      mentionUsers={mentionUsers}
+                    />
+                  )
+                })}
               </div>
             )}
 
