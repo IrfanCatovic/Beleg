@@ -88,6 +88,49 @@ interface ClubMember {
   fullName?: string
 }
 
+interface ExternalUserCandidate {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+  klubId?: number | null
+  klubNaziv?: string
+}
+
+interface ActionParticipationRequest {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  respondedAt?: string | null
+  action: {
+    id: number
+    naziv: string
+    datum: string
+    planina?: string
+    vrh?: string
+    klubId?: number | null
+    klubNaziv?: string
+    isCompleted?: boolean
+  }
+  targetUser: {
+    id: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+    klubId?: number | null
+    klubNaziv?: string
+  }
+  requestedBy: {
+    id: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+    klubId?: number | null
+    klubNaziv?: string
+  }
+}
+
 const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
   lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
   srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
@@ -152,6 +195,14 @@ export default function ActionDetails() {
   const [bulkPaymentMode, setBulkPaymentMode] = useState(false)
   const [bulkPaymentSubmitting, setBulkPaymentSubmitting] = useState(false)
   const [bulkSelectedPaymentIds, setBulkSelectedPaymentIds] = useState<Set<number>>(new Set())
+  const [externalScope, setExternalScope] = useState<'other-clubs' | 'no-club'>('other-clubs')
+  const [externalSearch, setExternalSearch] = useState('')
+  const [externalCandidates, setExternalCandidates] = useState<ExternalUserCandidate[]>([])
+  const [externalLoading, setExternalLoading] = useState(false)
+  const [externalError, setExternalError] = useState('')
+  const [sendingExternalRequestId, setSendingExternalRequestId] = useState<number | null>(null)
+  const [actionParticipationRequests, setActionParticipationRequests] = useState<ActionParticipationRequest[]>([])
+  const [requestsLoading, setRequestsLoading] = useState(false)
   const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
 
   useEffect(() => {
@@ -393,6 +444,66 @@ export default function ActionDetails() {
       cancelled = true
     }
   }, [user, akcija])
+
+  useEffect(() => {
+    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted || !id) {
+      setActionParticipationRequests([])
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      setRequestsLoading(true)
+      try {
+        const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${id}/participation-requests`)
+        if (!cancelled) setActionParticipationRequests(res.data.requests || [])
+      } catch {
+        if (!cancelled) setActionParticipationRequests([])
+      } finally {
+        if (!cancelled) setRequestsLoading(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [user, akcija, id])
+
+  useEffect(() => {
+    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted || !id) {
+      setExternalCandidates([])
+      setExternalError('')
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      setExternalLoading(true)
+      setExternalError('')
+      try {
+        const res = await api.get<{ users: ExternalUserCandidate[] }>(`/api/akcije/${id}/eligible-external-users`, {
+          params: {
+            scope: externalScope,
+            q: externalSearch.trim(),
+            limit: 12,
+          },
+        })
+        if (!cancelled) setExternalCandidates(res.data.users || [])
+      } catch (err: any) {
+        if (!cancelled) {
+          setExternalCandidates([])
+          setExternalError(err?.response?.data?.error || 'Greška pri pretrazi korisnika van kluba.')
+        }
+      } finally {
+        if (!cancelled) setExternalLoading(false)
+      }
+    }
+    const timeout = window.setTimeout(() => {
+      void run()
+    }, externalSearch.trim() ? 250 : 0)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeout)
+    }
+  }, [user, akcija, id, externalScope, externalSearch])
 
   const refreshPrijave = async () => {
     if (!id) return
@@ -742,6 +853,53 @@ export default function ActionDetails() {
     }
   }
 
+  const refreshActionParticipationRequests = async () => {
+    if (!id) return
+    try {
+      const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${id}/participation-requests`)
+      setActionParticipationRequests(res.data.requests || [])
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleSendExternalRequest = async (candidate: ExternalUserCandidate) => {
+    if (!id) return
+    setSendingExternalRequestId(candidate.id)
+    setExternalError('')
+    try {
+      const res = await api.post<{ request: ActionParticipationRequest }>(`/api/akcije/${id}/participation-requests`, {
+        targetUserId: candidate.id,
+      })
+      const created = res.data.request
+      setActionParticipationRequests((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
+      setExternalCandidates((prev) => prev.filter((item) => item.id !== candidate.id))
+      await showAlert('Zahtev je poslat. Korisnik će dobiti obaveštenje i potvrditi učešće iz svog dela aplikacije.')
+    } catch (err: any) {
+      setExternalError(err?.response?.data?.error || 'Slanje zahteva nije uspelo.')
+    } finally {
+      setSendingExternalRequestId(null)
+    }
+  }
+
+  const handleCancelExternalRequest = async (request: ActionParticipationRequest) => {
+    if (!id) return
+    const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
+    const confirmed = await showConfirm(`Da li želite da otkažete zahtev za ${targetLabel}?`, {
+      title: 'Otkaži zahtev',
+      confirmLabel: 'Otkaži zahtev',
+      cancelLabel: 'Nazad',
+      variant: 'danger',
+    })
+    if (!confirmed) return
+    try {
+      await api.patch(`/api/akcije/${id}/participation-requests/${request.id}/cancel`)
+      await refreshActionParticipationRequests()
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri otkazivanju zahteva.', t('errorTitle'))
+    }
+  }
+
   const equipmentList = useMemo(() => {
     type Row = {
       key: string
@@ -916,6 +1074,7 @@ export default function ActionDetails() {
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
   const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
   const membersToAdd = clubMembers.filter((m) => !climbedByUsername.has(m.username))
+  const pendingExternalRequestCount = actionParticipationRequests.filter((req) => req.status === 'pending').length
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -2160,6 +2319,169 @@ export default function ActionDetails() {
                     {addingMemberError && (
                       <p className="text-xs text-rose-600">{addingMemberError}</p>
                     )}
+                  </div>
+                )}
+
+                {user && canSeePrijave && canManageHost && akcija.isCompleted && !isLimitedView && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                          Dodaj člana van kluba
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Pretraži korisnike iz drugih klubova ili bez kluba. Akcija će im se upisati tek nakon potvrde, bez finansija.
+                        </p>
+                      </div>
+                      <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-[11px] font-semibold text-amber-800">
+                        Pending zahtevi: {pendingExternalRequestCount}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] gap-4">
+                      <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 space-y-3">
+                        <div className="inline-flex rounded-2xl border border-gray-200 bg-white p-1">
+                          <button
+                            type="button"
+                            onClick={() => setExternalScope('other-clubs')}
+                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                              externalScope === 'other-clubs'
+                                ? 'bg-emerald-500 text-white shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            Drugi klubovi
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setExternalScope('no-club')}
+                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                              externalScope === 'no-club'
+                                ? 'bg-emerald-500 text-white shadow-sm'
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            Bez kluba
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+                            Pretraga po imenu ili @username
+                          </label>
+                          <input
+                            type="text"
+                            value={externalSearch}
+                            onChange={(e) => setExternalSearch(e.target.value)}
+                            placeholder="npr. Marko ili @marko"
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          {externalLoading ? (
+                            <p className="text-xs text-gray-500">Pretražujem korisnike...</p>
+                          ) : externalCandidates.length === 0 ? (
+                            <p className="text-xs text-gray-500">
+                              {externalSearch.trim()
+                                ? 'Nema korisnika za ovu pretragu.'
+                                : 'Prikazujemo ograničen broj rezultata. Unesite ime ili @username za precizniju pretragu.'}
+                            </p>
+                          ) : (
+                            externalCandidates.map((candidate) => {
+                              const displayName = candidate.fullName?.trim() || candidate.username
+                              const clubLabel = candidate.klubNaziv?.trim() || 'Bez kluba'
+                              return (
+                                <div
+                                  key={candidate.id}
+                                  className="rounded-2xl border border-gray-200 bg-white px-3 py-3 flex items-center justify-between gap-3"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
+                                    <p className="text-xs text-gray-500 truncate">@{candidate.username}</p>
+                                    <p className="text-[11px] text-gray-400 truncate">{clubLabel}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleSendExternalRequest(candidate)}
+                                    disabled={sendingExternalRequestId === candidate.id}
+                                    className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {sendingExternalRequestId === candidate.id ? 'Šaljem...' : 'Pošalji zahtev'}
+                                  </button>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                        {externalError && <p className="text-xs text-rose-600">{externalError}</p>}
+                      </div>
+
+                      <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Poslati zahtevi</p>
+                            <p className="text-xs text-gray-500 mt-1">Ovde vidiš šta još čeka potvrdu i šta je već obrađeno.</p>
+                          </div>
+                          {requestsLoading && <span className="text-[11px] text-gray-400">Učitavanje...</span>}
+                        </div>
+
+                        <div className="mt-3 space-y-2.5">
+                          {actionParticipationRequests.length === 0 ? (
+                            <p className="text-xs text-gray-500">Još nema poslatih zahteva za ovu akciju.</p>
+                          ) : (
+                            actionParticipationRequests.map((request) => {
+                              const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
+                              const targetClubLabel = request.targetUser.klubNaziv?.trim() || 'Bez kluba'
+                              const statusStyle =
+                                request.status === 'pending'
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : request.status === 'accepted'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    : request.status === 'rejected'
+                                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                      : 'bg-gray-100 text-gray-700 border-gray-200'
+                              const statusLabel =
+                                request.status === 'pending'
+                                  ? 'Čeka potvrdu'
+                                  : request.status === 'accepted'
+                                    ? 'Prihvaćeno'
+                                    : request.status === 'rejected'
+                                      ? 'Odbijeno'
+                                      : 'Otkazano'
+                              return (
+                                <div key={request.id} className="rounded-2xl border border-amber-100 bg-white/90 px-3 py-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
+                                      <p className="text-xs text-gray-500 truncate">@{request.targetUser.username} · {targetClubLabel}</p>
+                                      <p className="text-[11px] text-gray-400 mt-1">
+                                        Poslato {formatDate(request.createdAt)}
+                                        {request.respondedAt ? ` · obrađeno ${formatDate(request.respondedAt)}` : ''}
+                                      </p>
+                                    </div>
+                                    <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusStyle}`}>
+                                      {statusLabel}
+                                    </span>
+                                  </div>
+                                  {request.status === 'pending' && (
+                                    <div className="mt-3 flex justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleCancelExternalRequest(request)}
+                                        className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                                      >
+                                        Otkaži zahtev
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

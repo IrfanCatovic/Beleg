@@ -530,14 +530,16 @@ func AddProslaAkcija(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
 	}
+	// Prošla akcija ne nosi finansijske stavke: bez troškova po članu/gostu.
+	akcija.CenaClan = 0
+	akcija.CenaOstali = 0
+	akcija.MaxLjudi = 0
+
 	if err := db.Create(&akcija).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
 		return
 	}
-	if err := syncActionNestedData(db, akcija.ID, c); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	// Za prošlu akciju ne čuvamo dodatne troškove (smeštaj/oprema/prevoz rent).
 
 	files := form.File["slika"]
 	if len(files) > 0 {
@@ -587,7 +589,12 @@ func AddProslaAkcija(c *gin.Context) {
 
 	prijave := make([]models.Prijava, 0, len(korisnici))
 	for _, korisnik := range korisnici {
-		prijave = append(prijave, models.Prijava{AkcijaID: akcija.ID, KorisnikID: korisnik.ID, Status: "popeo se"})
+		prijave = append(prijave, models.Prijava{
+			AkcijaID:   akcija.ID,
+			KorisnikID: korisnik.ID,
+			Status:     "popeo se",
+			Platio:     true,
+		})
 	}
 	if err := db.Create(&prijave).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Greška pri dodavanju prijava"})

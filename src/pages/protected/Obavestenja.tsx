@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../../utils/obavestenjeIconClass'
@@ -19,16 +20,60 @@ interface ObavestenjeItem {
   createdAt: string
 }
 
+interface ParticipationRequestItem {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  respondedAt?: string | null
+  action: {
+    id: number
+    naziv: string
+    datum: string
+    klubNaziv?: string
+  }
+  targetUser: {
+    id: number
+    username: string
+    fullName?: string
+    klubNaziv?: string
+  }
+  requestedBy: {
+    id: number
+    username: string
+    fullName?: string
+    klubNaziv?: string
+  }
+}
+
 export default function Obavestenja() {
   const { t } = useTranslation('notifications')
   const { isLoggedIn, user } = useAuth()
+  const { showAlert, showConfirm } = useModal()
   const navigate = useNavigate()
   const [list, setList] = useState<ObavestenjeItem[]>([])
+  const [participationRequests, setParticipationRequests] = useState<ParticipationRequestItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [requestsLoading, setRequestsLoading] = useState(true)
+  const [requestActionId, setRequestActionId] = useState<number | null>(null)
   const [broadcastTitle, setBroadcastTitle] = useState('')
   const [broadcastBody, setBroadcastBody] = useState('')
   const [broadcastSending, setBroadcastSending] = useState(false)
   const [broadcastError, setBroadcastError] = useState('')
+
+  const loadParticipationRequests = async () => {
+    setRequestsLoading(true)
+    try {
+      const res = await api.get<{ requests: ParticipationRequestItem[] }>('/api/moja-ucesca-zahtevi', {
+        params: { status: 'all' },
+      })
+      setParticipationRequests(res.data.requests ?? [])
+    } catch {
+      setParticipationRequests([])
+    } finally {
+      setRequestsLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -43,6 +88,7 @@ export default function Obavestenja() {
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false))
+    void loadParticipationRequests()
   }, [isLoggedIn, navigate])
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
@@ -65,6 +111,32 @@ export default function Obavestenja() {
       setList((prev) => prev.filter((x) => x.id !== n.id))
     } catch {
       // ignore
+    }
+  }
+
+  const handleRespondToRequest = async (request: ParticipationRequestItem, decision: 'accept' | 'reject') => {
+    const requesterLabel = request.requestedBy.fullName?.trim() || request.requestedBy.username
+    const actionLabel = request.action.naziv?.trim() || 'akcija'
+    if (decision === 'reject') {
+      const confirmed = await showConfirm(`Da li želite da odbijete zahtev za akciju "${actionLabel}"?`, {
+        title: 'Odbij zahtev',
+        confirmLabel: 'Odbij',
+        cancelLabel: 'Nazad',
+        variant: 'danger',
+      })
+      if (!confirmed) return
+    }
+    setRequestActionId(request.id)
+    try {
+      await api.post(`/api/moja-ucesca-zahtevi/${request.id}/respond`, { decision })
+      await loadParticipationRequests()
+      if (decision === 'accept') {
+        await showAlert(`${requesterLabel} će sada videti da ste potvrdili učešće na akciji "${actionLabel}".`)
+      }
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri obradi zahteva.')
+    } finally {
+      setRequestActionId(null)
     }
   }
 
@@ -132,6 +204,100 @@ export default function Obavestenja() {
           </form>
         </div>
       )}
+
+      <div className="mb-8 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-white p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Zahtevi za učešće na završenim akcijama</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Ovde potvrđuješ ili odbijaš zahteve koje su ti poslali organizatori drugih klubova.
+            </p>
+          </div>
+          {!requestsLoading && (
+            <span className="inline-flex items-center rounded-full bg-white border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800">
+              Pending: {participationRequests.filter((item) => item.status === 'pending').length}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {requestsLoading ? (
+            <p className="text-sm text-gray-500">Učitavanje zahteva...</p>
+          ) : participationRequests.length === 0 ? (
+            <p className="text-sm text-gray-500">Trenutno nemate zahteve za potvrdu učešća.</p>
+          ) : (
+            participationRequests.map((request) => {
+              const requesterLabel = request.requestedBy.fullName?.trim() || request.requestedBy.username
+              const statusClass =
+                request.status === 'pending'
+                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                  : request.status === 'accepted'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    : request.status === 'rejected'
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : 'bg-gray-100 text-gray-700 border-gray-200'
+              const statusLabel =
+                request.status === 'pending'
+                  ? 'Čeka tvoj odgovor'
+                  : request.status === 'accepted'
+                    ? 'Prihvaćeno'
+                    : request.status === 'rejected'
+                      ? 'Odbijeno'
+                      : 'Otkazano'
+              return (
+                <div key={request.id} className="rounded-2xl border border-amber-100 bg-white px-4 py-3 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{request.action.naziv}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Organizator: {requesterLabel}
+                        {request.requestedBy.klubNaziv ? ` · ${request.requestedBy.klubNaziv}` : ''}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Datum akcije: {request.action.datum}
+                        {request.action.klubNaziv ? ` · domaći klub: ${request.action.klubNaziv}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-start sm:items-end gap-2">
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusClass}`}>
+                        {statusLabel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/akcije/${request.action.id}`)}
+                        className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                      >
+                        Otvori akciju
+                      </button>
+                    </div>
+                  </div>
+
+                  {request.status === 'pending' && (
+                    <div className="mt-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleRespondToRequest(request, 'reject')}
+                        disabled={requestActionId === request.id}
+                        className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        {requestActionId === request.id ? '...' : 'Odbij'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleRespondToRequest(request, 'accept')}
+                        disabled={requestActionId === request.id}
+                        className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+                      >
+                        {requestActionId === request.id ? '...' : 'Potvrdi'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
 
       {loading ? (
         <p className="text-gray-500">{t('loading')}</p>

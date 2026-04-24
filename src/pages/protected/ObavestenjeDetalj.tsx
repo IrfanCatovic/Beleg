@@ -32,6 +32,34 @@ interface FollowMeta {
   requesterFullName?: string
 }
 
+interface ActionParticipationRequestPayload {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  respondedAt?: string | null
+  action: {
+    id: number
+    naziv: string
+    datum: string
+    planina?: string
+    vrh?: string
+    klubNaziv?: string
+  }
+  targetUser: {
+    id: number
+    username: string
+    fullName?: string
+    klubNaziv?: string
+  }
+  requestedBy: {
+    id: number
+    username: string
+    fullName?: string
+    klubNaziv?: string
+  }
+}
+
 interface TaskPayload {
   id: number
   naziv: string
@@ -120,11 +148,13 @@ export default function ObavestenjeDetalj() {
   const [post, setPost] = useState<Post | null>(null)
   const [task, setTask] = useState<Task | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
+  const [actionParticipationRequest, setActionParticipationRequest] = useState<ActionParticipationRequestPayload | null>(null)
   const [entityError, setEntityError] = useState('')
   const [pageError, setPageError] = useState('')
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
+  const [actionRequestBusy, setActionRequestBusy] = useState(false)
   const [followStatusChecked, setFollowStatusChecked] = useState(false)
   const [incomingFollowState, setIncomingFollowState] = useState<'pending' | 'accepted' | 'gone'>('pending')
   const [followBackStatus, setFollowBackStatus] = useState<'none' | 'outgoing_pending' | 'outgoing_accepted'>('none')
@@ -352,6 +382,7 @@ export default function ObavestenjeDetalj() {
       setPost(null)
       setTask(null)
       setTrans(null)
+      setActionParticipationRequest(null)
 
       try {
         const { data: n } = await api.get<ObavestenjeFull>(`/api/obavestenja/${id}`)
@@ -374,6 +405,7 @@ export default function ObavestenjeDetalj() {
         const postId = numFromMeta(meta.postId)
         const zadatakId = numFromMeta(meta.zadatakId)
         const transakcijaId = numFromMeta(meta.transakcijaId)
+        const actionRequestId = numFromMeta(meta.requestId)
 
         setEntityLoading(true)
         try {
@@ -391,6 +423,9 @@ export default function ObavestenjeDetalj() {
               const fr = await api.get<TransPayload>(`/api/finansije/transakcije/${transakcijaId}`)
               if (!cancelled) setTrans(fr.data)
             }
+          } else if (n.type === 'action_participation_request' && actionRequestId != null) {
+            const rr = await api.get<ActionParticipationRequestPayload>(`/api/moja-ucesca-zahtevi/${actionRequestId}`)
+            if (!cancelled) setActionParticipationRequest(rr.data)
           }
         } catch (e: unknown) {
           const msg =
@@ -515,23 +550,58 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.postId) != null ||
     numFromMeta(meta.zadatakId) != null ||
     numFromMeta(meta.transakcijaId) != null ||
-    numFromMeta(meta.followId) != null
+    numFromMeta(meta.followId) != null ||
+    (notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null)
   const expectingPost = numFromMeta(meta.postId) != null
   const expectingTask = numFromMeta(meta.zadatakId) != null
   const expectingTrans = numFromMeta(meta.transakcijaId) != null
   const expectingFollow = numFromMeta(meta.followId) != null
+  const expectingActionParticipationRequest = notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null
   // Bez duplog naslova obaveštenja iznad feed / zadatak / transakcija kartice
   const showNotifSummary =
     !post &&
     !task &&
     !trans &&
     !(expectingFollow && followBusy) &&
+    !(expectingActionParticipationRequest && entityLoading) &&
     !(expectingPost && entityLoading) &&
     !(expectingTask && entityLoading) &&
     !(expectingTrans && entityLoading)
 
   const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || t('notificationDetails:follow.defaultUser')).trim()
   const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || t('notificationDetails:follow.defaultUser')).trim()
+
+  const handleRespondActionParticipationRequest = async (decision: 'accept' | 'reject') => {
+    if (!actionParticipationRequest || actionRequestBusy) return
+    if (decision === 'reject') {
+      const ok = await showConfirm('Da li želite da odbijete ovaj zahtev za potvrdu učešća?', {
+        title: 'Odbij zahtev',
+        confirmLabel: 'Odbij',
+        cancelLabel: t('home:cancel'),
+        variant: 'danger',
+      })
+      if (!ok) return
+    }
+    setActionRequestBusy(true)
+    try {
+      const res = await api.post<{ request: ActionParticipationRequestPayload; message?: string }>(
+        `/api/moja-ucesca-zahtevi/${actionParticipationRequest.id}/respond`,
+        { decision }
+      )
+      setActionParticipationRequest(res.data.request)
+      await showAlert(
+        res.data.message ||
+          (decision === 'accept'
+            ? 'Učešće je potvrđeno i akcija je dodata na vaš profil.'
+            : 'Zahtev je odbijen.'),
+        'Potvrda učešća'
+      )
+    } catch (e: any) {
+      await showAlert(e.response?.data?.error || 'Greška pri obradi zahteva.', 'Potvrda učešća')
+    } finally {
+      setActionRequestBusy(false)
+    }
+  }
 
   const handleAcceptFollow = async () => {
     if (!followMeta.followId || followBusy) return
@@ -807,6 +877,82 @@ export default function ObavestenjeDetalj() {
                 </>
               )}
             </h2>
+          </div>
+        </div>
+      )}
+
+      {!entityLoading && notif.type === 'action_participation_request' && actionParticipationRequest && (
+        <div className="rounded-2xl border border-amber-100 bg-white shadow-sm overflow-hidden mb-6">
+          <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400" />
+          <div className="p-5 sm:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Potvrda učešća</p>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              {actionParticipationRequest.action.naziv}
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              {actionParticipationRequest.requestedBy.fullName?.trim() || actionParticipationRequest.requestedBy.username}
+              {actionParticipationRequest.requestedBy.klubNaziv ? ` · ${actionParticipationRequest.requestedBy.klubNaziv}` : ''}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Datum akcije: {formatDate(actionParticipationRequest.action.datum)}
+              {actionParticipationRequest.action.klubNaziv ? ` · domaći klub: ${actionParticipationRequest.action.klubNaziv}` : ''}
+            </p>
+
+            <div
+              className={`mt-4 inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                actionParticipationRequest.status === 'pending'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : actionParticipationRequest.status === 'accepted'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : actionParticipationRequest.status === 'rejected'
+                      ? 'border-rose-200 bg-rose-50 text-rose-800'
+                      : 'border-gray-200 bg-gray-100 text-gray-700'
+              }`}
+            >
+              {actionParticipationRequest.status === 'pending'
+                ? 'Čeka tvoj odgovor'
+                : actionParticipationRequest.status === 'accepted'
+                  ? 'Prihvaćeno'
+                  : actionParticipationRequest.status === 'rejected'
+                    ? 'Odbijeno'
+                    : 'Otkazano'}
+            </div>
+
+            <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm text-gray-700">
+              Prihvatanjem će akcija biti upisana na tvoj profil kao istorijska stavka bez finansijskog efekta.
+            </div>
+
+            {actionParticipationRequest.status === 'pending' && (
+              <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => void handleRespondActionParticipationRequest('reject')}
+                  disabled={actionRequestBusy}
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {actionRequestBusy ? '...' : 'Odbij'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleRespondActionParticipationRequest('accept')}
+                  disabled={actionRequestBusy}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {actionRequestBusy ? '...' : 'Potvrdi'}
+                </button>
+              </div>
+            )}
+
+            {actionParticipationRequest.status === 'accepted' && (
+              <div className="mt-4">
+                <Link
+                  to={`/akcije/${actionParticipationRequest.action.id}`}
+                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  Otvori akciju
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

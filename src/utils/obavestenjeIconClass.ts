@@ -14,6 +14,8 @@ export function obavestenjeBellIconClass(type: string): string {
       return 'bg-pink-100 text-pink-600'
     case 'follow':
       return 'bg-emerald-100 text-emerald-700'
+    case 'action_participation_request':
+      return 'bg-amber-100 text-amber-700'
     case 'broadcast':
       return 'bg-violet-100 text-violet-600'
     case 'subskripcija':

@@ -2109,6 +2109,7 @@ func DeleteAkcija(c *gin.Context) {
 	if len(prijavaIDs) > 0 {
 		_ = db.Where("prijava_id IN ?", prijavaIDs).Delete(&models.PrijavaIzbori{}).Error
 	}
+	_ = db.Where("akcija_id = ?", id).Delete(&models.ActionParticipationRequest{}).Error
 	if err := db.Where("akcija_id = ?", id).Delete(&models.Prijava{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju prijava"})
 		return
