@@ -7,6 +7,37 @@ import { useTranslation } from 'react-i18next'
 
 type SearchTab = 'clanovi' | 'akcije' | 'finansije'
 
+function SearchUserAvatar({
+  fullName,
+  username,
+  avatarUrl,
+}: {
+  fullName?: string
+  username: string
+  avatarUrl?: string
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const url = (avatarUrl || '').trim()
+  if (url && !imgFailed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-9 w-9 shrink-0 rounded-full object-cover bg-gray-100 ring-1 ring-gray-200/80"
+        onError={() => setImgFailed(true)}
+      />
+    )
+  }
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#41ac53]/10 text-[#41ac53] font-semibold text-sm"
+      aria-hidden
+    >
+      {(fullName || username || '?').charAt(0).toUpperCase()}
+    </span>
+  )
+}
+
 interface GlobalSearchPanelProps {
   searchQuery: string
   setSearchQuery: (v: string) => void
@@ -40,9 +71,7 @@ function ResultListClanovi({
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#41ac53]/10 text-[#41ac53] font-semibold text-sm">
-              {(k.fullName || k.username || '?').charAt(0).toUpperCase()}
-            </span>
+            <SearchUserAvatar fullName={k.fullName} username={k.username} avatarUrl={k.avatar_url} />
             <div className="min-w-0 flex-1">
               <p className="font-medium text-gray-900 truncate">{k.fullName || k.username}</p>
               <p className="text-xs text-gray-500 truncate flex items-center gap-1.5">
