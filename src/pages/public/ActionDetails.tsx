@@ -149,6 +149,9 @@ export default function ActionDetails() {
   const [savingSelections, setSavingSelections] = useState(false)
   const [addTransportOpen, setAddTransportOpen] = useState(false)
   const [memberModal, setMemberModal] = useState<Prijava | null>(null)
+  const [bulkPaymentMode, setBulkPaymentMode] = useState(false)
+  const [bulkPaymentSubmitting, setBulkPaymentSubmitting] = useState(false)
+  const [bulkSelectedPaymentIds, setBulkSelectedPaymentIds] = useState<Set<number>>(new Set())
   const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
 
   useEffect(() => {
@@ -627,6 +630,68 @@ export default function ActionDetails() {
     }
   }
 
+  const toggleBulkSelectionForUser = (prijava: Prijava) => {
+    if (prijava.platio) return
+    setBulkSelectedPaymentIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(prijava.id)) next.delete(prijava.id)
+      else next.add(prijava.id)
+      return next
+    })
+  }
+
+  const handleToggleSelectAllBulkPayments = () => {
+    const unpaidIds = unpaidTrackedPrijave.map((p) => p.id)
+    if (unpaidIds.length === 0) return
+    const allSelected = unpaidIds.every((id) => bulkSelectedPaymentIds.has(id))
+    if (allSelected) {
+      setBulkSelectedPaymentIds(new Set())
+    } else {
+      setBulkSelectedPaymentIds(new Set(unpaidIds))
+    }
+  }
+
+  const handleBulkMarkAsPaid = async () => {
+    if (!canManageHost) return
+    const selectedIds = Array.from(bulkSelectedPaymentIds)
+    if (selectedIds.length === 0) {
+      await showAlert('Označite bar jednog člana.', t('errorTitle'))
+      return
+    }
+    const confirmed = await showConfirm(
+      `Označio si ${selectedIds.length} član(a) da je platio. Da li želiš da potvrdiš uplatu?`,
+      { title: 'Potvrda', confirmLabel: 'Plati', cancelLabel: t('cancel') },
+    )
+    if (!confirmed) return
+
+    setBulkPaymentSubmitting(true)
+    try {
+      const results = await Promise.allSettled(
+        selectedIds.map((pid) => api.patch(`/api/prijave/${pid}/platio`, { platio: true })),
+      )
+      const successIds: number[] = []
+      let failed = 0
+      results.forEach((r, idx) => {
+        if (r.status === 'fulfilled') successIds.push(selectedIds[idx])
+        else failed++
+      })
+
+      if (successIds.length > 0) {
+        setPrijave((prev) => prev.map((p) => (successIds.includes(p.id) ? { ...p, platio: true } : p)))
+      }
+      setBulkSelectedPaymentIds(new Set())
+      setBulkPaymentMode(false)
+
+      if (failed > 0) {
+        await showAlert(`Uspešno ažurirano: ${successIds.length}. Neuspešno: ${failed}.`, t('errorTitle'))
+      }
+    } catch (err: any) {
+      await showAlert(err?.response?.data?.error || 'Greška pri grupnom ažuriranju uplata.', t('errorTitle'))
+    } finally {
+      setBulkPaymentSubmitting(false)
+    }
+  }
+
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
     if (!canManageHost) return
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
@@ -845,6 +910,7 @@ export default function ActionDetails() {
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
   const paymentTrackedPrijave = prijave.filter((p) => p.status !== 'otkazano')
+  const unpaidTrackedPrijave = paymentTrackedPrijave.filter((p) => !p.platio)
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
@@ -1812,6 +1878,51 @@ export default function ActionDetails() {
                   <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('registeredMembers')}</h2>
                 </div>
                 <div className="flex items-center gap-2">
+                  {canManageHost && canSeePrijave && !isLimitedView && prijave.length > 0 && (
+                    <>
+                      {!bulkPaymentMode ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBulkPaymentMode(true)
+                            setBulkSelectedPaymentIds(new Set())
+                          }}
+                          className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
+                        >
+                          Označi ko je platio
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAllBulkPayments}
+                            className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            Označi sve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBulkMarkAsPaid}
+                            disabled={bulkPaymentSubmitting}
+                            className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            {bulkPaymentSubmitting ? 'Plaćam...' : 'Plati'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBulkPaymentMode(false)
+                              setBulkSelectedPaymentIds(new Set())
+                            }}
+                            disabled={bulkPaymentSubmitting}
+                            className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            {t('cancel')}
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
                   {canManageHost && canSeePrijave && !isLimitedView && (
                     <span className="inline-flex items-center justify-center h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
                       Plaćeno {paidCount}/{paymentTrackedPrijave.length}
@@ -1884,7 +1995,7 @@ export default function ActionDetails() {
                         <div
                           key={p.id}
                           className={`group flex items-center gap-3 p-3 rounded-2xl bg-gray-50/60 border border-gray-100 transition-all duration-200 ${
-                            canOpenMemberModal
+                            canOpenMemberModal && !bulkPaymentMode
                               ? canManageHost
                                 ? p.platio
                                   ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/60 hover:shadow-sm cursor-pointer'
@@ -1892,10 +2003,10 @@ export default function ActionDetails() {
                                 : 'border-gray-100 hover:border-emerald-200/80 hover:bg-emerald-50/25 hover:shadow-sm cursor-pointer'
                               : ''
                           }`}
-                          role={canOpenMemberModal ? 'button' : undefined}
-                          tabIndex={canOpenMemberModal ? 0 : -1}
-                          onClick={canOpenMemberModal ? () => setMemberModal(p) : undefined}
-                          onKeyDown={canOpenMemberModal
+                          role={canOpenMemberModal && !bulkPaymentMode ? 'button' : undefined}
+                          tabIndex={canOpenMemberModal && !bulkPaymentMode ? 0 : -1}
+                          onClick={canOpenMemberModal && !bulkPaymentMode ? () => setMemberModal(p) : undefined}
+                          onKeyDown={canOpenMemberModal && !bulkPaymentMode
                             ? (e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault()
@@ -1904,6 +2015,30 @@ export default function ActionDetails() {
                               }
                             : undefined}
                         >
+                          {canManageHost && bulkPaymentMode && (
+                            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => toggleBulkSelectionForUser(p)}
+                                disabled={!!p.platio || bulkPaymentSubmitting}
+                                className={`inline-flex items-center justify-center h-6 w-6 rounded-md border transition-colors ${
+                                  p.platio
+                                    ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                    : bulkSelectedPaymentIds.has(p.id)
+                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      : 'border-gray-300 bg-white text-gray-500 hover:border-emerald-400'
+                                } disabled:opacity-60 disabled:cursor-not-allowed`}
+                                title={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
+                                aria-label={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
+                              >
+                                {(p.platio || bulkSelectedPaymentIds.has(p.id)) ? (
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : null}
+                              </button>
+                            </div>
+                          )}
                           <div className="relative w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white shadow-sm flex-shrink-0">
                             {avatar ? (
                               <img src={avatar} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
