@@ -726,7 +726,7 @@ export default function ActionDetails() {
         }))
       })
     } catch {
-      alert(t('updateStatusError'))
+      await showAlert(t('updateStatusError'), t('errorTitle'))
     }
   }
 
@@ -807,8 +807,8 @@ export default function ActionDetails() {
     if (!canManageHost) return
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
       title: t('removeMemberTitle'),
-      confirmLabel: t('remove'),
-      cancelLabel: t('cancel'),
+      confirmLabel: 'Prihvati',
+      cancelLabel: 'Otkaži',
     })
     if (!confirmed) return
     try {
@@ -2240,6 +2240,19 @@ export default function ActionDetails() {
                                 title={t('markFailed')}
                               >
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            </div>
+                          )}
+                          {canManageHost && !akcija.isCompleted && (p.status === 'popeo se' || p.status === 'nije uspeo') && (
+                            <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleUpdateStatus(p.id, 'prijavljen')}
+                                className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                                title="Reset statusa na prijavljen"
+                              >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-.518 4.992A9 9 0 106.5 19.5l1.5-1.5" />
+                                </svg>
                               </button>
                             </div>
                           )}
