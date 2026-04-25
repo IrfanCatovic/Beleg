@@ -440,33 +440,14 @@ export default function UserProfile() {
             <button
               type="button"
               onClick={() => setMobileActionsOpen((v) => !v)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-transform duration-200 active:scale-95"
               aria-label={mobileActionsOpen ? t('close') : 'Otvori meni akcija'}
+              aria-expanded={mobileActionsOpen}
             >
-              {mobileActionsOpen ? <XMarkIcon className="h-6 w-6" /> : <EllipsisHorizontalIcon className="h-6 w-6" />}
+              <span className={`inline-flex transition-transform duration-200 ${mobileActionsOpen ? 'rotate-90' : ''}`}>
+                {mobileActionsOpen ? <XMarkIcon className="h-6 w-6" /> : <EllipsisHorizontalIcon className="h-6 w-6" />}
+              </span>
             </button>
-            {mobileActionsOpen && (
-              <div
-                className="fixed right-3 top-16 z-[275] flex flex-col items-end gap-2 transition-all duration-200 ease-out"
-                onClickCapture={() => setMobileActionsOpen(false)}
-              >
-                <ProfileActionButtons
-                  inline
-                  userId={String(korisnik.id)}
-                  isOwnProfile={!!isOwn}
-                  currentUser={currentUser}
-                  onPrintClick={() =>
-                    generateMemberPdf({
-                      ...(korisnik as unknown as MemberPdfData),
-                      clubName: korisnik.klubNaziv || '',
-                    })
-                  }
-                  direction="column"
-                  actionOrder={['print', 'info', 'settings']}
-                  actionClassName="bg-gray-900/85 text-white hover:bg-gray-800 hover:text-white border border-white/20 shadow-lg"
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -498,17 +479,6 @@ export default function UserProfile() {
             </button>
           </>
         )}
-
-        {mobileActionsOpen && (
-          <button
-            type="button"
-            className="sm:hidden fixed inset-0 z-[265] bg-transparent"
-            aria-label={t('close')}
-            onClick={() => setMobileActionsOpen(false)}
-          />
-        )}
-
-
 
         {/* Desktop: overlay preko covera (md+) */}
         {positioning && (
@@ -589,6 +559,39 @@ export default function UserProfile() {
           </div>
         )}
       </div>
+
+      {/* Mobilni dropdown akcija — van cover div-a (cover ima transform pa lomi position:fixed) */}
+      {mobileActionsOpen && (
+        <div className="sm:hidden fixed inset-0 z-[290]">
+          <button
+            type="button"
+            className="absolute inset-0 bg-transparent"
+            aria-label={t('close')}
+            onClick={() => setMobileActionsOpen(false)}
+          />
+          <div
+            className="absolute right-3 top-[4.25rem]"
+            onClick={() => window.setTimeout(() => setMobileActionsOpen(false), 0)}
+          >
+            <ProfileActionButtons
+              inline
+              userId={String(korisnik.id)}
+              isOwnProfile={!!isOwn}
+              currentUser={currentUser}
+              onPrintClick={() =>
+                generateMemberPdf({
+                  ...(korisnik as unknown as MemberPdfData),
+                  clubName: korisnik.klubNaziv || '',
+                })
+              }
+              direction="column"
+              actionOrder={['print', 'info', 'settings']}
+              actionClassName="!bg-emerald-600 !text-white hover:!bg-emerald-700 hover:!text-white ring-2 ring-white/40 shadow-xl"
+              className="mobile-actions-dropdown"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Mobilni: donji sheet — van cover div-a da fixed radi (cover ima transform) */}
       {positioning && isOwn && (

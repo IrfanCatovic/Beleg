@@ -23,6 +23,32 @@
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mobile-actions-dropdown {
+  animation: slideDownFade 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.mobile-actions-dropdown > * {
+  opacity: 0;
+  animation: slideDownFade 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.mobile-actions-dropdown > *:nth-child(1) { animation-delay: 30ms; }
+.mobile-actions-dropdown > *:nth-child(2) { animation-delay: 80ms; }
+.mobile-actions-dropdown > *:nth-child(3) { animation-delay: 130ms; }
+.mobile-actions-dropdown > *:nth-child(4) { animation-delay: 180ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-actions-dropdown,
+  .mobile-actions-dropdown > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @keyframes routeDash {
   from {
     stroke-dashoffset: 0;
