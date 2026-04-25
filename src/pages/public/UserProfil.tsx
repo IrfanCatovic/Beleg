@@ -39,6 +39,7 @@ interface Korisnik {
   username: string
   fullName?: string
   avatar_url?: string
+  klubId?: number
   cover_image_url?: string
   cover_position_y?: number
   /** Vertikalni fokus na uskom ekranu (&lt; md); ako nije sačuvan, koristi se cover_position_y. */
@@ -116,6 +117,7 @@ export default function UserProfile() {
   const [avatarUpdating, setAvatarUpdating] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
+  const [mobileActionsAnchor, setMobileActionsAnchor] = useState({ top: 68, left: 0 })
 
   const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
   const [blockedEither, setBlockedEither] = useState(false)
@@ -223,9 +225,14 @@ export default function UserProfile() {
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
   const showRoleBadge = !!korisnik && hasVisibleRole(korisnik.role) && (korisnik.role === 'superadmin' || !!korisnik.klubNaziv)
+  const sameClub = !!currentUser && typeof currentUser.klubId === 'number' && typeof korisnik?.klubId === 'number' && currentUser.klubId === korisnik.klubId
+  const isSuperadmin = currentUser?.role === 'superadmin'
+  const isClubAdminOrSecretary = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
+  const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub)
 
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   const openFollowModal = async (mode: 'following' | 'followers') => {
     if (!korisnik?.id || !currentUser) return
@@ -349,6 +356,16 @@ export default function UserProfile() {
     setPositioning(false)
   }
 
+  const updateMobileActionsAnchor = useCallback(() => {
+    const el = mobileMenuButtonRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setMobileActionsAnchor({
+      top: rect.bottom + 8,
+      left: rect.left + rect.width / 18,
+    })
+  }, [])
+
   useEffect(() => {
     if (!positioning) return
     const prev = document.body.style.overflow
@@ -371,6 +388,17 @@ export default function UserProfile() {
       document.body.style.overflow = prev
     }
   }, [avatarLightboxOpen])
+
+  useEffect(() => {
+    if (!mobileActionsOpen) return
+    updateMobileActionsAnchor()
+    window.addEventListener('resize', updateMobileActionsAnchor)
+    window.addEventListener('scroll', updateMobileActionsAnchor, true)
+    return () => {
+      window.removeEventListener('resize', updateMobileActionsAnchor)
+      window.removeEventListener('scroll', updateMobileActionsAnchor, true)
+    }
+  }, [mobileActionsOpen, updateMobileActionsAnchor])
 
   /* ── loading / error ── */
   if (loading) return (
@@ -436,10 +464,15 @@ export default function UserProfile() {
               )}
             </ProfileActionButtons>
           </div>
-          <div className="relative sm:hidden z-[270]">
+          {canSeeMobileActionsMenu && (
+            <div className="relative sm:hidden z-[270]">
             <button
+              ref={mobileMenuButtonRef}
               type="button"
-              onClick={() => setMobileActionsOpen((v) => !v)}
+              onClick={() => {
+                if (!mobileActionsOpen) updateMobileActionsAnchor()
+                setMobileActionsOpen((v) => !v)
+              }}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-transform duration-200 active:scale-95"
               aria-label={mobileActionsOpen ? t('close') : 'Otvori meni akcija'}
               aria-expanded={mobileActionsOpen}
@@ -448,7 +481,8 @@ export default function UserProfile() {
                 {mobileActionsOpen ? <XMarkIcon className="h-6 w-6" /> : <EllipsisHorizontalIcon className="h-6 w-6" />}
               </span>
             </button>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
@@ -561,7 +595,7 @@ export default function UserProfile() {
       </div>
 
       {/* Mobilni dropdown akcija — van cover div-a (cover ima transform pa lomi position:fixed) */}
-      {mobileActionsOpen && (
+      {mobileActionsOpen && canSeeMobileActionsMenu && (
         <div className="sm:hidden fixed inset-0 z-[290]">
           <button
             type="button"
@@ -570,7 +604,8 @@ export default function UserProfile() {
             onClick={() => setMobileActionsOpen(false)}
           />
           <div
-            className="absolute right-3 top-[4.25rem]"
+            className="absolute mobile-actions-dropdown"
+            style={{ top: mobileActionsAnchor.top, left: mobileActionsAnchor.left, transform: 'translateX(calc(-60% - 58px))' }}
             onClick={() => window.setTimeout(() => setMobileActionsOpen(false), 0)}
           >
             <ProfileActionButtons
@@ -587,7 +622,7 @@ export default function UserProfile() {
               direction="column"
               actionOrder={['print', 'info', 'settings']}
               actionClassName="!bg-emerald-600 !text-white hover:!bg-emerald-700 hover:!text-white ring-2 ring-white/40 shadow-xl"
-              className="mobile-actions-dropdown"
+              className=""
             />
           </div>
         </div>
