@@ -28,7 +28,10 @@ export default function RegisterOpen() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [email, setEmail] = useState('')
+  const [pol, setPol] = useState('')
+  const [datumRodjenja, setDatumRodjenja] = useState('')
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -48,8 +51,20 @@ export default function RegisterOpen() {
       setError('Lozinka mora imati najmanje 8 karaktera.')
       return
     }
+    if (password !== confirmPassword) {
+      setError('Lozinke se ne poklapaju.')
+      return
+    }
     if (!email.trim()) {
       setError('Email je obavezan.')
+      return
+    }
+    if (!pol.trim()) {
+      setError('Pol je obavezan.')
+      return
+    }
+    if (!datumRodjenja) {
+      setError('Datum rođenja je obavezan.')
       return
     }
 
@@ -58,6 +73,8 @@ export default function RegisterOpen() {
       await api.post('/api/register/open', {
         username: username.trim().toLowerCase(),
         password,
+        pol,
+        datumRodjenja,
         email: email.trim().toLowerCase(),
         fullName: fullName.trim(),
       })
@@ -109,6 +126,14 @@ export default function RegisterOpen() {
             disabled={loading}
           />
           <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Potvrdi lozinku"
+            className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
+            disabled={loading}
+          />
+          <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -116,6 +141,25 @@ export default function RegisterOpen() {
             className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
             disabled={loading}
           />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <select
+              value={pol}
+              onChange={(e) => setPol(e.target.value)}
+              className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
+              disabled={loading}
+            >
+              <option value="">Pol</option>
+              <option value="M">Muški</option>
+              <option value="Ž">Ženski</option>
+            </select>
+            <input
+              type="date"
+              value={datumRodjenja}
+              onChange={(e) => setDatumRodjenja(e.target.value)}
+              className="w-full rounded-xl border border-emerald-100 bg-white py-2.5 px-3.5 text-sm text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/40 outline-none transition"
+              disabled={loading}
+            />
+          </div>
           <input
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}

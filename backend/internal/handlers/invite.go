@@ -281,6 +281,10 @@ func RegisterInvite(c *gin.Context) {
 	fullName := post("fullName", "full_name")
 	imeRoditelja := post("imeRoditelja", "ime_roditelja")
 	pol := post("pol")
+	if pol == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pol je obavezan"})
+		return
+	}
 	drzavljanstvo := post("drzavljanstvo")
 	adresa := post("adresa")
 	telefon := post("telefon")
@@ -311,6 +315,10 @@ func RegisterInvite(c *gin.Context) {
 		if t, err := time.Parse("2006-01-02", s); err == nil {
 			datumRodjenja = &t
 		}
+	}
+	if datumRodjenja == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datum rođenja je obavezan"})
+		return
 	}
 	if s := post("datumUclanjenja", "datum_uclanjenja"); s != "" {
 		if t, err := time.Parse("2006-01-02", s); err == nil {

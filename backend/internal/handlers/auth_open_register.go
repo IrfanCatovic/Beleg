@@ -19,10 +19,12 @@ import (
 )
 
 type openRegisterRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Email    string `json:"email"`
-	FullName string `json:"fullName"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	Email         string `json:"email"`
+	FullName      string `json:"fullName"`
+	Pol           string `json:"pol"`
+	DatumRodjenja string `json:"datumRodjenja"`
 }
 
 type resendVerificationRequest struct {
@@ -102,6 +104,21 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna email adresa"})
 			return
 		}
+		pol := strings.TrimSpace(req.Pol)
+		if pol == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Pol je obavezan"})
+			return
+		}
+		datumRodjenjaRaw := strings.TrimSpace(req.DatumRodjenja)
+		if datumRodjenjaRaw == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Datum rođenja je obavezan"})
+			return
+		}
+		datumRodjenja, err := time.Parse("2006-01-02", datumRodjenjaRaw)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Datum rođenja mora biti u formatu YYYY-MM-DD"})
+			return
+		}
 
 		var existing models.Korisnik
 		if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&existing).Error; err == nil {
@@ -130,12 +147,14 @@ func RegisterOpen(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		pending := models.PendingOpenRegistration{
-			Username:     username,
-			PasswordHash: string(hashed),
-			Email:        emailStr,
-			FullName:     strings.TrimSpace(req.FullName),
-			TokenHash:    tokenHash,
-			ExpiresAt:    time.Now().Add(24 * time.Hour),
+			Username:      username,
+			PasswordHash:  string(hashed),
+			Email:         emailStr,
+			FullName:      strings.TrimSpace(req.FullName),
+			Pol:           pol,
+			DatumRodjenja: &datumRodjenja,
+			TokenHash:     tokenHash,
+			ExpiresAt:     time.Now().Add(24 * time.Hour),
 		}
 		if err := db.Create(&pending).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju registracije"})
@@ -194,6 +213,8 @@ func verifyEmailFromPending(c *gin.Context, db *gorm.DB, pending *models.Pending
 			Role:            "",
 			Email:           p.Email,
 			FullName:        p.FullName,
+			Pol:             p.Pol,
+			DatumRodjenja:   p.DatumRodjenja,
 			KlubID:          nil,
 			EmailVerifiedAt: &now,
 		}

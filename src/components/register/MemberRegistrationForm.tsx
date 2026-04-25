@@ -78,6 +78,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
   )
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -125,6 +126,10 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
     const em = form.email.trim()
     if (!em) {
       setError(tInvite('registerForm.emailRequired'))
+      return
+    }
+    if (form.password !== confirmPassword) {
+      setError('Lozinke se ne poklapaju.')
       return
     }
     if (!form.pol.trim()) {
@@ -256,6 +261,58 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               disabled={submitting || success}
             />
           </div>
+          <div>
+            <label className={labelClass}>Potvrda lozinke *</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              className={inputClass}
+              placeholder="Ponovite lozinku"
+              disabled={submitting || success}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>{t('registerUser.email')} *</label>
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder={t('registerUser.emailPlaceholder')}
+              required
+              disabled={submitting || success}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>{t('registerUser.gender')} *</label>
+            <Dropdown
+              aria-label={t('registerUser.gender')}
+              options={[
+                { value: '', label: t('registerUser.pick') },
+                { value: 'M', label: t('registerUser.genderMale') },
+                { value: 'Ž', label: t('registerUser.genderFemale') },
+              ]}
+              value={form.pol}
+              onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+              fullWidth
+            />
+          </div>
+          <div>
+            <label className={labelClass}>{t('registerUser.birthDate')} *</label>
+            <input
+              name="datumRodjenja"
+              type="date"
+              value={form.datumRodjenja}
+              onChange={handleChange}
+              className={inputClass}
+              required
+              disabled={submitting || success}
+            />
+          </div>
           {isStaff && (
             <div>
               <label className={labelClass}>{t('registerUser.roleRequired')}</label>
@@ -303,32 +360,6 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               disabled={submitting || success}
             />
           </div>
-          <div>
-            <label className={labelClass}>{t('registerUser.gender')}</label>
-            <Dropdown
-              aria-label={t('registerUser.gender')}
-              options={[
-                { value: '', label: t('registerUser.pick') },
-                { value: 'M', label: t('registerUser.genderMale') },
-                { value: 'Ž', label: t('registerUser.genderFemale') },
-              ]}
-              value={form.pol}
-              onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
-              fullWidth
-            />
-          </div>
-          <div>
-            <label className={labelClass}>{t('registerUser.birthDate')}</label>
-            <input
-              name="datumRodjenja"
-              type="date"
-              value={form.datumRodjenja}
-              onChange={handleChange}
-              className={inputClass}
-              required
-              disabled={submitting || success}
-            />
-          </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>{t('registerUser.citizenship')}</label>
             <input
@@ -346,21 +377,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
         <h3 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-[0.18em] mb-2">
           {t('registerUser.contactOptional')}
         </h3>
-        <p className="text-xs text-emerald-700 -mt-1 mb-2">{tInvite('registerForm.emailRequired')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          <div>
-            <label className={labelClass}>{t('registerUser.email')} *</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              className={inputClass}
-              placeholder={t('registerUser.emailPlaceholder')}
-              required
-              disabled={submitting || success}
-            />
-          </div>
           <div>
             <label className={labelClass}>{t('registerUser.phone')}</label>
             <input
