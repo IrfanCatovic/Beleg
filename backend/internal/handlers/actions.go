@@ -1199,7 +1199,11 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		return
 	}
 	canSeePrijave := false
-	if akcijaZaPravo.PrikaziListuPrijavljenih && akcijaZaPravo.Javna {
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	if !akcijaZaPravo.PrikaziListuPrijavljenih {
+		canSeePrijave = role == "vodic" || role == "admin" || role == "superadmin"
+	} else if akcijaZaPravo.Javna {
 		canSeePrijave = true
 	} else if akcijaZaPravo.KlubID != nil {
 		if viewerClubID, ok := helpers.GetEffectiveClubID(c, db); ok && viewerClubID == *akcijaZaPravo.KlubID {
