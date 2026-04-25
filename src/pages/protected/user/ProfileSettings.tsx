@@ -54,6 +54,8 @@ export default function ProfileSettings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
+  const [removeAvatar, setRemoveAvatar] = useState(false)
+  const [avatarActionsOpen, setAvatarActionsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -155,8 +157,23 @@ export default function ProfileSettings() {
       return
     }
     setError('')
+    setRemoveAvatar(false)
     setAvatarFile(file)
     setAvatarPreview(URL.createObjectURL(file))
+    setAvatarActionsOpen(false)
+    e.target.value = ''
+  }
+
+  const handleChooseAvatarFromGallery = () => {
+    setAvatarActionsOpen(false)
+    avatarInputRef.current?.click()
+  }
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null)
+    setAvatarPreview('')
+    setRemoveAvatar(true)
+    setAvatarActionsOpen(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,6 +252,7 @@ export default function ProfileSettings() {
       if (form.datumUclanjenja) formData.append('datumUclanjenja', form.datumUclanjenja)
       if (newPassword) formData.append('newPassword', newPassword)
       if (avatarFile) formData.append('avatar', avatarFile)
+      if (removeAvatar) formData.append('removeAvatar', '1')
       if (canEditAdminFields) {
         formData.append('izreceneDisciplinskeKazne', form.izreceneDisciplinskeKazne.trim())
         formData.append('izborUOrganeSportskogUdruzenja', form.izborUOrganeSportskogUdruzenja.trim())
@@ -341,20 +359,23 @@ export default function ProfileSettings() {
                       className="hidden"
                       aria-label={t('chooseProfileImage')}
                     />
-                    <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                    >
-                      {avatarPreview ? (
-                        <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
-                      )}
-                      <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
-                        <PencilSquareIcon className="h-8 w-8 text-white" />
-                      </span>
-                    </button>
+                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
+                      <div className="h-full w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl overflow-hidden">
+                        {avatarPreview ? (
+                          <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAvatarActionsOpen(true)}
+                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-700 hover:text-emerald-600 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                        aria-label="Izmeni profilnu sliku"
+                      >
+                        <PencilSquareIcon className="h-4 w-4" />
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden">
@@ -672,6 +693,41 @@ export default function ProfileSettings() {
             </div>
           )}
         </form>
+      {!isAdminEdit && avatarActionsOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Promena profilne slike</h3>
+              <p className="mt-1 text-sm text-gray-500">Izaberite šta želite da uradite.</p>
+            </div>
+            <div className="p-4 space-y-2">
+              <button
+                type="button"
+                onClick={handleChooseAvatarFromGallery}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-gray-800 hover:bg-gray-50"
+              >
+                Dodaj iz galerije
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-100"
+              >
+                Ukloni profilnu
+              </button>
+            </div>
+            <div className="px-4 pb-4">
+              <button
+                type="button"
+                onClick={() => setAvatarActionsOpen(false)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Otkaži
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

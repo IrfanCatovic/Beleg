@@ -128,6 +128,7 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		izreceneDisciplinskeKazne := post("izreceneDisciplinskeKazne")
 		izborUOrganeSportskogUdruzenja := post("izborUOrganeSportskogUdruzenja")
 		napomene := post("napomene")
+		removeAvatar := post("removeAvatar") == "1" || strings.EqualFold(post("removeAvatar"), "true")
 		if strings.TrimSpace(pol) == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Pol je obavezan"})
 			return
@@ -147,6 +148,10 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			if t, err := time.Parse("2006-01-02", s); err == nil {
 				datumUclanjenja = &t
 			}
+		}
+		if removeAvatar && korisnik.AvatarURL != "" {
+			helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.AvatarURL)
+			korisnik.AvatarURL = ""
 		}
 
 		if files := c.Request.MultipartForm.File["avatar"]; len(files) > 0 {
@@ -265,9 +270,7 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			updates["izbor_u_organe_sportskog_udruzenja"] = izborUOrganeSportskogUdruzenja
 			updates["napomene"] = napomene
 		}
-		if korisnik.AvatarURL != "" {
-			updates["avatar_url"] = korisnik.AvatarURL
-		}
+		updates["avatar_url"] = korisnik.AvatarURL
 		if korisnik.CoverImageURL != "" {
 			updates["cover_image_url"] = korisnik.CoverImageURL
 		}
