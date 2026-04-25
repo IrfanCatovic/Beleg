@@ -59,6 +59,8 @@ export default function ProfileSettings() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [targetUsername, setTargetUsername] = useState('')
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [sendingVerification, setSendingVerification] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin')
@@ -125,6 +127,7 @@ export default function ProfileSettings() {
           napomene: k.napomene || '',
         })
         setRole(k.role || '')
+        setEmailVerified(!!k.email_verified_at)
         if (k.avatar_url) setAvatarPreview(k.avatar_url)
       } catch (err: any) {
         setError(err.response?.data?.error || t('loadProfileError'))
@@ -248,13 +251,45 @@ export default function ProfileSettings() {
         })
       }
       await refreshUser()
+      const meRes = await api.get('/api/me')
+      const verifiedNow = !!meRes.data?.email_verified_at
+      setEmailVerified(verifiedNow)
 
       setSuccess(true)
+      if (mustCompleteProfile && !verifiedNow) {
+        setTimeout(
+          () =>
+            navigate('/registracija-email-provera', {
+              replace: true,
+              state: { email: form.email.trim().toLowerCase() },
+            }),
+          1200,
+        )
+        return
+      }
       setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || t('saveProfileError'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    const email = form.email.trim().toLowerCase()
+    if (!email) {
+      setError('Unesite email i sačuvajte profil pre slanja verifikacije.')
+      return
+    }
+    setSendingVerification(true)
+    setError('')
+    try {
+      await api.post('/api/email/resend', { email })
+      navigate('/registracija-email-provera', { replace: false, state: { email } })
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Slanje verifikacionog emaila nije uspelo.')
+    } finally {
+      setSendingVerification(false)
     }
   }
 
@@ -368,8 +403,21 @@ export default function ProfileSettings() {
       )}
       {mustCompleteProfile && (
         <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-            Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
+              {!emailVerified && ' Nakon toga morate i da potvrdite email adresu.'}
+            </p>
+            {!emailVerified && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={sendingVerification}
+                className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+              >
+                {sendingVerification ? 'Šaljem...' : 'Pošalji verifikacioni email'}
+              </button>
+            )}
           </div>
         </div>
       )}
