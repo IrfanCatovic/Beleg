@@ -15,7 +15,7 @@ import { computeMMRForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTur
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import { tezinaLabel } from '../../utils/difficultyI18n'
 import type { TFunction } from 'i18next'
-import { ArrowsUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
   id: number
@@ -114,6 +114,7 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
 
   const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
   const [blockedEither, setBlockedEither] = useState(false)
@@ -272,11 +273,30 @@ export default function UserProfile() {
       formData.append('coverImage', file)
       const res = await api.patch('/api/me/cover', formData)
       const url = (res.data as { cover_image_url?: string }).cover_image_url
-      if (url) setKorisnik((k) => (k ? { ...k, cover_image_url: url } : null))
+      if (url) {
+        setKorisnik((k) => (k ? { ...k, cover_image_url: url } : null))
+        setPositioning(false)
+      }
     } catch { /* ignore */ }
     finally {
       setCoverUploading(false)
       e.target.value = ''
+    }
+  }
+
+  const handleRemoveCover = async () => {
+    if (!korisnik?.cover_image_url) return
+    setCoverUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('removeCover', '1')
+      await api.patch('/api/me/cover', formData)
+      setKorisnik((k) => (k ? { ...k, cover_image_url: '' } : null))
+      setPositioning(false)
+    } catch {
+      /* ignore */
+    } finally {
+      setCoverUploading(false)
     }
   }
 
@@ -351,44 +371,66 @@ export default function UserProfile() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
 
-        {/* Gornji desni ugao: pomeranje covera + podešavanja / info / štampa (ne prekrivati celu širinu — inače blokira tap na tel.) */}
+        {/* Gornji desni ugao: mobilni meni (3 tačke) + desktop akcije */}
         <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-30 flex flex-row-reverse items-center gap-2 flex-wrap justify-end pointer-events-auto max-w-[calc(100vw-5rem)]">
-          {isOwn && hasCover && !positioning && (
+          <div className="hidden sm:flex">
+            <ProfileActionButtons
+              inline
+              userId={String(korisnik.id)}
+              isOwnProfile={!!isOwn}
+              currentUser={currentUser}
+              onPrintClick={() =>
+                generateMemberPdf({
+                  ...(korisnik as unknown as MemberPdfData),
+                  clubName: korisnik.klubNaziv || '',
+                })
+              }
+            >
+              {!isOwn && currentUser && (
+                <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
+              )}
+              {!isOwn && currentUser && (
+                <BlockUserButton
+                  targetId={korisnik.id}
+                  onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+                />
+              )}
+            </ProfileActionButtons>
+          </div>
+          <div className="relative sm:hidden">
             <button
               type="button"
-              onClick={() => setPositioning(true)}
+              onClick={() => setMobileActionsOpen((v) => !v)}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              title={t('cover.moveDisplay')}
-              aria-label={t('cover.moveDisplay')}
+              aria-label={mobileActionsOpen ? t('close') : 'Otvori meni akcija'}
             >
-              <ArrowsUpDownIcon className="h-6 w-6" aria-hidden />
+              {mobileActionsOpen ? <XMarkIcon className="h-6 w-6" /> : <EllipsisHorizontalIcon className="h-6 w-6" />}
             </button>
-          )}
-          <ProfileActionButtons
-            inline
-            userId={String(korisnik.id)}
-            isOwnProfile={!!isOwn}
-            currentUser={currentUser}
-            onPrintClick={() =>
-              generateMemberPdf({
-                ...(korisnik as unknown as MemberPdfData),
-                clubName: korisnik.klubNaziv || '',
-              })
-            }
-          >
-            {!isOwn && currentUser && (
-              <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
+            {mobileActionsOpen && (
+              <div
+                className="absolute right-0 top-12 rounded-2xl bg-white/95 backdrop-blur-sm p-2 shadow-xl border border-gray-100 transition-all duration-200 ease-out"
+                onClickCapture={() => setMobileActionsOpen(false)}
+              >
+                <ProfileActionButtons
+                  inline
+                  userId={String(korisnik.id)}
+                  isOwnProfile={!!isOwn}
+                  currentUser={currentUser}
+                  onPrintClick={() =>
+                    generateMemberPdf({
+                      ...(korisnik as unknown as MemberPdfData),
+                      clubName: korisnik.klubNaziv || '',
+                    })
+                  }
+                  direction="column"
+                  actionOrder={['print', 'info', 'settings']}
+                />
+              </div>
             )}
-            {!isOwn && currentUser && (
-              <BlockUserButton
-                targetId={korisnik.id}
-                onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
-              />
-            )}
-          </ProfileActionButtons>
+          </div>
         </div>
 
-        {/* Gornji levi ugao: samo providna olovka za zamenu covera (kao stil izmene, bez teksta) */}
+        {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
         {isOwn && !positioning && (
           <>
             <input
@@ -400,7 +442,7 @@ export default function UserProfile() {
             />
             <button
               type="button"
-              onClick={() => coverInputRef.current?.click()}
+              onClick={() => setPositioning(true)}
               disabled={coverUploading}
               title={hasCover ? t('cover.replace') : t('cover.add')}
               aria-label={hasCover ? t('cover.replace') : t('cover.add')}
@@ -417,6 +459,15 @@ export default function UserProfile() {
           </>
         )}
 
+        {mobileActionsOpen && (
+          <button
+            type="button"
+            className="sm:hidden fixed inset-0 z-20 bg-transparent"
+            aria-label={t('close')}
+            onClick={() => setMobileActionsOpen(false)}
+          />
+        )}
+
 
 
         {/* Desktop: overlay preko covera (md+) */}
@@ -426,6 +477,26 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
           >
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={coverUploading}
+                className="min-h-11 px-5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-bold transition disabled:opacity-50"
+              >
+                {hasCover ? t('cover.replace') : t('cover.add')}
+              </button>
+              {hasCover && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCover}
+                  disabled={coverUploading}
+                  className="min-h-11 px-5 rounded-xl bg-rose-500/80 hover:bg-rose-600 text-white text-sm font-bold transition disabled:opacity-50"
+                >
+                  Ukloni cover
+                </button>
+              )}
+            </div>
             <p className="text-white text-center text-sm font-semibold">{t('cover.desktopTitle')}</p>
             <p className="text-white/60 text-center text-[11px] -mt-2 max-w-xs">
               {t('cover.desktopHint')}
@@ -498,57 +569,88 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto h-1 w-10 rounded-full bg-gray-200 shrink-0" aria-hidden />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={coverUploading}
+                className="min-h-11 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+              >
+                {hasCover ? t('cover.replace') : t('cover.add')}
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveCover}
+                disabled={coverUploading || !hasCover}
+                className="min-h-11 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold hover:bg-rose-100 disabled:opacity-40"
+              >
+                Ukloni cover
+              </button>
+            </div>
             <h2 id="cover-pos-sheet-title" className="text-center text-sm font-bold text-gray-900">
               {t('cover.mobileTitle')}
             </h2>
             <p className="text-center text-[11px] text-gray-500 -mt-1">
               {t('cover.mobileHint')}
             </p>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={coverYMobile}
-              onChange={(e) => setCoverYMobile(parseFloat(e.target.value))}
-              className="w-full h-12 accent-emerald-600 cursor-pointer touch-pan-y"
-            />
-            <div className="flex items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={() => setCoverYMobile((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
-                className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label={t('cover.moveUp')}
-              >
-                −
-              </button>
-              <span className="text-gray-600 text-sm tabular-nums font-semibold w-14 text-center">{Math.round(coverYMobile * 100)}%</span>
-              <button
-                type="button"
-                onClick={() => setCoverYMobile((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
-                className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
-                aria-label={t('cover.moveDown')}
-              >
-                +
-              </button>
-            </div>
-            <div className="flex gap-2 pt-1">
+            {hasCover && (
+              <>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={coverYMobile}
+                  onChange={(e) => setCoverYMobile(parseFloat(e.target.value))}
+                  className="w-full h-12 accent-emerald-600 cursor-pointer touch-pan-y"
+                />
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setCoverYMobile((y: number) => Math.max(0, Math.round((y - 0.05) * 100) / 100))}
+                    className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
+                    aria-label={t('cover.moveUp')}
+                  >
+                    −
+                  </button>
+                  <span className="text-gray-600 text-sm tabular-nums font-semibold w-14 text-center">{Math.round(coverYMobile * 100)}%</span>
+                  <button
+                    type="button"
+                    onClick={() => setCoverYMobile((y: number) => Math.min(1, Math.round((y + 0.05) * 100) / 100))}
+                    className="min-h-12 min-w-12 rounded-xl bg-gray-100 text-gray-800 text-xl font-bold hover:bg-gray-200 active:bg-gray-300"
+                    aria-label={t('cover.moveDown')}
+                  >
+                    +
+                  </button>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={cancelCoverPositioning}
+                    className="flex-1 min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => saveCoverPos('mobile')}
+                    disabled={saving}
+                    className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
+                  >
+                    {saving ? t('cover.saving') : t('save')}
+                  </button>
+                </div>
+              </>
+            )}
+            {!hasCover && (
               <button
                 type="button"
                 onClick={cancelCoverPositioning}
-                className="flex-1 min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
+                className="w-full min-h-12 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50"
               >
                 {t('cancel')}
               </button>
-              <button
-                type="button"
-                onClick={() => saveCoverPos('mobile')}
-                disabled={saving}
-                className="flex-1 min-h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-50"
-              >
-                {saving ? t('cover.saving') : t('save')}
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}

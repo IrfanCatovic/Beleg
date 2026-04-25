@@ -410,6 +410,17 @@ func UpdateMeCover(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 		return
 	}
+	post := func(k string) string { return strings.TrimSpace(c.PostForm(k)) }
+	removeCover := post("removeCover") == "1" || strings.EqualFold(post("removeCover"), "true")
+	if removeCover {
+		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.CoverImageURL)
+		if err := db.Model(&korisnik).Update("cover_image_url", "").Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju cover slike"})
+			return
+		}
+		c.JSON(200, gin.H{"message": "Cover slika uklonjena", "cover_image_url": ""})
+		return
+	}
 	files := c.Request.MultipartForm.File["coverImage"]
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Očekuje se slika (coverImage)"})
