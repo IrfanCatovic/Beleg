@@ -11,12 +11,14 @@ export interface User {
     avatarUrl?: string;
     /** Klub korisnika (za superadmina nije uvek relevantno — koristi se X-Club-Id) */
     klubId?: number;
+    profileIncomplete?: boolean;
 }
 
 
 export interface LoginResponse {
   role: string;
   user: { username: string; fullName: string; avatar_url?: string; klubId?: number };
+  profileIncomplete?: boolean;
   /** JWT kada cookie nije moguć (cross-origin); šalje se kao Authorization Bearer */
   token?: string;
 }
@@ -31,6 +33,19 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const computeProfileIncomplete = (data: {
+    email?: string
+    email_verified_at?: string | null
+    pol?: string
+    datum_rodjenja?: string | null
+}): boolean => {
+    const hasEmail = typeof data.email === 'string' && data.email.trim().length > 0
+    const emailVerified = !!data.email_verified_at
+    const hasGender = typeof data.pol === 'string' && data.pol.trim().length > 0
+    const hasBirthDate = !!data.datum_rodjenja
+    return !(hasEmail && emailVerified && hasGender && hasBirthDate)
+}
 
     export function AuthProvider({ children }: { children: ReactNode }) {
         const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
@@ -50,7 +65,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
         const refreshUser = useCallback(async () => {
             try {
-                const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string; klubId?: number }>('/api/me')
+                const res = await api.get<{ username: string; fullName: string; role: string; avatar_url?: string; klubId?: number; email?: string; email_verified_at?: string | null; pol?: string; datum_rodjenja?: string | null }>('/api/me')
                 const data = res.data
                 const userData: User = {
                     username: data.username,
@@ -58,6 +73,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                     role: data.role as User['role'],
                     avatarUrl: data.avatar_url,
                     klubId: data.klubId,
+                    profileIncomplete: computeProfileIncomplete(data),
                 }
                 setUser(userData)
                 localStorage.setItem('user', JSON.stringify(userData))
@@ -81,6 +97,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                         typeof data.user.klubId === 'number' && !Number.isNaN(data.user.klubId)
                             ? data.user.klubId
                             : prev?.klubId,
+                    profileIncomplete: data.profileIncomplete ?? prev?.profileIncomplete ?? false,
                 }
                 localStorage.setItem('user', JSON.stringify(next))
                 return next
@@ -98,6 +115,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                         role?: string
                         avatar_url?: string
                         klubId?: number
+                        email?: string
+                        email_verified_at?: string | null
+                        pol?: string
+                        datum_rodjenja?: string | null
                     }
                     if (data?.username && typeof data?.role === 'string') {
                         const userData: User = {
@@ -106,6 +127,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
                             role: data.role as User['role'],
                             avatarUrl: data.avatar_url,
                             klubId: data.klubId,
+                            profileIncomplete: computeProfileIncomplete(data),
                         }
                         setUser(userData)
                         setIsLoggedIn(true)

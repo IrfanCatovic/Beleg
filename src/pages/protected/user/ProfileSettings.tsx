@@ -61,22 +61,22 @@ export default function ProfileSettings() {
   const [targetUsername, setTargetUsername] = useState('')
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
-  const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar')
-  const isSekretarEdit = !!id && user?.role === 'sekretar'
+  const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin')
   const canEditAdminFields = user?.role === 'superadmin' || user?.role === 'admin'
+  const mustCompleteProfile = !isAdminEdit && !!user?.profileIncomplete
 
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/home', { replace: true })
       return
     }
-    // Admin ili sekretar mogu pristupiti /profil/podesavanja/:id
-    if (id && user?.role !== 'superadmin' && user?.role !== 'admin' && user?.role !== 'sekretar') {
+    // Samo admin/superadmin mogu pristupiti /profil/podesavanja/:id
+    if (id && user?.role !== 'superadmin' && user?.role !== 'admin') {
       navigate('/profil/podesavanja', { replace: true })
       return
     }
 
-    // Admin ili sekretar editing another user: admin vidi sva polja + lozinku, sekretar samo lozinku
+    // Admin/superadmin uređuju drugog korisnika
     if (isAdminEdit) {
       const fetchUser = async () => {
         try {
@@ -182,11 +182,6 @@ export default function ProfileSettings() {
           body.napomene = form.napomene.trim()
         }
         if (newPassword) body.newPassword = newPassword
-        if (isSekretarEdit && !newPassword) {
-          setError(t('enterNewPassword'))
-          setSaving(false)
-          return
-        }
         const res = await api.get(`/api/korisnici/${id}`)
         const k = res.data as { username: string }
         await api.patch(`/api/korisnici/${id}`, body)
@@ -197,6 +192,21 @@ export default function ProfileSettings() {
 
       if (newPassword !== confirmPassword) {
         setError(t('passwordMismatch'))
+        setSaving(false)
+        return
+      }
+      if (!form.email.trim()) {
+        setError('Email je obavezan da biste nastavili korišćenje aplikacije.')
+        setSaving(false)
+        return
+      }
+      if (!form.pol.trim()) {
+        setError('Pol je obavezan da biste nastavili korišćenje aplikacije.')
+        setSaving(false)
+        return
+      }
+      if (!form.datumRodjenja) {
+        setError('Datum rođenja je obavezan da biste nastavili korišćenje aplikacije.')
         setSaving(false)
         return
       }
@@ -236,8 +246,8 @@ export default function ProfileSettings() {
           user: res.data.user,
           token: typeof res.data.token === 'string' ? res.data.token : undefined,
         })
-        await refreshUser()
       }
+      await refreshUser()
 
       setSuccess(true)
       setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
@@ -314,14 +324,10 @@ export default function ProfileSettings() {
                 )}
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">
-                    {isSekretarEdit ? t('setPassword') : isAdminEdit ? t('userSettings') : t('profileSettings')}
+                    {isAdminEdit ? t('userSettings') : t('profileSettings')}
                   </h1>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {isSekretarEdit
-                      ? t('secretarySubtitle')
-                      : isAdminEdit
-                      ? t('adminSubtitle')
-                      : t('selfSubtitle')}
+                    {isAdminEdit ? t('adminSubtitle') : t('selfSubtitle')}
                   </p>
                 </div>
               </div>
@@ -360,33 +366,18 @@ export default function ProfileSettings() {
           <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">{error}</div>
         </div>
       )}
+      {mustCompleteProfile && (
+        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
+          </div>
+        </div>
+      )}
 
       <form id="profile-settings-form" onSubmit={handleSubmit} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Admin edit: sekretar samo lozinka; admin uloga + disciplinske + lozinka */}
+          {/* Admin edit: uloga + disciplinske + opcioni reset lozinke (samo superadmin efektivno prolazi backend proveru) */}
           {isAdminEdit ? (
             <div className="space-y-6">
-              {isSekretarEdit ? (
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                  <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                    <div className="flex items-center gap-2">
-                      <KeyIcon className="h-5 w-5 text-emerald-600" />
-                      <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">{t('onlyIfForgotPassword')}</p>
-                  </div>
-                  <div className="p-5 space-y-4">
-                    <div>
-                      <label className={labelClass}>{t('newPasswordRequired')}</label>
-                      <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} required autoComplete="new-password" />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('repeatPasswordRequired')}</label>
-                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} required autoComplete="new-password" />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
                   <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                     <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                       <div className="flex items-center gap-2">
@@ -439,11 +430,9 @@ export default function ProfileSettings() {
                       </div>
                     </div>
                   </div>
-                </>
-              )}
               <div className="flex gap-3">
                 <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                  {saving ? t('saving') : isSekretarEdit ? t('setPassword') : t('saveChanges')}
+                  {saving ? t('saving') : t('saveChanges')}
                 </button>
                 <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   {t('cancel')}
@@ -537,7 +526,7 @@ export default function ProfileSettings() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>{t('email')}</label>
-                      <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} />
+                      <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} required />
                     </div>
                     <div>
                       <label className={labelClass}>{t('phone')}</label>

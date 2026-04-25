@@ -15,6 +15,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 	usernameAvailableRateLimiter := middleware.NewIPRateLimiter(40, time.Minute)
 	registerRateLimiter := middleware.NewIPRateLimiter(8, 10*time.Minute)
 	resendEmailRateLimiter := middleware.NewIPRateLimiter(8, 10*time.Minute)
+	forgotPasswordRateLimiter := middleware.NewIPRateLimiter(8, 10*time.Minute)
 	setupAdminRateLimiter := middleware.NewIPRateLimiter(5, 10*time.Minute)
 
 	RegisterSetupPublicRoutes(r, db, setupAdminRateLimiter)
@@ -26,6 +27,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 		usernameAvailableRateLimiter,
 		registerRateLimiter,
 		resendEmailRateLimiter,
+		forgotPasswordRateLimiter,
 	)
 
 	RegisterUsersPublicRoutes(r)

@@ -394,14 +394,18 @@ func RegisterInvite(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 		return
 	}
+	rawToken, tokenErr := createEmailVerificationToken(db, korisnik.ID)
+	if tokenErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju verifikacionog tokena"})
+		return
+	}
+	if err := sendVerificationEmail(korisnik.Email, rawToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Slanje verifikacionog emaila nije uspelo"})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Korisnik uspešno kreiran",
-		"role":    "clan",
-		"user": gin.H{
-			"id":       korisnik.ID,
-			"username": korisnik.Username,
-			"fullName": korisnik.FullName,
-		},
+		"message": "Poslali smo link za potvrdu na email adresu. Potvrdite email pre prijave.",
+		"email":   korisnik.Email,
 	})
 }

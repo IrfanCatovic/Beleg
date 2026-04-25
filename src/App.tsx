@@ -42,6 +42,8 @@ import RegisterMemberByInvite from './pages/public/RegisterMemberByInvite'
 import RegisterOpen from './pages/public/RegisterOpen'
 import EmailVerificationPending from './pages/public/EmailVerificationPending'
 import VerifyEmail from './pages/public/VerifyEmail'
+import ForgotPassword from './pages/public/ForgotPassword'
+import ResetPassword from './pages/public/ResetPassword'
 
 
 const router = createBrowserRouter([
@@ -84,6 +86,16 @@ const router = createBrowserRouter([
   {
     path: '/verifikuj-email',
     element: <VerifyEmail />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/zaboravljena-lozinka',
+    element: <ForgotPassword />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: '/reset-lozinka',
+    element: <ResetPassword />,
     errorElement: <ErrorPage />,
   },
   {

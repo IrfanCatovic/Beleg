@@ -47,7 +47,7 @@ export default function RegisterMemberByInvite() {
           inviteCode={state.inviteCode}
           klubId={state.klubId}
           klubNaziv={state.klubNaziv}
-          onSuccess={() => navigate('/login', { replace: true })}
+          onSuccess={(email) => navigate('/registracija-email-provera', { replace: true, state: { email } })}
         />
       </div>
     </div>

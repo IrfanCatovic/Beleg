@@ -48,9 +48,8 @@ func UpdateKorisnikByAdmin(c *gin.Context) {
 	roleVal, _ := c.Get("role")
 	roleStr, _ := roleVal.(string)
 	isAdmin := roleStr == "admin" || roleStr == "superadmin"
-	isSekretar := roleStr == "sekretar"
-	if !isAdmin && !isSekretar {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar mogu menjati korisnika"})
+	if !isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili superadmin mogu menjati korisnika"})
 		return
 	}
 	idStr := c.Param("id")
@@ -90,28 +89,6 @@ func UpdateKorisnikByAdmin(c *gin.Context) {
 	}
 	_ = c.ShouldBindJSON(&body)
 
-	if isSekretar {
-		if body.NewPassword == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Sekretar može samo da postavi novu lozinku korisniku (slučaj zaboravljene lozinke)"})
-			return
-		}
-		if len(body.NewPassword) < 8 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
-			return
-		}
-		hashed, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
-			return
-		}
-		if err := db.Model(&korisnik).Update("password", string(hashed)).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
-			return
-		}
-		c.JSON(200, gin.H{"message": "Lozinka uspešno postavljena"})
-		return
-	}
-
 	if body.Role == "" {
 		body.Role = korisnik.Role
 	}
@@ -135,6 +112,10 @@ func UpdateKorisnikByAdmin(c *gin.Context) {
 		"napomene":                           body.Napomene,
 	}
 	if body.NewPassword != "" {
+		if roleStr != "superadmin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Samo superadmin može da menja tuđu lozinku"})
+			return
+		}
 		if len(body.NewPassword) < 8 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
 			return

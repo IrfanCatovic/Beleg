@@ -66,12 +66,13 @@ export default function Login() {
         )
         return
       }
+      const profileIncomplete = !!response.data?.profileIncomplete
       const returnToRaw = (location.state as { returnTo?: string } | null)?.returnTo
       const returnTo =
         typeof returnToRaw === 'string' && returnToRaw.startsWith('/')
           ? returnToRaw
           : '/home'
-      navigate(returnTo, { replace: true })
+      navigate(profileIncomplete ? '/profil/podesavanja' : returnTo, { replace: true })
     } catch (err: any) {
       const code = err.response?.data?.code
       const email = err.response?.data?.email
@@ -253,6 +254,14 @@ export default function Login() {
                   )}
                 </button>
               </div>
+            </div>
+            <div className="text-right">
+              <Link
+                to="/zaboravljena-lozinka"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
+              >
+                Zaboravio/la sam lozinku
+              </Link>
             </div>
 
             <button

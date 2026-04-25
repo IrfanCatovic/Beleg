@@ -60,14 +60,14 @@ type MemberRegistrationFormProps =
   | {
       variant: 'staff'
       roleOptions: string[]
-      onSuccess: () => void
+      onSuccess: (email?: string) => void
     }
   | {
       variant: 'invite'
       inviteCode: string
       klubId: number
       klubNaziv?: string
-      onSuccess: () => void
+      onSuccess: (email?: string) => void
     }
 
 export default function MemberRegistrationForm(props: MemberRegistrationFormProps) {
@@ -127,6 +127,14 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
       setError(tInvite('registerForm.emailRequired'))
       return
     }
+    if (!form.pol.trim()) {
+      setError('Pol je obavezan.')
+      return
+    }
+    if (!form.datumRodjenja) {
+      setError('Datum rođenja je obavezan.')
+      return
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
       setError(tInvite('registerForm.emailInvalid'))
       return
@@ -161,7 +169,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
       }
 
       setSuccess(true)
-      setTimeout(() => props.onSuccess(), 2000)
+      setTimeout(() => props.onSuccess(form.email.trim().toLowerCase()), 2000)
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
       setError(msg || t('registerUser.createError'))
@@ -317,6 +325,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
               value={form.datumRodjenja}
               onChange={handleChange}
               className={inputClass}
+              required
               disabled={submitting || success}
             />
           </div>

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"os"
 	"strconv"
 	"strings"
@@ -105,6 +106,14 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		email := post("email")
 		newEmailNorm := strings.ToLower(strings.TrimSpace(email))
 		currentEmailNorm := strings.ToLower(strings.TrimSpace(korisnik.Email))
+		if newEmailNorm == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email je obavezan"})
+			return
+		}
+		if _, err := mail.ParseAddress(newEmailNorm); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna email adresa"})
+			return
+		}
 		if newEmailNorm != "" && newEmailNorm != currentEmailNorm && helpers.IsNonEmptyEmailTaken(db, newEmailNorm, korisnik.ID) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email adresa je već u upotrebi"})
 			return
@@ -119,12 +128,20 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		izreceneDisciplinskeKazne := post("izreceneDisciplinskeKazne")
 		izborUOrganeSportskogUdruzenja := post("izborUOrganeSportskogUdruzenja")
 		napomene := post("napomene")
+		if strings.TrimSpace(pol) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Pol je obavezan"})
+			return
+		}
 
 		var datumRodjenja, datumUclanjenja *time.Time
 		if s := post("datumRodjenja"); s != "" {
 			if t, err := time.Parse("2006-01-02", s); err == nil {
 				datumRodjenja = &t
 			}
+		}
+		if datumRodjenja == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Datum rođenja je obavezan"})
+			return
 		}
 		if s := post("datumUclanjenja"); s != "" {
 			if t, err := time.Parse("2006-01-02", s); err == nil {

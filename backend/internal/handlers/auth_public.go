@@ -21,6 +21,13 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+func isProfileComplete(k models.Korisnik) bool {
+	return strings.TrimSpace(k.Email) != "" &&
+		k.EmailVerifiedAt != nil &&
+		strings.TrimSpace(k.Pol) != "" &&
+		k.DatumRodjenja != nil
+}
+
 func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req LoginRequest
@@ -74,16 +81,6 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			_ = db.Model(&korisnik).Update("role", "").Error
 			korisnik.Role = ""
 		}
-		if korisnik.KlubID == nil && korisnik.Role != "superadmin" && strings.TrimSpace(korisnik.Email) != "" && korisnik.EmailVerifiedAt == nil {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":       "Potvrdite email adresu pre prijave.",
-				"code":        "EMAIL_NOT_VERIFIED",
-				"email":       korisnik.Email,
-				"needsVerify": true,
-			})
-			return
-		}
-
 		if korisnik.Role != "superadmin" && korisnik.KlubID != nil {
 			_, onHold := helpers.EnsureClubHoldState(db, *korisnik.KlubID)
 			if onHold {
@@ -116,11 +113,17 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		if korisnik.KlubID != nil {
 			userPayload["klubId"] = *korisnik.KlubID
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"role":  korisnik.Role,
-			"token": tokenString,
-			"user":  userPayload,
-		})
+		profileIncomplete := !isProfileComplete(korisnik)
+		resp := gin.H{
+			"role":              korisnik.Role,
+			"token":             tokenString,
+			"user":              userPayload,
+			"profileIncomplete": profileIncomplete,
+		}
+		if profileIncomplete {
+			resp["code"] = "PROFILE_INCOMPLETE"
+		}
+		c.JSON(http.StatusOK, resp)
 	}
 }
 
