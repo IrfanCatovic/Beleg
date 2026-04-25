@@ -257,11 +257,19 @@ export default function ProfileSettings() {
 
       setSuccess(true)
       if (mustCompleteProfile && !verifiedNow) {
+        const email = form.email.trim().toLowerCase()
+        if (email) {
+          try {
+            await api.post('/api/email/resend', { email })
+          } catch {
+            // Korisnik i dalje ide na stranicu za potvrdu gde može ručno ponoviti slanje.
+          }
+        }
         setTimeout(
           () =>
             navigate('/registracija-email-provera', {
               replace: true,
-              state: { email: form.email.trim().toLowerCase() },
+              state: { email },
             }),
           1200,
         )
