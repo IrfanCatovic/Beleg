@@ -113,6 +113,7 @@ export default function UserProfile() {
   const [positioning, setPositioning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [avatarUpdating, setAvatarUpdating] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
 
@@ -224,6 +225,7 @@ export default function UserProfile() {
   const showRoleBadge = !!korisnik && hasVisibleRole(korisnik.role) && (korisnik.role === 'superadmin' || !!korisnik.klubNaziv)
 
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const openFollowModal = async (mode: 'following' | 'followers') => {
     if (!korisnik?.id || !currentUser) return
@@ -300,6 +302,43 @@ export default function UserProfile() {
     }
   }
 
+  const handleAvatarImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !isOwn) return
+    if (!file.type.startsWith('image/')) return
+    setAvatarUpdating(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await api.patch('/api/me/avatar', formData)
+      const avatarUrl = (res.data as { avatar_url?: string }).avatar_url
+      if (avatarUrl) {
+        setKorisnik((k) => (k ? { ...k, avatar_url: avatarUrl } : null))
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setAvatarUpdating(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    if (!isOwn || !korisnik?.avatar_url) return
+    setAvatarUpdating(true)
+    try {
+      const formData = new FormData()
+      formData.append('removeAvatar', '1')
+      await api.patch('/api/me/avatar', formData)
+      setKorisnik((k) => (k ? { ...k, avatar_url: '' } : null))
+      setAvatarLightboxOpen(false)
+    } catch {
+      /* ignore */
+    } finally {
+      setAvatarUpdating(false)
+    }
+  }
+
   const cancelCoverPositioning = () => {
     if (korisnik) {
       const d = korisnik.cover_position_y ?? 0.5
@@ -372,7 +411,7 @@ export default function UserProfile() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
 
         {/* Gornji desni ugao: mobilni meni (3 tačke) + desktop akcije */}
-        <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-30 flex flex-row-reverse items-center gap-2 flex-wrap justify-end pointer-events-auto max-w-[calc(100vw-5rem)]">
+        <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-[260] flex flex-row-reverse items-center gap-2 flex-wrap justify-end pointer-events-auto max-w-[calc(100vw-5rem)]">
           <div className="hidden sm:flex">
             <ProfileActionButtons
               inline
@@ -397,7 +436,7 @@ export default function UserProfile() {
               )}
             </ProfileActionButtons>
           </div>
-          <div className="relative sm:hidden">
+          <div className="relative sm:hidden z-[270]">
             <button
               type="button"
               onClick={() => setMobileActionsOpen((v) => !v)}
@@ -408,7 +447,7 @@ export default function UserProfile() {
             </button>
             {mobileActionsOpen && (
               <div
-                className="absolute right-0 top-12 rounded-2xl bg-white/95 backdrop-blur-sm p-2 shadow-xl border border-gray-100 transition-all duration-200 ease-out"
+                className="fixed right-3 top-16 z-[275] flex flex-col items-end gap-2 transition-all duration-200 ease-out"
                 onClickCapture={() => setMobileActionsOpen(false)}
               >
                 <ProfileActionButtons
@@ -424,6 +463,7 @@ export default function UserProfile() {
                   }
                   direction="column"
                   actionOrder={['print', 'info', 'settings']}
+                  actionClassName="bg-gray-900/85 text-white hover:bg-gray-800 hover:text-white border border-white/20 shadow-lg"
                 />
               </div>
             )}
@@ -462,7 +502,7 @@ export default function UserProfile() {
         {mobileActionsOpen && (
           <button
             type="button"
-            className="sm:hidden fixed inset-0 z-20 bg-transparent"
+            className="sm:hidden fixed inset-0 z-[265] bg-transparent"
             aria-label={t('close')}
             onClick={() => setMobileActionsOpen(false)}
           />
@@ -932,6 +972,13 @@ export default function UserProfile() {
           aria-label={t('cover.avatarImage')}
           onClick={() => setAvatarLightboxOpen(false)}
         >
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarImageChange}
+          />
           <button
             type="button"
             className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -950,6 +997,32 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             draggable={false}
           />
+          {isOwn && (
+            <div className="absolute inset-x-4 bottom-4 z-10 flex gap-2 sm:justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void handleRemoveAvatar()
+                }}
+                disabled={avatarUpdating}
+                className="flex-1 sm:flex-none rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                Ukloni profilnu
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  avatarInputRef.current?.click()
+                }}
+                disabled={avatarUpdating}
+                className="flex-1 sm:flex-none rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-100 disabled:opacity-60"
+              >
+                Dodaj profilnu
+              </button>
+            </div>
+          )}
         </div>
       )}
 

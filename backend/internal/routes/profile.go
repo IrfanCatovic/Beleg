@@ -9,6 +9,7 @@ import (
 func RegisterProfileRoutes(protected *gin.RouterGroup, jwtSecret []byte) {
 	protected.GET("/me", handlers.GetMe)
 	protected.PATCH("/me", handlers.UpdateMe(jwtSecret))
+	protected.PATCH("/me/avatar", handlers.UpdateMeAvatar)
 	protected.PATCH("/me/cover-position", handlers.UpdateMeCoverPosition)
 	protected.PATCH("/me/cover", handlers.UpdateMeCover)
 }

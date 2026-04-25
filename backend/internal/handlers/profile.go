@@ -391,6 +391,92 @@ func UpdateMeCoverPosition(c *gin.Context) {
 	c.JSON(200, out)
 }
 
+func UpdateMeAvatar(c *gin.Context) {
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	var korisnik models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
+		return
+	}
+	post := func(k string) string { return strings.TrimSpace(c.PostForm(k)) }
+	removeAvatar := post("removeAvatar") == "1" || strings.EqualFold(post("removeAvatar"), "true")
+	if removeAvatar {
+		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.AvatarURL)
+		if err := db.Model(&korisnik).Update("avatar_url", "").Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju profilne slike"})
+			return
+		}
+		c.JSON(200, gin.H{"message": "Profilna slika uklonjena", "avatar_url": ""})
+		return
+	}
+
+	files := c.Request.MultipartForm.File["avatar"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Očekuje se slika (avatar)"})
+		return
+	}
+	file := files[0]
+	if err := helpers.ValidateImageFileHeader(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna avatar slika: " + err.Error()})
+		return
+	}
+	clubIDForFolder := uint(0)
+	if korisnik.KlubID != nil {
+		clubIDForFolder = *korisnik.KlubID
+	}
+	if err := helpers.CheckStorageLimit(db, clubIDForFolder, file.Size); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju avatar slike"})
+		return
+	}
+	defer f.Close()
+
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri inicijalizaciji Cloudinary-ja"})
+		return
+	}
+
+	ctx := context.Background()
+	uploadParams := uploader.UploadParams{
+		PublicID:       fmt.Sprintf("avatari/%s-%d", username, time.Now().Unix()),
+		Folder:         helpers.CloudinaryFolderForClub(clubIDForFolder),
+		Transformation: "q_auto:good,f_auto",
+	}
+	uploadResult, err := cld.Upload.Upload(ctx, f, uploadParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri upload-u avatar slike: " + err.Error()})
+		return
+	}
+	helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
+	helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), korisnik.AvatarURL)
+	if err := db.Model(&korisnik).Update("avatar_url", uploadResult.SecureURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju avatar slike"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Profilna slika ažurirana", "avatar_url": uploadResult.SecureURL})
+}
+
 func UpdateMeCover(c *gin.Context) {
 	username, exists := c.Get("username")
 	if !exists {
