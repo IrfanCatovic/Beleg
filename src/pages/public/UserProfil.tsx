@@ -126,7 +126,12 @@ export default function UserProfile() {
   const [followModalUsers, setFollowModalUsers] = useState<FollowListUser[]>([])
   const [followModalLoading, setFollowModalLoading] = useState(false)
 
-  const rank = useRanking({ uspesneAkcije: akcije, ukupnoKm: stats.ukupnoKm, ukupnoMetaraUspona: stats.ukupnoMetaraUspona })
+  const rank = useRanking({
+    uspesneAkcije: akcije,
+    ukupnoKm: stats.ukupnoKm,
+    ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
+    createdAt: korisnik?.createdAt,
+  })
 
   const fetchFollowCounts = useCallback(async () => {
     if (!korisnik?.id) return
@@ -190,10 +195,18 @@ export default function UserProfile() {
                 ture: akcije.map(mapAkcijaToTura),
                 ukupnoKm: k.ukupnoKm ?? 0,
                 ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+                createdAt: (k as { createdAt?: string }).createdAt,
               })
               return { ...k, rank }
             } catch {
-              return { ...k, rank: computeRank({ ukupnoKm: k.ukupnoKm ?? 0, ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0 }) }
+              return {
+                ...k,
+                rank: computeRank({
+                  ukupnoKm: k.ukupnoKm ?? 0,
+                  ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+                  createdAt: (k as { createdAt?: string }).createdAt,
+                }),
+              }
             }
           })
         )

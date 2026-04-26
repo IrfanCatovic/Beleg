@@ -160,7 +160,7 @@ export function getRankFromMMR(mmr: number): RankResult {
 const INACTIVITY_DAYS = 30
 
 /** MMR kazna ako nema uspešne akcije u poslednjih INACTIVITY_DAYS dana. */
-const INACTIVITY_PENALTY_MMR = 35
+const INACTIVITY_PENALTY_MMR = 25
 
 /**
  * Računa rank iz objekta statistike koji sadrži niz tura.
@@ -172,27 +172,37 @@ export function computeRank(statistika: {
   ture?: Tura[]
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
+  createdAt?: string | Date
 }): RankResult {
   const ture = statistika.ture ?? []
   let mmr: number
 
+  const danas = new Date()
+  danas.setHours(0, 0, 0, 0)
+  const granicaNeaktivnosti = new Date(danas)
+  granicaNeaktivnosti.setDate(granicaNeaktivnosti.getDate() - INACTIVITY_DAYS)
+
+  const createdAtDate =
+    statistika.createdAt != null ? new Date(statistika.createdAt) : null
+  const korisnikJeUNovomGracePeriodu =
+    createdAtDate != null &&
+    !Number.isNaN(createdAtDate.getTime()) &&
+    createdAtDate.getTime() > granicaNeaktivnosti.getTime()
+
   if (ture.length > 0) {
     mmr = computeMMR(ture)
 
-    const danas = new Date()
-    danas.setHours(0, 0, 0, 0)
-    const granica = new Date(danas)
-    granica.setDate(granica.getDate() - INACTIVITY_DAYS)
-    const poslednjiDatumMs = Math.max(
-      ...ture.map((t) => new Date(t.datum).getTime())
-    )
-    if (poslednjiDatumMs < granica.getTime()) {
+    const poslednjiDatumMs = Math.max(...ture.map((t) => new Date(t.datum).getTime()))
+    if (!korisnikJeUNovomGracePeriodu && poslednjiDatumMs < granicaNeaktivnosti.getTime()) {
       mmr -= INACTIVITY_PENALTY_MMR
     }
   } else {
     const km = statistika.ukupnoKm ?? 0
     const uspon = statistika.ukupnoMetaraUspona ?? 0
     mmr = Math.round(km * 1 + uspon * 0.04)
+    if (!korisnikJeUNovomGracePeriodu) {
+      mmr -= INACTIVITY_PENALTY_MMR
+    }
   }
 
   return getRankFromMMR(mmr)

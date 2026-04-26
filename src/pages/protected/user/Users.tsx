@@ -80,12 +80,14 @@ export default function Korisnici() {
               ture: akcije.map(mapAkcijaToTura),
               ukupnoKm: k.ukupnoKm ?? 0,
               ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+              createdAt: k.createdAt,
             })
             return [k.id, rank] as const
           } catch {
             const fallbackRank = computeRank({
               ukupnoKm: k.ukupnoKm ?? 0,
               ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+              createdAt: k.createdAt,
             })
             return [k.id, fallbackRank] as const
           }
@@ -148,6 +150,7 @@ export default function Korisnici() {
           const rank = rankByUserId[k.id] ?? computeRank({
             ukupnoKm: k.ukupnoKm ?? 0,
             ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            createdAt: k.createdAt,
           })
           return { ...k, rank }
         })
@@ -172,6 +175,7 @@ export default function Korisnici() {
           const rank = rankByUserId[k.id] ?? computeRank({
             ukupnoKm: k.ukupnoKm ?? 0,
             ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+            createdAt: k.createdAt,
           })
           return { ...k, rank, globalPosition: globalPositionByUserId[k.id] }
         })
@@ -395,6 +399,7 @@ export default function Korisnici() {
                   const rank = rankByUserId[k.id] ?? computeRank({
                     ukupnoKm: k.ukupnoKm ?? 0,
                     ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
+                    createdAt: k.createdAt,
                   })
 
                   return (

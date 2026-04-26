@@ -14,6 +14,7 @@ export interface StatistikaZaRanking {
   uspesneAkcije?: AkcijaZaRanking[]
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
+  createdAt?: string | Date
 }
 
 /**
@@ -38,11 +39,13 @@ export function useRanking(statistika: StatistikaZaRanking | null | undefined): 
       ture,
       ukupnoKm: statistika.ukupnoKm,
       ukupnoMetaraUspona: statistika.ukupnoMetaraUspona,
+      createdAt: statistika.createdAt,
     })
   }, [
     statistika?.ture,
     statistika?.uspesneAkcije,
     statistika?.ukupnoKm,
     statistika?.ukupnoMetaraUspona,
+    statistika?.createdAt,
   ])
 }
