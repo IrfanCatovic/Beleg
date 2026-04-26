@@ -62,7 +62,6 @@ export default function ProfileSettings() {
   const [success, setSuccess] = useState(false)
   const [targetUsername, setTargetUsername] = useState('')
   const [emailVerified, setEmailVerified] = useState(false)
-  const [sendingVerification, setSendingVerification] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin')
@@ -301,24 +300,6 @@ export default function ProfileSettings() {
     }
   }
 
-  const handleResendVerification = async () => {
-    const email = form.email.trim().toLowerCase()
-    if (!email) {
-      setError('Unesite email i sačuvajte profil pre slanja verifikacije.')
-      return
-    }
-    setSendingVerification(true)
-    setError('')
-    try {
-      await api.post('/api/email/resend', { email })
-      navigate('/registracija-email-provera', { replace: false, state: { email } })
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Slanje verifikacionog emaila nije uspelo.')
-    } finally {
-      setSendingVerification(false)
-    }
-  }
-
   const disabledInputClass =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed'
   const inputClass =
@@ -432,21 +413,11 @@ export default function ProfileSettings() {
       )}
       {mustCompleteProfile && (
         <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
             <p>
               Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
-              {!emailVerified && ' Nakon toga morate i da potvrdite email adresu.'}
+              {!emailVerified && ' Nakon čuvanja, verifikacioni email će biti automatski poslat i bićete preusmereni na potvrdu emaila.'}
             </p>
-            {!emailVerified && (
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={sendingVerification}
-                className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
-              >
-                {sendingVerification ? 'Šaljem...' : 'Pošalji verifikacioni email'}
-              </button>
-            )}
           </div>
         </div>
       )}
