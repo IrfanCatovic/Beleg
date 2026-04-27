@@ -63,7 +63,7 @@ function drawCellCentered(
 }
 
 function rowGapFor(aspect: SummitAspect): number {
-  return aspect === '9:16' ? 36 : 28
+  return aspect === '9:16' ? 32 : 24
 }
 
 type ClassicRow = [string, string, string, string]
@@ -149,8 +149,8 @@ function drawSummitLayoutOnContext(
       // Skoro do ivica: centri kolona na w/4 i 3w/4 (maksimalan razmak levo/desno, mala margina do teksta)
       cxLeft = w / 4
       cxRight = (3 * w) / 4
-      labelPx = 19
-      valuePx = 28
+      labelPx = 20
+      valuePx = 30
     } else {
       const padX = 72
       const colGap = 40
@@ -158,8 +158,8 @@ function drawSummitLayoutOnContext(
       const colW = (innerW - colGap) / 2
       cxLeft = padX + colW / 2
       cxRight = padX + colW + colGap + colW / 2
-      labelPx = 24
-      valuePx = 36
+      labelPx = 26
+      valuePx = 38
     }
 
     const cellH = labelPx * 1.15 + 6 + valuePx * 1.2
@@ -224,8 +224,8 @@ function drawSummitLayoutOnContext(
     ]
   }
 
-  let labelPx = aspect === '9:16' ? 20 : 17
-  let valuePx = aspect === '9:16' ? 30 : 24
+  let labelPx = aspect === '9:16' ? 22 : 18
+  let valuePx = aspect === '9:16' ? 32 : 26
 
   const cellHCompact = labelPx * 1.15 + 6 + valuePx * 1.2
   const gridHeight = 2 * cellHCompact + rowGap
