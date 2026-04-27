@@ -19,20 +19,9 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
-// interceptor: Bearer token iz localStorage (kad cookie nije dostupan – npr. drugi domen u produkciji)
-// + HttpOnly cookie kad je isti origin / ispravno podešen CORS
-const AUTH_TOKEN_KEY = 'auth_token'
-
-export function setAuthToken(token: string | null) {
-  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token)
-  else localStorage.removeItem(AUTH_TOKEN_KEY)
-}
-
+// Auth se oslanja iskljucivo na HttpOnly Secure cookie koji backend postavlja na /login.
+// Frontend ne cuva i ne prosledjuje JWT token, sto smanjuje XSS rizik.
 api.interceptors.request.use((config) => {
-  const bearer = localStorage.getItem(AUTH_TOKEN_KEY)
-  if (bearer) {
-    config.headers.Authorization = `Bearer ${bearer}`
-  }
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
     try {

@@ -18,9 +18,15 @@ import (
 )
 
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username   string `json:"username" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	RememberMe bool   `json:"remember_me"`
 }
+
+const (
+	sessionMaxAgeShort = 24 * 60 * 60          // 1 dan
+	sessionMaxAgeLong  = 30 * 24 * 60 * 60     // 30 dana ("ostani prijavljen")
+)
 
 func isProfileComplete(k models.Korisnik) bool {
 	return strings.TrimSpace(k.Email) != "" &&
@@ -90,10 +96,15 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			}
 		}
 
+		sessionMaxAge := sessionMaxAgeShort
+		if req.RememberMe {
+			sessionMaxAge = sessionMaxAgeLong
+		}
+
 		claims := jwt.MapClaims{
 			"username": korisnik.Username,
 			"role":     korisnik.Role,
-			"exp":      time.Now().Add(24 * time.Hour).Unix(),
+			"exp":      time.Now().Add(time.Duration(sessionMaxAge) * time.Second).Unix(),
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		tokenString, err := token.SignedString(jwtSecret)
@@ -104,7 +115,7 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 
 		cookieSecure := os.Getenv("COOKIE_SECURE") == "true"
 		sameSiteNone := os.Getenv("COOKIE_SAMESITE_NONE") == "true"
-		middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
+		middleware.SetAuthCookie(c, tokenString, sessionMaxAge, cookieSecure, sameSiteNone)
 
 		userPayload := gin.H{
 			"username":   korisnik.Username,
@@ -117,7 +128,6 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		profileIncomplete := !isProfileComplete(korisnik)
 		resp := gin.H{
 			"role":              korisnik.Role,
-			"token":             tokenString,
 			"user":              userPayload,
 			"profileIncomplete": profileIncomplete,
 		}
