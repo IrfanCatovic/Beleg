@@ -173,18 +173,15 @@ const computeProfileIncomplete = (data: {
                 })
                 .catch(() => { /* mrežna greška: zadržavamo cache dok se ne potvrdi 401 */ })
                 .finally(() => setAuthLoading(false))
-        }, [clearAuthState])
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [])
 
         useEffect(() => {
-            if (isLoggedIn) {
-                refreshUser().then((ok) => { if (!ok) logout() })
-            }
-        }, [isLoggedIn])
-
-        useEffect(() => {
-            setUnauthorizedHandler(logout)
+            // Na 401 iz bilo koje API rute samo očisti lokalno stanje;
+            // POST /api/logout nije potreban jer cookie sesija već nije validna.
+            setUnauthorizedHandler(clearAuthState)
             return () => setUnauthorizedHandler(null)
-        }, [logout])
+        }, [clearAuthState])
 
         return (
             <AuthContext.Provider value={{ isLoggedIn, user, authLoading, pendingSummitReward, login, logout, refreshUser, clearPendingSummitReward }}>
