@@ -29,6 +29,50 @@ const DESIGN: Record<SummitAspect, { w: number; h: number }> = {
   '16:9': { w: 1920, h: 1080 },
 }
 
+function isIOSDevice(): boolean {
+  const ua = navigator.userAgent || ''
+  const platform = navigator.platform || ''
+  return /iPad|iPhone|iPod/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function shareBlobOnIOS(blob: Blob, fileName: string): Promise<boolean> {
+  if (!isIOSDevice()) return false
+  if (typeof File === 'undefined') return false
+  if (typeof navigator.share !== 'function') return false
+
+  const file = new File([blob], fileName, { type: 'image/png' })
+  const shareData: ShareData = {
+    files: [file],
+    title: 'Planiner nagrada',
+    text: 'Uspešno popeta akcija',
+  }
+
+  try {
+    if (typeof navigator.canShare === 'function' && !navigator.canShare({ files: [file] })) {
+      return false
+    }
+    await navigator.share(shareData)
+    return true
+  } catch (err) {
+    if ((err as DOMException)?.name === 'AbortError') {
+      return true
+    }
+    return false
+  }
+}
+
 function formatTrailKm(km: number | undefined): string {
   if (km == null || Number.isNaN(Number(km))) return '—'
   const n = Number(km)
@@ -315,23 +359,21 @@ export async function downloadSummitSuccessPng(
 
   await new Promise<void>((resolve, reject) => {
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (!blob) {
           reject(new Error('PNG blob'))
           return
         }
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
         const aspectSlug = aspect === '9:16' ? '9x16' : '16x9'
         const layoutSlug = layout === 'balanced' ? 'classic' : 'compact'
-        a.download = `planiner-uspon-${akcija.id}-${aspectSlug}-${layoutSlug}.png`
-        a.rel = 'noopener'
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-        resolve()
+        const fileName = `planiner-uspon-${akcija.id}-${aspectSlug}-${layoutSlug}.png`
+        try {
+          const shared = await shareBlobOnIOS(blob, fileName)
+          if (!shared) downloadBlob(blob, fileName)
+          resolve()
+        } catch (err) {
+          reject(err)
+        }
       },
       'image/png',
       1
