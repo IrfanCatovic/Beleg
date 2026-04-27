@@ -321,6 +321,7 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 				middleware.SetAuthCookie(c, tokenString, 86400, cookieSecure, sameSiteNone)
 				resp["role"] = korisnik.Role
 				resp["user"] = gin.H{"username": korisnik.Username, "fullName": korisnik.FullName}
+				resp["token"] = tokenString
 			}
 		}
 		c.JSON(200, resp)

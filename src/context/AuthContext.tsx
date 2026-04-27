@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import api, { setUnauthorizedHandler } from "../services/api";
+import api, { setUnauthorizedHandler, setAuthToken } from "../services/api";
 
 export interface User {
     username: string;
@@ -25,6 +25,7 @@ export interface LoginResponse {
     actionName?: string;
     link?: string;
   };
+  token?: string;
 }
 
 interface AuthContextType {
@@ -65,6 +66,7 @@ const computeProfileIncomplete = (data: {
             setPendingSummitReward(null)
             localStorage.removeItem('user')
             localStorage.removeItem('isLoggedIn')
+            setAuthToken(null)
         }, [])
 
         const logout = useCallback(async () => {
@@ -95,6 +97,9 @@ const computeProfileIncomplete = (data: {
         }, [])
 
         const login = useCallback((data: LoginResponse) => {
+            if (data.token && data.token.length > 10) {
+                setAuthToken(data.token)
+            }
             setUser((prev) => {
                 const next: User = {
                     username: data.user.username,
@@ -120,10 +125,6 @@ const computeProfileIncomplete = (data: {
         }, [])
 
         useEffect(() => {
-            // Migracija: stari klijenti su čuvali JWT u localStorage. Brišemo ga jer
-            // sada koristimo isključivo HttpOnly cookie sesiju (bezbednije za XSS).
-            localStorage.removeItem('auth_token')
-
             const cachedUser = localStorage.getItem('user')
             const cachedLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
             if (cachedUser && cachedLoggedIn) {

@@ -264,6 +264,7 @@ export default function ProfileSettings() {
         login({
           role: res.data.role,
           user: res.data.user,
+          token: typeof res.data.token === 'string' ? res.data.token : undefined,
         })
       }
       await refreshUser()

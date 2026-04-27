@@ -128,6 +128,7 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		profileIncomplete := !isProfileComplete(korisnik)
 		resp := gin.H{
 			"role":              korisnik.Role,
+			"token":             tokenString,
 			"user":              userPayload,
 			"profileIncomplete": profileIncomplete,
 		}
