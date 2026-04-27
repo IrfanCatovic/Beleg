@@ -47,29 +47,144 @@ function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url)
 }
 
-async function shareBlobOnIOS(blob: Blob, fileName: string): Promise<boolean> {
-  if (!isIOSDevice()) return false
+function canSharePngFile(file: File): boolean {
   if (typeof File === 'undefined') return false
   if (typeof navigator.share !== 'function') return false
+  if (typeof navigator.canShare === 'function' && !navigator.canShare({ files: [file] })) return false
+  return true
+}
 
-  const file = new File([blob], fileName, { type: 'image/png' })
-  const shareData: ShareData = {
+async function sharePngFile(file: File): Promise<void> {
+  await navigator.share({
     files: [file],
     title: 'Planiner nagrada',
     text: 'Uspešno popeta akcija',
+  })
+}
+
+function showIOSImageSaveOverlay(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob)
+  const previousOverflow = document.body.style.overflow
+  const overlay = document.createElement('div')
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
+  overlay.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'z-index:10000',
+    'display:flex',
+    'flex-direction:column',
+    'gap:14px',
+    'align-items:center',
+    'justify-content:center',
+    'padding:18px',
+    'background:rgba(15,23,42,0.96)',
+    'color:#fff',
+    'font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    'text-align:center',
+  ].join(';')
+
+  const title = document.createElement('div')
+  title.textContent = 'Sačuvaj sliku u galeriju'
+  title.style.cssText = 'font-size:18px;font-weight:800;letter-spacing:-0.01em'
+
+  const hint = document.createElement('div')
+  hint.textContent = 'Držite prst na slici, pa izaberite “Save to Photos” ili “Save Image”.'
+  hint.style.cssText = 'max-width:330px;font-size:13px;line-height:1.45;color:rgba(255,255,255,0.78)'
+
+  const imageWrap = document.createElement('div')
+  imageWrap.style.cssText = [
+    'max-width:min(92vw,420px)',
+    'max-height:58vh',
+    'padding:14px',
+    'border-radius:18px',
+    'background:linear-gradient(180deg,#3f3f46,#111827)',
+    'box-shadow:0 24px 70px rgba(0,0,0,0.35)',
+    'overflow:hidden',
+  ].join(';')
+
+  const img = document.createElement('img')
+  img.src = url
+  img.alt = 'Planiner nagrada'
+  img.style.cssText = 'display:block;max-width:100%;max-height:54vh;object-fit:contain;-webkit-touch-callout:default;user-select:auto'
+  imageWrap.appendChild(img)
+
+  const actions = document.createElement('div')
+  actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%;max-width:360px'
+
+  const close = () => {
+    document.body.style.overflow = previousOverflow
+    overlay.remove()
+    URL.revokeObjectURL(url)
+    window.removeEventListener('keydown', onKeyDown)
+  }
+
+  const makeButton = (label: string, primary = false) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = label
+    button.style.cssText = [
+      'min-height:44px',
+      'border:0',
+      'border-radius:14px',
+      'padding:0 16px',
+      'font-size:14px',
+      'font-weight:700',
+      'cursor:pointer',
+      primary ? 'background:#10b981;color:#fff' : 'background:rgba(255,255,255,0.12);color:#fff',
+    ].join(';')
+    return button
+  }
+
+  const file = typeof File !== 'undefined' ? new File([blob], fileName, { type: 'image/png' }) : null
+  if (file && canSharePngFile(file)) {
+    const shareButton = makeButton('Podeli', true)
+    shareButton.addEventListener('click', () => {
+      void sharePngFile(file).catch(() => undefined)
+    })
+    actions.appendChild(shareButton)
+  }
+
+  const downloadButton = makeButton('Preuzmi fajl')
+  downloadButton.addEventListener('click', () => downloadBlob(blob, fileName))
+  actions.appendChild(downloadButton)
+
+  const closeButton = makeButton('Zatvori')
+  closeButton.addEventListener('click', close)
+  actions.appendChild(closeButton)
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Escape') close()
+  }
+
+  overlay.appendChild(title)
+  overlay.appendChild(hint)
+  overlay.appendChild(imageWrap)
+  overlay.appendChild(actions)
+  document.body.style.overflow = 'hidden'
+  document.body.appendChild(overlay)
+  window.addEventListener('keydown', onKeyDown)
+}
+
+async function shareBlobOnIOS(blob: Blob, fileName: string): Promise<boolean> {
+  if (!isIOSDevice()) return false
+  if (typeof File === 'undefined') return false
+  const file = new File([blob], fileName, { type: 'image/png' })
+  if (!canSharePngFile(file)) {
+    showIOSImageSaveOverlay(blob, fileName)
+    return true
   }
 
   try {
-    if (typeof navigator.canShare === 'function' && !navigator.canShare({ files: [file] })) {
-      return false
-    }
-    await navigator.share(shareData)
+    await sharePngFile(file)
     return true
   } catch (err) {
     if ((err as DOMException)?.name === 'AbortError') {
+      showIOSImageSaveOverlay(blob, fileName)
       return true
     }
-    return false
+    showIOSImageSaveOverlay(blob, fileName)
+    return true
   }
 }
 
