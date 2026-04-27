@@ -61,10 +61,7 @@ const computeProfileIncomplete = (data: {
         const [authLoading, setAuthLoading] = useState(true)
         const [pendingSummitReward, setPendingSummitReward] = useState<LoginResponse['pendingSummitReward'] | null>(null)
 
-        const logout = useCallback(async () => {
-            try {
-                await api.post('/api/logout')
-            } catch { /* ignore */ }
+        const clearAuthState = useCallback(() => {
             setIsLoggedIn(false)
             setUser(null)
             setPendingSummitReward(null)
@@ -72,6 +69,13 @@ const computeProfileIncomplete = (data: {
             localStorage.removeItem('isLoggedIn')
             setAuthToken(null)
         }, [])
+
+        const logout = useCallback(async () => {
+            try {
+                await api.post('/api/logout')
+            } catch { /* ignore */ }
+            clearAuthState()
+        }, [clearAuthState])
 
         const refreshUser = useCallback(async () => {
             try {
@@ -113,6 +117,7 @@ const computeProfileIncomplete = (data: {
                 return next
             })
             setIsLoggedIn(true)
+            localStorage.setItem('isLoggedIn', 'true')
             setPendingSummitReward(data.pendingSummitReward ?? null)
         }, [])
 
@@ -121,9 +126,27 @@ const computeProfileIncomplete = (data: {
         }, [])
 
         useEffect(() => {
+            const cachedUser = localStorage.getItem('user')
+            const cachedLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+            if (cachedUser && cachedLoggedIn) {
+                try {
+                    const parsed = JSON.parse(cachedUser) as User
+                    if (parsed?.username && parsed?.role) {
+                        setUser(parsed)
+                        setIsLoggedIn(true)
+                    }
+                } catch {
+                    localStorage.removeItem('user')
+                    localStorage.removeItem('isLoggedIn')
+                }
+            }
+
             api.get('/api/me', { validateStatus: (s) => s === 200 || s === 401 })
                 .then((res) => {
-                    if (res.status === 401) return
+                    if (res.status === 401) {
+                        clearAuthState()
+                        return
+                    }
                     const data = res.data as {
                         username?: string
                         fullName?: string
@@ -147,11 +170,12 @@ const computeProfileIncomplete = (data: {
                         setUser(userData)
                         setIsLoggedIn(true)
                         localStorage.setItem('user', JSON.stringify(userData))
+                        localStorage.setItem('isLoggedIn', 'true')
                     }
                 })
-                .catch(() => { /* nije ulogovan */ })
+                .catch(() => { /* mrežna greška: zadržavamo cache dok se ne potvrdi 401 */ })
                 .finally(() => setAuthLoading(false))
-        }, [])
+        }, [clearAuthState])
 
         useEffect(() => {
             if (isLoggedIn) {
