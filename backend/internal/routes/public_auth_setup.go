@@ -15,5 +15,6 @@ func RegisterSetupPublicRoutes(r *gin.Engine, db *gorm.DB, setupAdminRateLimiter
 
 func RegisterAuthPublicRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte, loginRateLimiter gin.HandlerFunc) {
 	r.POST("/login", loginRateLimiter, handlers.Login(db, jwtSecret))
+	r.POST("/api/login", loginRateLimiter, handlers.Login(db, jwtSecret))
 	r.POST("/api/logout", handlers.Logout())
 }

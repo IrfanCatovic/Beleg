@@ -52,7 +52,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const response = await api.post('/login', {
+      const response = await api.post('/api/login', {
         username: username.trim(),
         password,
         remember_me: rememberMe,

@@ -1,11 +1,9 @@
 import axios from 'axios'
 
-// U dev-u koristi prazan baseURL da request ide na isti origin (Vite proxy prosleđuje na backend).
-// U produkciji: ako su frontend i backend na istom domenu, ostavi ''. Inače postavi VITE_API_URL.
-const apiBaseURL = import.meta.env.VITE_API_URL || ''
-
 const api = axios.create({
-  baseURL: apiBaseURL,
+  // Sve ide preko istog origin-a (/api...). U dev-u Vite proxy prosleđuje backendu,
+  // a u produkciji Vercel proxy function prosleđuje backendu. Tako auth cookie ostaje first-party.
+  baseURL: '',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -19,7 +17,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
-// Auth se oslanja iskljucivo na HttpOnly Secure cookie koji backend postavlja na /login.
+// Auth se oslanja iskljucivo na HttpOnly Secure cookie koji backend postavlja na /api/login.
 // Frontend ne cuva i ne prosledjuje JWT token, sto smanjuje XSS rizik.
 api.interceptors.request.use((config) => {
   const savedUser = localStorage.getItem('user')
@@ -46,7 +44,7 @@ api.interceptors.response.use(
   (error) => {
     const reqUrl = (error.config?.url || '').toString()
     const method = (error.config?.method || '').toLowerCase()
-    const isLoginPost = method === 'post' && (reqUrl === '/login' || reqUrl.endsWith('/login'))
+    const isLoginPost = method === 'post' && (reqUrl === '/api/login' || reqUrl.endsWith('/api/login'))
     if (error.response?.status === 401 && onUnauthorized && !isLoginPost) {
       onUnauthorized()
     } else if (error.response?.status === 403 && onUnauthorized) {
