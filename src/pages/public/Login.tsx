@@ -19,7 +19,7 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  const rememberMe = true
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const greeting = useMemo(() => getRandomHikingGreeting(), [])
@@ -256,18 +256,6 @@ export default function Login() {
                   )}
                 </button>
               </div>
-            </div>
-            <div className="text-left">
-              <label className="mb-2 inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={loading}
-                  className="h-4 w-4 rounded border-emerald-200 text-emerald-600 focus:ring-emerald-400/50"
-                />
-                Ostani prijavljen
-              </label>
             </div>
             <div className="text-right">
               <Link

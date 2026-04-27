@@ -218,8 +218,8 @@ export default function AppLayout() {
       api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
     }
     setIsNotificationsOpen(false)
-    // Akcije: direktno na detalj akcije; ostalo na stranicu obaveštenja sa učitanim entitetom
-    if (n.type === 'akcija' && n.link?.trim()) {
+    // Akcije i nagrade vode direktno na povezani ekran; ostalo na detalj obaveštenja.
+    if ((n.type === 'akcija' || n.type === 'summit_reward') && n.link?.trim()) {
       navigate(n.link.trim())
       return
     }

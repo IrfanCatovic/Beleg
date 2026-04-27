@@ -30,34 +30,6 @@ func isValidTezina(tezina string) bool {
 	return allowedTezine[strings.TrimSpace(strings.ToLower(tezina))]
 }
 
-func notifySummitReward(db *gorm.DB, userID uint, akcija models.Akcija) {
-	if userID == 0 || akcija.ID == 0 {
-		return
-	}
-	actionName := strings.TrimSpace(akcija.Naziv)
-	if actionName == "" {
-		actionName = "akciju"
-	}
-	title := "Čestitamo!"
-	body := fmt.Sprintf("Uspešno ste popeli akciju %s", actionName)
-	metadataBytes, err := json.Marshal(map[string]interface{}{
-		"akcijaId":    akcija.ID,
-		"akcijaNaziv": actionName,
-	})
-	if err != nil {
-		metadataBytes = []byte(fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
-	}
-	notifications.NotifyUsers(
-		db,
-		[]uint{userID},
-		models.ObavestenjeTipSummitReward,
-		title,
-		body,
-		fmt.Sprintf("/akcije/%d?claimReward=1", akcija.ID),
-		string(metadataBytes),
-	)
-}
-
 type createSmestajItem struct {
 	Naziv             string  `json:"naziv"`
 	CenaPoOsobiUkupno float64 `json:"cenaPoOsobiUkupno"`
@@ -1815,7 +1787,7 @@ func DodajClanaPopeoSe(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
 		return
 	}
-	notifySummitReward(db, korisnik.ID, akcija)
+	notifications.NotifySummitReward(db, korisnik.ID, akcija)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Član je dodat na završenu akciju kao uspešno popeo se",
@@ -2316,7 +2288,7 @@ func UpdatePrijavaStatus(c *gin.Context) {
 			return
 		}
 		if willBePopeoSe {
-			notifySummitReward(db, korisnik.ID, prijava.Akcija)
+			notifications.NotifySummitReward(db, korisnik.ID, prijava.Akcija)
 		}
 	}
 

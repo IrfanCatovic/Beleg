@@ -3,6 +3,7 @@ package handlers
 import (
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/middleware"
 	"encoding/json"
 	"net/http"
@@ -24,8 +25,8 @@ type LoginRequest struct {
 }
 
 const (
-	sessionMaxAgeShort = 24 * 60 * 60          // 1 dan
-	sessionMaxAgeLong  = 30 * 24 * 60 * 60     // 30 dana ("ostani prijavljen")
+	sessionMaxAgeShort = 24 * 60 * 60      // 1 dan
+	sessionMaxAgeLong  = 30 * 24 * 60 * 60 // 30 dana ("ostani prijavljen")
 )
 
 func isProfileComplete(k models.Korisnik) bool {
@@ -33,6 +34,28 @@ func isProfileComplete(k models.Korisnik) bool {
 		k.EmailVerifiedAt != nil &&
 		strings.TrimSpace(k.Pol) != "" &&
 		k.DatumRodjenja != nil
+}
+
+func ensureInitialSummitRewardNotification(db *gorm.DB, korisnik models.Korisnik) {
+	var existingCount int64
+	db.Model(&models.Obavestenje{}).
+		Where("user_id = ? AND type = ?", korisnik.ID, models.ObavestenjeTipSummitReward).
+		Count(&existingCount)
+	if existingCount > 0 {
+		return
+	}
+
+	var prijava models.Prijava
+	if err := db.Preload("Akcija").
+		Where("korisnik_id = ? AND status = ?", korisnik.ID, "popeo se").
+		Order("prijavljen_at DESC").
+		First(&prijava).Error; err != nil {
+		return
+	}
+	if prijava.Akcija.ID == 0 {
+		return
+	}
+	notifications.NotifySummitReward(db, korisnik.ID, prijava.Akcija)
 }
 
 func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
@@ -125,6 +148,7 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 		if korisnik.KlubID != nil {
 			userPayload["klubId"] = *korisnik.KlubID
 		}
+		ensureInitialSummitRewardNotification(db, korisnik)
 		profileIncomplete := !isProfileComplete(korisnik)
 		resp := gin.H{
 			"role":              korisnik.Role,
