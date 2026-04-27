@@ -1055,6 +1055,53 @@ export default function ActionDetails() {
     }
   }
 
+  useEffect(() => {
+    if (!claimRewardRequested) return
+    if (!user || !akcija) return
+    if (mojaPrijava === undefined) return
+    if (mojaPrijava?.status !== 'popeo se') return
+    if (summitShareOpen) return
+
+    const run = async () => {
+      setSummitPickedAspect(null)
+      setSummitShareOpen(true)
+      setSummitShareStep(1)
+      setActionShareError('')
+      setActionShareCopied(false)
+
+      const resolvePublic = () => {
+        const base =
+          (typeof window !== 'undefined' && window.location?.origin
+            ? window.location.origin
+            : '').replace(/\/$/, '')
+        if (base) return `${base}/akcije/${akcija.id}`
+        return `/akcije/${akcija.id}`
+      }
+
+      if (inviteToken) {
+        setActionShareUrl(`${resolvePublic()}?inviteToken=${encodeURIComponent(inviteToken)}`)
+      } else if (akcija.javna || !canManageHostAkcija(user, akcija.klubId)) {
+        setActionShareUrl(resolvePublic())
+      } else if (!actionShareUrl) {
+        setActionShareLoading(true)
+        try {
+          const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${id}/invite-link/regenerate`)
+          const inviteUrl = (res.data?.inviteUrl || '').trim()
+          setActionShareUrl(inviteUrl || resolvePublic())
+        } catch (err: any) {
+          setActionShareError(err?.response?.data?.error || 'Neuspešno kreiranje share linka.')
+          setActionShareUrl(resolvePublic())
+        } finally {
+          setActionShareLoading(false)
+        }
+      }
+
+      navigate(location.pathname, { replace: true })
+    }
+
+    void run()
+  }, [claimRewardRequested, user, akcija, mojaPrijava, summitShareOpen, inviteToken, actionShareUrl, id, navigate, location.pathname])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -1192,13 +1239,6 @@ export default function ActionDetails() {
     await ensureShareUrl()
   }
 
-  const openSummitRewardClaimModal = async () => {
-    setSummitPickedAspect(null)
-    setSummitShareOpen(true)
-    await ensureShareUrl()
-    setSummitShareStep(1)
-  }
-
   const copyActionShareLink = async () => {
     if (!actionShareUrl) return
     try {
@@ -1241,16 +1281,6 @@ export default function ActionDetails() {
       await showAlert(t('summitPngError'), t('errorTitle'))
     }
   }
-
-  useEffect(() => {
-    if (!claimRewardRequested) return
-    if (!user || !akcija) return
-    if (mojaPrijava === undefined) return
-    if (mojaPrijava?.status !== 'popeo se') return
-    if (summitShareOpen) return
-    void openSummitRewardClaimModal()
-    navigate(location.pathname, { replace: true })
-  }, [claimRewardRequested, user, akcija, mojaPrijava, summitShareOpen, openSummitRewardClaimModal, navigate, location.pathname])
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-16 md:pb-10">
