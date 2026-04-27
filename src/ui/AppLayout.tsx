@@ -42,7 +42,7 @@ const canSeeFinance = (role?: string) =>
 export default function AppLayout() {
   const { t } = useTranslation('appLayout')
   const { t: tCommon } = useTranslation('common')
-  const { logout, user, isLoggedIn } = useAuth()
+  const { logout, user, isLoggedIn, pendingSummitReward, clearPendingSummitReward } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -71,6 +71,7 @@ export default function AppLayout() {
   const pullTrackingRef = useRef(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullRefreshing, setPullRefreshing] = useState(false)
+  const [summitRewardDismissed, setSummitRewardDismissed] = useState(false)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -142,6 +143,10 @@ export default function AppLayout() {
   useEffect(() => {
     pullDistanceRef.current = pullDistance
   }, [pullDistance])
+
+  useEffect(() => {
+    setSummitRewardDismissed(false)
+  }, [pendingSummitReward?.notificationId])
 
   // Global mobile pull-to-refresh (all protected screens)
   useEffect(() => {
@@ -240,9 +245,29 @@ export default function AppLayout() {
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
   const totalPendingRequests = pendingActionRequestsCount + pendingFollowRequestsCount
   const hasPendingRequests = totalPendingRequests > 0
+  const showSummitRewardModal = !!(isLoggedIn && pendingSummitReward && !summitRewardDismissed)
+  const summitActionName = pendingSummitReward?.actionName?.trim() || 'akciju'
   const requestsSummaryMobileClass = hasPendingRequests
     ? 'border-amber-200 bg-amber-50 text-amber-800'
     : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+
+  const handleSummitRewardClaim = async () => {
+    if (!pendingSummitReward) return
+    setSummitRewardDismissed(true)
+    if (pendingSummitReward.notificationId) {
+      await api.patch(`/api/obavestenja/${pendingSummitReward.notificationId}/read`).catch(() => {})
+    }
+    clearPendingSummitReward()
+    if (pendingSummitReward.actionId) {
+      navigate(`/akcije/${pendingSummitReward.actionId}?claimReward=1`)
+      return
+    }
+    if (pendingSummitReward.link?.trim()) {
+      navigate(pendingSummitReward.link.trim())
+      return
+    }
+    navigate('/akcije')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -856,6 +881,38 @@ export default function AppLayout() {
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 {t('close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSummitRewardModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]">
+          <div className="relative w-full max-w-md rounded-2xl bg-white border border-emerald-100 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+              <h2 className="text-base font-extrabold text-gray-900 tracking-tight">Cestitamo!</h2>
+              <button
+                type="button"
+                onClick={() => setSummitRewardDismissed(true)}
+                className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-500 hover:bg-white/80 hover:text-gray-800"
+                aria-label={t('close')}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                Uspesno ste popeli akciju <span className="font-bold text-gray-900">{summitActionName}</span>.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleSummitRewardClaim()}
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all"
+              >
+                Preuzmi nagradu
               </button>
             </div>
           </div>

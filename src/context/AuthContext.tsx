@@ -19,6 +19,12 @@ export interface LoginResponse {
   role: string;
   user: { username: string; fullName: string; avatar_url?: string; klubId?: number };
   profileIncomplete?: boolean;
+  pendingSummitReward?: {
+    notificationId: number;
+    actionId?: number;
+    actionName?: string;
+    link?: string;
+  };
   /** JWT kada cookie nije moguć (cross-origin); šalje se kao Authorization Bearer */
   token?: string;
 }
@@ -27,9 +33,11 @@ interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
   authLoading: boolean;
+  pendingSummitReward: LoginResponse['pendingSummitReward'] | null;
   login: (data: LoginResponse) => void;
   logout: () => void;
   refreshUser: () => Promise<boolean>;
+  clearPendingSummitReward: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,6 +59,7 @@ const computeProfileIncomplete = (data: {
         const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
         const [user, setUser] = useState<User | null>(null)
         const [authLoading, setAuthLoading] = useState(true)
+        const [pendingSummitReward, setPendingSummitReward] = useState<LoginResponse['pendingSummitReward'] | null>(null)
 
         const logout = useCallback(async () => {
             try {
@@ -58,6 +67,7 @@ const computeProfileIncomplete = (data: {
             } catch { /* ignore */ }
             setIsLoggedIn(false)
             setUser(null)
+            setPendingSummitReward(null)
             localStorage.removeItem('user')
             localStorage.removeItem('isLoggedIn')
             setAuthToken(null)
@@ -103,6 +113,11 @@ const computeProfileIncomplete = (data: {
                 return next
             })
             setIsLoggedIn(true)
+            setPendingSummitReward(data.pendingSummitReward ?? null)
+        }, [])
+
+        const clearPendingSummitReward = useCallback(() => {
+            setPendingSummitReward(null)
         }, [])
 
         useEffect(() => {
@@ -150,7 +165,7 @@ const computeProfileIncomplete = (data: {
         }, [logout])
 
         return (
-            <AuthContext.Provider value={{ isLoggedIn, user, authLoading, login, logout, refreshUser }}>
+            <AuthContext.Provider value={{ isLoggedIn, user, authLoading, pendingSummitReward, login, logout, refreshUser, clearPendingSummitReward }}>
                 {children}
             </AuthContext.Provider>
         );

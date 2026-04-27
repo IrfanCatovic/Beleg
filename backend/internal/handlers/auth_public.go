@@ -4,6 +4,7 @@ import (
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strconv"
@@ -119,6 +120,43 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			"token":             tokenString,
 			"user":              userPayload,
 			"profileIncomplete": profileIncomplete,
+		}
+		var rewardNotif models.Obavestenje
+		if err := db.Where("user_id = ? AND type = ? AND read_at IS NULL", korisnik.ID, models.ObavestenjeTipSummitReward).
+			Order("created_at DESC").
+			First(&rewardNotif).Error; err == nil {
+			payload := gin.H{
+				"notificationId": rewardNotif.ID,
+			}
+			if strings.TrimSpace(rewardNotif.Link) != "" {
+				payload["link"] = strings.TrimSpace(rewardNotif.Link)
+			}
+			var parsed struct {
+				AkcijaID    uint   `json:"akcijaId"`
+				AkcijaNaziv string `json:"akcijaNaziv"`
+			}
+			if strings.TrimSpace(rewardNotif.Metadata) != "" && json.Unmarshal([]byte(rewardNotif.Metadata), &parsed) == nil {
+				if parsed.AkcijaID != 0 {
+					payload["actionId"] = parsed.AkcijaID
+				}
+				if strings.TrimSpace(parsed.AkcijaNaziv) != "" {
+					payload["actionName"] = strings.TrimSpace(parsed.AkcijaNaziv)
+				}
+			}
+			if _, ok := payload["actionId"]; !ok {
+				if actionIDRaw, ok := payload["link"].(string); ok {
+					if strings.HasPrefix(actionIDRaw, "/akcije/") {
+						part := strings.TrimPrefix(actionIDRaw, "/akcije/")
+						if idx := strings.Index(part, "?"); idx >= 0 {
+							part = part[:idx]
+						}
+						if parsedID, err := strconv.Atoi(part); err == nil && parsedID > 0 {
+							payload["actionId"] = parsedID
+						}
+					}
+				}
+			}
+			resp["pendingSummitReward"] = payload
 		}
 		if profileIncomplete {
 			resp["code"] = "PROFILE_INCOMPLETE"
