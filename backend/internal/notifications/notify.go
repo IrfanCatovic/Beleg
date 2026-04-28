@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/mail"
 	"os"
 	"strings"
 	"time"
@@ -29,24 +28,7 @@ func resolvePublicBaseURL() string {
 		}
 		return strings.TrimRight(base, "/")
 	}
-
-	// Fallback: pokušaj domen iz sender adrese, npr. Planiner <noreply@planiner.com>.
-	for _, raw := range []string{os.Getenv("EMAIL_FROM"), os.Getenv("RESEND_FROM")} {
-		parsed, err := mail.ParseAddress(strings.TrimSpace(raw))
-		if err != nil || parsed == nil {
-			continue
-		}
-		parts := strings.Split(parsed.Address, "@")
-		if len(parts) != 2 {
-			continue
-		}
-		domain := strings.TrimSpace(parts[1])
-		if domain == "" || strings.HasSuffix(strings.ToLower(domain), "resend.dev") {
-			continue
-		}
-		return "https://" + domain
-	}
-	return ""
+	return "https://www.planiner.com"
 }
 
 // NotifyUsers kreira po jedno obaveštenje za svakog korisnika iz userIDs.
