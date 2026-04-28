@@ -1795,6 +1795,170 @@ func DodajClanaPopeoSe(c *gin.Context) {
 	})
 }
 
+func BulkAddClubMembersCompleted(c *gin.Context) {
+	role, _ := c.Get("role")
+	if role != "admin" && role != "vodic" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može dodati članove na završenu akciju"})
+		return
+	}
+
+	idStr := c.Param("id")
+	akcijaID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+
+	var req struct {
+		KorisnikIDs []uint `json:"korisnikIds" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.KorisnikIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća lista korisnikIds"})
+		return
+	}
+
+	uniqueIDs := make([]uint, 0, len(req.KorisnikIDs))
+	seen := make(map[uint]struct{}, len(req.KorisnikIDs))
+	for _, id := range req.KorisnikIDs {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		uniqueIDs = append(uniqueIDs, id)
+	}
+	if len(uniqueIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lista korisnikIds je prazna"})
+		return
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+	var akcija models.Akcija
+	if err := db.First(&akcija, akcijaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da dodaje članove na ovu akciju"})
+		return
+	}
+	if !akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Članovi se ovde mogu dodati tek kada je akcija završena"})
+		return
+	}
+	if akcija.KlubID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija nema domaći klub"})
+		return
+	}
+
+	var korisnici []models.Korisnik
+	if err := db.Where("id IN ?", uniqueIDs).Find(&korisnici).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju korisnika"})
+		return
+	}
+	byID := make(map[uint]models.Korisnik, len(korisnici))
+	for _, korisnik := range korisnici {
+		byID[korisnik.ID] = korisnik
+	}
+
+	addedCount := 0
+	updatedCount := 0
+	skippedCount := 0
+	newlySummitedUserIDs := make([]uint, 0, len(uniqueIDs))
+	perUser := make([]gin.H, 0, len(uniqueIDs))
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		for _, korisnikID := range uniqueIDs {
+			korisnik, ok := byID[korisnikID]
+			if !ok {
+				skippedCount++
+				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "skipped", "reason": "korisnik nije pronađen"})
+				continue
+			}
+			if korisnik.Role == "deleted" {
+				skippedCount++
+				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "skipped", "reason": "korisnik je deaktiviran"})
+				continue
+			}
+			if korisnik.KlubID == nil || *korisnik.KlubID != *akcija.KlubID {
+				skippedCount++
+				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "skipped", "reason": "korisnik nije član domaćeg kluba"})
+				continue
+			}
+
+			var prijava models.Prijava
+			err := tx.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+
+			newlySummited := false
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				prijava = models.Prijava{
+					AkcijaID:   akcija.ID,
+					KorisnikID: korisnik.ID,
+					Status:     "popeo se",
+					Platio:     true,
+				}
+				if err := tx.Create(&prijava).Error; err != nil {
+					return err
+				}
+				addedCount++
+				newlySummited = true
+				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "added"})
+			} else {
+				if prijava.Status == "popeo se" {
+					skippedCount++
+					perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "skipped", "reason": "već označen kao popeo se"})
+					continue
+				}
+				prijava.Status = "popeo se"
+				prijava.Platio = true
+				if err := tx.Save(&prijava).Error; err != nil {
+					return err
+				}
+				updatedCount++
+				newlySummited = true
+				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "updated"})
+			}
+
+			if newlySummited {
+				korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
+				korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
+				korisnik.BrojPopeoSe += 1
+				if err := tx.Model(&models.Korisnik{}).Where("id = ?", korisnik.ID).Updates(map[string]any{
+					"ukupno_km_korisnik":            korisnik.UkupnoKmKorisnik,
+					"ukupno_metara_uspona_korisnik": korisnik.UkupnoMetaraUsponaKorisnik,
+					"broj_popeo_se":                 korisnik.BrojPopeoSe,
+				}).Error; err != nil {
+					return err
+				}
+				newlySummitedUserIDs = append(newlySummitedUserIDs, korisnik.ID)
+			}
+		}
+		return nil
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju članova na akciju"})
+		return
+	}
+
+	for _, userID := range newlySummitedUserIDs {
+		notifications.NotifySummitReward(db, userID, akcija)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Obrada završena",
+		"added":         addedCount,
+		"updated":       updatedCount,
+		"skipped":       skippedCount,
+		"results":       perUser,
+		"processed":     len(uniqueIDs),
+		"newlySummited": len(newlySummitedUserIDs),
+	})
+}
+
 func UpdatePrijavaPlatioStatus(c *gin.Context) {
 	idStr := c.Param("id")
 	prijavaID, err := strconv.Atoi(idStr)

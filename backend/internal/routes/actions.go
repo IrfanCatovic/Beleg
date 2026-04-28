@@ -20,6 +20,7 @@ func RegisterActionRoutes(r *gin.Engine, protected *gin.RouterGroup, jwtSecret [
 	protected.DELETE("/akcije/:id/prevoz/:prevozId", handlers.ObrisiPrevozZaAkciju)
 	protected.GET("/akcije/:id/prevoz-prijave", handlers.GetPrevozPrijave)
 	protected.POST("/akcije/:id/dodaj-clana-popeo-se", handlers.DodajClanaPopeoSe)
+	protected.POST("/akcije/:id/add-club-members-completed", handlers.BulkAddClubMembersCompleted)
 	protected.POST("/akcije/:id/zavrsi", handlers.ZavrsiAkciju)
 	protected.DELETE("/akcije/:id", handlers.DeleteAkcija)
 	protected.DELETE("/akcije/:id/prijavi", handlers.OtkaziPrijavuNaAkciju)

@@ -8,6 +8,7 @@ import (
 
 func RegisterActionParticipationRequestRoutes(protected *gin.RouterGroup) {
 	protected.GET("/akcije/:id/eligible-external-users", handlers.SearchEligibleExternalUsers)
+	protected.GET("/akcije/:id/eligible-club-members", handlers.SearchEligibleClubMembers)
 	protected.GET("/akcije/:id/participation-requests", handlers.ListActionParticipationRequests)
 	protected.POST("/akcije/:id/participation-requests", handlers.CreateActionParticipationRequest)
 	protected.PATCH("/akcije/:id/participation-requests/:requestId/cancel", handlers.CancelActionParticipationRequest)

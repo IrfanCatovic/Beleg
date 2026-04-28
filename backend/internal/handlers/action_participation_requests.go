@@ -115,13 +115,13 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 		body += " Klub domaćin: " + clubName + "."
 	}
 	metaMap := map[string]any{
-		"requestId":          req.ID,
-		"akcijaId":           req.Akcija.ID,
-		"akcijaNaziv":        req.Akcija.Naziv,
-		"requesterId":        req.RequestedBy.ID,
-		"requesterUsername":  req.RequestedBy.Username,
-		"requesterFullName":  req.RequestedBy.FullName,
-		"hostClubName":       clubName,
+		"requestId":         req.ID,
+		"akcijaId":          req.Akcija.ID,
+		"akcijaNaziv":       req.Akcija.Naziv,
+		"requesterId":       req.RequestedBy.ID,
+		"requesterUsername": req.RequestedBy.Username,
+		"requesterFullName": req.RequestedBy.FullName,
+		"hostClubName":      clubName,
 	}
 	metaBytes, _ := json.Marshal(metaMap)
 	notifications.NotifyUsers(
@@ -253,6 +253,88 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"users": out,
 	})
+}
+
+func SearchEligibleClubMembers(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	actionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+
+	var akcija models.Akcija
+	if err := db.Preload("Klub").First(&akcija, actionID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da pretražuje članove"})
+		return
+	}
+	if !akcija.IsCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Članovi se mogu dodavati tek kada je akcija završena"})
+		return
+	}
+	if akcija.KlubID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija nema domaći klub"})
+		return
+	}
+
+	query := strings.TrimSpace(c.Query("q"))
+	limit := 5
+	if raw := strings.TrimSpace(c.Query("limit")); raw != "" {
+		if parsed, convErr := strconv.Atoi(raw); convErr == nil && parsed > 0 && parsed <= 30 {
+			limit = parsed
+		}
+	}
+	offset := 0
+	if raw := strings.TrimSpace(c.Query("offset")); raw != "" {
+		if parsed, convErr := strconv.Atoi(raw); convErr == nil && parsed >= 0 && parsed <= 5000 {
+			offset = parsed
+		}
+	}
+
+	alreadySummitedIDs := db.Model(&models.Prijava{}).
+		Select("korisnik_id").
+		Where("akcija_id = ? AND status = ?", akcija.ID, "popeo se")
+
+	q := db.Model(&models.Korisnik{}).
+		Preload("Klub").
+		Where("role <> ?", "deleted").
+		Where("klub_id = ?", *akcija.KlubID).
+		Where("id NOT IN (?)", alreadySummitedIDs)
+
+	if query != "" {
+		like := "%" + strings.ToLower(query) + "%"
+		q = q.Where("(LOWER(username) LIKE ? OR LOWER(full_name) LIKE ?)", like, like)
+	}
+
+	var users []models.Korisnik
+	if err := q.Order("CASE WHEN full_name = '' THEN username ELSE full_name END ASC").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri pretrazi članova"})
+		return
+	}
+
+	out := make([]externalUserCandidateDTO, 0, len(users))
+	for _, u := range users {
+		if u.Role == "deleted" {
+			continue
+		}
+		row := externalUserCandidateDTO{
+			ID:        u.ID,
+			Username:  u.Username,
+			FullName:  u.FullName,
+			AvatarURL: u.AvatarURL,
+			KlubID:    u.KlubID,
+		}
+		if u.Klub != nil {
+			row.KlubNaziv = u.Klub.Naziv
+		}
+		out = append(out, row)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": out})
 }
 
 func ListActionParticipationRequests(c *gin.Context) {

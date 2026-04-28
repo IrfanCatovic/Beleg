@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
@@ -13,6 +13,24 @@ interface Korisnik {
   role: string
 }
 
+interface Akcija {
+  id: number
+  naziv: string
+  planina: string
+  vrh: string
+  datum: string
+}
+
+interface CandidateUser {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+  klubNaziv?: string
+}
+
+const PAGE_SIZE = 5
+
 export default function AddPastAction() {
   const { t } = useTranslation('actionForms')
   const { user } = useAuth()
@@ -21,6 +39,33 @@ export default function AddPastAction() {
   const tipAkcije = searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina'
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [vodici, setVodici] = useState<Korisnik[]>([])
+  const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
+  const [actionQuery, setActionQuery] = useState('')
+  const [showLegacyCreate, setShowLegacyCreate] = useState(false)
+  const [selectedExistingAction, setSelectedExistingAction] = useState<Akcija | null>(null)
+  const [showManageModal, setShowManageModal] = useState(false)
+  const [manageTab, setManageTab] = useState<'club' | 'external'>('club')
+  const [manageError, setManageError] = useState('')
+  const [manageSuccess, setManageSuccess] = useState('')
+
+  const [clubUsers, setClubUsers] = useState<CandidateUser[]>([])
+  const [clubQuery, setClubQuery] = useState('')
+  const [clubOffset, setClubOffset] = useState(0)
+  const [clubHasMore, setClubHasMore] = useState(true)
+  const [clubLoading, setClubLoading] = useState(false)
+  const [selectedClubUserIds, setSelectedClubUserIds] = useState<number[]>([])
+
+  const [externalUsers, setExternalUsers] = useState<CandidateUser[]>([])
+  const [externalQuery, setExternalQuery] = useState('')
+  const [externalOffset, setExternalOffset] = useState(0)
+  const [externalHasMore, setExternalHasMore] = useState(true)
+  const [externalLoading, setExternalLoading] = useState(false)
+  const [selectedExternalUserIds, setSelectedExternalUserIds] = useState<number[]>([])
+  const [sendingAction, setSendingAction] = useState(false)
+
+  const clubListRef = useRef<HTMLDivElement | null>(null)
+  const externalListRef = useRef<HTMLDivElement | null>(null)
+
   const [selectedKorisnikIds, setSelectedKorisnikIds] = useState<string[]>([])
   const [naziv, setNaziv] = useState('')
   const [planina, setPlanina] = useState('')
@@ -48,10 +93,14 @@ export default function AddPastAction() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await api.get<{ korisnici: Korisnik[] }>('/api/korisnici')
-        const list = res.data.korisnici || []
+        const [korisniciRes, akcijeRes] = await Promise.all([
+          api.get<{ korisnici: Korisnik[] }>('/api/korisnici'),
+          api.get<{ zavrsene: Akcija[] }>('/api/akcije'),
+        ])
+        const list = korisniciRes.data.korisnici || []
         setKorisnici(list)
         setVodici(list.filter((k) => k.role === 'vodic'))
+        setZavrseneAkcije(akcijeRes.data.zavrsene || [])
       } catch (err: any) {
         setError(err.response?.data?.error || t('errors.loadUsers'))
       } finally {
@@ -61,6 +110,173 @@ export default function AddPastAction() {
 
     fetchData()
   }, [user])
+
+  const filteredActions = useMemo(() => {
+    const q = actionQuery.trim().toLowerCase()
+    if (!q) return zavrseneAkcije
+    return zavrseneAkcije.filter((a) =>
+      [a.naziv, a.planina, a.vrh, a.datum].some((part) => (part || '').toLowerCase().includes(q)),
+    )
+  }, [actionQuery, zavrseneAkcije])
+
+  const fetchClubUsers = async (replace: boolean, queryOverride?: string) => {
+    if (!selectedExistingAction || clubLoading) return
+    const q = queryOverride ?? clubQuery
+    const nextOffset = replace ? 0 : clubOffset
+    setClubLoading(true)
+    try {
+      const res = await api.get<{ users: CandidateUser[] }>(`/api/akcije/${selectedExistingAction.id}/eligible-club-members`, {
+        params: { q, limit: PAGE_SIZE, offset: nextOffset },
+      })
+      const users = res.data.users || []
+      setClubUsers((prev) => (replace ? users : [...prev, ...users]))
+      setClubOffset(nextOffset + users.length)
+      setClubHasMore(users.length === PAGE_SIZE)
+    } catch (err: any) {
+      setManageError(err.response?.data?.error || 'Greška pri učitavanju članova kluba.')
+    } finally {
+      setClubLoading(false)
+    }
+  }
+
+  const fetchExternalUsers = async (replace: boolean, queryOverride?: string) => {
+    if (!selectedExistingAction || externalLoading) return
+    const q = queryOverride ?? externalQuery
+    const nextOffset = replace ? 0 : externalOffset
+    setExternalLoading(true)
+    try {
+      const res = await api.get<{ users: CandidateUser[] }>(`/api/akcije/${selectedExistingAction.id}/eligible-external-users`, {
+        params: { q, limit: PAGE_SIZE, offset: nextOffset },
+      })
+      const users = res.data.users || []
+      setExternalUsers((prev) => (replace ? users : [...prev, ...users]))
+      setExternalOffset(nextOffset + users.length)
+      setExternalHasMore(users.length === PAGE_SIZE)
+    } catch (err: any) {
+      setManageError(err.response?.data?.error || 'Greška pri učitavanju korisnika van kluba.')
+    } finally {
+      setExternalLoading(false)
+    }
+  }
+
+  const openManageModal = (akcija: Akcija) => {
+    setSelectedExistingAction(akcija)
+    setShowManageModal(true)
+    setManageTab('club')
+    setManageError('')
+    setManageSuccess('')
+    setClubUsers([])
+    setClubOffset(0)
+    setClubHasMore(true)
+    setSelectedClubUserIds([])
+    setExternalUsers([])
+    setExternalOffset(0)
+    setExternalHasMore(true)
+    setSelectedExternalUserIds([])
+    void fetchClubUsers(true, '')
+    void fetchExternalUsers(true, '')
+  }
+
+  const closeManageModal = () => {
+    setShowManageModal(false)
+    setSelectedExistingAction(null)
+    setManageError('')
+    setManageSuccess('')
+    setSelectedClubUserIds([])
+    setSelectedExternalUserIds([])
+  }
+
+  const toggleClubUser = (id: number) => {
+    setSelectedClubUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const toggleExternalUser = (id: number) => {
+    setSelectedExternalUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const handleAddClubMembers = async () => {
+    if (!selectedExistingAction || selectedClubUserIds.length === 0) {
+      setManageError('Izaberi bar jednog člana kluba.')
+      return
+    }
+    setManageError('')
+    setManageSuccess('')
+    setSendingAction(true)
+    try {
+      const res = await api.post(`/api/akcije/${selectedExistingAction.id}/add-club-members-completed`, {
+        korisnikIds: selectedClubUserIds,
+      })
+      setManageSuccess(
+        `Obrađeno: dodato ${res.data?.added ?? 0}, ažurirano ${res.data?.updated ?? 0}, preskočeno ${res.data?.skipped ?? 0}.`,
+      )
+      setSelectedClubUserIds([])
+      await fetchClubUsers(true)
+    } catch (err: any) {
+      setManageError(err.response?.data?.error || 'Greška pri dodavanju članova.')
+    } finally {
+      setSendingAction(false)
+    }
+  }
+
+  const handleSendExternalRequests = async () => {
+    if (!selectedExistingAction || selectedExternalUserIds.length === 0) {
+      setManageError('Izaberi bar jednog korisnika van kluba.')
+      return
+    }
+    setManageError('')
+    setManageSuccess('')
+    setSendingAction(true)
+    try {
+      const responses = await Promise.allSettled(
+        selectedExternalUserIds.map((targetUserId) =>
+          api.post(`/api/akcije/${selectedExistingAction.id}/participation-requests`, { targetUserId }),
+        ),
+      )
+      const successCount = responses.filter((item) => item.status === 'fulfilled').length
+      const failedCount = responses.length - successCount
+      if (failedCount > 0) {
+        setManageError(`Poslato: ${successCount}, neuspešno: ${failedCount}.`)
+      } else {
+        setManageSuccess(`Uspešno poslato zahteva: ${successCount}.`)
+      }
+      setSelectedExternalUserIds([])
+      await fetchExternalUsers(true)
+    } catch (err: any) {
+      setManageError(err.response?.data?.error || 'Greška pri slanju zahteva.')
+    } finally {
+      setSendingAction(false)
+    }
+  }
+
+  const onClubListScroll = () => {
+    if (!clubListRef.current || clubLoading || !clubHasMore) return
+    const { scrollTop, scrollHeight, clientHeight } = clubListRef.current
+    if (scrollHeight - scrollTop - clientHeight < 24) {
+      void fetchClubUsers(false)
+    }
+  }
+
+  const onExternalListScroll = () => {
+    if (!externalListRef.current || externalLoading || !externalHasMore) return
+    const { scrollTop, scrollHeight, clientHeight } = externalListRef.current
+    if (scrollHeight - scrollTop - clientHeight < 24) {
+      void fetchExternalUsers(false)
+    }
+  }
+
+  const handleClubSearch = () => {
+    setClubOffset(0)
+    setClubHasMore(true)
+    setSelectedClubUserIds([])
+    void fetchClubUsers(true)
+  }
+
+  const handleExternalSearch = () => {
+    setExternalOffset(0)
+    setExternalHasMore(true)
+    setSelectedExternalUserIds([])
+    void fetchExternalUsers(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -177,6 +393,212 @@ export default function AddPastAction() {
         </div>
 
         <div className="max-w-4xl mx-auto">
+          <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 sm:p-5">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">Dodaj članove na postojeću završenu akciju</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Prvo pretraži završene akcije kluba i otvori modal za unos učesnika.
+            </p>
+            <div className="mt-3">
+              <input
+                type="text"
+                value={actionQuery}
+                onChange={(e) => setActionQuery(e.target.value)}
+                placeholder="Pretraga po nazivu, planini, vrhu ili datumu"
+                className={inputClass}
+              />
+            </div>
+            <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-emerald-100 bg-white divide-y divide-gray-100">
+              {filteredActions.length === 0 ? (
+                <p className="px-3.5 py-3 text-sm text-gray-500">Nema pronađenih završenih akcija.</p>
+              ) : (
+                filteredActions.map((akcija) => (
+                  <div key={akcija.id} className="flex items-center justify-between gap-3 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{akcija.naziv}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {akcija.planina} · {akcija.vrh} · {akcija.datum}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openManageModal(akcija)}
+                      className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+                    >
+                      Dodaj učesnike
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowLegacyCreate((prev) => !prev)}
+                className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                {showLegacyCreate ? 'Sakrij kreiranje nove prošle akcije' : 'Akcija ne postoji? Kreiraj novu prošlu akciju'}
+              </button>
+            </div>
+          </div>
+
+          {showManageModal && selectedExistingAction && (
+            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 px-4">
+              <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl border border-gray-200">
+                <div className="flex items-start justify-between gap-3 p-4 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">{selectedExistingAction.naziv}</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {selectedExistingAction.planina} · {selectedExistingAction.vrh} · {selectedExistingAction.datum}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeManageModal}
+                    className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Zatvori
+                  </button>
+                </div>
+
+                <div className="p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setManageTab('club')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                        manageTab === 'club' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Članovi kluba
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManageTab('external')}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                        manageTab === 'external' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Van kluba
+                    </button>
+                  </div>
+
+                  {manageError && <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{manageError}</div>}
+                  {manageSuccess && <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{manageSuccess}</div>}
+
+                  {manageTab === 'club' ? (
+                    <div>
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={clubQuery}
+                          onChange={(e) => setClubQuery(e.target.value)}
+                          placeholder="Pretraga članova kluba"
+                          className={inputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleClubSearch}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Pretraži
+                        </button>
+                      </div>
+                      <div
+                        ref={clubListRef}
+                        onScroll={onClubListScroll}
+                        className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100"
+                      >
+                        {clubUsers.length === 0 && !clubLoading ? (
+                          <p className="px-3 py-3 text-sm text-gray-500">Nema kandidata.</p>
+                        ) : (
+                          clubUsers.map((item) => (
+                            <label key={item.id} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-emerald-50/50">
+                              <input
+                                type="checkbox"
+                                checked={selectedClubUserIds.includes(item.id)}
+                                onChange={() => toggleClubUser(item.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                              />
+                              <span className="text-sm text-gray-800 truncate">{item.fullName || item.username} (@{item.username})</span>
+                            </label>
+                          ))
+                        )}
+                        {clubLoading && <p className="px-3 py-2 text-xs text-gray-500">Učitavanje...</p>}
+                      </div>
+                      <div className="mt-3 flex justify-between items-center gap-2">
+                        <p className="text-xs text-gray-500">Izabrano: {selectedClubUserIds.length}</p>
+                        <button
+                          type="button"
+                          onClick={() => void handleAddClubMembers()}
+                          disabled={sendingAction}
+                          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+                        >
+                          {sendingAction ? '...' : 'Dodaj na akciju'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={externalQuery}
+                          onChange={(e) => setExternalQuery(e.target.value)}
+                          placeholder="Pretraga korisnika van kluba"
+                          className={inputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleExternalSearch}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Pretraži
+                        </button>
+                      </div>
+                      <div
+                        ref={externalListRef}
+                        onScroll={onExternalListScroll}
+                        className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100"
+                      >
+                        {externalUsers.length === 0 && !externalLoading ? (
+                          <p className="px-3 py-3 text-sm text-gray-500">Nema kandidata.</p>
+                        ) : (
+                          externalUsers.map((item) => (
+                            <label key={item.id} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-emerald-50/50">
+                              <input
+                                type="checkbox"
+                                checked={selectedExternalUserIds.includes(item.id)}
+                                onChange={() => toggleExternalUser(item.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                              />
+                              <span className="text-sm text-gray-800 truncate">
+                                {item.fullName || item.username} (@{item.username})
+                                {item.klubNaziv ? ` · ${item.klubNaziv}` : ''}
+                              </span>
+                            </label>
+                          ))
+                        )}
+                        {externalLoading && <p className="px-3 py-2 text-xs text-gray-500">Učitavanje...</p>}
+                      </div>
+                      <div className="mt-3 flex justify-between items-center gap-2">
+                        <p className="text-xs text-gray-500">Izabrano: {selectedExternalUserIds.length}</p>
+                        <button
+                          type="button"
+                          onClick={() => void handleSendExternalRequests()}
+                          disabled={sendingAction}
+                          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+                        >
+                          {sendingAction ? '...' : 'Pošalji zahteve'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showLegacyCreate && (
           <form
             onSubmit={handleSubmit}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 lg:p-7 space-y-6 sm:space-y-7"
@@ -473,6 +895,7 @@ export default function AddPastAction() {
               </button>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>
