@@ -59,11 +59,9 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 			notifURL,
 		))
 
-		go func(to, subject, message string) {
-			if err := email.SendToWithTimeout(to, subject, message, 15*time.Second); err != nil {
-				log.Printf("notifications email send failed for %s: %v", to, err)
-			}
-		}(userEmail, emailSubject, emailBody)
+		if err := email.SendToWithTimeout(userEmail, emailSubject, emailBody, 15*time.Second); err != nil {
+			log.Printf("notifications email send failed for %s: %v", userEmail, err)
+		}
 	}
 }
 
