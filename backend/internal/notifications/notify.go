@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/mail"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +15,40 @@ import (
 	"gorm.io/gorm"
 )
 
+func resolvePublicBaseURL() string {
+	candidates := []string{
+		os.Getenv("APP_BASE_URL"),
+		os.Getenv("PUBLIC_APP_URL"),
+		os.Getenv("FRONTEND_URL"),
+		os.Getenv("WEBSITE_URL"),
+	}
+	for _, candidate := range candidates {
+		base := strings.TrimSpace(candidate)
+		if base == "" {
+			continue
+		}
+		return strings.TrimRight(base, "/")
+	}
+
+	// Fallback: pokušaj domen iz sender adrese, npr. Planiner <noreply@planiner.com>.
+	for _, raw := range []string{os.Getenv("EMAIL_FROM"), os.Getenv("RESEND_FROM")} {
+		parsed, err := mail.ParseAddress(strings.TrimSpace(raw))
+		if err != nil || parsed == nil {
+			continue
+		}
+		parts := strings.Split(parsed.Address, "@")
+		if len(parts) != 2 {
+			continue
+		}
+		domain := strings.TrimSpace(parts[1])
+		if domain == "" || strings.HasSuffix(strings.ToLower(domain), "resend.dev") {
+			continue
+		}
+		return "https://" + domain
+	}
+	return ""
+}
+
 // NotifyUsers kreira po jedno obaveštenje za svakog korisnika iz userIDs.
 // Ako je userIDs prazan, ništa se ne kreira. Tip: uplata, akcija, zadatak, post, broadcast.
 // metadata: JSON string npr. {"postId":1} ili "" ako nema vezanog entiteta.
@@ -22,9 +57,8 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 		return
 	}
 
-	emailSubject := "Planinier - obavestenje"
-	baseURL := strings.TrimSpace(os.Getenv("APP_BASE_URL"))
-	baseURL = strings.TrimRight(baseURL, "/")
+	emailSubject := "PLANINER - obavestenje"
+	baseURL := resolvePublicBaseURL()
 
 	for _, uid := range userIDs {
 		n := models.Obavestenje{
