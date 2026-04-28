@@ -241,7 +241,9 @@ export default function UserProfile() {
   const sameClub = !!currentUser && typeof currentUser.klubId === 'number' && typeof korisnik?.klubId === 'number' && currentUser.klubId === korisnik.klubId
   const isSuperadmin = currentUser?.role === 'superadmin'
   const isClubAdminOrSecretary = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
-  const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub)
+  const canShowFollowControls = !!currentUser && !isOwn && !sameClub
+  const canShowBlockControls = !!currentUser && !isOwn
+  const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
 
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -466,10 +468,10 @@ export default function UserProfile() {
                 })
               }
             >
-              {!isOwn && currentUser && (
+              {canShowFollowControls && (
                 <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
               )}
-              {!isOwn && currentUser && (
+              {canShowBlockControls && (
                 <BlockUserButton
                   targetId={korisnik.id}
                   onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
@@ -636,7 +638,17 @@ export default function UserProfile() {
               actionOrder={['print', 'info', 'settings']}
               actionClassName="!bg-emerald-600 !text-white hover:!bg-emerald-700 hover:!text-white ring-2 ring-white/40 shadow-xl"
               className=""
-            />
+            >
+              {canShowFollowControls && (
+                <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
+              )}
+              {canShowBlockControls && (
+                <BlockUserButton
+                  targetId={korisnik.id}
+                  onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+                />
+              )}
+            </ProfileActionButtons>
           </div>
         </div>
       )}
