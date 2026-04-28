@@ -14,7 +14,7 @@ export default function ProtectedRoute() {
   }
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace state={{ returnTo: `${location.pathname}${location.search}` }} />
   }
 
   const onProfileSettingsRoute = location.pathname.startsWith('/profil/podesavanja')

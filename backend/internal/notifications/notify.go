@@ -1,9 +1,13 @@
 package notifications
 
 import (
+	"beleg-app/backend/internal/email"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strings"
+	"time"
 
 	"beleg-app/backend/internal/models"
 
@@ -17,6 +21,11 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 	if len(userIDs) == 0 {
 		return
 	}
+
+	emailSubject := "Planinier - obavestenje"
+	baseURL := strings.TrimSpace(os.Getenv("APP_BASE_URL"))
+	baseURL = strings.TrimRight(baseURL, "/")
+
 	for _, uid := range userIDs {
 		n := models.Obavestenje{
 			UserID:   uid,
@@ -26,7 +35,35 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 			Link:     link,
 			Metadata: metadata,
 		}
-		_ = db.Create(&n).Error // ignorišemo grešku da ne prekidamo glavnu akciju
+		if err := db.Create(&n).Error; err != nil {
+			continue // best-effort: ne prekidamo glavni tok
+		}
+
+		var korisnik models.Korisnik
+		if err := db.Select("email").First(&korisnik, uid).Error; err != nil {
+			continue
+		}
+		userEmail := strings.TrimSpace(korisnik.Email)
+		if userEmail == "" {
+			continue
+		}
+
+		notifURL := fmt.Sprintf("/obavestenja/%d", n.ID)
+		if baseURL != "" {
+			notifURL = baseURL + notifURL
+		}
+		emailBody := strings.TrimSpace(fmt.Sprintf(
+			"%s\n\n%s\n\nLink ka obavestenju:\n%s",
+			strings.TrimSpace(title),
+			strings.TrimSpace(body),
+			notifURL,
+		))
+
+		go func(to, subject, message string) {
+			if err := email.SendToWithTimeout(to, subject, message, 15*time.Second); err != nil {
+				log.Printf("notifications email send failed for %s: %v", to, err)
+			}
+		}(userEmail, emailSubject, emailBody)
 	}
 }
 
