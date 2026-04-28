@@ -139,10 +139,14 @@ export default function TaskCard({
   task,
   footer,
   onOpen,
+  canShare = false,
+  onShare,
 }: {
   task: Task
   footer: ReactNode
   onOpen?: () => void
+  canShare?: boolean
+  onShare?: (t: Task) => void
 }) {
   const { t } = useTranslation('shared')
   const isUrgent = task.hitno
@@ -186,13 +190,31 @@ export default function TaskCard({
           >
             {task.naziv}
           </h3>
-          <span
-            className={`flex-shrink-0 inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-              isUrgent ? 'bg-rose-500 text-white' : isFinished ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-500 border border-gray-100'
-            }`}
-          >
-            {isUrgent ? t('taskCard.urgent') : isFinished ? t('taskCard.doneShort') : t('taskCard.task')}
-          </span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {canShare && onShare && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onShare(task)
+                }}
+                className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50 transition-colors"
+                aria-label="Podeli zadatak"
+                title="Podeli zadatak"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m9.566-2.186a2.25 2.25 0 110 2.186M8.25 12h7.5" />
+                </svg>
+              </button>
+            )}
+            <span
+              className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                isUrgent ? 'bg-rose-500 text-white' : isFinished ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-500 border border-gray-100'
+              }`}
+            >
+              {isUrgent ? t('taskCard.urgent') : isFinished ? t('taskCard.doneShort') : t('taskCard.task')}
+            </span>
+          </div>
         </div>
 
         {task.opis && <p className="text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-none leading-relaxed">{task.opis}</p>}

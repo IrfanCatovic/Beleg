@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
@@ -13,6 +14,7 @@ export default function Zadaci() {
   const { t } = useTranslation('tasks')
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
+  const [searchParams] = useSearchParams()
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,6 +23,8 @@ export default function Zadaci() {
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   const [editTask, setEditTask] = useState<Task | null>(null)
   const [detailTaskId, setDetailTaskId] = useState<number | null>(null)
+  const [shareTask, setShareTask] = useState<Task | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const detailTask = detailTaskId != null ? tasks.find((t) => t.id === detailTaskId) ?? null : null
 
@@ -29,6 +33,15 @@ export default function Zadaci() {
       setDetailTaskId(null)
     }
   }, [tasks, detailTaskId])
+
+  useEffect(() => {
+    const fromQuery = Number(searchParams.get('task'))
+    if (!Number.isFinite(fromQuery) || fromQuery <= 0) return
+    const found = tasks.find((t) => t.id === fromQuery)
+    if (found && canSeeTask(found)) {
+      setDetailTaskId(found.id)
+    }
+  }, [tasks, searchParams])
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -195,6 +208,45 @@ export default function Zadaci() {
     }
   }
 
+  const canShareTask = (task: Task) => {
+    if (!user) return false
+    return task.assignees?.some((a) => a.username === user.username) ?? false
+  }
+
+  const buildTaskShareUrl = (taskId: number) => {
+    const base = window.location.origin
+    return `${base}/zadaci?task=${taskId}`
+  }
+
+  const handleOpenShare = (task: Task) => {
+    setShareCopied(false)
+    setShareTask(task)
+  }
+
+  const handleCloseShare = () => {
+    setShareTask(null)
+    setShareCopied(false)
+  }
+
+  const handleCopyShareLink = async () => {
+    if (!shareTask) return
+    const link = buildTaskShareUrl(shareTask.id)
+    try {
+      await navigator.clipboard.writeText(link)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 1400)
+    } catch {
+      await showAlert('Ne mogu da kopiram link automatski. Kopiraj ga ručno iz polja.')
+    }
+  }
+
+  const handleWhatsAppShare = () => {
+    if (!shareTask) return
+    const link = buildTaskShareUrl(shareTask.id)
+    const text = `Ima zadatak: ${shareTask.naziv}. Ko zeli da se prikljuci: ${link}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+  }
+
   if (loading) return <Loader />
 
   return (
@@ -318,6 +370,8 @@ export default function Zadaci() {
                   key={task.id}
                   task={task}
                   onOpen={() => setDetailTaskId(task.id)}
+                  canShare={canShareTask(task)}
+                  onShare={handleOpenShare}
                   footer={
                     <TaskCardFooter
                       task={task}
@@ -369,6 +423,8 @@ export default function Zadaci() {
                   key={task.id}
                   task={task}
                   onOpen={() => setDetailTaskId(task.id)}
+                  canShare={canShareTask(task)}
+                  onShare={handleOpenShare}
                   footer={
                     <TaskCardFooter
                       task={task}
@@ -419,6 +475,8 @@ export default function Zadaci() {
                   key={task.id}
                   task={task}
                   onOpen={() => setDetailTaskId(task.id)}
+                  canShare={canShareTask(task)}
+                  onShare={handleOpenShare}
                   footer={
                     <TaskCardFooter
                       task={task}
@@ -437,6 +495,67 @@ export default function Zadaci() {
           )}
         </section>
       </div>
+
+      {shareTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-3 sm:px-4" onClick={handleCloseShare}>
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="task-share-title"
+          >
+            <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-gray-100 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Podeli zadatak</p>
+                <h2 id="task-share-title" className="text-base sm:text-lg font-bold text-gray-900 tracking-tight leading-snug">
+                  {shareTask.naziv}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseShare}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Zatvori"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-5 sm:px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-600">Pošalji članovima link do ovog zadatka da mogu brzo da ga otvore.</p>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Link</label>
+                <input
+                  readOnly
+                  value={buildTaskShareUrl(shareTask.id)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-800"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => void handleCopyShareLink()}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  {shareCopied ? 'Kopirano' : 'Kopiraj'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleWhatsAppShare}
+                  className="flex-1 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:brightness-95"
+                >
+                  Pošalji na WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
