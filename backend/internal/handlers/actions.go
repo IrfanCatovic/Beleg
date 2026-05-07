@@ -347,6 +347,33 @@ func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) floa
 	return akcija.CenaClan
 }
 
+func resolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {
+	if actionClubID == nil || *actionClubID == 0 {
+		return fallbackUserID
+	}
+
+	var fallback models.Korisnik
+	if err := tx.Select("id", "klub_id").First(&fallback, fallbackUserID).Error; err == nil {
+		if fallback.KlubID != nil && *fallback.KlubID == *actionClubID {
+			return fallback.ID
+		}
+	}
+
+	var clubUser models.Korisnik
+	if err := tx.Select("id").
+		Where("klub_id = ? AND role IN ?", *actionClubID, []string{"admin", "blagajnik", "vodic"}).
+		Order("id ASC").
+		First(&clubUser).Error; err == nil {
+		return clubUser.ID
+	}
+
+	if err := tx.Select("id").Where("klub_id = ?", *actionClubID).Order("id ASC").First(&clubUser).Error; err == nil {
+		return clubUser.ID
+	}
+
+	return fallbackUserID
+}
+
 func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
@@ -2079,22 +2106,25 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 			}
 
 			if saldo > 0 {
-				displayName := strings.TrimSpace(prijavaWithUser.Korisnik.FullName)
-				if displayName == "" {
-					displayName = strings.TrimSpace(prijavaWithUser.Korisnik.Username)
-				}
-				if displayName == "" {
-					displayName = fmt.Sprintf("član #%d", prijavaWithUser.KorisnikID)
-				}
-				opis := fmt.Sprintf("Uplata za akciju (%s) - %s", strings.TrimSpace(akcija.Naziv), displayName)
-				if err := tx.Create(&models.Transakcija{
-					Tip:        "uplata",
-					Iznos:      saldo,
-					Opis:       opis,
-					Datum:      time.Now(),
-					KorisnikID: actor.ID,
-				}).Error; err != nil {
+				recorderID := resolveFinanceRecorderID(tx, akcija.KlubID, actor.ID)
+				opis := fmt.Sprintf("Prihod akcije: %s (dopuna prijava #%d)", strings.TrimSpace(akcija.Naziv), prijava.ID)
+
+				var existing int64
+				if err := tx.Model(&models.Transakcija{}).
+					Where("tip = ? AND opis = ?", "uplata", opis).
+					Count(&existing).Error; err != nil {
 					return err
+				}
+				if existing == 0 {
+					if err := tx.Create(&models.Transakcija{
+						Tip:        "uplata",
+						Iznos:      saldo,
+						Opis:       opis,
+						Datum:      time.Now(),
+						KorisnikID: recorderID,
+					}).Error; err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -2226,12 +2256,13 @@ func ZavrsiAkciju(c *gin.Context) {
 		if importedAmount <= 0 {
 			return nil
 		}
+		recorderID := resolveFinanceRecorderID(tx, akcija.KlubID, actor.ID)
 		return tx.Create(&models.Transakcija{
 			Tip:        "uplata",
 			Iznos:      importedAmount,
-			Opis:       fmt.Sprintf("Uplate sa akcije %s", strings.TrimSpace(akcija.Naziv)),
+			Opis:       fmt.Sprintf("Prihod akcije: %s", strings.TrimSpace(akcija.Naziv)),
 			Datum:      time.Now(),
-			KorisnikID: actor.ID,
+			KorisnikID: recorderID,
 		}).Error
 	})
 	if err != nil {
