@@ -6,6 +6,7 @@ import HeroLanding from '../../components/landingPage/HeroLanding'
 import ProblemSection from '../../components/landingPage/ProblemSection'
 import SolutionSection from '../../components/landingPage/SolutionSection'
 import AudienceSection from '../../components/landingPage/AudienceSection'
+import HowPlaninerWorksSection from '../../components/landingPage/HowPlaninerWorksSection'
 import Footer from '../../components/landingPage/Footer'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -101,6 +102,7 @@ export default function Landing() {
       <ProblemSection />
       <SolutionSection />
       <AudienceSection />
+      <HowPlaninerWorksSection />
       
 
       

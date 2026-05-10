@@ -135,6 +135,37 @@ export const resources = {
         conclusion:
           'Poenta nije da članovi dobiju još jednu aplikaciju - poenta je da ljudi koji vode klub konačno imaju jedan normalan sistem za rad.',
       },
+      howPlaninerWorksSection: {
+        title: 'Kako se Planiner uvodi u vaš klub',
+        subtitle:
+          'Ne morate odmah menjati ceo način rada. Planiner se uvodi postepeno - od osnovne evidencije članova, do prve akcije, prijava, uplata i finansija.',
+        steps: {
+          s1: {
+            title: 'Registrujemo vaš klub',
+            text: 'Napravimo osnovni profil vašeg planinarskog društva i podesimo početne uloge za ljude koji vode klub.',
+          },
+          s2: {
+            title: 'Unesete članove',
+            text: 'Dodajete članove kluba, njihove osnovne podatke, status članstva i informacije koje su važne za evidenciju.',
+          },
+          s3: {
+            title: 'Kreirate prvu akciju',
+            text: 'Unesete naziv akcije, datum, opis, cenu, prevoz, noćenje, potrebnu opremu i sve detalje koje članovi treba da znaju.',
+          },
+          s4: {
+            title: 'Članovi se prijavljuju',
+            text: 'Umesto prijava preko poruka, poziva i papira, članovi se prijavljuju kroz sistem, a vodič ima jasan spisak prijavljenih.',
+          },
+          s5: {
+            title: 'Pratite uplate i dugovanja',
+            text: 'Planiner prikazuje ko je platio, ko duguje i koliko svaka osoba treba da plati za akciju, članarinu, prevoz ili druge troškove.',
+          },
+        },
+        highlight: {
+          title: 'Planiner ne komplikuje rad kluba',
+          text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sistem - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
+        },
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -1988,6 +2019,37 @@ export const resources = {
         conclusion:
           'Poenta nije da članovi dobiju još jednu aplikaciju - poenta je da ljudi koji vode klub konačno imaju jedan normalan sistem za rad.',
       },
+      howPlaninerWorksSection: {
+        title: 'Kako se Planiner uvodi u vaš klub',
+        subtitle:
+          'Ne morate odmah mijenjati cijeli način rada. Planiner se uvodi postepeno - od osnovne evidencije članova, do prve akcije, prijava, uplata i finansija.',
+        steps: {
+          s1: {
+            title: 'Registrujemo vaš klub',
+            text: 'Napravimo osnovni profil vašeg planinarskog društva i podesimo početne uloge za ljude koji vode klub.',
+          },
+          s2: {
+            title: 'Unesete članove',
+            text: 'Dodajete članove kluba, njihove osnovne podatke, status članstva i informacije koje su važne za evidenciju.',
+          },
+          s3: {
+            title: 'Kreirate prvu akciju',
+            text: 'Unesete naziv akcije, datum, opis, cijenu, prevoz, noćenje, potrebnu opremu i sve detalje koje članovi trebaju znati.',
+          },
+          s4: {
+            title: 'Članovi se prijavljuju',
+            text: 'Umjesto prijava preko poruka, poziva i papira, članovi se prijavljuju kroz sistem, a vodič ima jasan spisak prijavljenih.',
+          },
+          s5: {
+            title: 'Pratite uplate i dugovanja',
+            text: 'Planiner prikazuje ko je platio, ko duguje i koliko svaka osoba treba platiti za akciju, članarinu, prevoz ili druge troškove.',
+          },
+        },
+        highlight: {
+          title: 'Planiner ne komplikuje rad kluba',
+          text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sistem - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
+        },
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3430,6 +3492,37 @@ export const resources = {
         conclusion:
           'Poanta nije da članovi dobiju još jednu aplikaciju - poanta je da ljudi koji vode klub konačno imaju jedan normalan sustav za rad.',
       },
+      howPlaninerWorksSection: {
+        title: 'Kako se Planiner uvodi u vaš klub',
+        subtitle:
+          'Ne morate odmah mijenjati cijeli način rada. Planiner se uvodi postupno - od osnovne evidencije članova, do prve akcije, prijava, uplata i financija.',
+        steps: {
+          s1: {
+            title: 'Registriramo vaš klub',
+            text: 'Napravimo osnovni profil vašeg planinarskog društva i podesimo početne uloge za ljude koji vode klub.',
+          },
+          s2: {
+            title: 'Unesete članove',
+            text: 'Dodajete članove kluba, njihove osnovne podatke, status članstva i informacije koje su važne za evidenciju.',
+          },
+          s3: {
+            title: 'Kreirate prvu akciju',
+            text: 'Unesete naziv akcije, datum, opis, cijenu, prijevoz, noćenje, potrebnu opremu i sve detalje koje članovi trebaju znati.',
+          },
+          s4: {
+            title: 'Članovi se prijavljuju',
+            text: 'Umjesto prijava preko poruka, poziva i papira, članovi se prijavljuju kroz sustav, a vodič ima jasan popis prijavljenih.',
+          },
+          s5: {
+            title: 'Pratite uplate i dugovanja',
+            text: 'Planiner prikazuje tko je platio, tko duguje i koliko svaka osoba treba platiti za akciju, članarinu, prijevoz ili druge troškove.',
+          },
+        },
+        highlight: {
+          title: 'Planiner ne komplicira rad kluba',
+          text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sustav - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
+        },
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4711,6 +4804,37 @@ export const resources = {
         },
         conclusion:
           'Es geht nicht darum, dass Mitglieder noch eine App bekommen - es geht darum, dass die Menschen, die den Verein leiten, endlich ein normales System für ihre Arbeit haben.',
+      },
+      howPlaninerWorksSection: {
+        title: 'So wird Planiner in Ihrem Verein eingeführt',
+        subtitle:
+          'Sie müssen nicht sofort alles umstellen. Planiner kommt schrittweise - von der Basis-Mitgliederverwaltung bis zur ersten Tour, Anmeldungen, Zahlungen und Finanzen.',
+        steps: {
+          s1: {
+            title: 'Wir richten Ihren Verein ein',
+            text: 'Wir legen das Grundprofil Ihres Bergsteigervereins an und setzen erste Rollen für die Menschen, die den Verein führen.',
+          },
+          s2: {
+            title: 'Sie erfassen die Mitglieder',
+            text: 'Sie tragen Vereinsmitglieder mit Basisdaten, Mitgliedsstatus und den Angaben ein, die für die Verwaltung wichtig sind.',
+          },
+          s3: {
+            title: 'Sie legen die erste Tour an',
+            text: 'Sie tragen Name, Datum, Beschreibung, Preis, Transport, Übernachtung, benötigte Ausrüstung und alle Details ein, die die Mitglieder wissen müssen.',
+          },
+          s4: {
+            title: 'Mitglieder melden sich an',
+            text: 'Statt Anmeldungen per Nachricht, Anruf und Zettel melden sich die Mitglieder im System an, und der Tourenleiter hat eine klare Liste.',
+          },
+          s5: {
+            title: 'Zahlungen und offene Beträge im Blick',
+            text: 'Planiner zeigt, wer bezahlt hat, wer noch schuldet und wie viel jede Person für Tour, Mitgliedsbeitrag, Transport oder andere Kosten zahlen muss.',
+          },
+        },
+        highlight: {
+          title: 'Planiner macht die Vereinsarbeit nicht komplizierter',
+          text: 'Er bringt nur das, was Sie schon in Excel, auf Papier und in Nachrichten tun, in ein übersichtliches System - damit Vorstand, Tourenleiter und Kassenwarte weniger Handarbeit haben und mehr Überblick.',
+        },
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -5995,6 +6119,37 @@ export const resources = {
         conclusion:
           "The point isn't to give members yet another app - the point is for the people running the club to finally have a normal system to work with.",
       },
+      howPlaninerWorksSection: {
+        title: 'How Planiner is introduced to your club',
+        subtitle:
+          'You do not have to change your whole way of working at once. Planiner is rolled in step by step - from basic member records to the first trip, sign-ups, payments, and finances.',
+        steps: {
+          s1: {
+            title: 'We set up your club',
+            text: 'We create the basic profile of your mountaineering club and set starter roles for the people who run it.',
+          },
+          s2: {
+            title: 'You add your members',
+            text: 'You add club members with their basic details, membership status, and the information you need on file.',
+          },
+          s3: {
+            title: 'You create the first trip',
+            text: 'You enter the trip name, date, description, price, transport, accommodation, required gear, and everything members need to know.',
+          },
+          s4: {
+            title: 'Members sign up',
+            text: 'Instead of sign-ups by message, phone calls, and paper, members sign up in the system, and the guide has a clear list of who is coming.',
+          },
+          s5: {
+            title: 'Track payments and unpaid balances',
+            text: 'Planiner shows who paid, who still owes, and how much each person should pay for a trip, dues, transport, or other costs.',
+          },
+        },
+        highlight: {
+          title: 'Planiner does not make club work harder',
+          text: 'It only moves what you already do in spreadsheets, on paper, and in messages into one clear place - so leadership, guides, and treasurers have less manual work and a clearer overview.',
+        },
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7270,6 +7425,36 @@ export const resources = {
         }
       },
       "conclusion": "Bistvo ni v tem, da bi člani dobili še eno aplikacijo - bistvo je, da imajo ljudje, ki vodijo klub, končno normalen sistem za delo."
+    },
+    "howPlaninerWorksSection": {
+      "title": "Kako se Planiner uvaja v vaš klub",
+      "subtitle": "Ni vam treba takoj spremeniti celotnega načina dela. Planiner se uvaja postopoma - od osnovne evidence članov do prve dejavnosti, prijav, plačil in financ.",
+      "steps": {
+        "s1": {
+          "title": "Registriramo vaš klub",
+          "text": "Ustvarimo osnovni profil vašega planinskega društva in nastavimo začetne vloge za ljudi, ki vodijo klub."
+        },
+        "s2": {
+          "title": "Vnesete člane",
+          "text": "Dodate člane kluba, njihove osnovne podatke, status članstva in informacije, ki so pomembne za evidenco."
+        },
+        "s3": {
+          "title": "Ustvarite prvo dejavnost",
+          "text": "Vnesete ime dejavnosti, datum, opis, ceno, prevoz, prenočišče, potrebno opremo in vse podrobnosti, ki jih morajo člani vedeti."
+        },
+        "s4": {
+          "title": "Člani se prijavijo",
+          "text": "Namesto prijav prek sporočil, klicev in papirja se člani prijavijo v sistemu, vodnik pa ima jasen seznam prijavljenih."
+        },
+        "s5": {
+          "title": "Spremljate plačila in dolgove",
+          "text": "Planiner prikaže, kdo je plačal, kdo dolguje in koliko mora vsaka oseba plačati za dejavnost, članarino, prevoz ali druge stroške."
+        }
+      },
+      "highlight": {
+        "title": "Planiner ne otežuje dela v klubu",
+        "text": "Le to, kar že počnete v Excelu, na papirju in v sporočilih, prenese v en pregleden sistem - da imajo vodstvo, vodniki in blagajniki manj ročnega dela in boljši pregled."
+      }
     },
     "solve": {
       "title": "Kaj točno rešujemo",
