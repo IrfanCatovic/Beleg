@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import HeroLanding from '../../components/landingPage/HeroLanding'
 import ProblemSection from '../../components/landingPage/ProblemSection'
 import SolutionSection from '../../components/landingPage/SolutionSection'
+import AudienceSection from '../../components/landingPage/AudienceSection'
 import Footer from '../../components/landingPage/Footer'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -99,6 +100,7 @@ export default function Landing() {
       </section>
       <ProblemSection />
       <SolutionSection />
+      <AudienceSection />
       
 
       

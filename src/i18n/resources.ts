@@ -96,6 +96,45 @@ export const resources = {
           text: 'Planiner ne menja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i sa manje grešaka.',
         },
       },
+      audienceSection: {
+        title: 'Napravljen za ljude koji stvarno vode klub',
+        subtitle:
+          'Planiner najviše pomaže upravi, vodičima i blagajnicima - ljudima koji svakog meseca drže klub organizovanim, prate članove, akcije, prijave, uplate i dugovanja.',
+        cards: {
+          leadership: {
+            title: 'Za upravu kluba',
+            text: 'Predsednik, sekretar i administratori dobijaju jasan pregled članova, aktivnosti i organizacije kluba. Umesto traženja podataka po tabelama i porukama, sve važne informacije su na jednom mestu.',
+            benefits: {
+              b1: 'Pregled aktivnih članova',
+              b2: 'Evidencija članarina',
+              b3: 'Lakše vođenje kluba',
+              b4: 'Manje ručnog rada',
+            },
+          },
+          guides: {
+            title: 'Za vodiče akcija',
+            text: 'Vodiči mogu lakše da kreiraju akcije, prate prijave, dodaju prevoz, noćenje, opremu i cenu akcije. U svakom trenutku vide ko ide, ko je platio i šta još treba proveriti.',
+            benefits: {
+              b1: 'Spisak prijavljenih',
+              b2: 'Prevoz i oprema',
+              b3: 'Cene za članove i goste',
+              b4: 'Pregled uplata za akciju',
+            },
+          },
+          treasurers: {
+            title: 'Za blagajnike i finansije',
+            text: 'Osobe koje prate novac u klubu mogu jasnije da vide članarine, prihode od akcija, dugovanja i evidentirane uplate. Manje sabiranja ručno, manje grešaka i bolji pregled.',
+            benefits: {
+              b1: 'Ko je platio',
+              b2: 'Ko duguje',
+              b3: 'Prihodi od akcija',
+              b4: 'Pregled finansija',
+            },
+          },
+        },
+        conclusion:
+          'Poenta nije da članovi dobiju još jednu aplikaciju - poenta je da ljudi koji vode klub konačno imaju jedan normalan sistem za rad.',
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -1910,6 +1949,45 @@ export const resources = {
           text: 'Planiner ne mijenja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i sa manje grešaka.',
         },
       },
+      audienceSection: {
+        title: 'Napravljen za ljude koji stvarno vode klub',
+        subtitle:
+          'Planiner najviše pomaže upravi, vodičima i blagajnicima - ljudima koji svakog mjeseca drže klub organiziranim, prate članove, akcije, prijave, uplate i dugovanja.',
+        cards: {
+          leadership: {
+            title: 'Za upravu kluba',
+            text: 'Predsjednik, sekretar i administratori dobijaju jasan pregled članova, aktivnosti i organizacije kluba. Umjesto traženja podataka po tabelama i porukama, sve važne informacije su na jednom mjestu.',
+            benefits: {
+              b1: 'Pregled aktivnih članova',
+              b2: 'Evidencija članarina',
+              b3: 'Lakše vođenje kluba',
+              b4: 'Manje ručnog rada',
+            },
+          },
+          guides: {
+            title: 'Za vodiče akcija',
+            text: 'Vodiči mogu lakše kreirati akcije, pratiti prijave, dodati prevoz, noćenje, opremu i cijenu akcije. U svakom trenutku vide ko ide, ko je platio i šta još treba provjeriti.',
+            benefits: {
+              b1: 'Spisak prijavljenih',
+              b2: 'Prevoz i oprema',
+              b3: 'Cijene za članove i goste',
+              b4: 'Pregled uplata za akciju',
+            },
+          },
+          treasurers: {
+            title: 'Za blagajnike i finansije',
+            text: 'Osobe koje prate novac u klubu mogu jasnije vidjeti članarine, prihode od akcija, dugovanja i evidentirane uplate. Manje sabiranja ručno, manje grešaka i bolji pregled.',
+            benefits: {
+              b1: 'Ko je platio',
+              b2: 'Ko duguje',
+              b3: 'Prihodi od akcija',
+              b4: 'Pregled finansija',
+            },
+          },
+        },
+        conclusion:
+          'Poenta nije da članovi dobiju još jednu aplikaciju - poenta je da ljudi koji vode klub konačno imaju jedan normalan sistem za rad.',
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3313,6 +3391,45 @@ export const resources = {
           text: 'Planiner ne mijenja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i s manje grešaka.',
         },
       },
+      audienceSection: {
+        title: 'Napravljen za ljude koji stvarno vode klub',
+        subtitle:
+          'Planiner najviše pomaže upravi, vodičima i blagajnicima - ljudima koji svakog mjeseca drže klub organiziranim, prate članove, akcije, prijave, uplate i dugovanja.',
+        cards: {
+          leadership: {
+            title: 'Za upravu kluba',
+            text: 'Predsjednik, tajnik i administratori dobivaju jasan pregled članova, aktivnosti i organizacije kluba. Umjesto traženja podataka po tablicama i porukama, sve važne informacije su na jednom mjestu.',
+            benefits: {
+              b1: 'Pregled aktivnih članova',
+              b2: 'Evidencija članarina',
+              b3: 'Lakše vođenje kluba',
+              b4: 'Manje ručnog rada',
+            },
+          },
+          guides: {
+            title: 'Za vodiče akcija',
+            text: 'Vodiči lakše kreiraju akcije, prate prijave, dodaju prijevoz, noćenje, opremu i cijenu akcije. U svakom trenutku vide tko ide, tko je platio i što još treba provjeriti.',
+            benefits: {
+              b1: 'Popis prijavljenih',
+              b2: 'Prijevoz i oprema',
+              b3: 'Cijene za članove i goste',
+              b4: 'Pregled uplata za akciju',
+            },
+          },
+          treasurers: {
+            title: 'Za blagajnike i financije',
+            text: 'Osobe koje prate novac u klubu mogu jasnije vidjeti članarine, prihode od akcija, dugovanja i evidentirane uplate. Manje ručnog zbrajanja, manje grešaka i bolji pregled.',
+            benefits: {
+              b1: 'Tko je platio',
+              b2: 'Tko duguje',
+              b3: 'Prihodi od akcija',
+              b4: 'Pregled financija',
+            },
+          },
+        },
+        conclusion:
+          'Poanta nije da članovi dobiju još jednu aplikaciju - poanta je da ljudi koji vode klub konačno imaju jedan normalan sustav za rad.',
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4555,6 +4672,45 @@ export const resources = {
           title: 'Weniger Handarbeit, mehr Ordnung im Verein',
           text: 'Planiner ersetzt nicht die Menschen, die den Verein leiten - es gibt ihnen nur ein Werkzeug, mit dem sie das, was sie ohnehin tun, schneller, übersichtlicher und mit weniger Fehlern erledigen.',
         },
+      },
+      audienceSection: {
+        title: 'Gemacht für die Menschen, die den Verein wirklich führen',
+        subtitle:
+          'Planiner hilft vor allem dem Vorstand, den Tourenleitern und den Kassenwarten - jenen, die den Verein Monat für Monat organisiert halten und Mitglieder, Touren, Anmeldungen, Zahlungen und offene Beträge im Blick behalten.',
+        cards: {
+          leadership: {
+            title: 'Für den Vorstand',
+            text: 'Vorsitzende, Sekretäre und Administratoren bekommen einen klaren Überblick über Mitglieder, Aktivitäten und die Organisation des Vereins. Statt Daten in Tabellen und Nachrichten zu suchen, sind alle wichtigen Informationen an einem Ort.',
+            benefits: {
+              b1: 'Übersicht aktiver Mitglieder',
+              b2: 'Mitgliedsbeiträge im Blick',
+              b3: 'Vereinsführung leichter gemacht',
+              b4: 'Weniger Handarbeit',
+            },
+          },
+          guides: {
+            title: 'Für Tourenleiter',
+            text: 'Tourenleiter erstellen Touren leichter, behalten Anmeldungen im Blick und ergänzen Transport, Übernachtung, Ausrüstung und Tourenpreis. Jederzeit sehen sie, wer mitkommt, wer bezahlt hat und was noch zu prüfen ist.',
+            benefits: {
+              b1: 'Liste der Angemeldeten',
+              b2: 'Transport und Ausrüstung',
+              b3: 'Preise für Mitglieder und Gäste',
+              b4: 'Übersicht der Zahlungen pro Tour',
+            },
+          },
+          treasurers: {
+            title: 'Für Kassenwarte und Finanzen',
+            text: 'Wer das Vereinsgeld verwaltet, sieht Mitgliedsbeiträge, Einnahmen aus Touren, offene Beträge und erfasste Zahlungen klarer. Weniger manuelles Zusammenrechnen, weniger Fehler und besserer Überblick.',
+            benefits: {
+              b1: 'Wer bezahlt hat',
+              b2: 'Wer offene Beträge hat',
+              b3: 'Einnahmen aus Touren',
+              b4: 'Finanzübersicht',
+            },
+          },
+        },
+        conclusion:
+          'Es geht nicht darum, dass Mitglieder noch eine App bekommen - es geht darum, dass die Menschen, die den Verein leiten, endlich ein normales System für ihre Arbeit haben.',
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -5800,6 +5956,45 @@ export const resources = {
           text: "Planiner doesn't replace the people running the club - it just gives them a tool to do what they already do faster, with better visibility and fewer mistakes.",
         },
       },
+      audienceSection: {
+        title: 'Built for the people who actually run the club',
+        subtitle:
+          'Planiner helps leadership, guides, and treasurers most - the people who keep the club organized month after month and track members, trips, sign-ups, payments, and unpaid balances.',
+        cards: {
+          leadership: {
+            title: 'For club leadership',
+            text: 'Presidents, secretaries, and administrators get a clear overview of members, activities, and how the club is run. Instead of hunting for data in spreadsheets and messages, all the key information is in one place.',
+            benefits: {
+              b1: 'Overview of active members',
+              b2: 'Membership dues records',
+              b3: 'Easier club management',
+              b4: 'Less manual work',
+            },
+          },
+          guides: {
+            title: 'For trip guides',
+            text: 'Guides can create trips more easily, track sign-ups, and add transport, accommodation, gear, and trip price. At any moment they see who is going, who has paid, and what still needs checking.',
+            benefits: {
+              b1: 'List of attendees',
+              b2: 'Transport and gear',
+              b3: 'Prices for members and guests',
+              b4: 'Trip payments overview',
+            },
+          },
+          treasurers: {
+            title: 'For treasurers and finances',
+            text: 'People who track the money in the club can clearly see membership dues, trip income, unpaid balances, and recorded payments. Less manual calculation, fewer mistakes, and a better overview.',
+            benefits: {
+              b1: 'Who has paid',
+              b2: 'Who still owes',
+              b3: 'Trip income',
+              b4: 'Finance overview',
+            },
+          },
+        },
+        conclusion:
+          "The point isn't to give members yet another app - the point is for the people running the club to finally have a normal system to work with.",
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7038,6 +7233,43 @@ export const resources = {
         "title": "Manj ročnega dela, več reda v klubu",
         "text": "Planiner ne nadomešča ljudi, ki vodijo klub - le orodje jim daje, da to, kar že počnejo, opravijo hitreje, bolj pregledno in z manj napakami."
       }
+    },
+    "audienceSection": {
+      "title": "Narejeno za ljudi, ki klub resnično vodijo",
+      "subtitle": "Planiner najbolj pomaga vodstvu, vodnikom in blagajnikom - ljudem, ki vsak mesec ohranjajo klub organiziran in spremljajo člane, dejavnosti, prijave, plačila in dolgove.",
+      "cards": {
+        "leadership": {
+          "title": "Za vodstvo kluba",
+          "text": "Predsedniki, tajniki in administratorji dobijo jasen pregled nad člani, aktivnostmi in organizacijo kluba. Namesto iskanja podatkov po preglednicah in sporočilih so vse pomembne informacije na enem mestu.",
+          "benefits": {
+            "b1": "Pregled aktivnih članov",
+            "b2": "Evidenca članarine",
+            "b3": "Lažje vodenje kluba",
+            "b4": "Manj ročnega dela"
+          }
+        },
+        "guides": {
+          "title": "Za vodnike dejavnosti",
+          "text": "Vodniki lažje ustvarjajo dejavnosti, spremljajo prijave in dodajajo prevoz, prenočišče, opremo in ceno. V vsakem trenutku vidijo, kdo gre, kdo je plačal in kaj je še treba preveriti.",
+          "benefits": {
+            "b1": "Seznam prijavljenih",
+            "b2": "Prevoz in oprema",
+            "b3": "Cene za člane in goste",
+            "b4": "Pregled plačil za dejavnost"
+          }
+        },
+        "treasurers": {
+          "title": "Za blagajnike in finance",
+          "text": "Tisti, ki spremljajo denar v klubu, lahko jasneje vidijo članarino, prihodke od dejavnosti, dolgove in evidentirana plačila. Manj ročnega seštevanja, manj napak in boljši pregled.",
+          "benefits": {
+            "b1": "Kdo je plačal",
+            "b2": "Kdo dolguje",
+            "b3": "Prihodki od dejavnosti",
+            "b4": "Pregled financ"
+          }
+        }
+      },
+      "conclusion": "Bistvo ni v tem, da bi člani dobili še eno aplikacijo - bistvo je, da imajo ljudje, ki vodijo klub, končno normalen sistem za delo."
     },
     "solve": {
       "title": "Kaj točno rešujemo",
