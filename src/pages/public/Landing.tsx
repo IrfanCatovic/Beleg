@@ -8,6 +8,7 @@ import HowPlaninerWorksSection from '../../components/landingPage/HowPlaninerWor
 import PreviewSection from '../../components/landingPage/PreviewSection'
 import OutcomesSection from '../../components/landingPage/OutcomesSection'
 import FreeStartSection from '../../components/landingPage/FreeStartSection'
+import FinalCtaSection from '../../components/landingPage/FinalCtaSection'
 import Footer from '../../components/landingPage/Footer'
 
 export default function Landing() {
@@ -62,15 +63,14 @@ export default function Landing() {
       <ProblemSection />
       <SolutionSection />
       <AudienceSection />
-      <HowPlaninerWorksSection />
+      <div id="landing-kako-radi" className="scroll-mt-20">
+        <HowPlaninerWorksSection />
+      </div>
       <PreviewSection />
       <OutcomesSection />
       <FreeStartSection />
-      
+      <FinalCtaSection />
 
-      
-
-     
       {/* Footer */}
       <Footer />
     </div>

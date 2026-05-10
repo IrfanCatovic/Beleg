@@ -252,6 +252,31 @@ export const resources = {
         conclusion:
           'Ne morate odmah menjati ceo način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
       },
+      finalCtaSection: {
+        badge: 'Pokrenite svoj klub u Planineru',
+        title: 'Spremni da uvedete red u rad vašeg planinarskog društva?',
+        subtitle:
+          'Javite nam se, zatražite pristup i pomoći ćemo vam da podesite klub, unesete prve članove i napravite prvu akciju u Planineru.',
+        primaryCta: 'Zatraži pristup za svoj klub',
+        secondaryCta: 'Pogledaj kako radi',
+        noteUnderButtons:
+          'Planiner je trenutno besplatan za klubove koji žele da testiraju sistem i uvedu bolju organizaciju u svoj rad.',
+        points: {
+          p1: {
+            title: 'Bez komplikovanog početka',
+            desc: 'Krećemo jednostavno — klub, članovi i prva akcija.',
+          },
+          p2: {
+            title: 'Pomoć pri podešavanju',
+            desc: 'Ne morate sve sami. Pomažemo vam da napravite prve korake.',
+          },
+          p3: {
+            title: 'Napravljeno za planinarska društva',
+            desc: 'Sistem je prilagođen stvarnim potrebama uprave, vodiča i blagajnika.',
+          },
+        },
+        closingLine: 'Manje Excela, papira i izgubljenih poruka — više reda u klubu.',
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -2222,6 +2247,31 @@ export const resources = {
         conclusion:
           'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
       },
+      finalCtaSection: {
+        badge: 'Pokrenite svoj klub u Planineru',
+        title: 'Spremni da uvedete red u rad vašeg planinarskog društva?',
+        subtitle:
+          'Javite nam se, zatražite pristup i pomoći ćemo vam da podesite klub, unesete prve članove i napravite prvu akciju u Planineru.',
+        primaryCta: 'Zatraži pristup za svoj klub',
+        secondaryCta: 'Pogledaj kako radi',
+        noteUnderButtons:
+          'Planiner je trenutno besplatan za klubove koji žele testirati sistem i uvesti bolju organizaciju u svoj rad.',
+        points: {
+          p1: {
+            title: 'Bez komplikovanog početka',
+            desc: 'Krećemo jednostavno — klub, članovi i prva akcija.',
+          },
+          p2: {
+            title: 'Pomoć pri podešavanju',
+            desc: 'Ne morate sve sami. Pomažemo vam da napravite prve korake.',
+          },
+          p3: {
+            title: 'Napravljeno za planinarska društva',
+            desc: 'Sistem je prilagođen stvarnim potrebama uprave, vodiča i blagajnika.',
+          },
+        },
+        closingLine: 'Manje Excela, papira i izgubljenih poruka — više reda u klubu.',
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3781,6 +3831,31 @@ export const resources = {
         conclusion:
           'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je krenuti od članova i jedne akcije - pa vidjeti koliko vam sustav olakšava posao.',
       },
+      finalCtaSection: {
+        badge: 'Pokrenite svoj klub u Planineru',
+        title: 'Jeste li spremni uvesti red u rad vašeg planinarskog društva?',
+        subtitle:
+          'Javite nam se, zatražite pristup i pomoći ćemo vam podesiti klub, unijeti prve članove i napraviti prvu akciju u Planineru.',
+        primaryCta: 'Zatražite pristup za svoj klub',
+        secondaryCta: 'Pogledajte kako radi',
+        noteUnderButtons:
+          'Planiner je trenutno besplatan za klubove koji žele testirati sustav i uvesti bolju organizaciju u svoj rad.',
+        points: {
+          p1: {
+            title: 'Bez kompliciranog početka',
+            desc: 'Krećemo jednostavno — klub, članovi i prva akcija.',
+          },
+          p2: {
+            title: 'Pomoć pri podešavanju',
+            desc: 'Ne morate sve sami. Pomažemo vam napraviti prve korake.',
+          },
+          p3: {
+            title: 'Napravljeno za planinarska društva',
+            desc: 'Sustav je prilagođen stvarnim potrebama uprave, vodiča i blagajnika.',
+          },
+        },
+        closingLine: 'Manje Excela, papira i izgubljenih poruka — više reda u klubu.',
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -5179,6 +5254,31 @@ export const resources = {
         secondaryCta: 'Kontaktieren Sie uns für weitere Informationen',
         conclusion:
           'Sie müssen nicht sofort die gesamte Arbeitsweise des Vereins ändern. Es reicht, mit Mitgliedern und einer Tour zu starten - und zu sehen, wie sehr Ihnen das System die Arbeit erleichtert.',
+      },
+      finalCtaSection: {
+        badge: 'Starten Sie Ihren Verein in Planiner',
+        title: 'Bereit, Ordnung in die Arbeit Ihres Bergvereins zu bringen?',
+        subtitle:
+          'Melden Sie sich, fordern Sie Zugang an, und wir helfen Ihnen beim Einrichten des Vereins, beim Erfassen der ersten Mitglieder und bei der ersten Tour in Planiner.',
+        primaryCta: 'Zugang für Ihren Verein anfragen',
+        secondaryCta: 'So funktioniert es',
+        noteUnderButtons:
+          'Planiner ist derzeit kostenlos für Vereine, die das System testen und ihre Organisation verbessern möchten.',
+        points: {
+          p1: {
+            title: 'Ohne komplizierten Start',
+            desc: 'Wir beginnen einfach - Verein, Mitglieder und erste Tour.',
+          },
+          p2: {
+            title: 'Hilfe bei der Einrichtung',
+            desc: 'Sie müssen nicht alles allein machen. Wir helfen Ihnen bei den ersten Schritten.',
+          },
+          p3: {
+            title: 'Für Bergvereine gemacht',
+            desc: 'Das System ist auf die realen Bedürfnisse von Vorstand, Tourenleitern und Kasse abgestimmt.',
+          },
+        },
+        closingLine: 'Weniger Excel, Papier und verlorene Nachrichten - mehr Ordnung im Verein.',
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -6580,6 +6680,31 @@ export const resources = {
         conclusion:
           'You do not have to change the entire way the club works right away. It is enough to start with members and one trip - then see how much the system lightens the workload.',
       },
+      finalCtaSection: {
+        badge: 'Get your club started on Planiner',
+        title: 'Ready to bring order to how your mountaineering club works?',
+        subtitle:
+          'Reach out, request access, and we will help you set up the club, add your first members, and create your first trip in Planiner.',
+        primaryCta: 'Request access for your club',
+        secondaryCta: 'See how it works',
+        noteUnderButtons:
+          'Planiner is currently free for clubs that want to test the system and bring better organization to their day-to-day work.',
+        points: {
+          p1: {
+            title: 'No complicated start',
+            desc: 'We keep it simple - the club, members, and one first trip.',
+          },
+          p2: {
+            title: 'Help with setup',
+            desc: 'You do not have to do everything alone. We help you take the first steps.',
+          },
+          p3: {
+            title: 'Built for mountaineering clubs',
+            desc: 'The system fits how leadership, guides, and treasurers actually work.',
+          },
+        },
+        closingLine: 'Less Excel, paper, and lost messages - more order in the club.',
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7966,6 +8091,29 @@ export const resources = {
       "primaryCta": "Zahtevajte brezplačen dostop",
       "secondaryCta": "Kontaktirajte nas za več informacij",
       "conclusion": "Ni vam treba takoj spremeniti celotnega načina dela kluba. Dovolj je začeti s člani in eno dejavnostjo - pa poglejte, koliko vam sistem olajša delo."
+    },
+    "finalCtaSection": {
+      "badge": "Zaženite svoj klub v Planinerju",
+      "title": "Ste pripravljeni uvesti red v delo vašega planinskega društva?",
+      "subtitle": "Oglasite se, zahtevajte dostop in pomagali vam bomo nastaviti klub, vnesti prve člane in narediti prvo dejavnost v Planinerju.",
+      "primaryCta": "Zahtevajte dostop za svoj klub",
+      "secondaryCta": "Oglejte si, kako deluje",
+      "noteUnderButtons": "Planiner je trenutno brezplačen za klube, ki želijo preizkusiti sistem in izboljšati organizacijo svojega dela.",
+      "points": {
+        "p1": {
+          "title": "Brez zapletenega začetka",
+          "desc": "Začnemo preprosto — klub, člani in prva dejavnost."
+        },
+        "p2": {
+          "title": "Pomoč pri nastavitvi",
+          "desc": "Vse ne morate sami. Pomagamo vam pri prvih korakih."
+        },
+        "p3": {
+          "title": "Narejeno za planinska društva",
+          "desc": "Sistem je prilagojen dejanskim potrebam vodstva, vodnikov in blagajnika."
+        }
+      },
+      "closingLine": "Manj Excela, papirja in izgubljenih sporočil — več reda v klubu."
     },
     "solve": {
       "title": "Kaj točno rešujemo",
