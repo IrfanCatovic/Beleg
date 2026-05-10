@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import HeroLanding from '../../components/landingPage/HeroLanding'
 import ProblemSection from '../../components/landingPage/ProblemSection'
+import SolutionSection from '../../components/landingPage/SolutionSection'
 import Footer from '../../components/landingPage/Footer'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -53,9 +54,6 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       
       <HeroLanding />
-      <ProblemSection />
-      
-
       {/* Mountain band segment sa porukom */}
       <section className="relative w-full bg-slate-900 text-white">
         <div className="relative w-full h-56 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
@@ -99,6 +97,11 @@ export default function Landing() {
           </svg>
         </div>
       </section>
+      <ProblemSection />
+      <SolutionSection />
+      
+
+      
 
       <main className="flex-1">
         {/* Problemi -> Rešenja */}

@@ -61,6 +61,41 @@ export const resources = {
         conclusion:
           'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
       },
+      solutionSection: {
+        title: 'Planiner sve to spaja u jedan jednostavan sistem',
+        subtitle:
+          'Umesto da članove, akcije, prijave, uplate i finansije vodite na više mesta, Planiner daje upravi i vodičima jedan pregledan prostor za svakodnevni rad kluba.',
+        cards: {
+          members: {
+            title: 'Evidencija članova',
+            text: 'Svi članovi kluba su na jednom mestu, sa osnovnim podacima, statusom članstva i pregledom aktivnosti.',
+          },
+          actions: {
+            title: 'Organizacija akcija',
+            text: 'Kreirajte planinarske akcije, dodajte opis, datum, cenu, prevoz, noćenje i potrebnu opremu.',
+          },
+          signups: {
+            title: 'Prijave članova',
+            text: 'Članovi se mogu prijaviti za akciju, a vodič u svakom trenutku vidi ko ide i koliko ima prijavljenih.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja',
+            text: 'Planiner pomaže da se jasno vidi ko je platio, ko duguje i koliko svaka osoba treba da plati za akciju ili članarinu.',
+          },
+          finance: {
+            title: 'Finansije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mestu, kako bi uprava imala bolji pregled novca.',
+          },
+          overview: {
+            title: 'Pregled za upravu i vodiče',
+            text: 'Uprava, vodiči i administratori imaju jasniji pregled rada kluba bez stalnog traženja informacija po porukama i tabelama.',
+          },
+        },
+        highlight: {
+          title: 'Manje ručnog rada, više reda u klubu',
+          text: 'Planiner ne menja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i sa manje grešaka.',
+        },
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -1840,6 +1875,41 @@ export const resources = {
         conclusion:
           'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
       },
+      solutionSection: {
+        title: 'Planiner sve to spaja u jedan jednostavan sistem',
+        subtitle:
+          'Umjesto da članove, akcije, prijave, uplate i finansije vodite na više mjesta, Planiner daje upravi i vodičima jedan pregledan prostor za svakodnevni rad kluba.',
+        cards: {
+          members: {
+            title: 'Evidencija članova',
+            text: 'Svi članovi kluba su na jednom mjestu, sa osnovnim podacima, statusom članstva i pregledom aktivnosti.',
+          },
+          actions: {
+            title: 'Organizacija akcija',
+            text: 'Kreirajte planinarske akcije, dodajte opis, datum, cijenu, prevoz, noćenje i potrebnu opremu.',
+          },
+          signups: {
+            title: 'Prijave članova',
+            text: 'Članovi se mogu prijaviti za akciju, a vodič u svakom trenutku vidi ko ide i koliko ima prijavljenih.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja',
+            text: 'Planiner pomaže da se jasno vidi ko je platio, ko duguje i koliko svaka osoba treba platiti za akciju ili članarinu.',
+          },
+          finance: {
+            title: 'Finansije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava imala bolji pregled novca.',
+          },
+          overview: {
+            title: 'Pregled za upravu i vodiče',
+            text: 'Uprava, vodiči i administratori imaju jasniji pregled rada kluba bez stalnog traženja informacija po porukama i tabelama.',
+          },
+        },
+        highlight: {
+          title: 'Manje ručnog rada, više reda u klubu',
+          text: 'Planiner ne mijenja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i sa manje grešaka.',
+        },
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3208,6 +3278,41 @@ export const resources = {
         conclusion:
           'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
       },
+      solutionSection: {
+        title: 'Planiner sve to spaja u jedan jednostavan sustav',
+        subtitle:
+          'Umjesto da članove, akcije, prijave, uplate i financije vodite na više mjesta, Planiner daje upravi i vodičima jedan pregledan prostor za svakodnevni rad kluba.',
+        cards: {
+          members: {
+            title: 'Evidencija članova',
+            text: 'Svi članovi kluba su na jednom mjestu, s osnovnim podacima, statusom članstva i pregledom aktivnosti.',
+          },
+          actions: {
+            title: 'Organizacija akcija',
+            text: 'Kreirajte planinarske akcije, dodajte opis, datum, cijenu, prijevoz, noćenje i potrebnu opremu.',
+          },
+          signups: {
+            title: 'Prijave članova',
+            text: 'Članovi se mogu prijaviti za akciju, a vodič u svakom trenutku vidi tko ide i koliko ima prijavljenih.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja',
+            text: 'Planiner pomaže da se jasno vidi tko je platio, tko duguje i koliko svaka osoba treba platiti za akciju ili članarinu.',
+          },
+          finance: {
+            title: 'Financije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava imala bolji pregled novca.',
+          },
+          overview: {
+            title: 'Pregled za upravu i vodiče',
+            text: 'Uprava, vodiči i administratori imaju jasniji pregled rada kluba bez stalnog traženja informacija po porukama i tablicama.',
+          },
+        },
+        highlight: {
+          title: 'Manje ručnog rada, više reda u klubu',
+          text: 'Planiner ne mijenja ljude koji vode klub - samo im daje alat da ono što već rade obavljaju brže, preglednije i s manje grešaka.',
+        },
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4415,6 +4520,41 @@ export const resources = {
         },
         conclusion:
           'Das Problem liegt nicht bei den Menschen, die den Verein leiten - das Problem ist, dass ernsthafte Arbeit oft mit Werkzeugen erledigt wird, die nicht für Bergsteigervereine gemacht sind.',
+      },
+      solutionSection: {
+        title: 'Planiner verbindet das alles in einem einfachen System',
+        subtitle:
+          'Statt Mitglieder, Touren, Anmeldungen, Zahlungen und Finanzen an mehreren Stellen zu verwalten, gibt Planiner dem Vorstand und den Tourenleitern einen klaren Bereich für die tägliche Vereinsarbeit.',
+        cards: {
+          members: {
+            title: 'Mitgliederverwaltung',
+            text: 'Alle Vereinsmitglieder an einem Ort, mit Basisdaten, Mitgliedsstatus und Aktivitätsübersicht.',
+          },
+          actions: {
+            title: 'Tourenorganisation',
+            text: 'Erstellen Sie Touren und ergänzen Sie Beschreibung, Datum, Preis, Transport, Übernachtung und benötigte Ausrüstung.',
+          },
+          signups: {
+            title: 'Anmeldungen der Mitglieder',
+            text: 'Mitglieder können sich für eine Tour anmelden, und der Tourenleiter sieht jederzeit, wer mitkommt und wie viele angemeldet sind.',
+          },
+          payments: {
+            title: 'Zahlungen und offene Beträge',
+            text: 'Planiner zeigt klar, wer bezahlt hat, wer noch offene Beträge hat und wie viel jede Person für eine Tour oder den Mitgliedsbeitrag zahlen muss.',
+          },
+          finance: {
+            title: 'Vereinsfinanzen',
+            text: 'Einnahmen aus Mitgliedsbeiträgen und Touren werden an einem Ort erfasst, damit der Vorstand einen besseren Überblick über das Geld hat.',
+          },
+          overview: {
+            title: 'Übersicht für Vorstand und Tourenleiter',
+            text: 'Vorstand, Tourenleiter und Administratoren haben einen klareren Überblick über die Vereinsarbeit, ohne ständig in Nachrichten und Tabellen suchen zu müssen.',
+          },
+        },
+        highlight: {
+          title: 'Weniger Handarbeit, mehr Ordnung im Verein',
+          text: 'Planiner ersetzt nicht die Menschen, die den Verein leiten - es gibt ihnen nur ein Werkzeug, mit dem sie das, was sie ohnehin tun, schneller, übersichtlicher und mit weniger Fehlern erledigen.',
+        },
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -5625,6 +5765,41 @@ export const resources = {
         conclusion:
           "The problem isn't with the people running the club - the problem is that serious work is often done with tools that weren't built for mountaineering clubs.",
       },
+      solutionSection: {
+        title: 'Planiner brings it all together in one simple system',
+        subtitle:
+          'Instead of managing members, trips, sign-ups, payments, and finances in different places, Planiner gives leadership and guides one clear space for the day-to-day running of the club.',
+        cards: {
+          members: {
+            title: 'Member records',
+            text: 'All club members in one place, with basic data, membership status, and an activity overview.',
+          },
+          actions: {
+            title: 'Trip organization',
+            text: 'Create mountaineering trips and add description, date, price, transport, accommodation, and required gear.',
+          },
+          signups: {
+            title: 'Member sign-ups',
+            text: 'Members can sign up for a trip, and the guide sees at any moment who is going and how many are registered.',
+          },
+          payments: {
+            title: 'Payments and dues',
+            text: "Planiner makes it clear who paid, who still owes, and how much each person needs to pay for a trip or membership.",
+          },
+          finance: {
+            title: 'Club finances',
+            text: 'Income from dues and trips can be recorded in one place so leadership has a better overview of the money.',
+          },
+          overview: {
+            title: 'Overview for leadership and guides',
+            text: 'Leadership, guides, and administrators get a clearer overview of club operations without constantly digging through messages and spreadsheets.',
+          },
+        },
+        highlight: {
+          title: 'Less manual work, more order in the club',
+          text: "Planiner doesn't replace the people running the club - it just gives them a tool to do what they already do faster, with better visibility and fewer mistakes.",
+        },
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -6829,6 +7004,40 @@ export const resources = {
         }
       },
       "conclusion": "Problem ni v ljudeh, ki vodijo klub - problem je, da se resno delo pogosto opravlja z orodji, ki niso narejena za planinska društva."
+    },
+    "solutionSection": {
+      "title": "Planiner vse to združuje v en preprost sistem",
+      "subtitle": "Namesto da člane, dejavnosti, prijave, plačila in finance vodite na več mestih, Planiner vodstvu in vodnikom ponuja en pregleden prostor za vsakdanje delo kluba.",
+      "cards": {
+        "members": {
+          "title": "Evidenca članov",
+          "text": "Vsi člani kluba na enem mestu, z osnovnimi podatki, statusom članstva in pregledom aktivnosti."
+        },
+        "actions": {
+          "title": "Organizacija dejavnosti",
+          "text": "Ustvarite planinske dejavnosti in dodajte opis, datum, ceno, prevoz, prenočišče in potrebno opremo."
+        },
+        "signups": {
+          "title": "Prijave članov",
+          "text": "Člani se lahko prijavijo na dejavnost, vodnik pa v vsakem trenutku vidi, kdo gre in koliko jih je prijavljenih."
+        },
+        "payments": {
+          "title": "Plačila in dolgovi",
+          "text": "Planiner pomaga, da se jasno vidi, kdo je plačal, kdo dolguje in koliko mora vsaka oseba plačati za dejavnost ali članarino."
+        },
+        "finance": {
+          "title": "Finance kluba",
+          "text": "Prihodki od članarine in dejavnosti se lahko evidentirajo na enem mestu, da ima vodstvo boljši pregled nad denarjem."
+        },
+        "overview": {
+          "title": "Pregled za vodstvo in vodnike",
+          "text": "Vodstvo, vodniki in administratorji imajo jasnejši pregled nad delom kluba brez stalnega iskanja informacij po sporočilih in preglednicah."
+        }
+      },
+      "highlight": {
+        "title": "Manj ročnega dela, več reda v klubu",
+        "text": "Planiner ne nadomešča ljudi, ki vodijo klub - le orodje jim daje, da to, kar že počnejo, opravijo hitreje, bolj pregledno in z manj napakami."
+      }
     },
     "solve": {
       "title": "Kaj točno rešujemo",
