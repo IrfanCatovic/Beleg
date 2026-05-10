@@ -176,21 +176,37 @@ export const resources = {
             title: 'Članovi kluba',
             text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije rasuta po tabelama i porukama.',
             alt: 'Prikaz profila člana u Planiner aplikaciji',
+            bullets: {
+              b1: 'Status članstva i osnovne informacije',
+              b2: 'Filtriranje aktivnih i nepotvrđenih članova',
+            },
           },
           actions: {
             title: 'Planinarske akcije',
             text: 'Vodiči mogu da kreiraju akcije, dodaju datum, opis, cenu, prevoz, noćenje, opremu i sve informacije potrebne članovima.',
             alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+            bullets: {
+              b1: 'Datum, opis, prevoz i oprema',
+              b2: 'Cena akcije i noćenje na jednom mestu',
+            },
           },
           signups: {
             title: 'Prijave i zaduženja',
             text: 'Za svaku akciju vidi se ko je prijavljen, ko ide, ko je platio i koliko svaka osoba duguje za akciju, prevoz, opremu ili članarinu.',
             alt: 'Prikaz prijava i učesnika akcije u aplikaciji',
+            bullets: {
+              b1: 'Ko ide, ko je platio, ko duguje',
+              b2: 'Spisak prijava na jednom mestu',
+            },
           },
           finance: {
             title: 'Finansije kluba',
             text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
             alt: 'Prikaz finansija kluba u aplikaciji',
+            bullets: {
+              b1: 'Prihodi od članarine i akcija',
+              b2: 'Bez ručnog sabiranja po Excelu',
+            },
           },
         },
         conclusion:
@@ -251,6 +267,33 @@ export const resources = {
         secondaryCta: 'Kontaktiraj nas za više informacija',
         conclusion:
           'Ne morate odmah menjati ceo način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
+      },
+      faqSection: {
+        badge: 'Pomoć i odgovori',
+        title: 'Česta pitanja',
+        subtitle: 'Najčešće nedoumice klubova koji prvi put uvode Planiner u svoj rad.',
+        items: {
+          q1: {
+            q: 'Da li je Planiner stvarno besplatan?',
+            a: 'Planiner je trenutno besplatan za planinarska društva koja žele da ga uvedu među prvima, testiraju sistem u stvarnom radu i pomognu da postane još korisniji za klubove.',
+          },
+          q2: {
+            q: 'Da li moramo odmah koristiti sve funkcije?',
+            a: 'Ne. Možete krenuti jednostavno - prvo klub i članovi, zatim jedna akcija, prijave i uplate. Sistem se može uvoditi postepeno.',
+          },
+          q3: {
+            q: 'Da li svi članovi moraju odmah da koriste aplikaciju?',
+            a: 'Ne moraju. Klub može prvo interno da sredi evidenciju, članove i akcije, a kasnije postepeno uključuje članove u korišćenje.',
+          },
+          q4: {
+            q: 'Da li pomažete oko podešavanja?',
+            a: 'Da. Pomažemo oko početnog podešavanja kluba, unosa osnovnih podataka, podešavanja uloga i pokretanja prve akcije.',
+          },
+          q5: {
+            q: 'Može li Planiner da se koristi na telefonu?',
+            a: 'Da. Planiner je web aplikacija i može se koristiti i na računaru i na telefonu, bez posebne instalacije.',
+          },
+        },
       },
       finalCtaSection: {
         badge: 'Pokrenite svoj klub u Planineru',
@@ -2171,21 +2214,37 @@ export const resources = {
             title: 'Članovi kluba',
             text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije rasuta po tabelama i porukama.',
             alt: 'Prikaz profila člana u Planiner aplikaciji',
+            bullets: {
+              b1: 'Status članstva i osnovne informacije',
+              b2: 'Filtriranje aktivnih i nepotvrđenih članova',
+            },
           },
           actions: {
             title: 'Planinarske akcije',
             text: 'Vodiči mogu kreirati akcije, dodati datum, opis, cijenu, prevoz, noćenje, opremu i sve informacije potrebne članovima.',
             alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+            bullets: {
+              b1: 'Datum, opis, prevoz i oprema',
+              b2: 'Cijena akcije i noćenje na jednom mjestu',
+            },
           },
           signups: {
             title: 'Prijave i zaduženja',
             text: 'Za svaku akciju vidi se ko je prijavljen, ko ide, ko je platio i koliko svaka osoba duguje za akciju, prevoz, opremu ili članarinu.',
             alt: 'Prikaz prijava i učesnika akcije u aplikaciji',
+            bullets: {
+              b1: 'Ko ide, ko je platio, ko duguje',
+              b2: 'Spisak prijava na jednom mjestu',
+            },
           },
           finance: {
             title: 'Finansije kluba',
             text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
             alt: 'Prikaz finansija kluba u aplikaciji',
+            bullets: {
+              b1: 'Prihodi od članarine i akcija',
+              b2: 'Bez ručnog sabiranja po Excelu',
+            },
           },
         },
         conclusion:
@@ -2246,6 +2305,33 @@ export const resources = {
         secondaryCta: 'Kontaktiraj nas za više informacija',
         conclusion:
           'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
+      },
+      faqSection: {
+        badge: 'Pomoć i odgovori',
+        title: 'Često postavljana pitanja',
+        subtitle: 'Najčešće nedoumice klubova koji prvi put uvode Planiner u svoj rad.',
+        items: {
+          q1: {
+            q: 'Da li je Planiner stvarno besplatan?',
+            a: 'Planiner je trenutno besplatan za planinarska društva koja žele da ga uvedu među prvima, testiraju sistem u stvarnom radu i pomognu da postane još korisniji za klubove.',
+          },
+          q2: {
+            q: 'Da li moramo odmah koristiti sve funkcije?',
+            a: 'Ne. Možete krenuti jednostavno - prvo klub i članovi, zatim jedna akcija, prijave i uplate. Sistem se može uvoditi postupno.',
+          },
+          q3: {
+            q: 'Da li svi članovi moraju odmah koristiti aplikaciju?',
+            a: 'Ne moraju. Klub može prvo interno srediti evidenciju, članove i akcije, a kasnije postupno uključuje članove u korišćenje.',
+          },
+          q4: {
+            q: 'Da li pomažete oko podešavanja?',
+            a: 'Da. Pomažemo oko početnog podešavanja kluba, unosa osnovnih podataka, podešavanja uloga i pokretanja prve akcije.',
+          },
+          q5: {
+            q: 'Može li Planiner da se koristi na telefonu?',
+            a: 'Da. Planiner je web aplikacija i može se koristiti i na računaru i na telefonu, bez posebne instalacije.',
+          },
+        },
       },
       finalCtaSection: {
         badge: 'Pokrenite svoj klub u Planineru',
@@ -3755,21 +3841,37 @@ export const resources = {
             title: 'Članovi kluba',
             text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije raštrkana po tablicama i porukama.',
             alt: 'Prikaz profila člana u Planiner aplikaciji',
+            bullets: {
+              b1: 'Status članstva i osnovne informacije',
+              b2: 'Filtriranje aktivnih i nepotvrđenih članova',
+            },
           },
           actions: {
             title: 'Planinarske akcije',
             text: 'Vodiči mogu kreirati akcije, dodati datum, opis, cijenu, prijevoz, noćenje, opremu i sve informacije potrebne članovima.',
             alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+            bullets: {
+              b1: 'Datum, opis, prijevoz i oprema',
+              b2: 'Cijena akcije i noćenje na jednom mjestu',
+            },
           },
           signups: {
             title: 'Prijave i zaduženja',
             text: 'Za svaku akciju vidi se tko je prijavljen, tko ide, tko je platio i koliko svaka osoba duguje za akciju, prijevoz, opremu ili članarinu.',
             alt: 'Prikaz prijava i sudionika akcije u aplikaciji',
+            bullets: {
+              b1: 'Tko ide, tko je platio, tko duguje',
+              b2: 'Popis prijava na jednom mjestu',
+            },
           },
           finance: {
             title: 'Financije kluba',
             text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
             alt: 'Prikaz financija kluba u aplikaciji',
+            bullets: {
+              b1: 'Prihodi od članarine i akcija',
+              b2: 'Bez ručnog zbrajanja po Excelu',
+            },
           },
         },
         conclusion:
@@ -3830,6 +3932,33 @@ export const resources = {
         secondaryCta: 'Kontaktirajte nas za više informacija',
         conclusion:
           'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je krenuti od članova i jedne akcije - pa vidjeti koliko vam sustav olakšava posao.',
+      },
+      faqSection: {
+        badge: 'Pomoć i odgovori',
+        title: 'Često postavljana pitanja',
+        subtitle: 'Najčešće nedoumice klubova koji prvi put uvode Planiner u svoj rad.',
+        items: {
+          q1: {
+            q: 'Je li Planiner stvarno besplatan?',
+            a: 'Planiner je trenutno besplatan za planinarska društva koja ga žele uvesti među prvima, testirati sustav u stvarnom radu i pomoći da postane još korisniji za klubove.',
+          },
+          q2: {
+            q: 'Moramo li odmah koristiti sve funkcije?',
+            a: 'Ne. Možete krenuti jednostavno - prvo klub i članovi, zatim jedna akcija, prijave i uplate. Sustav se može uvoditi postupno.',
+          },
+          q3: {
+            q: 'Moraju li svi članovi odmah koristiti aplikaciju?',
+            a: 'Ne moraju. Klub može prvo interno srediti evidenciju, članove i akcije, a kasnije postupno uključivati članove u korištenje.',
+          },
+          q4: {
+            q: 'Pomažete li oko podešavanja?',
+            a: 'Da. Pomažemo oko početnog podešavanja kluba, unosa osnovnih podataka, postavljanja uloga i pokretanja prve akcije.',
+          },
+          q5: {
+            q: 'Može li se Planiner koristiti na telefonu?',
+            a: 'Da. Planiner je web aplikacija i može se koristiti i na računalu i na telefonu, bez posebne instalacije.',
+          },
+        },
       },
       finalCtaSection: {
         badge: 'Pokrenite svoj klub u Planineru',
@@ -5179,21 +5308,37 @@ export const resources = {
             title: 'Vereinsmitglieder',
             text: 'Der Vorstand sieht Mitglieder, Mitgliedsstatus, Basisdaten und Aufzeichnungen an einem Ort - nicht mehr verstreut über Tabellen und Nachrichten.',
             alt: 'Ansicht des Mitgliederprofils in der Planiner-App',
+            bullets: {
+              b1: 'Mitgliedsstatus und Basisdaten',
+              b2: 'Filter für aktive und unbestätigte Mitglieder',
+            },
           },
           actions: {
             title: 'Bergsteiger-Touren',
             text: 'Tourenleiter können Touren anlegen und Datum, Beschreibung, Preis, Transport, Übernachtung, Ausrüstung und alle wichtigen Informationen für die Mitglieder hinzufügen.',
             alt: 'Tourenübersicht in der Planiner-App',
+            bullets: {
+              b1: 'Datum, Beschreibung, Transport, Ausrüstung',
+              b2: 'Preis und Übernachtung an einem Ort',
+            },
           },
           signups: {
             title: 'Anmeldungen und offene Beträge',
             text: 'Pro Tour sieht man, wer angemeldet ist, wer mitkommt, wer bezahlt hat und wie viel jede Person für Tour, Transport, Ausrüstung oder Mitgliedsbeitrag noch schuldet.',
             alt: 'Ansicht der Anmeldungen und Teilnehmer einer Tour',
+            bullets: {
+              b1: 'Wer mitkommt, wer bezahlt hat, wer offen ist',
+              b2: 'Anmeldeliste an einem Ort',
+            },
           },
           finance: {
             title: 'Vereinsfinanzen',
             text: 'Einnahmen aus Mitgliedsbeiträgen und Touren werden an einem Ort erfasst, damit Vorstand und Kassenwart einen klareren Überblick über das Geld haben.',
             alt: 'Ansicht der Vereinsfinanzen in der App',
+            bullets: {
+              b1: 'Einnahmen aus Beiträgen und Touren',
+              b2: 'Kein manuelles Zusammenrechnen in Excel',
+            },
           },
         },
         conclusion:
@@ -5254,6 +5399,33 @@ export const resources = {
         secondaryCta: 'Kontaktieren Sie uns für weitere Informationen',
         conclusion:
           'Sie müssen nicht sofort die gesamte Arbeitsweise des Vereins ändern. Es reicht, mit Mitgliedern und einer Tour zu starten - und zu sehen, wie sehr Ihnen das System die Arbeit erleichtert.',
+      },
+      faqSection: {
+        badge: 'Hilfe und Antworten',
+        title: 'Häufig gestellte Fragen',
+        subtitle: 'Die häufigsten Fragen von Vereinen, die Planiner zum ersten Mal einführen.',
+        items: {
+          q1: {
+            q: 'Ist Planiner wirklich kostenlos?',
+            a: 'Planiner ist derzeit kostenlos für Bergvereine, die es als Erste einführen möchten, das System im echten Betrieb testen und mithelfen, dass es für Vereine noch nützlicher wird.',
+          },
+          q2: {
+            q: 'Müssen wir sofort alle Funktionen nutzen?',
+            a: 'Nein. Sie können einfach starten - zuerst der Verein und die Mitglieder, dann eine Tour, Anmeldungen und Zahlungen. Das System lässt sich Schritt für Schritt einführen.',
+          },
+          q3: {
+            q: 'Müssen alle Mitglieder die App sofort nutzen?',
+            a: 'Nein. Der Verein kann zuerst intern Daten, Mitglieder und Touren ordnen und Mitglieder erst später nach und nach einbeziehen.',
+          },
+          q4: {
+            q: 'Helfen Sie bei der Einrichtung?',
+            a: 'Ja. Wir helfen bei der ersten Einrichtung des Vereins, der Erfassung der Basisdaten, beim Setzen der Rollen und beim Start der ersten Tour.',
+          },
+          q5: {
+            q: 'Lässt sich Planiner auf dem Handy nutzen?',
+            a: 'Ja. Planiner ist eine Web-App und funktioniert auf Computer und Handy - ohne extra Installation.',
+          },
+        },
       },
       finalCtaSection: {
         badge: 'Starten Sie Ihren Verein in Planiner',
@@ -6604,21 +6776,37 @@ export const resources = {
             title: 'Club members',
             text: 'Leadership has an overview of members, membership status, basic details, and records that are no longer scattered across spreadsheets and messages.',
             alt: 'Member profile view in the Planiner app',
+            bullets: {
+              b1: 'Membership status and key details',
+              b2: 'Filter active and unconfirmed members',
+            },
           },
           actions: {
             title: 'Mountaineering trips',
             text: 'Guides can create trips and add date, description, price, transport, accommodation, gear, and everything members need to know.',
             alt: 'Trip overview in the Planiner app',
+            bullets: {
+              b1: 'Date, description, transport, gear',
+              b2: 'Price and accommodation in one place',
+            },
           },
           signups: {
             title: 'Sign-ups and balances',
             text: 'For every trip you can see who is signed up, who is going, who has paid, and how much each person owes for the trip, transport, gear, or dues.',
             alt: 'Trip sign-ups and participants view in the app',
+            bullets: {
+              b1: 'Who is going, who has paid, who still owes',
+              b2: 'A clear sign-up list in one place',
+            },
           },
           finance: {
             title: 'Club finances',
             text: 'Income from dues and trips can be recorded in one place, so leadership and the treasurer have a clearer view of the money.',
             alt: 'Club finances view in the app',
+            bullets: {
+              b1: 'Income from dues and trips',
+              b2: 'No manual totals across spreadsheets',
+            },
           },
         },
         conclusion:
@@ -6679,6 +6867,33 @@ export const resources = {
         secondaryCta: 'Contact us for more information',
         conclusion:
           'You do not have to change the entire way the club works right away. It is enough to start with members and one trip - then see how much the system lightens the workload.',
+      },
+      faqSection: {
+        badge: 'Help and answers',
+        title: 'Frequently asked questions',
+        subtitle: 'The most common questions from clubs introducing Planiner for the first time.',
+        items: {
+          q1: {
+            q: 'Is Planiner really free?',
+            a: 'Planiner is currently free for mountaineering clubs that want to be among the first to adopt it, test it in real day-to-day work, and help shape it into something even more useful for clubs.',
+          },
+          q2: {
+            q: 'Do we have to use every feature right away?',
+            a: 'No. You can start simply - the club and members first, then one trip, sign-ups, and payments. The system can be introduced step by step.',
+          },
+          q3: {
+            q: 'Do all members have to use the app from day one?',
+            a: 'They do not. The club can first organize records, members, and trips internally, and gradually bring members on board later.',
+          },
+          q4: {
+            q: 'Do you help with setup?',
+            a: 'Yes. We help with the initial club setup, entering the basic data, configuring roles, and getting the first trip up and running.',
+          },
+          q5: {
+            q: 'Can Planiner be used on a phone?',
+            a: 'Yes. Planiner is a web app and works on both computers and phones - no special installation needed.',
+          },
+        },
       },
       finalCtaSection: {
         badge: 'Get your club started on Planiner',
@@ -8019,22 +8234,38 @@ export const resources = {
         "members": {
           "title": "Člani kluba",
           "text": "Vodstvo ima pregled nad člani, statusom članstva, osnovnimi podatki in evidenco, ki ni več razpršena po preglednicah in sporočilih.",
-          "alt": "Prikaz profila člana v aplikaciji Planiner"
+          "alt": "Prikaz profila člana v aplikaciji Planiner",
+          "bullets": {
+            "b1": "Status članstva in osnovni podatki",
+            "b2": "Filtriranje aktivnih in nepotrjenih članov"
+          }
         },
         "actions": {
           "title": "Planinske dejavnosti",
           "text": "Vodniki lahko ustvarijo dejavnosti, dodajo datum, opis, ceno, prevoz, prenočišče, opremo in vse informacije, ki jih člani potrebujejo.",
-          "alt": "Prikaz pregleda planinskih dejavnosti v aplikaciji"
+          "alt": "Prikaz pregleda planinskih dejavnosti v aplikaciji",
+          "bullets": {
+            "b1": "Datum, opis, prevoz in oprema",
+            "b2": "Cena in prenočišče na enem mestu"
+          }
         },
         "signups": {
           "title": "Prijave in obveznosti",
           "text": "Za vsako dejavnost je vidno, kdo je prijavljen, kdo gre, kdo je plačal in koliko vsaka oseba dolguje za dejavnost, prevoz, opremo ali članarino.",
-          "alt": "Prikaz prijav in udeležencev dejavnosti v aplikaciji"
+          "alt": "Prikaz prijav in udeležencev dejavnosti v aplikaciji",
+          "bullets": {
+            "b1": "Kdo gre, kdo je plačal, kdo dolguje",
+            "b2": "Seznam prijav na enem mestu"
+          }
         },
         "finance": {
           "title": "Finance kluba",
           "text": "Prihodki od članarine in dejavnosti se lahko evidentirajo na enem mestu, da imata vodstvo in blagajnik jasnejši pregled nad denarjem.",
-          "alt": "Prikaz financ kluba v aplikaciji"
+          "alt": "Prikaz financ kluba v aplikaciji",
+          "bullets": {
+            "b1": "Prihodki od članarine in dejavnosti",
+            "b2": "Brez ročnega seštevanja po Excelu"
+          }
         }
       },
       "conclusion": "Ko so člani, dejavnosti, prijave in plačila povezani, vodstvu ni več treba iskati informacij na petih različnih mestih."
@@ -8091,6 +8322,33 @@ export const resources = {
       "primaryCta": "Zahtevajte brezplačen dostop",
       "secondaryCta": "Kontaktirajte nas za več informacij",
       "conclusion": "Ni vam treba takoj spremeniti celotnega načina dela kluba. Dovolj je začeti s člani in eno dejavnostjo - pa poglejte, koliko vam sistem olajša delo."
+    },
+    "faqSection": {
+      "badge": "Pomoč in odgovori",
+      "title": "Pogosta vprašanja",
+      "subtitle": "Najpogostejše dileme klubov, ki prvič uvajajo Planiner v svoje delo.",
+      "items": {
+        "q1": {
+          "q": "Je Planiner res brezplačen?",
+          "a": "Planiner je trenutno brezplačen za planinska društva, ki ga želijo uvesti med prvimi, preizkusiti sistem v resničnem delu in pomagati, da postane še bolj uporaben za klube."
+        },
+        "q2": {
+          "q": "Ali moramo takoj uporabljati vse funkcije?",
+          "a": "Ne. Lahko začnete preprosto - najprej klub in člani, nato ena dejavnost, prijave in plačila. Sistem se lahko uvaja postopoma."
+        },
+        "q3": {
+          "q": "Ali morajo vsi člani takoj uporabljati aplikacijo?",
+          "a": "Ne. Klub lahko najprej interno uredi evidenco, člane in dejavnosti, kasneje pa postopoma vključi člane v uporabo."
+        },
+        "q4": {
+          "q": "Ali pomagate pri nastavitvi?",
+          "a": "Da. Pomagamo pri začetni nastavitvi kluba, vnosu osnovnih podatkov, nastavitvi vlog in zagonu prve dejavnosti."
+        },
+        "q5": {
+          "q": "Ali je Planiner mogoče uporabljati na telefonu?",
+          "a": "Da. Planiner je spletna aplikacija in deluje tako na računalniku kot na telefonu, brez posebne namestitve."
+        }
+      }
     },
     "finalCtaSection": {
       "badge": "Zaženite svoj klub v Planinerju",

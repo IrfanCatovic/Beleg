@@ -77,7 +77,7 @@ export default function SolutionSection() {
   ] as const;
 
   return (
-    <section className="bg-white py-14 sm:py-20">
+    <section className="bg-white py-16 sm:py-24">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
         <div className="max-w-3xl mb-10 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
@@ -92,7 +92,7 @@ export default function SolutionSection() {
           {cards.map(({ key, Icon }) => (
             <article
               key={key}
-              className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all"
+              className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-emerald-200 hover:-translate-y-0.5 transition-all"
             >
               <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-emerald-50 text-emerald-700 mb-4">
                 <Icon className="h-5 w-5" />

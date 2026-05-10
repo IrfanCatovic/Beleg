@@ -74,7 +74,7 @@ export default function OutcomesSection() {
   ] as const;
 
   return (
-    <section className="bg-slate-50 border-y border-slate-100 py-14 sm:py-20">
+    <section className="bg-white py-16 sm:py-24 border-b border-slate-100">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
         <div className="max-w-3xl mb-10 sm:mb-12">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 mb-4">
@@ -93,7 +93,7 @@ export default function OutcomesSection() {
           {cards.map(({ key, Icon }) => (
             <article
               key={key}
-              className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all"
+              className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-emerald-200 hover:-translate-y-0.5 transition-all"
             >
               <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 text-emerald-700 mb-4">
                 <Icon className="h-5 w-5" />

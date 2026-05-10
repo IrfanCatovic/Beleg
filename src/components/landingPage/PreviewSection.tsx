@@ -24,20 +24,32 @@ const BLOCKS: ReadonlyArray<Block> = [
   },
 ];
 
+const BULLET_KEYS = ["b1", "b2"] as const;
+
+function IconCheck(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M20 7L10 17L4 11" />
+    </svg>
+  );
+}
+
 function BrowserFrame({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="rounded-xl overflow-hidden ring-1 ring-slate-200 shadow-md bg-white">
-      <div className="bg-slate-100 border-b border-slate-200 px-3 py-2 flex items-center gap-1.5">
+    <div className="rounded-2xl overflow-hidden ring-1 ring-slate-200 shadow-xl shadow-emerald-900/5 bg-white">
+      <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-full bg-red-300" aria-hidden="true" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow-300" aria-hidden="true" />
         <span className="h-2.5 w-2.5 rounded-full bg-green-300" aria-hidden="true" />
       </div>
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        className="w-full h-auto block"
-      />
+      <div className="bg-gradient-to-br from-slate-50 to-emerald-50/40">
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className="w-full h-auto block"
+        />
+      </div>
     </div>
   );
 }
@@ -46,9 +58,9 @@ export default function PreviewSection() {
   const { t } = useTranslation("landing");
 
   return (
-    <section className="bg-gradient-to-b from-white via-emerald-50/30 to-white py-14 sm:py-20 border-b border-slate-100">
+    <section className="bg-slate-50 py-16 sm:py-24 border-y border-slate-100">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
-        <div className="max-w-3xl mb-10 sm:mb-12">
+        <div className="max-w-3xl mb-12 sm:mb-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
             {t("previewSection.badge")}
@@ -61,27 +73,60 @@ export default function PreviewSection() {
           </p>
         </div>
 
-        <div className="grid gap-5 sm:gap-6 lg:gap-8 sm:grid-cols-2">
-          {BLOCKS.map(({ key, src }) => (
-            <article
-              key={key}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all"
-            >
-              <BrowserFrame src={src} alt={t(`previewSection.blocks.${key}.alt`)} />
+        <div className="space-y-14 sm:space-y-20">
+          {BLOCKS.map(({ key, src }, index) => {
+            const reverse = index % 2 === 1;
+            return (
+              <article
+                key={key}
+                className="grid gap-8 lg:gap-14 md:grid-cols-2 items-center"
+              >
+                <div
+                  className={[
+                    "max-w-xl",
+                    reverse ? "md:order-2 md:ml-auto" : "md:order-1",
+                  ].join(" ")}
+                >
+                  <BrowserFrame src={src} alt={t(`previewSection.blocks.${key}.alt`)} />
+                </div>
 
-              <div className="pt-5 sm:pt-6 px-1 sm:px-2 pb-1">
-                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2 leading-snug">
-                  {t(`previewSection.blocks.${key}.title`)}
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  {t(`previewSection.blocks.${key}.text`)}
-                </p>
-              </div>
-            </article>
-          ))}
+                <div
+                  className={[
+                    "max-w-xl",
+                    reverse ? "md:order-1" : "md:order-2",
+                  ].join(" ")}
+                >
+                  <span className="inline-flex items-center justify-center text-[11px] font-bold text-emerald-700 bg-emerald-100 rounded-full h-7 w-7 mb-4 tabular-nums">
+                    0{index + 1}
+                  </span>
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 leading-tight tracking-tight mb-3">
+                    {t(`previewSection.blocks.${key}.title`)}
+                  </h3>
+                  <p className="text-base sm:text-lg text-slate-600 leading-relaxed mb-5">
+                    {t(`previewSection.blocks.${key}.text`)}
+                  </p>
+                  <ul className="space-y-2.5">
+                    {BULLET_KEYS.map((b) => (
+                      <li
+                        key={b}
+                        className="flex items-start gap-3 text-sm sm:text-base text-slate-700"
+                      >
+                        <span className="mt-0.5 shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white">
+                          <IconCheck className="h-3 w-3" />
+                        </span>
+                        <span>
+                          {t(`previewSection.blocks.${key}.bullets.${b}`)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
-        <div className="mt-12 sm:mt-16 max-w-3xl">
+        <div className="mt-16 sm:mt-20 max-w-3xl">
           <p className="text-base sm:text-lg text-slate-800 leading-relaxed font-medium border-l-4 border-emerald-500 pl-5">
             {t("previewSection.conclusion")}
           </p>

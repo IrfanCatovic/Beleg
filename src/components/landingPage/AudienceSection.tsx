@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import MountainDivider from "./MountainDivider";
 
 function IconShield(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -46,8 +47,9 @@ export default function AudienceSection() {
   ] as const;
 
   return (
-    <section className="bg-slate-50 border-y border-slate-100 py-14 sm:py-20">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
+    <section className="relative bg-emerald-50/40 py-14 sm:py-20">
+      <MountainDivider className="absolute inset-x-0 top-0 -translate-y-px text-white" />
+      <div className="relative max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
         <div className="max-w-3xl mb-10 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
             {t("audienceSection.title")}
@@ -61,7 +63,7 @@ export default function AudienceSection() {
           {cards.map(({ key, Icon }) => (
             <article
               key={key}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all"
+              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm hover:shadow-md hover:border-emerald-200 hover:-translate-y-0.5 transition-all"
             >
               <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-emerald-50 text-emerald-700 mb-5">
                 <Icon className="h-6 w-6" />

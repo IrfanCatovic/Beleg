@@ -6,7 +6,7 @@ export default function HowPlaninerWorksSection() {
   const { t } = useTranslation("landing");
 
   return (
-    <section className="bg-white py-14 sm:py-20 border-b border-slate-100">
+    <section className="bg-white py-16 sm:py-24 border-b border-slate-100">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
         <div className="max-w-3xl mb-10 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
@@ -21,7 +21,7 @@ export default function HowPlaninerWorksSection() {
           {STEP_KEYS.map((key, index) => (
             <li
               key={key}
-              className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:border-emerald-200 hover:shadow-md transition-all"
+              className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <span
                 className="mb-4 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold tracking-tight text-white tabular-nums"

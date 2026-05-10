@@ -15,7 +15,7 @@ export default function FreeStartSection() {
   const { t } = useTranslation("landing");
 
   return (
-    <section className="bg-white py-14 sm:py-20 border-b border-slate-100">
+    <section className="bg-emerald-50/40 py-16 sm:py-24 border-b border-emerald-100/60">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10">
         <div className="max-w-3xl mb-8 sm:mb-10">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 mb-4">
@@ -30,7 +30,7 @@ export default function FreeStartSection() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6 sm:p-8 lg:p-10 shadow-sm">
+        <div className="rounded-2xl border border-emerald-100 bg-white p-6 sm:p-8 lg:p-10 shadow-sm">
           <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-5 sm:mb-6">
             {t("freeStartSection.offerTitle")}
           </h3>
