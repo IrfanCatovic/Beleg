@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import HeroLanding from '../../components/landingPage/HeroLanding'
-import WhyPlaniner from '../../components/landingPage/WhyPlaniner'
+import ProblemSection from '../../components/landingPage/ProblemSection'
 import Footer from '../../components/landingPage/Footer'
 
 function IconCheck(props: React.SVGProps<SVGSVGElement>) {
@@ -53,7 +53,7 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       
       <HeroLanding />
-      <WhyPlaniner />
+      <ProblemSection />
       
 
       {/* Mountain band segment sa porukom */}

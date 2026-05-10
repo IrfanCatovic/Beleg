@@ -36,6 +36,31 @@ export const resources = {
           payments: 'Uplate i dugovanja',
         },
       },
+      problemSection: {
+        title: 'Ako vodite planinarsko društvo, ovaj haos vam je verovatno poznat',
+        subtitle:
+          'Većina klubova funkcioniše kroz Excel tabele, Viber poruke, papire i dogovore usput. Dok je članova malo, to nekako radi. Ali čim krenu akcije, prijave, članarine, prevoz i dugovanja - sve postaje teško za praćenje.',
+        cards: {
+          members: {
+            title: 'Članovi su rasuti po tabelama',
+            text: 'Neko je aktivan, neko nije platio članarinu, neko je promenio broj telefona - a podaci se često traže po starim tabelama i porukama.',
+          },
+          signups: {
+            title: 'Prijave za akcije stižu na sve strane',
+            text: 'Jedan član se javi na Viber, drugi uživo, treći telefonom. Na kraju vodič mora ručno da pravi spisak i proverava ko stvarno ide.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja se sabiraju ručno',
+            text: 'Članarina, prevoz, noćenje, oprema, cena akcije za člana i gosta - sve to neko mora da računa, proverava i pamti.',
+          },
+          overview: {
+            title: 'Uprava nema jasan pregled',
+            text: 'Teško je u svakom trenutku znati koliko klub ima aktivnih članova, ko duguje, koliko je akcija donela prihoda i šta je već evidentirano.',
+          },
+        },
+        conclusion:
+          'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -1790,6 +1815,31 @@ export const resources = {
           payments: 'Uplate i dugovanja',
         },
       },
+      problemSection: {
+        title: 'Ako vodite planinarsko društvo, ovaj haos vam je vjerovatno poznat',
+        subtitle:
+          'Većina klubova funkcioniše kroz Excel tabele, Viber poruke, papire i dogovore usput. Dok je članova malo, to nekako radi. Ali čim krenu akcije, prijave, članarine, prevoz i dugovanja - sve postaje teško za praćenje.',
+        cards: {
+          members: {
+            title: 'Članovi su rasuti po tabelama',
+            text: 'Neko je aktivan, neko nije platio članarinu, neko je promijenio broj telefona - a podaci se često traže po starim tabelama i porukama.',
+          },
+          signups: {
+            title: 'Prijave za akcije stižu na sve strane',
+            text: 'Jedan član se javi na Viber, drugi uživo, treći telefonom. Na kraju vodič mora ručno praviti spisak i provjeravati ko stvarno ide.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja se zbrajaju ručno',
+            text: 'Članarina, prevoz, noćenje, oprema, cijena akcije za člana i gosta - sve to neko mora računati, provjeravati i pamtiti.',
+          },
+          overview: {
+            title: 'Uprava nema jasan pregled',
+            text: 'Teško je u svakom trenutku znati koliko klub ima aktivnih članova, ko duguje, koliko je akcija donijela prihoda i šta je već evidentirano.',
+          },
+        },
+        conclusion:
+          'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3133,6 +3183,31 @@ export const resources = {
           payments: 'Uplate i dugovanja',
         },
       },
+      problemSection: {
+        title: 'Ako vodite planinarsko društvo, ovaj kaos vam je vjerojatno poznat',
+        subtitle:
+          'Većina klubova funkcionira kroz Excel tablice, Viber poruke, papire i dogovore usput. Dok je članova malo, to nekako radi. No čim krenu akcije, prijave, članarine, prijevoz i dugovanja - sve postaje teško za praćenje.',
+        cards: {
+          members: {
+            title: 'Članovi su raštrkani po tablicama',
+            text: 'Netko je aktivan, netko nije platio članarinu, netko je promijenio broj telefona - a podaci se često traže po starim tablicama i porukama.',
+          },
+          signups: {
+            title: 'Prijave za akcije stižu na sve strane',
+            text: 'Jedan član se javi na Viber, drugi uživo, treći telefonom. Na kraju vodič mora ručno raditi popis i provjeravati tko stvarno ide.',
+          },
+          payments: {
+            title: 'Uplate i dugovanja se zbrajaju ručno',
+            text: 'Članarina, prijevoz, noćenje, oprema, cijena akcije za člana i gosta - sve to netko mora računati, provjeravati i pamtiti.',
+          },
+          overview: {
+            title: 'Uprava nema jasan pregled',
+            text: 'Teško je u svakom trenutku znati koliko klub ima aktivnih članova, tko duguje, koliko je akcija donijela prihoda i što je već evidentirano.',
+          },
+        },
+        conclusion:
+          'Problem nije u ljudima koji vode klub - problem je što se ozbiljan posao često vodi kroz alate koji nisu napravljeni za planinarska društva.',
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4315,6 +4390,31 @@ export const resources = {
           actions: 'Touren',
           payments: 'Zahlungen und Schulden',
         },
+      },
+      problemSection: {
+        title: 'Wenn Sie einen Bergsteigerverein leiten, kommt Ihnen dieses Chaos sicher bekannt vor',
+        subtitle:
+          'Die meisten Vereine arbeiten mit Excel-Tabellen, WhatsApp-Nachrichten, Zetteln und Absprachen zwischen Tür und Angel. Solange wenige Mitglieder dabei sind, geht das irgendwie. Doch sobald Touren, Anmeldungen, Mitgliedsbeiträge, Transport und offene Beträge dazukommen, wird alles schwer zu überblicken.',
+        cards: {
+          members: {
+            title: 'Mitglieder sind über viele Tabellen verstreut',
+            text: 'Einer ist aktiv, einer hat den Beitrag nicht gezahlt, einer hat seine Nummer geändert - und Daten werden oft in alten Tabellen und Nachrichten gesucht.',
+          },
+          signups: {
+            title: 'Anmeldungen für Touren kommen aus allen Richtungen',
+            text: 'Einer meldet sich per WhatsApp, einer persönlich, einer per Telefon. Am Ende muss der Tourenleiter die Liste manuell zusammenstellen und prüfen, wer wirklich mitkommt.',
+          },
+          payments: {
+            title: 'Zahlungen und offene Beträge werden von Hand zusammengezählt',
+            text: 'Mitgliedsbeitrag, Transport, Übernachtung, Ausrüstung, Tourenpreis für Mitglieder und Gäste - all das muss jemand ausrechnen, prüfen und im Kopf behalten.',
+          },
+          overview: {
+            title: 'Der Vorstand hat keinen klaren Überblick',
+            text: 'Es ist schwer, jederzeit zu wissen, wie viele aktive Mitglieder der Verein hat, wer offene Beträge hat, wie viel eine Tour eingebracht hat und was schon erfasst wurde.',
+          },
+        },
+        conclusion:
+          'Das Problem liegt nicht bei den Menschen, die den Verein leiten - das Problem ist, dass ernsthafte Arbeit oft mit Werkzeugen erledigt wird, die nicht für Bergsteigervereine gemacht sind.',
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -5500,6 +5600,31 @@ export const resources = {
           payments: 'Payments and dues',
         },
       },
+      problemSection: {
+        title: 'If you run a mountaineering club, this chaos probably sounds familiar',
+        subtitle:
+          'Most clubs run on Excel sheets, WhatsApp messages, paper notes, and decisions made on the go. While the club is small, it somehow works. But once trips, sign-ups, dues, transport, and unpaid balances pile up, everything becomes hard to track.',
+        cards: {
+          members: {
+            title: 'Members are scattered across spreadsheets',
+            text: "One person is active, another hasn't paid their dues, another changed their phone number - and the data has to be hunted down in old spreadsheets and messages.",
+          },
+          signups: {
+            title: 'Sign-ups for trips come from every direction',
+            text: 'One member writes on WhatsApp, another shows up in person, another calls. In the end, the guide compiles the list by hand and checks who is actually going.',
+          },
+          payments: {
+            title: 'Payments and dues are added up by hand',
+            text: 'Membership fees, transport, accommodation, gear, trip price for members and guests - someone has to calculate, verify, and remember all of it.',
+          },
+          overview: {
+            title: 'Leadership has no clear overview',
+            text: "It is hard to know at any moment how many active members the club has, who owes money, how much a trip earned, and what's already recorded.",
+          },
+        },
+        conclusion:
+          "The problem isn't with the people running the club - the problem is that serious work is often done with tools that weren't built for mountaineering clubs.",
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -6681,6 +6806,29 @@ export const resources = {
         "actions": "Dejavnosti",
         "payments": "Plačila in dolgovi"
       }
+    },
+    "problemSection": {
+      "title": "Če vodite planinsko društvo, vam je ta kaos verjetno znan",
+      "subtitle": "Večina klubov deluje preko Excel preglednic, WhatsApp sporočil, papirjev in dogovorov mimogrede. Dokler je članov malo, nekako gre. Toda takoj ko se pojavijo dejavnosti, prijave, članarine, prevoz in dolgovi - vse postane težko spremljati.",
+      "cards": {
+        "members": {
+          "title": "Člani so razpršeni po preglednicah",
+          "text": "Nekdo je aktiven, nekdo ni plačal članarine, nekdo je zamenjal telefonsko številko - podatki pa se pogosto iščejo po starih preglednicah in sporočilih."
+        },
+        "signups": {
+          "title": "Prijave na dejavnosti prihajajo z vseh strani",
+          "text": "En član se javi prek WhatsAppa, drugi v živo, tretji po telefonu. Na koncu mora vodnik ročno sestavljati seznam in preverjati, kdo dejansko gre."
+        },
+        "payments": {
+          "title": "Plačila in dolgovi se seštevajo ročno",
+          "text": "Članarina, prevoz, prenočišče, oprema, cena dejavnosti za člana in gosta - vse to mora nekdo izračunati, preveriti in si zapomniti."
+        },
+        "overview": {
+          "title": "Vodstvo nima jasnega pregleda",
+          "text": "Težko je v vsakem trenutku vedeti, koliko aktivnih članov ima klub, kdo dolguje, koliko je dejavnost prinesla prihodka in kaj je že evidentirano."
+        }
+      },
+      "conclusion": "Problem ni v ljudeh, ki vodijo klub - problem je, da se resno delo pogosto opravlja z orodji, ki niso narejena za planinska društva."
     },
     "solve": {
       "title": "Kaj točno rešujemo",
