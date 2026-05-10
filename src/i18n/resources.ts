@@ -21,13 +21,20 @@ export const resources = {
     },
     landing: {
       hero: {
-        titleStart: 'Više vremena na stazi,',
-        titleAccent: 'manje za administraciju',
+        badge: 'Besplatna aplikacija za planinarska društva',
+        titleStart: 'Jedno mesto za',
+        titleAccent: 'članove, akcije i uplate',
+        titleEnd: 'vašeg planinarskog društva',
         subtitle:
-          'Planiner povezuje celo društvo, rukovodstvo lakše vodi klub, a članovi aktivno učestvuju kroz objave, prijave na akcije i praćenje svog napretka. Sve na jednom mestu, bez haosa u porukama i tabelama.',
-        support:
-          'Za predsednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.',
-        cta: 'Zakaži prezentaciju besplatno',
+          'Planiner pomaže upravi i vodičima da vode evidenciju članova, organizuju akcije, prate prijave, dugovanja i finansije bez Excela, papira i izgubljenih poruka.',
+        primaryCta: 'Zatraži pristup za svoj klub',
+        secondaryCta: 'Pogledaj kako radi',
+        ctaNote: 'Besplatno za klubove koji žele da uvedu red u organizaciju.',
+        chips: {
+          members: 'Članovi',
+          actions: 'Akcije',
+          payments: 'Uplate i dugovanja',
+        },
       },
       solve: {
         title: 'Šta tačno rešavamo',
@@ -1768,13 +1775,20 @@ export const resources = {
     },
     landing: {
       hero: {
-        titleStart: 'Više vremena na stazi,',
-        titleAccent: 'manje za administraciju',
+        badge: 'Besplatna aplikacija za planinarska društva',
+        titleStart: 'Jedno mjesto za',
+        titleAccent: 'članove, akcije i uplate',
+        titleEnd: 'vašeg planinarskog društva',
         subtitle:
-          'Planiner povezuje cijelo društvo, rukovodstvo lakše vodi klub, a članovi aktivno učestvuju kroz objave, prijave na akcije i praćenje svog napretka. Sve na jednom mjestu, bez haosa u porukama i tabelama.',
-        support:
-          'Za predsjednike, sekretare, vodiče, blagajnike i svakog člana koji želi da se više druži na stazi, a manje bavi papirima.',
-        cta: 'Zakaži prezentaciju besplatno',
+          'Planiner pomaže upravi i vodičima da vode evidenciju članova, organiziraju akcije, prate prijave, dugovanja i finansije bez Excela, papira i izgubljenih poruka.',
+        primaryCta: 'Zatraži pristup za svoj klub',
+        secondaryCta: 'Pogledaj kako radi',
+        ctaNote: 'Besplatno za klubove koji žele uvesti red u organizaciju.',
+        chips: {
+          members: 'Članovi',
+          actions: 'Akcije',
+          payments: 'Uplate i dugovanja',
+        },
       },
       solve: {
         title: 'Šta tačno rješavamo',
@@ -3104,13 +3118,20 @@ export const resources = {
     },
     landing: {
       hero: {
-        titleStart: 'Više vremena na stazi,',
-        titleAccent: 'manje za administraciju',
+        badge: 'Besplatna aplikacija za planinarska društva',
+        titleStart: 'Jedno mjesto za',
+        titleAccent: 'članove, akcije i uplate',
+        titleEnd: 'vašeg planinarskog društva',
         subtitle:
-          'Planiner povezuje cijelo društvo, vodstvo lakše vodi klub, a članovi aktivno sudjeluju kroz objave, prijave na akcije i praćenje vlastitog napretka. Sve na jednom mjestu, bez kaosa u porukama i tablicama.',
-        support:
-          'Za predsjednike, tajnike, vodiče, blagajnike i svakog člana koji želi više vremena na stazi, a manje za administraciju.',
-        cta: 'Zakaži prezentaciju besplatno',
+          'Planiner pomaže upravi i vodičima da vode evidenciju članova, organiziraju akcije, prate prijave, dugovanja i financije bez Excela, papira i izgubljenih poruka.',
+        primaryCta: 'Zatraži pristup za svoj klub',
+        secondaryCta: 'Pogledaj kako radi',
+        ctaNote: 'Besplatno za klubove koji žele uvesti red u organizaciju.',
+        chips: {
+          members: 'Članovi',
+          actions: 'Akcije',
+          payments: 'Uplate i dugovanja',
+        },
       },
       solve: {
         title: 'Što točno rješavamo',
@@ -4280,13 +4301,20 @@ export const resources = {
     },
     landing: {
       hero: {
-        titleStart: 'Mehr Zeit auf dem Trail,',
-        titleAccent: 'weniger Verwaltung',
+        badge: 'Kostenlose App für Bergsteigervereine',
+        titleStart: 'Ein Ort für',
+        titleAccent: 'Mitglieder, Touren und Zahlungen',
+        titleEnd: 'Ihres Bergsteigervereins',
         subtitle:
-          'Planiner verbindet den ganzen Verein: Die Leitung steuert den Club einfacher, und Mitglieder beteiligen sich aktiv durch Beiträge, Tour-Anmeldungen und Fortschrittsverfolgung. Alles an einem Ort, ohne Chaos in Nachrichten und Tabellen.',
-        support:
-          'Für Vorsitzende, Sekretäre, Guides, Kassenwarte und jedes Mitglied, das mehr Zeit in den Bergen und weniger Zeit mit Papierkram verbringen will.',
-        cta: 'Kostenlose Präsentation buchen',
+          'Planiner hilft Vorständen und Tourenleitern, Mitglieder zu verwalten, Touren zu organisieren und Anmeldungen, offene Beträge und Finanzen im Blick zu behalten - ohne Excel, Papier oder verlorene Nachrichten.',
+        primaryCta: 'Zugang für Ihren Verein anfragen',
+        secondaryCta: 'Sehen, wie es funktioniert',
+        ctaNote: 'Kostenlos für Vereine, die Ordnung in ihre Organisation bringen wollen.',
+        chips: {
+          members: 'Mitglieder',
+          actions: 'Touren',
+          payments: 'Zahlungen und Schulden',
+        },
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -5457,13 +5485,20 @@ export const resources = {
     },
     landing: {
       hero: {
-        titleStart: 'More time on the trail,',
-        titleAccent: 'less administration',
+        badge: 'Free app for mountaineering clubs',
+        titleStart: 'One place for',
+        titleAccent: 'members, trips and payments',
+        titleEnd: 'of your mountaineering club',
         subtitle:
-          'Planiner connects the whole club: leadership runs operations more easily, while members stay active through posts, event sign-ups, and progress tracking. Everything in one place, without message and spreadsheet chaos.',
-        support:
-          'For presidents, secretaries, guides, treasurers, and every member who wants more time outdoors and less paperwork.',
-        cta: 'Book a free presentation',
+          'Planiner helps club leadership and guides manage members, organize trips, and track sign-ups, dues, and finances - without Excel, paper, or lost messages.',
+        primaryCta: 'Request access for your club',
+        secondaryCta: 'See how it works',
+        ctaNote: 'Free for clubs that want to bring order to their organization.',
+        chips: {
+          members: 'Members',
+          actions: 'Trips',
+          payments: 'Payments and dues',
+        },
       },
       solve: {
         title: 'What exactly we solve',
@@ -6633,11 +6668,19 @@ export const resources = {
   },
   "landing": {
     "hero": {
-      "titleStart": "Več časa na poti,",
-      "titleAccent": "manj administracije",
-      "subtitle": "Planiner povezuje celoten klub: vodstvo lažje vodi operacije, medtem ko člani ostanejo aktivni z objavami, prijavami na dogodke in spremljanjem napredka. Vse na enem mestu, brez kaosa v sporočilih in preglednicah.",
-      "support": "Za predsednike, tajnike, vodnike, blagajnike in vse člane, ki si želijo več časa na prostem in manj papirologije.",
-      "cta": "Rezervirajte brezplačno predstavitev"
+      "badge": "Brezplačna aplikacija za planinska društva",
+      "titleStart": "Eno mesto za",
+      "titleAccent": "člane, dejavnosti in plačila",
+      "titleEnd": "vašega planinskega društva",
+      "subtitle": "Planiner pomaga vodstvu in vodnikom voditi evidenco članov, organizirati dejavnosti ter spremljati prijave, dolgove in finance brez Excela, papirja in izgubljenih sporočil.",
+      "primaryCta": "Zahtevajte dostop za svoj klub",
+      "secondaryCta": "Poglejte, kako deluje",
+      "ctaNote": "Brezplačno za klube, ki želijo urediti svojo organizacijo.",
+      "chips": {
+        "members": "Člani",
+        "actions": "Dejavnosti",
+        "payments": "Plačila in dolgovi"
+      }
     },
     "solve": {
       "title": "Kaj točno rešujemo",
