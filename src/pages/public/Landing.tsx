@@ -7,6 +7,7 @@ import AudienceSection from '../../components/landingPage/AudienceSection'
 import HowPlaninerWorksSection from '../../components/landingPage/HowPlaninerWorksSection'
 import PreviewSection from '../../components/landingPage/PreviewSection'
 import OutcomesSection from '../../components/landingPage/OutcomesSection'
+import FreeStartSection from '../../components/landingPage/FreeStartSection'
 import Footer from '../../components/landingPage/Footer'
 
 export default function Landing() {
@@ -64,6 +65,7 @@ export default function Landing() {
       <HowPlaninerWorksSection />
       <PreviewSection />
       <OutcomesSection />
+      <FreeStartSection />
       
 
       

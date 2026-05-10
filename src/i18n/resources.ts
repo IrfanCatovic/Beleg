@@ -232,6 +232,26 @@ export const resources = {
           text: 'Kada klub ima jasan sistem, uprava ne mora stalno da proverava poruke, tabele i papire. Svi važni podaci su povezani i dostupni tamo gde treba.',
         },
       },
+      freeStartSection: {
+        badge: 'Besplatan početak',
+        title: 'Planiner je trenutno besplatan za klubove koji žele da krenu prvi',
+        subtitle:
+          'Ako vaše planinarsko društvo želi da uvede red u članove, akcije, prijave i uplate, možete početi bez troškova. Pomažemo vam da podesite klub i napravite prve korake u sistemu.',
+        offerTitle: 'Šta dobijate na početku?',
+        benefits: {
+          b1: 'Besplatan pristup za vaše planinarsko društvo',
+          b2: 'Pomoć oko početnog podešavanja kluba',
+          b3: 'Unos osnovnih podataka i prvih članova',
+          b4: 'Podešavanje uloga za upravu, vodiče i administratore',
+          b5: 'Mogućnost da testirate akcije, prijave, uplate i finansije',
+          b6: 'Direktna komunikacija za pitanja i predloge',
+        },
+        note: 'Ova faza je namenjena klubovima koji žele da testiraju Planiner u stvarnom radu i pomognu da sistem bude još korisniji za planinarska društva.',
+        primaryCta: 'Zatraži besplatan pristup',
+        secondaryCta: 'Kontaktiraj nas za više informacija',
+        conclusion:
+          'Ne morate odmah menjati ceo način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -2182,6 +2202,26 @@ export const resources = {
           text: 'Kada klub ima jasan sistem, uprava ne mora stalno provjeravati poruke, tabele i papire. Svi važni podaci su povezani i dostupni tamo gdje treba.',
         },
       },
+      freeStartSection: {
+        badge: 'Besplatan početak',
+        title: 'Planiner je trenutno besplatan za klubove koji žele da krenu prvi',
+        subtitle:
+          'Ako vaše planinarsko društvo želi uvesti red u članove, akcije, prijave i uplate, možete početi bez troškova. Pomažemo vam da podesite klub i napravite prve korake u sistemu.',
+        offerTitle: 'Šta dobijate na početku?',
+        benefits: {
+          b1: 'Besplatan pristup za vaše planinarsko društvo',
+          b2: 'Pomoć oko početnog podešavanja kluba',
+          b3: 'Unos osnovnih podataka i prvih članova',
+          b4: 'Podešavanje uloga za upravu, vodiče i administratore',
+          b5: 'Mogućnost da testirate akcije, prijave, uplate i finansije',
+          b6: 'Direktna komunikacija za pitanja i predloge',
+        },
+        note: 'Ova faza je namijenjena klubovima koji žele testirati Planiner u stvarnom radu i pomoći da sistem bude još korisniji za planinarska društva.',
+        primaryCta: 'Zatraži besplatan pristup',
+        secondaryCta: 'Kontaktiraj nas za više informacija',
+        conclusion:
+          'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je da krenete od članova i jedne akcije - pa da vidite koliko vam sistem olakšava posao.',
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3721,6 +3761,26 @@ export const resources = {
           text: 'Kada klub ima jasan sustav, uprava ne mora stalno provjeravati poruke, tablice i papire. Svi važni podaci su povezani i dostupni tamo gdje treba.',
         },
       },
+      freeStartSection: {
+        badge: 'Besplatan početak',
+        title: 'Planiner je trenutno besplatan za klubove koji žele krenuti prvi',
+        subtitle:
+          'Ako vaše planinarsko društvo želi uvesti red u članove, akcije, prijave i uplate, možete početi bez troškova. Pomažemo vam podesiti klub i napraviti prve korake u sustavu.',
+        offerTitle: 'Što dobivate na početku?',
+        benefits: {
+          b1: 'Besplatan pristup za vaše planinarsko društvo',
+          b2: 'Pomoć oko početnog podešavanja kluba',
+          b3: 'Unos osnovnih podataka i prvih članova',
+          b4: 'Podešavanje uloga za upravu, vodiče i administratore',
+          b5: 'Mogućnost testiranja akcija, prijava, uplata i financija',
+          b6: 'Direktna komunikacija za pitanja i prijedloge',
+        },
+        note: 'Ova faza namijenjena je klubovima koji žele testirati Planiner u stvarnom radu i pomoći da sustav bude još korisniji za planinarska društva.',
+        primaryCta: 'Zatražite besplatan pristup',
+        secondaryCta: 'Kontaktirajte nas za više informacija',
+        conclusion:
+          'Ne morate odmah mijenjati cijeli način rada kluba. Dovoljno je krenuti od članova i jedne akcije - pa vidjeti koliko vam sustav olakšava posao.',
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -5099,6 +5159,26 @@ export const resources = {
           title: 'Mehr Kontrolle, weniger Chaos',
           text: 'Wenn der Verein ein klares System hat, muss der Vorstand nicht ständig Nachrichten, Tabellen und Zettel durchsehen. Alle wichtigen Daten sind verknüpft und dort verfügbar, wo sie gebraucht werden.',
         },
+      },
+      freeStartSection: {
+        badge: 'Kostenloser Einstieg',
+        title: 'Planiner ist derzeit kostenlos für Vereine, die als Erste starten wollen',
+        subtitle:
+          'Wenn Ihr Bergverein Ordnung in Mitglieder, Touren, Anmeldungen und Zahlungen bringen möchte, können Sie ohne Kosten beginnen. Wir helfen Ihnen beim Einrichten des Vereins und den ersten Schritten im System.',
+        offerTitle: 'Was Sie am Anfang erhalten?',
+        benefits: {
+          b1: 'Kostenloser Zugang für Ihren Bergverein',
+          b2: 'Hilfe bei der ersten Einrichtung des Vereins',
+          b3: 'Erfassung der Basisdaten und der ersten Mitglieder',
+          b4: 'Einrichtung von Rollen für Vorstand, Tourenleiter und Administratoren',
+          b5: 'Möglichkeit, Touren, Anmeldungen, Zahlungen und Finanzen zu testen',
+          b6: 'Direkter Austausch für Fragen und Vorschläge',
+        },
+        note: 'Diese Phase richtet sich an Vereine, die Planiner im echten Betrieb testen und dabei helfen wollen, das System noch nützlicher für Bergvereine zu machen.',
+        primaryCta: 'Kostenlosen Zugang anfragen',
+        secondaryCta: 'Kontaktieren Sie uns für weitere Informationen',
+        conclusion:
+          'Sie müssen nicht sofort die gesamte Arbeitsweise des Vereins ändern. Es reicht, mit Mitgliedern und einer Tour zu starten - und zu sehen, wie sehr Ihnen das System die Arbeit erleichtert.',
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -6480,6 +6560,26 @@ export const resources = {
           text: "When the club has a clear system, leadership doesn't have to keep checking messages, spreadsheets, and paper. All the important data is connected and available where it's needed.",
         },
       },
+      freeStartSection: {
+        badge: 'Free start',
+        title: 'Planiner is currently free for clubs that want to be among the first to get started',
+        subtitle:
+          'If your mountaineering club wants to bring order to members, trips, sign-ups, and payments, you can begin without cost. We help you set up the club and take the first steps in the system.',
+        offerTitle: 'What do you get at the start?',
+        benefits: {
+          b1: 'Free access for your mountaineering club',
+          b2: 'Help with the initial club setup',
+          b3: 'Entering basic details and your first members',
+          b4: 'Setting roles for leadership, guides, and administrators',
+          b5: 'A chance to try trips, sign-ups, payments, and finances',
+          b6: 'Direct communication for questions and suggestions',
+        },
+        note: 'This phase is for clubs that want to test Planiner in real day-to-day work and help make the system even more useful for mountaineering clubs.',
+        primaryCta: 'Request free access',
+        secondaryCta: 'Contact us for more information',
+        conclusion:
+          'You do not have to change the entire way the club works right away. It is enough to start with members and one trip - then see how much the system lightens the workload.',
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7848,6 +7948,24 @@ export const resources = {
         "title": "Več nadzora, manj kaosa",
         "text": "Ko ima klub jasen sistem, vodstvu ni treba nenehno preverjati sporočil, preglednic in papirja. Vsi pomembni podatki so povezani in na voljo tam, kjer so potrebni."
       }
+    },
+    "freeStartSection": {
+      "badge": "Brezplačen začetek",
+      "title": "Planiner je trenutno brezplačen za klube, ki želijo začeti med prvimi",
+      "subtitle": "Če vaše planinsko društvo želi uvesti red v člane, dejavnosti, prijave in plačila, lahko začnete brez stroškov. Pomagamo vam nastaviti klub in narediti prve korake v sistemu.",
+      "offerTitle": "Kaj dobite na začetku?",
+      "benefits": {
+        "b1": "Brezplačen dostop za vaše planinsko društvo",
+        "b2": "Pomoč pri začetni nastavitvi kluba",
+        "b3": "Vnos osnovnih podatkov in prvih članov",
+        "b4": "Nastavitev vlog za vodstvo, vodnike in administratorje",
+        "b5": "Možnost preizkusa dejavnosti, prijav, plačil in financ",
+        "b6": "Neposredna komunikacija za vprašanja in predloge"
+      },
+      "note": "Ta faza je namenjena klubom, ki želijo Planiner preizkusiti v resničnem delu in pomagati, da bo sistem še bolj uporaben za planinska društva.",
+      "primaryCta": "Zahtevajte brezplačen dostop",
+      "secondaryCta": "Kontaktirajte nas za več informacij",
+      "conclusion": "Ni vam treba takoj spremeniti celotnega načina dela kluba. Dovolj je začeti s člani in eno dejavnostjo - pa poglejte, koliko vam sistem olajša delo."
     },
     "solve": {
       "title": "Kaj točno rešujemo",
