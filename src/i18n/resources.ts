@@ -196,6 +196,42 @@ export const resources = {
         conclusion:
           'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora da traži informacije na pet različitih mesta.',
       },
+      outcomesSection: {
+        badge: 'Rezultat u praksi',
+        title: 'Šta se menja kada klub počne da koristi Planiner',
+        subtitle:
+          'Planiner ne služi samo da podaci budu digitalni. Njegova najveća vrednost je što uprava, vodiči i blagajnici imaju manje ručnog posla, manje grešaka i mnogo jasniji pregled rada kluba.',
+        cards: {
+          manualWork: {
+            title: 'Manje ručnog rada',
+            text: 'Umesto stalnog prepisivanja iz poruka, tabela i papira, klub ima jedno mesto gde se vode članovi, akcije, prijave i uplate.',
+          },
+          lostSignups: {
+            title: 'Manje izgubljenih prijava',
+            text: 'Prijave za akcije više nisu rasute po Viberu, pozivima i usmenim dogovorima. Vodič ima jasan spisak ljudi koji idu.',
+          },
+          payments: {
+            title: 'Jasniji pregled uplata',
+            text: 'U svakom trenutku se vidi ko je platio, ko duguje i za šta je uplata vezana - članarina, akcija, prevoz, oprema ili noćenje.',
+          },
+          trips: {
+            title: 'Lakša organizacija akcija',
+            text: 'Za svaku akciju možete imati opis, datum, cenu, prevoz, noćenje, opremu, prijave i zaduženja na jednom mestu.',
+          },
+          members: {
+            title: 'Bolji pregled članova',
+            text: 'Uprava zna ko su aktivni članovi, ko je platio članarinu i kakav je status svakog člana bez traženja po starim tabelama.',
+          },
+          financeErrors: {
+            title: 'Manje grešaka u finansijama',
+            text: 'Kada su uplate, dugovanja i prihodi povezani sa članovima i akcijama, mnogo je manja šansa da se nešto zaboravi ili pogrešno sabere.',
+          },
+        },
+        highlight: {
+          title: 'Više kontrole, manje haosa',
+          text: 'Kada klub ima jasan sistem, uprava ne mora stalno da proverava poruke, tabele i papire. Svi važni podaci su povezani i dostupni tamo gde treba.',
+        },
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -2110,6 +2146,42 @@ export const resources = {
         conclusion:
           'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora tražiti informacije na pet različitih mjesta.',
       },
+      outcomesSection: {
+        badge: 'Rezultat u praksi',
+        title: 'Šta se mijenja kada klub počne koristiti Planiner',
+        subtitle:
+          'Planiner ne služi samo da podaci budu digitalni. Njegova najveća vrijednost je što uprava, vodiči i blagajnici imaju manje ručnog posla, manje grešaka i mnogo jasniji pregled rada kluba.',
+        cards: {
+          manualWork: {
+            title: 'Manje ručnog rada',
+            text: 'Umjesto stalnog prepisivanja iz poruka, tabela i papira, klub ima jedno mjesto gdje se vode članovi, akcije, prijave i uplate.',
+          },
+          lostSignups: {
+            title: 'Manje izgubljenih prijava',
+            text: 'Prijave za akcije više nisu rasute po Viberu, pozivima i usmenim dogovorima. Vodič ima jasan spisak ljudi koji idu.',
+          },
+          payments: {
+            title: 'Jasniji pregled uplata',
+            text: 'U svakom trenutku se vidi ko je platio, ko duguje i za šta je uplata vezana - članarina, akcija, prevoz, oprema ili noćenje.',
+          },
+          trips: {
+            title: 'Lakša organizacija akcija',
+            text: 'Za svaku akciju možete imati opis, datum, cijenu, prevoz, noćenje, opremu, prijave i zaduženja na jednom mjestu.',
+          },
+          members: {
+            title: 'Bolji pregled članova',
+            text: 'Uprava zna ko su aktivni članovi, ko je platio članarinu i kakav je status svakog člana bez traženja po starim tabelama.',
+          },
+          financeErrors: {
+            title: 'Manje grešaka u finansijama',
+            text: 'Kada su uplate, dugovanja i prihodi povezani sa članovima i akcijama, mnogo je manja šansa da se nešto zaboravi ili pogrešno sabere.',
+          },
+        },
+        highlight: {
+          title: 'Više kontrole, manje haosa',
+          text: 'Kada klub ima jasan sistem, uprava ne mora stalno provjeravati poruke, tabele i papire. Svi važni podaci su povezani i dostupni tamo gdje treba.',
+        },
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3613,6 +3685,42 @@ export const resources = {
         conclusion:
           'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora tražiti informacije na pet različitih mjesta.',
       },
+      outcomesSection: {
+        badge: 'Rezultat u praksi',
+        title: 'Što se mijenja kada klub počne koristiti Planiner',
+        subtitle:
+          'Planiner ne služi samo tome da podaci budu digitalni. Njegova najveća vrijednost je što uprava, vodiči i blagajnici imaju manje ručnog posla, manje grešaka i mnogo jasniji pregled rada kluba.',
+        cards: {
+          manualWork: {
+            title: 'Manje ručnog rada',
+            text: 'Umjesto stalnog prepisivanja iz poruka, tablica i papira, klub ima jedno mjesto gdje se vode članovi, akcije, prijave i uplate.',
+          },
+          lostSignups: {
+            title: 'Manje izgubljenih prijava',
+            text: 'Prijave za akcije više nisu raštrkane po Viberu, pozivima i usmenim dogovorima. Vodič ima jasan popis ljudi koji idu.',
+          },
+          payments: {
+            title: 'Jasniji pregled uplata',
+            text: 'U svakom trenutku se vidi tko je platio, tko duguje i za što je uplata vezana - članarina, akcija, prijevoz, oprema ili noćenje.',
+          },
+          trips: {
+            title: 'Lakša organizacija akcija',
+            text: 'Za svaku akciju možete imati opis, datum, cijenu, prijevoz, noćenje, opremu, prijave i zaduženja na jednom mjestu.',
+          },
+          members: {
+            title: 'Bolji pregled članova',
+            text: 'Uprava zna tko su aktivni članovi, tko je platio članarinu i kakav je status svakog člana bez traženja po starim tablicama.',
+          },
+          financeErrors: {
+            title: 'Manje grešaka u financijama',
+            text: 'Kada su uplate, dugovanja i prihodi povezani s članovima i akcijama, mnogo je manja šansa da se nešto zaboravi ili pogrešno zbroji.',
+          },
+        },
+        highlight: {
+          title: 'Više kontrole, manje kaosa',
+          text: 'Kada klub ima jasan sustav, uprava ne mora stalno provjeravati poruke, tablice i papire. Svi važni podaci su povezani i dostupni tamo gdje treba.',
+        },
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4955,6 +5063,42 @@ export const resources = {
         },
         conclusion:
           'Wenn Mitglieder, Touren, Anmeldungen und Zahlungen verbunden sind, muss der Vorstand Informationen nicht mehr an fünf verschiedenen Stellen zusammensuchen.',
+      },
+      outcomesSection: {
+        badge: 'Ergebnis im Alltag',
+        title: 'Was sich ändert, wenn der Verein Planiner nutzt',
+        subtitle:
+          'Planiner ist nicht nur dazu da, Daten zu digitalisieren. Sein größter Wert liegt darin, dass Vorstand, Tourenleiter und Kassenwarte weniger Handarbeit, weniger Fehler und einen viel klareren Überblick über die Vereinsarbeit haben.',
+        cards: {
+          manualWork: {
+            title: 'Weniger Handarbeit',
+            text: 'Statt ständig aus Nachrichten, Tabellen und Zetteln abzuschreiben, gibt es einen Ort, an dem Mitglieder, Touren, Anmeldungen und Zahlungen geführt werden.',
+          },
+          lostSignups: {
+            title: 'Weniger verlorene Anmeldungen',
+            text: 'Tour-Anmeldungen sind nicht mehr über WhatsApp, Anrufe und mündliche Absprachen verstreut. Der Tourenleiter hat eine klare Liste der Mitkommenden.',
+          },
+          payments: {
+            title: 'Klarere Übersicht der Zahlungen',
+            text: 'Jederzeit sieht man, wer bezahlt hat, wer offen ist und wofür die Zahlung gilt - Mitgliedsbeitrag, Tour, Transport, Ausrüstung oder Übernachtung.',
+          },
+          trips: {
+            title: 'Einfachere Tourenorganisation',
+            text: 'Pro Tour können Beschreibung, Datum, Preis, Transport, Übernachtung, Ausrüstung, Anmeldungen und offene Beträge an einem Ort liegen.',
+          },
+          members: {
+            title: 'Besserer Überblick über Mitglieder',
+            text: 'Der Vorstand weiß, wer aktive Mitglieder sind, wer den Beitrag gezahlt hat und wie der Status jedes Mitglieds ist - ohne in alten Tabellen zu suchen.',
+          },
+          financeErrors: {
+            title: 'Weniger Fehler in den Finanzen',
+            text: 'Wenn Zahlungen, offene Beträge und Einnahmen mit Mitgliedern und Touren verknüpft sind, geht viel seltener etwas verloren oder wird falsch zusammengezählt.',
+          },
+        },
+        highlight: {
+          title: 'Mehr Kontrolle, weniger Chaos',
+          text: 'Wenn der Verein ein klares System hat, muss der Vorstand nicht ständig Nachrichten, Tabellen und Zettel durchsehen. Alle wichtigen Daten sind verknüpft und dort verfügbar, wo sie gebraucht werden.',
+        },
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -6300,6 +6444,42 @@ export const resources = {
         conclusion:
           "Once members, trips, sign-ups, and payments are connected, leadership no longer has to chase information across five different places.",
       },
+      outcomesSection: {
+        badge: 'Real-world results',
+        title: 'What changes when the club starts using Planiner',
+        subtitle:
+          'Planiner is not just about going digital. Its biggest value is that leadership, guides, and treasurers have less manual work, fewer mistakes, and a much clearer view of how the club is run.',
+        cards: {
+          manualWork: {
+            title: 'Less manual work',
+            text: 'Instead of constantly copying from messages, spreadsheets, and paper, the club has one place where members, trips, sign-ups, and payments are kept.',
+          },
+          lostSignups: {
+            title: 'Fewer lost sign-ups',
+            text: 'Trip sign-ups are no longer scattered across WhatsApp, phone calls, and verbal arrangements. The guide has a clear list of who is going.',
+          },
+          payments: {
+            title: 'A clearer view of payments',
+            text: 'At any moment you see who has paid, who still owes, and what the payment is for - dues, trip, transport, gear, or accommodation.',
+          },
+          trips: {
+            title: 'Easier trip organization',
+            text: 'For each trip you can keep description, date, price, transport, accommodation, gear, sign-ups, and unpaid balances in one place.',
+          },
+          members: {
+            title: 'A better view of members',
+            text: 'Leadership knows who the active members are, who has paid their dues, and the status of each member - without digging through old spreadsheets.',
+          },
+          financeErrors: {
+            title: 'Fewer mistakes in finances',
+            text: 'When payments, dues, and income are linked to members and trips, the chance of something being missed or miscounted drops sharply.',
+          },
+        },
+        highlight: {
+          title: 'More control, less chaos',
+          text: "When the club has a clear system, leadership doesn't have to keep checking messages, spreadsheets, and paper. All the important data is connected and available where it's needed.",
+        },
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7633,6 +7813,41 @@ export const resources = {
         }
       },
       "conclusion": "Ko so člani, dejavnosti, prijave in plačila povezani, vodstvu ni več treba iskati informacij na petih različnih mestih."
+    },
+    "outcomesSection": {
+      "badge": "Rezultat v praksi",
+      "title": "Kaj se spremeni, ko klub začne uporabljati Planiner",
+      "subtitle": "Planiner ne služi le temu, da so podatki digitalni. Njegova največja vrednost je, da vodstvo, vodniki in blagajniki imajo manj ročnega dela, manj napak in veliko jasnejši pregled nad delom kluba.",
+      "cards": {
+        "manualWork": {
+          "title": "Manj ročnega dela",
+          "text": "Namesto stalnega prepisovanja iz sporočil, preglednic in papirja ima klub eno mesto, kjer se vodijo člani, dejavnosti, prijave in plačila."
+        },
+        "lostSignups": {
+          "title": "Manj izgubljenih prijav",
+          "text": "Prijave na dejavnosti niso več razpršene po WhatsAppu, klicih in ustnih dogovorih. Vodnik ima jasen seznam ljudi, ki gredo."
+        },
+        "payments": {
+          "title": "Jasnejši pregled plačil",
+          "text": "V vsakem trenutku se vidi, kdo je plačal, kdo dolguje in za kaj je plačilo - članarina, dejavnost, prevoz, oprema ali prenočišče."
+        },
+        "trips": {
+          "title": "Lažja organizacija dejavnosti",
+          "text": "Za vsako dejavnost lahko imate opis, datum, ceno, prevoz, prenočišče, opremo, prijave in obveznosti na enem mestu."
+        },
+        "members": {
+          "title": "Boljši pregled nad člani",
+          "text": "Vodstvo ve, kdo so aktivni člani, kdo je plačal članarino in kakšen je status vsakega člana - brez iskanja po starih preglednicah."
+        },
+        "financeErrors": {
+          "title": "Manj napak v financah",
+          "text": "Ko so plačila, dolgovi in prihodki povezani s člani in dejavnostmi, je veliko manj možnosti, da kaj uide ali se napačno sešteje."
+        }
+      },
+      "highlight": {
+        "title": "Več nadzora, manj kaosa",
+        "text": "Ko ima klub jasen sistem, vodstvu ni treba nenehno preverjati sporočil, preglednic in papirja. Vsi pomembni podatki so povezani in na voljo tam, kjer so potrebni."
+      }
     },
     "solve": {
       "title": "Kaj točno rešujemo",

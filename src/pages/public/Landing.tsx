@@ -1,5 +1,3 @@
-// Lokalne slike zamenjene Cloudinary URL-ovima direktno u JSX
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import HeroLanding from '../../components/landingPage/HeroLanding'
@@ -8,50 +6,10 @@ import SolutionSection from '../../components/landingPage/SolutionSection'
 import AudienceSection from '../../components/landingPage/AudienceSection'
 import HowPlaninerWorksSection from '../../components/landingPage/HowPlaninerWorksSection'
 import PreviewSection from '../../components/landingPage/PreviewSection'
+import OutcomesSection from '../../components/landingPage/OutcomesSection'
 import Footer from '../../components/landingPage/Footer'
 
-function IconCheck(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="h-4 w-4 text-emerald-600"
-      {...props}
-    >
-      <path
-        d="M20 7L10 17L4 11"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function IconSparkles(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="h-4 w-4 text-yellow-500"
-      {...props}
-    >
-      <path
-        d="M5 3L6.5 7.5L11 9L6.5 10.5L5 15L3.5 10.5L-1 9L3.5 7.5L5 3Z"
-        transform="translate(8 1)"
-        fill="currentColor"
-      />
-      <circle cx="6" cy="6" r="1" fill="currentColor" />
-      <circle cx="18" cy="8" r="1.2" fill="currentColor" />
-    </svg>
-  )
-}
-
 export default function Landing() {
-
-  const navigate = useNavigate()
   const { t } = useTranslation('landing')
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
@@ -105,6 +63,7 @@ export default function Landing() {
       <AudienceSection />
       <HowPlaninerWorksSection />
       <PreviewSection />
+      <OutcomesSection />
       
 
       
