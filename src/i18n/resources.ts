@@ -166,6 +166,36 @@ export const resources = {
           text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sistem - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
         },
       },
+      previewSection: {
+        badge: 'Praktičan pregled sistema',
+        title: 'Pogledajte kako Planiner izgleda u radu',
+        subtitle:
+          'Od članova i akcija, do prijava, uplata i finansija - sve važne informacije su pregledno povezane u jednom sistemu.',
+        blocks: {
+          members: {
+            title: 'Članovi kluba',
+            text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije rasuta po tabelama i porukama.',
+            alt: 'Prikaz profila člana u Planiner aplikaciji',
+          },
+          actions: {
+            title: 'Planinarske akcije',
+            text: 'Vodiči mogu da kreiraju akcije, dodaju datum, opis, cenu, prevoz, noćenje, opremu i sve informacije potrebne članovima.',
+            alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+          },
+          signups: {
+            title: 'Prijave i zaduženja',
+            text: 'Za svaku akciju vidi se ko je prijavljen, ko ide, ko je platio i koliko svaka osoba duguje za akciju, prevoz, opremu ili članarinu.',
+            alt: 'Prikaz prijava i učesnika akcije u aplikaciji',
+          },
+          finance: {
+            title: 'Finansije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
+            alt: 'Prikaz finansija kluba u aplikaciji',
+          },
+        },
+        conclusion:
+          'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora da traži informacije na pet različitih mesta.',
+      },
       solve: {
         title: 'Šta tačno rešavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umesto vas.',
@@ -2050,6 +2080,36 @@ export const resources = {
           text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sistem - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
         },
       },
+      previewSection: {
+        badge: 'Praktičan pregled sistema',
+        title: 'Pogledajte kako Planiner izgleda u radu',
+        subtitle:
+          'Od članova i akcija, do prijava, uplata i finansija - sve važne informacije su pregledno povezane u jednom sistemu.',
+        blocks: {
+          members: {
+            title: 'Članovi kluba',
+            text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije rasuta po tabelama i porukama.',
+            alt: 'Prikaz profila člana u Planiner aplikaciji',
+          },
+          actions: {
+            title: 'Planinarske akcije',
+            text: 'Vodiči mogu kreirati akcije, dodati datum, opis, cijenu, prevoz, noćenje, opremu i sve informacije potrebne članovima.',
+            alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+          },
+          signups: {
+            title: 'Prijave i zaduženja',
+            text: 'Za svaku akciju vidi se ko je prijavljen, ko ide, ko je platio i koliko svaka osoba duguje za akciju, prevoz, opremu ili članarinu.',
+            alt: 'Prikaz prijava i učesnika akcije u aplikaciji',
+          },
+          finance: {
+            title: 'Finansije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
+            alt: 'Prikaz finansija kluba u aplikaciji',
+          },
+        },
+        conclusion:
+          'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora tražiti informacije na pet različitih mjesta.',
+      },
       solve: {
         title: 'Šta tačno rješavamo',
         subtitle: 'Od haosa u papirima i tabelama do jasnog, digitalnog sistema koji radi umjesto vas.',
@@ -3523,6 +3583,36 @@ export const resources = {
           text: 'On samo ono što već radite kroz Excel, papir i poruke prebacuje u jedan pregledan sustav - da uprava, vodiči i blagajnici imaju manje ručnog posla i jasniji pregled.',
         },
       },
+      previewSection: {
+        badge: 'Praktičan pregled sustava',
+        title: 'Pogledajte kako Planiner izgleda u radu',
+        subtitle:
+          'Od članova i akcija, do prijava, uplata i financija - sve važne informacije pregledno su povezane u jednom sustavu.',
+        blocks: {
+          members: {
+            title: 'Članovi kluba',
+            text: 'Uprava ima pregled članova, status članstva, osnovne podatke i evidenciju koja više nije raštrkana po tablicama i porukama.',
+            alt: 'Prikaz profila člana u Planiner aplikaciji',
+          },
+          actions: {
+            title: 'Planinarske akcije',
+            text: 'Vodiči mogu kreirati akcije, dodati datum, opis, cijenu, prijevoz, noćenje, opremu i sve informacije potrebne članovima.',
+            alt: 'Prikaz pregleda planinarskih akcija u aplikaciji',
+          },
+          signups: {
+            title: 'Prijave i zaduženja',
+            text: 'Za svaku akciju vidi se tko je prijavljen, tko ide, tko je platio i koliko svaka osoba duguje za akciju, prijevoz, opremu ili članarinu.',
+            alt: 'Prikaz prijava i sudionika akcije u aplikaciji',
+          },
+          finance: {
+            title: 'Financije kluba',
+            text: 'Prihodi od članarina i akcija mogu se evidentirati na jednom mjestu, kako bi uprava i blagajnik imali jasniji pregled novca.',
+            alt: 'Prikaz financija kluba u aplikaciji',
+          },
+        },
+        conclusion:
+          'Kada su članovi, akcije, prijave i uplate povezani, uprava više ne mora tražiti informacije na pet različitih mjesta.',
+      },
       solve: {
         title: 'Što točno rješavamo',
         subtitle: 'Od kaosa u papirima i tablicama do jasnog, digitalnog sustava koji radi umjesto vas.',
@@ -4835,6 +4925,36 @@ export const resources = {
           title: 'Planiner macht die Vereinsarbeit nicht komplizierter',
           text: 'Er bringt nur das, was Sie schon in Excel, auf Papier und in Nachrichten tun, in ein übersichtliches System - damit Vorstand, Tourenleiter und Kassenwarte weniger Handarbeit haben und mehr Überblick.',
         },
+      },
+      previewSection: {
+        badge: 'Praktischer Blick ins System',
+        title: 'So sieht Planiner im Einsatz aus',
+        subtitle:
+          'Von Mitgliedern und Touren bis zu Anmeldungen, Zahlungen und Finanzen - alle wichtigen Informationen sind in einem System übersichtlich verknüpft.',
+        blocks: {
+          members: {
+            title: 'Vereinsmitglieder',
+            text: 'Der Vorstand sieht Mitglieder, Mitgliedsstatus, Basisdaten und Aufzeichnungen an einem Ort - nicht mehr verstreut über Tabellen und Nachrichten.',
+            alt: 'Ansicht des Mitgliederprofils in der Planiner-App',
+          },
+          actions: {
+            title: 'Bergsteiger-Touren',
+            text: 'Tourenleiter können Touren anlegen und Datum, Beschreibung, Preis, Transport, Übernachtung, Ausrüstung und alle wichtigen Informationen für die Mitglieder hinzufügen.',
+            alt: 'Tourenübersicht in der Planiner-App',
+          },
+          signups: {
+            title: 'Anmeldungen und offene Beträge',
+            text: 'Pro Tour sieht man, wer angemeldet ist, wer mitkommt, wer bezahlt hat und wie viel jede Person für Tour, Transport, Ausrüstung oder Mitgliedsbeitrag noch schuldet.',
+            alt: 'Ansicht der Anmeldungen und Teilnehmer einer Tour',
+          },
+          finance: {
+            title: 'Vereinsfinanzen',
+            text: 'Einnahmen aus Mitgliedsbeiträgen und Touren werden an einem Ort erfasst, damit Vorstand und Kassenwart einen klareren Überblick über das Geld haben.',
+            alt: 'Ansicht der Vereinsfinanzen in der App',
+          },
+        },
+        conclusion:
+          'Wenn Mitglieder, Touren, Anmeldungen und Zahlungen verbunden sind, muss der Vorstand Informationen nicht mehr an fünf verschiedenen Stellen zusammensuchen.',
       },
       solve: {
         title: 'Welche Probleme lösen wir konkret',
@@ -6150,6 +6270,36 @@ export const resources = {
           text: 'It only moves what you already do in spreadsheets, on paper, and in messages into one clear place - so leadership, guides, and treasurers have less manual work and a clearer overview.',
         },
       },
+      previewSection: {
+        badge: 'A practical look inside the system',
+        title: 'See what Planiner looks like in practice',
+        subtitle:
+          'From members and trips to sign-ups, payments, and finances - all the important information is clearly connected in one system.',
+        blocks: {
+          members: {
+            title: 'Club members',
+            text: 'Leadership has an overview of members, membership status, basic details, and records that are no longer scattered across spreadsheets and messages.',
+            alt: 'Member profile view in the Planiner app',
+          },
+          actions: {
+            title: 'Mountaineering trips',
+            text: 'Guides can create trips and add date, description, price, transport, accommodation, gear, and everything members need to know.',
+            alt: 'Trip overview in the Planiner app',
+          },
+          signups: {
+            title: 'Sign-ups and balances',
+            text: 'For every trip you can see who is signed up, who is going, who has paid, and how much each person owes for the trip, transport, gear, or dues.',
+            alt: 'Trip sign-ups and participants view in the app',
+          },
+          finance: {
+            title: 'Club finances',
+            text: 'Income from dues and trips can be recorded in one place, so leadership and the treasurer have a clearer view of the money.',
+            alt: 'Club finances view in the app',
+          },
+        },
+        conclusion:
+          "Once members, trips, sign-ups, and payments are connected, leadership no longer has to chase information across five different places.",
+      },
       solve: {
         title: 'What exactly we solve',
         subtitle: 'From paperwork and spreadsheet chaos to a clear digital system that works for you.',
@@ -7455,6 +7605,34 @@ export const resources = {
         "title": "Planiner ne otežuje dela v klubu",
         "text": "Le to, kar že počnete v Excelu, na papirju in v sporočilih, prenese v en pregleden sistem - da imajo vodstvo, vodniki in blagajniki manj ročnega dela in boljši pregled."
       }
+    },
+    "previewSection": {
+      "badge": "Praktičen pogled v sistem",
+      "title": "Poglejte, kako Planiner izgleda v praksi",
+      "subtitle": "Od članov in dejavnosti do prijav, plačil in financ - vse pomembne informacije so pregledno povezane v enem sistemu.",
+      "blocks": {
+        "members": {
+          "title": "Člani kluba",
+          "text": "Vodstvo ima pregled nad člani, statusom članstva, osnovnimi podatki in evidenco, ki ni več razpršena po preglednicah in sporočilih.",
+          "alt": "Prikaz profila člana v aplikaciji Planiner"
+        },
+        "actions": {
+          "title": "Planinske dejavnosti",
+          "text": "Vodniki lahko ustvarijo dejavnosti, dodajo datum, opis, ceno, prevoz, prenočišče, opremo in vse informacije, ki jih člani potrebujejo.",
+          "alt": "Prikaz pregleda planinskih dejavnosti v aplikaciji"
+        },
+        "signups": {
+          "title": "Prijave in obveznosti",
+          "text": "Za vsako dejavnost je vidno, kdo je prijavljen, kdo gre, kdo je plačal in koliko vsaka oseba dolguje za dejavnost, prevoz, opremo ali članarino.",
+          "alt": "Prikaz prijav in udeležencev dejavnosti v aplikaciji"
+        },
+        "finance": {
+          "title": "Finance kluba",
+          "text": "Prihodki od članarine in dejavnosti se lahko evidentirajo na enem mestu, da imata vodstvo in blagajnik jasnejši pregled nad denarjem.",
+          "alt": "Prikaz financ kluba v aplikaciji"
+        }
+      },
+      "conclusion": "Ko so člani, dejavnosti, prijave in plačila povezani, vodstvu ni več treba iskati informacij na petih različnih mestih."
     },
     "solve": {
       "title": "Kaj točno rešujemo",
