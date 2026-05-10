@@ -11,12 +11,12 @@ export default function HeroLanding() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,#41ac53_0%,transparent_55%)] opacity-[0.10]" />
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-6 pb-16 lg:pt-10 lg:pb-24">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-10 pt-6 pb-6 lg:pt-10 lg:pb-10">
         <MarketingNavbar />
 
-        <div className="grid gap-10 lg:gap-14 lg:grid-cols-[1.05fr,0.95fr] items-center">
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10 lg:gap-14">
           {/* Leva kolona: tekst + CTA */}
-          <div className="flex flex-col items-start gap-5 lg:gap-6 max-w-2xl">
+          <div className="w-full md:flex-[1.05] flex flex-col items-start gap-5 lg:gap-6 max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
               {t('hero.badge')}
@@ -68,8 +68,8 @@ export default function HeroLanding() {
           </div>
 
           {/* Desna kolona: vizual aplikacije */}
-          <div className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
+          <div className="w-full md:flex-[0.95] flex justify-center md:justify-end">
+            <div className="w-full max-w-md sm:max-w-lg md:max-w-md lg:max-w-xl xl:max-w-2xl">
               <img
                 src="https://res.cloudinary.com/dfvxp5rza/image/upload/v1773786067/na_vrhu_prikaz_aplikacije_na_laptopu_i_telefonu_kp9o1u.png"
                 alt={t('alts.heroProduct')}
