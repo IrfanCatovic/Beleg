@@ -1329,39 +1329,76 @@ export const resources = {
     },
     contactPage: {
       hero: {
-        title: 'Tu smo za vas',
-        subtitle: 'Pitanja o planiner aplikaciji, ponudi za vaše društvo ili tehnička podrška - javite nam se. Naš tim odgovara brzo i konkretno.',
+        title: 'Kontakt za klubove i planinare',
+        subtitle: 'Bilo da želite da prijavite planinarsko društvo, pronađete akcije, pitate za saradnju ili dobijete pomoć oko aplikacije - javite nam se. Odgovaramo brzo i konkretno.',
       },
-      trust: {
-        activeClubs: 'aktivnih klubova kod nas',
-        responseTime: 'odgovor u roku od sat vremena',
-        satisfiedClients: 'zadovoljni klijenti',
-        reviews: 'preporuke i ocene',
+      trustCards: {
+        clubs: { label: 'Klubovi', value: '15+', desc: 'klubova pokazalo interesovanje' },
+        support: { label: 'Podrška', value: '1 na 1', desc: 'pomoć pri prvom podešavanju' },
+        use: { label: 'Korišćenje', value: 'Web', desc: 'radi na telefonu i računaru' },
+        start: { label: 'Početak', value: 'Besplatno', desc: 'za klubove koji kreću prvi' },
       },
       contacts: {
         title: 'Kontakt osobe',
+        subtitle: 'Za pitanja oko klubova, saradnje, pristupa aplikaciji ili tehničke podrške možete nam se javiti direktno.',
         phoneCopied: 'Broj kopiran',
         emailCopied: 'Email kopiran',
       },
+      modeSelector: {
+        title: 'Kako želite da nam se javite?',
+        subtitle: 'Izaberite da li pišete kao planinarsko društvo ili kao običan planinar, kako bismo vam tražili samo informacije koje su stvarno potrebne.',
+        club: {
+          title: 'Planinarsko društvo',
+          desc: 'Želim da prijavim klub, dobijem pristup i pomoć oko početnog podešavanja.',
+        },
+        hiker: {
+          title: 'Planinar',
+          desc: 'Želim da koristim Planiner, pronađem akcije, ture ili se povežem sa klubovima.',
+        },
+      },
       form: {
-        title: 'Pošaljite nam poruku',
-        subtitle: 'Kratka forma za pitanja o planiner, saradnji ili demonstraciji.',
         requiredAll: 'Molimo popunite sva obavezna polja.',
         contactPerson: 'Kontakt osoba',
         contactPersonPlaceholder: 'Ime i prezime kontakt osobe',
         clubName: 'Ime kluba',
         clubNamePlaceholder: 'npr. Planinarsko društvo Javor',
         city: 'Mesto',
-        cityPlaceholder: 'Grad ili mesto u kojem je klub',
+        cityPlaceholder: 'Grad ili mesto u kom je klub',
         question: 'Pitanje za nas',
-        questionPlaceholder: 'Ukratko opišite šta vas zanima...',
-        hint: 'Klikom na "Pošalji poruku" vaš upit stiže direktno našem timu.',
         sending: 'Slanje...',
-        submit: 'Pošalji poruku',
+      },
+      clubForm: {
+        title: 'Pošaljite upit za klub',
+        subtitle: 'Popunite osnovne podatke i javićemo vam se oko pristupa, podešavanja kluba i prvih koraka u Planineru.',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +381 6x xxx xxxx',
+        memberCount: 'Broj članova kluba',
+        memberCountPlaceholder: 'npr. 45',
+        adminUsername: 'Korisničko ime prvog admina',
+        adminUsernamePlaceholder: 'npr. jovan.admin',
+        questionPlaceholder: 'Ukratko opišite šta vas zanima, da li želite pristup, demonstraciju ili pomoć oko podešavanja...',
+        submit: 'Pošalji upit za klub',
+        hint: 'Nema obaveze. Cilj je da zajedno vidimo kako Planiner može da pomogne vašem društvu.',
+      },
+      hikerForm: {
+        title: 'Pošaljite pitanje kao planinar',
+        subtitle: 'Ako želite da koristite Planiner, pronađete akcije, ture za vikend ili se povežete sa klubovima, javite nam se.',
+        name: 'Ime i prezime',
+        namePlaceholder: 'Vaše ime i prezime',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +381 6x xxx xxxx',
+        city: 'Mesto',
+        cityPlaceholder: 'Grad ili mesto odakle ste',
+        interest: 'Šta vas zanima?',
+        interestPlaceholder: 'npr. Želim da vidim akcije za ovaj vikend, pronađem klub u blizini ili dobijem pomoć oko registracije...',
+        submit: 'Pošalji pitanje',
+        hint: 'Planiner mogu koristiti i planinari koji nisu deo uprave kluba.',
       },
       mail: {
         noteTitle: 'Pitanje poslato sa stranice Kontakt:',
-        packageName: 'Kontakt forma',
+        packageNameClub: 'Kontakt - Planinarsko društvo',
+        packageNameHiker: 'Kontakt - Planinar',
+        hikerPlaceholder: 'Planinar (kontakt upit)',
       },
       messages: {
         success: 'Poruka je uspešno poslata. Javićemo vam se uskoro.',
@@ -1369,9 +1406,12 @@ export const resources = {
         network: 'Nema odgovora od servera. Proverite API URL i CORS_ORIGINS.',
         sendError: 'Greška pri slanju. Pokušajte ponovo.',
       },
-      cta: {
-        text: 'Želite ponudu za vaše planinarsko društvo? Popunite kratku formu na stranici Cene.',
-        button: 'Pogledaj cene i pošalji zahtev',
+      ctaNew: {
+        title: 'Želite da krenete sa Planinerom?',
+        text: 'Prijavite klub, pošaljite pitanje ili se registrujte kao planinar. Planiner je napravljen da poveže društva, vodiče i ljude koji vole planinu.',
+        primary: 'Prijavi svoj klub',
+        secondary: 'Registruj se kao planinar',
+        smallText: 'Manje izgubljenih poruka, više akcija i bolja povezanost planinarske zajednice.',
       },
     },
     cenaPage: {
@@ -3256,23 +3296,34 @@ export const resources = {
     },
     contactPage: {
       hero: {
-        title: 'Tu smo za vas',
-        subtitle: 'Pitanja o planiner aplikaciji, ponudi za vaše društvo ili tehnička podrška - javite nam se.',
+        title: 'Kontakt za klubove i planinare',
+        subtitle: 'Bilo da želite prijaviti planinarsko društvo, pronaći akcije, pitati za saradnju ili dobiti pomoć oko aplikacije - javite nam se. Odgovaramo brzo i konkretno.',
       },
-      trust: {
-        activeClubs: 'aktivnih klubova kod nas',
-        responseTime: 'odgovor u roku od sat vremena',
-        satisfiedClients: 'zadovoljni klijenti',
-        reviews: 'preporuke i ocjene',
+      trustCards: {
+        clubs: { label: 'Klubovi', value: '15+', desc: 'klubova pokazalo interesovanje' },
+        support: { label: 'Podrška', value: '1 na 1', desc: 'pomoć pri prvom podešavanju' },
+        use: { label: 'Korištenje', value: 'Web', desc: 'radi na telefonu i računaru' },
+        start: { label: 'Početak', value: 'Besplatno', desc: 'za klubove koji kreću prvi' },
       },
       contacts: {
         title: 'Kontakt osobe',
+        subtitle: 'Za pitanja oko klubova, saradnje, pristupa aplikaciji ili tehničke podrške možete nam se javiti direktno.',
         phoneCopied: 'Broj kopiran',
         emailCopied: 'Email kopiran',
       },
+      modeSelector: {
+        title: 'Kako želite da nam se javite?',
+        subtitle: 'Izaberite da li pišete kao planinarsko društvo ili kao običan planinar, kako bismo vam tražili samo informacije koje su zaista potrebne.',
+        club: {
+          title: 'Planinarsko društvo',
+          desc: 'Želim prijaviti klub, dobiti pristup i pomoć oko početnog podešavanja.',
+        },
+        hiker: {
+          title: 'Planinar',
+          desc: 'Želim koristiti Planiner, pronaći akcije, ture ili se povezati sa klubovima.',
+        },
+      },
       form: {
-        title: 'Pošaljite nam poruku',
-        subtitle: 'Kratka forma za pitanja o planiner, saradnji ili demonstraciji.',
         requiredAll: 'Molimo popunite sva obavezna polja.',
         contactPerson: 'Kontakt osoba',
         contactPersonPlaceholder: 'Ime i prezime kontakt osobe',
@@ -3281,24 +3332,53 @@ export const resources = {
         city: 'Mjesto',
         cityPlaceholder: 'Grad ili mjesto u kojem je klub',
         question: 'Pitanje za nas',
-        questionPlaceholder: 'Ukratko opišite šta vas zanima...',
-        hint: 'Klikom na "Pošalji poruku" vaš upit stiže direktno našem timu.',
         sending: 'Slanje...',
-        submit: 'Pošalji poruku',
+      },
+      clubForm: {
+        title: 'Pošaljite upit za klub',
+        subtitle: 'Popunite osnovne podatke i javit ćemo vam se oko pristupa, podešavanja kluba i prvih koraka u Planineru.',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +387 6x xxx xxxx',
+        memberCount: 'Broj članova kluba',
+        memberCountPlaceholder: 'npr. 45',
+        adminUsername: 'Korisničko ime prvog admina',
+        adminUsernamePlaceholder: 'npr. jovan.admin',
+        questionPlaceholder: 'Ukratko opišite šta vas zanima, da li želite pristup, demonstraciju ili pomoć oko podešavanja...',
+        submit: 'Pošalji upit za klub',
+        hint: 'Nema obaveze. Cilj je da zajedno vidimo kako Planiner može pomoći vašem društvu.',
+      },
+      hikerForm: {
+        title: 'Pošaljite pitanje kao planinar',
+        subtitle: 'Ako želite koristiti Planiner, pronaći akcije, ture za vikend ili se povezati sa klubovima, javite nam se.',
+        name: 'Ime i prezime',
+        namePlaceholder: 'Vaše ime i prezime',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +387 6x xxx xxxx',
+        city: 'Mjesto',
+        cityPlaceholder: 'Grad ili mjesto odakle ste',
+        interest: 'Šta vas zanima?',
+        interestPlaceholder: 'npr. Želim vidjeti akcije za ovaj vikend, pronaći klub u blizini ili dobiti pomoć oko registracije...',
+        submit: 'Pošalji pitanje',
+        hint: 'Planiner mogu koristiti i planinari koji nisu dio uprave kluba.',
       },
       mail: {
-        noteTitle: 'Pitanje poslato sa stranice Kontakt:',
-        packageName: 'Kontakt forma',
+        noteTitle: 'Pitanje poslano sa stranice Kontakt:',
+        packageNameClub: 'Kontakt - Planinarsko društvo',
+        packageNameHiker: 'Kontakt - Planinar',
+        hikerPlaceholder: 'Planinar (kontakt upit)',
       },
       messages: {
-        success: 'Poruka je uspješno poslana. Javićemo vam se uskoro.',
+        success: 'Poruka je uspješno poslana. Javit ćemo vam se uskoro.',
         timeout: 'Zahtjev je predugo trajao. Provjerite SMTP/Resend i API/CORS.',
         network: 'Nema odgovora od servera. Provjerite API URL i CORS_ORIGINS.',
         sendError: 'Greška pri slanju. Pokušajte ponovo.',
       },
-      cta: {
-        text: 'Želite ponudu za vaše planinarsko društvo? Popunite kratku formu na stranici Cijene.',
-        button: 'Pogledaj cijene i pošalji zahtjev',
+      ctaNew: {
+        title: 'Želite krenuti sa Planinerom?',
+        text: 'Prijavite klub, pošaljite pitanje ili se registrujte kao planinar. Planiner je napravljen da poveže društva, vodiče i ljude koji vole planinu.',
+        primary: 'Prijavi svoj klub',
+        secondary: 'Registruj se kao planinar',
+        smallText: 'Manje izgubljenih poruka, više akcija i bolja povezanost planinarske zajednice.',
       },
     },
     cenaPage: {
@@ -4883,23 +4963,34 @@ export const resources = {
     },
     contactPage: {
       hero: {
-        title: 'Tu smo za vas',
-        subtitle: 'Pitanja o planiner aplikaciji, ponudi za vaše društvo ili tehnička podrška - javite nam se.',
+        title: 'Kontakt za klubove i planinare',
+        subtitle: 'Bilo da želite prijaviti planinarsko društvo, pronaći akcije, pitati za suradnju ili dobiti pomoć oko aplikacije - javite nam se. Odgovaramo brzo i konkretno.',
       },
-      trust: {
-        activeClubs: 'aktivnih klubova kod nas',
-        responseTime: 'odgovor u roku od sat vremena',
-        satisfiedClients: 'zadovoljni klijenti',
-        reviews: 'preporuke i ocjene',
+      trustCards: {
+        clubs: { label: 'Klubovi', value: '15+', desc: 'klubova pokazalo interes' },
+        support: { label: 'Podrška', value: '1 na 1', desc: 'pomoć pri prvom postavljanju' },
+        use: { label: 'Korištenje', value: 'Web', desc: 'radi na telefonu i računalu' },
+        start: { label: 'Početak', value: 'Besplatno', desc: 'za klubove koji kreću prvi' },
       },
       contacts: {
         title: 'Kontakt osobe',
+        subtitle: 'Za pitanja oko klubova, suradnje, pristupa aplikaciji ili tehničke podrške možete nam se javiti izravno.',
         phoneCopied: 'Broj kopiran',
         emailCopied: 'Email kopiran',
       },
+      modeSelector: {
+        title: 'Kako se želite javiti?',
+        subtitle: 'Odaberite pišete li kao planinarsko društvo ili kao obični planinar, kako bismo tražili samo informacije koje su zaista potrebne.',
+        club: {
+          title: 'Planinarsko društvo',
+          desc: 'Želim prijaviti klub, dobiti pristup i pomoć oko početnog postavljanja.',
+        },
+        hiker: {
+          title: 'Planinar',
+          desc: 'Želim koristiti Planiner, pronaći akcije, ture ili se povezati s klubovima.',
+        },
+      },
       form: {
-        title: 'Pošaljite nam poruku',
-        subtitle: 'Kratka forma za pitanja o planiner, suradnji ili demonstraciji.',
         requiredAll: 'Molimo ispunite sva obavezna polja.',
         contactPerson: 'Kontakt osoba',
         contactPersonPlaceholder: 'Ime i prezime kontakt osobe',
@@ -4908,14 +4999,40 @@ export const resources = {
         city: 'Mjesto',
         cityPlaceholder: 'Grad ili mjesto u kojem je klub',
         question: 'Pitanje za nas',
-        questionPlaceholder: 'Ukratko opišite što vas zanima...',
-        hint: 'Klikom na "Pošalji poruku" vaš upit stiže direktno našem timu.',
         sending: 'Slanje...',
-        submit: 'Pošalji poruku',
+      },
+      clubForm: {
+        title: 'Pošaljite upit za klub',
+        subtitle: 'Ispunite osnovne podatke i javit ćemo vam se oko pristupa, postavljanja kluba i prvih koraka u Planineru.',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +385 9x xxx xxxx',
+        memberCount: 'Broj članova kluba',
+        memberCountPlaceholder: 'npr. 45',
+        adminUsername: 'Korisničko ime prvog admina',
+        adminUsernamePlaceholder: 'npr. jovan.admin',
+        questionPlaceholder: 'Ukratko opišite što vas zanima, želite li pristup, demonstraciju ili pomoć oko postavljanja...',
+        submit: 'Pošalji upit za klub',
+        hint: 'Bez obveze. Cilj je da zajedno vidimo kako Planiner može pomoći vašem društvu.',
+      },
+      hikerForm: {
+        title: 'Pošaljite pitanje kao planinar',
+        subtitle: 'Ako želite koristiti Planiner, pronaći akcije, ture za vikend ili se povezati s klubovima, javite nam se.',
+        name: 'Ime i prezime',
+        namePlaceholder: 'Vaše ime i prezime',
+        phone: 'Telefon',
+        phonePlaceholder: 'npr. +385 9x xxx xxxx',
+        city: 'Mjesto',
+        cityPlaceholder: 'Grad ili mjesto odakle ste',
+        interest: 'Što vas zanima?',
+        interestPlaceholder: 'npr. Želim vidjeti akcije za ovaj vikend, pronaći klub u blizini ili dobiti pomoć oko registracije...',
+        submit: 'Pošalji pitanje',
+        hint: 'Planiner mogu koristiti i planinari koji nisu dio uprave kluba.',
       },
       mail: {
         noteTitle: 'Pitanje poslano sa stranice Kontakt:',
-        packageName: 'Kontakt forma',
+        packageNameClub: 'Kontakt - Planinarsko društvo',
+        packageNameHiker: 'Kontakt - Planinar',
+        hikerPlaceholder: 'Planinar (kontakt upit)',
       },
       messages: {
         success: 'Poruka je uspješno poslana. Javit ćemo vam se uskoro.',
@@ -4923,9 +5040,12 @@ export const resources = {
         network: 'Nema odgovora sa servera. Provjerite API URL i CORS_ORIGINS.',
         sendError: 'Greška pri slanju. Pokušajte ponovno.',
       },
-      cta: {
-        text: 'Želite ponudu za vaše planinarsko društvo? Ispunite kratku formu na stranici Cijene.',
-        button: 'Pogledaj cijene i pošalji zahtjev',
+      ctaNew: {
+        title: 'Želite krenuti s Planinerom?',
+        text: 'Prijavite klub, pošaljite pitanje ili se registrirajte kao planinar. Planiner je napravljen da poveže društva, vodiče i ljude koji vole planinu.',
+        primary: 'Prijavi svoj klub',
+        secondary: 'Registriraj se kao planinar',
+        smallText: 'Manje izgubljenih poruka, više akcija i bolja povezanost planinarske zajednice.',
       },
     },
     cenaPage: {
@@ -6350,23 +6470,34 @@ export const resources = {
     },
     contactPage: {
       hero: {
-        title: 'Wir sind für Sie da',
-        subtitle: 'Fragen zur planiner-App, Angebot für Ihren Verein oder technischer Support - schreiben Sie uns.',
+        title: 'Kontakt für Vereine und Bergsportler',
+        subtitle: 'Ob Sie einen Bergverein anmelden, Touren finden, eine Zusammenarbeit anfragen oder Hilfe zur App brauchen - schreiben Sie uns. Wir antworten schnell und konkret.',
       },
-      trust: {
-        activeClubs: 'aktive Vereine bei uns',
-        responseTime: 'Antwort in unter einer Stunde',
-        satisfiedClients: 'zufriedene Kunden',
-        reviews: 'Empfehlungen und Bewertungen',
+      trustCards: {
+        clubs: { label: 'Vereine', value: '15+', desc: 'Vereine haben Interesse gezeigt' },
+        support: { label: 'Support', value: '1 zu 1', desc: 'Hilfe bei der ersten Einrichtung' },
+        use: { label: 'Nutzung', value: 'Web', desc: 'läuft auf Handy und Computer' },
+        start: { label: 'Start', value: 'Kostenlos', desc: 'für Vereine, die zuerst starten' },
       },
       contacts: {
         title: 'Kontaktpersonen',
+        subtitle: 'Für Fragen zu Vereinen, Zusammenarbeit, App-Zugang oder technischem Support können Sie uns direkt erreichen.',
         phoneCopied: 'Nummer kopiert',
         emailCopied: 'E-Mail kopiert',
       },
+      modeSelector: {
+        title: 'Wie möchten Sie Kontakt aufnehmen?',
+        subtitle: 'Wählen Sie aus, ob Sie als Bergverein oder als einzelner Bergsportler schreiben, damit wir nur die wirklich nötigen Angaben erfragen.',
+        club: {
+          title: 'Bergverein',
+          desc: 'Ich möchte einen Verein anmelden, Zugang erhalten und Hilfe bei der ersten Einrichtung.',
+        },
+        hiker: {
+          title: 'Bergsportler',
+          desc: 'Ich möchte Planiner nutzen, Touren finden oder mich mit Vereinen vernetzen.',
+        },
+      },
       form: {
-        title: 'Senden Sie uns eine Nachricht',
-        subtitle: 'Kurzes Formular für Fragen zu planiner, Zusammenarbeit oder Demo.',
         requiredAll: 'Bitte alle Pflichtfelder ausfüllen.',
         contactPerson: 'Kontaktperson',
         contactPersonPlaceholder: 'Vor- und Nachname der Kontaktperson',
@@ -6375,14 +6506,40 @@ export const resources = {
         city: 'Ort',
         cityPlaceholder: 'Stadt oder Ort des Vereins',
         question: 'Ihre Frage',
-        questionPlaceholder: 'Beschreiben Sie kurz Ihr Anliegen...',
-        hint: 'Mit Klick auf "Nachricht senden" erreicht Ihre Anfrage direkt unser Team.',
         sending: 'Senden...',
-        submit: 'Nachricht senden',
+      },
+      clubForm: {
+        title: 'Anfrage für Ihren Verein senden',
+        subtitle: 'Füllen Sie die Basisdaten aus und wir melden uns wegen Zugang, Einrichtung und ersten Schritten in Planiner.',
+        phone: 'Telefon',
+        phonePlaceholder: 'z. B. +49 1xx xxx xxxx',
+        memberCount: 'Mitgliederzahl',
+        memberCountPlaceholder: 'z. B. 45',
+        adminUsername: 'Benutzername des ersten Admins',
+        adminUsernamePlaceholder: 'z. B. jovan.admin',
+        questionPlaceholder: 'Beschreiben Sie kurz, was Sie interessiert: Zugang, Demo oder Hilfe bei der Einrichtung...',
+        submit: 'Anfrage für Verein senden',
+        hint: 'Unverbindlich. Ziel ist, gemeinsam zu schauen, wie Planiner Ihrem Verein helfen kann.',
+      },
+      hikerForm: {
+        title: 'Anfrage als Bergsportler senden',
+        subtitle: 'Wenn Sie Planiner nutzen, Touren für das Wochenende finden oder sich mit Vereinen vernetzen möchten, schreiben Sie uns.',
+        name: 'Vor- und Nachname',
+        namePlaceholder: 'Ihr Vor- und Nachname',
+        phone: 'Telefon',
+        phonePlaceholder: 'z. B. +49 1xx xxx xxxx',
+        city: 'Ort',
+        cityPlaceholder: 'Stadt oder Ort, woher Sie sind',
+        interest: 'Was interessiert Sie?',
+        interestPlaceholder: 'z. B. Touren für dieses Wochenende, einen Verein in der Nähe finden oder Hilfe bei der Anmeldung...',
+        submit: 'Anfrage senden',
+        hint: 'Planiner können auch Bergsportler nutzen, die nicht im Vereinsvorstand sind.',
       },
       mail: {
         noteTitle: 'Anfrage von der Kontaktseite:',
-        packageName: 'Kontaktformular',
+        packageNameClub: 'Kontakt - Bergverein',
+        packageNameHiker: 'Kontakt - Bergsportler',
+        hikerPlaceholder: 'Bergsportler (Kontaktanfrage)',
       },
       messages: {
         success: 'Nachricht erfolgreich gesendet. Wir melden uns bald.',
@@ -6390,9 +6547,12 @@ export const resources = {
         network: 'Keine Antwort vom Server. Bitte API URL und CORS_ORIGINS prüfen.',
         sendError: 'Fehler beim Senden. Bitte erneut versuchen.',
       },
-      cta: {
-        text: 'Sie möchten ein Angebot für Ihren Verein? Nutzen Sie das kurze Formular auf der Preisseite.',
-        button: 'Preise ansehen und Anfrage senden',
+      ctaNew: {
+        title: 'Möchten Sie mit Planiner starten?',
+        text: 'Melden Sie Ihren Verein an, senden Sie eine Anfrage oder registrieren Sie sich als Bergsportler. Planiner verbindet Vereine, Tourenleiter und Menschen, die die Berge lieben.',
+        primary: 'Verein anmelden',
+        secondary: 'Als Bergsportler registrieren',
+        smallText: 'Weniger verlorene Nachrichten, mehr Touren und eine besser vernetzte Bergsport-Community.',
       },
     },
     cenaPage: {
@@ -7818,23 +7978,34 @@ export const resources = {
     },
     contactPage: {
       hero: {
-        title: 'We are here for you',
-        subtitle: 'Questions about the planiner app, offer for your club, or technical support - contact us.',
+        title: 'Contact for clubs and hikers',
+        subtitle: 'Whether you want to register a mountaineering club, find trips, ask about collaboration, or get help with the app - reach out. We respond fast and to the point.',
       },
-      trust: {
-        activeClubs: 'active clubs with us',
-        responseTime: 'response within one hour',
-        satisfiedClients: 'satisfied clients',
-        reviews: 'recommendations and ratings',
+      trustCards: {
+        clubs: { label: 'Clubs', value: '15+', desc: 'clubs have shown interest' },
+        support: { label: 'Support', value: '1-on-1', desc: 'help with the first setup' },
+        use: { label: 'Access', value: 'Web', desc: 'works on phone and computer' },
+        start: { label: 'Start', value: 'Free', desc: 'for clubs that get started first' },
       },
       contacts: {
-        title: 'Contact persons',
+        title: 'Contact people',
+        subtitle: 'For questions about clubs, collaboration, app access, or technical support, you can reach us directly.',
         phoneCopied: 'Phone copied',
         emailCopied: 'Email copied',
       },
+      modeSelector: {
+        title: 'How would you like to reach out?',
+        subtitle: 'Choose whether you are writing as a mountaineering club or as an individual hiker, so we only ask for the details that are really needed.',
+        club: {
+          title: 'Mountaineering club',
+          desc: 'I want to register a club, get access, and help with the initial setup.',
+        },
+        hiker: {
+          title: 'Hiker',
+          desc: 'I want to use Planiner, find trips, weekend tours, or connect with clubs.',
+        },
+      },
       form: {
-        title: 'Send us a message',
-        subtitle: 'Short form for questions about planiner, collaboration, or demo.',
         requiredAll: 'Please fill in all required fields.',
         contactPerson: 'Contact person',
         contactPersonPlaceholder: 'Full name of contact person',
@@ -7843,14 +8014,40 @@ export const resources = {
         city: 'City',
         cityPlaceholder: 'City or place where the club is located',
         question: 'Question for us',
-        questionPlaceholder: 'Briefly describe what you are interested in...',
-        hint: 'By clicking "Send message", your inquiry goes directly to our team.',
         sending: 'Sending...',
-        submit: 'Send message',
+      },
+      clubForm: {
+        title: 'Send an inquiry for your club',
+        subtitle: 'Fill in the basic details and we will get back to you about access, club setup, and the first steps in Planiner.',
+        phone: 'Phone',
+        phonePlaceholder: 'e.g. +1 5xx xxx xxxx',
+        memberCount: 'Number of club members',
+        memberCountPlaceholder: 'e.g. 45',
+        adminUsername: 'First admin username',
+        adminUsernamePlaceholder: 'e.g. jovan.admin',
+        questionPlaceholder: 'Briefly describe what you are interested in: access, a demo, or help with the setup...',
+        submit: 'Send club inquiry',
+        hint: 'No obligation. The goal is to figure out together how Planiner can help your club.',
+      },
+      hikerForm: {
+        title: 'Send a question as a hiker',
+        subtitle: 'If you want to use Planiner, find trips for the weekend, or connect with clubs, reach out.',
+        name: 'Full name',
+        namePlaceholder: 'Your full name',
+        phone: 'Phone',
+        phonePlaceholder: 'e.g. +1 5xx xxx xxxx',
+        city: 'City',
+        cityPlaceholder: 'City or place you are from',
+        interest: 'What are you interested in?',
+        interestPlaceholder: 'e.g. I want to see trips for this weekend, find a club nearby, or get help with sign-up...',
+        submit: 'Send question',
+        hint: 'Planiner can also be used by hikers who are not part of club leadership.',
       },
       mail: {
         noteTitle: 'Question sent from Contact page:',
-        packageName: 'Contact form',
+        packageNameClub: 'Contact - Mountaineering club',
+        packageNameHiker: 'Contact - Hiker',
+        hikerPlaceholder: 'Hiker (contact inquiry)',
       },
       messages: {
         success: 'Message sent successfully. We will get back to you soon.',
@@ -7858,9 +8055,12 @@ export const resources = {
         network: 'No response from server. Check API URL and CORS_ORIGINS.',
         sendError: 'Error while sending. Please try again.',
       },
-      cta: {
-        text: 'Want an offer for your hiking club? Fill out the short form on the Pricing page.',
-        button: 'View pricing and send request',
+      ctaNew: {
+        title: 'Want to get started with Planiner?',
+        text: 'Register your club, send a question, or sign up as a hiker. Planiner is built to connect clubs, guides, and people who love the mountains.',
+        primary: 'Register your club',
+        secondary: 'Sign up as a hiker',
+        smallText: 'Fewer lost messages, more trips, and a better connected hiking community.',
       },
     },
     cenaPage: {
@@ -9327,23 +9527,34 @@ export const resources = {
   },
   "contactPage": {
     "hero": {
-      "title": "Tukaj smo za vas",
-      "subtitle": "Vprašanja o aplikaciji Planiner, ponudbi za vaš klub ali tehnični podpori - kontaktirajte nas."
+      "title": "Kontakt za klube in pohodnike",
+      "subtitle": "Ne glede na to, ali želite prijaviti planinsko društvo, najti dejavnosti, vprašati za sodelovanje ali dobiti pomoč pri aplikaciji - oglasite se. Odgovarjamo hitro in konkretno."
     },
-    "trust": {
-      "activeClubs": "aktivni klubi pri nas",
-      "responseTime": "odgovor v eni uri",
-      "satisfiedClients": "zadovoljne stranke",
-      "reviews": "priporočila in ocene"
+    "trustCards": {
+      "clubs": { "label": "Klubi", "value": "15+", "desc": "klubov je pokazalo zanimanje" },
+      "support": { "label": "Podpora", "value": "1 na 1", "desc": "pomoč pri prvi nastavitvi" },
+      "use": { "label": "Uporaba", "value": "Splet", "desc": "deluje na telefonu in računalniku" },
+      "start": { "label": "Začetek", "value": "Brezplačno", "desc": "za klube, ki začnejo prvi" }
     },
     "contacts": {
       "title": "Kontaktne osebe",
+      "subtitle": "Za vprašanja o klubih, sodelovanju, dostopu do aplikacije ali tehnični podpori se lahko javite neposredno.",
       "phoneCopied": "Telefon kopiran",
       "emailCopied": "E-pošta je kopirana"
     },
+    "modeSelector": {
+      "title": "Kako se nam želite oglasiti?",
+      "subtitle": "Izberite, ali pišete kot planinsko društvo ali kot posamezen pohodnik, da vas vprašamo le za podatke, ki so res potrebni.",
+      "club": {
+        "title": "Planinsko društvo",
+        "desc": "Želim prijaviti klub, pridobiti dostop in pomoč pri začetni nastavitvi."
+      },
+      "hiker": {
+        "title": "Pohodnik",
+        "desc": "Želim uporabljati Planiner, najti dejavnosti, ture ali se povezati s klubi."
+      }
+    },
     "form": {
-      "title": "Pošljite nam sporočilo",
-      "subtitle": "Kratek obrazec za vprašanja o načrtovalniku, sodelovanju ali predstavitvi.",
       "requiredAll": "Prosimo izpolnite vsa zahtevana polja.",
       "contactPerson": "Kontaktna oseba",
       "contactPersonPlaceholder": "Polno ime kontaktne osebe",
@@ -9352,14 +9563,40 @@ export const resources = {
       "city": "Mesto",
       "cityPlaceholder": "Mesto ali kraj, kjer se klub nahaja",
       "question": "Vprašanje za nas",
-      "questionPlaceholder": "Na kratko opišite, kaj vas zanima...",
-      "hint": "S klikom na \"Pošlji sporočilo\" gre vaše povpraševanje neposredno naši ekipi.",
-      "sending": "Pošiljanje ...",
-      "submit": "Pošlji sporočilo"
+      "sending": "Pošiljanje ..."
+    },
+    "clubForm": {
+      "title": "Pošljite poizvedbo za klub",
+      "subtitle": "Izpolnite osnovne podatke in javili se vam bomo glede dostopa, nastavitve kluba in prvih korakov v Planinerju.",
+      "phone": "Telefon",
+      "phonePlaceholder": "npr. +386 4x xxx xxx",
+      "memberCount": "Število članov kluba",
+      "memberCountPlaceholder": "npr. 45",
+      "adminUsername": "Uporabniško ime prvega admina",
+      "adminUsernamePlaceholder": "npr. jovan.admin",
+      "questionPlaceholder": "Na kratko opišite, kaj vas zanima: dostop, predstavitev ali pomoč pri nastavitvi...",
+      "submit": "Pošlji poizvedbo za klub",
+      "hint": "Brez obveznosti. Cilj je, da skupaj vidimo, kako lahko Planiner pomaga vašemu društvu."
+    },
+    "hikerForm": {
+      "title": "Pošljite vprašanje kot pohodnik",
+      "subtitle": "Če želite uporabljati Planiner, najti dejavnosti, ture za vikend ali se povezati s klubi, se oglasite.",
+      "name": "Ime in priimek",
+      "namePlaceholder": "Vaše ime in priimek",
+      "phone": "Telefon",
+      "phonePlaceholder": "npr. +386 4x xxx xxx",
+      "city": "Mesto",
+      "cityPlaceholder": "Mesto ali kraj, od koder ste",
+      "interest": "Kaj vas zanima?",
+      "interestPlaceholder": "npr. Želim videti dejavnosti za ta vikend, najti klub v bližini ali dobiti pomoč pri prijavi...",
+      "submit": "Pošlji vprašanje",
+      "hint": "Planiner lahko uporabljajo tudi pohodniki, ki niso del vodstva kluba."
     },
     "mail": {
       "noteTitle": "Vprašanje poslano s strani Kontakt:",
-      "packageName": "Kontaktni obrazec"
+      "packageNameClub": "Kontakt - Planinsko društvo",
+      "packageNameHiker": "Kontakt - Pohodnik",
+      "hikerPlaceholder": "Pohodnik (kontaktna poizvedba)"
     },
     "messages": {
       "success": "Sporočilo je bilo uspešno poslano. Kmalu se vam bomo javili.",
@@ -9367,9 +9604,12 @@ export const resources = {
       "network": "Ni odgovora s strežnika. Preverite URL API in CORS_ORIGINS.",
       "sendError": "Napaka pri pošiljanju. prosim poskusite znova"
     },
-    "cta": {
-      "text": "Želite ponudbo za vaš pohodniški klub? Izpolnite kratek obrazec na strani Cene.",
-      "button": "Oglejte si cenik in pošljite povpraševanje"
+    "ctaNew": {
+      "title": "Bi radi začeli s Planinerjem?",
+      "text": "Prijavite klub, pošljite vprašanje ali se registrirajte kot pohodnik. Planiner je narejen za povezovanje društev, vodnikov in ljudi, ki ljubijo gore.",
+      "primary": "Prijavi svoj klub",
+      "secondary": "Registriraj se kot pohodnik",
+      "smallText": "Manj izgubljenih sporočil, več dejavnosti in bolje povezana planinska skupnost."
     }
   },
   "cenaPage": {
