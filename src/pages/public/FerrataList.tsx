@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
+import { useAuth } from '../../context/AuthContext'
 
 type FerrataRow = {
   id: number
@@ -25,6 +26,7 @@ function formatDuration(min: number, max: number) {
 
 export default function FerrataList() {
   const { t } = useTranslation('ferrate')
+  const { user } = useAuth()
   const [rows, setRows] = useState<FerrataRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -54,12 +56,36 @@ export default function FerrataList() {
     }
   }, [search, tezina])
 
+  const isSuperadmin = user?.role === 'superadmin'
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-16">
-      <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">{t('listTitle')}</h1>
-        <p className="text-sm sm:text-base text-gray-600 max-w-2xl">{t('listSubtitle')}</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">{t('listTitle')}</h1>
+          <p className="text-sm sm:text-base text-gray-600 max-w-2xl">{t('listSubtitle')}</p>
+        </div>
+        {isSuperadmin && (
+          <Link
+            to="/superadmin/ferrate"
+            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            {t('listSuperadminCta')}
+          </Link>
+        )}
       </div>
+
+      {isSuperadmin && (
+        <div className="rounded-xl border border-amber-200/90 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="leading-relaxed">{t('listSuperadminBanner')}</p>
+          <Link
+            to="/superadmin/ferrate"
+            className="shrink-0 inline-flex items-center justify-center rounded-lg bg-amber-900 px-3 py-2 text-xs font-bold text-white hover:bg-amber-950"
+          >
+            {t('superadminAdd')} →
+          </Link>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
         <div className="flex-1">

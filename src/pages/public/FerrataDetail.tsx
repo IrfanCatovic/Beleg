@@ -205,6 +205,16 @@ export default function FerrataDetail() {
           <ArrowLeftIcon className="h-4 w-4" />
           {t('detailBreadcrumb')}
         </Link>
+        {user?.role === 'superadmin' && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              to="/superadmin/ferrate"
+              className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
+            >
+              {t('detailSuperadminCta')} →
+            </Link>
+          </div>
+        )}
       </div>
 
       {loading && <p className="px-4 text-sm text-gray-500">…</p>}

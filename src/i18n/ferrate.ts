@@ -3,6 +3,10 @@ export const ferrateTranslations = {
   nav: 'Ferate',
   listTitle: 'Via ferrate',
   listSubtitle: 'Pronađi feratu, informiši se i prijavi se na akciju ili zakaži vodiča.',
+  listSuperadminBanner:
+    'Ovo je javni pregled kataloga. Kao superadmin, nove ferate i izmene radiš u posebnom panelu — ovde nema dugmeta za uređivanje.',
+  listSuperadminCta: 'Superadmin: katalog ferata',
+  detailSuperadminCta: 'Uredi u superadmin panelu',
   searchPlaceholder: 'Pretraga po nazivu ili lokaciji…',
   filterDifficulty: 'Težina',
   filterDifficultyAll: 'Sve',
