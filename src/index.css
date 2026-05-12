@@ -67,3 +67,21 @@
     animation: none !important;
   }
 }
+
+/* Leaflet — uskladiti sa Planiner karticama (zaobljenje, font, blagi akcent) */
+.leaflet-container {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.12);
+  border: 1px solid rgb(209 250 229 / 0.6);
+}
+.leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgb(255 255 255 / 0.88) !important;
+  border-radius: 6px 0 0 0;
+}

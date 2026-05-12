@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
+import { ferrataMapTiles } from '../../map/ferrataMapTiles'
 
 function googleMapsUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`
@@ -20,8 +21,14 @@ export function FerrataDetailMapCard(props: {
         {t('detailMapTitle')}
       </h2>
       <div className="px-5 sm:px-6 pb-5 sm:pb-6">
-        <MapContainer center={center} zoom={13} className="z-0 h-64 w-full rounded-xl sm:h-72" scrollWheelZoom>
-          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapContainer
+          center={center}
+          zoom={13}
+          className="z-0 h-64 w-full rounded-xl sm:h-72 ring-1 ring-emerald-900/10 shadow-inner bg-slate-100/80"
+          scrollWheelZoom
+          preferCanvas
+        >
+          <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
           <Marker position={center}>
             <Popup>
               <div className="min-w-[12rem] space-y-2">

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import { Link } from 'react-router-dom'
 import { LatLngBounds } from 'leaflet'
+import { ferrataMapTiles } from '../../map/ferrataMapTiles'
 
 export type CatalogMapMarker = {
   id: number
@@ -47,10 +48,11 @@ export function FerrataCatalogMap(props: {
         key={key || 'empty'}
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
-        className="z-0 h-56 w-full rounded-xl sm:h-64"
+        className="z-0 h-56 w-full rounded-xl sm:h-64 ring-1 ring-emerald-900/10 shadow-inner bg-slate-100/80"
         scrollWheelZoom
+        preferCanvas
       >
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
         <FitView markers={props.markers} />
         {props.markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]}>

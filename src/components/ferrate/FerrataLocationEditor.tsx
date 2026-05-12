@@ -4,6 +4,7 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-lea
 import type { LatLng } from 'leaflet'
 import { geocoding } from '../../services/geocoding'
 import type { GeocodeResult } from '../../services/geocoding/types'
+import { ferrataMapTiles } from '../../map/ferrataMapTiles'
 
 const DEFAULT_CENTER: [number, number] = [44.0165, 21.0059]
 const DEFAULT_ZOOM = 7
@@ -156,9 +157,9 @@ export function FerrataLocationEditor(props: {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200">
-        <MapContainer center={center} zoom={zoom} className="z-0 h-72 w-full" scrollWheelZoom>
-          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <div className="overflow-hidden rounded-xl border border-gray-200 ring-1 ring-emerald-900/10 shadow-inner bg-slate-100/80">
+        <MapContainer center={center} zoom={zoom} className="z-0 h-72 w-full" scrollWheelZoom preferCanvas>
+          <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
           <MapClickHandler onPick={setPin} />
           {hasPin && <FlyTo lat={latNum!} lng={lngNum!} />}
           {hasPin && (
