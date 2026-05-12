@@ -114,7 +114,6 @@ func migrateAndSeed(db *gorm.DB) {
 
 	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
 	seed.RunIfEmpty(db)
-	seed.EnsureDemoFerrata(db)
 }
 
 func injectDatabase(r *gin.Engine, db *gorm.DB) {

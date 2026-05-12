@@ -32,6 +32,13 @@ type FerrataDTO = {
   trajanjeMin: number
   trajanjeMax: number
   pogodnoZaPocetnike: string
+  parkingInfo?: string
+  povratakInfo?: string
+  najboljeVremeInfo?: string
+  quickTip?: string
+  whoBeginnersText?: string
+  whoRecreationalText?: string
+  whoExperiencedText?: string
   highlights: string[]
   obaveznaOprema: string[]
   coverImage: string
@@ -59,6 +66,29 @@ function formatHoursRange(min: number, max: number) {
   const a = (min / 60).toFixed(1).replace(/\.0$/, '')
   const b = (max / 60).toFixed(1).replace(/\.0$/, '')
   return `${a}–${b}`
+}
+
+function whoBeginnersLabel(f: FerrataDTO, t: (k: string) => string) {
+  const o = f.whoBeginnersText?.trim()
+  if (o) return o
+  const p = f.pogodnoZaPocetnike?.trim()
+  if (p === 'uz_vodica') return t('whoWithGuide')
+  if (p === 'da') return t('whoYes')
+  return p || t('whoExperiencedNone')
+}
+
+function whoRecreationalLabel(f: FerrataDTO, t: (k: string) => string) {
+  const o = f.whoRecreationalText?.trim()
+  if (o) return o
+  return t('whoYes')
+}
+
+function whoExperiencedLabel(f: FerrataDTO, t: (k: string, o?: Record<string, string>) => string) {
+  const o = f.whoExperiencedText?.trim()
+  if (o) return o
+  const g = f.tezinaOpcija?.trim()
+  if (g) return t('whoExperiencedOption', { grade: g })
+  return t('whoExperiencedNone')
 }
 
 function FerrataBookModal(props: {
@@ -157,7 +187,7 @@ export default function FerrataDetail() {
     void load()
   }, [load])
 
-  const cover = f?.coverImage || '/ferrate/djurdjevica-hero.png'
+  const coverUrl = (f?.coverImage ?? '').trim()
   const subtitle = [f?.lokacija, f?.kratakOpis].filter(Boolean).join(' · ')
 
   const badgeBeginners =
@@ -184,10 +214,11 @@ export default function FerrataDetail() {
         <>
           {/* Hero */}
           <section className="relative min-h-[320px] sm:min-h-[420px] flex flex-col justify-end">
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${cover})` }}
-            />
+            {coverUrl ? (
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" />
             <div className="relative z-10 px-4 sm:px-8 lg:px-12 pt-16 pb-10 max-w-5xl">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">{f.naziv}</h1>
@@ -281,15 +312,15 @@ export default function FerrataDetail() {
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between gap-4 border-b border-gray-50 pb-2">
                     <dt className="text-gray-500">{t('whoBeginners')}</dt>
-                    <dd className="font-semibold text-gray-900">{t('whoWithGuide')}</dd>
+                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoBeginnersLabel(f, t)}</dd>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-gray-50 pb-2">
                     <dt className="text-gray-500">{t('whoRecreational')}</dt>
-                    <dd className="font-semibold text-gray-900">{t('whoYes')}</dd>
+                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoRecreationalLabel(f, t)}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-gray-500">{t('whoExperienced')}</dt>
-                    <dd className="font-semibold text-gray-900">{t('whoDEOption')}</dd>
+                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoExperiencedLabel(f, t)}</dd>
                   </div>
                 </dl>
               </article>
@@ -314,21 +345,31 @@ export default function FerrataDetail() {
               <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('logisticsTitle')}</h2>
                 <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-center gap-2">
-                    <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0" />
-                    {t('logisticsParking')}: <span className="text-gray-500">{t('logisticsPlaceholder')}</span>
+                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="font-medium text-gray-800">{t('logisticsParking')}:</span>
+                    <span className={f.parkingInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                      {f.parkingInfo?.trim() || t('logisticsNotSet')}
+                    </span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4 text-emerald-600 shrink-0" />
-                    {t('logisticsApproach')}: {t('minutes', { n: f.prilazMin })}
+                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <ClockIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="font-medium text-gray-800">{t('logisticsApproach')}:</span>
+                    <span className="text-gray-900 font-medium">{t('minutes', { n: f.prilazMin })}</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <ArrowLeftIcon className="h-4 w-4 text-emerald-600 shrink-0 rotate-180" />
-                    {t('logisticsReturn')}: <span className="text-gray-500">{t('logisticsPlaceholder')}</span>
+                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <ArrowLeftIcon className="h-4 w-4 text-emerald-600 shrink-0 rotate-180 mt-0.5" />
+                    <span className="font-medium text-gray-800">{t('logisticsReturn')}:</span>
+                    <span className={f.povratakInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                      {f.povratakInfo?.trim() || t('logisticsNotSet')}
+                    </span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <StarIcon className="h-4 w-4 text-emerald-600 shrink-0" />
-                    {t('logisticsBestTime')}: <span className="text-gray-500">{t('logisticsPlaceholder')}</span>
+                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <StarIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="font-medium text-gray-800">{t('logisticsBestTime')}:</span>
+                    <span className={f.najboljeVremeInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                      {f.najboljeVremeInfo?.trim() || t('logisticsNotSet')}
+                    </span>
                   </li>
                 </ul>
               </article>
@@ -400,13 +441,15 @@ export default function FerrataDetail() {
                 </Link>
               </div>
 
-              <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-5 flex gap-3">
-                <StarIcon className="h-6 w-6 text-emerald-600 shrink-0" />
-                <div>
-                  <h3 className="text-sm font-bold text-emerald-900">{t('sidebarRecTitle')}</h3>
-                  <p className="text-xs text-emerald-900/80 mt-1 leading-relaxed">{t('sidebarRecBody')}</p>
+              {f.quickTip?.trim() && (
+                <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-5 flex gap-3">
+                  <StarIcon className="h-6 w-6 text-emerald-600 shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-900">{t('sidebarRecTitle')}</h3>
+                    <p className="text-xs text-emerald-900/80 mt-1 leading-relaxed whitespace-pre-line">{f.quickTip.trim()}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </aside>
           </div>
         </>
