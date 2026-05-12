@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
+import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationEditor'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
 
@@ -36,6 +37,11 @@ function emptyForm() {
     obaveznaRaw: '',
     coverImage: '',
     status: 'active',
+    lat: '',
+    lng: '',
+    parkingLat: '',
+    parkingLng: '',
+    mapNote: '',
   }
 }
 
@@ -97,10 +103,35 @@ export default function SuperadminFerratas() {
       .filter(Boolean)
   }
 
+  function mapOptionalCoord(s: string): number | null {
+    const t = s.trim().replace(',', '.')
+    if (!t) return null
+    const n = Number(t)
+    return Number.isFinite(n) ? n : null
+  }
+
+  function coordToFormField(v: unknown): string {
+    if (v == null || v === '') return ''
+    if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+    return String(v)
+  }
+
   async function handleSave() {
     setErr('')
     const highlights = parseList(form.highlightsRaw)
     const obaveznaOprema = parseList(form.obaveznaRaw)
+    const la = mapOptionalCoord(form.lat)
+    const lo = mapOptionalCoord(form.lng)
+    if ((la == null) !== (lo == null)) {
+      setErr('Unesi obe koordinate (lat i lng) ili obe ostavi prazne.')
+      return
+    }
+    const pla = mapOptionalCoord(form.parkingLat)
+    const plo = mapOptionalCoord(form.parkingLng)
+    if ((pla == null) !== (plo == null)) {
+      setErr('Parking: unesi obe koordinate ili obe ostavi prazne.')
+      return
+    }
     const payload = {
       naziv: form.naziv,
       slug: form.slug,
@@ -128,6 +159,11 @@ export default function SuperadminFerratas() {
       obaveznaOprema,
       coverImage: form.coverImage,
       status: form.status,
+      lat: la,
+      lng: lo,
+      parkingLat: pla,
+      parkingLng: plo,
+      mapNote: form.mapNote,
     }
     try {
       if (editingId) {
@@ -182,6 +218,11 @@ export default function SuperadminFerratas() {
       obaveznaRaw: o,
       coverImage: String(row.coverImage ?? ''),
       status: String(row.status ?? 'active'),
+      lat: coordToFormField(row.lat),
+      lng: coordToFormField(row.lng),
+      parkingLat: coordToFormField(row.parkingLat),
+      parkingLng: coordToFormField(row.parkingLng),
+      mapNote: String(row.mapNote ?? ''),
     })
   }
 
@@ -225,7 +266,7 @@ export default function SuperadminFerratas() {
   const inp = 'w-full rounded-xl border border-gray-200 px-3 py-2 text-sm'
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-xl font-bold text-gray-900">{t('superadminTitle')}</h1>
         <div className="flex items-center gap-3">
@@ -300,6 +341,21 @@ export default function SuperadminFerratas() {
           <input className={`${inp} sm:col-span-2`} placeholder={t('superadminWhoExperienced')} value={form.whoExperiencedText} onChange={(e) => setForm({ ...form, whoExperiencedText: e.target.value })} />
         </div>
 
+        <FerrataLocationEditor
+          key={editingId ?? 'new'}
+          lat={form.lat}
+          lng={form.lng}
+          onLatChange={(lat) => setForm((prev) => ({ ...prev, lat }))}
+          onLngChange={(lng) => setForm((prev) => ({ ...prev, lng }))}
+        />
+
+        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionMapParking')}</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <input className={inp} placeholder={t('mapParkingLat')} value={form.parkingLat} onChange={(e) => setForm({ ...form, parkingLat: e.target.value })} />
+          <input className={inp} placeholder={t('mapParkingLng')} value={form.parkingLng} onChange={(e) => setForm({ ...form, parkingLng: e.target.value })} />
+        </div>
+        <textarea className={inp} rows={2} placeholder={t('mapNoteLabel')} value={form.mapNote} onChange={(e) => setForm({ ...form, mapNote: e.target.value })} />
+
         {editingId && (
           <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">{t('superadminContactsTitle')}</h3>
@@ -371,6 +427,7 @@ export default function SuperadminFerratas() {
               <th className="px-4 py-2">ID</th>
               <th className="px-4 py-2">Naziv</th>
               <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Mapa</th>
               <th className="px-4 py-2">Cover</th>
               <th className="px-4 py-2" />
             </tr>
@@ -386,6 +443,9 @@ export default function SuperadminFerratas() {
                   </Link>
                 </td>
                 <td className="px-4 py-2">{r.status}</td>
+                <td className="px-4 py-2 text-center" title="lat/lng">
+                  {r.lat != null && r.lng != null ? '●' : '—'}
+                </td>
                 <td className="px-4 py-2">
                   <input type="file" accept="image/*" className="text-xs" onChange={(e) => void uploadCover(r.id, e.target.files?.[0] ?? null)} />
                 </td>

@@ -56,6 +56,8 @@ interface Akcija {
     lokacija?: string
     tezina?: string
     obavezna_oprema?: string[]
+    lat?: number
+    lng?: number
   }
   startAt?: string
   trajanjeSati?: number

@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { FerrataCatalogMap, type CatalogMapMarker } from '../../components/ferrate/FerrataCatalogMap'
 
 type FerrataRow = {
   id: number
@@ -25,13 +26,11 @@ type FerrataRow = {
   coverImage: string
   upcomingActionsCount?: number
   createdAt?: string
+  lat?: number | null
+  lng?: number | null
 }
 
 const PAGE_SIZE = 6
-
-/** Približan prikaz Srbije / regiona (OpenStreetMap embed). */
-const OSM_EMBED_SRC =
-  'https://www.openstreetmap.org/export/embed.html?bbox=18.7%2C41.8%2C23.2%2C46.8&layer=mapnik'
 
 function formatDuration(min: number, max: number) {
   const a = (min / 60).toFixed(1).replace(/\.0$/, '')
@@ -120,6 +119,19 @@ export default function FerrataList() {
   const from = total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1
   const to = Math.min(safePage * PAGE_SIZE, total)
   const pageSlice = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const catalogMarkers: CatalogMapMarker[] = useMemo(() => {
+    return sorted
+      .filter((f) => f.lat != null && f.lng != null && Number.isFinite(Number(f.lat)) && Number.isFinite(Number(f.lng)))
+      .map((f) => ({
+        id: f.id,
+        slug: f.slug,
+        naziv: f.naziv,
+        lokacija: f.lokacija,
+        lat: Number(f.lat),
+        lng: Number(f.lng),
+      }))
+  }, [sorted])
 
   const sel =
     'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25 outline-none'
@@ -327,7 +339,7 @@ export default function FerrataList() {
               </a>
             </div>
             <div className="overflow-hidden rounded-xl border border-gray-100 bg-slate-100">
-              <iframe title={t('listMapTitle')} className="h-56 w-full border-0" loading="lazy" src={OSM_EMBED_SRC} />
+              <FerrataCatalogMap markers={catalogMarkers} emptyHint={t('listMapNoPins')} />
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import {
   ArrowLeftIcon,
   BoltIcon,
@@ -42,6 +43,8 @@ type FerrataDTO = {
   highlights: string[]
   obaveznaOprema: string[]
   coverImage: string
+  lat?: number | null
+  lng?: number | null
 }
 
 type ContactRow = {
@@ -189,6 +192,8 @@ export default function FerrataDetail() {
 
   const coverUrl = (f?.coverImage ?? '').trim()
   const subtitle = [f?.lokacija, f?.kratakOpis].filter(Boolean).join(' · ')
+  const hasMapCoords =
+    f != null && f.lat != null && f.lng != null && Number.isFinite(f.lat) && Number.isFinite(f.lng)
 
   const badgeBeginners =
     f?.pogodnoZaPocetnike === 'uz_vodica' ? t('whoWithGuide') : f?.pogodnoZaPocetnike || '—'
@@ -298,6 +303,10 @@ export default function FerrataDetail() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 lg:grid lg:grid-cols-[1fr_340px] lg:gap-8 lg:items-start">
             {/* Main column */}
             <div className="space-y-6">
+              {hasMapCoords && (
+                <FerrataDetailMapCard lat={f.lat as number} lng={f.lng as number} naziv={f.naziv} lokacija={f.lokacija} />
+              )}
+
               <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-2">{t('aboutTitle')}</h2>
                 <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis}</p>

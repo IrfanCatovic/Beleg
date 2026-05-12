@@ -31,6 +31,8 @@ type ferrataSnapshotPayload struct {
 	TrajanjeMax        int      `json:"trajanje_max"`
 	PogodnoZaPocetnike string   `json:"pogodno_za_pocetnike"`
 	ObaveznaOprema     []string `json:"obavezna_oprema"`
+	Lat                *float64 `json:"lat,omitempty"`
+	Lng                *float64 `json:"lng,omitempty"`
 }
 
 func parseStringSliceJSON(raw json.RawMessage) []string {
@@ -57,8 +59,17 @@ func buildFerrataSnapshotBytes(f *models.Ferrata) ([]byte, error) {
 		TrajanjeMax:        f.TrajanjeMax,
 		PogodnoZaPocetnike: f.PogodnoZaPocetnike,
 		ObaveznaOprema:     parseStringSliceJSON(f.ObaveznaOpremaJSON),
+		Lat:                f.Lat,
+		Lng:                f.Lng,
 	}
 	return json.Marshal(p)
+}
+
+func ferrataCoordJSON(v *float64) interface{} {
+	if v == nil {
+		return nil
+	}
+	return *v
 }
 
 func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
@@ -86,6 +97,11 @@ func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
 		"whoBeginnersText":    f.WhoBeginnersText,
 		"whoRecreationalText": f.WhoRecreationalText,
 		"whoExperiencedText":  f.WhoExperiencedText,
+		"lat":                 ferrataCoordJSON(f.Lat),
+		"lng":                 ferrataCoordJSON(f.Lng),
+		"parkingLat":          ferrataCoordJSON(f.ParkingLat),
+		"parkingLng":          ferrataCoordJSON(f.ParkingLng),
+		"mapNote":             f.MapNote,
 		"highlights":          parseStringSliceJSON(f.HighlightsJSON),
 		"obaveznaOprema":      parseStringSliceJSON(f.ObaveznaOpremaJSON),
 		"coverImage":          f.CoverImage,
@@ -282,6 +298,11 @@ type superadminFerrataBody struct {
 	ObaveznaOprema      []string `json:"obaveznaOprema"`
 	CoverImage          string   `json:"coverImage"`
 	Status              string   `json:"status"`
+	Lat                 *float64 `json:"lat"`
+	Lng                 *float64 `json:"lng"`
+	ParkingLat          *float64 `json:"parkingLat"`
+	ParkingLng          *float64 `json:"parkingLng"`
+	MapNote             string   `json:"mapNote"`
 }
 
 func marshalJSONArray(a []string) json.RawMessage {
@@ -340,6 +361,11 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		ObaveznaOpremaJSON:  marshalJSONArray(body.ObaveznaOprema),
 		CoverImage:          strings.TrimSpace(body.CoverImage),
 		Status:              st,
+		Lat:                 body.Lat,
+		Lng:                 body.Lng,
+		ParkingLat:          body.ParkingLat,
+		ParkingLng:          body.ParkingLng,
+		MapNote:             strings.TrimSpace(body.MapNote),
 	}
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Create(&f).Error; err != nil {
@@ -395,6 +421,11 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	f.WhoBeginnersText = strings.TrimSpace(body.WhoBeginnersText)
 	f.WhoRecreationalText = strings.TrimSpace(body.WhoRecreationalText)
 	f.WhoExperiencedText = strings.TrimSpace(body.WhoExperiencedText)
+	f.Lat = body.Lat
+	f.Lng = body.Lng
+	f.ParkingLat = body.ParkingLat
+	f.ParkingLng = body.ParkingLng
+	f.MapNote = strings.TrimSpace(body.MapNote)
 	if body.Highlights != nil {
 		f.HighlightsJSON = marshalJSONArray(body.Highlights)
 	}
