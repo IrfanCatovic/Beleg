@@ -28,7 +28,11 @@ export function FerrataDetailMapCard(props: {
           scrollWheelZoom
           preferCanvas
         >
-          <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
+          <TileLayer
+            attribution={ferrataMapTiles.attribution}
+            url={ferrataMapTiles.url}
+            {...(ferrataMapTiles.maxZoom != null ? { maxZoom: ferrataMapTiles.maxZoom } : {})}
+          />
           <Marker position={center}>
             <Popup>
               <div className="min-w-[12rem] space-y-2">

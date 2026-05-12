@@ -159,7 +159,11 @@ export function FerrataLocationEditor(props: {
 
       <div className="overflow-hidden rounded-xl border border-gray-200 ring-1 ring-emerald-900/10 shadow-inner bg-slate-100/80">
         <MapContainer center={center} zoom={zoom} className="z-0 h-72 w-full" scrollWheelZoom preferCanvas>
-          <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
+          <TileLayer
+            attribution={ferrataMapTiles.attribution}
+            url={ferrataMapTiles.url}
+            {...(ferrataMapTiles.maxZoom != null ? { maxZoom: ferrataMapTiles.maxZoom } : {})}
+          />
           <MapClickHandler onPick={setPin} />
           {hasPin && <FlyTo lat={latNum!} lng={lngNum!} />}
           {hasPin && (

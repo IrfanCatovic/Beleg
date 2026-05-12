@@ -52,7 +52,11 @@ export function FerrataCatalogMap(props: {
         scrollWheelZoom
         preferCanvas
       >
-        <TileLayer attribution={ferrataMapTiles.attribution} url={ferrataMapTiles.url} />
+        <TileLayer
+          attribution={ferrataMapTiles.attribution}
+          url={ferrataMapTiles.url}
+          {...(ferrataMapTiles.maxZoom != null ? { maxZoom: ferrataMapTiles.maxZoom } : {})}
+        />
         <FitView markers={props.markers} />
         {props.markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]}>
