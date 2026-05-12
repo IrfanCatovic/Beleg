@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -2183,8 +2185,28 @@ func ZavrsiAkciju(c *gin.Context) {
 		return
 	}
 
+	var zavrsiReq struct {
+		RashodNaAkciji *float64 `json:"rashodNaAkciji"`
+	}
+	if err := c.ShouldBindJSON(&zavrsiReq); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON (očekuje se npr. {\"rashodNaAkciji\": 0})"})
+		return
+	}
+	rashodNaAkciji := 0.0
+	if zavrsiReq.RashodNaAkciji != nil {
+		rashodNaAkciji = *zavrsiReq.RashodNaAkciji
+	}
+	if rashodNaAkciji < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Rashod na akciji ne može biti negativan"})
+		return
+	}
+
+	const finEps = 1e-6
 	importedCount := 0
-	importedAmount := 0.0
+	prihodUkupan := 0.0
+	finansijeTip := "nista"
+	netoFinansije := 0.0
+
 	err = db.Transaction(func(tx *gorm.DB) error {
 		akcija.IsCompleted = true
 		if err := tx.Save(&akcija).Error; err != nil {
@@ -2198,69 +2220,82 @@ func ZavrsiAkciju(c *gin.Context) {
 			return err
 		}
 
-		if len(prijave) == 0 {
-			return nil
-		}
-
-		var smestajRows []models.AkcijaSmestaj
-		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&smestajRows).Error
-		smestajByID := map[uint]float64{}
-		for _, s := range smestajRows {
-			smestajByID[s.ID] = s.CenaPoOsobiUkupno
-		}
-
-		var prevozRows []models.AkcijaPrevoz
-		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&prevozRows).Error
-		prevozByID := map[uint]float64{}
-		for _, p := range prevozRows {
-			prevozByID[p.ID] = p.CenaPoOsobi
-		}
-
-		var rentRows []models.AkcijaOpremaRent
-		_ = tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error
-		rentByID := map[uint]float64{}
-		for _, r := range rentRows {
-			rentByID[r.ID] = r.CenaPoSetu
-		}
-
-		for _, p := range prijave {
-			saldo := computeBaseCenaForUser(akcija, p.Korisnik)
-			var izbor models.PrijavaIzbori
-			selSmestaj := []uint{}
-			selPrevoz := []uint{}
-			selRent := []prijavaRentItem{}
-			if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err == nil {
-				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
-				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
-				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+		if len(prijave) > 0 {
+			var smestajRows []models.AkcijaSmestaj
+			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&smestajRows).Error
+			smestajByID := map[uint]float64{}
+			for _, s := range smestajRows {
+				smestajByID[s.ID] = s.CenaPoOsobiUkupno
 			}
-			for _, sid := range selSmestaj {
-				saldo += smestajByID[sid]
+
+			var prevozRows []models.AkcijaPrevoz
+			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&prevozRows).Error
+			prevozByID := map[uint]float64{}
+			for _, p := range prevozRows {
+				prevozByID[p.ID] = p.CenaPoOsobi
 			}
-			for _, pid := range selPrevoz {
-				saldo += prevozByID[pid]
+
+			var rentRows []models.AkcijaOpremaRent
+			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error
+			rentByID := map[uint]float64{}
+			for _, r := range rentRows {
+				rentByID[r.ID] = r.CenaPoSetu
 			}
-			for _, item := range selRent {
-				if item.Kolicina <= 0 {
+
+			for _, p := range prijave {
+				saldo := computeBaseCenaForUser(akcija, p.Korisnik)
+				var izbor models.PrijavaIzbori
+				selSmestaj := []uint{}
+				selPrevoz := []uint{}
+				selRent := []prijavaRentItem{}
+				if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err == nil {
+					_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
+					_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
+					_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
+				}
+				for _, sid := range selSmestaj {
+					saldo += smestajByID[sid]
+				}
+				for _, pid := range selPrevoz {
+					saldo += prevozByID[pid]
+				}
+				for _, item := range selRent {
+					if item.Kolicina <= 0 {
+						continue
+					}
+					saldo += rentByID[item.RentID] * float64(item.Kolicina)
+				}
+				if saldo <= 0 {
 					continue
 				}
-				saldo += rentByID[item.RentID] * float64(item.Kolicina)
+				prihodUkupan += saldo
+				importedCount++
 			}
-			if saldo <= 0 {
-				continue
-			}
-			importedAmount += saldo
-			importedCount++
 		}
 
-		if importedAmount <= 0 {
+		neto := prihodUkupan - rashodNaAkciji
+		netoFinansije = neto
+		if math.Abs(neto) < finEps {
 			return nil
 		}
+
 		recorderID := resolveFinanceRecorderID(tx, akcija.KlubID, actor.ID)
+		naziv := strings.TrimSpace(akcija.Naziv)
+		if neto > finEps {
+			finansijeTip = "uplata"
+			return tx.Create(&models.Transakcija{
+				Tip:        "uplata",
+				Iznos:      neto,
+				Opis:       fmt.Sprintf("Prihod sa akcije: %s", naziv),
+				Datum:      time.Now(),
+				KorisnikID: recorderID,
+			}).Error
+		}
+		finansijeTip = "isplata"
 		return tx.Create(&models.Transakcija{
-			Tip:        "uplata",
-			Iznos:      importedAmount,
-			Opis:       fmt.Sprintf("Prihod akcije: %s", strings.TrimSpace(akcija.Naziv)),
+			Tip:        "isplata",
+			Iznos:      -math.Abs(neto),
+			Opis:       fmt.Sprintf("Rashod sa akcije: %s", naziv),
 			Datum:      time.Now(),
 			KorisnikID: recorderID,
 		}).Error
@@ -2271,10 +2306,14 @@ func ZavrsiAkciju(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":        "Akcija uspešno završena",
-		"akcija":         akcija,
-		"importedUplate": importedCount,
-		"importedIznos":  importedAmount,
+		"message":         "Akcija uspešno završena",
+		"akcija":          akcija,
+		"importedUplate":  importedCount,
+		"importedIznos":   prihodUkupan,
+		"prihodUkupan":    prihodUkupan,
+		"rashodNaAkciji":  rashodNaAkciji,
+		"netoFinansije":   netoFinansije,
+		"finansijeTip":    finansijeTip,
 	})
 }
 

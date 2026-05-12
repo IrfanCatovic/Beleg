@@ -23,6 +23,7 @@ import AddTransportModal from '../../components/action-details/AddTransportModal
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
+import FinishActionFinanceModal from '../../components/action-details/FinishActionFinanceModal'
 
 interface Akcija {
   id: number
@@ -195,6 +196,7 @@ export default function ActionDetails() {
   const [bulkPaymentMode, setBulkPaymentMode] = useState(false)
   const [bulkPaymentSubmitting, setBulkPaymentSubmitting] = useState(false)
   const [bulkSelectedPaymentIds, setBulkSelectedPaymentIds] = useState<Set<number>>(new Set())
+  const [finishFinanceModalOpen, setFinishFinanceModalOpen] = useState(false)
   const [externalScope, setExternalScope] = useState<'other-clubs' | 'no-club'>('other-clubs')
   const [externalSearch, setExternalSearch] = useState('')
   const [externalCandidates, setExternalCandidates] = useState<ExternalUserCandidate[]>([])
@@ -1024,35 +1026,37 @@ export default function ActionDetails() {
     return summaryRows.reduce((acc, r) => acc + r.amount, effectiveBaseCena)
   }, [summaryRows, effectiveBaseCena])
 
-  const handleZavrsiAkciju = async () => {
+  const openFinishFinanceModal = () => {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')
     if (neoznaceni.length > 0) {
-      await showAlert(
-        t('finishNeedStatuses'),
-        t('markAllMembers')
-      )
+      void showAlert(t('finishNeedStatuses'), t('markAllMembers'))
       return
     }
+    setFinishFinanceModalOpen(true)
+  }
 
-    const confirmed = await showConfirm(
-      t('finishConfirmBody'),
-      {
-        title: t('finishActionTitle'),
-        confirmLabel: t('finishAction'),
-        cancelLabel: t('cancel'),
-      }
-    )
-    if (!confirmed) return
+  const handleConfirmFinishFinance = async (rashodNaAkciji: number) => {
+    if (!id) throw new Error('missing id')
+    const res = await api.post<{
+      akcija?: Akcija
+      finansijeTip?: 'nista' | 'uplata' | 'isplata'
+      netoFinansije?: number
+    }>(`/api/akcije/${id}/zavrsi`, { rashodNaAkciji })
+    setFinishFinanceModalOpen(false)
+    const updated = res.data?.akcija
+    if (updated) setAkcija(updated)
+    else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
 
-    try {
-      const res = await api.post(`/api/akcije/${id}/zavrsi`)
-      await showAlert(t('finishSuccess'), t('actionFinishedTitle'))
-      const updated = res.data?.akcija
-      if (updated) setAkcija(updated)
-      else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
-    } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('finishError'), t('errorTitle'))
+    const tip = res.data?.finansijeTip ?? 'nista'
+    const neto = typeof res.data?.netoFinansije === 'number' ? res.data.netoFinansije : 0
+    const absNet = Math.abs(neto).toFixed(2)
+    let body = t('finishFinanceSuccessNone')
+    if (tip === 'uplata') {
+      body = t('finishFinanceSuccessIncome', { amount: absNet, currency: clubCurrency })
+    } else if (tip === 'isplata') {
+      body = t('finishFinanceSuccessExpense', { amount: absNet, currency: clubCurrency })
     }
+    await showAlert(body, t('actionFinishedTitle'))
   }
 
   useEffect(() => {
@@ -2602,7 +2606,7 @@ export default function ActionDetails() {
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {!akcija.isCompleted && (
                         <button
-                          onClick={handleZavrsiAkciju}
+                          onClick={openFinishFinanceModal}
                           className="sm:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -2660,6 +2664,14 @@ export default function ActionDetails() {
             currency={clubCurrency}
             onClose={() => setAddTransportOpen(false)}
             onSubmit={handleAddTransport}
+          />
+
+          <FinishActionFinanceModal
+            open={finishFinanceModalOpen}
+            currency={clubCurrency}
+            prihodUkupan={paidTotal}
+            onClose={() => setFinishFinanceModalOpen(false)}
+            onConfirm={handleConfirmFinishFinance}
           />
 
           <MemberDetailsModal
