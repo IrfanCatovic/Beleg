@@ -98,6 +98,13 @@ interface ExternalUserCandidate {
   klubNaziv?: string
 }
 
+/** Jedan prevoz po prijavi; ako API vrati više ID-jeva, zadržava poslednji. */
+function singlePrevozIdSet(ids: number[] | undefined): Set<number> {
+  const clean = (ids ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0)
+  if (clean.length === 0) return new Set()
+  return new Set([clean[clean.length - 1]])
+}
+
 interface ActionParticipationRequest {
   id: number
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
@@ -324,7 +331,7 @@ export default function ActionDetails() {
           setMojaPrijava(p)
           if (p) {
             setSelSmestaj(new Set(p.selectedSmestajIds || []))
-            setSelPrevoz(new Set(p.selectedPrevozIds || []))
+            setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
             const rentMap: Record<number, number> = {}
             for (const it of p.selectedRentItems || []) {
               if (it.rentId && it.kolicina > 0) rentMap[it.rentId] = it.kolicina
@@ -572,10 +579,13 @@ export default function ActionDetails() {
 
   const togglePrevoz = (pid: number) => {
     setSelPrevoz((prev) => {
-      const next = new Set(prev)
-      if (next.has(pid)) next.delete(pid)
-      else next.add(pid)
-      return next
+      if (prev.has(pid)) {
+        const next = new Set(prev)
+        next.delete(pid)
+        return next
+      }
+      // Jedan prevoz po osobi: klik na drugo vozilo prebacuje izbor, ne dodaje drugi.
+      return new Set([pid])
     })
     setSelectionsDirty(true)
   }
@@ -596,7 +606,8 @@ export default function ActionDetails() {
     const validRent = new Map((akcija?.opremaRent || []).map((r) => [r.id, r.dostupnaKolicina]))
 
     const selectedSmestajIds = Array.from(selSmestaj).filter((sid) => validSmestaj.has(sid))
-    const selectedPrevozIds = Array.from(selPrevoz).filter((pid) => validPrevoz.has(pid))
+    const prevFiltered = Array.from(selPrevoz).filter((pid) => validPrevoz.has(pid))
+    const selectedPrevozIds = prevFiltered.length <= 1 ? prevFiltered : [prevFiltered[prevFiltered.length - 1]]
     const selectedRentItems = Object.entries(selRent)
       .map(([rentIdRaw, kolicinaRaw]) => {
         const rentId = Number(rentIdRaw)
@@ -687,7 +698,7 @@ export default function ActionDetails() {
       const p = mp.data.prijava ?? null
       setMojaPrijava(p)
       if (p) {
-        setSelPrevoz(new Set(p.selectedPrevozIds || []))
+        setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
       }
     }
   }
@@ -714,7 +725,7 @@ export default function ActionDetails() {
           const p = mp.data.prijava ?? null
           setMojaPrijava(p)
           if (p) {
-            setSelPrevoz(new Set(p.selectedPrevozIds || []))
+            setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
           }
         } catch {
           // ignore
