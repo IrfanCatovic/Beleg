@@ -1,36 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import type { LatLng } from 'leaflet'
+import { Marker, type MapRef } from 'react-map-gl/maplibre'
+import type { MapLayerMouseEvent } from 'maplibre-gl'
 import { geocoding } from '../../services/geocoding'
 import type { GeocodeResult } from '../../services/geocoding/types'
-import { ferrataMapTiles } from '../../map/ferrataMapTiles'
+import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
+import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 
-const DEFAULT_CENTER: [number, number] = [44.0165, 21.0059]
-const DEFAULT_ZOOM = 7
+const DEFAULT_CENTER = { longitude: 21.0059, latitude: 44.0165, zoom: 6.2 }
 
 function parseCoord(s: string): number | null {
   const t = s.trim().replace(',', '.')
   if (!t) return null
   const n = Number(t)
   return Number.isFinite(n) ? n : null
-}
-
-function MapClickHandler({ onPick }: { onPick: (ll: LatLng) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng)
-    },
-  })
-  return null
-}
-
-function FlyTo({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.setView([lat, lng], Math.max(map.getZoom(), 12))
-  }, [lat, lng, map])
-  return null
 }
 
 export function FerrataLocationEditor(props: {
@@ -40,6 +23,7 @@ export function FerrataLocationEditor(props: {
   onLngChange: (v: string) => void
 }) {
   const { t } = useTranslation('ferrate')
+  const mapRef = useRef<MapRef>(null)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<GeocodeResult[]>([])
@@ -50,9 +34,9 @@ export function FerrataLocationEditor(props: {
   const hasPin = latNum != null && lngNum != null
 
   const setPin = useCallback(
-    (ll: LatLng) => {
-      props.onLatChange(ll.lat.toFixed(6))
-      props.onLngChange(ll.lng.toFixed(6))
+    (lat: number, lng: number) => {
+      props.onLatChange(lat.toFixed(6))
+      props.onLngChange(lng.toFixed(6))
     },
     [props],
   )
@@ -63,6 +47,13 @@ export function FerrataLocationEditor(props: {
     setResults([])
     setGeoErr('')
   }, [props])
+
+  const onMapClick = useCallback(
+    (e: MapLayerMouseEvent) => {
+      setPin(e.lngLat.lat, e.lngLat.lng)
+    },
+    [setPin],
+  )
 
   async function runSearch() {
     const q = query.trim()
@@ -81,13 +72,32 @@ export function FerrataLocationEditor(props: {
     }
   }
 
-  const center: [number, number] = hasPin ? [latNum!, lngNum!] : DEFAULT_CENTER
-  const zoom = hasPin ? 12 : DEFAULT_ZOOM
+  const initialViewState = hasPin
+    ? { longitude: lngNum!, latitude: latNum!, zoom: 12 }
+    : DEFAULT_CENTER
+
+  useEffect(() => {
+    if (!hasPin) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const run = () => {
+      map.easeTo({
+        center: [lngNum!, latNum!],
+        zoom: Math.max(map.getZoom(), 12),
+        duration: 500,
+      })
+    }
+    if (map.isStyleLoaded()) run()
+    else map.once('load', run)
+    return () => {
+      map.off('load', run)
+    }
+  }, [hasPin, latNum, lngNum])
 
   return (
-    <div className="space-y-3 border-t border-gray-100 pt-4 mt-2">
+    <div className="mt-2 space-y-3 border-t border-gray-100 pt-4">
       <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">{t('superadminSectionMap')}</h3>
-      <p className="text-[11px] text-gray-500 leading-relaxed">{t('mapClickHint')}</p>
+      <p className="text-[11px] leading-relaxed text-gray-500">{t('mapClickHint')}</p>
       <p className="text-[10px] text-gray-400">{t('mapGeocodePolicy')}</p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -121,8 +131,7 @@ export function FerrataLocationEditor(props: {
                 type="button"
                 className="w-full rounded-lg px-2 py-1.5 text-left text-gray-800 hover:bg-white"
                 onClick={() => {
-                  props.onLatChange(r.lat.toFixed(6))
-                  props.onLngChange(r.lng.toFixed(6))
+                  setPin(r.lat, r.lng)
                   setResults([])
                   setQuery('')
                 }}
@@ -157,28 +166,31 @@ export function FerrataLocationEditor(props: {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 ring-1 ring-emerald-900/10 shadow-inner bg-slate-100/80">
-        <MapContainer center={center} zoom={zoom} className="z-0 h-72 w-full" scrollWheelZoom preferCanvas>
-          <TileLayer
-            attribution={ferrataMapTiles.attribution}
-            url={ferrataMapTiles.url}
-            {...(ferrataMapTiles.maxZoom != null ? { maxZoom: ferrataMapTiles.maxZoom } : {})}
-          />
-          <MapClickHandler onPick={setPin} />
-          {hasPin && <FlyTo lat={latNum!} lng={lngNum!} />}
-          {hasPin && (
-            <Marker
-              position={[latNum!, lngNum!]}
-              draggable
-              eventHandlers={{
-                dragend: (e) => {
-                  const ll = e.target.getLatLng()
-                  setPin(ll)
-                },
-              }}
-            />
-          )}
-        </MapContainer>
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-100/80 shadow-inner ring-1 ring-emerald-900/10">
+        <div className="relative h-72 w-full">
+          <PlaninerMapFrame
+            ref={mapRef}
+            className="h-full w-full"
+            initialViewState={initialViewState}
+            onClick={onMapClick}
+            showZoomControls
+          >
+            {hasPin && (
+              <Marker
+                longitude={lngNum!}
+                latitude={latNum!}
+                anchor="bottom"
+                draggable
+                onDragEnd={(e) => {
+                  const { lng, lat } = e.lngLat
+                  setPin(lat, lng)
+                }}
+              >
+                <FerrataMarkerElement />
+              </Marker>
+            )}
+          </PlaninerMapFrame>
+        </div>
       </div>
 
       {hasPin && (

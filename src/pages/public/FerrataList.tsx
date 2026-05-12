@@ -32,6 +32,23 @@ type FerrataRow = {
 
 const PAGE_SIZE = 6
 
+function catalogGoogleMapsHref(markers: CatalogMapMarker[]): string {
+  if (markers.length === 0) return 'https://www.google.com/maps/@44.0165,21.0059,7z'
+  if (markers.length === 1) {
+    const m = markers[0]
+    return `https://www.google.com/maps?q=${encodeURIComponent(`${m.lat},${m.lng}`)}&z=11`
+  }
+  let sumLat = 0
+  let sumLng = 0
+  for (const m of markers) {
+    sumLat += m.lat
+    sumLng += m.lng
+  }
+  const lat = sumLat / markers.length
+  const lng = sumLng / markers.length
+  return `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}&z=7`
+}
+
 function formatDuration(min: number, max: number) {
   const a = (min / 60).toFixed(1).replace(/\.0$/, '')
   const b = (max / 60).toFixed(1).replace(/\.0$/, '')
@@ -128,6 +145,7 @@ export default function FerrataList() {
         slug: f.slug,
         naziv: f.naziv,
         lokacija: f.lokacija,
+        tezina: f.tezina,
         lat: Number(f.lat),
         lng: Number(f.lng),
       }))
@@ -330,7 +348,7 @@ export default function FerrataList() {
                 {t('listMapTitle')}
               </div>
               <a
-                href="https://www.openstreetmap.org/#map=7/44.2/21.0"
+                href={catalogGoogleMapsHref(catalogMarkers)}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs font-semibold text-emerald-700 hover:underline shrink-0"

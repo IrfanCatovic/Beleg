@@ -1,0 +1,28 @@
+/* MapLibre — uskladiti popup i kontrole sa Planiner karticama */
+.planiner-map-frame .maplibregl-popup-content {
+  border-radius: 0.75rem;
+  padding: 0;
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.14);
+  border: 1px solid rgb(209 250 229 / 0.65);
+}
+.planiner-map-frame .maplibregl-popup-tip {
+  border-top-color: rgb(255 255 255);
+}
+.planiner-map-frame .maplibregl-ctrl-attrib {
+  font-size: 10px;
+  background: rgb(255 255 255 / 0.9) !important;
+  border-radius: 6px 0 0 0;
+}
+.planiner-map-frame .maplibregl-ctrl-group {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+  border: 1px solid rgb(226 232 240 / 0.9);
+}
+
+.planiner-marker-ferrata {
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.18));
+}

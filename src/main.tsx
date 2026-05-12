@@ -5,10 +5,8 @@ import { AuthProvider } from './context/AuthContext.tsx'
 import { ModalProvider } from './context/ModalContext.tsx'
 import './i18n'
 import './index.css'
-import 'leaflet/dist/leaflet.css'
-import { ensureLeafletDefaultIcons } from './map/leafletIconDefault'
-
-ensureLeafletDefaultIcons()
+import 'maplibre-gl/dist/maplibre-gl.css'
+import './map/planiner-map.css'
 
 createRoot(document.getElementById('root')!).render(
   <AuthProvider>
