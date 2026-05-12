@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Akcija struct {
 	ID                       uint      `gorm:"primaryKey" json:"id"`
@@ -35,6 +38,11 @@ type Akcija struct {
 	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
 
 	TipAkcije                string     `gorm:"type:varchar(30);default:'planina'" json:"tipAkcije"`
+	FerrataID                *uint      `gorm:"column:ferrata_id;index" json:"ferrataId,omitempty"`
+	Ferrata                  *Ferrata   `gorm:"foreignKey:FerrataID" json:"-"`
+	FerrataSnapshotJSON      json.RawMessage `gorm:"column:ferrata_snapshot_json;type:jsonb" json:"ferrataSnapshot,omitempty"`
+	StartAt                  *time.Time `json:"startAt,omitempty"`
+	EndAt                    *time.Time `json:"endAt,omitempty"`
 	TrajanjeSati             float64    `gorm:"default:0" json:"trajanjeSati"`
 	RokPrijava               *time.Time `json:"rokPrijava,omitempty"`
 	MaxLjudi                 int        `gorm:"default:0" json:"maxLjudi"`

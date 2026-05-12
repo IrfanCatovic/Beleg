@@ -14,4 +14,11 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.PATCH("/superadmin/klubovi/:id", handlers.UpdateKlub)
 	g.PATCH("/superadmin/klubovi/:id/logo", handlers.UpdateKlubLogo)
 	g.DELETE("/superadmin/klubovi/:id", handlers.DeleteKlub)
+
+	g.GET("/superadmin/ferratas", handlers.SuperadminListFerratas)
+	g.POST("/superadmin/ferratas", handlers.SuperadminCreateFerrata)
+	g.PUT("/superadmin/ferratas/:id", handlers.SuperadminUpdateFerrata)
+	g.POST("/superadmin/ferratas/:id/cover", handlers.SuperadminUploadFerrataCover)
+	g.POST("/superadmin/ferratas/:id/contacts", handlers.SuperadminCreateFerrataContact)
+	g.PUT("/superadmin/ferrata-contacts/:id", handlers.SuperadminUpdateFerrataContact)
 }

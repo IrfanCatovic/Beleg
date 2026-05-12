@@ -17,6 +17,7 @@ interface DropdownProps {
   className?: string
   /** Za pristupačnost (aria-label ili sr-only label). */
   'aria-label'?: string
+  disabled?: boolean
 }
 
 export default function Dropdown({
@@ -28,6 +29,7 @@ export default function Dropdown({
   minTriggerWidth = '200px',
   className = '',
   'aria-label': ariaLabel,
+  disabled = false,
 }: DropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -58,11 +60,12 @@ export default function Dropdown({
       {ariaLabel && <span className="sr-only">{ariaLabel}</span>}
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
-        className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-gray-700 hover:bg-gray-50 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] focus:outline-none flex items-center justify-between gap-2 ${fullWidth ? '' : 'min-w-0 sm:min-w-0'}`}
+        className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-gray-700 hover:bg-gray-50 focus:border-[#41ac53] focus:ring-1 focus:ring-[#41ac53] focus:outline-none flex items-center justify-between gap-2 ${fullWidth ? '' : 'min-w-0 sm:min-w-0'} ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
         style={!fullWidth ? { minWidth: minTriggerWidth } : undefined}
       >
         <span className="truncate">{displayLabel}</span>

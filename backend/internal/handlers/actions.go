@@ -469,6 +469,17 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 			"prikaziListuPrijavljenih": akcija.PrikaziListuPrijavljenih,
 			"omoguciGrupniChat":        akcija.OmoguciGrupniChat,
 		}
+		if akcija.FerrataID != nil {
+			resp["ferrataId"] = *akcija.FerrataID
+		}
+		resp["startAt"] = akcija.StartAt
+		resp["endAt"] = akcija.EndAt
+		if len(akcija.FerrataSnapshotJSON) > 0 {
+			var snap any
+			if json.Unmarshal(akcija.FerrataSnapshotJSON, &snap) == nil {
+				resp["ferrataSnapshot"] = snap
+			}
+		}
 		if akcija.KlubID != nil {
 			resp["klubId"] = *akcija.KlubID
 		}
@@ -643,6 +654,37 @@ func GetAkcije(c *gin.Context) {
 	})
 }
 
+func belgradeLoc() *time.Location {
+	loc, err := time.LoadLocation("Europe/Belgrade")
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
+func parseViaFerrataStartAt(raw string) (time.Time, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return time.Time{}, errors.New("prazno")
+	}
+	loc := belgradeLoc()
+	layouts := []string{time.RFC3339, "2006-01-02T15:04", "2006-01-02 15:04:05"}
+	for _, layout := range layouts {
+		if t, err := time.ParseInLocation(layout, raw, loc); err == nil {
+			return t, nil
+		}
+	}
+	if t, err := time.Parse(time.RFC3339, raw); err == nil {
+		return t, nil
+	}
+	return time.Time{}, errors.New("nevažeće vreme")
+}
+
+func calendarDatumUTCFromBelgradeClock(t time.Time) time.Time {
+	d := t.In(belgradeLoc())
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
+}
+
 func CreateAkcija(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" && role != "vodic" && role != "superadmin" {
@@ -670,52 +712,123 @@ func CreateAkcija(c *gin.Context) {
 	}
 
 	naziv := c.PostForm("naziv")
-	planina := strings.TrimSpace(c.PostForm("planina"))
-	vrh := c.PostForm("vrh")
-	datumStr := c.PostForm("datum")
 	opis := c.PostForm("opis")
-	tezina := c.PostForm("tezina")
-	kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
-	duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
-	visinaVrhMStr := c.PostForm("visinaVrhM")
 	zimskiUsponStr := c.PostForm("zimskiUspon")
+	visinaVrhMStr := c.PostForm("visinaVrhM")
 	vodicIDStr := c.PostForm("vodic_id")
 	drugiVodicIme := c.PostForm("drugi_vodic_ime")
 	javna := strings.ToLower(strings.TrimSpace(c.PostForm("javna"))) == "true"
 
-	if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-		c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
-		return
+	tipAkcije := strings.TrimSpace(strings.ToLower(c.PostForm("tipAkcije")))
+	if tipAkcije == "" {
+		tipAkcije = "planina"
 	}
-	if !isValidTezina(tezina) {
-		c.JSON(400, gin.H{"error": "Izaberi težinu od ponuđenih"})
-		return
-	}
-
-	datum, err := time.Parse("2006-01-02", datumStr)
-	if err != nil {
-		c.JSON(400, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+	if tipAkcije != "planina" && tipAkcije != "via_ferrata" {
+		c.JSON(400, gin.H{"error": "Tip akcije mora biti planina ili via_ferrata"})
 		return
 	}
 
-	kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
-	if err != nil || kumulativniUsponM < 0 {
-		c.JSON(400, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
-		return
-	}
-
-	duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
-	if err != nil || duzinaStazeKm < 0 {
-		c.JSON(400, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
-		return
-	}
-
+	var planina, vrh, tezina string
+	var datum time.Time
+	var kumulativniUsponM int
+	var duzinaStazeKm float64
 	var visinaVrhM int
-	if strings.TrimSpace(visinaVrhMStr) != "" {
-		visinaVrhM, err = strconv.Atoi(visinaVrhMStr)
-		if err != nil || visinaVrhM < 0 {
-			c.JSON(400, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+	var ferrataIDPtr *uint
+	var snapshotJSON json.RawMessage
+	var startAtPtr *time.Time
+
+	if tipAkcije == "via_ferrata" {
+		if strings.TrimSpace(naziv) == "" {
+			c.JSON(400, gin.H{"error": "Naziv akcije je obavezan"})
 			return
+		}
+		fidStr := strings.TrimSpace(c.PostForm("ferrataId"))
+		if fidStr == "" {
+			c.JSON(400, gin.H{"error": "Za via ferrata akciju morate izabrati feratu"})
+			return
+		}
+		fid64, err := strconv.ParseUint(fidStr, 10, 32)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Nevažeći ID ferate"})
+			return
+		}
+		fid := uint(fid64)
+		var ft models.Ferrata
+		if err := db.Where("id = ? AND status = ?", fid, "active").First(&ft).Error; err != nil {
+			c.JSON(400, gin.H{"error": "Ferata nije pronađena ili nije aktivna"})
+			return
+		}
+		st, err := parseViaFerrataStartAt(c.PostForm("startAt"))
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Polje startAt (datum i vreme polaska) je obavezno u ispravnom formatu"})
+			return
+		}
+		datum = calendarDatumUTCFromBelgradeClock(st)
+		startAtCopy := st
+		startAtPtr = &startAtCopy
+		snap, err := buildFerrataSnapshotBytes(&ft)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Greška pri snapshot-u ferate"})
+			return
+		}
+		snapshotJSON = snap
+		ferrataIDPtr = &fid
+		planina = strings.TrimSpace(ft.Drzava)
+		if planina == "" {
+			planina = "Via ferrata"
+		}
+		vrh = strings.TrimSpace(ft.Naziv)
+		tezina = strings.TrimSpace(ft.Tezina)
+		if tezina == "" {
+			tezina = "srednje"
+		}
+		kumulativniUsponM = ft.VisinskaRazlikaM
+		if kumulativniUsponM < 0 {
+			kumulativniUsponM = 0
+		}
+		duzinaStazeKm = float64(ft.DuzinaM) / 1000.0
+		if duzinaStazeKm < 0 {
+			duzinaStazeKm = 0
+		}
+		visinaVrhM = 0
+	} else {
+		planina = strings.TrimSpace(c.PostForm("planina"))
+		vrh = c.PostForm("vrh")
+		datumStr := c.PostForm("datum")
+		tezina = c.PostForm("tezina")
+		kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
+		duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+
+		if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+			c.JSON(400, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+			return
+		}
+		if !isValidTezina(tezina) {
+			c.JSON(400, gin.H{"error": "Izaberi težinu od ponuđenih"})
+			return
+		}
+		var err error
+		datum, err = time.Parse("2006-01-02", datumStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+			return
+		}
+		kumulativniUsponM, err = strconv.Atoi(kumulativniUsponMStr)
+		if err != nil || kumulativniUsponM < 0 {
+			c.JSON(400, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
+			return
+		}
+		duzinaStazeKm, err = strconv.ParseFloat(duzinaStazeKmStr, 64)
+		if err != nil || duzinaStazeKm < 0 {
+			c.JSON(400, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
+			return
+		}
+		if strings.TrimSpace(visinaVrhMStr) != "" {
+			visinaVrhM, err = strconv.Atoi(visinaVrhMStr)
+			if err != nil || visinaVrhM < 0 {
+				c.JSON(400, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+				return
+			}
 		}
 	}
 
@@ -747,7 +860,10 @@ func CreateAkcija(c *gin.Context) {
 		VodicID:                  vodicID,
 		DrugiVodicIme:            strings.TrimSpace(drugiVodicIme),
 		AddedByID:                currentUser.ID,
-		TipAkcije:                "planina",
+		TipAkcije:                tipAkcije,
+		FerrataID:                ferrataIDPtr,
+		FerrataSnapshotJSON:      snapshotJSON,
+		StartAt:                  startAtPtr,
 		BrojDana:                 1,
 		PrikaziListuPrijavljenih: true,
 	}
@@ -868,55 +984,147 @@ func UpdateAkcija(c *gin.Context) {
 	}
 
 	naziv := c.PostForm("naziv")
-	planina := strings.TrimSpace(c.PostForm("planina"))
-	vrh := c.PostForm("vrh")
-	datumStr := c.PostForm("datum")
 	opis := c.PostForm("opis")
-	tezina := c.PostForm("tezina")
-	kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
-	duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
-	visinaVrhMStr := c.PostForm("visinaVrhM")
 	zimskiUsponStr := c.PostForm("zimskiUspon")
+	visinaVrhMStr := c.PostForm("visinaVrhM")
 	vodicIDStr := c.PostForm("vodic_id")
 	drugiVodicIme := c.PostForm("drugi_vodic_ime")
 	if rawJavna := c.PostForm("javna"); rawJavna != "" {
 		akcija.Javna = strings.ToLower(strings.TrimSpace(rawJavna)) == "true"
 	}
 
-	if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
-		return
+	tipAkcije := strings.TrimSpace(strings.ToLower(c.PostForm("tipAkcije")))
+	if tipAkcije == "" {
+		tipAkcije = akcija.TipAkcije
 	}
-	if !isValidTezina(tezina) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberi težinu od ponuđenih"})
-		return
+	if tipAkcije == "" {
+		tipAkcije = "planina"
 	}
-
-	datum, err := time.Parse("2006-01-02", datumStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+	if tipAkcije != "planina" && tipAkcije != "via_ferrata" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tip akcije mora biti planina ili via_ferrata"})
 		return
 	}
 
-	kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
-	if err != nil || kumulativniUsponM < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
-		return
-	}
-
-	duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
-	if err != nil || duzinaStazeKm < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
-		return
-	}
-
-	if strings.TrimSpace(visinaVrhMStr) != "" {
-		visinaVrhM, err := strconv.Atoi(visinaVrhMStr)
-		if err != nil || visinaVrhM < 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+	if tipAkcije == "via_ferrata" {
+		if strings.TrimSpace(naziv) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv akcije je obavezan"})
 			return
 		}
-		akcija.VisinaVrhM = visinaVrhM
+		fidStr := strings.TrimSpace(c.PostForm("ferrataId"))
+		if fidStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Za via ferrata akciju morate izabrati feratu"})
+			return
+		}
+		fid64, err := strconv.ParseUint(fidStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID ferate"})
+			return
+		}
+		fid := uint(fid64)
+		var ft models.Ferrata
+		if err := db.Where("id = ? AND status = ?", fid, "active").First(&ft).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ferata nije pronađena ili nije aktivna"})
+			return
+		}
+		st, err := parseViaFerrataStartAt(c.PostForm("startAt"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Polje startAt (datum i vreme polaska) je obavezno u ispravnom formatu"})
+			return
+		}
+		datum := calendarDatumUTCFromBelgradeClock(st)
+		startCopy := st
+		prevID := uint(0)
+		if akcija.FerrataID != nil {
+			prevID = *akcija.FerrataID
+		}
+		if prevID != fid || len(akcija.FerrataSnapshotJSON) == 0 {
+			snap, err := buildFerrataSnapshotBytes(&ft)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri snapshot-u ferate"})
+				return
+			}
+			akcija.FerrataSnapshotJSON = snap
+		}
+		akcija.FerrataID = &fid
+		akcija.StartAt = &startCopy
+		akcija.Datum = datum
+		akcija.TipAkcije = tipAkcije
+		akcija.Naziv = naziv
+		akcija.Opis = opis
+		planina := strings.TrimSpace(ft.Drzava)
+		if planina == "" {
+			planina = "Via ferrata"
+		}
+		akcija.Planina = planina
+		akcija.Vrh = strings.TrimSpace(ft.Naziv)
+		akcija.Tezina = strings.TrimSpace(ft.Tezina)
+		if akcija.Tezina == "" {
+			akcija.Tezina = "srednje"
+		}
+		akcija.UkupnoMetaraUsponaAkcija = ft.VisinskaRazlikaM
+		if akcija.UkupnoMetaraUsponaAkcija < 0 {
+			akcija.UkupnoMetaraUsponaAkcija = 0
+		}
+		akcija.UkupnoKmAkcija = float64(ft.DuzinaM) / 1000.0
+		akcija.VisinaVrhM = 0
+	} else {
+		akcija.FerrataID = nil
+		akcija.FerrataSnapshotJSON = nil
+		akcija.StartAt = nil
+		akcija.EndAt = nil
+
+		planina := strings.TrimSpace(c.PostForm("planina"))
+		vrh := c.PostForm("vrh")
+		datumStr := c.PostForm("datum")
+		tezina := c.PostForm("tezina")
+		kumulativniUsponMStr := c.PostForm("kumulativniUsponM")
+		duzinaStazeKmStr := c.PostForm("duzinaStazeKm")
+
+		if naziv == "" || planina == "" || vrh == "" || datumStr == "" || tezina == "" || kumulativniUsponMStr == "" || duzinaStazeKmStr == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Sva polja su obavezna osim opisa, slike, visine vrha i zimskog uspona (naziv, ime planine, vrh, datum, težina, uspon i dužina staze)"})
+			return
+		}
+		if !isValidTezina(tezina) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberi težinu od ponuđenih"})
+			return
+		}
+
+		datum, err := time.Parse("2006-01-02", datumStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Datum mora biti YYYY-MM-DD"})
+			return
+		}
+
+		kumulativniUsponM, err := strconv.Atoi(kumulativniUsponMStr)
+		if err != nil || kumulativniUsponM < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Kumulativni uspon mora biti ceo pozitivan broj (metri)"})
+			return
+		}
+
+		duzinaStazeKm, err := strconv.ParseFloat(duzinaStazeKmStr, 64)
+		if err != nil || duzinaStazeKm < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Dužina staze mora biti pozitivan broj (km)"})
+			return
+		}
+
+		if strings.TrimSpace(visinaVrhMStr) != "" {
+			visinaVrhM, err := strconv.Atoi(visinaVrhMStr)
+			if err != nil || visinaVrhM < 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Visina vrha mora biti ceo pozitivan broj (metri)"})
+				return
+			}
+			akcija.VisinaVrhM = visinaVrhM
+		}
+
+		akcija.Naziv = naziv
+		akcija.Planina = planina
+		akcija.Vrh = vrh
+		akcija.Datum = datum
+		akcija.Opis = opis
+		akcija.Tezina = tezina
+		akcija.UkupnoMetaraUsponaAkcija = kumulativniUsponM
+		akcija.UkupnoKmAkcija = duzinaStazeKm
+		akcija.TipAkcije = tipAkcije
 	}
 
 	if strings.TrimSpace(zimskiUsponStr) != "" {
@@ -930,14 +1138,6 @@ func UpdateAkcija(c *gin.Context) {
 		}
 	}
 
-	akcija.Naziv = naziv
-	akcija.Planina = planina
-	akcija.Vrh = vrh
-	akcija.Datum = datum
-	akcija.Opis = opis
-	akcija.Tezina = tezina
-	akcija.UkupnoMetaraUsponaAkcija = kumulativniUsponM
-	akcija.UkupnoKmAkcija = duzinaStazeKm
 	akcija.VodicID = vodicID
 	akcija.DrugiVodicIme = strings.TrimSpace(drugiVodicIme)
 	if ok, errMsg := parseActionExtras(c, &akcija); !ok {

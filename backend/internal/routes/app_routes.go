@@ -31,6 +31,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 	)
 
 	RegisterUsersPublicRoutes(r)
+	RegisterFerrataPublicRoutes(r)
 
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")

@@ -42,6 +42,7 @@ const canSeeFinance = (role?: string) =>
 export default function AppLayout() {
   const { t } = useTranslation('appLayout')
   const { t: tCommon } = useTranslation('common')
+  const { t: tFerrate } = useTranslation('ferrate')
   const { logout, user, isLoggedIn, pendingSummitReward, clearPendingSummitReward } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -308,6 +309,7 @@ export default function AppLayout() {
                 <nav className="hidden md:flex items-center gap-1">
                   <NavLink to="/home" className={navLinkClass}>{t('home')}</NavLink>
                   <NavLink to="/akcije" className={navLinkClass}>{t('actions')}</NavLink>
+                  <NavLink to="/ferate" className={navLinkClass}>{tFerrate('nav')}</NavLink>
                   {hasClubContext && <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>}
                   {hasClubContext && <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>}
                   <NavLink to="/klub" className={navLinkClass}>{t('club')}</NavLink>
@@ -603,6 +605,17 @@ export default function AppLayout() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {t('actions')}
+                </NavLink>
+                <NavLink
+                  to="/ferate"
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                    }`
+                  }
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {tFerrate('nav')}
                 </NavLink>
                 {hasClubContext && (
                   <NavLink

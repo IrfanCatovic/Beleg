@@ -35,6 +35,15 @@ export interface WizardPrevoz {
   cenaPoOsobi: string
 }
 
+export interface WizardFerrataOption {
+  id: number
+  naziv: string
+  tezina: string
+  drzava?: string
+  duzinaM: number
+  visinskaRazlikaM: number
+}
+
 export interface WizardValues {
   naziv: string
   actionKind: ActionKind
@@ -42,6 +51,8 @@ export interface WizardValues {
   planina: string
   vrh: string
   datum: string
+  vremePolaska: string
+  ferrataId: string
   opis: string
   tezina: string
   kumulativniUsponM: string
@@ -82,6 +93,8 @@ interface ActionWizardFormProps {
   minDate?: string
   imageHelpText?: string
   lockActionKind?: boolean
+  ferrataCatalog?: WizardFerrataOption[]
+  lockFerrataSelection?: boolean
   onSubmit: (values: WizardValues, image: File | null) => void | Promise<void>
 }
 
@@ -113,9 +126,12 @@ export function ActionWizardForm({
   minDate,
   imageHelpText,
   lockActionKind = false,
+  ferrataCatalog = [],
+  lockFerrataSelection = false,
   onSubmit,
 }: ActionWizardFormProps) {
   const { t } = useTranslation('actionForms')
+  const { t: tFr } = useTranslation('ferrate')
   const [step, setStep] = useState(1)
   const [values, setValues] = useState<WizardValues>(initialValues)
   const [image, setImage] = useState<File | null>(null)
@@ -236,33 +252,93 @@ export function ActionWizardForm({
               <label className={labelClass}>{t('fields.actionName')}</label>
               <input required value={values.naziv} onChange={(e) => patch({ naziv: e.target.value })} placeholder={t('placeholders.actionName')} className={baseInput} />
             </div>
+            {values.actionKind === 'via_ferrata' && (
+              <div className="sm:col-span-2">
+                <label className={labelClass}>{tFr('wizardSelectFerrata')}</label>
+                <Dropdown
+                  aria-label={tFr('wizardSelectFerrata')}
+                  options={[
+                    { value: '', label: '—' },
+                    ...ferrataCatalog.map((x) => ({ value: String(x.id), label: `${x.naziv} (${x.tezina})` })),
+                  ]}
+                  value={values.ferrataId}
+                  onChange={(v) => {
+                    const row = ferrataCatalog.find((x) => String(x.id) === v)
+                    if (!row) {
+                      patch({ ferrataId: v, tezina: '' })
+                      return
+                    }
+                    patch({
+                      ferrataId: v,
+                      tezina: row.tezina,
+                      planina: (row.drzava || '').trim() || 'Via ferrata',
+                      vrh: row.naziv,
+                      kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
+                      duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
+                    })
+                  }}
+                  fullWidth
+                  disabled={lockFerrataSelection}
+                />
+              </div>
+            )}
             <div>
               <label className={labelClass}>{values.actionKind === 'planina' ? t('fields.mountain') : t('wizard.labels.viaFerrataLocation')}</label>
-              <input required value={values.planina} onChange={(e) => patch({ planina: e.target.value })} placeholder={t('placeholders.mountain')} className={baseInput} />
+              <input
+                required={values.actionKind === 'planina'}
+                readOnly={values.actionKind === 'via_ferrata'}
+                value={values.planina}
+                onChange={(e) => patch({ planina: e.target.value })}
+                placeholder={t('placeholders.mountain')}
+                className={`${baseInput} ${values.actionKind === 'via_ferrata' ? 'bg-gray-50 text-gray-700' : ''}`}
+              />
             </div>
             <div>
               <label className={labelClass}>{values.actionKind === 'planina' ? t('fields.peak') : t('wizard.labels.viaFerrataName')}</label>
-              <input required value={values.vrh} onChange={(e) => patch({ vrh: e.target.value })} placeholder={t('placeholders.peak')} className={baseInput} />
+              <input
+                required={values.actionKind === 'planina'}
+                readOnly={values.actionKind === 'via_ferrata'}
+                value={values.vrh}
+                onChange={(e) => patch({ vrh: e.target.value })}
+                placeholder={t('placeholders.peak')}
+                className={`${baseInput} ${values.actionKind === 'via_ferrata' ? 'bg-gray-50 text-gray-700' : ''}`}
+              />
             </div>
             <div>
               <label className={labelClass}>{t('fields.actionDate')}</label>
               <CalendarDropdown aria-label={t('fields.actionDate')} value={values.datum} onChange={(v) => patch({ datum: v })} minDate={minDate} fullWidth />
             </div>
+            {values.actionKind === 'via_ferrata' && (
+              <div>
+                <label className={labelClass}>{tFr('wizardStartAt')}</label>
+                <input
+                  type="time"
+                  required
+                  value={values.vremePolaska}
+                  onChange={(e) => patch({ vremePolaska: e.target.value })}
+                  className={baseInput}
+                />
+              </div>
+            )}
             <div>
               <label className={labelClass}>{t('fields.difficulty')}</label>
-              <Dropdown
-                aria-label={t('fields.difficulty')}
-                options={[
-                  { value: '', label: t('difficulty.pick') },
-                  { value: 'lako', label: t('difficulty.easy') },
-                  { value: 'srednje', label: t('difficulty.medium') },
-                  { value: 'tesko', label: t('difficulty.hard') },
-                  { value: 'alpinizam', label: t('difficulty.alpinism') },
-                ]}
-                value={values.tezina}
-                onChange={(v) => patch({ tezina: v })}
-                fullWidth
-              />
+              {values.actionKind === 'planina' ? (
+                <Dropdown
+                  aria-label={t('fields.difficulty')}
+                  options={[
+                    { value: '', label: t('difficulty.pick') },
+                    { value: 'lako', label: t('difficulty.easy') },
+                    { value: 'srednje', label: t('difficulty.medium') },
+                    { value: 'tesko', label: t('difficulty.hard') },
+                    { value: 'alpinizam', label: t('difficulty.alpinism') },
+                  ]}
+                  value={values.tezina}
+                  onChange={(v) => patch({ tezina: v })}
+                  fullWidth
+                />
+              ) : (
+                <div className={`${baseInput} bg-gray-50 text-gray-800 font-semibold`}>{values.tezina || '—'}</div>
+              )}
             </div>
             <div>
               <label className={labelClass}>{t('wizard.labels.durationHours')}</label>
@@ -278,11 +354,31 @@ export function ActionWizardForm({
             </div>
             <div>
               <label className={labelClass}>{t('fields.ascentM')}</label>
-              <input type="number" min="0" step="1" required value={values.kumulativniUsponM} onChange={(e) => patch({ kumulativniUsponM: e.target.value })} placeholder={t('placeholders.ascentM')} className={baseInput} />
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                readOnly={values.actionKind === 'via_ferrata'}
+                value={values.kumulativniUsponM}
+                onChange={(e) => patch({ kumulativniUsponM: e.target.value })}
+                placeholder={t('placeholders.ascentM')}
+                className={`${baseInput} ${values.actionKind === 'via_ferrata' ? 'bg-gray-50' : ''}`}
+              />
             </div>
             <div>
               <label className={labelClass}>{t('fields.trailLengthKm')}</label>
-              <input type="number" min="0" step="0.1" required value={values.duzinaStazeKm} onChange={(e) => patch({ duzinaStazeKm: e.target.value })} placeholder={t('placeholders.lengthKm')} className={baseInput} />
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                required
+                readOnly={values.actionKind === 'via_ferrata'}
+                value={values.duzinaStazeKm}
+                onChange={(e) => patch({ duzinaStazeKm: e.target.value })}
+                placeholder={t('placeholders.lengthKm')}
+                className={`${baseInput} ${values.actionKind === 'via_ferrata' ? 'bg-gray-50' : ''}`}
+              />
             </div>
             <div>
               <label className={labelClass}>{t('fields.peakHeightM')}</label>

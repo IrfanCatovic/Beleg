@@ -50,6 +50,14 @@ interface Akcija {
   kumulativniUsponM?: number
   duzinaStazeKm?: number
   tipAkcije?: 'planina' | 'via_ferrata'
+  ferrataId?: number
+  ferrataSnapshot?: {
+    naziv?: string
+    lokacija?: string
+    tezina?: string
+    obavezna_oprema?: string[]
+  }
+  startAt?: string
   trajanjeSati?: number
   rokPrijava?: string
   maxLjudi?: number
@@ -216,6 +224,15 @@ export default function ActionDetails() {
   const [requestsLoading, setRequestsLoading] = useState(false)
   const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
   const claimRewardRequested = (searchParams.get('claimReward') ?? '').trim() === '1'
+
+  const locationSubtitle = useMemo(() => {
+    if (!akcija) return ''
+    if (akcija.tipAkcije === 'via_ferrata' && akcija.ferrataSnapshot?.lokacija) {
+      const s = akcija.ferrataSnapshot
+      return [s.lokacija, s.naziv].filter(Boolean).join(' · ')
+    }
+    return [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
+  }, [akcija])
 
   useEffect(() => {
     let cancelled = false
@@ -1352,7 +1369,7 @@ export default function ActionDetails() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
               </svg>
-              {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')}
+              {locationSubtitle}
               {akcija.visinaVrhM != null && ` · ${akcija.visinaVrhM} m`}
             </p>
           </div>
@@ -1433,7 +1450,7 @@ export default function ActionDetails() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    {[akcija.planina, akcija.vrh].filter(Boolean).join(' · ')}
+                    {locationSubtitle}
                   </span>
                   {akcija.visinaVrhM != null && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200">

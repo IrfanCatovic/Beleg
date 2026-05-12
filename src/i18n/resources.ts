@@ -1,5 +1,8 @@
+import { ferrateTranslations } from './ferrate'
+
 export const resources = {
   sr: {
+    ferrate: ferrateTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -2090,6 +2093,7 @@ export const resources = {
     },
   },
   bs: {
+    ferrate: ferrateTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -3769,6 +3773,7 @@ export const resources = {
     },
   },
   hr: {
+    ferrate: ferrateTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -5288,6 +5293,7 @@ export const resources = {
     },
   },
   de: {
+    ferrate: ferrateTranslations,
     common: {
       appName: 'Planiner',
       language: 'Sprache',
@@ -6808,6 +6814,7 @@ export const resources = {
     },
   },
   en: {
+    ferrate: ferrateTranslations,
     common: {
       appName: 'Planiner',
       language: 'Language',
@@ -8327,6 +8334,7 @@ export const resources = {
     },
   },
   sl: {
+    ferrate: ferrateTranslations,
   "common": {
     "appName": "Planiner",
     "language": "Jezik",

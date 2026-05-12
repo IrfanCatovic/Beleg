@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../services/api'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ActionWizardForm, type WizardGuide, type WizardValues } from './ActionWizardForm'
+import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
 import { parseClubCurrency } from '../../../utils/clubCurrency'
 
 interface Korisnik {
@@ -20,6 +20,8 @@ const initialWizardValues = (tip: 'planina' | 'via_ferrata'): WizardValues => ({
   planina: '',
   vrh: '',
   datum: '',
+  vremePolaska: '09:00',
+  ferrataId: '',
   opis: '',
   tezina: '',
   kumulativniUsponM: '',
@@ -46,6 +48,7 @@ const initialWizardValues = (tip: 'planina' | 'via_ferrata'): WizardValues => ({
 
 export default function AddAction() {
   const { t } = useTranslation('actionForms')
+  const { t: tFr } = useTranslation('ferrate')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -55,9 +58,63 @@ export default function AddAction() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [ferrataCatalog, setFerrataCatalog] = useState<WizardFerrataOption[]>([])
 
   const tipAkcije = (searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina') as 'planina' | 'via_ferrata'
-  const defaults = useMemo(() => initialWizardValues(tipAkcije), [tipAkcije])
+  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije))
+
+  useEffect(() => {
+    setInitial(initialWizardValues(tipAkcije))
+  }, [tipAkcije])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadFerrate() {
+      try {
+        const res = await api.get('/api/ferratas')
+        const rows = (res.data?.ferrate ?? []) as Array<{
+          id: number
+          naziv: string
+          tezina: string
+          drzava?: string
+          duzinaM: number
+          visinskaRazlikaM: number
+        }>
+        if (cancelled) return
+        const catalog: WizardFerrataOption[] = rows.map((r) => ({
+          id: r.id,
+          naziv: r.naziv,
+          tezina: r.tezina,
+          drzava: r.drzava,
+          duzinaM: r.duzinaM,
+          visinskaRazlikaM: r.visinskaRazlikaM,
+        }))
+        setFerrataCatalog(catalog)
+        const fid = searchParams.get('ferrata_id')
+        if (tipAkcije === 'via_ferrata' && fid) {
+          const row = catalog.find((x) => String(x.id) === fid)
+          if (row) {
+            setInitial((prev) => ({
+              ...prev,
+              actionKind: 'via_ferrata',
+              ferrataId: fid,
+              tezina: row.tezina,
+              planina: (row.drzava || '').trim() || 'Via ferrata',
+              vrh: row.naziv,
+              kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
+              duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
+            }))
+          }
+        }
+      } catch {
+        if (!cancelled) setFerrataCatalog([])
+      }
+    }
+    void loadFerrate()
+    return () => {
+      cancelled = true
+    }
+  }, [tipAkcije, searchParams])
 
   const todayYmd = (() => {
     const d = new Date()
@@ -116,16 +173,29 @@ export default function AddAction() {
       setLoading(false)
       return
     }
-    if (!values.tezina.trim()) {
-      setError(t('errors.selectDifficulty'))
-      setLoading(false)
-      return
-    }
-    const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
-    if (!dozvoljeneTezine.includes(values.tezina.trim().toLowerCase())) {
-      setError(t('errors.selectDifficultyFromList'))
-      setLoading(false)
-      return
+    if (values.actionKind === 'via_ferrata') {
+      if (!values.ferrataId.trim()) {
+        setError(tFr('wizardFerrataRequired'))
+        setLoading(false)
+        return
+      }
+      if (!values.vremePolaska.trim()) {
+        setError(tFr('wizardStartAtRequired'))
+        setLoading(false)
+        return
+      }
+    } else {
+      if (!values.tezina.trim()) {
+        setError(t('errors.selectDifficulty'))
+        setLoading(false)
+        return
+      }
+      const dozvoljeneTezine = ['lako', 'srednje', 'tesko', 'alpinizam']
+      if (!dozvoljeneTezine.includes(values.tezina.trim().toLowerCase())) {
+        setError(t('errors.selectDifficultyFromList'))
+        setLoading(false)
+        return
+      }
     }
 
     try {
@@ -134,6 +204,10 @@ export default function AddAction() {
       formData.append('planina', values.planina.trim())
       formData.append('vrh', values.vrh)
       formData.append('datum', values.datum)
+      if (values.actionKind === 'via_ferrata') {
+        formData.append('ferrataId', values.ferrataId.trim())
+        formData.append('startAt', `${values.datum}T${values.vremePolaska.trim()}`)
+      }
       formData.append('opis', values.opis)
       formData.append('tezina', values.tezina)
       formData.append('kumulativniUsponM', values.kumulativniUsponM)
@@ -223,14 +297,16 @@ export default function AddAction() {
             submitText={t('add.submit')}
             submitLoadingText={t('add.adding')}
             guides={guides}
-            initialValues={defaults}
+            initialValues={initial}
             clubCurrency={clubCurrency}
             loading={loading}
             error={error}
             success={success}
             minDate={todayYmd}
             imageHelpText={t('fields.imageHelp')}
-            lockActionKind
+            lockActionKind={searchParams.has('tip')}
+            ferrataCatalog={ferrataCatalog}
+            lockFerrataSelection={!!searchParams.get('ferrata_id') && tipAkcije === 'via_ferrata'}
             onSubmit={handleSubmit}
           />
         </div>

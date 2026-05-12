@@ -30,12 +30,15 @@ import RegisterAdmin from './pages/protected/user/RegisterAdmin'
 import ProfileSettings from './pages/protected/user/ProfileSettings'
 import Obavestenja from './pages/protected/Obavestenja'
 import ObavestenjeDetalj from './pages/protected/ObavestenjeDetalj'
+import FerrataList from './pages/public/FerrataList'
+import FerrataDetail from './pages/public/FerrataDetail'
 import Landing from './pages/public/Landing'
 import Kontakt from './pages/public/Kontakt'
 import Cena from './pages/public/Cena'
 import Welcome from './pages/protected/Welcome'
 import RegisterSuperAdmin from './pages/public/RegisterSuperAdmin'
 import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
+import SuperadminFerratas from './pages/protected/SuperadminFerratas'
 import Klub from './pages/protected/Klub'
 import EnterClubInviteCode from './pages/public/EnterClubInviteCode'
 import RegisterMemberByInvite from './pages/public/RegisterMemberByInvite'
@@ -126,6 +129,8 @@ const router = createBrowserRouter([
       children: [
       // Javno: detalji akcije i user profil (bez logina, za deljenje na društvene mreže)
       { path: '/akcije/:id', element: <ActionDetails /> },
+      { path: '/ferate', element: <FerrataList /> },
+      { path: '/ferate/:slug', element: <FerrataDetail /> },
       { path: '/users/:id', element: <UserProfile /> },
       { path: '/korisnik/:username', element: <UserProfile /> },
 
@@ -186,6 +191,7 @@ const router = createBrowserRouter([
             element: <RoleRoute allowedRoles={['superadmin']} />,
             children: [
               { path: '/superadmin', element: <SuperadminKlubovi /> },
+              { path: '/superadmin/ferrate', element: <SuperadminFerratas /> },
             ],
           },
         ],

@@ -25,6 +25,11 @@ func CloudinaryFolderSetup() string {
 	return "Planiner/setup"
 }
 
+// CloudinaryFolderFerratas folder za slike kataloga ferata (superadmin, bez kluba).
+func CloudinaryFolderFerratas() string {
+	return "Planiner/ferratas"
+}
+
 // Cloudinary URL: https://res.cloudinary.com/<cloud>/image/upload/v<version>/<public_id>.<ext>
 // ili sa transformacijom: .../upload/<transform>/v<version>/<public_id>.<ext>
 var cloudinaryVersionRe = regexp.MustCompile(`/v(\d+)/`)

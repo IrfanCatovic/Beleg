@@ -101,6 +101,7 @@ const defaultForm = {
 
 export default function SuperadminKlubovi() {
   const { t } = useTranslation('clubs')
+  const { t: tFerrate } = useTranslation('ferrate')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [klubovi, setKlubovi] = useState<Klub[]>([])
@@ -386,7 +387,15 @@ export default function SuperadminKlubovi() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">{t('superadmin.title')}</h1>
+            <Link
+              to="/superadmin/ferrate"
+              className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
+            >
+              {tFerrate('superadminTitle')}
+            </Link>
+          </div>
           {activeTab === 'clubs' && (
             <button
               type="button"
