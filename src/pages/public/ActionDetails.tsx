@@ -628,18 +628,20 @@ export default function ActionDetails() {
     setSavingSelections(true)
     try {
       const payload = buildChoicesPayload()
+      // Backend reads inviteToken from query (or header / form), not from JSON body.
+      const inviteParams = inviteToken ? { params: { inviteToken } } : undefined
       if (!mojaPrijava) {
-        await api.post(`/api/akcije/${id}/prijavi`, inviteToken ? { ...payload, inviteToken } : payload)
+        await api.post(`/api/akcije/${id}/prijavi`, payload, inviteParams)
         await showAlert('Uspešno ste se prijavili!')
       } else {
         try {
-          await api.patch(`/api/akcije/${id}/moja-prijava`, inviteToken ? { ...payload, inviteToken } : payload)
+          await api.patch(`/api/akcije/${id}/moja-prijava`, payload, inviteParams)
         } catch (err: any) {
           // Backward compatibility: older backend instances do not have PATCH /moja-prijava.
           // In that case, recreate registration with updated choices.
           if (err?.response?.status === 404) {
             await api.delete(`/api/akcije/${id}/prijavi`)
-            await api.post(`/api/akcije/${id}/prijavi`, inviteToken ? { ...payload, inviteToken } : payload)
+            await api.post(`/api/akcije/${id}/prijavi`, payload, inviteParams)
           } else {
             throw err
           }
