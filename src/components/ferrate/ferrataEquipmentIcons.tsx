@@ -1,7 +1,56 @@
-import * as Outline from '@heroicons/react/24/outline'
 import type { ComponentType, SVGProps } from 'react'
+import {
+  ArchiveBoxIcon,
+  BeakerIcon,
+  BoltIcon,
+  CameraIcon,
+  ClockIcon,
+  CloudIcon,
+  CubeIcon,
+  DevicePhoneMobileIcon,
+  FireIcon,
+  FlagIcon,
+  HandRaisedIcon,
+  HeartIcon,
+  HomeModernIcon,
+  LightBulbIcon,
+  LinkIcon,
+  LinkSlashIcon,
+  MapIcon,
+  ShieldCheckIcon,
+  SunIcon,
+  TruckIcon,
+  UserGroupIcon,
+  WrenchScrewdriverIcon,
+} from '@heroicons/react/24/outline'
 
-export type IconName = keyof typeof Outline
+/** Eksplicitan map — Vite ne sme da „tree-shake“ dinamičke ključeve iz `import *`. */
+const OUTLINE_ICON_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  WrenchScrewdriverIcon,
+  ShieldCheckIcon,
+  LinkIcon,
+  LinkSlashIcon,
+  CubeIcon,
+  HandRaisedIcon,
+  BoltIcon,
+  LightBulbIcon,
+  ArchiveBoxIcon,
+  BeakerIcon,
+  MapIcon,
+  DevicePhoneMobileIcon,
+  HeartIcon,
+  SunIcon,
+  CloudIcon,
+  FireIcon,
+  CameraIcon,
+  ClockIcon,
+  UserGroupIcon,
+  TruckIcon,
+  HomeModernIcon,
+  FlagIcon,
+}
+
+export type IconName = keyof typeof OUTLINE_ICON_MAP
 
 const DEFAULT_ICON: IconName = 'WrenchScrewdriverIcon'
 
@@ -33,10 +82,10 @@ export function suggestEquipmentIcon(label: string): IconName {
 }
 
 export function resolveOutlineIcon(name: string): ComponentType<SVGProps<SVGSVGElement>> {
-  const key = (name || '').trim() as IconName
-  const C = (Outline as Record<string, ComponentType<SVGProps<SVGSVGElement>>>)[key]
+  const key = (name || '').trim()
+  const C = OUTLINE_ICON_MAP[key]
   if (C && typeof C === 'function') return C
-  return Outline[DEFAULT_ICON]
+  return OUTLINE_ICON_MAP[DEFAULT_ICON]
 }
 
 export const FERRATA_EQUIPMENT_ICON_OPTIONS: { key: IconName; label: string; tags: string }[] = [
@@ -60,4 +109,6 @@ export const FERRATA_EQUIPMENT_ICON_OPTIONS: { key: IconName; label: string; tag
   { key: 'UserGroupIcon', label: 'Grupa', tags: 'grupa ljudi' },
   { key: 'TruckIcon', label: 'Prevoz', tags: 'prevoz auto' },
   { key: 'HomeModernIcon', label: 'Smeštaj', tags: 'smeštaj smještaj hotel' },
+  { key: 'LinkSlashIcon', label: 'Karabiner / osigurač', tags: 'karabiner snap' },
+  { key: 'FlagIcon', label: 'Štapovi / marker', tags: 'štap walking pole' },
 ]

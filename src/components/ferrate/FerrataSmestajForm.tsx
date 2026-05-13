@@ -20,24 +20,30 @@ type Props = {
 export function FerrataSmestajForm(props: Props) {
   const list = props.rows
 
-  async function uploadSlot(i: number, file: File | null) {
-    if (!file || !props.ferrataId) {
-      props.onUploadError(props.ferrataId ? 'Izaberite sliku.' : 'Sačuvaj feratu pa dodaj slike smeštaja.')
+  async function uploadFiles(rowIndex: number, files: File[]) {
+    if (!props.ferrataId) {
+      props.onUploadError('Sačuvaj feratu pa dodaj slike smeštaja.')
       return
     }
-    const fd = new FormData()
-    fd.append('slika', file)
-    try {
-      const res = await api.post<{ url?: string }>(`/api/superadmin/ferratas/${props.ferrataId}/gallery`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      const url = res.data?.url
-      if (!url) throw new Error('Nema URL')
-      const next = [...list]
-      next[i] = { ...next[i], slike: [...next[i].slike, url] }
-      props.onChange(next)
-    } catch {
-      props.onUploadError('Upload slike nije uspeo.')
+    if (files.length === 0) return
+    let accumulated = [...list[rowIndex].slike]
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('slika', file)
+      try {
+        const res = await api.post<{ url?: string }>(`/api/superadmin/ferratas/${props.ferrataId}/gallery`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        const url = res.data?.url
+        if (!url) throw new Error('Nema URL')
+        accumulated = [...accumulated, url]
+        const next = [...list]
+        next[rowIndex] = { ...next[rowIndex], slike: accumulated }
+        props.onChange(next)
+      } catch {
+        props.onUploadError('Upload jedne od slika nije uspeo.')
+        return
+      }
     }
   }
 
@@ -101,6 +107,7 @@ export function FerrataSmestajForm(props: Props) {
           </div>
           <div>
             <p className="mb-1 text-[11px] font-semibold text-gray-600">Slike (Cloudinary)</p>
+            <p className="mb-2 text-[10px] text-gray-500">Možeš izabrati više fajlova odjednom ili dodavati u više koraka.</p>
             {row.slike.length > 0 && (
               <SmestajThumbStrip
                 urls={row.slike}
@@ -114,8 +121,13 @@ export function FerrataSmestajForm(props: Props) {
             <input
               type="file"
               accept="image/*"
+              multiple
               className="mt-2 block w-full text-xs"
-              onChange={(e) => void uploadSlot(i, e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const picked = e.target.files ? Array.from(e.target.files) : []
+                e.target.value = ''
+                void uploadFiles(i, picked)
+              }}
             />
           </div>
         </div>
