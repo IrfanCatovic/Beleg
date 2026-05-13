@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
+import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
+import { resolveOutlineIcon, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import {
-  ArrowLeftIcon,
   BoltIcon,
   CalendarDaysIcon,
   ChartBarIcon,
@@ -14,34 +15,29 @@ import {
   PlusIcon,
   SparklesIcon,
   StarIcon,
-  UserGroupIcon,
-  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline'
+
+type OpremaItem = { label: string; icon?: string }
 
 type FerrataDTO = {
   id: number
   slug: string
   naziv: string
-  lokacija: string
-  kratakOpis?: string
+  drzava?: string
+  gradOpstina?: string
+  podrucje?: string
   opis: string
   tezina: string
   tezinaOpcija: string
   duzinaM: number
   visinskaRazlikaM: number
-  prilazMin: number
   trajanjeMin: number
   trajanjeMax: number
-  pogodnoZaPocetnike: string
-  parkingInfo?: string
-  povratakInfo?: string
-  najboljeVremeInfo?: string
   quickTip?: string
-  whoBeginnersText?: string
-  whoRecreationalText?: string
-  whoExperiencedText?: string
   highlights: string[]
-  obaveznaOprema: string[]
+  okolina?: string[]
+  smestaj?: SmestajPublic[]
+  obaveznaOprema: OpremaItem[] | string[]
   coverImage: string
   lat?: number | null
   lng?: number | null
@@ -71,27 +67,10 @@ function formatHoursRange(min: number, max: number) {
   return `${a}–${b}`
 }
 
-function whoBeginnersLabel(f: FerrataDTO, t: (k: string) => string) {
-  const o = f.whoBeginnersText?.trim()
-  if (o) return o
-  const p = f.pogodnoZaPocetnike?.trim()
-  if (p === 'uz_vodica') return t('whoWithGuide')
-  if (p === 'da') return t('whoYes')
-  return p || t('whoExperiencedNone')
-}
-
-function whoRecreationalLabel(f: FerrataDTO, t: (k: string) => string) {
-  const o = f.whoRecreationalText?.trim()
-  if (o) return o
-  return t('whoYes')
-}
-
-function whoExperiencedLabel(f: FerrataDTO, t: (k: string, o?: Record<string, string>) => string) {
-  const o = f.whoExperiencedText?.trim()
-  if (o) return o
-  const g = f.tezinaOpcija?.trim()
-  if (g) return t('whoExperiencedOption', { grade: g })
-  return t('whoExperiencedNone')
+function normalizeOprema(raw: FerrataDTO['obaveznaOprema']): OpremaItem[] {
+  if (!raw?.length) return []
+  if (typeof raw[0] === 'string') return (raw as string[]).map((label) => ({ label }))
+  return raw as OpremaItem[]
 }
 
 function FerrataBookModal(props: {
@@ -191,12 +170,10 @@ export default function FerrataDetail() {
   }, [load])
 
   const coverUrl = (f?.coverImage ?? '').trim()
-  const subtitle = [f?.lokacija, f?.kratakOpis].filter(Boolean).join(' · ')
+  const regionSubtitle =
+    f?.podrucje?.trim() || [f?.gradOpstina, f?.drzava].filter((x) => x && String(x).trim()).join(', ')
   const hasMapCoords =
     f != null && f.lat != null && f.lng != null && Number.isFinite(f.lat) && Number.isFinite(f.lng)
-
-  const badgeBeginners =
-    f?.pogodnoZaPocetnike === 'uz_vodica' ? t('whoWithGuide') : f?.pogodnoZaPocetnike || '—'
 
   const createActionHref =
     user && ['superadmin', 'admin', 'vodic'].includes(user.role) && f
@@ -235,9 +212,9 @@ export default function FerrataDetail() {
                 >
                   {f.naziv}
                 </h1>
-                {subtitle && (
+                {regionSubtitle && (
                   <p className={`mt-2 max-w-3xl text-sm sm:text-base ${coverUrl ? 'text-gray-600' : 'text-white/90'}`}>
-                    {subtitle}
+                    {regionSubtitle}
                   </p>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -271,16 +248,6 @@ export default function FerrataDetail() {
                     <ClockIcon className="h-3.5 w-3.5" />
                     {formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      coverUrl
-                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
-                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
-                    }`}
-                  >
-                    <UserGroupIcon className="h-3.5 w-3.5" />
-                    {badgeBeginners}
-                  </span>
                 </div>
                 <div className="mt-6 flex flex-col flex-wrap gap-3 sm:flex-row">
                   <Link
@@ -312,13 +279,12 @@ export default function FerrataDetail() {
 
           {/* Quick stats */}
           <div className="px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 max-w-6xl mx-auto">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 max-w-6xl mx-auto">
               {[
                 { label: t('statsDifficulty'), value: f.tezina, icon: ChartBarIcon },
                 { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: BoltIcon },
                 { label: t('statsLength'), value: `${f.duzinaM} m`, icon: MapPinIcon },
                 { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: SparklesIcon },
-                { label: t('statsApproach'), value: t('minutes', { n: f.prilazMin }), icon: ClockIcon },
                 { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: ClockIcon },
               ].map((card) => (
                 <div
@@ -342,14 +308,16 @@ export default function FerrataDetail() {
                   lat={f.lat as number}
                   lng={f.lng as number}
                   naziv={f.naziv}
-                  lokacija={f.lokacija}
+                  subtitle={regionSubtitle}
                 />
               )}
 
-              <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-2">{t('aboutTitle')}</h2>
-                <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis}</p>
-              </article>
+              {f.opis?.trim() && (
+                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-2">{t('aboutTitle')}</h2>
+                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis.trim()}</p>
+                </article>
+              )}
 
               {f.highlights?.length > 0 && (
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
@@ -365,72 +333,76 @@ export default function FerrataDetail() {
                 </article>
               )}
 
-              <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('whoTitle')}</h2>
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-4 border-b border-gray-50 pb-2">
-                    <dt className="text-gray-500">{t('whoBeginners')}</dt>
-                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoBeginnersLabel(f, t)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-gray-50 pb-2">
-                    <dt className="text-gray-500">{t('whoRecreational')}</dt>
-                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoRecreationalLabel(f, t)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-gray-500">{t('whoExperienced')}</dt>
-                    <dd className="font-semibold text-gray-900 text-right max-w-[60%]">{whoExperiencedLabel(f, t)}</dd>
-                  </div>
-                </dl>
-              </article>
-
-              {f.obaveznaOprema?.length > 0 && (
+              {Boolean(f.okolina?.some((x) => x?.trim())) && (
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('equipmentTitle')}</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {f.obaveznaOprema.map((item) => (
-                      <span
-                        key={item}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
-                      >
-                        <WrenchScrewdriverIcon className="h-4 w-4 text-emerald-600" />
-                        {item}
-                      </span>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
+                  <ul className="space-y-2 text-sm text-gray-800">
+                    {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
+                      <li key={`okolina-${idx}`} className="flex gap-2">
+                        <span className="text-emerald-600 font-bold">·</span>
+                        <span>{line.trim()}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </article>
               )}
 
-              <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('logisticsTitle')}</h2>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span className="font-medium text-gray-800">{t('logisticsParking')}:</span>
-                    <span className={f.parkingInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
-                      {f.parkingInfo?.trim() || t('logisticsNotSet')}
-                    </span>
-                  </li>
-                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <ClockIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span className="font-medium text-gray-800">{t('logisticsApproach')}:</span>
-                    <span className="text-gray-900 font-medium">{t('minutes', { n: f.prilazMin })}</span>
-                  </li>
-                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <ArrowLeftIcon className="h-4 w-4 text-emerald-600 shrink-0 rotate-180 mt-0.5" />
-                    <span className="font-medium text-gray-800">{t('logisticsReturn')}:</span>
-                    <span className={f.povratakInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
-                      {f.povratakInfo?.trim() || t('logisticsNotSet')}
-                    </span>
-                  </li>
-                  <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <StarIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span className="font-medium text-gray-800">{t('logisticsBestTime')}:</span>
-                    <span className={f.najboljeVremeInfo?.trim() ? 'text-gray-900 font-medium' : 'text-gray-500'}>
-                      {f.najboljeVremeInfo?.trim() || t('logisticsNotSet')}
-                    </span>
-                  </li>
-                </ul>
-              </article>
+              {f.smestaj && f.smestaj.length > 0 && <FerrataSmestajSection items={f.smestaj} />}
+
+              {(() => {
+                const opremaItems = normalizeOprema(f.obaveznaOprema).filter((it) => it.label?.trim())
+                if (!opremaItems.length) return null
+                return (
+                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('equipmentTitle')}</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {opremaItems.map((item) => {
+                        const iconKey = item.icon?.trim() ? item.icon.trim() : suggestEquipmentIcon(item.label)
+                        const Icon = resolveOutlineIcon(iconKey)
+                        return (
+                          <span
+                            key={`${item.label}-${item.icon ?? ''}`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
+                          >
+                            <Icon className="h-4 w-4 text-emerald-600 shrink-0" />
+                            {item.label.trim()}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </article>
+                )
+              })()}
+
+              {contacts.length > 0 && (
+                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailGuidesTitle')}</h2>
+                  <ul className="space-y-4">
+                    {contacts.map((c) => (
+                      <li key={c.id} className="rounded-xl border border-gray-50 bg-gray-50/60 p-4 space-y-2">
+                        <p className="font-semibold text-gray-900">{c.ime}</p>
+                        {c.telefon && <p className="text-sm text-gray-700">{c.telefon}</p>}
+                        {c.whatsapp && (
+                          <a
+                            href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-semibold text-emerald-700 hover:underline"
+                          >
+                            {t('whatsApp')}
+                          </a>
+                        )}
+                        {c.email && (
+                          <a href={`mailto:${c.email}`} className="text-sm font-semibold text-emerald-700 hover:underline break-all">
+                            {c.email}
+                          </a>
+                        )}
+                        {c.napomena?.trim() && <p className="text-xs text-gray-600 whitespace-pre-line">{c.napomena.trim()}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              )}
             </div>
 
             {/* Sidebar */}

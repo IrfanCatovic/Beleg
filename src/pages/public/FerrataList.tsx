@@ -17,12 +17,11 @@ type FerrataRow = {
   id: number
   slug: string
   naziv: string
-  lokacija: string
+  podrucje?: string
   tezina: string
   duzinaM: number
   trajanjeMin: number
   trajanjeMax: number
-  pogodnoZaPocetnike: string
   coverImage: string
   upcomingActionsCount?: number
   createdAt?: string
@@ -63,12 +62,6 @@ function difficultyBadgeClass(tezina: string) {
   if (s.includes('B')) return 'bg-sky-600 text-white border-sky-700'
   if (s.includes('A')) return 'bg-emerald-600 text-white border-emerald-700'
   return 'bg-slate-600 text-white border-slate-700'
-}
-
-function audienceLabel(f: FerrataRow, t: (k: string) => string) {
-  if (f.pogodnoZaPocetnike === 'uz_vodica') return t('cardBeginnersWithGuide')
-  if (f.pogodnoZaPocetnike?.trim()) return f.pogodnoZaPocetnike
-  return t('cardBeginners')
 }
 
 export default function FerrataList() {
@@ -144,7 +137,7 @@ export default function FerrataList() {
         id: f.id,
         slug: f.slug,
         naziv: f.naziv,
-        lokacija: f.lokacija,
+        subtitle: f.podrucje ?? '',
         tezina: f.tezina,
         lat: Number(f.lat),
         lng: Number(f.lng),
@@ -266,7 +259,9 @@ export default function FerrataList() {
                     <h2 className="text-base font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
                       {f.naziv}
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">{f.lokacija}</p>
+                    {f.podrucje?.trim() && (
+                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">{f.podrucje.trim()}</p>
+                    )}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span
                         className={`inline-flex min-w-[2.5rem] items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-bold ${difficultyBadgeClass(f.tezina)}`}
@@ -279,10 +274,6 @@ export default function FerrataList() {
                       <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
                         {formatDuration(f.trajanjeMin, f.trajanjeMax)} h
                       </span>
-                    </div>
-                    <div className="mt-3 flex items-start gap-2">
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                      <span className="text-xs font-medium text-gray-700 leading-snug">{audienceLabel(f, t)}</span>
                     </div>
                     <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-100 text-xs">
                       <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">

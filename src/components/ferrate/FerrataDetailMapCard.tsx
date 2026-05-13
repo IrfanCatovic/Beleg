@@ -19,7 +19,8 @@ export function FerrataDetailMapCard(props: {
   lat: number
   lng: number
   naziv: string
-  lokacija: string
+  /** Podnaslov ispod naziva (npr. grad, država); može biti prazan. */
+  subtitle: string
 }) {
   const { t } = useTranslation('ferrate')
   const mapRef = useRef<MapRef>(null)
@@ -88,7 +89,7 @@ export function FerrataDetailMapCard(props: {
                 <div className="space-y-3 p-1">
                   <div>
                     <p className="font-bold leading-snug text-gray-900">{props.naziv}</p>
-                    <p className="mt-1 text-xs text-gray-600">{props.lokacija}</p>
+                    {props.subtitle.trim() && <p className="mt-1 text-xs text-gray-600">{props.subtitle}</p>}
                     <p className="mt-2 font-mono text-[11px] text-gray-500">{coordsText}</p>
                   </div>
                   <a

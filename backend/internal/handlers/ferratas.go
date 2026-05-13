@@ -35,6 +35,31 @@ type ferrataSnapshotPayload struct {
 	Lng                *float64 `json:"lng,omitempty"`
 }
 
+type ferrataOpremaItem struct {
+	Label string `json:"label"`
+	Icon  string `json:"icon"`
+}
+
+type ferrataSmestajDTO struct {
+	Naziv string   `json:"naziv"`
+	Opis  string   `json:"opis"`
+	Slike []string `json:"slike"`
+	Lat   *float64 `json:"lat"`
+	Lng   *float64 `json:"lng"`
+}
+
+func displayFerrataRegion(f *models.Ferrata) string {
+	a := strings.TrimSpace(f.GradOpstina)
+	b := strings.TrimSpace(f.Drzava)
+	if a != "" && b != "" {
+		return a + ", " + b
+	}
+	if a != "" {
+		return a
+	}
+	return b
+}
+
 func parseStringSliceJSON(raw json.RawMessage) []string {
 	if len(raw) == 0 || string(raw) == "null" {
 		return []string{}
@@ -47,9 +72,10 @@ func parseStringSliceJSON(raw json.RawMessage) []string {
 }
 
 func buildFerrataSnapshotBytes(f *models.Ferrata) ([]byte, error) {
+	labels := obaveznaOpremaLabels(f.ObaveznaOpremaJSON)
 	p := ferrataSnapshotPayload{
 		Naziv:              f.Naziv,
-		Lokacija:           f.Lokacija,
+		Lokacija:           displayFerrataRegion(f),
 		Tezina:             f.Tezina,
 		TezinaOpcija:       f.TezinaOpcija,
 		DuzinaM:            f.DuzinaM,
@@ -58,11 +84,126 @@ func buildFerrataSnapshotBytes(f *models.Ferrata) ([]byte, error) {
 		TrajanjeMin:        f.TrajanjeMin,
 		TrajanjeMax:        f.TrajanjeMax,
 		PogodnoZaPocetnike: f.PogodnoZaPocetnike,
-		ObaveznaOprema:     parseStringSliceJSON(f.ObaveznaOpremaJSON),
+		ObaveznaOprema:     labels,
 		Lat:                f.Lat,
 		Lng:                f.Lng,
 	}
 	return json.Marshal(p)
+}
+
+func obaveznaOpremaLabels(raw json.RawMessage) []string {
+	items := parseObaveznaOpremaItems(raw)
+	out := make([]string, 0, len(items))
+	for _, it := range items {
+		if strings.TrimSpace(it.Label) != "" {
+			out = append(out, strings.TrimSpace(it.Label))
+		}
+	}
+	return out
+}
+
+func parseObaveznaOpremaItems(raw json.RawMessage) []ferrataOpremaItem {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	var objs []ferrataOpremaItem
+	if err := json.Unmarshal(raw, &objs); err == nil && len(objs) > 0 {
+		// Novi format [{label, icon}, ...] ili prazan objekat
+		if len(objs) > 1 || strings.TrimSpace(objs[0].Label) != "" || strings.TrimSpace(objs[0].Icon) != "" {
+			return objs
+		}
+	}
+	var strs []string
+	if err := json.Unmarshal(raw, &strs); err == nil {
+		out := make([]ferrataOpremaItem, 0, len(strs))
+		for _, s := range strs {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				out = append(out, ferrataOpremaItem{Label: s})
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+func marshalObaveznaOpremaJSON(items []ferrataOpremaItem) json.RawMessage {
+	filtered := make([]ferrataOpremaItem, 0, len(items))
+	for _, it := range items {
+		if strings.TrimSpace(it.Label) == "" {
+			continue
+		}
+		filtered = append(filtered, ferrataOpremaItem{Label: strings.TrimSpace(it.Label), Icon: strings.TrimSpace(it.Icon)})
+	}
+	b, _ := json.Marshal(filtered)
+	return json.RawMessage(b)
+}
+
+func obaveznaOpremaForAPI(raw json.RawMessage) []gin.H {
+	items := parseObaveznaOpremaItems(raw)
+	out := make([]gin.H, 0, len(items))
+	for _, it := range items {
+		if strings.TrimSpace(it.Label) == "" {
+			continue
+		}
+		out = append(out, gin.H{"label": it.Label, "icon": strings.TrimSpace(it.Icon)})
+	}
+	return out
+}
+
+func parseSmestajJSON(raw json.RawMessage) []gin.H {
+	items := parseSmestajItems(raw)
+	out := make([]gin.H, 0, len(items))
+	for _, it := range items {
+		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil {
+			continue
+		}
+		row := gin.H{
+			"naziv": strings.TrimSpace(it.Naziv),
+			"opis":  strings.TrimSpace(it.Opis),
+			"slike": it.Slike,
+			"lat":   ferrataCoordJSON(it.Lat),
+			"lng":   ferrataCoordJSON(it.Lng),
+		}
+		out = append(out, row)
+	}
+	return out
+}
+
+func parseSmestajItems(raw json.RawMessage) []ferrataSmestajDTO {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	var items []ferrataSmestajDTO
+	if err := json.Unmarshal(raw, &items); err != nil {
+		return nil
+	}
+	return items
+}
+
+func marshalSmestajJSON(items []ferrataSmestajDTO) json.RawMessage {
+	out := make([]ferrataSmestajDTO, 0, len(items))
+	for _, it := range items {
+		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil {
+			continue
+		}
+		slike := make([]string, 0, len(it.Slike))
+		for _, u := range it.Slike {
+			u = strings.TrimSpace(u)
+			if u != "" {
+				slike = append(slike, u)
+			}
+		}
+		out = append(out, ferrataSmestajDTO{
+			Naziv: strings.TrimSpace(it.Naziv),
+			Opis:  strings.TrimSpace(it.Opis),
+			Slike: slike,
+			Lat:   it.Lat,
+			Lng:   it.Lng,
+		})
+	}
+	b, _ := json.Marshal(out)
+	return json.RawMessage(b)
 }
 
 func ferrataCoordJSON(v *float64) interface{} {
@@ -74,40 +215,30 @@ func ferrataCoordJSON(v *float64) interface{} {
 
 func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
 	m := gin.H{
-		"id":                  f.ID,
-		"naziv":               f.Naziv,
-		"slug":                f.Slug,
-		"drzava":              f.Drzava,
-		"gradOpstina":         f.GradOpstina,
-		"lokacija":            f.Lokacija,
-		"kratakOpis":          f.KratakOpis,
-		"opis":                f.Opis,
-		"tezina":              f.Tezina,
-		"tezinaOpcija":        f.TezinaOpcija,
-		"duzinaM":             f.DuzinaM,
-		"visinskaRazlikaM":    f.VisinskaRazlikaM,
-		"prilazMin":           f.PrilazMin,
-		"trajanjeMin":         f.TrajanjeMin,
-		"trajanjeMax":         f.TrajanjeMax,
-		"pogodnoZaPocetnike":  f.PogodnoZaPocetnike,
-		"parkingInfo":         f.ParkingInfo,
-		"povratakInfo":        f.PovratakInfo,
-		"najboljeVremeInfo":   f.NajboljeVremeInfo,
-		"quickTip":            f.QuickTip,
-		"whoBeginnersText":    f.WhoBeginnersText,
-		"whoRecreationalText": f.WhoRecreationalText,
-		"whoExperiencedText":  f.WhoExperiencedText,
-		"lat":                 ferrataCoordJSON(f.Lat),
-		"lng":                 ferrataCoordJSON(f.Lng),
-		"parkingLat":          ferrataCoordJSON(f.ParkingLat),
-		"parkingLng":          ferrataCoordJSON(f.ParkingLng),
-		"mapNote":             f.MapNote,
-		"highlights":          parseStringSliceJSON(f.HighlightsJSON),
-		"obaveznaOprema":      parseStringSliceJSON(f.ObaveznaOpremaJSON),
-		"coverImage":          f.CoverImage,
-		"status":              f.Status,
-		"createdAt":           f.CreatedAt,
-		"updatedAt":           f.UpdatedAt,
+		"id":               f.ID,
+		"naziv":            f.Naziv,
+		"slug":             f.Slug,
+		"drzava":           f.Drzava,
+		"gradOpstina":      f.GradOpstina,
+		"podrucje":         displayFerrataRegion(f),
+		"opis":             f.Opis,
+		"tezina":           f.Tezina,
+		"tezinaOpcija":     f.TezinaOpcija,
+		"duzinaM":          f.DuzinaM,
+		"visinskaRazlikaM": f.VisinskaRazlikaM,
+		"trajanjeMin":      f.TrajanjeMin,
+		"trajanjeMax":      f.TrajanjeMax,
+		"quickTip":         f.QuickTip,
+		"lat":              ferrataCoordJSON(f.Lat),
+		"lng":              ferrataCoordJSON(f.Lng),
+		"highlights":       parseStringSliceJSON(f.HighlightsJSON),
+		"okolina":          parseStringSliceJSON(f.OkolinaJSON),
+		"smestaj":          parseSmestajJSON(f.SmestajJSON),
+		"obaveznaOprema":   obaveznaOpremaForAPI(f.ObaveznaOpremaJSON),
+		"coverImage":       f.CoverImage,
+		"status":           f.Status,
+		"createdAt":        f.CreatedAt,
+		"updatedAt":        f.UpdatedAt,
 	}
 	if upcoming >= 0 {
 		m["upcomingActionsCount"] = upcoming
@@ -124,7 +255,7 @@ func ListFerratas(c *gin.Context) {
 	q := db.Model(&models.Ferrata{}).Where("status = ?", "active")
 	if search != "" {
 		pat := "%" + search + "%"
-		q = q.Where("(LOWER(naziv) LIKE ? OR LOWER(lokacija) LIKE ? OR LOWER(drzava) LIKE ? OR LOWER(grad_opstina) LIKE ?)", pat, pat, pat, pat)
+		q = q.Where("(LOWER(naziv) LIKE ? OR LOWER(drzava) LIKE ? OR LOWER(grad_opstina) LIKE ?)", pat, pat, pat)
 	}
 	if tezinaFilter != "" {
 		q = q.Where("LOWER(tezina) = LOWER(?) OR LOWER(tezina_opcija) = LOWER(?)", tezinaFilter, tezinaFilter)
@@ -272,37 +403,26 @@ func SuperadminListFerratas(c *gin.Context) {
 }
 
 type superadminFerrataBody struct {
-	Naziv               string   `json:"naziv"`
-	Slug                string   `json:"slug"`
-	Drzava              string   `json:"drzava"`
-	GradOpstina         string   `json:"gradOpstina"`
-	Lokacija            string   `json:"lokacija"`
-	KratakOpis          string   `json:"kratakOpis"`
-	Opis                string   `json:"opis"`
-	Tezina              string   `json:"tezina"`
-	TezinaOpcija        string   `json:"tezinaOpcija"`
-	DuzinaM             int      `json:"duzinaM"`
-	VisinskaRazlikaM    int      `json:"visinskaRazlikaM"`
-	PrilazMin           int      `json:"prilazMin"`
-	TrajanjeMin         int      `json:"trajanjeMin"`
-	TrajanjeMax         int      `json:"trajanjeMax"`
-	PogodnoZaPocetnike  string   `json:"pogodnoZaPocetnike"`
-	ParkingInfo         string   `json:"parkingInfo"`
-	PovratakInfo        string   `json:"povratakInfo"`
-	NajboljeVremeInfo   string   `json:"najboljeVremeInfo"`
-	QuickTip            string   `json:"quickTip"`
-	WhoBeginnersText    string   `json:"whoBeginnersText"`
-	WhoRecreationalText string   `json:"whoRecreationalText"`
-	WhoExperiencedText  string   `json:"whoExperiencedText"`
-	Highlights          []string `json:"highlights"`
-	ObaveznaOprema      []string `json:"obaveznaOprema"`
-	CoverImage          string   `json:"coverImage"`
-	Status              string   `json:"status"`
-	Lat                 *float64 `json:"lat"`
-	Lng                 *float64 `json:"lng"`
-	ParkingLat          *float64 `json:"parkingLat"`
-	ParkingLng          *float64 `json:"parkingLng"`
-	MapNote             string   `json:"mapNote"`
+	Naziv            string              `json:"naziv"`
+	Slug             string              `json:"slug"`
+	Drzava           string              `json:"drzava"`
+	GradOpstina      string              `json:"gradOpstina"`
+	Opis             string              `json:"opis"`
+	Tezina           string              `json:"tezina"`
+	TezinaOpcija     string              `json:"tezinaOpcija"`
+	DuzinaM          int                 `json:"duzinaM"`
+	VisinskaRazlikaM int                 `json:"visinskaRazlikaM"`
+	TrajanjeMin      int                 `json:"trajanjeMin"`
+	TrajanjeMax      int                 `json:"trajanjeMax"`
+	QuickTip         string              `json:"quickTip"`
+	Highlights       []string            `json:"highlights"`
+	Okolina          []string            `json:"okolina"`
+	Smestaj          []ferrataSmestajDTO `json:"smestaj"`
+	ObaveznaOprema   []ferrataOpremaItem `json:"obaveznaOprema"`
+	CoverImage       string              `json:"coverImage"`
+	Status           string              `json:"status"`
+	Lat              *float64            `json:"lat"`
+	Lng              *float64            `json:"lng"`
 }
 
 func marshalJSONArray(a []string) json.RawMessage {
@@ -339,33 +459,35 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		Slug:                strings.TrimSpace(body.Slug),
 		Drzava:              strings.TrimSpace(body.Drzava),
 		GradOpstina:         strings.TrimSpace(body.GradOpstina),
-		Lokacija:            strings.TrimSpace(body.Lokacija),
-		KratakOpis:          strings.TrimSpace(body.KratakOpis),
+		Lokacija:            "",
+		KratakOpis:          "",
 		Opis:                strings.TrimSpace(body.Opis),
 		Tezina:              strings.TrimSpace(body.Tezina),
 		TezinaOpcija:        strings.TrimSpace(body.TezinaOpcija),
 		DuzinaM:             body.DuzinaM,
 		VisinskaRazlikaM:    body.VisinskaRazlikaM,
-		PrilazMin:           body.PrilazMin,
+		PrilazMin:           0,
 		TrajanjeMin:         body.TrajanjeMin,
 		TrajanjeMax:         body.TrajanjeMax,
-		PogodnoZaPocetnike:  strings.TrimSpace(body.PogodnoZaPocetnike),
-		ParkingInfo:         strings.TrimSpace(body.ParkingInfo),
-		PovratakInfo:        strings.TrimSpace(body.PovratakInfo),
-		NajboljeVremeInfo:   strings.TrimSpace(body.NajboljeVremeInfo),
+		PogodnoZaPocetnike:  "",
+		ParkingInfo:         "",
+		PovratakInfo:        "",
+		NajboljeVremeInfo:   "",
 		QuickTip:            strings.TrimSpace(body.QuickTip),
-		WhoBeginnersText:    strings.TrimSpace(body.WhoBeginnersText),
-		WhoRecreationalText: strings.TrimSpace(body.WhoRecreationalText),
-		WhoExperiencedText:  strings.TrimSpace(body.WhoExperiencedText),
+		WhoBeginnersText:    "",
+		WhoRecreationalText: "",
+		WhoExperiencedText:  "",
 		HighlightsJSON:      marshalJSONArray(body.Highlights),
-		ObaveznaOpremaJSON:  marshalJSONArray(body.ObaveznaOprema),
+		OkolinaJSON:         marshalJSONArray(body.Okolina),
+		SmestajJSON:         marshalSmestajJSON(body.Smestaj),
+		ObaveznaOpremaJSON:  marshalObaveznaOpremaJSON(body.ObaveznaOprema),
 		CoverImage:          strings.TrimSpace(body.CoverImage),
 		Status:              st,
 		Lat:                 body.Lat,
 		Lng:                 body.Lng,
-		ParkingLat:          body.ParkingLat,
-		ParkingLng:          body.ParkingLng,
-		MapNote:             strings.TrimSpace(body.MapNote),
+		ParkingLat:          nil,
+		ParkingLng:          nil,
+		MapNote:             "",
 	}
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Create(&f).Error; err != nil {
@@ -403,35 +525,33 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	}
 	f.Drzava = strings.TrimSpace(body.Drzava)
 	f.GradOpstina = strings.TrimSpace(body.GradOpstina)
-	f.Lokacija = strings.TrimSpace(body.Lokacija)
-	f.KratakOpis = strings.TrimSpace(body.KratakOpis)
+	f.Lokacija = ""
+	f.KratakOpis = ""
 	f.Opis = strings.TrimSpace(body.Opis)
 	f.Tezina = strings.TrimSpace(body.Tezina)
 	f.TezinaOpcija = strings.TrimSpace(body.TezinaOpcija)
 	f.DuzinaM = body.DuzinaM
 	f.VisinskaRazlikaM = body.VisinskaRazlikaM
-	f.PrilazMin = body.PrilazMin
+	f.PrilazMin = 0
 	f.TrajanjeMin = body.TrajanjeMin
 	f.TrajanjeMax = body.TrajanjeMax
-	f.PogodnoZaPocetnike = strings.TrimSpace(body.PogodnoZaPocetnike)
-	f.ParkingInfo = strings.TrimSpace(body.ParkingInfo)
-	f.PovratakInfo = strings.TrimSpace(body.PovratakInfo)
-	f.NajboljeVremeInfo = strings.TrimSpace(body.NajboljeVremeInfo)
+	f.PogodnoZaPocetnike = ""
+	f.ParkingInfo = ""
+	f.PovratakInfo = ""
+	f.NajboljeVremeInfo = ""
 	f.QuickTip = strings.TrimSpace(body.QuickTip)
-	f.WhoBeginnersText = strings.TrimSpace(body.WhoBeginnersText)
-	f.WhoRecreationalText = strings.TrimSpace(body.WhoRecreationalText)
-	f.WhoExperiencedText = strings.TrimSpace(body.WhoExperiencedText)
+	f.WhoBeginnersText = ""
+	f.WhoRecreationalText = ""
+	f.WhoExperiencedText = ""
 	f.Lat = body.Lat
 	f.Lng = body.Lng
-	f.ParkingLat = body.ParkingLat
-	f.ParkingLng = body.ParkingLng
-	f.MapNote = strings.TrimSpace(body.MapNote)
-	if body.Highlights != nil {
-		f.HighlightsJSON = marshalJSONArray(body.Highlights)
-	}
-	if body.ObaveznaOprema != nil {
-		f.ObaveznaOpremaJSON = marshalJSONArray(body.ObaveznaOprema)
-	}
+	f.ParkingLat = nil
+	f.ParkingLng = nil
+	f.MapNote = ""
+	f.HighlightsJSON = marshalJSONArray(body.Highlights)
+	f.OkolinaJSON = marshalJSONArray(body.Okolina)
+	f.SmestajJSON = marshalSmestajJSON(body.Smestaj)
+	f.ObaveznaOpremaJSON = marshalObaveznaOpremaJSON(body.ObaveznaOprema)
 	f.CoverImage = strings.TrimSpace(body.CoverImage)
 	if st := strings.TrimSpace(strings.ToLower(body.Status)); st != "" {
 		if st != "active" && st != "closed" && st != "archived" {
@@ -518,6 +638,72 @@ func SuperadminUploadFerrataCover(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"coverImage": f.CoverImage, "ferrata": ferrataToMap(&f, -1)})
+}
+
+// SuperadminUploadFerrataGallery POST multipart polje "slika" — upload u Cloudinary (npr. slike smeštaja); vraća samo URL za ubacivanje u JSON pri čuvanju ferate.
+func SuperadminUploadFerrataGallery(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var cnt int64
+	db.Model(&models.Ferrata{}).Where("id = ?", id).Count(&cnt)
+	if cnt == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
+		return
+	}
+	if err := c.Request.ParseMultipartForm(12 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format"})
+		return
+	}
+	files := c.Request.MultipartForm.File["slika"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite sliku (polje slika)"})
+		return
+	}
+	file := files[0]
+	if err := helpers.ValidateImageFileHeader(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := helpers.CheckStorageLimit(db, 0, file.Size); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	fp, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+		return
+	}
+	defer fp.Close()
+
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary"})
+		return
+	}
+	ctx := context.Background()
+	uploadParams := uploader.UploadParams{
+		PublicID:       fmt.Sprintf("ferratas/%d/gallery-%d", id, time.Now().UnixNano()),
+		Folder:         helpers.CloudinaryFolderFerratas(),
+		Transformation: "q_auto:good,f_auto",
+	}
+	uploadResult, err := cld.Upload.Upload(ctx, fp, uploadParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Upload greška: " + err.Error()})
+		return
+	}
+	helpers.AddStorageUsage(db, 0, file.Size)
+	c.JSON(http.StatusOK, gin.H{"url": uploadResult.SecureURL})
 }
 
 type ferrataContactBody struct {

@@ -10,7 +10,7 @@ export type CatalogMapMarker = {
   id: number
   slug: string
   naziv: string
-  lokacija: string
+  subtitle: string
   tezina: string
   lat: number
   lng: number
@@ -115,7 +115,7 @@ export function FerrataCatalogMap(props: {
             >
               <div className="min-w-[11rem] space-y-2 p-1 text-sm">
                 <p className="font-bold leading-snug text-gray-900">{activePopup.naziv}</p>
-                <p className="text-xs text-gray-600">{activePopup.lokacija}</p>
+                {activePopup.subtitle?.trim() && <p className="text-xs text-gray-600">{activePopup.subtitle}</p>}
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-lg border px-2 py-0.5 text-[11px] font-bold ${difficultyBadgeClass(activePopup.tezina)}`}

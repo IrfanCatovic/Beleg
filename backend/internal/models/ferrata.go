@@ -36,6 +36,8 @@ type Ferrata struct {
 	ParkingLng          *float64        `gorm:"column:parking_lng" json:"parkingLng"`
 	MapNote             string          `gorm:"column:map_note;type:varchar(800)" json:"mapNote"`
 	ObaveznaOpremaJSON  json.RawMessage `gorm:"column:obavezna_oprema_json;type:jsonb" json:"-"`
+	OkolinaJSON         json.RawMessage `gorm:"column:okolina_json;type:jsonb" json:"-"`
+	SmestajJSON         json.RawMessage `gorm:"column:smestaj_json;type:jsonb" json:"-"`
 	HighlightsJSON      json.RawMessage `gorm:"column:highlights_json;type:jsonb" json:"-"`
 	CoverImage          string          `gorm:"column:cover_image;type:varchar(800)" json:"coverImage"`
 	Status              string          `gorm:"type:varchar(20);default:'active';index" json:"status"`

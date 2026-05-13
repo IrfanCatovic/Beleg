@@ -4,10 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationEditor'
+import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
+import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
+import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
 
-type ContactRow = { id: number; ime: string; telefon?: string; napomena?: string }
+type ContactRow = { id: number; ime: string; telefon?: string; whatsapp?: string; email?: string; napomena?: string }
 
 function emptyForm() {
   return {
@@ -15,34 +18,54 @@ function emptyForm() {
     slug: '',
     drzava: '',
     gradOpstina: '',
-    lokacija: '',
-    kratakOpis: '',
     opis: '',
     tezina: '',
     tezinaOpcija: '',
     duzinaM: 0,
     visinskaRazlikaM: 0,
-    prilazMin: 0,
     trajanjeMin: 0,
     trajanjeMax: 0,
-    pogodnoZaPocetnike: '',
-    parkingInfo: '',
-    povratakInfo: '',
-    najboljeVremeInfo: '',
     quickTip: '',
-    whoBeginnersText: '',
-    whoRecreationalText: '',
-    whoExperiencedText: '',
     highlightsRaw: '',
-    obaveznaRaw: '',
-    coverImage: '',
+    okolina: [] as string[],
+    smestaj: [] as SmestajFormRow[],
+    obaveznaOprema: [] as OpremaFormRow[],
     status: 'active',
     lat: '',
     lng: '',
-    parkingLat: '',
-    parkingLng: '',
-    mapNote: '',
+    coverImage: '',
   }
+}
+
+function okolinaFromApi(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => String(x).trim()).filter(Boolean)
+}
+
+function smestajFromApi(raw: unknown): SmestajFormRow[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => {
+    const r = x as Record<string, unknown>
+    const slike = Array.isArray(r.slike) ? (r.slike as unknown[]).filter((u): u is string => typeof u === 'string') : []
+    return {
+      naziv: String(r.naziv ?? ''),
+      opis: String(r.opis ?? ''),
+      lat: r.lat != null && Number.isFinite(Number(r.lat)) ? String(r.lat) : '',
+      lng: r.lng != null && Number.isFinite(Number(r.lng)) ? String(r.lng) : '',
+      slike,
+    }
+  })
+}
+
+function obaveznaFromApi(raw: unknown): OpremaFormRow[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((x) => {
+      if (typeof x === 'string') return { label: x, icon: 'WrenchScrewdriverIcon' }
+      const o = x as { label?: string; icon?: string }
+      return { label: String(o.label ?? ''), icon: o.icon || 'WrenchScrewdriverIcon' }
+    })
+    .filter((r) => r.label.trim())
 }
 
 export default function SuperadminFerratas() {
@@ -54,7 +77,7 @@ export default function SuperadminFerratas() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [contacts, setContacts] = useState<ContactRow[]>([])
-  const [contactForm, setContactForm] = useState({ ime: '', telefon: '', napomena: '' })
+  const [contactForm, setContactForm] = useState({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
   const [contactSaving, setContactSaving] = useState(false)
 
   const load = useCallback(async () => {
@@ -86,7 +109,7 @@ export default function SuperadminFerratas() {
   useEffect(() => {
     if (!editingId) {
       setContacts([])
-      setContactForm({ ime: '', telefon: '', napomena: '' })
+      setContactForm({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
       return
     }
     void loadContactsForEdit(editingId)
@@ -119,51 +142,59 @@ export default function SuperadminFerratas() {
   async function handleSave() {
     setErr('')
     const highlights = parseList(form.highlightsRaw)
-    const obaveznaOprema = parseList(form.obaveznaRaw)
     const la = mapOptionalCoord(form.lat)
     const lo = mapOptionalCoord(form.lng)
     if ((la == null) !== (lo == null)) {
-      setErr('Unesi obe koordinate (lat i lng) ili obe ostavi prazne.')
+      setErr('Unesi obe koordinate ferate (lat i lng) ili obe ostavi prazne.')
       return
     }
-    const pla = mapOptionalCoord(form.parkingLat)
-    const plo = mapOptionalCoord(form.parkingLng)
-    if ((pla == null) !== (plo == null)) {
-      setErr('Parking: unesi obe koordinate ili obe ostavi prazne.')
-      return
+    const smestajDto: {
+      naziv: string
+      opis: string
+      slike: string[]
+      lat: number | null
+      lng: number | null
+    }[] = []
+    for (const s of form.smestaj) {
+      if (!s.naziv.trim() && !s.opis.trim() && s.slike.length === 0 && !s.lat.trim() && !s.lng.trim()) continue
+      const sla = mapOptionalCoord(s.lat)
+      const slo = mapOptionalCoord(s.lng)
+      if ((sla == null) !== (slo == null)) {
+        setErr(`Smeštaj „${s.naziv.trim() || 'bez naziva'}”: unesi obe koordinate ili obe prazne.`)
+        return
+      }
+      smestajDto.push({
+        naziv: s.naziv.trim(),
+        opis: s.opis.trim(),
+        slike: s.slike,
+        lat: sla,
+        lng: slo,
+      })
     }
+    const obavezna = form.obaveznaOprema
+      .filter((o) => o.label.trim())
+      .map((o) => ({ label: o.label.trim(), icon: o.icon.trim() || 'WrenchScrewdriverIcon' }))
     const payload = {
       naziv: form.naziv,
       slug: form.slug,
       drzava: form.drzava,
       gradOpstina: form.gradOpstina,
-      lokacija: form.lokacija,
-      kratakOpis: form.kratakOpis,
       opis: form.opis,
       tezina: form.tezina,
       tezinaOpcija: form.tezinaOpcija,
       duzinaM: Number(form.duzinaM) || 0,
       visinskaRazlikaM: Number(form.visinskaRazlikaM) || 0,
-      prilazMin: Number(form.prilazMin) || 0,
       trajanjeMin: Number(form.trajanjeMin) || 0,
       trajanjeMax: Number(form.trajanjeMax) || 0,
-      pogodnoZaPocetnike: form.pogodnoZaPocetnike,
-      parkingInfo: form.parkingInfo,
-      povratakInfo: form.povratakInfo,
-      najboljeVremeInfo: form.najboljeVremeInfo,
       quickTip: form.quickTip,
-      whoBeginnersText: form.whoBeginnersText,
-      whoRecreationalText: form.whoRecreationalText,
-      whoExperiencedText: form.whoExperiencedText,
       highlights,
-      obaveznaOprema,
+      okolina: form.okolina.map((s) => s.trim()).filter(Boolean),
+      smestaj: smestajDto,
+      obaveznaOprema: obavezna,
       coverImage: form.coverImage,
       status: form.status,
       lat: la,
       lng: lo,
-      parkingLat: pla,
-      parkingLng: plo,
-      mapNote: form.mapNote,
     }
     try {
       if (editingId) {
@@ -190,39 +221,27 @@ export default function SuperadminFerratas() {
   function startEdit(row: FerrataRow) {
     setEditingId(row.id as number)
     const h = Array.isArray(row.highlights) ? (row.highlights as string[]).join('\n') : ''
-    const o = Array.isArray(row.obaveznaOprema) ? (row.obaveznaOprema as string[]).join('\n') : ''
     setForm({
       naziv: String(row.naziv ?? ''),
       slug: String(row.slug ?? ''),
       drzava: String(row.drzava ?? ''),
       gradOpstina: String(row.gradOpstina ?? ''),
-      lokacija: String(row.lokacija ?? ''),
-      kratakOpis: String(row.kratakOpis ?? ''),
       opis: String(row.opis ?? ''),
       tezina: String(row.tezina ?? ''),
       tezinaOpcija: String(row.tezinaOpcija ?? ''),
       duzinaM: Number(row.duzinaM ?? 0),
       visinskaRazlikaM: Number(row.visinskaRazlikaM ?? 0),
-      prilazMin: Number(row.prilazMin ?? 0),
       trajanjeMin: Number(row.trajanjeMin ?? 0),
       trajanjeMax: Number(row.trajanjeMax ?? 0),
-      pogodnoZaPocetnike: String(row.pogodnoZaPocetnike ?? ''),
-      parkingInfo: String(row.parkingInfo ?? ''),
-      povratakInfo: String(row.povratakInfo ?? ''),
-      najboljeVremeInfo: String(row.najboljeVremeInfo ?? ''),
       quickTip: String(row.quickTip ?? ''),
-      whoBeginnersText: String(row.whoBeginnersText ?? ''),
-      whoRecreationalText: String(row.whoRecreationalText ?? ''),
-      whoExperiencedText: String(row.whoExperiencedText ?? ''),
       highlightsRaw: h,
-      obaveznaRaw: o,
+      okolina: okolinaFromApi(row.okolina),
+      smestaj: smestajFromApi(row.smestaj),
+      obaveznaOprema: obaveznaFromApi(row.obaveznaOprema),
       coverImage: String(row.coverImage ?? ''),
       status: String(row.status ?? 'active'),
       lat: coordToFormField(row.lat),
       lng: coordToFormField(row.lng),
-      parkingLat: coordToFormField(row.parkingLat),
-      parkingLng: coordToFormField(row.parkingLng),
-      mapNote: String(row.mapNote ?? ''),
     })
   }
 
@@ -239,9 +258,11 @@ export default function SuperadminFerratas() {
       await api.post(`/api/superadmin/ferratas/${editingId}/contacts`, {
         ime,
         telefon: contactForm.telefon.trim(),
+        whatsapp: contactForm.whatsapp.trim(),
+        email: contactForm.email.trim(),
         napomena: contactForm.napomena.trim(),
       })
-      setContactForm({ ime: '', telefon: '', napomena: '' })
+      setContactForm({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
       await loadContactsForEdit(editingId)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -256,7 +277,11 @@ export default function SuperadminFerratas() {
     const fd = new FormData()
     fd.append('slika', file)
     try {
-      await api.post(`/api/superadmin/ferratas/${id}/cover`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await api.post<{ coverImage?: string }>(`/api/superadmin/ferratas/${id}/cover`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const url = res.data?.coverImage
+      if (editingId === id && url) setForm((f) => ({ ...f, coverImage: url }))
       await load()
     } catch {
       setErr('Upload slike nije uspeo.')
@@ -296,9 +321,7 @@ export default function SuperadminFerratas() {
           <input className={inp} placeholder="Naziv" value={form.naziv} onChange={(e) => setForm({ ...form, naziv: e.target.value })} />
           <input className={inp} placeholder="slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           <input className={inp} placeholder="Država" value={form.drzava} onChange={(e) => setForm({ ...form, drzava: e.target.value })} />
-          <input className={inp} placeholder="Grad/opština" value={form.gradOpstina} onChange={(e) => setForm({ ...form, gradOpstina: e.target.value })} />
-          <input className={inp} placeholder="Lokacija" value={form.lokacija} onChange={(e) => setForm({ ...form, lokacija: e.target.value })} />
-          <input className={inp} placeholder="Cover URL (opciono; ili upload posle čuvanja)" value={form.coverImage} onChange={(e) => setForm({ ...form, coverImage: e.target.value })} />
+          <input className={inp} placeholder="Grad / opština (za prikaz regiona)" value={form.gradOpstina} onChange={(e) => setForm({ ...form, gradOpstina: e.target.value })} />
           <input className={inp} placeholder="Težina" value={form.tezina} onChange={(e) => setForm({ ...form, tezina: e.target.value })} />
           <input className={inp} placeholder="Teža opcija" value={form.tezinaOpcija} onChange={(e) => setForm({ ...form, tezinaOpcija: e.target.value })} />
           <input className={inp} type="number" placeholder="Dužina m" value={form.duzinaM || ''} onChange={(e) => setForm({ ...form, duzinaM: Number(e.target.value) })} />
@@ -309,37 +332,45 @@ export default function SuperadminFerratas() {
             value={form.visinskaRazlikaM || ''}
             onChange={(e) => setForm({ ...form, visinskaRazlikaM: Number(e.target.value) })}
           />
-          <input className={inp} type="number" placeholder="Prilaz min" value={form.prilazMin || ''} onChange={(e) => setForm({ ...form, prilazMin: Number(e.target.value) })} />
           <input className={inp} type="number" placeholder="Trajanje min" value={form.trajanjeMin || ''} onChange={(e) => setForm({ ...form, trajanjeMin: Number(e.target.value) })} />
           <input className={inp} type="number" placeholder="Trajanje max" value={form.trajanjeMax || ''} onChange={(e) => setForm({ ...form, trajanjeMax: Number(e.target.value) })} />
-          <input className={inp} placeholder="Pogodno za početnike" value={form.pogodnoZaPocetnike} onChange={(e) => setForm({ ...form, pogodnoZaPocetnike: e.target.value })} />
           <select className={inp} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
             <option value="active">active</option>
             <option value="closed">closed</option>
             <option value="archived">archived</option>
           </select>
         </div>
-        <p className="text-[11px] text-gray-500">{t('superadminHintPogodno')}</p>
         <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionContent')}</p>
-        <textarea className={inp} rows={2} placeholder="Kratak opis" value={form.kratakOpis} onChange={(e) => setForm({ ...form, kratakOpis: e.target.value })} />
         <textarea className={inp} rows={4} placeholder="Opis (O ferati)" value={form.opis} onChange={(e) => setForm({ ...form, opis: e.target.value })} />
         <textarea className={inp} rows={3} placeholder="Highlights — Zašto ići? (jedan po liniji)" value={form.highlightsRaw} onChange={(e) => setForm({ ...form, highlightsRaw: e.target.value })} />
-        <textarea className={inp} rows={2} placeholder="Obavezna oprema (jedan po liniji)" value={form.obaveznaRaw} onChange={(e) => setForm({ ...form, obaveznaRaw: e.target.value })} />
         <textarea className={inp} rows={2} placeholder={t('superadminQuickTip')} value={form.quickTip} onChange={(e) => setForm({ ...form, quickTip: e.target.value })} />
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionLogistics')}</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <input className={inp} placeholder={t('superadminParking')} value={form.parkingInfo} onChange={(e) => setForm({ ...form, parkingInfo: e.target.value })} />
-          <input className={inp} placeholder={t('superadminReturn')} value={form.povratakInfo} onChange={(e) => setForm({ ...form, povratakInfo: e.target.value })} />
-          <input className={`${inp} sm:col-span-2`} placeholder={t('superadminBestSeason')} value={form.najboljeVremeInfo} onChange={(e) => setForm({ ...form, najboljeVremeInfo: e.target.value })} />
-        </div>
+        <p className="text-xs font-semibold text-gray-700 pt-2">Šta još u okolini</p>
+        <DynamicTextRows
+          values={form.okolina}
+          onChange={(okolina) => setForm((prev) => ({ ...prev, okolina }))}
+          placeholder="Npr. vidikovac, reka, manastir…"
+          addLabel="Dodaj stavku"
+        />
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionAudience')}</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <input className={inp} placeholder={t('superadminWhoBeginners')} value={form.whoBeginnersText} onChange={(e) => setForm({ ...form, whoBeginnersText: e.target.value })} />
-          <input className={inp} placeholder={t('superadminWhoRecreational')} value={form.whoRecreationalText} onChange={(e) => setForm({ ...form, whoRecreationalText: e.target.value })} />
-          <input className={`${inp} sm:col-span-2`} placeholder={t('superadminWhoExperienced')} value={form.whoExperiencedText} onChange={(e) => setForm({ ...form, whoExperiencedText: e.target.value })} />
-        </div>
+        <p className="text-xs font-semibold text-gray-700 pt-2">Obavezna oprema</p>
+        <FerrataOpremaForm rows={form.obaveznaOprema} onChange={(obaveznaOprema) => setForm((prev) => ({ ...prev, obaveznaOprema }))} />
+
+        <p className="text-xs font-semibold text-gray-700 pt-2">Smeštaj (slike na Cloudinary posle čuvanja ID ferate)</p>
+        <FerrataSmestajForm
+          rows={form.smestaj}
+          onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}
+          ferrataId={editingId}
+          onUploadError={(msg) => setErr(msg)}
+        />
+
+        {editingId && (
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+            <p className="text-xs font-bold text-emerald-900 mb-2">Cover slika (Cloudinary)</p>
+            {form.coverImage ? <img src={form.coverImage} alt="" className="mb-2 h-32 w-full max-w-xs rounded-lg object-cover ring-1 ring-emerald-200" /> : null}
+            <input type="file" accept="image/*" className="text-xs" onChange={(e) => void uploadCover(editingId, e.target.files?.[0] ?? null)} />
+          </div>
+        )}
 
         <FerrataLocationEditor
           key={editingId ?? 'new'}
@@ -349,16 +380,9 @@ export default function SuperadminFerratas() {
           onLngChange={(lng) => setForm((prev) => ({ ...prev, lng }))}
         />
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionMapParking')}</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <input className={inp} placeholder={t('mapParkingLat')} value={form.parkingLat} onChange={(e) => setForm({ ...form, parkingLat: e.target.value })} />
-          <input className={inp} placeholder={t('mapParkingLng')} value={form.parkingLng} onChange={(e) => setForm({ ...form, parkingLng: e.target.value })} />
-        </div>
-        <textarea className={inp} rows={2} placeholder={t('mapNoteLabel')} value={form.mapNote} onChange={(e) => setForm({ ...form, mapNote: e.target.value })} />
-
         {editingId && (
           <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">{t('superadminContactsTitle')}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">Vodiči (ručni unos)</h3>
             {contacts.length === 0 ? (
               <p className="text-xs text-gray-500">{t('superadminContactsEmpty')}</p>
             ) : (
@@ -367,12 +391,14 @@ export default function SuperadminFerratas() {
                   <li key={c.id} className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
                     <span className="font-semibold text-gray-900">{c.ime}</span>
                     {c.telefon && <span className="text-gray-600"> · {c.telefon}</span>}
+                    {c.whatsapp && <span className="text-gray-600"> · WA {c.whatsapp}</span>}
+                    {c.email && <span className="text-gray-600"> · {c.email}</span>}
                     {c.napomena && <p className="text-xs text-gray-500 mt-0.5">{c.napomena}</p>}
                   </li>
                 ))}
               </ul>
             )}
-            <div className="grid sm:grid-cols-3 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <input
                 className={inp}
                 placeholder={t('superadminContactName')}
@@ -387,6 +413,19 @@ export default function SuperadminFerratas() {
               />
               <input
                 className={inp}
+                placeholder="WhatsApp"
+                value={contactForm.whatsapp}
+                onChange={(e) => setContactForm({ ...contactForm, whatsapp: e.target.value })}
+              />
+              <input
+                className={inp}
+                type="email"
+                placeholder="Email"
+                value={contactForm.email}
+                onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+              />
+              <input
+                className={`${inp} sm:col-span-2 lg:col-span-1`}
                 placeholder={t('superadminContactNote')}
                 value={contactForm.napomena}
                 onChange={(e) => setContactForm({ ...contactForm, napomena: e.target.value })}
