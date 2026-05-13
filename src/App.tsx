@@ -39,6 +39,7 @@ import Welcome from './pages/protected/Welcome'
 import RegisterSuperAdmin from './pages/public/RegisterSuperAdmin'
 import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
 import SuperadminFerratas from './pages/protected/SuperadminFerratas'
+import SuperadminFerrataGallery from './pages/protected/SuperadminFerrataGallery'
 import Klub from './pages/protected/Klub'
 import EnterClubInviteCode from './pages/public/EnterClubInviteCode'
 import RegisterMemberByInvite from './pages/public/RegisterMemberByInvite'
@@ -192,6 +193,7 @@ const router = createBrowserRouter([
             children: [
               { path: '/superadmin', element: <SuperadminKlubovi /> },
               { path: '/superadmin/ferrate', element: <SuperadminFerratas /> },
+              { path: '/superadmin/ferrate/:ferrataId/galerija', element: <SuperadminFerrataGallery /> },
             ],
           },
         ],

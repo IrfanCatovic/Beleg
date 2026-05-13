@@ -16,8 +16,11 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.DELETE("/superadmin/klubovi/:id", handlers.DeleteKlub)
 
 	g.GET("/superadmin/ferratas", handlers.SuperadminListFerratas)
+	g.GET("/superadmin/ferratas/:id", handlers.SuperadminGetFerrata)
+	g.POST("/superadmin/ferratas/cover-draft", handlers.SuperadminUploadFerrataCoverDraft)
 	g.POST("/superadmin/ferratas", handlers.SuperadminCreateFerrata)
 	g.PUT("/superadmin/ferratas/:id", handlers.SuperadminUpdateFerrata)
+	g.PATCH("/superadmin/ferratas/:id/galerija", handlers.SuperadminPatchFerrataGalerija)
 	g.POST("/superadmin/ferratas/:id/cover", handlers.SuperadminUploadFerrataCover)
 	g.POST("/superadmin/ferratas/:id/gallery", handlers.SuperadminUploadFerrataGallery)
 	g.POST("/superadmin/ferratas/:id/contacts", handlers.SuperadminCreateFerrataContact)

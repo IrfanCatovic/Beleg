@@ -416,6 +416,24 @@ func SuperadminListFerratas(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ferrate": out})
 }
 
+func SuperadminGetFerrata(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var f models.Ferrata
+	if err := db.First(&f, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, -1)})
+}
+
 type superadminFerrataBody struct {
 	Naziv            string              `json:"naziv"`
 	Slug             string              `json:"slug"`
@@ -435,8 +453,9 @@ type superadminFerrataBody struct {
 	ObaveznaOprema   []ferrataOpremaItem `json:"obaveznaOprema"`
 	CoverImage       string              `json:"coverImage"`
 	MapNote          string              `json:"mapNote"`
-	Galerija         []string            `json:"galerija"`
-	Status           string              `json:"status"`
+	/** Ako je izostavljeno u PUT-u, galerija u bazi se ne menja. */
+	Galerija *[]string `json:"galerija,omitempty"`
+	Status   string    `json:"status"`
 	Lat              *float64            `json:"lat"`
 	Lng              *float64            `json:"lng"`
 }
@@ -470,6 +489,10 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active, closed ili archived"})
 		return
 	}
+	galerijaCreate := []string{}
+	if body.Galerija != nil {
+		galerijaCreate = *body.Galerija
+	}
 	f := models.Ferrata{
 		Naziv:               strings.TrimSpace(body.Naziv),
 		Slug:                strings.TrimSpace(body.Slug),
@@ -495,7 +518,7 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		WhoExperiencedText:  "",
 		HighlightsJSON:      marshalJSONArray(body.Highlights),
 		OkolinaJSON:         marshalJSONArray(body.Okolina),
-		GalerijaJSON:        marshalGalleryJSON(body.Galerija),
+		GalerijaJSON:        marshalGalleryJSON(galerijaCreate),
 		SmestajJSON:         marshalSmestajJSON(body.Smestaj),
 		ObaveznaOpremaJSON:  marshalObaveznaOpremaJSON(body.ObaveznaOprema),
 		CoverImage:          strings.TrimSpace(body.CoverImage),
@@ -567,7 +590,9 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	f.MapNote = strings.TrimSpace(body.MapNote)
 	f.HighlightsJSON = marshalJSONArray(body.Highlights)
 	f.OkolinaJSON = marshalJSONArray(body.Okolina)
-	f.GalerijaJSON = marshalGalleryJSON(body.Galerija)
+	if body.Galerija != nil {
+		f.GalerijaJSON = marshalGalleryJSON(*body.Galerija)
+	}
 	f.SmestajJSON = marshalSmestajJSON(body.Smestaj)
 	f.ObaveznaOpremaJSON = marshalObaveznaOpremaJSON(body.ObaveznaOprema)
 	f.CoverImage = strings.TrimSpace(body.CoverImage)
@@ -583,6 +608,91 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, -1)})
+}
+
+func SuperadminPatchFerrataGalerija(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	var body struct {
+		Galerija []string `json:"galerija"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var f models.Ferrata
+	if err := db.First(&f, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
+		return
+	}
+	f.GalerijaJSON = marshalGalleryJSON(body.Galerija)
+	if err := db.Save(&f).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, -1)})
+}
+
+// SuperadminUploadFerrataCoverDraft POST multipart polje "slika" — upload cover-a pre nego što ferata ima ID (samo Cloudinary; URL se šalje u JSON pri POST kreiranja).
+func SuperadminUploadFerrataCoverDraft(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	if err := c.Request.ParseMultipartForm(12 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format"})
+		return
+	}
+	files := c.Request.MultipartForm.File["slika"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite sliku (polje slika)"})
+		return
+	}
+	file := files[0]
+	if err := helpers.ValidateImageFileHeader(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	if err := helpers.CheckStorageLimit(db, 0, file.Size); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	fp, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+		return
+	}
+	defer fp.Close()
+
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary"})
+		return
+	}
+	ctx := context.Background()
+	uploadParams := uploader.UploadParams{
+		PublicID:       fmt.Sprintf("ferratas/new-%d", time.Now().UnixNano()),
+		Folder:         helpers.CloudinaryFolderFerratas(),
+		Transformation: "q_auto:good,f_auto",
+	}
+	uploadResult, err := cld.Upload.Upload(ctx, fp, uploadParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Upload greška: " + err.Error()})
+		return
+	}
+	helpers.AddStorageUsage(db, 0, file.Size)
+	c.JSON(http.StatusOK, gin.H{"coverImage": uploadResult.SecureURL})
 }
 
 // SuperadminUploadFerrataCover POST multipart polje "slika"

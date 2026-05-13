@@ -13,6 +13,7 @@ import {
   ChartBarIcon,
   ClockIcon,
   MapPinIcon,
+  PhotoIcon,
   PlusIcon,
   SparklesIcon,
   StarIcon,
@@ -262,6 +263,19 @@ export default function FerrataDetail() {
                     <PlusIcon className="h-5 w-5" />
                     {t('heroCtaCreate')}
                   </Link>
+                  {user?.role === 'superadmin' && f && (
+                    <Link
+                      to={`/superadmin/ferrate/${String(f.id)}/galerija`}
+                      className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${
+                        coverUrl
+                          ? 'border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100'
+                          : 'border-white/40 bg-black/30 text-white backdrop-blur-md hover:bg-black/45'
+                      }`}
+                    >
+                      <PhotoIcon className="h-5 w-5" />
+                      {t('detailSuperadminGalleryCta')}
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => setBookOpen(true)}

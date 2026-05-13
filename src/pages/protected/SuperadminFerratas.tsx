@@ -7,7 +7,6 @@ import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationE
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
 import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
-import { FerrataGalleryEditor } from '../../components/ferrate/FerrataGalleryEditor'
 import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
 import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
@@ -38,13 +37,7 @@ function emptyForm() {
     lng: '',
     coverImage: '',
     mapNote: '',
-    gallery: [] as string[],
   }
-}
-
-function galerijaFromApi(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return []
-  return raw.map((x) => String(x).trim()).filter(Boolean)
 }
 
 function okolinaFromApi(raw: unknown): string[] {
@@ -213,7 +206,6 @@ export default function SuperadminFerratas() {
       lat: la,
       lng: lo,
       mapNote: form.mapNote.trim().slice(0, 800),
-      galerija: form.gallery.map((u) => u.trim()).filter(Boolean),
     }
     try {
       if (editingId) {
@@ -262,7 +254,6 @@ export default function SuperadminFerratas() {
       lat: coordToFormField(row.lat),
       lng: coordToFormField(row.lng),
       mapNote: String(row.mapNote ?? ''),
-      gallery: galerijaFromApi(row.galerija),
     })
   }
 
@@ -293,6 +284,7 @@ export default function SuperadminFerratas() {
     }
   }
 
+  /** Cover za već sačuvanu feratu: upload + upis u red u bazi; stara cover se uklanja sa skladišta. */
   async function uploadCover(id: number, file: File | null) {
     if (!file) return
     const fd = new FormData()
@@ -304,6 +296,22 @@ export default function SuperadminFerratas() {
       const url = res.data?.coverImage
       if (editingId === id && url) setForm((f) => ({ ...f, coverImage: url }))
       await load()
+    } catch {
+      setErr('Upload slike nije uspeo.')
+    }
+  }
+
+  /** Nova ferata još nema broj u bazi — slika ide na Cloudinary, URL ostaje u formi dok ne klikneš „Sačuvaj“ (tada se šalje u JSON-u kao kod akcije sa adresom slike). */
+  async function uploadCoverDraft(file: File | null) {
+    if (!file) return
+    const fd = new FormData()
+    fd.append('slika', file)
+    try {
+      const res = await api.post<{ coverImage?: string }>('/api/superadmin/ferratas/cover-draft', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const url = res.data?.coverImage
+      if (url) setForm((f) => ({ ...f, coverImage: url }))
     } catch {
       setErr('Upload slike nije uspeo.')
     }
@@ -377,6 +385,33 @@ export default function SuperadminFerratas() {
         <p className="text-xs font-semibold text-gray-700 pt-2">Obavezna oprema</p>
         <FerrataOpremaForm rows={form.obaveznaOprema} onChange={(obaveznaOprema) => setForm((prev) => ({ ...prev, obaveznaOprema }))} />
 
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className="text-xs font-bold text-emerald-900">{t('superadminCoverSectionTitle')}</p>
+            {editingId ? (
+              <Link
+                to={`/superadmin/ferrate/${String(editingId)}/galerija`}
+                className="text-xs font-semibold text-violet-700 hover:text-violet-900 hover:underline shrink-0"
+              >
+                {t('superadminCoverGalleryLink')}
+              </Link>
+            ) : null}
+          </div>
+          <p className="text-[11px] leading-relaxed text-gray-700 border-l-2 border-emerald-400/80 pl-3">{t('superadminCoverExplainer')}</p>
+          {form.coverImage ? (
+            <img src={form.coverImage} alt="" className="h-36 w-full max-w-sm rounded-xl object-cover shadow-md ring-1 ring-emerald-200/80" />
+          ) : null}
+          <FerrataImageUploadDropzone
+            title={t('superadminCoverDropTitle')}
+            hint={editingId ? t('superadminCoverDropHint') : t('superadminCoverDropHintNewFerrata')}
+            onFilesSelected={(files) => {
+              const file = files[0] ?? null
+              if (editingId) void uploadCover(editingId, file)
+              else void uploadCoverDraft(file)
+            }}
+          />
+        </div>
+
         <p className="text-xs font-semibold text-gray-700 pt-2">Smeštaj (slike na Cloudinary posle čuvanja ID ferate)</p>
         <FerrataSmestajForm
           rows={form.smestaj}
@@ -386,30 +421,6 @@ export default function SuperadminFerratas() {
           anchorLat={form.lat}
           anchorLng={form.lng}
         />
-
-        {editingId && (
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-            <p className="text-xs font-bold text-emerald-900 mb-3">Cover slika (Cloudinary)</p>
-            {form.coverImage ? (
-              <img src={form.coverImage} alt="" className="mb-3 h-36 w-full max-w-sm rounded-xl object-cover shadow-md ring-1 ring-emerald-200/80" />
-            ) : null}
-            <FerrataImageUploadDropzone
-              title="Nova cover slika — prevuci ili klikni"
-              hint="Preporučeno široka panorama; zameni staru pri svakom novom uploadu."
-              onFilesSelected={(files) => void uploadCover(editingId, files[0] ?? null)}
-            />
-          </div>
-        )}
-
-        <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-          <p className="text-xs font-bold text-gray-800 mb-2">{t('superadminGalleryTitle')}</p>
-          <FerrataGalleryEditor
-            urls={form.gallery}
-            onChange={(gallery) => setForm((prev) => ({ ...prev, gallery }))}
-            ferrataId={editingId}
-            onUploadError={(msg) => setErr(msg)}
-          />
-        </div>
 
         <FerrataLocationEditor
           key={editingId ?? 'new'}
@@ -517,6 +528,7 @@ export default function SuperadminFerratas() {
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2">Mapa</th>
               <th className="px-4 py-2">Cover</th>
+              <th className="px-3 py-2">{t('superadminTableGallery')}</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
@@ -542,6 +554,14 @@ export default function SuperadminFerratas() {
                       onFilesSelected={(files) => void uploadCover(r.id, files[0] ?? null)}
                     />
                   </div>
+                </td>
+                <td className="px-3 py-2 align-middle">
+                  <Link
+                    to={`/superadmin/ferrate/${String(r.id)}/galerija`}
+                    className="text-xs font-semibold text-emerald-700 hover:underline whitespace-nowrap"
+                  >
+                    {t('superadminTableGallery')}
+                  </Link>
                 </td>
                 <td className="px-4 py-2 text-right">
                   <button type="button" className="text-emerald-700 font-semibold" onClick={() => startEdit(r)}>
