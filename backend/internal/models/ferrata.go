@@ -39,6 +39,7 @@ type Ferrata struct {
 	OkolinaJSON         json.RawMessage `gorm:"column:okolina_json;type:jsonb" json:"-"`
 	SmestajJSON         json.RawMessage `gorm:"column:smestaj_json;type:jsonb" json:"-"`
 	HighlightsJSON      json.RawMessage `gorm:"column:highlights_json;type:jsonb" json:"-"`
+	GalerijaJSON        json.RawMessage `gorm:"column:galerija_json;type:jsonb" json:"-"`
 	CoverImage          string          `gorm:"column:cover_image;type:varchar(800)" json:"coverImage"`
 	Status              string          `gorm:"type:varchar(20);default:'active';index" json:"status"`
 	CreatedAt           time.Time       `json:"createdAt"`

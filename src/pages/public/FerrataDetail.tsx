@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
+import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import {
@@ -39,6 +40,8 @@ type FerrataDTO = {
   smestaj?: SmestajPublic[]
   obaveznaOprema: OpremaItem[] | string[]
   coverImage: string
+  /** Galerija ispod heroa (pored cover slike). */
+  galerija?: string[]
   /** Uputstvo / putanja do starta (prikaz ispod mape). */
   mapNote?: string
   lat?: number | null
@@ -300,6 +303,14 @@ export default function FerrataDetail() {
               ))}
             </div>
           </div>
+
+          {Boolean(f.galerija?.some((u) => u?.trim())) && (
+            <div className="mt-10 px-4 sm:px-6 lg:px-8">
+              <div className="mx-auto max-w-6xl">
+                <FerrataDetailGallery naziv={f.naziv} urls={f.galerija!.filter((u) => u?.trim())} />
+              </div>
+            </div>
+          )}
 
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 lg:grid lg:grid-cols-[1fr_340px] lg:gap-8 lg:items-start">
             {/* Main column */}

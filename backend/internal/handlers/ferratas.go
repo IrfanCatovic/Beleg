@@ -71,6 +71,18 @@ func parseStringSliceJSON(raw json.RawMessage) []string {
 	return out
 }
 
+func marshalGalleryJSON(urls []string) json.RawMessage {
+	filtered := make([]string, 0, len(urls))
+	for _, u := range urls {
+		u = strings.TrimSpace(u)
+		if u != "" {
+			filtered = append(filtered, u)
+		}
+	}
+	b, _ := json.Marshal(filtered)
+	return json.RawMessage(b)
+}
+
 func buildFerrataSnapshotBytes(f *models.Ferrata) ([]byte, error) {
 	labels := obaveznaOpremaLabels(f.ObaveznaOpremaJSON)
 	p := ferrataSnapshotPayload{
@@ -233,6 +245,7 @@ func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
 		"lng":              ferrataCoordJSON(f.Lng),
 		"highlights":       parseStringSliceJSON(f.HighlightsJSON),
 		"okolina":          parseStringSliceJSON(f.OkolinaJSON),
+		"galerija":         parseStringSliceJSON(f.GalerijaJSON),
 		"smestaj":          parseSmestajJSON(f.SmestajJSON),
 		"obaveznaOprema":   obaveznaOpremaForAPI(f.ObaveznaOpremaJSON),
 		"coverImage":       f.CoverImage,
@@ -422,6 +435,7 @@ type superadminFerrataBody struct {
 	ObaveznaOprema   []ferrataOpremaItem `json:"obaveznaOprema"`
 	CoverImage       string              `json:"coverImage"`
 	MapNote          string              `json:"mapNote"`
+	Galerija         []string            `json:"galerija"`
 	Status           string              `json:"status"`
 	Lat              *float64            `json:"lat"`
 	Lng              *float64            `json:"lng"`
@@ -481,6 +495,7 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		WhoExperiencedText:  "",
 		HighlightsJSON:      marshalJSONArray(body.Highlights),
 		OkolinaJSON:         marshalJSONArray(body.Okolina),
+		GalerijaJSON:        marshalGalleryJSON(body.Galerija),
 		SmestajJSON:         marshalSmestajJSON(body.Smestaj),
 		ObaveznaOpremaJSON:  marshalObaveznaOpremaJSON(body.ObaveznaOprema),
 		CoverImage:          strings.TrimSpace(body.CoverImage),
@@ -552,6 +567,7 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	f.MapNote = strings.TrimSpace(body.MapNote)
 	f.HighlightsJSON = marshalJSONArray(body.Highlights)
 	f.OkolinaJSON = marshalJSONArray(body.Okolina)
+	f.GalerijaJSON = marshalGalleryJSON(body.Galerija)
 	f.SmestajJSON = marshalSmestajJSON(body.Smestaj)
 	f.ObaveznaOpremaJSON = marshalObaveznaOpremaJSON(body.ObaveznaOprema)
 	f.CoverImage = strings.TrimSpace(body.CoverImage)

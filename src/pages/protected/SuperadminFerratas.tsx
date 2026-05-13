@@ -7,6 +7,7 @@ import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationE
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
 import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
+import { FerrataGalleryEditor } from '../../components/ferrate/FerrataGalleryEditor'
 import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
@@ -36,7 +37,13 @@ function emptyForm() {
     lng: '',
     coverImage: '',
     mapNote: '',
+    gallery: [] as string[],
   }
+}
+
+function galerijaFromApi(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => String(x).trim()).filter(Boolean)
 }
 
 function okolinaFromApi(raw: unknown): string[] {
@@ -205,6 +212,7 @@ export default function SuperadminFerratas() {
       lat: la,
       lng: lo,
       mapNote: form.mapNote.trim().slice(0, 800),
+      galerija: form.gallery.map((u) => u.trim()).filter(Boolean),
     }
     try {
       if (editingId) {
@@ -253,6 +261,7 @@ export default function SuperadminFerratas() {
       lat: coordToFormField(row.lat),
       lng: coordToFormField(row.lng),
       mapNote: String(row.mapNote ?? ''),
+      gallery: galerijaFromApi(row.galerija),
     })
   }
 
@@ -382,6 +391,16 @@ export default function SuperadminFerratas() {
             <input type="file" accept="image/*" className="text-xs" onChange={(e) => void uploadCover(editingId, e.target.files?.[0] ?? null)} />
           </div>
         )}
+
+        <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+          <p className="text-xs font-bold text-gray-800 mb-2">{t('superadminGalleryTitle')}</p>
+          <FerrataGalleryEditor
+            urls={form.gallery}
+            onChange={(gallery) => setForm((prev) => ({ ...prev, gallery }))}
+            ferrataId={editingId}
+            onUploadError={(msg) => setErr(msg)}
+          />
+        </div>
 
         <FerrataLocationEditor
           key={editingId ?? 'new'}
