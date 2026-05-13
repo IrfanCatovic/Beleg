@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
@@ -11,6 +11,9 @@ function googleMapsUrl(lat: number, lng: number) {
 function formatCoords(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
 }
+
+/** Jedna ferata na mapi — centar i zoom fokusirani isključivo na nju. */
+const DETAIL_ZOOM = 14.5
 
 export function FerrataDetailMapCard(props: {
   lat: number
@@ -27,10 +30,26 @@ export function FerrataDetailMapCard(props: {
     () => ({
       longitude: props.lng,
       latitude: props.lat,
-      zoom: 13.2,
+      zoom: DETAIL_ZOOM,
     }),
     [props.lat, props.lng],
   )
+
+  const centerOnFerrata = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    map.jumpTo({ center: [props.lng, props.lat], zoom: DETAIL_ZOOM })
+  }, [props.lat, props.lng])
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    if (map.isStyleLoaded()) centerOnFerrata()
+    else map.once('load', centerOnFerrata)
+    return () => {
+      map.off('load', centerOnFerrata)
+    }
+  }, [centerOnFerrata])
 
   const coordsText = formatCoords(props.lat, props.lng)
 

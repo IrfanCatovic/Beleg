@@ -337,7 +337,13 @@ export default function FerrataDetail() {
             {/* Main column */}
             <div className="space-y-6">
               {hasMapCoords && (
-                <FerrataDetailMapCard lat={f.lat as number} lng={f.lng as number} naziv={f.naziv} lokacija={f.lokacija} />
+                <FerrataDetailMapCard
+                  key={f.slug}
+                  lat={f.lat as number}
+                  lng={f.lng as number}
+                  naziv={f.naziv}
+                  lokacija={f.lokacija}
+                />
               )}
 
               <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
