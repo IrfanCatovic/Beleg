@@ -173,6 +173,7 @@ export function FerrataLocationEditor(props: {
             className="h-full w-full"
             initialViewState={initialViewState}
             onClick={onMapClick}
+            boostPathVisibility
             showZoomControls
           >
             {hasPin && (

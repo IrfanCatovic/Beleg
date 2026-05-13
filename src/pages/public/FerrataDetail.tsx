@@ -39,6 +39,8 @@ type FerrataDTO = {
   smestaj?: SmestajPublic[]
   obaveznaOprema: OpremaItem[] | string[]
   coverImage: string
+  /** Uputstvo / putanja do starta (prikaz ispod mape). */
+  mapNote?: string
   lat?: number | null
   lng?: number | null
 }
@@ -309,6 +311,7 @@ export default function FerrataDetail() {
                   lng={f.lng as number}
                   naziv={f.naziv}
                   subtitle={regionSubtitle}
+                  routeNote={f.mapNote}
                 />
               )}
 

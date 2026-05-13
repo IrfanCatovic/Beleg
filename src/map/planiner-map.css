@@ -1,4 +1,14 @@
 /* MapLibre — uskladiti popup i kontrole sa Planiner karticama */
+.planiner-map-frame--boost-paths .maplibregl-canvas {
+  filter: contrast(1.14) saturate(1.2) brightness(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planiner-map-frame--boost-paths .maplibregl-canvas {
+    filter: none;
+  }
+}
+
 .planiner-map-frame .maplibregl-popup-content {
   border-radius: 0.75rem;
   padding: 0;

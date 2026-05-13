@@ -6,6 +6,10 @@ import { MapStyleMissing } from './MapStyleMissing'
 
 export type PlaninerMapFrameProps = {
   className?: string
+  /** Pun URL MapLibre stila; ako je prazan, koristi se resolvePlaninerMapStyle(). */
+  mapStyleUrl?: string | null
+  /** Blagi boost kontrasta na canvas-u da putevi / linije budu čitljiviji (detalj ferate, editor…). */
+  boostPathVisibility?: boolean
   initialViewState: {
     longitude: number
     latitude: number
@@ -19,7 +23,8 @@ export type PlaninerMapFrameProps = {
 
 export const PlaninerMapFrame = forwardRef<MapRef, PlaninerMapFrameProps>(function PlaninerMapFrame(props, ref) {
   const resolved = resolvePlaninerMapStyle()
-  if (!resolved) {
+  const override = props.mapStyleUrl?.trim()
+  if (!resolved && !override) {
     return (
       <div className={`relative ${props.className ?? ''}`.trim()}>
         <MapStyleMissing className="h-full min-h-[14rem] w-full" />
@@ -29,6 +34,7 @@ export const PlaninerMapFrame = forwardRef<MapRef, PlaninerMapFrameProps>(functi
 
   const {
     className = '',
+    boostPathVisibility,
     initialViewState,
     children,
     onClick,
@@ -36,12 +42,16 @@ export const PlaninerMapFrame = forwardRef<MapRef, PlaninerMapFrameProps>(functi
     showZoomControls = true,
   } = props
 
+  const styleUrl = override || resolved!.styleUrl
+
   return (
-    <div className={`planiner-map-frame relative overflow-hidden ${className}`.trim()}>
+    <div
+      className={`planiner-map-frame relative overflow-hidden ${boostPathVisibility ? 'planiner-map-frame--boost-paths ' : ''}${className}`.trim()}
+    >
       <Map
         ref={ref}
         mapLib={maplibregl}
-        mapStyle={resolved.styleUrl}
+        mapStyle={styleUrl}
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         onClick={onClick}

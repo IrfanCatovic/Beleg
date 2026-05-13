@@ -3,9 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
+import { resolvePlaninerMapStyleForDetail } from '../../map/style/resolvePlaninerMapStyle'
 
-function googleMapsUrl(lat: number, lng: number) {
+function googleMapsPlaceUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`
+}
+
+/** Korisnik bira polazak u Google Maps aplikaciji; odredište su koordinate ferate. */
+function googleMapsDirectionsUrl(lat: number, lng: number) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`
 }
 
 function formatCoords(lat: number, lng: number) {
@@ -21,11 +27,15 @@ export function FerrataDetailMapCard(props: {
   naziv: string
   /** Podnaslov ispod naziva (npr. grad, država); može biti prazan. */
   subtitle: string
+  /** Tekstualna putanja / uputstvo ispod mape (superadmin „Kako stići”). */
+  routeNote?: string
 }) {
   const { t } = useTranslation('ferrate')
   const mapRef = useRef<MapRef>(null)
   const [popupOpen, setPopupOpen] = useState(true)
   const [copied, setCopied] = useState(false)
+
+  const detailStyle = useMemo(() => resolvePlaninerMapStyleForDetail(), [])
 
   const initialViewState = useMemo(
     () => ({
@@ -53,6 +63,8 @@ export function FerrataDetailMapCard(props: {
   }, [centerOnFerrata])
 
   const coordsText = formatCoords(props.lat, props.lng)
+  const navHref = googleMapsDirectionsUrl(props.lat, props.lng)
+  const viewHref = googleMapsPlaceUrl(props.lat, props.lng)
 
   const copyCoords = useCallback(async () => {
     try {
@@ -64,6 +76,8 @@ export function FerrataDetailMapCard(props: {
     }
   }, [coordsText])
 
+  const route = props.routeNote?.trim()
+
   return (
     <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
       <h2 className="px-5 pb-2 pt-5 text-sm font-bold uppercase tracking-wider text-emerald-700 sm:px-6 sm:pt-6">
@@ -71,7 +85,14 @@ export function FerrataDetailMapCard(props: {
       </h2>
       <div className="px-5 pb-4 sm:px-6">
         <div className="relative z-0 h-64 w-full overflow-hidden rounded-xl bg-slate-100/80 ring-1 ring-emerald-900/10 shadow-inner sm:h-72">
-          <PlaninerMapFrame ref={mapRef} className="h-full w-full" initialViewState={initialViewState} showZoomControls>
+          <PlaninerMapFrame
+            ref={mapRef}
+            className="h-full w-full"
+            mapStyleUrl={detailStyle?.styleUrl ?? null}
+            boostPathVisibility
+            initialViewState={initialViewState}
+            showZoomControls
+          >
             <Marker longitude={props.lng} latitude={props.lat} anchor="bottom">
               <FerrataMarkerElement />
             </Marker>
@@ -93,26 +114,50 @@ export function FerrataDetailMapCard(props: {
                     <p className="mt-2 font-mono text-[11px] text-gray-500">{coordsText}</p>
                   </div>
                   <a
-                    href={googleMapsUrl(props.lat, props.lng)}
+                    href={navHref}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
                   >
-                    {t('mapOpenGoogle')}
+                    {t('mapNavGoogle')}
+                  </a>
+                  <a
+                    href={viewHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50"
+                  >
+                    {t('mapViewGoogle')}
                   </a>
                 </div>
               </Popup>
             )}
           </PlaninerMapFrame>
         </div>
+
+        {route && (
+          <div className="mt-4 rounded-xl border border-emerald-100/90 bg-emerald-50/60 px-4 py-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800">{t('detailMapRouteTitle')}</h3>
+            <p className="mt-2 text-sm text-gray-800 whitespace-pre-line leading-relaxed">{route}</p>
+          </div>
+        )}
+
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <a
-            href={googleMapsUrl(props.lat, props.lng)}
+            href={navHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 text-xs font-bold text-emerald-900 hover:bg-emerald-100/90 sm:flex-none sm:min-w-[10rem]"
+            className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:from-emerald-500 hover:to-teal-500 sm:flex-none sm:min-w-[11rem]"
           >
-            {t('mapOpenGoogle')}
+            {t('mapNavGoogle')}
+          </a>
+          <a
+            href={viewHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-emerald-900 shadow-sm hover:bg-emerald-50/80 sm:flex-none sm:min-w-[9rem]"
+          >
+            {t('mapViewGoogle')}
           </a>
           <button
             type="button"

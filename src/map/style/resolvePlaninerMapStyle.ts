@@ -19,3 +19,20 @@ export function resolvePlaninerMapStyle(): ResolvedPlaninerMapStyle | null {
   const mapId = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined)?.trim() || 'outdoor'
   return { styleUrl: mapTilerStyleUrl(mapId, key) }
 }
+
+/**
+ * Stil za stranicu detalja ferate (jači putevi / topografija ako želiš drugačiji stil).
+ * Prioritet: `VITE_MAP_STYLE_URL_DETAIL` → MapTiler sa `VITE_MAPTILER_DETAIL_MAP_ID` (npr. topo-v2) → globalni stil.
+ */
+export function resolvePlaninerMapStyleForDetail(): ResolvedPlaninerMapStyle | null {
+  const customDetail = (import.meta.env.VITE_MAP_STYLE_URL_DETAIL as string | undefined)?.trim()
+  if (customDetail) return { styleUrl: customDetail }
+
+  const key = (import.meta.env.VITE_MAPTILER_API_KEY as string | undefined)?.trim()
+  if (!key) return null
+
+  const detailId = (import.meta.env.VITE_MAPTILER_DETAIL_MAP_ID as string | undefined)?.trim()
+  const globalId = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined)?.trim()
+  const mapId = detailId || globalId || 'outdoor'
+  return { styleUrl: mapTilerStyleUrl(mapId, key) }
+}

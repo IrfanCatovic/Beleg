@@ -35,6 +35,7 @@ function emptyForm() {
     lat: '',
     lng: '',
     coverImage: '',
+    mapNote: '',
   }
 }
 
@@ -203,6 +204,7 @@ export default function SuperadminFerratas() {
       status: form.status,
       lat: la,
       lng: lo,
+      mapNote: form.mapNote.trim().slice(0, 800),
     }
     try {
       if (editingId) {
@@ -250,6 +252,7 @@ export default function SuperadminFerratas() {
       status: String(row.status ?? 'active'),
       lat: coordToFormField(row.lat),
       lng: coordToFormField(row.lng),
+      mapNote: String(row.mapNote ?? ''),
     })
   }
 
@@ -387,6 +390,16 @@ export default function SuperadminFerratas() {
           onLatChange={(lat) => setForm((prev) => ({ ...prev, lat }))}
           onLngChange={(lng) => setForm((prev) => ({ ...prev, lng }))}
         />
+        <div>
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">{t('mapNoteLabel')}</label>
+          <textarea
+            className={inp}
+            rows={3}
+            value={form.mapNote}
+            onChange={(e) => setForm({ ...form, mapNote: e.target.value })}
+            placeholder="Npr. iz Ribarića putem asfaltnog puta do parkinga, zatim 25 min peske markerisanom stazom…"
+          />
+        </div>
 
         {editingId && (
           <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">

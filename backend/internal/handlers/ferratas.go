@@ -236,6 +236,7 @@ func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
 		"smestaj":          parseSmestajJSON(f.SmestajJSON),
 		"obaveznaOprema":   obaveznaOpremaForAPI(f.ObaveznaOpremaJSON),
 		"coverImage":       f.CoverImage,
+		"mapNote":          strings.TrimSpace(f.MapNote),
 		"status":           f.Status,
 		"createdAt":        f.CreatedAt,
 		"updatedAt":        f.UpdatedAt,
@@ -420,6 +421,7 @@ type superadminFerrataBody struct {
 	Smestaj          []ferrataSmestajDTO `json:"smestaj"`
 	ObaveznaOprema   []ferrataOpremaItem `json:"obaveznaOprema"`
 	CoverImage       string              `json:"coverImage"`
+	MapNote          string              `json:"mapNote"`
 	Status           string              `json:"status"`
 	Lat              *float64            `json:"lat"`
 	Lng              *float64            `json:"lng"`
@@ -487,7 +489,7 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		Lng:                 body.Lng,
 		ParkingLat:          nil,
 		ParkingLng:          nil,
-		MapNote:             "",
+		MapNote:             strings.TrimSpace(body.MapNote),
 	}
 	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Create(&f).Error; err != nil {
@@ -547,7 +549,7 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	f.Lng = body.Lng
 	f.ParkingLat = nil
 	f.ParkingLng = nil
-	f.MapNote = ""
+	f.MapNote = strings.TrimSpace(body.MapNote)
 	f.HighlightsJSON = marshalJSONArray(body.Highlights)
 	f.OkolinaJSON = marshalJSONArray(body.Okolina)
 	f.SmestajJSON = marshalSmestajJSON(body.Smestaj)
