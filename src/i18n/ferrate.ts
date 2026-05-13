@@ -50,6 +50,10 @@ export const ferrateTranslations = {
   superadminCoverGalleryLink: 'Galerija sa više slika →',
   superadminGalleryTitle: 'Galerija ispod heroa (više slika)',
   superadminSmestajLocation: 'Lokacija smeštaja (opciono)',
+  superadminSmestajPhotosTitle: 'Slike smeštaja (Cloudinary)',
+  superadminSmestajPhotosHint:
+    'Možeš više fajlova odjednom ili u više koraka. Radi i pre prvog „Sačuvaj“ ferate — URL-ovi se upisuju u JSON kad sačuvaš feratu.',
+  superadminSmestajSection: 'Smeštaj',
   superadminSectionMapParking: 'Parking na mapi (opciono, kasnije)',
   mapGeocodePlaceholder: 'Pretraga (npr. Ribariće, Tutin)',
   mapGeocodeSearch: 'Traži',

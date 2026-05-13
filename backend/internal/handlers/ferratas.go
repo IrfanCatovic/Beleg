@@ -834,6 +834,61 @@ func SuperadminUploadFerrataGallery(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"url": uploadResult.SecureURL})
 }
 
+// SuperadminUploadFerrataGalleryDraft — isto kao gallery upload, ali bez ID ferate (slike smeštaja pre prvog čuvanja).
+func SuperadminUploadFerrataGalleryDraft(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	if err := c.Request.ParseMultipartForm(12 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format"})
+		return
+	}
+	files := c.Request.MultipartForm.File["slika"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite sliku (polje slika)"})
+		return
+	}
+	file := files[0]
+	if err := helpers.ValidateImageFileHeader(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	if err := helpers.CheckStorageLimit(db, 0, file.Size); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	fp, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju fajla"})
+		return
+	}
+	defer fp.Close()
+
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary"})
+		return
+	}
+	ctx := context.Background()
+	uploadParams := uploader.UploadParams{
+		PublicID:       fmt.Sprintf("ferratas/new-smestaj-%d", time.Now().UnixNano()),
+		Folder:         helpers.CloudinaryFolderFerratas(),
+		Transformation: "q_auto:good,f_auto",
+	}
+	uploadResult, err := cld.Upload.Upload(ctx, fp, uploadParams)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Upload greška: " + err.Error()})
+		return
+	}
+	helpers.AddStorageUsage(db, 0, file.Size)
+	c.JSON(http.StatusOK, gin.H{"url": uploadResult.SecureURL})
+}
+
 type ferrataContactBody struct {
 	Ime      string `json:"ime"`
 	Telefon  string `json:"telefon"`

@@ -412,7 +412,7 @@ export default function SuperadminFerratas() {
           />
         </div>
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">Smeštaj (slike na Cloudinary posle čuvanja ID ferate)</p>
+        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSmestajSection')}</p>
         <FerrataSmestajForm
           rows={form.smestaj}
           onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}

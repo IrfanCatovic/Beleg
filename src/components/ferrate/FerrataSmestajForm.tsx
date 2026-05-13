@@ -42,17 +42,16 @@ export function FerrataSmestajForm(props: Props) {
   }, [props.anchorLat, props.anchorLng])
 
   async function uploadFiles(rowIndex: number, files: File[]) {
-    if (!props.ferrataId) {
-      props.onUploadError('Sačuvaj feratu pa dodaj slike smeštaja.')
-      return
-    }
     if (files.length === 0) return
+    const uploadPath = props.ferrataId
+      ? `/api/superadmin/ferratas/${props.ferrataId}/gallery`
+      : '/api/superadmin/ferratas/gallery-draft'
     let accumulated = [...list[rowIndex].slike]
     for (const file of files) {
       const fd = new FormData()
       fd.append('slika', file)
       try {
-        const res = await api.post<{ url?: string }>(`/api/superadmin/ferratas/${props.ferrataId}/gallery`, fd, {
+        const res = await api.post<{ url?: string }>(uploadPath, fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         const url = res.data?.url
@@ -154,8 +153,8 @@ export function FerrataSmestajForm(props: Props) {
             />
           </div>
           <div>
-            <p className="mb-1 text-[11px] font-semibold text-gray-600">Slike (Cloudinary)</p>
-            <p className="mb-2 text-[10px] text-gray-500">Možeš izabrati više fajlova odjednom ili dodavati u više koraka.</p>
+            <p className="mb-1 text-[11px] font-semibold text-gray-600">{t('superadminSmestajPhotosTitle')}</p>
+            <p className="mb-2 text-[10px] text-gray-500">{t('superadminSmestajPhotosHint')}</p>
             {row.slike.length > 0 && (
               <SmestajThumbStrip
                 urls={row.slike}
@@ -167,12 +166,7 @@ export function FerrataSmestajForm(props: Props) {
               />
             )}
             <div className="mt-2">
-              <FerrataImageUploadDropzone
-                multiple
-                disabled={!props.ferrataId}
-                title={props.ferrataId ? undefined : 'Sačuvaj feratu da dodaješ slike'}
-                onFilesSelected={(picked) => void uploadFiles(i, picked)}
-              />
+              <FerrataImageUploadDropzone multiple onFilesSelected={(picked) => void uploadFiles(i, picked)} />
             </div>
           </div>
         </div>
