@@ -75,7 +75,6 @@ export default function SuperadminFerrataGallery() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('superadminGalleryManageTitle')}</h1>
           {ferrata && <p className="text-sm text-gray-600 mt-1">{ferrata.naziv}</p>}
-          <p className="text-xs text-gray-500 mt-2 max-w-xl leading-relaxed">{t('superadminGalleryPageIntro')}</p>
         </div>
         <Link to="/superadmin/ferrate" className="text-sm font-semibold text-emerald-700 hover:underline">
           {t('superadminGalleryManageBack')}
@@ -92,7 +91,6 @@ export default function SuperadminFerrataGallery() {
             ferrataId={id}
             onUploadError={(msg) => setErr(msg)}
           />
-          <p className="text-[10px] text-gray-500 mt-3">{t('superadminGalleryManageHint')}</p>
         </div>
       )}
       {!loading && !ferrata && err && (

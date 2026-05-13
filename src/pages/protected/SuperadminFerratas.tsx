@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
+import { superadminUploadFerrataCover } from '../../services/superadminFerrataUpload'
 import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationEditor'
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
@@ -284,34 +285,23 @@ export default function SuperadminFerratas() {
     }
   }
 
-  /** Cover za već sačuvanu feratu: upload + upis u red u bazi; stara cover se uklanja sa skladišta. */
-  async function uploadCover(id: number, file: File | null) {
+  async function uploadCoverFromForm(file: File | null) {
     if (!file) return
-    const fd = new FormData()
-    fd.append('slika', file)
     try {
-      const res = await api.post<{ coverImage?: string }>(`/api/superadmin/ferratas/${id}/cover`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      const url = res.data?.coverImage
-      if (editingId === id && url) setForm((f) => ({ ...f, coverImage: url }))
-      await load()
+      const url = await superadminUploadFerrataCover(api, file, editingId)
+      setForm((f) => ({ ...f, coverImage: url }))
+      if (editingId != null) await load()
     } catch {
       setErr('Upload slike nije uspeo.')
     }
   }
 
-  /** Nova ferata još nema broj u bazi — slika ide na Cloudinary, URL ostaje u formi dok ne klikneš „Sačuvaj“ (tada se šalje u JSON-u kao kod akcije sa adresom slike). */
-  async function uploadCoverDraft(file: File | null) {
+  async function uploadCoverFromTableRow(ferrataId: number, file: File | null) {
     if (!file) return
-    const fd = new FormData()
-    fd.append('slika', file)
     try {
-      const res = await api.post<{ coverImage?: string }>('/api/superadmin/ferratas/cover-draft', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      const url = res.data?.coverImage
-      if (url) setForm((f) => ({ ...f, coverImage: url }))
+      const url = await superadminUploadFerrataCover(api, file, ferrataId)
+      if (editingId === ferrataId) setForm((f) => ({ ...f, coverImage: url }))
+      await load()
     } catch {
       setErr('Upload slike nije uspeo.')
     }
@@ -387,7 +377,7 @@ export default function SuperadminFerratas() {
 
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-xs font-bold text-emerald-900">{t('superadminCoverSectionTitle')}</p>
+            <p className="text-xs font-bold text-emerald-900">{t('superadminCoverLabel')}</p>
             {editingId ? (
               <Link
                 to={`/superadmin/ferrate/${String(editingId)}/galerija`}
@@ -397,19 +387,10 @@ export default function SuperadminFerratas() {
               </Link>
             ) : null}
           </div>
-          <p className="text-[11px] leading-relaxed text-gray-700 border-l-2 border-emerald-400/80 pl-3">{t('superadminCoverExplainer')}</p>
           {form.coverImage ? (
             <img src={form.coverImage} alt="" className="h-36 w-full max-w-sm rounded-xl object-cover shadow-md ring-1 ring-emerald-200/80" />
           ) : null}
-          <FerrataImageUploadDropzone
-            title={t('superadminCoverDropTitle')}
-            hint={editingId ? t('superadminCoverDropHint') : t('superadminCoverDropHintNewFerrata')}
-            onFilesSelected={(files) => {
-              const file = files[0] ?? null
-              if (editingId) void uploadCover(editingId, file)
-              else void uploadCoverDraft(file)
-            }}
-          />
+          <FerrataImageUploadDropzone onFilesSelected={(files) => void uploadCoverFromForm(files[0] ?? null)} />
         </div>
 
         <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSmestajSection')}</p>
@@ -551,7 +532,7 @@ export default function SuperadminFerratas() {
                     <FerrataImageUploadDropzone
                       variant="compact"
                       title="Cover"
-                      onFilesSelected={(files) => void uploadCover(r.id, files[0] ?? null)}
+                      onFilesSelected={(files) => void uploadCoverFromTableRow(r.id, files[0] ?? null)}
                     />
                   </div>
                 </td>

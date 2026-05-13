@@ -33,8 +33,7 @@ export function FerrataImageUploadDropzone(props: Props) {
 
   const titleText =
     props.title ?? (multiple ? 'Prevuci slike ovde ili klikni za izbor' : 'Klikni ili prevuci — izaberi sliku')
-  const hintText =
-    props.hint === undefined ? 'JPG, PNG, WebP · otpremanje na Cloudinary' : props.hint.trim()
+  const hintText = props.hint === undefined ? 'JPG, PNG ili WebP' : props.hint.trim()
 
   const surface =
     disabled

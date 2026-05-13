@@ -1,5 +1,6 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
+import { superadminUploadFerrataGalleryImage } from '../../services/superadminFerrataUpload'
 import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
 type Props = {
@@ -14,20 +15,10 @@ export function FerrataGalleryEditor(props: Props) {
 
   async function uploadFiles(files: File[]) {
     if (!files.length) return
-    if (!props.ferrataId) {
-      props.onUploadError('Sačuvaj feratu (dobije ID) pa dodaj slike u galeriju.')
-      return
-    }
     let acc = [...list]
     for (const file of files) {
-      const fd = new FormData()
-      fd.append('slika', file)
       try {
-        const res = await api.post<{ url?: string }>(`/api/superadmin/ferratas/${props.ferrataId}/gallery`, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        const url = res.data?.url
-        if (!url) throw new Error('Nema URL')
+        const url = await superadminUploadFerrataGalleryImage(api, file, props.ferrataId)
         acc = [...acc, url]
         props.onChange(acc)
       } catch {
@@ -56,13 +47,7 @@ export function FerrataGalleryEditor(props: Props) {
           ))}
         </ul>
       )}
-      <FerrataImageUploadDropzone
-        multiple
-        disabled={!props.ferrataId}
-        title={props.ferrataId ? undefined : 'Prvo sačuvaj feratu (da dobije ID), pa dodaj slike'}
-        onFilesSelected={(picked) => void uploadFiles(picked)}
-      />
-      <p className="text-[10px] text-gray-500">Cloudinary — isti endpoint kao za smeštaj; redosled = red dodavanja.</p>
+      <FerrataImageUploadDropzone multiple onFilesSelected={(picked) => void uploadFiles(picked)} />
     </div>
   )
 }

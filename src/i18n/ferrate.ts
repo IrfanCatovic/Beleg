@@ -35,24 +35,13 @@ export const ferrateTranslations = {
   detailGalleryNext: 'Sledeća slika',
   superadminGalleryManageTitle: 'Upravljanje galerijom',
   superadminGalleryManageBack: '← Nazad na katalog ferata',
-  superadminGalleryManageHint: 'Promene se čuvaju odmah na serveru (Cloudinary upload + lista URL-ova).',
-  superadminGalleryPageIntro:
-    'Ovde je jedino mesto za višeslikovnu galeriju ispod heroa na javnoj stranici. Jednu cover sliku za listu i hero postavljaš u obrasci ferate u katalogu.',
   detailSuperadminGalleryCta: 'Uredi galeriju',
   superadminTableGallery: 'Galerija',
-  superadminCoverExplainer:
-    'Kod „Dodaj akciju“ šalješ sve u jednom koraku: i polja i sliku u istom zahtevu, pa server odjednom pravi akciju i vezuje sliku. Kod ferate u katalogu prvo je bio samo zahtev sa tekstom (JSON), a slika je išla drugim putem koji je u programu bio vezan za broj ferate u bazi — zato je izgledalo kao da moraš prvo da sačuvaš pa tek onda sliku. Sada možeš ovde da izabereš cover i pre prvog „Sačuvaj“: slika se otpremi na Cloudinary, adresa se drži u formi, a kad klikneš „Sačuvaj“, ta adresa se upiše u novu feratu zajedno sa ostalim podacima. Više slika za galeriju ispod heroa i dalje dodaješ na posebnoj stranici „Galerija“ (kad ferata već ima broj).',
-  superadminCoverSectionTitle: 'Cover slika — samo jedna (Cloudinary)',
-  superadminCoverDropTitle: 'Nova cover — prevuci ili klikni',
-  superadminCoverDropHint: 'Široka panorama; svaki novi upload zamenjuje staru cover sliku.',
-  superadminCoverDropHintNewFerrata:
-    'Posle izbora slike klikni „Sačuvaj“ ispod — tada se ferata kreira sa ovom cover adresom (kao da si sve poslao odjednom).',
-  superadminCoverGalleryLink: 'Galerija sa više slika →',
-  superadminGalleryTitle: 'Galerija ispod heroa (više slika)',
+  superadminCoverLabel: 'Cover',
+  superadminCoverGalleryLink: 'Galerija →',
+  superadminGalleryTitle: 'Galerija',
   superadminSmestajLocation: 'Lokacija smeštaja (opciono)',
-  superadminSmestajPhotosTitle: 'Slike smeštaja (Cloudinary)',
-  superadminSmestajPhotosHint:
-    'Možeš više fajlova odjednom ili u više koraka. Radi i pre prvog „Sačuvaj“ ferate — URL-ovi se upisuju u JSON kad sačuvaš feratu.',
+  superadminSmestajPhotos: 'Slike',
   superadminSmestajSection: 'Smeštaj',
   superadminSectionMapParking: 'Parking na mapi (opciono, kasnije)',
   mapGeocodePlaceholder: 'Pretraga (npr. Ribariće, Tutin)',

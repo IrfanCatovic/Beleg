@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
+import { superadminUploadFerrataGalleryImage } from '../../services/superadminFerrataUpload'
 import { FerrataPinPicker } from './FerrataPinPicker'
 import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
@@ -43,19 +44,10 @@ export function FerrataSmestajForm(props: Props) {
 
   async function uploadFiles(rowIndex: number, files: File[]) {
     if (files.length === 0) return
-    const uploadPath = props.ferrataId
-      ? `/api/superadmin/ferratas/${props.ferrataId}/gallery`
-      : '/api/superadmin/ferratas/gallery-draft'
     let accumulated = [...list[rowIndex].slike]
     for (const file of files) {
-      const fd = new FormData()
-      fd.append('slika', file)
       try {
-        const res = await api.post<{ url?: string }>(uploadPath, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        const url = res.data?.url
-        if (!url) throw new Error('Nema URL')
+        const url = await superadminUploadFerrataGalleryImage(api, file, props.ferrataId)
         accumulated = [...accumulated, url]
         const next = [...list]
         next[rowIndex] = { ...next[rowIndex], slike: accumulated }
@@ -153,8 +145,7 @@ export function FerrataSmestajForm(props: Props) {
             />
           </div>
           <div>
-            <p className="mb-1 text-[11px] font-semibold text-gray-600">{t('superadminSmestajPhotosTitle')}</p>
-            <p className="mb-2 text-[10px] text-gray-500">{t('superadminSmestajPhotosHint')}</p>
+            <p className="mb-1 text-[11px] font-semibold text-gray-600">{t('superadminSmestajPhotos')}</p>
             {row.slike.length > 0 && (
               <SmestajThumbStrip
                 urls={row.slike}
