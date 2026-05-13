@@ -1,5 +1,6 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
+import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
 type Props = {
   urls: string[]
@@ -11,14 +12,14 @@ type Props = {
 export function FerrataGalleryEditor(props: Props) {
   const list = props.urls
 
-  async function uploadFiles(files: FileList | null) {
-    if (!files?.length) return
+  async function uploadFiles(files: File[]) {
+    if (!files.length) return
     if (!props.ferrataId) {
       props.onUploadError('Sačuvaj feratu (dobije ID) pa dodaj slike u galeriju.')
       return
     }
     let acc = [...list]
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       const fd = new FormData()
       fd.append('slika', file)
       try {
@@ -55,16 +56,11 @@ export function FerrataGalleryEditor(props: Props) {
           ))}
         </ul>
       )}
-      <input
-        type="file"
-        accept="image/*"
+      <FerrataImageUploadDropzone
         multiple
-        className="block w-full text-xs"
-        onChange={(e) => {
-          const fl = e.target.files
-          e.target.value = ''
-          void uploadFiles(fl)
-        }}
+        disabled={!props.ferrataId}
+        title={props.ferrataId ? undefined : 'Prvo sačuvaj feratu (da dobije ID), pa dodaj slike'}
+        onFilesSelected={(picked) => void uploadFiles(picked)}
       />
       <p className="text-[10px] text-gray-500">Cloudinary — isti endpoint kao za smeštaj; redosled = red dodavanja.</p>
     </div>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
 import { FerrataPinPicker } from './FerrataPinPicker'
+import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
 export type SmestajFormRow = {
   naziv: string
@@ -165,17 +166,14 @@ export function FerrataSmestajForm(props: Props) {
                 }}
               />
             )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="mt-2 block w-full text-xs"
-              onChange={(e) => {
-                const picked = e.target.files ? Array.from(e.target.files) : []
-                e.target.value = ''
-                void uploadFiles(i, picked)
-              }}
-            />
+            <div className="mt-2">
+              <FerrataImageUploadDropzone
+                multiple
+                disabled={!props.ferrataId}
+                title={props.ferrataId ? undefined : 'Sačuvaj feratu da dodaješ slike'}
+                onFilesSelected={(picked) => void uploadFiles(i, picked)}
+              />
+            </div>
           </div>
         </div>
       ))}

@@ -8,6 +8,7 @@ import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
 import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
 import { FerrataGalleryEditor } from '../../components/ferrate/FerrataGalleryEditor'
+import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
 import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
@@ -388,9 +389,15 @@ export default function SuperadminFerratas() {
 
         {editingId && (
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-            <p className="text-xs font-bold text-emerald-900 mb-2">Cover slika (Cloudinary)</p>
-            {form.coverImage ? <img src={form.coverImage} alt="" className="mb-2 h-32 w-full max-w-xs rounded-lg object-cover ring-1 ring-emerald-200" /> : null}
-            <input type="file" accept="image/*" className="text-xs" onChange={(e) => void uploadCover(editingId, e.target.files?.[0] ?? null)} />
+            <p className="text-xs font-bold text-emerald-900 mb-3">Cover slika (Cloudinary)</p>
+            {form.coverImage ? (
+              <img src={form.coverImage} alt="" className="mb-3 h-36 w-full max-w-sm rounded-xl object-cover shadow-md ring-1 ring-emerald-200/80" />
+            ) : null}
+            <FerrataImageUploadDropzone
+              title="Nova cover slika — prevuci ili klikni"
+              hint="Preporučeno široka panorama; zameni staru pri svakom novom uploadu."
+              onFilesSelected={(files) => void uploadCover(editingId, files[0] ?? null)}
+            />
           </div>
         )}
 
@@ -527,8 +534,14 @@ export default function SuperadminFerratas() {
                 <td className="px-4 py-2 text-center" title="lat/lng">
                   {r.lat != null && r.lng != null ? '●' : '—'}
                 </td>
-                <td className="px-4 py-2">
-                  <input type="file" accept="image/*" className="text-xs" onChange={(e) => void uploadCover(r.id, e.target.files?.[0] ?? null)} />
+                <td className="px-2 py-2 align-middle">
+                  <div className="max-w-[11rem]">
+                    <FerrataImageUploadDropzone
+                      variant="compact"
+                      title="Cover"
+                      onFilesSelected={(files) => void uploadCover(r.id, files[0] ?? null)}
+                    />
+                  </div>
                 </td>
                 <td className="px-4 py-2 text-right">
                   <button type="button" className="text-emerald-700 font-semibold" onClick={() => startEdit(r)}>
