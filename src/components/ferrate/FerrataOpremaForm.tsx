@@ -28,8 +28,9 @@ export function FerrataOpremaForm(props: {
   return (
     <div className="space-y-3">
       {list.map((row, i) => {
+        /* key stabilan po indeksu — label u key remount-uje red i gubi se fokus */
         return (
-          <div key={`oprema-${i}-${row.icon}-${row.label}`} className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 space-y-2">
+          <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 space-y-2">
             <div className="flex gap-2">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-gray-200">
                 <FerrataEquipmentGlyph name={row.icon} className="h-5 w-5 text-emerald-700" />

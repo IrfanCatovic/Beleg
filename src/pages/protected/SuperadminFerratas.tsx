@@ -382,6 +382,8 @@ export default function SuperadminFerratas() {
           onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}
           ferrataId={editingId}
           onUploadError={(msg) => setErr(msg)}
+          anchorLat={form.lat}
+          anchorLng={form.lng}
         />
 
         {editingId && (

@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
+import { FerrataPinPicker } from './FerrataPinPicker'
 
 export type SmestajFormRow = {
   naziv: string
@@ -15,10 +17,28 @@ type Props = {
   onChange: (next: SmestajFormRow[]) => void
   ferrataId: number | null
   onUploadError: (msg: string) => void
+  /** Glavna tačka ferate — mapa smeštaja centrira ovde dok nema sopstvenu tačku. */
+  anchorLat?: string
+  anchorLng?: string
+}
+
+function parseCoordField(s: string): number | null {
+  const t = s.trim().replace(',', '.')
+  if (!t) return null
+  const n = Number(t)
+  return Number.isFinite(n) ? n : null
 }
 
 export function FerrataSmestajForm(props: Props) {
+  const { t } = useTranslation('ferrate')
   const list = props.rows
+
+  const hintCenter = useMemo(() => {
+    const la = parseCoordField(props.anchorLat ?? '')
+    const lo = parseCoordField(props.anchorLng ?? '')
+    if (la != null && lo != null) return { lat: la, lng: lo }
+    return null
+  }, [props.anchorLat, props.anchorLng])
 
   async function uploadFiles(rowIndex: number, files: File[]) {
     if (!props.ferrataId) {
@@ -83,24 +103,51 @@ export function FerrataSmestajForm(props: Props) {
               props.onChange(next)
             }}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs"
-              placeholder="lat"
-              value={row.lat}
-              onChange={(e) => {
+          <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/30 p-3 space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">{t('superadminSmestajLocation')}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-0.5 block text-[10px] font-semibold text-gray-500">{t('mapLat')}</label>
+                <input
+                  className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs"
+                  placeholder="43.527…"
+                  inputMode="decimal"
+                  value={row.lat}
+                  onChange={(e) => {
+                    const next = [...list]
+                    next[i] = { ...next[i], lat: e.target.value }
+                    props.onChange(next)
+                  }}
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] font-semibold text-gray-500">{t('mapLng')}</label>
+                <input
+                  className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs"
+                  placeholder="20.233…"
+                  inputMode="decimal"
+                  value={row.lng}
+                  onChange={(e) => {
+                    const next = [...list]
+                    next[i] = { ...next[i], lng: e.target.value }
+                    props.onChange(next)
+                  }}
+                />
+              </div>
+            </div>
+            <FerrataPinPicker
+              lat={row.lat}
+              lng={row.lng}
+              hintCenter={hintCenter}
+              compact
+              onLatChange={(v) => {
                 const next = [...list]
-                next[i] = { ...next[i], lat: e.target.value }
+                next[i] = { ...next[i], lat: v }
                 props.onChange(next)
               }}
-            />
-            <input
-              className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs"
-              placeholder="lng"
-              value={row.lng}
-              onChange={(e) => {
+              onLngChange={(v) => {
                 const next = [...list]
-                next[i] = { ...next[i], lng: e.target.value }
+                next[i] = { ...next[i], lng: v }
                 props.onChange(next)
               }}
             />
