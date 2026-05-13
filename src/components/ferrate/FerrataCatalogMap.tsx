@@ -84,7 +84,6 @@ export function FerrataCatalogMap(props: {
           ref={mapRef}
           className="h-full w-full"
           initialViewState={DEFAULT_CENTER}
-          boostPathVisibility
           showZoomControls
         >
           {props.markers.map((m) => (

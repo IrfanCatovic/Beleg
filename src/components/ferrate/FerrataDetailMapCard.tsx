@@ -89,7 +89,6 @@ export function FerrataDetailMapCard(props: {
             ref={mapRef}
             className="h-full w-full"
             mapStyleUrl={detailStyle?.styleUrl ?? null}
-            boostPathVisibility
             initialViewState={initialViewState}
             showZoomControls
           >

@@ -21,7 +21,7 @@ export const ferrateTranslations = {
   listMapPopupDifficulty: 'Težina',
   mapConfigMissingTitle: 'Mapa nije konfigurisana',
   mapConfigMissingBody:
-    'Dodaj u .env VITE_MAPTILER_API_KEY (MapTiler Outdoor) ili pun URL stila u VITE_MAP_STYLE_URL. Ključ je besplatan na maptiler.com. Za jače puteve na detalju ferate možeš postaviti VITE_MAPTILER_DETAIL_MAP_ID (npr. topo-v2) ili VITE_MAP_STYLE_URL_DETAIL.',
+    'Dodaj u .env VITE_MAPTILER_API_KEY (besplatno na maptiler.com) ili pun URL stila u VITE_MAP_STYLE_URL. Podrazumevani stil je streets-v4 (jasni putevi na svetloj pozadini). Za planinsku/topo kartu probaj VITE_MAPTILER_MAP_ID=outdoor ili VITE_MAPTILER_DETAIL_MAP_ID=outdoor — ili tamnu kartu streets-v4-dark.',
   detailMapTitle: 'Lokacija na mapi',
   detailMapRouteTitle: 'Kako stići',
   mapNavGoogle: 'Navigacija do tačke (Google Maps)',

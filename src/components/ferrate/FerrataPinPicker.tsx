@@ -96,7 +96,6 @@ export function FerrataPinPicker(props: Props) {
           className="h-full w-full"
           initialViewState={initialViewState}
           onClick={onMapClick}
-          boostPathVisibility
           showZoomControls
         >
           {hasPin && (

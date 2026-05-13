@@ -5,6 +5,9 @@ export type ResolvedPlaninerMapStyle = {
   styleUrl: string
 }
 
+/** Podrazumevani MapTiler stil: putevi i naselja čitljivi na svetloj UI pozadini (Outdoor može biti previše „bled“). */
+export const DEFAULT_MAPTILER_MAP_ID = 'streets-v4'
+
 /**
  * Rešava stil mape isključivo iz env-a — UI i domen ne znaju za MapTiler po imenu.
  * Prioritet: pun `VITE_MAP_STYLE_URL` → MapTiler (`VITE_MAPTILER_API_KEY` + opcioni `VITE_MAPTILER_MAP_ID`).
@@ -16,13 +19,13 @@ export function resolvePlaninerMapStyle(): ResolvedPlaninerMapStyle | null {
   const key = (import.meta.env.VITE_MAPTILER_API_KEY as string | undefined)?.trim()
   if (!key) return null
 
-  const mapId = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined)?.trim() || 'outdoor'
+  const mapId = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined)?.trim() || DEFAULT_MAPTILER_MAP_ID
   return { styleUrl: mapTilerStyleUrl(mapId, key) }
 }
 
 /**
  * Stil za stranicu detalja ferate (jači putevi / topografija ako želiš drugačiji stil).
- * Prioritet: `VITE_MAP_STYLE_URL_DETAIL` → MapTiler sa `VITE_MAPTILER_DETAIL_MAP_ID` (npr. topo-v2) → globalni stil.
+ * Prioritet: `VITE_MAP_STYLE_URL_DETAIL` → MapTiler sa `VITE_MAPTILER_DETAIL_MAP_ID` (npr. outdoor, topo) → globalni stil.
  */
 export function resolvePlaninerMapStyleForDetail(): ResolvedPlaninerMapStyle | null {
   const customDetail = (import.meta.env.VITE_MAP_STYLE_URL_DETAIL as string | undefined)?.trim()
@@ -33,6 +36,6 @@ export function resolvePlaninerMapStyleForDetail(): ResolvedPlaninerMapStyle | n
 
   const detailId = (import.meta.env.VITE_MAPTILER_DETAIL_MAP_ID as string | undefined)?.trim()
   const globalId = (import.meta.env.VITE_MAPTILER_MAP_ID as string | undefined)?.trim()
-  const mapId = detailId || globalId || 'outdoor'
+  const mapId = detailId || globalId || DEFAULT_MAPTILER_MAP_ID
   return { styleUrl: mapTilerStyleUrl(mapId, key) }
 }

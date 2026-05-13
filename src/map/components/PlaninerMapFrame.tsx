@@ -8,8 +8,6 @@ export type PlaninerMapFrameProps = {
   className?: string
   /** Pun URL MapLibre stila; ako je prazan, koristi se resolvePlaninerMapStyle(). */
   mapStyleUrl?: string | null
-  /** Blagi boost kontrasta na canvas-u da putevi / linije budu čitljiviji (detalj ferate, editor…). */
-  boostPathVisibility?: boolean
   initialViewState: {
     longitude: number
     latitude: number
@@ -34,7 +32,6 @@ export const PlaninerMapFrame = forwardRef<MapRef, PlaninerMapFrameProps>(functi
 
   const {
     className = '',
-    boostPathVisibility,
     initialViewState,
     children,
     onClick,
@@ -45,9 +42,7 @@ export const PlaninerMapFrame = forwardRef<MapRef, PlaninerMapFrameProps>(functi
   const styleUrl = override || resolved!.styleUrl
 
   return (
-    <div
-      className={`planiner-map-frame relative overflow-hidden ${boostPathVisibility ? 'planiner-map-frame--boost-paths ' : ''}${className}`.trim()}
-    >
+    <div className={`planiner-map-frame relative overflow-hidden ${className}`.trim()}>
       <Map
         ref={ref}
         mapLib={maplibregl}
