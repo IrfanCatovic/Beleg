@@ -54,6 +54,20 @@ export type IconName = keyof typeof OUTLINE_ICON_MAP
 
 const DEFAULT_ICON: IconName = 'WrenchScrewdriverIcon'
 
+const OUTLINE_ICON_KEYS = Object.keys(OUTLINE_ICON_MAP) as IconName[]
+
+/** Rešava ključ ikone (trim, tačan ključ, pa case-insensitive match na Heroicons imena). */
+export function pickEquipmentIconKey(name?: string | null): IconName {
+  const raw = (name ?? '').trim()
+  if (!raw) return DEFAULT_ICON
+  if (OUTLINE_ICON_MAP[raw]) return raw as IconName
+  const lower = raw.toLowerCase()
+  for (const k of OUTLINE_ICON_KEYS) {
+    if (k.toLowerCase() === lower) return k
+  }
+  return DEFAULT_ICON
+}
+
 const SUGGEST_RULES: { pattern: RegExp; icon: IconName }[] = [
   { pattern: /kacig|helmet|štit|stit/i, icon: 'ShieldCheckIcon' },
   { pattern: /rukavic|glove/i, icon: 'HandRaisedIcon' },
@@ -82,10 +96,18 @@ export function suggestEquipmentIcon(label: string): IconName {
 }
 
 export function resolveOutlineIcon(name: string): ComponentType<SVGProps<SVGSVGElement>> {
-  const key = (name || '').trim()
-  const C = OUTLINE_ICON_MAP[key]
-  if (C && typeof C === 'function') return C
-  return OUTLINE_ICON_MAP[DEFAULT_ICON]
+  const key = pickEquipmentIconKey(name)
+  return OUTLINE_ICON_MAP[key]
+}
+
+/**
+ * Renderuje ikonu sa `key` da se pri promeni ključa uvek osveži SVG
+ * (pouzdano u dev/HMR i sa dinamičkim Heroicons komponentama).
+ */
+export function FerrataEquipmentGlyph(props: { name?: string | null; className?: string }) {
+  const k = pickEquipmentIconKey(props.name)
+  const Cmp = OUTLINE_ICON_MAP[k]
+  return <Cmp key={k} className={props.className} aria-hidden />
 }
 
 export const FERRATA_EQUIPMENT_ICON_OPTIONS: { key: IconName; label: string; tags: string }[] = [

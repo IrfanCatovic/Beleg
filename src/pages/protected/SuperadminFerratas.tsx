@@ -7,6 +7,7 @@ import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationE
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
 import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
+import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
 
@@ -61,9 +62,16 @@ function obaveznaFromApi(raw: unknown): OpremaFormRow[] {
   if (!Array.isArray(raw)) return []
   return raw
     .map((x) => {
-      if (typeof x === 'string') return { label: x, icon: 'WrenchScrewdriverIcon' }
+      if (typeof x === 'string') {
+        const label = String(x).trim()
+        return { label, icon: suggestEquipmentIcon(label) }
+      }
       const o = x as { label?: string; icon?: string }
-      return { label: String(o.label ?? ''), icon: o.icon || 'WrenchScrewdriverIcon' }
+      const label = String(o.label ?? '').trim()
+      if (!label) return { label: '', icon: 'WrenchScrewdriverIcon' }
+      const iconRaw = (o.icon ?? '').trim()
+      const icon = iconRaw ? pickEquipmentIconKey(iconRaw) : suggestEquipmentIcon(label)
+      return { label, icon }
     })
     .filter((r) => r.label.trim())
 }

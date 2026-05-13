@@ -5,7 +5,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
-import { resolveOutlineIcon, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
+import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import {
   BoltIcon,
   CalendarDaysIcon,
@@ -358,13 +358,12 @@ export default function FerrataDetail() {
                     <div className="flex flex-wrap gap-2">
                       {opremaItems.map((item) => {
                         const iconKey = item.icon?.trim() ? item.icon.trim() : suggestEquipmentIcon(item.label)
-                        const Icon = resolveOutlineIcon(iconKey)
                         return (
                           <span
                             key={`${item.label}-${item.icon ?? ''}`}
                             className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
                           >
-                            <Icon className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <FerrataEquipmentGlyph name={iconKey} className="h-4 w-4 text-emerald-600 shrink-0" />
                             {item.label.trim()}
                           </span>
                         )

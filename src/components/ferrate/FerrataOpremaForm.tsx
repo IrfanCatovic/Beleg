@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import {
+  FerrataEquipmentGlyph,
   FERRATA_EQUIPMENT_ICON_OPTIONS,
-  resolveOutlineIcon,
   suggestEquipmentIcon,
 } from './ferrataEquipmentIcons'
 
@@ -28,12 +28,11 @@ export function FerrataOpremaForm(props: {
   return (
     <div className="space-y-3">
       {list.map((row, i) => {
-        const Icon = resolveOutlineIcon(row.icon)
         return (
-          <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 space-y-2">
+          <div key={`oprema-${i}-${row.icon}-${row.label}`} className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 space-y-2">
             <div className="flex gap-2">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-gray-200">
-                <Icon className="h-5 w-5 text-emerald-700" />
+                <FerrataEquipmentGlyph name={row.icon} className="h-5 w-5 text-emerald-700" />
               </div>
               <input
                 className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -79,7 +78,6 @@ export function FerrataOpremaForm(props: {
                   </div>
                   <ul className="space-y-0.5">
                     {filteredIcons.map((opt) => {
-                      const Ic = resolveOutlineIcon(opt.key)
                       return (
                         <li key={opt.key}>
                           <button
@@ -93,7 +91,7 @@ export function FerrataOpremaForm(props: {
                               setIconSearch('')
                             }}
                           >
-                            <Ic className="h-4 w-4 shrink-0 text-emerald-700" />
+                            <FerrataEquipmentGlyph name={opt.key} className="h-4 w-4 shrink-0 text-emerald-700" />
                             <span>{opt.label}</span>
                           </button>
                         </li>
