@@ -205,75 +205,108 @@ export default function FerrataDetail() {
 
   return (
     <div className="pb-20 -mx-4 sm:-mx-6 lg:-mx-8">
-      <div className="px-4 sm:px-6 lg:px-8 mb-4">
-        <Link to="/ferate" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800">
-          <ArrowLeftIcon className="h-4 w-4" />
-          {t('detailBreadcrumb')}
-        </Link>
-        {user?.role === 'superadmin' && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Link
-              to="/superadmin/ferrate"
-              className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
-            >
-              {t('detailSuperadminCta')} →
-            </Link>
-          </div>
-        )}
-      </div>
-
       {loading && <p className="px-4 text-sm text-gray-500">…</p>}
       {err && <p className="px-4 text-sm text-rose-600">{err}</p>}
 
       {f && (
         <>
-          {/* Hero */}
-          <section className="relative min-h-[320px] sm:min-h-[420px] flex flex-col justify-end">
+          {/* Hero — uz cover sliku bez zatamnjenja; tekst u svetlom panelu radi čitljivosti */}
+          <section className="relative flex min-h-[320px] flex-col justify-end sm:min-h-[420px]">
             {coverUrl ? (
               <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" />
-            <div className="relative z-10 px-4 sm:px-8 lg:px-12 pt-16 pb-10 max-w-5xl">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">{f.naziv}</h1>
-              {subtitle && <p className="mt-2 text-sm sm:text-base text-white/90 max-w-3xl">{subtitle}</p>}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-white">
-                  <ChartBarIcon className="h-3.5 w-3.5" />
-                  {f.tezina}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-white">
-                  <MapPinIcon className="h-3.5 w-3.5" />
-                  {f.duzinaM} m
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-white">
-                  <ClockIcon className="h-3.5 w-3.5" />
-                  {formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-white">
-                  <UserGroupIcon className="h-3.5 w-3.5" />
-                  {badgeBeginners}
-                </span>
-              </div>
-              <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3">
-                <Link
-                  to={createActionHref}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold px-5 py-3 shadow-lg shadow-emerald-900/30 hover:from-emerald-400 hover:to-teal-500 transition"
+            {!coverUrl && (
+              <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
+            )}
+            <div className="relative z-10 max-w-5xl px-4 pb-10 pt-16 sm:px-8 lg:px-12">
+              <div
+                className={
+                  coverUrl
+                    ? 'rounded-2xl border border-emerald-100/80 bg-white/92 px-5 py-6 shadow-lg shadow-emerald-900/5 backdrop-blur-sm sm:px-6'
+                    : ''
+                }
+              >
+                <h1
+                  className={`text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl ${
+                    coverUrl ? 'text-gray-900' : 'text-white drop-shadow-lg'
+                  }`}
                 >
-                  <PlusIcon className="h-5 w-5" />
-                  {t('heroCtaCreate')}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setBookOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/40 bg-black/30 backdrop-blur-md text-white text-sm font-bold px-5 py-3 hover:bg-black/45 transition"
-                >
-                  <CalendarDaysIcon className="h-5 w-5" />
-                  {t('heroCtaBook')}
-                </button>
+                  {f.naziv}
+                </h1>
+                {subtitle && (
+                  <p className={`mt-2 max-w-3xl text-sm sm:text-base ${coverUrl ? 'text-gray-600' : 'text-white/90'}`}>
+                    {subtitle}
+                  </p>
+                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                      coverUrl
+                        ? 'border-emerald-200/90 bg-emerald-50/90 text-emerald-900'
+                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
+                    }`}
+                  >
+                    <ChartBarIcon className="h-3.5 w-3.5" />
+                    {f.tezina}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                      coverUrl
+                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
+                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
+                    }`}
+                  >
+                    <MapPinIcon className="h-3.5 w-3.5" />
+                    {f.duzinaM} m
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                      coverUrl
+                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
+                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
+                    }`}
+                  >
+                    <ClockIcon className="h-3.5 w-3.5" />
+                    {formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                      coverUrl
+                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
+                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
+                    }`}
+                  >
+                    <UserGroupIcon className="h-3.5 w-3.5" />
+                    {badgeBeginners}
+                  </span>
+                </div>
+                <div className="mt-6 flex flex-col flex-wrap gap-3 sm:flex-row">
+                  <Link
+                    to={createActionHref}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-teal-500"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    {t('heroCtaCreate')}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setBookOpen(true)}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${
+                      coverUrl
+                        ? 'border-emerald-200 bg-white text-emerald-900 shadow-sm hover:bg-emerald-50/80'
+                        : 'border-white/40 bg-black/30 text-white backdrop-blur-md hover:bg-black/45'
+                    }`}
+                  >
+                    <CalendarDaysIcon className="h-5 w-5" />
+                    {t('heroCtaBook')}
+                  </button>
+                </div>
+                <p className={`mt-4 max-w-xl text-xs sm:text-sm ${coverUrl ? 'text-gray-600' : 'text-white/75'}`}>
+                  {t('heroNote')}
+                </p>
               </div>
-              <p className="mt-4 text-xs sm:text-sm text-white/75 max-w-xl">{t('heroNote')}</p>
             </div>
           </section>
 
