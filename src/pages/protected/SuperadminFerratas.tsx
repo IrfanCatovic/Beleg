@@ -85,8 +85,16 @@ function coordToFormFieldStr(v: unknown): string {
   return String(v)
 }
 
+function highlightsRawFromRow(row: FerrataRow): string {
+  const raw = row.highlights
+  if (!Array.isArray(raw)) return ''
+  return raw
+    .map((x) => (typeof x === 'string' ? x : String(x ?? '')).trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
 function formStateFromFerrataRow(row: FerrataRow) {
-  const h = Array.isArray(row.highlights) ? (row.highlights as string[]).join('\n') : ''
   return {
     naziv: String(row.naziv ?? ''),
     slug: String(row.slug ?? ''),
@@ -100,7 +108,7 @@ function formStateFromFerrataRow(row: FerrataRow) {
     trajanjeMin: Number(row.trajanjeMin ?? 0),
     trajanjeMax: Number(row.trajanjeMax ?? 0),
     quickTip: String(row.quickTip ?? ''),
-    highlightsRaw: h,
+    highlightsRaw: highlightsRawFromRow(row),
     okolina: okolinaFromApi(row.okolina),
     smestaj: smestajFromApi(row.smestaj),
     obaveznaOprema: obaveznaFromApi(row.obaveznaOprema),
@@ -149,16 +157,66 @@ export default function SuperadminFerratas() {
       return
     }
     if (editParamConsumedRef.current === raw) return
-    editParamConsumedRef.current = raw
+
     const id = Number(raw)
+    if (!Number.isFinite(id) || id <= 0) {
+      editParamConsumedRef.current = raw
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('edit')
+          return next
+        },
+        { replace: true },
+      )
+      return
+    }
+
+    const clearEditQuery = () =>
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('edit')
+          return next
+        },
+        { replace: true },
+      )
+
     const row = rows.find((r) => Number(r.id) === id)
-    const next = new URLSearchParams(searchParams)
-    next.delete('edit')
-    setSearchParams(next, { replace: true })
     if (row) {
+      editParamConsumedRef.current = raw
       setEditingId(row.id as number)
       setForm(formStateFromFerrataRow(row))
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      clearEditQuery()
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await api.get<{ ferrata?: FerrataRow }>(`/api/superadmin/ferratas/${id}`)
+        if (cancelled) return
+        const fer = res.data?.ferrata
+        if (fer) {
+          setEditingId(fer.id as number)
+          setForm(formStateFromFerrataRow(fer))
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        } else {
+          setErr('Ferata nije pronađena.')
+        }
+      } catch {
+        if (!cancelled) setErr('Ferata nije pronađena ili nemaš pristup.')
+      } finally {
+        if (!cancelled) {
+          editParamConsumedRef.current = raw
+          clearEditQuery()
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
     }
   }, [user, loading, rows, searchParams, setSearchParams])
 
@@ -263,12 +321,13 @@ export default function SuperadminFerratas() {
       if (editingId) {
         await api.put(`/api/superadmin/ferratas/${editingId}`, payload)
         await load()
+        setErr('')
       } else {
         const res = await api.post<{ ferrata?: FerrataRow }>('/api/superadmin/ferratas', payload)
         const fer = res.data?.ferrata
         await load()
         if (fer && typeof fer.id === 'number') {
-          startEdit(fer)
+          await startEdit(fer)
         } else {
           setEditingId(null)
           setForm(emptyForm())
@@ -280,10 +339,21 @@ export default function SuperadminFerratas() {
     }
   }
 
-  function startEdit(row: FerrataRow) {
-    setEditingId(row.id as number)
-    setForm(formStateFromFerrataRow(row))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  async function startEdit(row: FerrataRow) {
+    setErr('')
+    try {
+      const res = await api.get<{ ferrata?: FerrataRow }>(`/api/superadmin/ferratas/${row.id}`)
+      const fer = res.data?.ferrata
+      if (!fer) {
+        setErr('Ferata nije učitana.')
+        return
+      }
+      setEditingId(fer.id as number)
+      setForm(formStateFromFerrataRow(fer))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {
+      setErr('Ne mogu učitati feratu za uređivanje.')
+    }
   }
 
   async function uploadCoverFromForm(file: File | null) {
@@ -449,6 +519,7 @@ export default function SuperadminFerratas() {
               <th className="px-4 py-2">Mapa</th>
               <th className="px-4 py-2">Cover</th>
               <th className="px-3 py-2">{t('superadminTableGallery')}</th>
+              <th className="px-3 py-2">{t('superadminEdit')}</th>
             </tr>
           </thead>
           <tbody>
@@ -481,6 +552,15 @@ export default function SuperadminFerratas() {
                   >
                     {t('superadminTableGallery')}
                   </Link>
+                </td>
+                <td className="px-3 py-2 align-middle">
+                  <button
+                    type="button"
+                    onClick={() => void startEdit(r)}
+                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
+                  >
+                    {t('superadminEdit')}
+                  </button>
                 </td>
               </tr>
             ))}
