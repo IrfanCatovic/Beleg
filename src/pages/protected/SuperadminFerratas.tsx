@@ -122,6 +122,7 @@ function formStateFromFerrataRow(row: FerrataRow) {
 
 export default function SuperadminFerratas() {
   const { t } = useTranslation('ferrate')
+  const { t: tHotels } = useTranslation('hotels')
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const editParamConsumedRef = useRef<string | null>(null)
@@ -396,6 +397,9 @@ export default function SuperadminFerratas() {
           >
             {t('superadminAdd')}
           </button>
+          <Link to="/superadmin/hoteli" className="text-sm font-semibold text-emerald-700 hover:underline">
+            {tHotels('navFromFerratas')}
+          </Link>
           <Link to="/superadmin" className="text-sm font-semibold text-emerald-700 hover:underline">
             ← Superadmin
           </Link>

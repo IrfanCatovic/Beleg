@@ -27,4 +27,10 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.POST("/superadmin/ferratas/:id/gallery", handlers.SuperadminUploadFerrataGallery)
 	g.POST("/superadmin/ferratas/:id/contacts", handlers.SuperadminCreateFerrataContact)
 	g.PUT("/superadmin/ferrata-contacts/:id", handlers.SuperadminUpdateFerrataContact)
+
+	g.GET("/superadmin/hotels", handlers.SuperadminListHotels)
+	g.POST("/superadmin/hotels", handlers.SuperadminCreateHotel)
+	g.GET("/superadmin/hotels/:id", handlers.SuperadminGetHotel)
+	g.PUT("/superadmin/hotels/:id", handlers.SuperadminUpdateHotel)
+	g.DELETE("/superadmin/hotels/:id", handlers.SuperadminDeleteHotel)
 }

@@ -102,6 +102,7 @@ const defaultForm = {
 export default function SuperadminKlubovi() {
   const { t } = useTranslation('clubs')
   const { t: tFerrate } = useTranslation('ferrate')
+  const { t: tHotels } = useTranslation('hotels')
   const { user } = useAuth()
   const navigate = useNavigate()
   const [klubovi, setKlubovi] = useState<Klub[]>([])
@@ -394,6 +395,12 @@ export default function SuperadminKlubovi() {
               className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
             >
               {tFerrate('superadminTitle')}
+            </Link>
+            <Link
+              to="/superadmin/hoteli"
+              className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline"
+            >
+              {tHotels('navFromSuperadmin')}
             </Link>
           </div>
           {activeTab === 'clubs' && (

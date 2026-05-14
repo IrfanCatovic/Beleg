@@ -81,6 +81,7 @@ func migrateAndSeed(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.Ferrata{},
 		&models.FerrataContact{},
+		&models.Hotel{},
 		&models.Akcija{},
 		&models.AkcijaSmestaj{},
 		&models.AkcijaOprema{},

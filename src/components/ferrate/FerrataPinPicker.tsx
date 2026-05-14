@@ -24,6 +24,8 @@ type Props = {
   hintCenter?: { lat: number; lng: number } | null
   /** Niža mapa u formi */
   compact?: boolean
+  /** Tekst iznad mape; podrazumevano ferrate.smestajMapHint */
+  mapHint?: string
 }
 
 /**
@@ -89,7 +91,7 @@ export function FerrataPinPicker(props: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] leading-relaxed text-gray-500">{t('smestajMapHint')}</p>
+      <p className="text-[11px] leading-relaxed text-gray-500">{props.mapHint ?? t('smestajMapHint')}</p>
       <div className={`overflow-hidden rounded-xl border border-gray-200 bg-slate-100/80 shadow-inner ring-1 ring-emerald-900/10 ${hClass}`}>
         <PlaninerMapFrame
           ref={mapRef}
