@@ -4,6 +4,7 @@ import { Marker, type MapRef } from 'react-map-gl/maplibre'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { resolvePlaninerMapStyleForDetail } from '../../map/style/resolvePlaninerMapStyle'
+import { googleMapsPinUrl } from '../../map/utils/externalMapsUrl'
 
 function formatCoords(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
@@ -53,6 +54,7 @@ export function FerrataDetailMapCard(props: {
   }, [centerOnFerrata])
 
   const coordsText = formatCoords(props.lat, props.lng)
+  const openMapsHref = useMemo(() => googleMapsPinUrl(props.lat, props.lng), [props.lat, props.lng])
 
   const copyCoords = useCallback(async () => {
     try {
@@ -96,7 +98,7 @@ export function FerrataDetailMapCard(props: {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
           <button
             type="button"
             onClick={() => void copyCoords()}
@@ -104,6 +106,14 @@ export function FerrataDetailMapCard(props: {
           >
             {copied ? t('mapCoordsCopied') : t('mapCopyCoords')}
           </button>
+          <a
+            href={openMapsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 text-xs font-bold text-emerald-900 shadow-sm transition hover:bg-emerald-100/90 sm:w-auto sm:min-w-[10rem]"
+          >
+            {t('mapOpenMaps')}
+          </a>
         </div>
       </div>
     </article>

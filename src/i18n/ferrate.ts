@@ -28,6 +28,7 @@ export const ferrateTranslations = {
   mapViewGoogle: 'Pogled na karti',
   mapOpenGoogle: 'Otvori u Google Maps',
   mapCopyCoords: 'Kopiraj koordinate',
+  mapOpenMaps: 'Otvori mape',
   mapCoordsCopied: 'Kopirano',
   detailGalleryTitle: 'Galerija',
   detailGalleryHint: 'Klik na sliku za prikaz u punoj veličini; strelice ili tastatura levo/desno.',
