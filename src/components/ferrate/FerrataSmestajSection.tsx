@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, HomeModernIcon, MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+import { PlaninerIcon } from '../ui/PlaninerIcon'
 import { FerrataDetailMapCard } from './FerrataDetailMapCard'
 import { normalizeInstagramUrl, safeHttpUrl } from './smestajExternalUrls'
 
@@ -60,7 +61,10 @@ export function FerrataSmestajSection(props: { items: SmestajPublic[] }) {
   return (
     <>
       <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailSmestajTitle')}</h2>
+        <div className="mb-4 flex items-center gap-3">
+          <PlaninerIcon name="stay" variant="solid" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailSmestajTitle')}</h2>
+        </div>
         <ul className="grid gap-3">
           {list.map((s, i) => {
             const thumb = smestajThumb(s)

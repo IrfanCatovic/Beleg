@@ -5,6 +5,7 @@ import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { resolvePlaninerMapStyleForDetail } from '../../map/style/resolvePlaninerMapStyle'
 import { googleMapsPinUrl } from '../../map/utils/externalMapsUrl'
+import { PlaninerIcon } from '../ui/PlaninerIcon'
 
 function formatCoords(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
@@ -74,7 +75,8 @@ export function FerrataDetailMapCard(props: {
   const inner = (
     <>
       {!embed && (
-        <h2 className="px-5 pb-2 pt-5 text-sm font-bold uppercase tracking-wider text-emerald-700 sm:px-6 sm:pt-6">
+        <h2 className="flex items-center gap-3 px-5 pb-2 pt-5 text-sm font-bold uppercase tracking-wider text-emerald-700 sm:px-6 sm:pt-6">
+          <PlaninerIcon name="map" variant="solid" />
           {t('detailMapTitle')}
         </h2>
       )}

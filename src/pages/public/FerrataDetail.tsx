@@ -7,18 +7,8 @@ import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapC
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
-import {
-  BoltIcon,
-  CalendarDaysIcon,
-  ChartBarIcon,
-  ClockIcon,
-  HandRaisedIcon,
-  MapPinIcon,
-  PhotoIcon,
-  PlusIcon,
-  SparklesIcon,
-  StarIcon,
-} from '@heroicons/react/24/outline'
+import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
+import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
 
 type OpremaItem = { label: string; icon?: string }
 
@@ -249,18 +239,20 @@ export default function FerrataDetail() {
 
             <div className="relative z-20 mt-0 px-4 sm:px-6 lg:-mt-[4.5rem] lg:px-8">
               <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 lg:grid-cols-5">
-                {[
-                  { label: t('statsDifficulty'), value: f.tezina, icon: ChartBarIcon },
-                  { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: BoltIcon },
-                  { label: t('statsLength'), value: `${f.duzinaM} m`, icon: MapPinIcon },
-                  { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: SparklesIcon },
-                  { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: ClockIcon },
-                ].map((card) => (
+                {(
+                  [
+                    { label: t('statsDifficulty'), value: f.tezina, icon: 'difficulty' as const },
+                    { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: 'harder' as const },
+                    { label: t('statsLength'), value: `${f.duzinaM} m`, icon: 'distance' as const },
+                    { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: 'height' as const },
+                    { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: 'time' as const },
+                  ] satisfies ReadonlyArray<{ label: string; value: string; icon: PlaninerIconName }>
+                ).map((card) => (
                   <div
                     key={card.label}
                     className="rounded-2xl border border-gray-100 bg-white/98 px-4 py-3 shadow-md shadow-emerald-900/10 backdrop-blur-sm flex flex-col gap-1 ring-1 ring-black/[0.03]"
                   >
-                    <card.icon className="h-5 w-5 text-emerald-600" />
+                    <PlaninerIcon name={card.icon} variant="small" />
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
                     <p className="text-sm font-bold text-gray-900">{card.value}</p>
                   </div>
@@ -285,7 +277,10 @@ export default function FerrataDetail() {
             <div className={`grid gap-6 items-stretch ${hasAbout ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
               {hasAbout && (
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-2">{t('aboutTitle')}</h2>
+                  <div className="mb-2 flex items-center gap-3">
+                    <PlaninerIcon name="about" variant="solid" />
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('aboutTitle')}</h2>
+                  </div>
                   <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis!.trim()}</p>
                 </article>
               )}
@@ -332,11 +327,14 @@ export default function FerrataDetail() {
               <div className={`grid gap-6 items-stretch ${hasWhy && hasSmestaj ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
                 {hasWhy && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('whyTitle')}</h2>
+                    <div className="mb-4 flex items-center gap-3">
+                      <PlaninerIcon name="why" variant="solid" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
+                    </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {f.highlights!.map((h) => (
                         <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
-                          <SparklesIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                          <PlaninerIcon name="why" variant="small" className="mt-0.5" />
                           <p className="text-sm font-medium text-gray-800">{h}</p>
                         </div>
                       ))}
@@ -384,10 +382,10 @@ export default function FerrataDetail() {
                   if (!opremaItems.length) return null
                   return (
                     <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                      <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-emerald-700">
-                        <HandRaisedIcon className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
-                        {t('equipmentTitle')}
-                      </h2>
+                      <div className="mb-4 flex items-center gap-3">
+                        <PlaninerIcon name="gear" variant="solid" />
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('equipmentTitle')}</h2>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {opremaItems.map((item) => {
                           const raw = item.icon?.trim() ? item.icon.trim() : suggestEquipmentIcon(item.label)
@@ -409,7 +407,10 @@ export default function FerrataDetail() {
 
                 {contacts.length > 0 && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailGuidesTitle')}</h2>
+                    <div className="mb-4 flex items-center gap-3">
+                      <PlaninerIcon name="guide" variant="solid" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailGuidesTitle')}</h2>
+                    </div>
                     <ul className="space-y-4">
                       {contacts.map((c) => (
                         <li key={c.id} className="space-y-2 rounded-xl border border-gray-50 bg-gray-50/60 p-4">
@@ -440,7 +441,10 @@ export default function FerrataDetail() {
 
               <aside className="mt-8 space-y-5 lg:mt-0">
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <h3 className="mb-3 text-sm font-bold text-gray-900">{t('sidebarUpcomingTitle')}</h3>
+                  <div className="mb-3 flex items-center gap-3">
+                    <PlaninerIcon name="actions" variant="solid" />
+                    <h3 className="text-sm font-bold text-gray-900">{t('sidebarUpcomingTitle')}</h3>
+                  </div>
                   {upcoming.length === 0 ? (
                     <p className="text-xs text-gray-600">{t('sidebarUpcomingEmpty')}</p>
                   ) : (
@@ -489,9 +493,15 @@ export default function FerrataDetail() {
                 )}
 
                 <div className="rounded-2xl border border-dashed border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50 p-5">
-                  <h3 className="text-sm font-bold text-gray-900">{t('detailLocalGuidesTitle')}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-gray-500">{t('detailLocalGuidesSoon')}</p>
-                  <div className="mx-auto mt-4 flex h-28 w-28 items-center justify-center rounded-2xl bg-gray-200/70 ring-2 ring-dashed ring-gray-300/80">
+                  <div className="flex gap-3">
+                    <PlaninerIcon name="guide" variant="solid" className="shrink-0" />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-gray-900">{t('detailLocalGuidesTitle')}</h3>
+                      <p className="mt-2 text-xs leading-relaxed text-gray-500">{t('detailLocalGuidesSoon')}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-col items-center gap-2">
+                    <PlaninerIcon name="guide" variant="soft" />
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">{t('detailLocalGuidesBadge')}</span>
                   </div>
                 </div>
