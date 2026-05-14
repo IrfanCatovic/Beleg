@@ -37,6 +37,7 @@ export const ferrateTranslations = {
   superadminGalleryManageBack: '← Nazad na katalog ferata',
   detailSuperadminGalleryCta: 'Uredi galeriju',
   superadminTableGallery: 'Galerija',
+  superadminTableActions: 'Akcije',
   superadminCoverLabel: 'Cover',
   superadminCoverGalleryLink: 'Galerija →',
   superadminGalleryTitle: 'Galerija',
@@ -130,6 +131,10 @@ export const ferrateTranslations = {
   superadminTitle: 'Ferate (katalog)',
   superadminAdd: 'Dodaj feratu',
   superadminEdit: 'Uredi',
+  superadminDelete: 'Obriši',
+  superadminDeleteConfirm:
+    'Sigurno obrisati feratu „{{name}}”? Kontakti za ovu feratu se brišu. Via ferrata akcije ostaju, ali se više ne vežu za katalog (u akciji ostaje snimak).',
+  superadminDeleteError: 'Brisanje nije uspelo.',
   superadminListEmpty: 'Nema ferata.',
   superadminHintPogodno: 'Npr. uz_vodica, da, ne ili slobodan tekst.',
   superadminSectionMap: 'Lokacija ferate na mapi (obavezno)',

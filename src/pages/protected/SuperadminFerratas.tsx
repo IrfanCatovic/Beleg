@@ -90,6 +90,7 @@ export default function SuperadminFerratas() {
   const [contacts, setContacts] = useState<ContactRow[]>([])
   const [contactForm, setContactForm] = useState({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
   const [contactSaving, setContactSaving] = useState(false)
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -264,6 +265,27 @@ export default function SuperadminFerratas() {
       lng: coordToFormField(row.lng),
       mapNote: String(row.mapNote ?? ''),
     })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function handleDeleteRow(r: FerrataRow) {
+    const name = String(r.naziv ?? '').trim() || `#${r.id}`
+    if (!window.confirm(t('superadminDeleteConfirm', { name }))) return
+    setErr('')
+    setDeleteBusyId(r.id)
+    try {
+      await api.delete(`/api/superadmin/ferratas/${r.id}`)
+      if (editingId === r.id) {
+        setEditingId(null)
+        setForm(emptyForm())
+      }
+      await load()
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setErr(msg || t('superadminDeleteError'))
+    } finally {
+      setDeleteBusyId(null)
+    }
   }
 
   async function handleAddContact() {
@@ -518,7 +540,7 @@ export default function SuperadminFerratas() {
               <th className="px-4 py-2">Mapa</th>
               <th className="px-4 py-2">Cover</th>
               <th className="px-3 py-2">{t('superadminTableGallery')}</th>
-              <th className="px-4 py-2" />
+              <th className="px-4 py-2 text-right">{t('superadminTableActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -553,9 +575,23 @@ export default function SuperadminFerratas() {
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <button type="button" className="text-emerald-700 font-semibold" onClick={() => startEdit(r)}>
-                    {t('superadminEdit')}
-                  </button>
+                  <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                    <button
+                      type="button"
+                      className="text-emerald-700 font-semibold text-sm hover:underline"
+                      onClick={() => startEdit(r)}
+                    >
+                      {t('superadminEdit')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deleteBusyId === r.id}
+                      className="text-sm font-semibold text-rose-700 hover:underline disabled:opacity-50"
+                      onClick={() => void handleDeleteRow(r)}
+                    >
+                      {deleteBusyId === r.id ? '…' : t('superadminDelete')}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

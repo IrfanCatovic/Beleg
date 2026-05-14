@@ -636,6 +636,42 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, -1)})
 }
 
+// SuperadminDeleteFerrata DELETE — briše zapis u katalogu; via ferrata akcije ostaju, ali se odvezuju (ferrata_id = NULL, snapshot ostaje).
+func SuperadminDeleteFerrata(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	uid := uint(id)
+	db := c.MustGet("db").(*gorm.DB)
+	var f models.Ferrata
+	if err := db.First(&f, uid).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
+		return
+	}
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Akcija{}).Where("ferrata_id = ?", uid).Updates(map[string]interface{}{"ferrata_id": nil}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("ferrata_id = ?", uid).Delete(&models.FerrataContact{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&models.Ferrata{}, uid).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju ferate"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func SuperadminPatchFerrataGalerija(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return

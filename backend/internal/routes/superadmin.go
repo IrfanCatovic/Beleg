@@ -21,6 +21,7 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.POST("/superadmin/ferratas/gallery-draft", handlers.SuperadminUploadFerrataGalleryDraft)
 	g.POST("/superadmin/ferratas", handlers.SuperadminCreateFerrata)
 	g.PUT("/superadmin/ferratas/:id", handlers.SuperadminUpdateFerrata)
+	g.DELETE("/superadmin/ferratas/:id", handlers.SuperadminDeleteFerrata)
 	g.PATCH("/superadmin/ferratas/:id/galerija", handlers.SuperadminPatchFerrataGalerija)
 	g.POST("/superadmin/ferratas/:id/cover", handlers.SuperadminUploadFerrataCover)
 	g.POST("/superadmin/ferratas/:id/gallery", handlers.SuperadminUploadFerrataGallery)
