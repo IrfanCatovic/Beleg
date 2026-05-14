@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataHotelsSection } from '../../components/ferrate/FerrataHotelsSection'
-import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
 import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
@@ -30,7 +29,6 @@ type FerrataDTO = {
   quickTip?: string
   highlights: string[]
   okolina?: string[]
-  smestaj?: SmestajPublic[]
   obaveznaOprema: OpremaItem[] | string[]
   coverImage: string
   /** Galerija ispod heroa (pored cover slike). */
@@ -173,14 +171,6 @@ export default function FerrataDetail() {
   const hasMapCoords =
     f != null && f.lat != null && f.lng != null && Number.isFinite(f.lat) && Number.isFinite(f.lng)
 
-  const smestajList = f?.smestaj ?? []
-  const hasSmestaj = smestajList.some((x) => {
-    const hasText = (x.naziv ?? '').trim() || (x.opis ?? '').trim()
-    const hasImg = (x.slike?.length ?? 0) > 0
-    const hasPin = x.lat != null && x.lng != null && Number.isFinite(x.lat) && Number.isFinite(x.lng)
-    const hasLinks = (x.bookingUrl ?? '').trim() || (x.instagramUrl ?? '').trim()
-    return hasText || hasImg || hasPin || hasLinks
-  })
   const hasAbout = Boolean(f?.opis?.trim())
   const hasWhy = Boolean(f?.highlights?.length)
 
@@ -323,29 +313,25 @@ export default function FerrataDetail() {
               </aside>
             </div>
 
-            {/* Red 2: Zašto ići | Smeštaj */}
-            {(hasWhy || hasSmestaj) && (
-              <div className={`grid gap-6 items-stretch ${hasWhy && hasSmestaj ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
-                {hasWhy && (
-                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <div className="mb-4 flex items-center gap-3">
-                      <PlaninerIcon name="why" variant="solid" />
-                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {f.highlights!.map((h) => (
-                        <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
-                          <PlaninerIcon name="why" variant="small" className="mt-0.5" />
-                          <p className="text-sm font-medium text-gray-800">{h}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                )}
-                {hasSmestaj && (
-                  <div className={hasWhy ? '' : 'w-full lg:max-w-sm lg:justify-self-end'}>
-                    <FerrataSmestajSection items={f.smestaj!} />
+            {/* Red 2: Zašto ići | hoteli u okolini (sa pina ferate) */}
+            {hasWhy && (
+              <div className={`grid gap-6 items-stretch ${hasMapCoords ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
+                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <PlaninerIcon name="why" variant="solid" />
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
                   </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {f.highlights!.map((h) => (
+                      <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
+                        <PlaninerIcon name="why" variant="small" className="mt-0.5" />
+                        <p className="text-sm font-medium text-gray-800">{h}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                {hasMapCoords && (
+                  <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
                 )}
               </div>
             )}
@@ -364,7 +350,9 @@ export default function FerrataDetail() {
                   />
                 )}
 
-                {hasMapCoords && <FerrataHotelsSection ferrataLat={f.lat as number} ferrataLng={f.lng as number} />}
+                {hasMapCoords && !hasWhy && (
+                  <FerrataHotelsSection ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
+                )}
 
                 {Boolean(f.okolina?.some((x) => x?.trim())) && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">

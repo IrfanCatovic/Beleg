@@ -7,7 +7,6 @@ import { superadminUploadFerrataCover } from '../../services/superadminFerrataUp
 import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationEditor'
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
 import { FerrataOpremaForm, type OpremaFormRow } from '../../components/ferrate/FerrataOpremaForm'
-import { FerrataSmestajForm, type SmestajFormRow } from '../../components/ferrate/FerrataSmestajForm'
 import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
 import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
@@ -29,7 +28,6 @@ function emptyForm() {
     quickTip: '',
     highlightsRaw: '',
     okolina: [] as string[],
-    smestaj: [] as SmestajFormRow[],
     obaveznaOprema: [] as OpremaFormRow[],
     status: 'active',
     lat: '',
@@ -42,23 +40,6 @@ function emptyForm() {
 function okolinaFromApi(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []
   return raw.map((x) => String(x).trim()).filter(Boolean)
-}
-
-function smestajFromApi(raw: unknown): SmestajFormRow[] {
-  if (!Array.isArray(raw)) return []
-  return raw.map((x) => {
-    const r = x as Record<string, unknown>
-    const slike = Array.isArray(r.slike) ? (r.slike as unknown[]).filter((u): u is string => typeof u === 'string') : []
-    return {
-      naziv: String(r.naziv ?? ''),
-      opis: String(r.opis ?? ''),
-      lat: r.lat != null && Number.isFinite(Number(r.lat)) ? String(r.lat) : '',
-      lng: r.lng != null && Number.isFinite(Number(r.lng)) ? String(r.lng) : '',
-      slike,
-      bookingUrl: String(r.bookingUrl ?? ''),
-      instagramUrl: String(r.instagramUrl ?? ''),
-    }
-  })
 }
 
 function obaveznaFromApi(raw: unknown): OpremaFormRow[] {
@@ -110,7 +91,6 @@ function formStateFromFerrataRow(row: FerrataRow) {
     quickTip: String(row.quickTip ?? ''),
     highlightsRaw: highlightsRawFromRow(row),
     okolina: okolinaFromApi(row.okolina),
-    smestaj: smestajFromApi(row.smestaj),
     obaveznaOprema: obaveznaFromApi(row.obaveznaOprema),
     coverImage: String(row.coverImage ?? ''),
     status: String(row.status ?? 'active'),
@@ -256,42 +236,6 @@ export default function SuperadminFerratas() {
       setErr(t('mapCoordsInvalid'))
       return
     }
-    const smestajDto: {
-      naziv: string
-      opis: string
-      slike: string[]
-      lat: number | null
-      lng: number | null
-      bookingUrl: string
-      instagramUrl: string
-    }[] = []
-    for (const s of form.smestaj) {
-      if (
-        !s.naziv.trim() &&
-        !s.opis.trim() &&
-        s.slike.length === 0 &&
-        !s.lat.trim() &&
-        !s.lng.trim() &&
-        !s.bookingUrl.trim() &&
-        !s.instagramUrl.trim()
-      )
-        continue
-      const sla = mapOptionalCoord(s.lat)
-      const slo = mapOptionalCoord(s.lng)
-      if ((sla == null) !== (slo == null)) {
-        setErr(`Smeštaj „${s.naziv.trim() || 'bez naziva'}”: unesi obe koordinate ili obe prazne.`)
-        return
-      }
-      smestajDto.push({
-        naziv: s.naziv.trim(),
-        opis: s.opis.trim(),
-        slike: s.slike,
-        lat: sla,
-        lng: slo,
-        bookingUrl: s.bookingUrl.trim(),
-        instagramUrl: s.instagramUrl.trim(),
-      })
-    }
     const obavezna = form.obaveznaOprema
       .filter((o) => o.label.trim())
       .map((o) => ({ label: o.label.trim(), icon: o.icon.trim() || 'HandRaisedIcon' }))
@@ -310,7 +254,6 @@ export default function SuperadminFerratas() {
       quickTip: form.quickTip,
       highlights,
       okolina: form.okolina.map((s) => s.trim()).filter(Boolean),
-      smestaj: smestajDto,
       obaveznaOprema: obavezna,
       coverImage: form.coverImage,
       status: form.status,
@@ -486,15 +429,12 @@ export default function SuperadminFerratas() {
           />
         </div>
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSmestajSection')}</p>
-        <FerrataSmestajForm
-          rows={form.smestaj}
-          onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}
-          ferrataId={editingId}
-          onUploadError={(msg) => setErr(msg)}
-          anchorLat={form.lat}
-          anchorLng={form.lng}
-        />
+        <p className="text-xs text-gray-600 pt-2 leading-relaxed">
+          {t('superadminLodgingHotelsHint')}{' '}
+          <Link to="/superadmin/hoteli" className="font-semibold text-emerald-700 hover:underline">
+            {t('superadminLodgingHotelsLink')}
+          </Link>
+        </p>
 
         <div className="flex gap-2">
           <button type="button" onClick={() => void handleSave()} className="rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2">

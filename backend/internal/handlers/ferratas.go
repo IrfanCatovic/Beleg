@@ -41,16 +41,6 @@ type ferrataOpremaItem struct {
 	Icon  string `json:"icon"`
 }
 
-type ferrataSmestajDTO struct {
-	Naziv         string   `json:"naziv"`
-	Opis          string   `json:"opis"`
-	Slike         []string `json:"slike"`
-	Lat           *float64 `json:"lat"`
-	Lng           *float64 `json:"lng"`
-	BookingURL    string   `json:"bookingUrl"`
-	InstagramURL  string   `json:"instagramUrl"`
-}
-
 func displayFerrataRegion(f *models.Ferrata) string {
 	a := strings.TrimSpace(f.GradOpstina)
 	b := strings.TrimSpace(f.Drzava)
@@ -166,66 +156,8 @@ func obaveznaOpremaForAPI(raw json.RawMessage) []gin.H {
 	return out
 }
 
-func parseSmestajJSON(raw json.RawMessage) []gin.H {
-	items := parseSmestajItems(raw)
-	out := make([]gin.H, 0, len(items))
-	for _, it := range items {
-		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil &&
-			strings.TrimSpace(it.BookingURL) == "" && strings.TrimSpace(it.InstagramURL) == "" {
-			continue
-		}
-		row := gin.H{
-			"naziv":          strings.TrimSpace(it.Naziv),
-			"opis":           strings.TrimSpace(it.Opis),
-			"slike":          it.Slike,
-			"lat":            ferrataCoordJSON(it.Lat),
-			"lng":            ferrataCoordJSON(it.Lng),
-			"bookingUrl":     strings.TrimSpace(it.BookingURL),
-			"instagramUrl":   strings.TrimSpace(it.InstagramURL),
-		}
-		out = append(out, row)
-	}
-	return out
-}
-
-func parseSmestajItems(raw json.RawMessage) []ferrataSmestajDTO {
-	if len(raw) == 0 || string(raw) == "null" {
-		return nil
-	}
-	var items []ferrataSmestajDTO
-	if err := json.Unmarshal(raw, &items); err != nil {
-		return nil
-	}
-	return items
-}
-
-func marshalSmestajJSON(items []ferrataSmestajDTO) json.RawMessage {
-	out := make([]ferrataSmestajDTO, 0, len(items))
-	for _, it := range items {
-		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil &&
-			strings.TrimSpace(it.BookingURL) == "" && strings.TrimSpace(it.InstagramURL) == "" {
-			continue
-		}
-		slike := make([]string, 0, len(it.Slike))
-		for _, u := range it.Slike {
-			u = strings.TrimSpace(u)
-			if u != "" {
-				slike = append(slike, u)
-			}
-		}
-		out = append(out, ferrataSmestajDTO{
-			Naziv:        strings.TrimSpace(it.Naziv),
-			Opis:         strings.TrimSpace(it.Opis),
-			Slike:        slike,
-			Lat:          it.Lat,
-			Lng:          it.Lng,
-			BookingURL:   strings.TrimSpace(it.BookingURL),
-			InstagramURL: strings.TrimSpace(it.InstagramURL),
-		})
-	}
-	b, _ := json.Marshal(out)
-	return json.RawMessage(b)
-}
+// Smeštaj u katalogu ferate više nije u upotrebi (hoteli + udaljenost); kolona ostaje u bazi.
+var ferrataSmestajJSONEmpty = json.RawMessage([]byte("[]"))
 
 func ferrataCoordJSON(v *float64) interface{} {
 	if v == nil {
@@ -272,7 +204,6 @@ func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
 		"highlights":       parseStringSliceJSON(f.HighlightsJSON),
 		"okolina":          parseStringSliceJSON(f.OkolinaJSON),
 		"galerija":         parseStringSliceJSON(f.GalerijaJSON),
-		"smestaj":          parseSmestajJSON(f.SmestajJSON),
 		"obaveznaOprema":   obaveznaOpremaForAPI(f.ObaveznaOpremaJSON),
 		"coverImage":       f.CoverImage,
 		"mapNote":          strings.TrimSpace(f.MapNote),
@@ -475,7 +406,6 @@ type superadminFerrataBody struct {
 	QuickTip         string              `json:"quickTip"`
 	Highlights       []string            `json:"highlights"`
 	Okolina          []string            `json:"okolina"`
-	Smestaj          []ferrataSmestajDTO `json:"smestaj"`
 	ObaveznaOprema   []ferrataOpremaItem `json:"obaveznaOprema"`
 	CoverImage       string              `json:"coverImage"`
 	MapNote          string              `json:"mapNote"`
@@ -549,7 +479,7 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		HighlightsJSON:      marshalJSONArray(body.Highlights),
 		OkolinaJSON:         marshalJSONArray(body.Okolina),
 		GalerijaJSON:        marshalGalleryJSON(galerijaCreate),
-		SmestajJSON:         marshalSmestajJSON(body.Smestaj),
+		SmestajJSON:         ferrataSmestajJSONEmpty,
 		ObaveznaOpremaJSON:  marshalObaveznaOpremaJSON(body.ObaveznaOprema),
 		CoverImage:          strings.TrimSpace(body.CoverImage),
 		Status:              st,
@@ -627,7 +557,7 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	if body.Galerija != nil {
 		f.GalerijaJSON = marshalGalleryJSON(*body.Galerija)
 	}
-	f.SmestajJSON = marshalSmestajJSON(body.Smestaj)
+	f.SmestajJSON = ferrataSmestajJSONEmpty
 	f.ObaveznaOpremaJSON = marshalObaveznaOpremaJSON(body.ObaveznaOprema)
 	f.CoverImage = strings.TrimSpace(body.CoverImage)
 	if st := strings.TrimSpace(strings.ToLower(body.Status)); st != "" {
@@ -832,7 +762,7 @@ func SuperadminUploadFerrataGalleryDraft(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	url, ok := uploadFerrataSlikaMultipart(c, fmt.Sprintf("ferratas/new-smestaj-%d", time.Now().UnixNano()))
+	url, ok := uploadFerrataSlikaMultipart(c, fmt.Sprintf("ferratas/new-gallery-%d", time.Now().UnixNano()))
 	if !ok {
 		return
 	}
