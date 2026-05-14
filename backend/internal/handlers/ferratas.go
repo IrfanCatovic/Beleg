@@ -640,8 +640,8 @@ func SuperadminPatchFerrataGalerija(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, -1)})
 }
 
-// uploadFerrataSlikaMultipart polje "slika" → Cloudinary; pri grešci piše JSON u c i vraća "", false.
-func uploadFerrataSlikaMultipart(c *gin.Context, publicID string) (secureURL string, ok bool) {
+// uploadCatalogSlikaMultipart polje "slika" → Cloudinary (katalog ferata ili hoteli).
+func uploadCatalogSlikaMultipart(c *gin.Context, publicID, cloudinaryFolder string) (secureURL string, ok bool) {
 	db := c.MustGet("db").(*gorm.DB)
 	if err := c.Request.ParseMultipartForm(12 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format"})
@@ -680,7 +680,7 @@ func uploadFerrataSlikaMultipart(c *gin.Context, publicID string) (secureURL str
 	ctx := context.Background()
 	uploadParams := uploader.UploadParams{
 		PublicID:       publicID,
-		Folder:         helpers.CloudinaryFolderFerratas(),
+		Folder:         cloudinaryFolder,
 		Transformation: "q_auto:good,f_auto",
 	}
 	uploadResult, err := cld.Upload.Upload(ctx, fp, uploadParams)
@@ -690,6 +690,10 @@ func uploadFerrataSlikaMultipart(c *gin.Context, publicID string) (secureURL str
 	}
 	helpers.AddStorageUsage(db, 0, file.Size)
 	return uploadResult.SecureURL, true
+}
+
+func uploadFerrataSlikaMultipart(c *gin.Context, publicID string) (secureURL string, ok bool) {
+	return uploadCatalogSlikaMultipart(c, publicID, helpers.CloudinaryFolderFerratas())
 }
 
 func SuperadminUploadFerrataCoverDraft(c *gin.Context) {

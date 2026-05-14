@@ -22,12 +22,16 @@ func hotelSlikeFromJSON(raw []byte) []string {
 		t := strings.TrimSpace(u)
 		if t != "" {
 			res = append(res, t)
+			if len(res) >= 20 {
+				break
+			}
 		}
 	}
 	return res
 }
 
 func marshalHotelSlikeJSON(urls []string) []byte {
+	const maxSlike = 20
 	if urls == nil {
 		urls = []string{}
 	}
@@ -36,6 +40,9 @@ func marshalHotelSlikeJSON(urls []string) []byte {
 		t := strings.TrimSpace(u)
 		if t != "" {
 			clean = append(clean, t)
+			if len(clean) >= maxSlike {
+				break
+			}
 		}
 	}
 	b, _ := json.Marshal(clean)

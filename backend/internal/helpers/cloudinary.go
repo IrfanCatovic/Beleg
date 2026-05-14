@@ -30,6 +30,11 @@ func CloudinaryFolderFerratas() string {
 	return "Planiner/ferratas"
 }
 
+// CloudinaryFolderHotels folder za slike kataloga hotela (superadmin).
+func CloudinaryFolderHotels() string {
+	return "Planiner/hotels"
+}
+
 // Cloudinary URL: https://res.cloudinary.com/<cloud>/image/upload/v<version>/<public_id>.<ext>
 // ili sa transformacijom: .../upload/<transform>/v<version>/<public_id>.<ext>
 var cloudinaryVersionRe = regexp.MustCompile(`/v(\d+)/`)

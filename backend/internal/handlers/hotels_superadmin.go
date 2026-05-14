@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/slug"
 
@@ -205,4 +208,40 @@ func SuperadminDeleteHotel(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// SuperadminUploadHotelGalleryDraft POST /api/superadmin/hotels/gallery-draft — upload pre kreiranja hotela (multipart polje "slika").
+func SuperadminUploadHotelGalleryDraft(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	url, ok := uploadCatalogSlikaMultipart(c, fmt.Sprintf("hotels/new-gallery-%d", time.Now().UnixNano()), helpers.CloudinaryFolderHotels())
+	if !ok {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"url": url})
+}
+
+// SuperadminUploadHotelGallery POST /api/superadmin/hotels/:id/gallery
+func SuperadminUploadHotelGallery(c *gin.Context) {
+	if !requireSuperadmin(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	db := c.MustGet("db").(*gorm.DB)
+	var cnt int64
+	db.Model(&models.Hotel{}).Where("id = ?", id).Count(&cnt)
+	if cnt == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Hotel nije pronađen"})
+		return
+	}
+	url, ok := uploadCatalogSlikaMultipart(c, fmt.Sprintf("hotels/%d/gallery-%d", id, time.Now().UnixNano()), helpers.CloudinaryFolderHotels())
+	if !ok {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"url": url})
 }

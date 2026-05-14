@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
+import { superadminUploadHotelGalleryImage } from '../../services/superadminHotelUpload'
 import { FerrataPinPicker } from '../../components/ferrate/FerrataPinPicker'
+import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
+
+const HOTEL_MAX_SLIKE = 20
 
 type HotelRow = {
   id: number
@@ -27,7 +32,7 @@ function emptyForm() {
     opis: '',
     telefon: '',
     status: 'active',
-    slikeText: '',
+    slike: [] as string[],
     bookingUrl: '',
     instagramUrl: '',
   }
@@ -41,17 +46,10 @@ function formFromRow(row: HotelRow) {
     opis: row.opis ?? '',
     telefon: row.telefon ?? '',
     status: row.status || 'active',
-    slikeText: (row.slike ?? []).join('\n'),
+    slike: (row.slike ?? []).slice(0, HOTEL_MAX_SLIKE),
     bookingUrl: row.bookingUrl ?? '',
     instagramUrl: row.instagramUrl ?? '',
   }
-}
-
-function urlsFromMultiline(s: string): string[] {
-  return s
-    .split(/\r?\n/)
-    .map((x) => x.trim())
-    .filter(Boolean)
 }
 
 function parseCoord(s: string): number | null {
@@ -70,6 +68,7 @@ export default function SuperadminHotels() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -93,6 +92,31 @@ export default function SuperadminHotels() {
   }
 
   const inp = 'w-full rounded-xl border border-gray-200 px-3 py-2 text-sm'
+  const slotsLeft = HOTEL_MAX_SLIKE - form.slike.length
+
+  async function appendHotelPhotos(files: File[]) {
+    if (files.length === 0) return
+    const room = HOTEL_MAX_SLIKE - form.slike.length
+    if (room <= 0) {
+      setErr(t('photosMaxReached'))
+      return
+    }
+    const batch = files.slice(0, room)
+    setUploadingPhotos(true)
+    setErr('')
+    try {
+      const added: string[] = []
+      for (const file of batch) {
+        const url = await superadminUploadHotelGalleryImage(api, file, editingId)
+        added.push(url)
+      }
+      setForm((f) => ({ ...f, slike: [...f.slike, ...added].slice(0, HOTEL_MAX_SLIKE) }))
+    } catch {
+      setErr(t('photosUploadError'))
+    } finally {
+      setUploadingPhotos(false)
+    }
+  }
 
   async function onSave() {
     const naziv = form.naziv.trim()
@@ -115,7 +139,7 @@ export default function SuperadminHotels() {
       opis: form.opis.trim(),
       telefon: form.telefon.trim(),
       status: form.status,
-      slike: urlsFromMultiline(form.slikeText),
+      slike: form.slike.slice(0, HOTEL_MAX_SLIKE),
       bookingUrl: form.bookingUrl.trim(),
       instagramUrl: form.instagramUrl.trim(),
     }
@@ -156,6 +180,10 @@ export default function SuperadminHotels() {
     setEditingId(row.id)
     setForm(formFromRow(row))
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function removePhotoAt(index: number) {
+    setForm((f) => ({ ...f, slike: f.slike.filter((_, i) => i !== index) }))
   }
 
   return (
@@ -216,15 +244,44 @@ export default function SuperadminHotels() {
               mapHint={t('coordsHint')}
             />
           </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs font-semibold text-gray-600">{t('photosUrlsLabel')}</label>
-            <textarea
-              className={inp}
-              rows={4}
-              placeholder={t('photosUrlsPlaceholder')}
-              value={form.slikeText}
-              onChange={(e) => setForm((f) => ({ ...f, slikeText: e.target.value }))}
+          <div className="sm:col-span-2 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-xs font-semibold text-gray-600">{t('photosSectionLabel')}</label>
+              <span className="text-xs font-medium text-gray-500">
+                {t('photosCount', { current: form.slike.length, max: HOTEL_MAX_SLIKE })}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">{t('photosUploadHint')}</p>
+            <FerrataImageUploadDropzone
+              multiple
+              disabled={uploadingPhotos || slotsLeft <= 0}
+              title={
+                slotsLeft <= 0
+                  ? t('photosMaxReached')
+                  : uploadingPhotos
+                    ? t('photosUploadBusy')
+                    : t('photosUploadButton', { count: slotsLeft })
+              }
+              hint=""
+              onFilesSelected={(files) => void appendHotelPhotos(files)}
             />
+            {form.slike.length > 0 && (
+              <ul className="flex flex-wrap gap-2 pt-1">
+                {form.slike.map((url, i) => (
+                  <li key={`${url}-${i}`} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhotoAt(i)}
+                      className="absolute right-0.5 top-0.5 rounded-md bg-black/55 p-1 text-white opacity-90 shadow-sm hover:bg-black/75 md:opacity-0 md:group-hover:opacity-100"
+                      aria-label={t('removePhotoAria')}
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-semibold text-gray-600">{t('bookingUrlLabel')}</label>
@@ -270,7 +327,7 @@ export default function SuperadminHotels() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={saving}
+            disabled={saving || uploadingPhotos}
             onClick={() => void onSave()}
             className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
