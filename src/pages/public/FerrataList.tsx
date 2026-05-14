@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { useModal } from '../../context/ModalContext'
 import { FerrataCatalogMap, type CatalogMapMarker } from '../../components/ferrate/FerrataCatalogMap'
 
 type FerrataRow = {
@@ -66,6 +67,8 @@ function difficultyBadgeClass(tezina: string) {
 
 export default function FerrataList() {
   const { t } = useTranslation('ferrate')
+  const { t: tUi } = useTranslation('uiExtras')
+  const { showConfirm } = useModal()
   const { user } = useAuth()
   const [rows, setRows] = useState<FerrataRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,34 +77,32 @@ export default function FerrataList() {
   const [tezina, setTezina] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'name'>('newest')
   const [page, setPage] = useState(1)
+  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null)
 
   const isSuperadmin = user?.role === 'superadmin'
 
-  useEffect(() => {
-    setPage(1)
+  const fetchRows = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = new URLSearchParams()
+      if (search.trim()) params.set('search', search.trim())
+      if (tezina.trim()) params.set('tezina', tezina.trim())
+      const res = await api.get(`/api/ferratas?${params.toString()}`)
+      setRows(res.data?.ferrate ?? [])
+    } catch {
+      setError('Greška pri učitavanju.')
+    } finally {
+      setLoading(false)
+    }
   }, [search, tezina])
 
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      setError('')
-      try {
-        const params = new URLSearchParams()
-        if (search.trim()) params.set('search', search.trim())
-        if (tezina.trim()) params.set('tezina', tezina.trim())
-        const res = await api.get(`/api/ferratas?${params.toString()}`)
-        if (!cancelled) setRows(res.data?.ferrate ?? [])
-      } catch {
-        if (!cancelled) setError('Greška pri učitavanju.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
+    void fetchRows()
+  }, [fetchRows])
+
+  useEffect(() => {
+    setPage(1)
   }, [search, tezina])
 
   const sorted = useMemo(() => {
@@ -143,6 +144,28 @@ export default function FerrataList() {
         lng: Number(f.lng),
       }))
   }, [sorted])
+
+  async function handleDeleteFerrata(f: FerrataRow) {
+    const name = f.naziv.trim() || `#${f.id}`
+    const confirmed = await showConfirm(t('superadminDeleteConfirm', { name }), {
+      title: t('superadminDeleteModalTitle'),
+      variant: 'danger',
+      confirmLabel: t('superadminDelete'),
+      cancelLabel: tUi('common.cancel'),
+    })
+    if (!confirmed) return
+    setError('')
+    setDeleteBusyId(f.id)
+    try {
+      await api.delete(`/api/superadmin/ferratas/${f.id}`)
+      await fetchRows()
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(msg || t('superadminDeleteError'))
+    } finally {
+      setDeleteBusyId(null)
+    }
+  }
 
   const sel =
     'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/25 outline-none'
@@ -230,60 +253,82 @@ export default function FerrataList() {
             {pageSlice.map((f) => {
               const n = Number(f.upcomingActionsCount ?? 0)
               return (
-                <Link
+                <div
                   key={f.id}
-                  to={`/ferate/${f.slug}`}
                   className="group flex flex-col rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md hover:border-emerald-200/90 transition overflow-hidden"
                 >
-                  <div className="relative aspect-[16/10] bg-slate-200 overflow-hidden">
-                    {f.coverImage ? (
-                      <img
-                        src={f.coverImage}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-800 via-slate-800 to-slate-950" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/25" />
-                    <div className="absolute top-3 left-3 flex items-center gap-2">
-                      <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                        {t('listCardActive')}
-                      </span>
+                  <Link
+                    to={`/ferate/${f.slug}`}
+                    className="flex flex-1 flex-col min-h-0 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset rounded-t-2xl"
+                  >
+                    <div className="relative aspect-[16/10] bg-slate-200 overflow-hidden">
+                      {f.coverImage ? (
+                        <img
+                          src={f.coverImage}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-800 via-slate-800 to-slate-950" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/25" />
+                      <div className="absolute top-3 left-3 flex items-center gap-2">
+                        <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                          {t('listCardActive')}
+                        </span>
+                      </div>
+                      <div className="absolute top-3 right-3 rounded-full bg-white/90 p-1.5 shadow-sm backdrop-blur-sm" aria-hidden>
+                        <HeartIcon className="h-4 w-4 text-gray-400" strokeWidth={1.8} />
+                      </div>
                     </div>
-                    <div className="absolute top-3 right-3 rounded-full bg-white/90 p-1.5 shadow-sm backdrop-blur-sm" aria-hidden>
-                      <HeartIcon className="h-4 w-4 text-gray-400" strokeWidth={1.8} />
+                    <div className="flex flex-1 flex-col p-4 sm:p-5">
+                      <h2 className="text-base font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
+                        {f.naziv}
+                      </h2>
+                      {f.podrucje?.trim() && (
+                        <p className="mt-1 text-sm text-gray-500 line-clamp-2">{f.podrucje.trim()}</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span
+                          className={`inline-flex min-w-[2.5rem] items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-bold ${difficultyBadgeClass(f.tezina)}`}
+                        >
+                          {f.tezina}
+                        </span>
+                        <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
+                          {t('cardLength', { m: f.duzinaM })}
+                        </span>
+                        <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
+                          {formatDuration(f.trajanjeMin, f.trajanjeMax)} h
+                        </span>
+                      </div>
+                      <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-100 text-xs">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">
+                          <CalendarDaysIcon className="h-4 w-4 shrink-0" />
+                          {n > 0 ? t('listCardActionsScheduled', { count: n }) : t('listCardNoActions')}
+                        </span>
+                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-emerald-600 transition-colors" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-1 flex-col p-4 sm:p-5">
-                    <h2 className="text-base font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
-                      {f.naziv}
-                    </h2>
-                    {f.podrucje?.trim() && (
-                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">{f.podrucje.trim()}</p>
-                    )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span
-                        className={`inline-flex min-w-[2.5rem] items-center justify-center rounded-lg border px-2 py-1 text-[11px] font-bold ${difficultyBadgeClass(f.tezina)}`}
+                  </Link>
+                  {isSuperadmin && (
+                    <div className="flex flex-wrap gap-2 border-t border-gray-100 bg-gray-50/90 px-4 py-3 sm:px-5">
+                      <Link
+                        to={`/superadmin/ferrate?edit=${f.id}`}
+                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
                       >
-                        {f.tezina}
-                      </span>
-                      <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
-                        {t('cardLength', { m: f.duzinaM })}
-                      </span>
-                      <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
-                        {formatDuration(f.trajanjeMin, f.trajanjeMax)} h
-                      </span>
+                        {t('superadminEdit')}
+                      </Link>
+                      <button
+                        type="button"
+                        disabled={deleteBusyId === f.id}
+                        className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-900 hover:bg-rose-100 disabled:opacity-50"
+                        onClick={() => void handleDeleteFerrata(f)}
+                      >
+                        {deleteBusyId === f.id ? '…' : t('superadminDelete')}
+                      </button>
                     </div>
-                    <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-100 text-xs">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-700">
-                        <CalendarDaysIcon className="h-4 w-4 shrink-0" />
-                        {n > 0 ? t('listCardActionsScheduled', { count: n }) : t('listCardNoActions')}
-                      </span>
-                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-emerald-600 transition-colors" />
-                    </div>
-                  </div>
-                </Link>
+                  )}
+                </div>
               )
             })}
           </div>

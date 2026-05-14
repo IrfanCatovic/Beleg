@@ -193,129 +193,68 @@ export default function FerrataDetail() {
 
       {f && (
         <>
-          {/* Hero — uz cover sliku bez zatamnjenja; tekst u svetlom panelu radi čitljivosti */}
-          <section className="relative flex min-h-[320px] flex-col justify-end sm:min-h-[420px]">
-            {coverUrl ? (
-              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
-            )}
-            {!coverUrl && (
-              <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
-            )}
-            <div className="relative z-10 max-w-5xl px-4 pb-10 pt-16 sm:px-8 lg:px-12">
-              <div
-                className={
-                  coverUrl
-                    ? 'rounded-2xl border border-emerald-100/80 bg-white/92 px-5 py-6 shadow-lg shadow-emerald-900/5 backdrop-blur-sm sm:px-6'
-                    : ''
-                }
-              >
-                <h1
-                  className={`text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl ${
-                    coverUrl ? 'text-gray-900' : 'text-white drop-shadow-lg'
-                  }`}
-                >
-                  {f.naziv}
-                </h1>
-                {regionSubtitle && (
-                  <p className={`mt-2 max-w-3xl text-sm sm:text-base ${coverUrl ? 'text-gray-600' : 'text-white/90'}`}>
-                    {regionSubtitle}
-                  </p>
-                )}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      coverUrl
-                        ? 'border-emerald-200/90 bg-emerald-50/90 text-emerald-900'
-                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
-                    }`}
-                  >
-                    <ChartBarIcon className="h-3.5 w-3.5" />
-                    {f.tezina}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      coverUrl
-                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
-                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
-                    }`}
-                  >
-                    <MapPinIcon className="h-3.5 w-3.5" />
-                    {f.duzinaM} m
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      coverUrl
-                        ? 'border-gray-200/90 bg-white/90 text-gray-800'
-                        : 'border-white/20 bg-white/15 text-white backdrop-blur-md'
-                    }`}
-                  >
-                    <ClockIcon className="h-3.5 w-3.5" />
-                    {formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h
-                  </span>
-                </div>
-                <div className="mt-6 flex flex-col flex-wrap gap-3 sm:flex-row">
-                  <Link
-                    to={createActionHref}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-teal-500"
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                    {t('heroCtaCreate')}
-                  </Link>
-                  {user?.role === 'superadmin' && f && (
-                    <Link
-                      to={`/superadmin/ferrate/${String(f.id)}/galerija`}
-                      className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${
+          {/* Hero + stat kartice koje prelaze donji deo slike (pola na slici / pola ispod) */}
+          <div className="relative z-0">
+            <section className="relative min-h-[240px] sm:min-h-[340px] lg:min-h-[420px]">
+              {coverUrl ? (
+                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
+                </>
+              )}
+
+              {/* Desktop: ime + lokacija gore desno (ne prekriva levi/centralni deo slike) */}
+              <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
+                <div className="mx-auto flex h-full min-h-[240px] max-w-6xl px-4 sm:min-h-[340px] sm:px-6 lg:min-h-[420px] lg:px-8">
+                  <div className="relative min-h-[240px] flex-1 sm:min-h-[340px] lg:min-h-[420px]">
+                    <div
+                      className={`pointer-events-auto absolute right-0 top-6 max-w-[min(22rem,calc(100%-1rem))] rounded-xl border px-4 py-3 shadow-lg backdrop-blur-md sm:right-0 sm:top-8 sm:max-w-sm lg:top-10 ${
                         coverUrl
-                          ? 'border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100'
-                          : 'border-white/40 bg-black/30 text-white backdrop-blur-md hover:bg-black/45'
+                          ? 'border-emerald-100/90 bg-white/95 text-gray-900'
+                          : 'border-white/20 bg-slate-950/75 text-white'
                       }`}
                     >
-                      <PhotoIcon className="h-5 w-5" />
-                      {t('detailSuperadminGalleryCta')}
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setBookOpen(true)}
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${
-                      coverUrl
-                        ? 'border-emerald-200 bg-white text-emerald-900 shadow-sm hover:bg-emerald-50/80'
-                        : 'border-white/40 bg-black/30 text-white backdrop-blur-md hover:bg-black/45'
-                    }`}
-                  >
-                    <CalendarDaysIcon className="h-5 w-5" />
-                    {t('heroCtaBook')}
-                  </button>
+                      <h1 className={`text-xl font-extrabold tracking-tight sm:text-2xl ${coverUrl ? 'text-gray-900' : 'text-white'}`}>
+                        {f.naziv}
+                      </h1>
+                      {regionSubtitle && (
+                        <p className={`mt-1.5 text-sm leading-snug ${coverUrl ? 'text-gray-600' : 'text-white/85'}`}>{regionSubtitle}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className={`mt-4 max-w-xl text-xs sm:text-sm ${coverUrl ? 'text-gray-600' : 'text-white/75'}`}>
-                  {t('heroNote')}
-                </p>
+              </div>
+            </section>
+
+            {/* Mobilni: ime odmah ispod slike, pa stat kartice koje malo uđu u cover */}
+            <div className="relative z-20 bg-white px-4 pb-1 pt-3 sm:px-6 lg:hidden">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">{f.naziv}</h1>
+              {regionSubtitle && <p className="mt-2 max-w-3xl text-sm text-gray-600 sm:text-base">{regionSubtitle}</p>}
+            </div>
+
+            <div className="relative z-20 mt-0 px-4 sm:px-6 lg:-mt-[4.5rem] lg:px-8">
+              <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 lg:grid-cols-5">
+                {[
+                  { label: t('statsDifficulty'), value: f.tezina, icon: ChartBarIcon },
+                  { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: BoltIcon },
+                  { label: t('statsLength'), value: `${f.duzinaM} m`, icon: MapPinIcon },
+                  { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: SparklesIcon },
+                  { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: ClockIcon },
+                ].map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-2xl border border-gray-100 bg-white/98 px-4 py-3 shadow-md shadow-emerald-900/10 backdrop-blur-sm flex flex-col gap-1 ring-1 ring-black/[0.03]"
+                  >
+                    <card.icon className="h-5 w-5 text-emerald-600" />
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
+                    <p className="text-sm font-bold text-gray-900">{card.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </section>
-
-          {/* Quick stats */}
-          <div className="px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 max-w-6xl mx-auto">
-              {[
-                { label: t('statsDifficulty'), value: f.tezina, icon: ChartBarIcon },
-                { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: BoltIcon },
-                { label: t('statsLength'), value: `${f.duzinaM} m`, icon: MapPinIcon },
-                { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: SparklesIcon },
-                { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: ClockIcon },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-2xl bg-white border border-gray-100 shadow-sm px-4 py-3 flex flex-col gap-1"
-                >
-                  <card.icon className="h-5 w-5 text-emerald-600" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
-                  <p className="text-sm font-bold text-gray-900">{card.value}</p>
-                </div>
-              ))}
-            </div>
+            <p className="relative z-20 px-4 pb-2 pt-1 text-xs text-gray-600 sm:px-6 lg:hidden">{t('heroNote')}</p>
           </div>
 
           {Boolean(f.galerija?.some((u) => u?.trim())) && (
@@ -456,7 +395,17 @@ export default function FerrataDetail() {
                     <CalendarDaysIcon className="h-4 w-4" />
                     {t('heroCtaBook')}
                   </button>
+                  {user?.role === 'superadmin' && f && (
+                    <Link
+                      to={`/superadmin/ferrate/${String(f.id)}/galerija`}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-900 text-sm font-bold px-4 py-2.5 transition hover:bg-violet-100"
+                    >
+                      <PhotoIcon className="h-4 w-4" />
+                      {t('detailSuperadminGalleryCta')}
+                    </Link>
+                  )}
                 </div>
+                <p className="hidden text-xs text-gray-600 leading-relaxed pt-1 lg:block">{t('heroNote')}</p>
               </div>
 
               <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">

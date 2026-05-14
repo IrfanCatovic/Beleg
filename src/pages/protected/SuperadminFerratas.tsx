@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
@@ -12,8 +12,6 @@ import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImag
 import { pickEquipmentIconKey, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 
 type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: string; status: string }
-
-type ContactRow = { id: number; ime: string; telefon?: string; whatsapp?: string; email?: string; napomena?: string }
 
 function emptyForm() {
   return {
@@ -79,18 +77,49 @@ function obaveznaFromApi(raw: unknown): OpremaFormRow[] {
     .filter((r) => r.label.trim())
 }
 
+function coordToFormFieldStr(v: unknown): string {
+  if (v == null || v === '') return ''
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+  return String(v)
+}
+
+function formStateFromFerrataRow(row: FerrataRow) {
+  const h = Array.isArray(row.highlights) ? (row.highlights as string[]).join('\n') : ''
+  return {
+    naziv: String(row.naziv ?? ''),
+    slug: String(row.slug ?? ''),
+    drzava: String(row.drzava ?? ''),
+    gradOpstina: String(row.gradOpstina ?? ''),
+    opis: String(row.opis ?? ''),
+    tezina: String(row.tezina ?? ''),
+    tezinaOpcija: String(row.tezinaOpcija ?? ''),
+    duzinaM: Number(row.duzinaM ?? 0),
+    visinskaRazlikaM: Number(row.visinskaRazlikaM ?? 0),
+    trajanjeMin: Number(row.trajanjeMin ?? 0),
+    trajanjeMax: Number(row.trajanjeMax ?? 0),
+    quickTip: String(row.quickTip ?? ''),
+    highlightsRaw: h,
+    okolina: okolinaFromApi(row.okolina),
+    smestaj: smestajFromApi(row.smestaj),
+    obaveznaOprema: obaveznaFromApi(row.obaveznaOprema),
+    coverImage: String(row.coverImage ?? ''),
+    status: String(row.status ?? 'active'),
+    lat: coordToFormFieldStr(row.lat),
+    lng: coordToFormFieldStr(row.lng),
+    mapNote: String(row.mapNote ?? ''),
+  }
+}
+
 export default function SuperadminFerratas() {
   const { t } = useTranslation('ferrate')
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const editParamConsumedRef = useRef<string | null>(null)
   const [rows, setRows] = useState<FerrataRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
-  const [contacts, setContacts] = useState<ContactRow[]>([])
-  const [contactForm, setContactForm] = useState({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
-  const [contactSaving, setContactSaving] = useState(false)
-  const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -109,23 +138,27 @@ export default function SuperadminFerratas() {
     void load()
   }, [load])
 
-  const loadContactsForEdit = useCallback(async (fid: number) => {
-    try {
-      const res = await api.get(`/api/ferratas/${fid}/contacts`)
-      setContacts((res.data?.contacts as ContactRow[]) ?? [])
-    } catch {
-      setContacts([])
-    }
-  }, [])
-
   useEffect(() => {
-    if (!editingId) {
-      setContacts([])
-      setContactForm({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
+    if (!user || user.role !== 'superadmin') return
+    if (loading) return
+    const raw = searchParams.get('edit')
+    if (!raw) {
+      editParamConsumedRef.current = null
       return
     }
-    void loadContactsForEdit(editingId)
-  }, [editingId, loadContactsForEdit])
+    if (editParamConsumedRef.current === raw) return
+    editParamConsumedRef.current = raw
+    const id = Number(raw)
+    const row = rows.find((r) => Number(r.id) === id)
+    const next = new URLSearchParams(searchParams)
+    next.delete('edit')
+    setSearchParams(next, { replace: true })
+    if (row) {
+      setEditingId(row.id as number)
+      setForm(formStateFromFerrataRow(row))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [user, loading, rows, searchParams, setSearchParams])
 
   if (!user || user.role !== 'superadmin') {
     return <p className="p-6 text-sm text-gray-600">Nemate pristup.</p>
@@ -147,12 +180,6 @@ export default function SuperadminFerratas() {
 
   function isValidFerrataLatLng(lat: number, lng: number): boolean {
     return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-  }
-
-  function coordToFormField(v: unknown): string {
-    if (v == null || v === '') return ''
-    if (typeof v === 'number' && Number.isFinite(v)) return String(v)
-    return String(v)
   }
 
   async function handleSave() {
@@ -221,7 +248,6 @@ export default function SuperadminFerratas() {
       if (editingId) {
         await api.put(`/api/superadmin/ferratas/${editingId}`, payload)
         await load()
-        await loadContactsForEdit(editingId)
       } else {
         const res = await api.post<{ ferrata?: FerrataRow }>('/api/superadmin/ferratas', payload)
         const fer = res.data?.ferrata
@@ -241,78 +267,8 @@ export default function SuperadminFerratas() {
 
   function startEdit(row: FerrataRow) {
     setEditingId(row.id as number)
-    const h = Array.isArray(row.highlights) ? (row.highlights as string[]).join('\n') : ''
-    setForm({
-      naziv: String(row.naziv ?? ''),
-      slug: String(row.slug ?? ''),
-      drzava: String(row.drzava ?? ''),
-      gradOpstina: String(row.gradOpstina ?? ''),
-      opis: String(row.opis ?? ''),
-      tezina: String(row.tezina ?? ''),
-      tezinaOpcija: String(row.tezinaOpcija ?? ''),
-      duzinaM: Number(row.duzinaM ?? 0),
-      visinskaRazlikaM: Number(row.visinskaRazlikaM ?? 0),
-      trajanjeMin: Number(row.trajanjeMin ?? 0),
-      trajanjeMax: Number(row.trajanjeMax ?? 0),
-      quickTip: String(row.quickTip ?? ''),
-      highlightsRaw: h,
-      okolina: okolinaFromApi(row.okolina),
-      smestaj: smestajFromApi(row.smestaj),
-      obaveznaOprema: obaveznaFromApi(row.obaveznaOprema),
-      coverImage: String(row.coverImage ?? ''),
-      status: String(row.status ?? 'active'),
-      lat: coordToFormField(row.lat),
-      lng: coordToFormField(row.lng),
-      mapNote: String(row.mapNote ?? ''),
-    })
+    setForm(formStateFromFerrataRow(row))
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  async function handleDeleteRow(r: FerrataRow) {
-    const name = String(r.naziv ?? '').trim() || `#${r.id}`
-    if (!window.confirm(t('superadminDeleteConfirm', { name }))) return
-    setErr('')
-    setDeleteBusyId(r.id)
-    try {
-      await api.delete(`/api/superadmin/ferratas/${r.id}`)
-      if (editingId === r.id) {
-        setEditingId(null)
-        setForm(emptyForm())
-      }
-      await load()
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setErr(msg || t('superadminDeleteError'))
-    } finally {
-      setDeleteBusyId(null)
-    }
-  }
-
-  async function handleAddContact() {
-    if (!editingId) return
-    const ime = contactForm.ime.trim()
-    if (!ime) {
-      setErr('Ime kontakta je obavezno.')
-      return
-    }
-    setErr('')
-    setContactSaving(true)
-    try {
-      await api.post(`/api/superadmin/ferratas/${editingId}/contacts`, {
-        ime,
-        telefon: contactForm.telefon.trim(),
-        whatsapp: contactForm.whatsapp.trim(),
-        email: contactForm.email.trim(),
-        napomena: contactForm.napomena.trim(),
-      })
-      setContactForm({ ime: '', telefon: '', whatsapp: '', email: '', napomena: '' })
-      await loadContactsForEdit(editingId)
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setErr(msg || 'Greška pri dodavanju kontakta.')
-    } finally {
-      setContactSaving(false)
-    }
   }
 
   async function uploadCoverFromForm(file: File | null) {
@@ -451,68 +407,6 @@ export default function SuperadminFerratas() {
           anchorLng={form.lng}
         />
 
-        {editingId && (
-          <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">Vodiči (ručni unos)</h3>
-            {contacts.length === 0 ? (
-              <p className="text-xs text-gray-500">{t('superadminContactsEmpty')}</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {contacts.map((c) => (
-                  <li key={c.id} className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
-                    <span className="font-semibold text-gray-900">{c.ime}</span>
-                    {c.telefon && <span className="text-gray-600"> · {c.telefon}</span>}
-                    {c.whatsapp && <span className="text-gray-600"> · WA {c.whatsapp}</span>}
-                    {c.email && <span className="text-gray-600"> · {c.email}</span>}
-                    {c.napomena && <p className="text-xs text-gray-500 mt-0.5">{c.napomena}</p>}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              <input
-                className={inp}
-                placeholder={t('superadminContactName')}
-                value={contactForm.ime}
-                onChange={(e) => setContactForm({ ...contactForm, ime: e.target.value })}
-              />
-              <input
-                className={inp}
-                placeholder={t('superadminContactPhone')}
-                value={contactForm.telefon}
-                onChange={(e) => setContactForm({ ...contactForm, telefon: e.target.value })}
-              />
-              <input
-                className={inp}
-                placeholder="WhatsApp"
-                value={contactForm.whatsapp}
-                onChange={(e) => setContactForm({ ...contactForm, whatsapp: e.target.value })}
-              />
-              <input
-                className={inp}
-                type="email"
-                placeholder="Email"
-                value={contactForm.email}
-                onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-              />
-              <input
-                className={`${inp} sm:col-span-2 lg:col-span-1`}
-                placeholder={t('superadminContactNote')}
-                value={contactForm.napomena}
-                onChange={(e) => setContactForm({ ...contactForm, napomena: e.target.value })}
-              />
-            </div>
-            <button
-              type="button"
-              disabled={contactSaving}
-              onClick={() => void handleAddContact()}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm font-semibold px-4 py-2 hover:bg-emerald-100 disabled:opacity-50"
-            >
-              {t('superadminContactAdd')}
-            </button>
-          </div>
-        )}
-
         <div className="flex gap-2">
           <button type="button" onClick={() => void handleSave()} className="rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2">
             Sačuvaj
@@ -530,8 +424,8 @@ export default function SuperadminFerratas() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-        <table className="min-w-full text-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-x-auto">
+        <table className="min-w-full w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs font-bold uppercase text-gray-500">
             <tr>
               <th className="px-4 py-2">ID</th>
@@ -540,7 +434,6 @@ export default function SuperadminFerratas() {
               <th className="px-4 py-2">Mapa</th>
               <th className="px-4 py-2">Cover</th>
               <th className="px-3 py-2">{t('superadminTableGallery')}</th>
-              <th className="px-4 py-2 text-right">{t('superadminTableActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -573,25 +466,6 @@ export default function SuperadminFerratas() {
                   >
                     {t('superadminTableGallery')}
                   </Link>
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                    <button
-                      type="button"
-                      className="text-emerald-700 font-semibold text-sm hover:underline"
-                      onClick={() => startEdit(r)}
-                    >
-                      {t('superadminEdit')}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deleteBusyId === r.id}
-                      className="text-sm font-semibold text-rose-700 hover:underline disabled:opacity-50"
-                      onClick={() => void handleDeleteRow(r)}
-                    >
-                      {deleteBusyId === r.id ? '…' : t('superadminDelete')}
-                    </button>
-                  </div>
                 </td>
               </tr>
             ))}
