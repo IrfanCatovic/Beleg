@@ -199,28 +199,29 @@ export default function FerrataDetail() {
       : '/login'
 
   return (
-    <div className="pb-20 -mx-4 sm:-mx-6 lg:-mx-8">
+    <div className="pb-20">
       {loading && <p className="px-4 text-sm text-gray-500">…</p>}
       {err && <p className="px-4 text-sm text-rose-600">{err}</p>}
 
       {f && (
         <>
-          {/* Hero + stat kartice koje prelaze donji deo slike (pola na slici / pola ispod) */}
-          <div className="relative z-0">
-            <section className="relative min-h-[240px] sm:min-h-[340px] lg:min-h-[420px]">
-              {coverUrl ? (
-                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
-              ) : (
-                <>
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
-                </>
-              )}
+          {/* Hero: puna širina ekrana + uz nav bar (uklanja prazan prostor od main pt-6) */}
+          <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 -mt-6 overflow-x-hidden">
+            <div className="relative z-0">
+              <section className="relative min-h-[280px] sm:min-h-[380px] lg:min-h-[460px]">
+                {coverUrl ? (
+                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
+                  </>
+                )}
 
-              {/* Desktop: ime + lokacija gore desno (ne prekriva levi/centralni deo slike) */}
-              <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
-                <div className="mx-auto flex h-full min-h-[240px] max-w-6xl px-4 sm:min-h-[340px] sm:px-6 lg:min-h-[420px] lg:px-8">
-                  <div className="relative min-h-[240px] flex-1 sm:min-h-[340px] lg:min-h-[420px]">
+                {/* Desktop: ime + lokacija gore desno (ne prekriva levi/centralni deo slike) */}
+                <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
+                  <div className="mx-auto flex h-full min-h-[280px] max-w-6xl px-4 sm:min-h-[380px] sm:px-6 lg:min-h-[460px] lg:px-8">
+                    <div className="relative min-h-[280px] flex-1 sm:min-h-[380px] lg:min-h-[460px]">
                     <div
                       className={`pointer-events-auto absolute right-0 top-6 max-w-[min(22rem,calc(100%-1rem))] rounded-xl border px-4 py-3 shadow-lg backdrop-blur-md sm:right-0 sm:top-8 sm:max-w-sm lg:top-10 ${
                         coverUrl
@@ -268,7 +269,9 @@ export default function FerrataDetail() {
             </div>
             <p className="relative z-20 px-4 pb-2 pt-1 text-xs text-gray-600 sm:px-6 lg:hidden">{t('heroNote')}</p>
           </div>
+          </div>
 
+          <div className="-mx-4 sm:-mx-6 lg:-mx-8">
           {Boolean(f.galerija?.some((u) => u?.trim())) && (
             <div className="mt-10 px-4 sm:px-6 lg:px-8">
               <div className="mx-auto max-w-6xl">
@@ -494,6 +497,7 @@ export default function FerrataDetail() {
                 </div>
               </aside>
             </div>
+          </div>
           </div>
         </>
       )}
