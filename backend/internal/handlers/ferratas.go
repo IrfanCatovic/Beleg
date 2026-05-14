@@ -42,11 +42,13 @@ type ferrataOpremaItem struct {
 }
 
 type ferrataSmestajDTO struct {
-	Naziv string   `json:"naziv"`
-	Opis  string   `json:"opis"`
-	Slike []string `json:"slike"`
-	Lat   *float64 `json:"lat"`
-	Lng   *float64 `json:"lng"`
+	Naziv         string   `json:"naziv"`
+	Opis          string   `json:"opis"`
+	Slike         []string `json:"slike"`
+	Lat           *float64 `json:"lat"`
+	Lng           *float64 `json:"lng"`
+	BookingURL    string   `json:"bookingUrl"`
+	InstagramURL  string   `json:"instagramUrl"`
 }
 
 func displayFerrataRegion(f *models.Ferrata) string {
@@ -168,15 +170,18 @@ func parseSmestajJSON(raw json.RawMessage) []gin.H {
 	items := parseSmestajItems(raw)
 	out := make([]gin.H, 0, len(items))
 	for _, it := range items {
-		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil {
+		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil &&
+			strings.TrimSpace(it.BookingURL) == "" && strings.TrimSpace(it.InstagramURL) == "" {
 			continue
 		}
 		row := gin.H{
-			"naziv": strings.TrimSpace(it.Naziv),
-			"opis":  strings.TrimSpace(it.Opis),
-			"slike": it.Slike,
-			"lat":   ferrataCoordJSON(it.Lat),
-			"lng":   ferrataCoordJSON(it.Lng),
+			"naziv":          strings.TrimSpace(it.Naziv),
+			"opis":           strings.TrimSpace(it.Opis),
+			"slike":          it.Slike,
+			"lat":            ferrataCoordJSON(it.Lat),
+			"lng":            ferrataCoordJSON(it.Lng),
+			"bookingUrl":     strings.TrimSpace(it.BookingURL),
+			"instagramUrl":   strings.TrimSpace(it.InstagramURL),
 		}
 		out = append(out, row)
 	}
@@ -197,7 +202,8 @@ func parseSmestajItems(raw json.RawMessage) []ferrataSmestajDTO {
 func marshalSmestajJSON(items []ferrataSmestajDTO) json.RawMessage {
 	out := make([]ferrataSmestajDTO, 0, len(items))
 	for _, it := range items {
-		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil {
+		if strings.TrimSpace(it.Naziv) == "" && strings.TrimSpace(it.Opis) == "" && len(it.Slike) == 0 && it.Lat == nil && it.Lng == nil &&
+			strings.TrimSpace(it.BookingURL) == "" && strings.TrimSpace(it.InstagramURL) == "" {
 			continue
 		}
 		slike := make([]string, 0, len(it.Slike))
@@ -208,11 +214,13 @@ func marshalSmestajJSON(items []ferrataSmestajDTO) json.RawMessage {
 			}
 		}
 		out = append(out, ferrataSmestajDTO{
-			Naziv: strings.TrimSpace(it.Naziv),
-			Opis:  strings.TrimSpace(it.Opis),
-			Slike: slike,
-			Lat:   it.Lat,
-			Lng:   it.Lng,
+			Naziv:        strings.TrimSpace(it.Naziv),
+			Opis:         strings.TrimSpace(it.Opis),
+			Slike:        slike,
+			Lat:          it.Lat,
+			Lng:          it.Lng,
+			BookingURL:   strings.TrimSpace(it.BookingURL),
+			InstagramURL: strings.TrimSpace(it.InstagramURL),
 		})
 	}
 	b, _ := json.Marshal(out)

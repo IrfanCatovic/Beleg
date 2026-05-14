@@ -52,7 +52,7 @@ const OUTLINE_ICON_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
 
 export type IconName = keyof typeof OUTLINE_ICON_MAP
 
-const DEFAULT_ICON: IconName = 'WrenchScrewdriverIcon'
+const DEFAULT_ICON: IconName = 'HandRaisedIcon'
 
 const OUTLINE_ICON_KEYS = Object.keys(OUTLINE_ICON_MAP) as IconName[]
 

@@ -55,6 +55,8 @@ function smestajFromApi(raw: unknown): SmestajFormRow[] {
       lat: r.lat != null && Number.isFinite(Number(r.lat)) ? String(r.lat) : '',
       lng: r.lng != null && Number.isFinite(Number(r.lng)) ? String(r.lng) : '',
       slike,
+      bookingUrl: String(r.bookingUrl ?? ''),
+      instagramUrl: String(r.instagramUrl ?? ''),
     }
   })
 }
@@ -69,7 +71,7 @@ function obaveznaFromApi(raw: unknown): OpremaFormRow[] {
       }
       const o = x as { label?: string; icon?: string }
       const label = String(o.label ?? '').trim()
-      if (!label) return { label: '', icon: 'WrenchScrewdriverIcon' }
+      if (!label) return { label: '', icon: 'HandRaisedIcon' }
       const iconRaw = (o.icon ?? '').trim()
       const icon = iconRaw ? pickEquipmentIconKey(iconRaw) : suggestEquipmentIcon(label)
       return { label, icon }
@@ -201,9 +203,20 @@ export default function SuperadminFerratas() {
       slike: string[]
       lat: number | null
       lng: number | null
+      bookingUrl: string
+      instagramUrl: string
     }[] = []
     for (const s of form.smestaj) {
-      if (!s.naziv.trim() && !s.opis.trim() && s.slike.length === 0 && !s.lat.trim() && !s.lng.trim()) continue
+      if (
+        !s.naziv.trim() &&
+        !s.opis.trim() &&
+        s.slike.length === 0 &&
+        !s.lat.trim() &&
+        !s.lng.trim() &&
+        !s.bookingUrl.trim() &&
+        !s.instagramUrl.trim()
+      )
+        continue
       const sla = mapOptionalCoord(s.lat)
       const slo = mapOptionalCoord(s.lng)
       if ((sla == null) !== (slo == null)) {
@@ -216,11 +229,13 @@ export default function SuperadminFerratas() {
         slike: s.slike,
         lat: sla,
         lng: slo,
+        bookingUrl: s.bookingUrl.trim(),
+        instagramUrl: s.instagramUrl.trim(),
       })
     }
     const obavezna = form.obaveznaOprema
       .filter((o) => o.label.trim())
-      .map((o) => ({ label: o.label.trim(), icon: o.icon.trim() || 'WrenchScrewdriverIcon' }))
+      .map((o) => ({ label: o.label.trim(), icon: o.icon.trim() || 'HandRaisedIcon' }))
     const payload = {
       naziv: form.naziv,
       slug: form.slug,

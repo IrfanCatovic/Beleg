@@ -21,6 +21,8 @@ export function FerrataDetailMapCard(props: {
   subtitle: string
   /** Tekstualna putanja / uputstvo ispod mape (superadmin „Kako stići”). */
   routeNote?: string
+  /** U modalu smeštaja — bez naslova „Lokacija na mapi“ i spoljašnjeg okvira kartice. */
+  embed?: boolean
 }) {
   const { t } = useTranslation('ferrate')
   const mapRef = useRef<MapRef>(null)
@@ -67,17 +69,21 @@ export function FerrataDetailMapCard(props: {
   }, [coordsText])
 
   const route = props.routeNote?.trim()
+  const embed = !!props.embed
 
-  return (
-    <article
-      className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
-      aria-label={`${props.naziv}${props.subtitle.trim() ? ` — ${props.subtitle.trim()}` : ''}`}
-    >
-      <h2 className="px-5 pb-2 pt-5 text-sm font-bold uppercase tracking-wider text-emerald-700 sm:px-6 sm:pt-6">
-        {t('detailMapTitle')}
-      </h2>
-      <div className="px-5 pb-4 sm:px-6">
-        <div className="relative z-0 h-64 w-full overflow-hidden rounded-xl bg-slate-100/80 ring-1 ring-emerald-900/10 shadow-inner sm:h-72">
+  const inner = (
+    <>
+      {!embed && (
+        <h2 className="px-5 pb-2 pt-5 text-sm font-bold uppercase tracking-wider text-emerald-700 sm:px-6 sm:pt-6">
+          {t('detailMapTitle')}
+        </h2>
+      )}
+      <div className={embed ? 'p-0' : 'px-5 pb-4 sm:px-6'}>
+        <div
+          className={`relative z-0 w-full overflow-hidden bg-slate-100/80 ring-1 ring-emerald-900/10 shadow-inner ${
+            embed ? 'h-52 rounded-lg sm:h-56' : 'h-64 rounded-xl sm:h-72'
+          }`}
+        >
           <PlaninerMapFrame
             ref={mapRef}
             className="h-full w-full"
@@ -116,6 +122,23 @@ export function FerrataDetailMapCard(props: {
           </a>
         </div>
       </div>
+    </>
+  )
+
+  if (embed) {
+    return (
+      <div className="overflow-hidden rounded-xl bg-white" aria-label={props.naziv}>
+        {inner}
+      </div>
+    )
+  }
+
+  return (
+    <article
+      className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+      aria-label={`${props.naziv}${props.subtitle.trim() ? ` — ${props.subtitle.trim()}` : ''}`}
+    >
+      {inner}
     </article>
   )
 }

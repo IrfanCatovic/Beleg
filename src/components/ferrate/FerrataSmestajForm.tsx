@@ -12,6 +12,8 @@ export type SmestajFormRow = {
   lat: string
   lng: string
   slike: string[]
+  bookingUrl: string
+  instagramUrl: string
 }
 
 type Props = {
@@ -95,6 +97,35 @@ export function FerrataSmestajForm(props: Props) {
               props.onChange(next)
             }}
           />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('superadminSmestajBookingUrl')}</label>
+              <input
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs"
+                placeholder="https://…"
+                inputMode="url"
+                value={row.bookingUrl}
+                onChange={(e) => {
+                  const next = [...list]
+                  next[i] = { ...next[i], bookingUrl: e.target.value }
+                  props.onChange(next)
+                }}
+              />
+            </div>
+            <div>
+              <label className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('superadminSmestajInstagramUrl')}</label>
+              <input
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs"
+                placeholder="@etno_dom ili https://instagram.com/…"
+                value={row.instagramUrl}
+                onChange={(e) => {
+                  const next = [...list]
+                  next[i] = { ...next[i], instagramUrl: e.target.value }
+                  props.onChange(next)
+                }}
+              />
+            </div>
+          </div>
           <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/30 p-3 space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">{t('superadminSmestajLocation')}</p>
             <div className="grid grid-cols-2 gap-2">
@@ -164,7 +195,9 @@ export function FerrataSmestajForm(props: Props) {
       ))}
       <button
         type="button"
-        onClick={() => props.onChange([...list, { naziv: '', opis: '', lat: '', lng: '', slike: [] }])}
+        onClick={() =>
+          props.onChange([...list, { naziv: '', opis: '', lat: '', lng: '', slike: [], bookingUrl: '', instagramUrl: '' }])
+        }
         className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100"
       >
         <PlusIcon className="h-4 w-4" />

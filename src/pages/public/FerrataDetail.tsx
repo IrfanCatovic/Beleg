@@ -12,6 +12,7 @@ import {
   CalendarDaysIcon,
   ChartBarIcon,
   ClockIcon,
+  HandRaisedIcon,
   MapPinIcon,
   PhotoIcon,
   PlusIcon,
@@ -181,6 +182,17 @@ export default function FerrataDetail() {
   const hasMapCoords =
     f != null && f.lat != null && f.lng != null && Number.isFinite(f.lat) && Number.isFinite(f.lng)
 
+  const smestajList = f?.smestaj ?? []
+  const hasSmestaj = smestajList.some((x) => {
+    const hasText = (x.naziv ?? '').trim() || (x.opis ?? '').trim()
+    const hasImg = (x.slike?.length ?? 0) > 0
+    const hasPin = x.lat != null && x.lng != null && Number.isFinite(x.lat) && Number.isFinite(x.lng)
+    const hasLinks = (x.bookingUrl ?? '').trim() || (x.instagramUrl ?? '').trim()
+    return hasText || hasImg || hasPin || hasLinks
+  })
+  const hasAbout = Boolean(f?.opis?.trim())
+  const hasWhy = Boolean(f?.highlights?.length)
+
   const createActionHref =
     user && ['superadmin', 'admin', 'vodic'].includes(user.role) && f
       ? `/dodaj-akciju?tip=via_ferrata&ferrata_id=${f.id}`
@@ -265,198 +277,223 @@ export default function FerrataDetail() {
             </div>
           )}
 
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 lg:grid lg:grid-cols-[1fr_340px] lg:gap-8 lg:items-start">
-            {/* Main column */}
-            <div className="space-y-6">
-              {hasMapCoords && (
-                <FerrataDetailMapCard
-                  key={f.slug}
-                  lat={f.lat as number}
-                  lng={f.lng as number}
-                  naziv={f.naziv}
-                  subtitle={regionSubtitle}
-                  routeNote={f.mapNote}
-                />
-              )}
-
-              {f.opis?.trim() && (
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 space-y-8 lg:space-y-10">
+            {/* Red 1: O ferati | Planiraj polazak */}
+            <div className={`grid gap-6 items-stretch ${hasAbout ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
+              {hasAbout && (
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-2">{t('aboutTitle')}</h2>
-                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis.trim()}</p>
+                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis!.trim()}</p>
                 </article>
               )}
-
-              {f.highlights?.length > 0 && (
-                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('whyTitle')}</h2>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {f.highlights.map((h) => (
-                      <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
-                        <SparklesIcon className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
-                        <p className="text-sm text-gray-800 font-medium">{h}</p>
-                      </div>
-                    ))}
+              <aside className={hasAbout ? '' : 'lg:max-w-sm lg:justify-self-end w-full'}>
+                <div className="flex h-full min-h-0 flex-col space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-900">{t('sidebarPlanTitle')}</h3>
+                  <p className="text-xs text-gray-500">{t('sidebarPlanHint')}</p>
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                    {t('statusAvailable')}
                   </div>
-                </article>
-              )}
-
-              {Boolean(f.okolina?.some((x) => x?.trim())) && (
-                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
-                  <ul className="space-y-2 text-sm text-gray-800">
-                    {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
-                      <li key={`okolina-${idx}`} className="flex gap-2">
-                        <span className="text-emerald-600 font-bold">·</span>
-                        <span>{line.trim()}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              )}
-
-              {f.smestaj && f.smestaj.length > 0 && <FerrataSmestajSection items={f.smestaj} />}
-
-              {(() => {
-                const opremaItems = normalizeOprema(f.obaveznaOprema).filter((it) => it.label?.trim())
-                if (!opremaItems.length) return null
-                return (
-                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('equipmentTitle')}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {opremaItems.map((item) => {
-                        const iconKey = item.icon?.trim() ? item.icon.trim() : suggestEquipmentIcon(item.label)
-                        return (
-                          <span
-                            key={`${item.label}-${item.icon ?? ''}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
-                          >
-                            <FerrataEquipmentGlyph name={iconKey} className="h-4 w-4 text-emerald-600 shrink-0" />
-                            {item.label.trim()}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </article>
-                )
-              })()}
-
-              {contacts.length > 0 && (
-                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailGuidesTitle')}</h2>
-                  <ul className="space-y-4">
-                    {contacts.map((c) => (
-                      <li key={c.id} className="rounded-xl border border-gray-50 bg-gray-50/60 p-4 space-y-2">
-                        <p className="font-semibold text-gray-900">{c.ime}</p>
-                        {c.telefon && <p className="text-sm text-gray-700">{c.telefon}</p>}
-                        {c.whatsapp && (
-                          <a
-                            href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-semibold text-emerald-700 hover:underline"
-                          >
-                            {t('whatsApp')}
-                          </a>
-                        )}
-                        {c.email && (
-                          <a href={`mailto:${c.email}`} className="text-sm font-semibold text-emerald-700 hover:underline break-all">
-                            {c.email}
-                          </a>
-                        )}
-                        {c.napomena?.trim() && <p className="text-xs text-gray-600 whitespace-pre-line">{c.napomena.trim()}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              )}
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to={createActionHref}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      {t('heroCtaCreate')}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setBookOpen(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50/80"
+                    >
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      {t('heroCtaBook')}
+                    </button>
+                    {user?.role === 'superadmin' && (
+                      <Link
+                        to={`/superadmin/ferrate/${String(f.id)}/galerija`}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-900 transition hover:bg-violet-100"
+                      >
+                        <PhotoIcon className="h-4 w-4" />
+                        {t('detailSuperadminGalleryCta')}
+                      </Link>
+                    )}
+                  </div>
+                  <p className="mt-auto hidden text-xs leading-relaxed text-gray-600 pt-1 lg:block">{t('heroNote')}</p>
+                </div>
+              </aside>
             </div>
 
-            {/* Sidebar */}
-            <aside className="space-y-5 mt-8 lg:mt-0">
-              <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 space-y-4">
-                <h3 className="text-sm font-bold text-gray-900">{t('sidebarPlanTitle')}</h3>
-                <p className="text-xs text-gray-500">{t('sidebarPlanHint')}</p>
-                <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-800">
-                  {t('statusAvailable')}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Link
-                    to={createActionHref}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold px-4 py-2.5 shadow-sm"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    {t('heroCtaCreate')}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setBookOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 text-emerald-800 text-sm font-bold px-4 py-2.5 hover:bg-emerald-50/80"
-                  >
-                    <CalendarDaysIcon className="h-4 w-4" />
-                    {t('heroCtaBook')}
-                  </button>
-                  {user?.role === 'superadmin' && f && (
-                    <Link
-                      to={`/superadmin/ferrate/${String(f.id)}/galerija`}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-900 text-sm font-bold px-4 py-2.5 transition hover:bg-violet-100"
-                    >
-                      <PhotoIcon className="h-4 w-4" />
-                      {t('detailSuperadminGalleryCta')}
-                    </Link>
-                  )}
-                </div>
-                <p className="hidden text-xs text-gray-600 leading-relaxed pt-1 lg:block">{t('heroNote')}</p>
-              </div>
-
-              <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
-                <h3 className="text-sm font-bold text-gray-900 mb-3">{t('sidebarUpcomingTitle')}</h3>
-                {upcoming.length === 0 ? (
-                  <p className="text-xs text-gray-600">{t('sidebarUpcomingEmpty')}</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {upcoming.map((a) => {
-                      const d = new Date(a.startAt)
-                      const day = d.toLocaleDateString('sr-Latn', { day: '2-digit', month: 'short' }).toUpperCase()
-                      const spots = a.maxLjudi > 0 ? Math.max(0, a.maxLjudi - Number(a.prijavljeno || 0)) : '—'
-                      return (
-                        <li key={a.id} className="flex gap-3 border-b border-gray-50 last:border-0 pb-3 last:pb-0">
-                          <div className="shrink-0 w-12 text-center rounded-lg bg-emerald-50 border border-emerald-100 py-1">
-                            <span className="block text-[10px] font-bold text-emerald-800 leading-tight">{day}</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-gray-900 line-clamp-2">{a.naziv}</p>
-                            {a.klubNaziv && <p className="text-[11px] text-gray-500 mt-0.5">{a.klubNaziv}</p>}
-                            <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-                              {typeof spots === 'number' ? t('sidebarUpcomingSpots', { n: spots }) : spots}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/akcije/${a.id}`)}
-                              className="text-[11px] font-semibold text-emerald-700 hover:underline mt-1"
-                            >
-                              {t('sidebarViewActions')} →
-                            </button>
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
+            {/* Red 2: Zašto ići | Smeštaj */}
+            {(hasWhy || hasSmestaj) && (
+              <div className={`grid gap-6 items-stretch ${hasWhy && hasSmestaj ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
+                {hasWhy && (
+                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('whyTitle')}</h2>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {f.highlights!.map((h) => (
+                        <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
+                          <SparklesIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                          <p className="text-sm font-medium text-gray-800">{h}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
                 )}
-                <Link to="/akcije" className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:underline">
-                  {t('sidebarViewActions')} →
-                </Link>
+                {hasSmestaj && (
+                  <div className={hasWhy ? '' : 'w-full lg:max-w-sm lg:justify-self-end'}>
+                    <FerrataSmestajSection items={f.smestaj!} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Red 3: mapa, okolina, oprema, kontakti | nadolazeće, savet, lokalni vodiči */}
+            <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start">
+              <div className="space-y-6">
+                {hasMapCoords && (
+                  <FerrataDetailMapCard
+                    key={f.slug}
+                    lat={f.lat as number}
+                    lng={f.lng as number}
+                    naziv={f.naziv}
+                    subtitle={regionSubtitle}
+                    routeNote={f.mapNote}
+                  />
+                )}
+
+                {Boolean(f.okolina?.some((x) => x?.trim())) && (
+                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
+                    <ul className="space-y-2 text-sm text-gray-800">
+                      {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
+                        <li key={`okolina-${idx}`} className="flex gap-2">
+                          <span className="font-bold text-emerald-600">·</span>
+                          <span>{line.trim()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                )}
+
+                {(() => {
+                  const opremaItems = normalizeOprema(f.obaveznaOprema).filter((it) => it.label?.trim())
+                  if (!opremaItems.length) return null
+                  return (
+                    <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                      <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-emerald-700">
+                        <HandRaisedIcon className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
+                        {t('equipmentTitle')}
+                      </h2>
+                      <div className="flex flex-wrap gap-2">
+                        {opremaItems.map((item) => {
+                          const raw = item.icon?.trim() ? item.icon.trim() : suggestEquipmentIcon(item.label)
+                          const iconKey = raw === 'TruckIcon' ? 'HandRaisedIcon' : raw
+                          return (
+                            <span
+                              key={`${item.label}-${item.icon ?? ''}`}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
+                            >
+                              <FerrataEquipmentGlyph name={iconKey} className="h-4 w-4 shrink-0 text-emerald-600" />
+                              {item.label.trim()}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </article>
+                  )
+                })()}
+
+                {contacts.length > 0 && (
+                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailGuidesTitle')}</h2>
+                    <ul className="space-y-4">
+                      {contacts.map((c) => (
+                        <li key={c.id} className="space-y-2 rounded-xl border border-gray-50 bg-gray-50/60 p-4">
+                          <p className="font-semibold text-gray-900">{c.ime}</p>
+                          {c.telefon && <p className="text-sm text-gray-700">{c.telefon}</p>}
+                          {c.whatsapp && (
+                            <a
+                              href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-semibold text-emerald-700 hover:underline"
+                            >
+                              {t('whatsApp')}
+                            </a>
+                          )}
+                          {c.email && (
+                            <a href={`mailto:${c.email}`} className="break-all text-sm font-semibold text-emerald-700 hover:underline">
+                              {c.email}
+                            </a>
+                          )}
+                          {c.napomena?.trim() && <p className="whitespace-pre-line text-xs text-gray-600">{c.napomena.trim()}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                )}
               </div>
 
-              {f.quickTip?.trim() && (
-                <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-5 flex gap-3">
-                  <StarIcon className="h-6 w-6 text-emerald-600 shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-bold text-emerald-900">{t('sidebarRecTitle')}</h3>
-                    <p className="text-xs text-emerald-900/80 mt-1 leading-relaxed whitespace-pre-line">{f.quickTip.trim()}</p>
+              <aside className="mt-8 space-y-5 lg:mt-0">
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <h3 className="mb-3 text-sm font-bold text-gray-900">{t('sidebarUpcomingTitle')}</h3>
+                  {upcoming.length === 0 ? (
+                    <p className="text-xs text-gray-600">{t('sidebarUpcomingEmpty')}</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {upcoming.map((a) => {
+                        const d = new Date(a.startAt)
+                        const day = d.toLocaleDateString('sr-Latn', { day: '2-digit', month: 'short' }).toUpperCase()
+                        const spots = a.maxLjudi > 0 ? Math.max(0, a.maxLjudi - Number(a.prijavljeno || 0)) : '—'
+                        return (
+                          <li key={a.id} className="flex gap-3 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                            <div className="w-12 shrink-0 rounded-lg border border-emerald-100 bg-emerald-50 py-1 text-center">
+                              <span className="block text-[10px] font-bold leading-tight text-emerald-800">{day}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-2 text-xs font-bold text-gray-900">{a.naziv}</p>
+                              {a.klubNaziv && <p className="mt-0.5 text-[11px] text-gray-500">{a.klubNaziv}</p>}
+                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                                {typeof spots === 'number' ? t('sidebarUpcomingSpots', { n: spots }) : spots}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/akcije/${a.id}`)}
+                                className="mt-1 text-[11px] font-semibold text-emerald-700 hover:underline"
+                              >
+                                {t('sidebarViewActions')} →
+                              </button>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                  <Link to="/akcije" className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:underline">
+                    {t('sidebarViewActions')} →
+                  </Link>
+                </div>
+
+                {f.quickTip?.trim() && (
+                  <div className="flex gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+                    <StarIcon className="h-6 w-6 shrink-0 text-emerald-600" />
+                    <div>
+                      <h3 className="text-sm font-bold text-emerald-900">{t('sidebarRecTitle')}</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-emerald-900/80 whitespace-pre-line">{f.quickTip.trim()}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50 p-5">
+                  <h3 className="text-sm font-bold text-gray-900">{t('detailLocalGuidesTitle')}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">{t('detailLocalGuidesSoon')}</p>
+                  <div className="mx-auto mt-4 flex h-28 w-28 items-center justify-center rounded-2xl bg-gray-200/70 ring-2 ring-dashed ring-gray-300/80">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">{t('detailLocalGuidesBadge')}</span>
                   </div>
                 </div>
-              )}
-            </aside>
+              </aside>
+            </div>
           </div>
         </>
       )}
