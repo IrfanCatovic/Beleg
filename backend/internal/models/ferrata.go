@@ -30,7 +30,7 @@ type Ferrata struct {
 	WhoBeginnersText    string          `gorm:"column:who_beginners_text;type:varchar(200)" json:"whoBeginnersText"`
 	WhoRecreationalText string          `gorm:"column:who_recreational_text;type:varchar(200)" json:"whoRecreationalText"`
 	WhoExperiencedText  string          `gorm:"column:who_experienced_text;type:varchar(200)" json:"whoExperiencedText"`
-	Lat                 *float64        `gorm:"column:lat" json:"lat"` // glavna tačka ferate; kasnije uporediti sa guide_profiles.base_lat/lng
+	Lat                 *float64        `gorm:"column:lat" json:"lat"` // glavna tačka — API superadmin zahteva obe; NULL samo u starim redovima
 	Lng                 *float64        `gorm:"column:lng" json:"lng"`
 	ParkingLat          *float64        `gorm:"column:parking_lat" json:"parkingLat"`
 	ParkingLng          *float64        `gorm:"column:parking_lng" json:"parkingLng"`

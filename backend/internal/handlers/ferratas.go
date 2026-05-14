@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -223,6 +224,23 @@ func ferrataCoordJSON(v *float64) interface{} {
 		return nil
 	}
 	return *v
+}
+
+// validateFerrataLatLngRequired glavna tačka ferate — potrebna za mapu i kasnije udaljenost do vodiča.
+func validateFerrataLatLngRequired(lat, lng *float64) error {
+	if lat == nil || lng == nil {
+		return fmt.Errorf("Koordinate ferate (lat i lng) su obavezne")
+	}
+	if math.IsNaN(*lat) || math.IsInf(*lat, 0) || math.IsNaN(*lng) || math.IsInf(*lng, 0) {
+		return fmt.Errorf("Koordinate nisu validne")
+	}
+	if *lat < -90 || *lat > 90 {
+		return fmt.Errorf("Geografska širina (lat) mora biti između -90 i 90")
+	}
+	if *lng < -180 || *lng > 180 {
+		return fmt.Errorf("Geografska dužina (lng) mora biti između -180 i 180")
+	}
+	return nil
 }
 
 func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
@@ -489,6 +507,10 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active, closed ili archived"})
 		return
 	}
+	if err := validateFerrataLatLngRequired(body.Lat, body.Lng); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	galerijaCreate := []string{}
 	if body.Galerija != nil {
 		galerijaCreate = *body.Galerija
@@ -555,6 +577,10 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 	var f models.Ferrata
 	if err := db.First(&f, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
+		return
+	}
+	if err := validateFerrataLatLngRequired(body.Lat, body.Lng); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	if strings.TrimSpace(body.Naziv) != "" {

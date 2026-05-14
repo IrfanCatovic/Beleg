@@ -144,6 +144,10 @@ export default function SuperadminFerratas() {
     return Number.isFinite(n) ? n : null
   }
 
+  function isValidFerrataLatLng(lat: number, lng: number): boolean {
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+  }
+
   function coordToFormField(v: unknown): string {
     if (v == null || v === '') return ''
     if (typeof v === 'number' && Number.isFinite(v)) return String(v)
@@ -155,8 +159,12 @@ export default function SuperadminFerratas() {
     const highlights = parseList(form.highlightsRaw)
     const la = mapOptionalCoord(form.lat)
     const lo = mapOptionalCoord(form.lng)
-    if ((la == null) !== (lo == null)) {
-      setErr('Unesi obe koordinate ferate (lat i lng) ili obe ostavi prazne.')
+    if (la == null || lo == null) {
+      setErr(t('mapCoordsRequired'))
+      return
+    }
+    if (!isValidFerrataLatLng(la, lo)) {
+      setErr(t('mapCoordsInvalid'))
       return
     }
     const smestajDto: {
@@ -393,16 +401,6 @@ export default function SuperadminFerratas() {
           <FerrataImageUploadDropzone onFilesSelected={(files) => void uploadCoverFromForm(files[0] ?? null)} />
         </div>
 
-        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSmestajSection')}</p>
-        <FerrataSmestajForm
-          rows={form.smestaj}
-          onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}
-          ferrataId={editingId}
-          onUploadError={(msg) => setErr(msg)}
-          anchorLat={form.lat}
-          anchorLng={form.lng}
-        />
-
         <FerrataLocationEditor
           key={editingId ?? 'new'}
           lat={form.lat}
@@ -420,6 +418,16 @@ export default function SuperadminFerratas() {
             placeholder="Npr. iz Ribarića putem asfaltnog puta do parkinga, zatim 25 min peske markerisanom stazom…"
           />
         </div>
+
+        <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSmestajSection')}</p>
+        <FerrataSmestajForm
+          rows={form.smestaj}
+          onChange={(smestaj) => setForm((prev) => ({ ...prev, smestaj }))}
+          ferrataId={editingId}
+          onUploadError={(msg) => setErr(msg)}
+          anchorLat={form.lat}
+          anchorLng={form.lng}
+        />
 
         {editingId && (
           <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">

@@ -41,13 +41,6 @@ export function FerrataLocationEditor(props: {
     [props],
   )
 
-  const clearPin = useCallback(() => {
-    props.onLatChange('')
-    props.onLngChange('')
-    setResults([])
-    setGeoErr('')
-  }, [props])
-
   const onMapClick = useCallback(
     (e: MapLayerMouseEvent) => {
       setPin(e.lngLat.lat, e.lngLat.lng)
@@ -192,12 +185,6 @@ export function FerrataLocationEditor(props: {
           </PlaninerMapFrame>
         </div>
       </div>
-
-      {hasPin && (
-        <button type="button" onClick={clearPin} className="text-xs font-semibold text-rose-700 hover:underline">
-          {t('mapClearPin')}
-        </button>
-      )}
     </div>
   )
 }
