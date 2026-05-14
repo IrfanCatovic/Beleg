@@ -12,22 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func hotelToMap(h *models.Hotel) gin.H {
-	return gin.H{
-		"id":        h.ID,
-		"naziv":     h.Naziv,
-		"slug":      h.Slug,
-		"lat":       h.Lat,
-		"lng":       h.Lng,
-		"opis":      h.Opis,
-		"adresa":    h.Adresa,
-		"telefon":   h.Telefon,
-		"status":    h.Status,
-		"createdAt": h.CreatedAt,
-		"updatedAt": h.UpdatedAt,
-	}
-}
-
 func validateHotelCoords(lat, lng float64) string {
 	if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
 		return "Koordinate nisu u dozvoljenom opsegu (lat −90…90, lng −180…180)."
@@ -36,13 +20,15 @@ func validateHotelCoords(lat, lng float64) string {
 }
 
 type superadminHotelBody struct {
-	Naziv   string  `json:"naziv"`
-	Lat     float64 `json:"lat"`
-	Lng     float64 `json:"lng"`
-	Opis    string  `json:"opis"`
-	Adresa  string  `json:"adresa"`
-	Telefon string  `json:"telefon"`
-	Status  string  `json:"status"`
+	Naziv         string   `json:"naziv"`
+	Lat           float64  `json:"lat"`
+	Lng           float64  `json:"lng"`
+	Opis          string   `json:"opis"`
+	Telefon       string   `json:"telefon"`
+	Status        string   `json:"status"`
+	Slike         []string `json:"slike"`
+	BookingUrl    string   `json:"bookingUrl"`
+	InstagramUrl  string   `json:"instagramUrl"`
 }
 
 // SuperadminListHotels GET /api/superadmin/hotels
@@ -116,14 +102,16 @@ func SuperadminCreateHotel(c *gin.Context) {
 		return
 	}
 	h := models.Hotel{
-		Naziv:   naziv,
-		Slug:    slugStr,
-		Lat:     body.Lat,
-		Lng:     body.Lng,
-		Opis:    strings.TrimSpace(body.Opis),
-		Adresa:  strings.TrimSpace(body.Adresa),
-		Telefon: strings.TrimSpace(body.Telefon),
-		Status:  st,
+		Naziv:          naziv,
+		Slug:           slugStr,
+		Lat:            body.Lat,
+		Lng:            body.Lng,
+		Opis:           strings.TrimSpace(body.Opis),
+		Telefon:        strings.TrimSpace(body.Telefon),
+		Status:         st,
+		SlikeJSON:      marshalHotelSlikeJSON(body.Slike),
+		BookingURL:     strings.TrimSpace(body.BookingUrl),
+		InstagramURL:   strings.TrimSpace(body.InstagramUrl),
 	}
 	if err := db.Create(&h).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Greška pri čuvanju (slug jedinstven?)"})
@@ -175,9 +163,12 @@ func SuperadminUpdateHotel(c *gin.Context) {
 	h.Lat = body.Lat
 	h.Lng = body.Lng
 	h.Opis = strings.TrimSpace(body.Opis)
-	h.Adresa = strings.TrimSpace(body.Adresa)
+	h.Adresa = ""
 	h.Telefon = strings.TrimSpace(body.Telefon)
 	h.Status = st
+	h.SlikeJSON = marshalHotelSlikeJSON(body.Slike)
+	h.BookingURL = strings.TrimSpace(body.BookingUrl)
+	h.InstagramURL = strings.TrimSpace(body.InstagramUrl)
 	if strings.TrimSpace(prevNaziv) != naziv {
 		slugStr, err := slug.UniqueHotelSlug(db, naziv, uint(id))
 		if err != nil {

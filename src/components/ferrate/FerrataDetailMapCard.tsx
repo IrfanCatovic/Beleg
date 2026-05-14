@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Bed } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Marker, type MapRef } from 'react-map-gl/maplibre'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
@@ -9,6 +10,15 @@ import { PlaninerIcon } from '../ui/PlaninerIcon'
 
 function formatCoords(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+}
+
+function HotelStayMarker() {
+  return (
+    <div className="planiner-marker-hotel relative flex h-12 w-12 -translate-y-1 items-center justify-center select-none">
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-900 shadow-lg ring-[3px] ring-white/95" />
+      <Bed className="relative z-10 h-6 w-6 text-white drop-shadow-sm" strokeWidth={2} aria-hidden />
+    </div>
+  )
 }
 
 /** Jedna ferata na mapi — centar i zoom fokusirani isključivo na nju. */
@@ -24,6 +34,8 @@ export function FerrataDetailMapCard(props: {
   routeNote?: string
   /** U modalu smeštaja — bez naslova „Lokacija na mapi“ i spoljašnjeg okvira kartice. */
   embed?: boolean
+  /** Marker za smeštaj / hotel (zeleni krug + krevet). */
+  markerKind?: 'ferrata' | 'stay'
 }) {
   const { t } = useTranslation('ferrate')
   const mapRef = useRef<MapRef>(null)
@@ -71,6 +83,7 @@ export function FerrataDetailMapCard(props: {
 
   const route = props.routeNote?.trim()
   const embed = !!props.embed
+  const markerKind = props.markerKind ?? 'ferrata'
 
   const inner = (
     <>
@@ -94,7 +107,7 @@ export function FerrataDetailMapCard(props: {
             showZoomControls
           >
             <Marker longitude={props.lng} latitude={props.lat} anchor="bottom">
-              <FerrataMarkerElement />
+              {markerKind === 'stay' ? <HotelStayMarker /> : <FerrataMarkerElement />}
             </Marker>
           </PlaninerMapFrame>
         </div>

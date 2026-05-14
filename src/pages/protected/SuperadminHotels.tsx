@@ -12,9 +12,11 @@ type HotelRow = {
   lat: number
   lng: number
   opis?: string
-  adresa?: string
   telefon?: string
   status: string
+  slike?: string[]
+  bookingUrl?: string
+  instagramUrl?: string
 }
 
 function emptyForm() {
@@ -23,9 +25,11 @@ function emptyForm() {
     lat: '',
     lng: '',
     opis: '',
-    adresa: '',
     telefon: '',
     status: 'active',
+    slikeText: '',
+    bookingUrl: '',
+    instagramUrl: '',
   }
 }
 
@@ -35,10 +39,19 @@ function formFromRow(row: HotelRow) {
     lat: row.lat != null && Number.isFinite(Number(row.lat)) ? String(row.lat) : '',
     lng: row.lng != null && Number.isFinite(Number(row.lng)) ? String(row.lng) : '',
     opis: row.opis ?? '',
-    adresa: row.adresa ?? '',
     telefon: row.telefon ?? '',
     status: row.status || 'active',
+    slikeText: (row.slike ?? []).join('\n'),
+    bookingUrl: row.bookingUrl ?? '',
+    instagramUrl: row.instagramUrl ?? '',
   }
+}
+
+function urlsFromMultiline(s: string): string[] {
+  return s
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean)
 }
 
 function parseCoord(s: string): number | null {
@@ -100,9 +113,11 @@ export default function SuperadminHotels() {
       lat: latN,
       lng: lngN,
       opis: form.opis.trim(),
-      adresa: form.adresa.trim(),
       telefon: form.telefon.trim(),
       status: form.status,
+      slike: urlsFromMultiline(form.slikeText),
+      bookingUrl: form.bookingUrl.trim(),
+      instagramUrl: form.instagramUrl.trim(),
     }
     try {
       if (editingId != null) {
@@ -202,12 +217,37 @@ export default function SuperadminHotels() {
             />
           </div>
           <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-semibold text-gray-600">{t('photosUrlsLabel')}</label>
+            <textarea
+              className={inp}
+              rows={4}
+              placeholder={t('photosUrlsPlaceholder')}
+              value={form.slikeText}
+              onChange={(e) => setForm((f) => ({ ...f, slikeText: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-semibold text-gray-600">{t('bookingUrlLabel')}</label>
+            <input
+              className={inp}
+              type="url"
+              placeholder="https://…"
+              value={form.bookingUrl}
+              onChange={(e) => setForm((f) => ({ ...f, bookingUrl: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-semibold text-gray-600">{t('instagramUrlLabel')}</label>
+            <input
+              className={inp}
+              placeholder="@hotel ili https://instagram.com/…"
+              value={form.instagramUrl}
+              onChange={(e) => setForm((f) => ({ ...f, instagramUrl: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-semibold text-gray-600">{t('opisLabel')}</label>
             <textarea className={inp} rows={3} value={form.opis} onChange={(e) => setForm((f) => ({ ...f, opis: e.target.value }))} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">{t('adresaLabel')}</label>
-            <input className={inp} value={form.adresa} onChange={(e) => setForm((f) => ({ ...f, adresa: e.target.value }))} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-600">{t('telefonLabel')}</label>

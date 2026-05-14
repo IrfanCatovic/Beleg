@@ -5,6 +5,7 @@ import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
+import { FerrataHotelsSection } from '../../components/ferrate/FerrataHotelsSection'
 import { FerrataSmestajSection, type SmestajPublic } from '../../components/ferrate/FerrataSmestajSection'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
@@ -362,6 +363,8 @@ export default function FerrataDetail() {
                     routeNote={f.mapNote}
                   />
                 )}
+
+                {hasMapCoords && <FerrataHotelsSection ferrataLat={f.lat as number} ferrataLng={f.lng as number} />}
 
                 {Boolean(f.okolina?.some((x) => x?.trim())) && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">

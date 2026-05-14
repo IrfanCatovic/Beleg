@@ -24,6 +24,8 @@ vendor/
 backend/.env
 backend/.env.*
 !backend/.env.example
+# Greška: folder doslovno imenovan "..." (npr. pogrešan paste putanje) — zbunjuje Git na Windowsu
+backend/.../
 
 # Editor directories and files
 .vscode/*

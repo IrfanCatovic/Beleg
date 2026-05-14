@@ -43,6 +43,7 @@ export default function AppLayout() {
   const { t } = useTranslation('appLayout')
   const { t: tCommon } = useTranslation('common')
   const { t: tFerrate } = useTranslation('ferrate')
+  const { t: tHotels } = useTranslation('hotels')
   const { logout, user, isLoggedIn, pendingSummitReward, clearPendingSummitReward } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -237,8 +238,8 @@ export default function AppLayout() {
     setIsMenuOpen(false)
   }
 
-  // Superadmin bez izabranog kluba može da vidi samo /superadmin (posle svih hook-ova)
-  if (isSuperadminNoClub && location.pathname !== '/superadmin') {
+  // Superadmin bez izabranog kluba: samo sekcija /superadmin/* (klubovi, ferate, hoteli…), ne ostatak aplikacije
+  if (isSuperadminNoClub && !location.pathname.startsWith('/superadmin')) {
     return <Navigate to="/superadmin" replace />
   }
 
@@ -317,12 +318,28 @@ export default function AppLayout() {
                     <NavLink to="/finansije" className={navLinkClass}>{t('finances')}</NavLink>
                   )}
                   {user?.role === 'superadmin' && (
-                    <NavLink to="/superadmin" className={navLinkClass}>{t('clubs')}</NavLink>
+                    <>
+                      <NavLink to="/superadmin" end className={navLinkClass}>{t('clubs')}</NavLink>
+                      <NavLink to="/superadmin/hoteli" className={navLinkClass}>
+                        {tHotels('title')}
+                      </NavLink>
+                    </>
                   )}
                 </nav>
                 )}
                 {isSuperadminNoClub && (
-                  <span className="hidden sm:block text-sm text-white/70">{t('chooseClub')}</span>
+                  <nav className="hidden md:flex flex-wrap items-center gap-1">
+                    <span className="mr-1 text-sm text-white/70">{t('chooseClub')}</span>
+                    <NavLink to="/superadmin" end className={navLinkClass}>
+                      {t('clubs')}
+                    </NavLink>
+                    <NavLink to="/superadmin/ferrate" className={navLinkClass}>
+                      {tFerrate('superadminTitle')}
+                    </NavLink>
+                    <NavLink to="/superadmin/hoteli" className={navLinkClass}>
+                      {tHotels('title')}
+                    </NavLink>
+                  </nav>
                 )}
                 {/* Superadmin sa izabranim klubom: prikaz "Ušao u: [naziv]" + Promeni klub */}
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
@@ -579,6 +596,45 @@ export default function AppLayout() {
           >
             <div className="max-h-[min(85vh,720px)] overflow-y-auto overscroll-contain border-t border-white/[0.06] bg-slate-800/80 backdrop-blur-xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
               <div className="flex flex-col gap-0.5 pb-1">
+                {user?.role === 'superadmin' && isSuperadminNoClub && (
+                  <div className="mb-2 flex flex-col gap-0.5 border-b border-white/10 pb-2">
+                    <p className="px-1 text-[12px] text-white/70">{t('chooseClub')}</p>
+                    <NavLink
+                      to="/superadmin"
+                      end
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {t('clubs')}
+                    </NavLink>
+                    <NavLink
+                      to="/superadmin/ferrate"
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {tFerrate('superadminTitle')}
+                    </NavLink>
+                    <NavLink
+                      to="/superadmin/hoteli"
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {tHotels('title')}
+                    </NavLink>
+                  </div>
+                )}
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
                   <div className="mb-2 pb-2 border-b border-white/10 flex flex-col gap-1.5">
                     <p className="text-[12px] text-white/70 font-medium">
@@ -668,17 +724,31 @@ export default function AppLayout() {
                   </NavLink>
                 )}
                 {user?.role === 'superadmin' && (
-                  <NavLink
-                    to="/superadmin"
-                    className={({ isActive }) =>
-                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                      }`
-                    }
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {t('clubs')}
-                  </NavLink>
+                  <>
+                    <NavLink
+                      to="/superadmin"
+                      end
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {t('clubs')}
+                    </NavLink>
+                    <NavLink
+                      to="/superadmin/hoteli"
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {tHotels('title')}
+                    </NavLink>
+                  </>
                 )}
                 </>
                 )}

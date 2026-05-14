@@ -1,20 +1,26 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Hotel — smeštaj u katalogu (lat/lng za kasnije „u okolini“); slug se generiše na serveru.
 type Hotel struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	Naziv     string    `gorm:"type:varchar(255);not null" json:"naziv"`
-	Slug      string    `gorm:"type:varchar(255);uniqueIndex;not null" json:"slug"`
-	Lat       float64   `gorm:"column:lat;not null" json:"lat"`
-	Lng       float64   `gorm:"column:lng;not null" json:"lng"`
-	Opis      string    `gorm:"type:text" json:"opis,omitempty"`
-	Adresa    string    `gorm:"type:varchar(400)" json:"adresa,omitempty"`
-	Telefon   string    `gorm:"type:varchar(80)" json:"telefon,omitempty"`
-	Status    string    `gorm:"type:varchar(20);default:'active';index" json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID           uint            `gorm:"primaryKey" json:"id"`
+	Naziv        string          `gorm:"type:varchar(255);not null" json:"naziv"`
+	Slug         string          `gorm:"type:varchar(255);uniqueIndex;not null" json:"slug"`
+	Lat          float64         `gorm:"column:lat;not null" json:"lat"`
+	Lng          float64         `gorm:"column:lng;not null" json:"lng"`
+	Opis         string          `gorm:"type:text" json:"opis,omitempty"`
+	Adresa       string          `gorm:"type:varchar(400)" json:"adresa,omitempty"`
+	Telefon      string          `gorm:"type:varchar(80)" json:"telefon,omitempty"`
+	SlikeJSON    json.RawMessage `gorm:"column:slike_json;type:jsonb" json:"-"`
+	BookingURL   string          `gorm:"column:booking_url;type:varchar(800)" json:"-"`
+	InstagramURL string          `gorm:"column:instagram_url;type:varchar(400)" json:"-"`
+	Status       string          `gorm:"type:varchar(20);default:'active';index" json:"status"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
 }
 
 func (Hotel) TableName() string {
