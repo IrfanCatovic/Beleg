@@ -233,19 +233,6 @@ export function FerrataHotelsSection(props: {
                   <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <span>{t('detailHotelDistance', { km: formatDistanceKm(active.distanceKm) })}</span>
                 </div>
-                {instagramHref && (
-                  <div className="flex items-start gap-2 text-sm text-gray-800">
-                    <InstagramGlyph className="mt-0.5 h-5 w-5 shrink-0" />
-                    <a
-                      href={instagramHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-emerald-800 hover:underline break-all"
-                    >
-                      {instagramHref.replace(/^https?:\/\/(www\.)?/, '')}
-                    </a>
-                  </div>
-                )}
                 {(active.telefon ?? '').trim() && (
                   <div className="flex items-start gap-2 text-sm text-gray-800">
                     <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />

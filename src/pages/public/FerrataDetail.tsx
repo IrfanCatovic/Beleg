@@ -57,12 +57,6 @@ type UpcomingRow = {
   prijavljeno: number
 }
 
-function formatHoursRange(min: number, max: number) {
-  const a = (min / 60).toFixed(1).replace(/\.0$/, '')
-  const b = (max / 60).toFixed(1).replace(/\.0$/, '')
-  return `${a}–${b}`
-}
-
 function normalizeOprema(raw: FerrataDTO['obaveznaOprema']): OpremaItem[] {
   if (!raw?.length) return []
   if (typeof raw[0] === 'string') return (raw as string[]).map((label) => ({ label }))
@@ -236,7 +230,14 @@ export default function FerrataDetail() {
                     { label: t('statsHarderOption'), value: f.tezinaOpcija || '—', icon: 'harder' as const },
                     { label: t('statsLength'), value: `${f.duzinaM} m`, icon: 'distance' as const },
                     { label: t('statsElevation'), value: `${f.visinskaRazlikaM} m`, icon: 'height' as const },
-                    { label: t('statsDuration'), value: `${formatHoursRange(f.trajanjeMin, f.trajanjeMax)} h`, icon: 'time' as const },
+                    {
+                      label: t('statsDuration'),
+                      value: t('cardDuration', {
+                        min: Math.round(f.trajanjeMin),
+                        max: Math.round(f.trajanjeMax),
+                      }),
+                      icon: 'time' as const,
+                    },
                   ] satisfies ReadonlyArray<{ label: string; value: string; icon: PlaninerIconName }>
                 ).map((card) => (
                   <div

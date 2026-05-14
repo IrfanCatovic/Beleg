@@ -49,12 +49,6 @@ function catalogGoogleMapsHref(markers: CatalogMapMarker[]): string {
   return `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}&z=7`
 }
 
-function formatDuration(min: number, max: number) {
-  const a = (min / 60).toFixed(1).replace(/\.0$/, '')
-  const b = (max / 60).toFixed(1).replace(/\.0$/, '')
-  return `${a}–${b}`
-}
-
 function difficultyBadgeClass(tezina: string) {
   const s = tezina.toUpperCase()
   if (s.includes('E')) return 'bg-zinc-900 text-white border-zinc-800'
@@ -298,7 +292,10 @@ export default function FerrataList() {
                           {t('cardLength', { m: f.duzinaM })}
                         </span>
                         <span className="inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700">
-                          {formatDuration(f.trajanjeMin, f.trajanjeMax)} h
+                          {t('cardDuration', {
+                            min: Math.round(f.trajanjeMin),
+                            max: Math.round(f.trajanjeMax),
+                          })}
                         </span>
                       </div>
                       <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-100 text-xs">
