@@ -159,6 +159,29 @@ func parseBoolWithDefault(raw string, fallback bool) bool {
 	return raw == "true" || raw == "1"
 }
 
+func trajanjeSatiFromFerrataMaxMinutes(maxMin int) float64 {
+	if maxMin <= 0 {
+		return 1
+	}
+	h := float64(maxMin) / 60.0
+	if h < 0.05 {
+		h = 0.05
+	}
+	return math.Round(h*100) / 100
+}
+
+// applyViaFerrataAkcijaDefaults: trajanje iz kataloga (max min → sati), jednodnevno, bez zimskog / visine vrha / mesta polaska.
+func applyViaFerrataAkcijaDefaults(akcija *models.Akcija, ft *models.Ferrata) {
+	if akcija == nil || ft == nil {
+		return
+	}
+	akcija.TrajanjeSati = trajanjeSatiFromFerrataMaxMinutes(ft.TrajanjeMax)
+	akcija.MestoPolaska = ""
+	akcija.BrojDana = 1
+	akcija.ZimskiUspon = false
+	akcija.VisinaVrhM = 0
+}
+
 func parseActionExtras(c *gin.Context, akcija *models.Akcija) (bool, string) {
 	tipAkcije := strings.TrimSpace(strings.ToLower(c.PostForm("tipAkcije")))
 	if tipAkcije == "" {
@@ -832,7 +855,10 @@ func CreateAkcija(c *gin.Context) {
 		}
 	}
 
-	zimskiUspon := strings.ToLower(strings.TrimSpace(zimskiUsponStr)) == "true"
+	zimskiUspon := false
+	if tipAkcije != "via_ferrata" {
+		zimskiUspon = strings.ToLower(strings.TrimSpace(zimskiUsponStr)) == "true"
+	}
 
 	var vodicID uint
 	if vodicIDStr != "" {
@@ -870,6 +896,13 @@ func CreateAkcija(c *gin.Context) {
 	if ok, errMsg := parseActionExtras(c, &akcija); !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
+	}
+
+	if tipAkcije == "via_ferrata" && ferrataIDPtr != nil {
+		var ftVia models.Ferrata
+		if err := db.First(&ftVia, *ferrataIDPtr).Error; err == nil {
+			applyViaFerrataAkcijaDefaults(&akcija, &ftVia)
+		}
 	}
 
 	if err := db.Create(&akcija).Error; err != nil {
@@ -936,6 +969,14 @@ func CreateAkcija(c *gin.Context) {
 		helpers.AddStorageUsage(db, clubIDForFolder, file.Size)
 		akcija.SlikaURL = uploadResult.SecureURL
 		db.Save(&akcija)
+	} else if tipAkcije == "via_ferrata" && ferrataIDPtr != nil {
+		var ftCover models.Ferrata
+		if err := db.First(&ftCover, *ferrataIDPtr).Error; err == nil {
+			if u := strings.TrimSpace(ftCover.CoverImage); u != "" {
+				akcija.SlikaURL = u
+				_ = db.Model(&akcija).Update("slika_url", u).Error
+			}
+		}
 	}
 
 	resp := gin.H{
@@ -1127,7 +1168,9 @@ func UpdateAkcija(c *gin.Context) {
 		akcija.TipAkcije = tipAkcije
 	}
 
-	if strings.TrimSpace(zimskiUsponStr) != "" {
+	if tipAkcije == "via_ferrata" {
+		akcija.ZimskiUspon = false
+	} else if strings.TrimSpace(zimskiUsponStr) != "" {
 		akcija.ZimskiUspon = strings.ToLower(strings.TrimSpace(zimskiUsponStr)) == "true"
 	}
 
@@ -1143,6 +1186,13 @@ func UpdateAkcija(c *gin.Context) {
 	if ok, errMsg := parseActionExtras(c, &akcija); !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
+	}
+
+	if tipAkcije == "via_ferrata" && akcija.FerrataID != nil {
+		var ftVia models.Ferrata
+		if err := db.First(&ftVia, *akcija.FerrataID).Error; err == nil {
+			applyViaFerrataAkcijaDefaults(&akcija, &ftVia)
+		}
 	}
 
 	if err := db.Save(&akcija).Error; err != nil {
@@ -1202,6 +1252,14 @@ func UpdateAkcija(c *gin.Context) {
 		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), akcija.SlikaURL)
 		akcija.SlikaURL = uploadResult.SecureURL
 		db.Save(&akcija)
+	} else if akcija.TipAkcije == "via_ferrata" && akcija.FerrataID != nil {
+		var ftCover models.Ferrata
+		if err := db.First(&ftCover, *akcija.FerrataID).Error; err == nil {
+			if u := strings.TrimSpace(ftCover.CoverImage); u != "" {
+				akcija.SlikaURL = u
+				_ = db.Model(&akcija).Update("slika_url", u).Error
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

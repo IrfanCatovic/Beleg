@@ -138,6 +138,8 @@ export default function EditAction() {
           drzava?: string
           duzinaM: number
           visinskaRazlikaM: number
+          trajanjeMin: number
+          trajanjeMax: number
         }>
         setFerrataCatalog(
           rows.map((r) => ({
@@ -147,6 +149,8 @@ export default function EditAction() {
             drzava: r.drzava,
             duzinaM: r.duzinaM,
             visinskaRazlikaM: r.visinskaRazlikaM,
+            trajanjeMin: Number(r.trajanjeMin ?? 0),
+            trajanjeMax: Number(r.trajanjeMax ?? 0),
           })),
         )
       } catch {
@@ -179,9 +183,12 @@ export default function EditAction() {
         }
         const ferrataIdStr = a.ferrataId ? String(a.ferrataId) : ''
 
+        const tip = a.tipAkcije || 'planina'
+        const isVia = tip === 'via_ferrata'
+
         setValues({
           naziv: a.naziv || '',
-          actionKind: a.tipAkcije || 'planina',
+          actionKind: tip,
           visibility: a.javna ? 'javna' : 'klubska',
           planina: a.planina || '',
           vrh: a.vrh || '',
@@ -193,33 +200,33 @@ export default function EditAction() {
           kumulativniUsponM: a.kumulativniUsponM != null ? String(a.kumulativniUsponM) : '',
           duzinaStazeKm: a.duzinaStazeKm != null ? String(a.duzinaStazeKm) : '',
           visinaVrhM: a.visinaVrhM != null ? String(a.visinaVrhM) : '',
-          zimskiUspon: a.zimskiUspon ?? false,
+          zimskiUspon: isVia ? false : (a.zimskiUspon ?? false),
           vodicId: a.vodicId ? String(a.vodicId) : '',
           drugiVodicCheck: !!a.drugiVodicIme,
           drugiVodicIme: a.drugiVodicIme || '',
           trajanjeSati: a.trajanjeSati != null ? String(a.trajanjeSati) : '',
           rokPrijava: rokPrijavaStr,
           maxLjudi: a.maxLjudi != null ? String(a.maxLjudi) : '',
-          mestoPolaska: a.mestoPolaska || '',
+          mestoPolaska: isVia ? '' : a.mestoPolaska || '',
           kontaktTelefon: a.kontaktTelefon || '',
-          brojDana: a.brojDana != null ? String(a.brojDana) : '1',
+          brojDana: isVia ? '1' : a.brojDana != null ? String(a.brojDana) : '1',
           cenaClan: a.cenaClan != null ? String(a.cenaClan) : '',
           cenaOstali: a.cenaOstali != null ? String(a.cenaOstali) : '',
           prikaziListuPrijavljenih: a.prikaziListuPrijavljenih ?? true,
           omoguciGrupniChat: a.omoguciGrupniChat ?? false,
-          smestaj: (a.smestaj || []).map((s) => ({
+          smestaj: isVia ? [] : (a.smestaj || []).map((s) => ({
             localId: `s-${s.id}`,
             naziv: s.naziv || '',
             cenaPoOsobiUkupno: String(s.cenaPoOsobiUkupno || 0),
             opis: s.opis || '',
           })),
-          oprema: (a.opremaRent || []).map((o) => ({
+          oprema: isVia ? [] : (a.opremaRent || []).map((o) => ({
             localId: `o-${o.id}`,
             naziv: o.nazivOpreme || '',
             dostupnaKolicina: String(o.dostupnaKolicina || 0),
             cenaPoSetu: String(o.cenaPoSetu || 0),
           })),
-          prevoz: (a.prevoz || []).map((p) => ({
+          prevoz: isVia ? [] : (a.prevoz || []).map((p) => ({
             localId: `p-${p.id}`,
             tipPrevoza: p.tipPrevoza || '',
             nazivGrupe: p.nazivGrupe || '',
@@ -287,6 +294,10 @@ export default function EditAction() {
       if (formValues.actionKind === 'via_ferrata') {
         formData.append('ferrataId', formValues.ferrataId.trim())
         formData.append('startAt', `${formValues.datum}T${formValues.vremePolaska.trim()}`)
+        formData.append('brojDana', '1')
+        formData.append('mestoPolaska', '')
+        formData.append('zimskiUspon', 'false')
+        formData.append('visinaVrhM', '0')
       }
       formData.append('opis', formValues.opis)
       formData.append('tezina', formValues.tezina)
@@ -296,7 +307,9 @@ export default function EditAction() {
       formData.append('zimskiUspon', String(formValues.zimskiUspon))
       formData.append('javna', String(formValues.visibility === 'javna'))
       formData.append('tipAkcije', formValues.actionKind)
-      formData.append('trajanjeSati', formValues.trajanjeSati)
+      if (formValues.actionKind === 'planina') {
+        formData.append('trajanjeSati', formValues.trajanjeSati)
+      }
       formData.append('rokPrijava', formValues.rokPrijava)
       formData.append('maxLjudi', formValues.maxLjudi)
       formData.append('mestoPolaska', formValues.mestoPolaska)
@@ -308,7 +321,7 @@ export default function EditAction() {
       formData.append('omoguciGrupniChat', String(formValues.omoguciGrupniChat))
       if (formValues.vodicId) formData.append('vodic_id', formValues.vodicId)
       if (formValues.drugiVodicCheck && formValues.drugiVodicIme.trim()) formData.append('drugi_vodic_ime', formValues.drugiVodicIme.trim())
-      if (image) formData.append('slika', image)
+      if (formValues.actionKind !== 'via_ferrata' && image) formData.append('slika', image)
 
       formData.append(
         'smestajJson',
@@ -392,7 +405,7 @@ export default function EditAction() {
             loading={loading}
             error={error}
             success={success}
-            imageHelpText={t('edit.imageKeepHint')}
+            imageHelpText={values.actionKind === 'via_ferrata' ? t('wizard.ferrata.coverFromCatalog') : t('edit.imageKeepHint')}
             ferrataCatalog={ferrataCatalog}
             onSubmit={handleSubmit}
           />

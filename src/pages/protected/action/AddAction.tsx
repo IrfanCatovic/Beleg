@@ -79,6 +79,8 @@ export default function AddAction() {
           drzava?: string
           duzinaM: number
           visinskaRazlikaM: number
+          trajanjeMin: number
+          trajanjeMax: number
         }>
         if (cancelled) return
         const catalog: WizardFerrataOption[] = rows.map((r) => ({
@@ -88,6 +90,8 @@ export default function AddAction() {
           drzava: r.drzava,
           duzinaM: r.duzinaM,
           visinskaRazlikaM: r.visinskaRazlikaM,
+          trajanjeMin: Number(r.trajanjeMin ?? 0),
+          trajanjeMax: Number(r.trajanjeMax ?? 0),
         }))
         setFerrataCatalog(catalog)
         const fid = searchParams.get('ferrata_id')
@@ -207,6 +211,10 @@ export default function AddAction() {
       if (values.actionKind === 'via_ferrata') {
         formData.append('ferrataId', values.ferrataId.trim())
         formData.append('startAt', `${values.datum}T${values.vremePolaska.trim()}`)
+        formData.append('brojDana', '1')
+        formData.append('mestoPolaska', '')
+        formData.append('zimskiUspon', 'false')
+        formData.append('visinaVrhM', '0')
       }
       formData.append('opis', values.opis)
       formData.append('tezina', values.tezina)
@@ -216,7 +224,9 @@ export default function AddAction() {
       formData.append('zimskiUspon', String(values.zimskiUspon))
       formData.append('javna', String(values.visibility === 'javna'))
       formData.append('tipAkcije', values.actionKind)
-      formData.append('trajanjeSati', values.trajanjeSati)
+      if (values.actionKind === 'planina') {
+        formData.append('trajanjeSati', values.trajanjeSati)
+      }
       formData.append('rokPrijava', values.rokPrijava)
       formData.append('maxLjudi', values.maxLjudi)
       formData.append('mestoPolaska', values.mestoPolaska)
@@ -228,7 +238,7 @@ export default function AddAction() {
       formData.append('omoguciGrupniChat', String(values.omoguciGrupniChat))
       if (values.vodicId) formData.append('vodic_id', values.vodicId)
       if (values.drugiVodicCheck && values.drugiVodicIme.trim()) formData.append('drugi_vodic_ime', values.drugiVodicIme.trim())
-      if (image) formData.append('slika', image)
+      if (values.actionKind !== 'via_ferrata' && image) formData.append('slika', image)
 
       formData.append(
         'smestajJson',

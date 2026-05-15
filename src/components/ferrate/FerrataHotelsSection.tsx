@@ -124,18 +124,18 @@ export function FerrataHotelsSection(props: {
 
   function renderHotelRows(items: HotelNearbyPublic[], baseIndex: number) {
     return (
-      <ul className="grid gap-3">
+      <ul className="grid min-w-0 gap-3">
         {items.map((h, i) => {
           const thumb = hotelThumb(h)
           const title = (h.naziv ?? '').trim() || t('detailHotelUnnamed')
           const km = formatDistanceKm(h.distanceKm)
           const ix = baseIndex + i
           return (
-            <li key={h.id}>
+            <li key={h.id} className="min-w-0">
               <button
                 type="button"
                 onClick={() => setOpenIx(ix)}
-                className="group flex w-full gap-3 overflow-hidden rounded-xl border border-emerald-100/90 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-200 hover:shadow-md"
+                className="group flex w-full min-w-0 max-w-full gap-3 overflow-hidden rounded-xl border border-emerald-100/90 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-200 hover:shadow-md"
               >
                 <div className="relative h-24 w-28 shrink-0 bg-gradient-to-br from-slate-100 to-emerald-50/50">
                   {thumb ? (
@@ -146,10 +146,10 @@ export function FerrataHotelsSection(props: {
                     </div>
                   )}
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center py-2 pr-3">
+                <div className="flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2 pr-3">
                   <p className="truncate text-sm font-bold text-gray-900 group-hover:text-emerald-900">{title}</p>
-                  <p className="mt-0.5 text-xs font-medium text-gray-600">{t('detailHotelDistanceShort', { km })}</p>
-                  <span className="mt-1.5 text-[11px] font-semibold text-emerald-700">{t('detailHotelOpenHint')} →</span>
+                  <p className="mt-0.5 truncate text-xs font-medium text-gray-600">{t('detailHotelDistanceShort', { km })}</p>
+                  <span className="mt-1.5 inline-flex min-w-0 max-w-full truncate text-[11px] font-semibold text-emerald-700">{t('detailHotelOpenHint')} →</span>
                 </div>
               </button>
             </li>
@@ -188,8 +188,8 @@ export function FerrataHotelsSection(props: {
           </div>
 
           <div className="space-y-5 p-4 sm:p-5">
-            <div className="flex gap-2 sm:gap-3">
-              <div className="relative min-h-[11rem] flex-1 overflow-hidden rounded-xl bg-gray-100 sm:min-h-[14rem]">
+            <div className="flex min-w-0 gap-2 sm:gap-3">
+              <div className="relative min-h-[11rem] min-w-0 flex-1 overflow-hidden rounded-xl bg-gray-100 sm:min-h-[14rem]">
                 {mainUrl ? (
                   <img src={mainUrl} alt="" className="h-full w-full min-h-[11rem] object-cover sm:min-h-[14rem]" />
                 ) : (
@@ -216,7 +216,7 @@ export function FerrataHotelsSection(props: {
               )}
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[1fr_min(280px,100%)] lg:items-start">
+            <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_min(280px,100%)] lg:items-start">
               <div className="min-w-0 space-y-2">
                 <h4 className="text-sm font-bold text-gray-900">
                   {t('detailHotelAboutTitle', { name: (active.naziv ?? '').trim() || t('detailHotelUnnamed') })}
@@ -228,7 +228,7 @@ export function FerrataHotelsSection(props: {
                 )}
               </div>
 
-              <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+              <div className="min-w-0 space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
                 <div className="flex items-start gap-2 text-sm text-gray-800">
                   <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <span>{t('detailHotelDistance', { km: formatDistanceKm(active.distanceKm) })}</span>
@@ -290,7 +290,7 @@ export function FerrataHotelsSection(props: {
   if (variant === 'sidebar') {
     return (
       <>
-        <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4 flex items-center gap-3">
             <PlaninerIcon name="stay" variant="solid" />
             <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailHotelsTitle')}</h2>
@@ -321,7 +321,7 @@ export function FerrataHotelsSection(props: {
 
   return (
     <>
-      <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+      <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center gap-3">
           <PlaninerIcon name="stay" variant="solid" />
           <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailHotelsTitle')}</h2>

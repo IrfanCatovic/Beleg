@@ -266,7 +266,7 @@ export default function FerrataDetail() {
 
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 space-y-8 lg:space-y-10">
             {/* Red 1: O ferati | Planiraj polazak */}
-            <div className={`grid gap-6 items-stretch ${hasAbout ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
+            <div className={`grid gap-6 items-stretch ${hasAbout ? 'lg:grid-cols-[1fr_minmax(0,340px)]' : 'lg:grid-cols-1'}`}>
               {hasAbout && (
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
                   <div className="mb-2 flex items-center gap-3">
@@ -316,7 +316,7 @@ export default function FerrataDetail() {
 
             {/* Red 2: Zašto ići | hoteli u okolini (sa pina ferate) */}
             {hasWhy && (
-              <div className={`grid gap-6 items-stretch ${hasMapCoords ? 'lg:grid-cols-[1fr_340px]' : 'lg:grid-cols-1'}`}>
+              <div className={`grid gap-6 items-stretch ${hasMapCoords ? 'lg:grid-cols-[1fr_minmax(0,340px)]' : 'lg:grid-cols-1'}`}>
                 <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
                   <div className="mb-4 flex items-center gap-3">
                     <PlaninerIcon name="why" variant="solid" />
@@ -338,7 +338,7 @@ export default function FerrataDetail() {
             )}
 
             {/* Red 3: mapa, okolina, oprema, kontakti | nadolazeće, savet, lokalni vodiči */}
-            <div className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start">
+            <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,340px)] lg:items-start">
               <div className="space-y-6">
                 {hasMapCoords && (
                   <FerrataDetailMapCard
