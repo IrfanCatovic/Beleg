@@ -3,6 +3,9 @@ export type GeocodeResult = {
   label: string
   lat: number
   lng: number
+  country?: string
+  region?: string
+  city?: string
 }
 
 /** Ugovor za zamenu Nominatim-a drugim providerom. */

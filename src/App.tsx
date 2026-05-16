@@ -41,6 +41,8 @@ import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
 import SuperadminFerratas from './pages/protected/SuperadminFerratas'
 import SuperadminFerrataGallery from './pages/protected/SuperadminFerrataGallery'
 import SuperadminHotels from './pages/protected/SuperadminHotels'
+import SuperadminGuideProfiles from './pages/protected/SuperadminGuideProfiles'
+import BecomeGuideWizard from './pages/protected/guide/BecomeGuideWizard'
 import Klub from './pages/protected/Klub'
 import EnterClubInviteCode from './pages/public/EnterClubInviteCode'
 import RegisterMemberByInvite from './pages/public/RegisterMemberByInvite'
@@ -146,6 +148,7 @@ const router = createBrowserRouter([
 
           { path: '/profil/podesavanja', element: <ProfileSettings /> },
           { path: '/profil/podesavanja/:id', element: <ProfileSettings /> },
+          { path: '/profil/postani-vodic', element: <BecomeGuideWizard /> },
 
           // Lista korisnika  svi ulogovani
           { path: '/users', element: <Users /> },
@@ -196,6 +199,7 @@ const router = createBrowserRouter([
               { path: '/superadmin/ferrate', element: <SuperadminFerratas /> },
               { path: '/superadmin/ferrate/:ferrataId/galerija', element: <SuperadminFerrataGallery /> },
               { path: '/superadmin/hoteli', element: <SuperadminHotels /> },
+              { path: '/superadmin/vodici-profiles', element: <SuperadminGuideProfiles /> },
             ],
           },
         ],

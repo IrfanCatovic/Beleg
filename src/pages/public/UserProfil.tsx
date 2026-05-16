@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
@@ -97,6 +98,7 @@ function useIsMdUpForCover() {
 
 export default function UserProfile() {
   const { t, i18n } = useTranslation('userProfile')
+  const { t: tGuide } = useTranslation('guideProfiles')
   const { id, username } = useParams<{ id?: string; username?: string }>()
   const { user: currentUser } = useAuth()
   const navigate = useNavigate()
@@ -125,6 +127,7 @@ export default function UserProfile() {
   const [followModalMode, setFollowModalMode] = useState<'following' | 'followers'>('following')
   const [followModalUsers, setFollowModalUsers] = useState<FollowListUser[]>([])
   const [followModalLoading, setFollowModalLoading] = useState(false)
+  const [myGuideProfile, setMyGuideProfile] = useState<GuideProfile | null | undefined>(undefined)
 
   const rank = useRanking({
     uspesneAkcije: akcije,
@@ -244,6 +247,25 @@ export default function UserProfile() {
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
   const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
+  const showProfiGuideBadge = isOwn && myGuideProfile?.status === 'approved'
+
+  useEffect(() => {
+    if (!isOwn || !currentUser) {
+      setMyGuideProfile(undefined)
+      return
+    }
+    let cancelled = false
+    void getMyGuideProfile()
+      .then((gp) => {
+        if (!cancelled) setMyGuideProfile(gp)
+      })
+      .catch(() => {
+        if (!cancelled) setMyGuideProfile(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isOwn, currentUser])
 
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -809,6 +831,11 @@ export default function UserProfile() {
                     <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                       {getRoleLabel(korisnik.role)}
                     </span>
+                    {showProfiGuideBadge && (
+                      <span className="inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {tGuide('profiGuideBadge')}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -844,6 +871,9 @@ export default function UserProfile() {
                     <span className="truncate">{korisnik.klubNaziv}</span>
                   </span>
                 </div>
+              )}
+              {isOwn && myGuideProfile !== undefined && (
+                <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
               )}
             </div>
 
@@ -888,6 +918,11 @@ export default function UserProfile() {
                         {getRoleLabel(korisnik.role)}
                       </span>
                     )}
+                    {showProfiGuideBadge && (
+                      <span className="inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {tGuide('profiGuideBadge')}
+                      </span>
+                    )}
                     {korisnik.klubNaziv && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
                         {korisnik.klubLogoUrl ? (
@@ -928,6 +963,9 @@ export default function UserProfile() {
                       </a>
                     )}
                   </div>
+                )}
+                {isOwn && myGuideProfile !== undefined && (
+                  <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} className="mt-3" />
                 )}
               </div>
 
@@ -1103,6 +1141,64 @@ export default function UserProfile() {
 /* ═══════════════════════════════════════════════════════════════════════
    Sub-components
    ═══════════════════════════════════════════════════════════════════════ */
+
+function GuideOwnProfileCta({
+  guideProfile,
+  tGuide,
+  className = 'mt-3',
+}: {
+  guideProfile: GuideProfile | null
+  tGuide: TFunction
+  className?: string
+}) {
+  if (!guideProfile) {
+    return (
+      <div className={className}>
+        <Link
+          to="/profil/postani-vodic"
+          className="inline-flex items-center justify-center rounded-xl border-2 border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition"
+        >
+          {tGuide('becomeGuide')}
+        </Link>
+      </div>
+    )
+  }
+  if (guideProfile.status === 'pending') {
+    return (
+      <div className={`${className} rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900`}>
+        <p className="font-semibold">{tGuide('status.pendingTitle')}</p>
+        <p className="mt-0.5 text-amber-800">{tGuide('status.pendingBody')}</p>
+      </div>
+    )
+  }
+  if (guideProfile.status === 'rejected') {
+    return (
+      <div className={`${className} space-y-2`}>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
+          <p className="font-semibold">{tGuide('status.rejectedTitle')}</p>
+          {guideProfile.razlogOdbijanja && (
+            <p className="mt-1 whitespace-pre-wrap">{guideProfile.razlogOdbijanja}</p>
+          )}
+        </div>
+        <Link
+          to="/profil/postani-vodic"
+          className="inline-flex items-center justify-center rounded-xl border-2 border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition"
+        >
+          {tGuide('status.resubmit')}
+        </Link>
+      </div>
+    )
+  }
+  if (guideProfile.status === 'suspended') {
+    return (
+      <div className={`${className} rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700`}>
+        <p className="font-semibold">{tGuide('status.suspendedTitle')}</p>
+        <p className="mt-0.5">{tGuide('status.suspendedBody')}</p>
+      </div>
+    )
+  }
+  return null
+}
 
 function StatCell({ value, unit, label, accent }: { value: string; unit?: string; label: string; accent: string }) {
   return (

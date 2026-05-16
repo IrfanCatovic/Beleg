@@ -1,10 +1,12 @@
 import { ferrateTranslations } from './ferrate'
 import { hotelsTranslations } from './hotels'
+import { guideProfilesTranslations } from './guideProfiles'
 
 export const resources = {
   sr: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -2103,6 +2105,7 @@ export const resources = {
   bs: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -3784,6 +3787,7 @@ export const resources = {
   hr: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
     common: {
       appName: 'Planiner',
       language: 'Jezik',
@@ -5305,6 +5309,7 @@ export const resources = {
   de: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
     common: {
       appName: 'Planiner',
       language: 'Sprache',
@@ -6827,6 +6832,7 @@ export const resources = {
   en: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
     common: {
       appName: 'Planiner',
       language: 'Language',
@@ -8348,6 +8354,7 @@ export const resources = {
   sl: {
     ferrate: ferrateTranslations,
     hotels: hotelsTranslations,
+    guideProfiles: guideProfilesTranslations,
   "common": {
     "appName": "Planiner",
     "language": "Jezik",

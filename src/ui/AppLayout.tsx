@@ -44,6 +44,7 @@ export default function AppLayout() {
   const { t: tCommon } = useTranslation('common')
   const { t: tFerrate } = useTranslation('ferrate')
   const { t: tHotels } = useTranslation('hotels')
+  const { t: tGuides } = useTranslation('guideProfiles')
   const { logout, user, isLoggedIn, pendingSummitReward, clearPendingSummitReward } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -323,6 +324,9 @@ export default function AppLayout() {
                       <NavLink to="/superadmin/hoteli" className={navLinkClass}>
                         {tHotels('title')}
                       </NavLink>
+                      <NavLink to="/superadmin/vodici-profiles" className={navLinkClass}>
+                        {tGuides('superadmin.nav')}
+                      </NavLink>
                     </>
                   )}
                 </nav>
@@ -338,6 +342,9 @@ export default function AppLayout() {
                     </NavLink>
                     <NavLink to="/superadmin/hoteli" className={navLinkClass}>
                       {tHotels('title')}
+                    </NavLink>
+                    <NavLink to="/superadmin/vodici-profiles" className={navLinkClass}>
+                      {tGuides('superadmin.nav')}
                     </NavLink>
                   </nav>
                 )}
@@ -633,6 +640,17 @@ export default function AppLayout() {
                     >
                       {tHotels('title')}
                     </NavLink>
+                    <NavLink
+                      to="/superadmin/vodici-profiles"
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {tGuides('superadmin.nav')}
+                    </NavLink>
                   </div>
                 )}
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
@@ -747,6 +765,17 @@ export default function AppLayout() {
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {tHotels('title')}
+                    </NavLink>
+                    <NavLink
+                      to="/superadmin/vodici-profiles"
+                      className={({ isActive }) =>
+                        `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                          isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                        }`
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {tGuides('superadmin.nav')}
                     </NavLink>
                   </>
                 )}

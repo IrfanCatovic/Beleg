@@ -35,4 +35,10 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.POST("/superadmin/hotels/:id/gallery", handlers.SuperadminUploadHotelGallery)
 	g.PUT("/superadmin/hotels/:id", handlers.SuperadminUpdateHotel)
 	g.DELETE("/superadmin/hotels/:id", handlers.SuperadminDeleteHotel)
+
+	g.GET("/superadmin/guide-profiles", handlers.SuperadminListGuideProfiles)
+	g.GET("/superadmin/guide-profiles/pending", handlers.SuperadminListPendingGuideProfiles)
+	g.PUT("/superadmin/guide-profiles/:id/approve", handlers.SuperadminApproveGuideProfile)
+	g.PUT("/superadmin/guide-profiles/:id/reject", handlers.SuperadminRejectGuideProfile)
+	g.PUT("/superadmin/guide-profiles/:id/suspend", handlers.SuperadminSuspendGuideProfile)
 }
