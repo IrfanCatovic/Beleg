@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PhoneIcon, UserIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline'
+import { StarIcon } from '@heroicons/react/24/solid'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { listGuidesNearby, type GuideNearbyPublic } from '../../services/guidesPublic'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
 import { ProfiGuideBadge } from '../guides/ProfiGuideBadge'
@@ -12,12 +14,14 @@ function formatDistanceKm(km: number | undefined): string {
   return String(rounded).replace(/\.0$/, '')
 }
 
-function displayName(g: GuideNearbyPublic): string {
-  return (g.user?.fullName || g.naslov || g.user?.username || '').trim() || '—'
+function formatRating(avg: number | undefined): string {
+  if (avg == null || !Number.isFinite(avg)) return '—'
+  const rounded = Math.round(avg * 10) / 10
+  return String(rounded).replace(/\.0$/, '')
 }
 
-function locationLabel(g: GuideNearbyPublic): string {
-  return [g.grad, g.region, g.drzava].filter((x) => x?.trim()).join(', ')
+function displayName(g: GuideNearbyPublic): string {
+  return (g.user?.fullName || g.naslov || g.user?.username || '').trim() || '—'
 }
 
 function telHref(phone: string): string {
@@ -25,10 +29,104 @@ function telHref(phone: string): string {
   return digits ? `tel:${digits}` : `tel:${phone.trim()}`
 }
 
-function truncateOpis(text: string, max = 120): string {
-  const s = text.trim()
-  if (s.length <= max) return s
-  return `${s.slice(0, max).trim()}…`
+function GuideNearbyCard({
+  guide: g,
+  t,
+  tGuide,
+}: {
+  guide: GuideNearbyPublic
+  t: TFunction<'ferrate'>
+  tGuide: TFunction<'guideProfiles'>
+}) {
+  const name = displayName(g)
+  const km = formatDistanceKm(g.distanceKm)
+  const username = g.user?.username
+  const avatar = g.user?.avatarUrl?.trim()
+  const phone = g.user?.telefon?.trim()
+  const tourTypes = (g.tourTypes ?? []).slice(0, 4)
+  const hasRating = (g.brojOcena ?? 0) > 0
+  const toursCount = g.brojVodjenihTura ?? 0
+  const showStats = hasRating || toursCount > 0
+
+  return (
+    <li className="min-w-0 list-none">
+      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-100 hover:shadow-md">
+        <div className="flex gap-3">
+          <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 ring-1 ring-gray-100/80">
+            {avatar ? (
+              <img src={avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-emerald-300">
+                <UserIcon className="h-9 w-9" />
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="truncate text-sm font-bold text-gray-900">{name}</p>
+              <ProfiGuideBadge size={20} className="shrink-0" />
+            </div>
+
+            <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-gray-500">
+              <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
+              <span className="truncate">{t('detailGuideDistanceShort', { km })}</span>
+            </p>
+
+            {showStats && (
+              <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-semibold text-gray-800">
+                {hasRating && (
+                  <>
+                    <StarIcon className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
+                    <span>{formatRating(g.prosecnaOcena)}</span>
+                  </>
+                )}
+                {hasRating && toursCount > 0 && <span className="font-normal text-gray-400">•</span>}
+                {toursCount > 0 && (
+                  <span className="font-medium text-gray-600">
+                    {t('detailGuideToursCount', { count: toursCount })}
+                  </span>
+                )}
+              </p>
+            )}
+
+            {tourTypes.length > 0 && (
+              <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
+                {tourTypes.map((tt) => tGuide(`tourTypes.${tt}` as never)).join(' • ')}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+          {phone ? (
+            <a
+              href={telHref(phone)}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-emerald-700"
+            >
+              <PhoneIcon className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+              <span className="truncate">{phone}</span>
+            </a>
+          ) : (
+            <span className="flex-1" aria-hidden />
+          )}
+
+          {username ? (
+            <Link
+              to={`/korisnik/${username}`}
+              className="inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+            >
+              {t('detailGuideViewProfile')}
+              <span aria-hidden>→</span>
+            </Link>
+          ) : (
+            <span className="text-xs font-bold text-emerald-700">{t('detailGuideViewProfile')} →</span>
+          )}
+        </div>
+      </div>
+    </li>
+  )
 }
 
 export function FerrataGuidesSection(props: {
@@ -82,88 +180,6 @@ export function FerrataGuidesSection(props: {
 
   const visibleList = expanded ? list : list.slice(0, 2)
 
-  function renderGuideRows(items: GuideNearbyPublic[]) {
-    return (
-      <ul className="grid min-w-0 gap-3">
-        {items.map((g) => {
-          const name = displayName(g)
-          const km = formatDistanceKm(g.distanceKm)
-          const loc = locationLabel(g)
-          const username = g.user?.username
-          const avatar = g.user?.avatarUrl?.trim()
-          const tourTypes = (g.tourTypes ?? []).slice(0, 3)
-
-          const cardInner = (
-            <>
-              <div className="relative h-24 w-28 shrink-0 bg-gradient-to-br from-emerald-50 to-teal-50">
-                {avatar ? (
-                  <img src={avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-emerald-300">
-                    <UserIcon className="h-10 w-10" />
-                  </div>
-                )}
-                <div className="absolute -bottom-1 -right-1">
-                  <ProfiGuideBadge size={22} />
-                </div>
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2 pr-3">
-                <p className="truncate text-sm font-bold text-gray-900 group-hover:text-emerald-900">{name}</p>
-                {(g.brojOcena ?? 0) > 0 && (
-                  <p className="mt-0.5 text-[11px] font-semibold text-amber-700">
-                    {t('detailGuideRatingShort', {
-                      avg: String(g.prosecnaOcena ?? 0).replace(/\.0$/, ''),
-                      count: g.brojOcena,
-                    })}
-                  </p>
-                )}
-                <p className="mt-0.5 truncate text-xs font-medium text-gray-600">
-                  {t('detailGuideDistanceShort', { km })}
-                  {loc ? ` · ${loc}` : ''}
-                </p>
-                {tourTypes.length > 0 && (
-                  <p className="mt-1 truncate text-[10px] font-semibold text-emerald-800">
-                    {tourTypes.map((tt) => tGuide(`tourTypes.${tt}` as never)).join(' · ')}
-                  </p>
-                )}
-                {g.opis?.trim() && (
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-gray-500">{truncateOpis(g.opis)}</p>
-                )}
-                <span className="mt-1.5 inline-flex text-[11px] font-semibold text-emerald-700">
-                  {t('detailGuideViewProfile')} →
-                </span>
-              </div>
-            </>
-          )
-
-          const cardClass =
-            'group flex w-full min-w-0 max-w-full gap-3 overflow-hidden rounded-xl border border-emerald-100/90 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-200 hover:shadow-md'
-
-          return (
-            <li key={g.id} className="min-w-0">
-              {username ? (
-                <Link to={`/korisnik/${username}`} className={cardClass}>
-                  {cardInner}
-                </Link>
-              ) : (
-                <div className={cardClass.replace('group ', '')}>{cardInner}</div>
-              )}
-              {g.user?.telefon?.trim() && (
-                <a
-                  href={telHref(g.user.telefon)}
-                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 hover:text-emerald-700"
-                >
-                  <PhoneIcon className="h-3.5 w-3.5" />
-                  {g.user.telefon}
-                </a>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    )
-  }
-
   return (
     <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center gap-3">
@@ -174,7 +190,11 @@ export function FerrataGuidesSection(props: {
       {!loading && list.length === 0 && <p className="text-sm text-gray-500">{t('detailGuidesEmpty')}</p>}
       {!loading && list.length > 0 && (
         <>
-          {renderGuideRows(visibleList)}
+          <ul className="grid min-w-0 gap-3">
+            {visibleList.map((g) => (
+              <GuideNearbyCard key={g.id} guide={g} t={t} tGuide={tGuide} />
+            ))}
+          </ul>
           {list.length > 2 && (
             <button
               type="button"

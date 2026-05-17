@@ -121,6 +121,7 @@ export const ferrateTranslations = {
   detailGuideDistanceShort: '{{km}} km od ferate',
   detailGuideViewProfile: 'Pogledaj profil',
   detailGuideRatingShort: '{{avg}} · {{count}} ocena',
+  detailGuideToursCount: '{{count}} tura',
   detailGuideLanguages: 'Jezici: {{list}}',
   detailLocalGuidesSoon: 'Uskoro — profili i direktan kontakt sa lokalnim vodičima dolaze ovde.',
   detailLocalGuidesBadge: 'Uskoro',

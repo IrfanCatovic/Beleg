@@ -13,6 +13,7 @@ export type GuideNearbyPublic = {
   tourTypes: string[]
   prosecnaOcena?: number
   brojOcena?: number
+  brojVodjenihTura?: number
   distanceKm?: number
   user?: {
     id: number
