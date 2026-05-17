@@ -24,6 +24,8 @@ import AccommodationCard from '../../components/action-details/AccommodationCard
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
 import FinishActionFinanceModal from '../../components/action-details/FinishActionFinanceModal'
+import { GuideRatingModal } from '../../components/action-details/GuideRatingModal'
+import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '../../services/guideRatings'
 
 interface Akcija {
   id: number
@@ -214,6 +216,11 @@ export default function ActionDetails() {
   const [bulkPaymentSubmitting, setBulkPaymentSubmitting] = useState(false)
   const [bulkSelectedPaymentIds, setBulkSelectedPaymentIds] = useState<Set<number>>(new Set())
   const [finishFinanceModalOpen, setFinishFinanceModalOpen] = useState(false)
+  const [guideRatingOpen, setGuideRatingOpen] = useState(false)
+  const [guideRatingSubmitted, setGuideRatingSubmitted] = useState(false)
+  const [guideRatingSkipped, setGuideRatingSkipped] = useState(false)
+  const [guideRatingSaving, setGuideRatingSaving] = useState(false)
+  const [guideRatingChecked, setGuideRatingChecked] = useState(false)
   const [externalScope, setExternalScope] = useState<'other-clubs' | 'no-club'>('other-clubs')
   const [externalSearch, setExternalSearch] = useState('')
   const [externalCandidates, setExternalCandidates] = useState<ExternalUserCandidate[]>([])
@@ -368,6 +375,46 @@ export default function ActionDetails() {
       cancelled = true
     }
   }, [id, user])
+
+  useEffect(() => {
+    if (!user || !id || !akcija?.isCompleted) {
+      setGuideRatingChecked(false)
+      return
+    }
+    if (mojaPrijava?.status !== 'popeo se') {
+      setGuideRatingChecked(false)
+      return
+    }
+    const vodicId = akcija.vodicId ?? 0
+    if (vodicId <= 0) {
+      setGuideRatingChecked(true)
+      return
+    }
+    if (akcija.vodic?.username && akcija.vodic.username === user.username) {
+      setGuideRatingChecked(true)
+      return
+    }
+    const skipKey = `guide-rating-skip-${id}`
+    if (sessionStorage.getItem(skipKey) === '1') {
+      setGuideRatingSkipped(true)
+      setGuideRatingChecked(true)
+      return
+    }
+    let cancelled = false
+    void fetchMyGuideRatingForAction(Number(id))
+      .then((res) => {
+        if (cancelled) return
+        if (res.submitted) setGuideRatingSubmitted(true)
+        else setGuideRatingOpen(true)
+        setGuideRatingChecked(true)
+      })
+      .catch(() => {
+        if (!cancelled) setGuideRatingChecked(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user, id, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, mojaPrijava?.status])
 
   useEffect(() => {
     if (!user) return
@@ -1217,6 +1264,38 @@ export default function ActionDetails() {
   const showSummitImageCard = !!user
   const canClaimSummitReward =
     !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
+
+  const guideRatingGuideName = akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'Vodič'
+  const canShowGuideRatingPrompt =
+    !!user &&
+    !!akcija?.isCompleted &&
+    mojaPrijava?.status === 'popeo se' &&
+    (akcija.vodicId ?? 0) > 0 &&
+    akcija.vodic?.username !== user.username &&
+    guideRatingChecked &&
+    !guideRatingSubmitted
+
+  const handleGuideRatingSubmit = async (payload: { ocena?: number; komentar?: string }) => {
+    if (!id) return
+    setGuideRatingSaving(true)
+    try {
+      await submitGuideRatingForAction(Number(id), payload)
+      setGuideRatingSubmitted(true)
+      setGuideRatingOpen(false)
+      await showAlert(t('guideRatingThanks'), t('guideRatingTitle'))
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      await showAlert(msg || t('guideRatingError'), t('errorTitle'))
+    } finally {
+      setGuideRatingSaving(false)
+    }
+  }
+
+  const handleGuideRatingSkip = () => {
+    if (id) sessionStorage.setItem(`guide-rating-skip-${id}`, '1')
+    setGuideRatingSkipped(true)
+    setGuideRatingOpen(false)
+  }
 
   const closeSummitShareModal = () => {
     setSummitShareOpen(false)
@@ -2602,8 +2681,8 @@ export default function ActionDetails() {
               </div>
             </div>
 
-            {/* ════════ ROW 5: Summit share + Admin ════════ */}
-            {(showSummitImageCard || (canManageHost && !isLimitedView)) && (
+            {/* ════════ ROW 5: Summit share + ocena vodiča + Admin ════════ */}
+            {(showSummitImageCard || canShowGuideRatingPrompt || guideRatingSubmitted || (canManageHost && !isLimitedView)) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {showSummitImageCard && (
                   <div className="lg:order-1 bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden ring-1 ring-emerald-500/10">
@@ -2626,6 +2705,34 @@ export default function ActionDetails() {
                         {t('summitShareButton')}
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {canShowGuideRatingPrompt && (
+                  <div className="bg-white rounded-3xl border border-amber-100 shadow-sm overflow-hidden ring-1 ring-amber-500/10">
+                    <div className="px-5 py-4 border-b border-amber-50 bg-gradient-to-r from-amber-50/80 to-emerald-50/40 flex items-center gap-2.5">
+                      <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-amber-500" />
+                      <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('guideRatingCardTitle')}</h3>
+                    </div>
+                    <div className="p-5 space-y-3">
+                      <p className="text-[12px] text-gray-600 leading-relaxed">
+                        {t('guideRatingCardHint', { name: guideRatingGuideName })}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setGuideRatingOpen(true)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 shadow-md shadow-amber-200/50 transition-all"
+                      >
+                        {t('guideRatingCardButton')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {guideRatingSubmitted && (
+                  <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden p-5">
+                    <p className="text-sm font-bold text-emerald-900">{t('guideRatingAlreadyTitle')}</p>
+                    <p className="mt-1 text-xs text-gray-600">{t('guideRatingAlreadyHint')}</p>
                   </div>
                 )}
 
@@ -2724,6 +2831,15 @@ export default function ActionDetails() {
 
         </div>
       </div>
+
+      <GuideRatingModal
+        open={guideRatingOpen && canShowGuideRatingPrompt}
+        guideName={guideRatingGuideName}
+        saving={guideRatingSaving}
+        onClose={() => setGuideRatingOpen(false)}
+        onSkip={handleGuideRatingSkip}
+        onSubmit={handleGuideRatingSubmit}
+      />
 
       {summitShareOpen && (
         <div
