@@ -253,12 +253,13 @@ func GetPosts(c *gin.Context) {
 	}
 
 	type UserDTO struct {
-		ID        uint   `json:"id"`
-		Username  string `json:"username"`
-		FullName  string `json:"fullName"`
-		AvatarURL string `json:"avatarUrl,omitempty"`
-		Role      string `json:"role"`
-		KlubNaziv string `json:"klubNaziv,omitempty"`
+		ID           uint   `json:"id"`
+		Username     string `json:"username"`
+		FullName     string `json:"fullName"`
+		AvatarURL    string `json:"avatarUrl,omitempty"`
+		Role         string `json:"role"`
+		KlubNaziv    string `json:"klubNaziv,omitempty"`
+		IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 	}
 
 	type PostDTO struct {
@@ -272,6 +273,14 @@ func GetPosts(c *gin.Context) {
 		MyLiked      bool    `json:"myLiked"`
 	}
 
+	postUserIDs := make([]uint, 0, len(posts))
+	for _, p := range posts {
+		if p.User != nil && p.User.ID != 0 {
+			postUserIDs = append(postUserIDs, p.User.ID)
+		}
+	}
+	postProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, postUserIDs)
+
 	out := make([]PostDTO, 0, len(posts))
 	for _, p := range posts {
 		u := UserDTO{}
@@ -281,6 +290,7 @@ func GetPosts(c *gin.Context) {
 			u.FullName = p.User.FullName
 			u.AvatarURL = p.User.AvatarURL
 			u.Role = p.User.Role
+			u.IsProfiGuide = postProfiSet[p.User.ID]
 			if p.User.Klub != nil {
 				u.KlubNaziv = p.User.Klub.Naziv
 			}
@@ -353,12 +363,13 @@ func GetPost(c *gin.Context) {
 	}
 
 	type UserDTO struct {
-		ID        uint   `json:"id"`
-		Username  string `json:"username"`
-		FullName  string `json:"fullName"`
-		AvatarURL string `json:"avatarUrl,omitempty"`
-		Role      string `json:"role"`
-		KlubNaziv string `json:"klubNaziv,omitempty"`
+		ID           uint   `json:"id"`
+		Username     string `json:"username"`
+		FullName     string `json:"fullName"`
+		AvatarURL    string `json:"avatarUrl,omitempty"`
+		Role         string `json:"role"`
+		KlubNaziv    string `json:"klubNaziv,omitempty"`
+		IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 	}
 	u := UserDTO{}
 	if post.User != nil {
@@ -367,6 +378,7 @@ func GetPost(c *gin.Context) {
 		u.FullName = post.User.FullName
 		u.AvatarURL = post.User.AvatarURL
 		u.Role = post.User.Role
+		u.IsProfiGuide = helpers.KorisnikIsApprovedProfiGuide(db, post.User.ID)
 		if post.User.Klub != nil {
 			u.KlubNaziv = post.User.Klub.Naziv
 		}
@@ -559,12 +571,13 @@ func CreatePost(c *gin.Context) {
 		"commentCount": int64(0),
 		"myLiked":      false,
 		"user": gin.H{
-			"id":        post.User.ID,
-			"username":  post.User.Username,
-			"fullName":  post.User.FullName,
-			"avatarUrl": post.User.AvatarURL,
-			"role":      post.User.Role,
-			"klubNaziv": klubNaziv,
+			"id":           post.User.ID,
+			"username":     post.User.Username,
+			"fullName":     post.User.FullName,
+			"avatarUrl":    post.User.AvatarURL,
+			"role":         post.User.Role,
+			"klubNaziv":    klubNaziv,
+			"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, post.User.ID),
 		},
 	}})
 }
@@ -916,10 +929,11 @@ func GetPostComments(c *gin.Context) {
 	}
 
 	type CommentUserDTO struct {
-		ID        uint   `json:"id"`
-		Username  string `json:"username"`
-		FullName  string `json:"fullName"`
-		AvatarURL string `json:"avatarUrl,omitempty"`
+		ID           uint   `json:"id"`
+		Username     string `json:"username"`
+		FullName     string `json:"fullName"`
+		AvatarURL    string `json:"avatarUrl,omitempty"`
+		IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 	}
 
 	type CommentDTO struct {
@@ -929,15 +943,24 @@ func GetPostComments(c *gin.Context) {
 		User      CommentUserDTO `json:"user"`
 	}
 
+	commentUserIDs := make([]uint, 0, len(comments))
+	for _, cm := range comments {
+		if cm.User != nil && cm.User.ID != 0 {
+			commentUserIDs = append(commentUserIDs, cm.User.ID)
+		}
+	}
+	commentProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, commentUserIDs)
+
 	out := make([]CommentDTO, 0, len(comments))
 	for _, cm := range comments {
 		u := CommentUserDTO{}
 		if cm.User != nil {
 			u = CommentUserDTO{
-				ID:        cm.User.ID,
-				Username:  cm.User.Username,
-				FullName:  cm.User.FullName,
-				AvatarURL: cm.User.AvatarURL,
+				ID:           cm.User.ID,
+				Username:     cm.User.Username,
+				FullName:     cm.User.FullName,
+				AvatarURL:    cm.User.AvatarURL,
+				IsProfiGuide: commentProfiSet[cm.User.ID],
 			}
 		}
 
@@ -1054,10 +1077,11 @@ func CreatePostComment(c *gin.Context) {
 			"content":   comment.Content,
 			"createdAt": comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			"user": gin.H{
-				"id":        comment.User.ID,
-				"username":  comment.User.Username,
-				"fullName":  comment.User.FullName,
-				"avatarUrl": comment.User.AvatarURL,
+				"id":           comment.User.ID,
+				"username":     comment.User.Username,
+				"fullName":     comment.User.FullName,
+				"avatarUrl":    comment.User.AvatarURL,
+				"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, comment.User.ID),
 			},
 		},
 	})

@@ -4,6 +4,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { useGlobalSearch, type SearchKorisnik, type SearchAkcija, type SearchTransakcija } from '../hooks/useGlobalSearch'
 import { formatDateShort } from '../utils/dateUtils'
 import { useTranslation } from 'react-i18next'
+import { UserNameWithProfiBadge } from './users/UserNameWithProfiBadge'
 
 type SearchTab = 'clanovi' | 'akcije' | 'finansije'
 
@@ -73,7 +74,9 @@ function ResultListClanovi({
           >
             <SearchUserAvatar fullName={k.fullName} username={k.username} avatarUrl={k.avatar_url} />
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-gray-900 truncate">{k.fullName || k.username}</p>
+              <p className="font-medium text-gray-900 truncate">
+                <UserNameWithProfiBadge name={k.fullName || k.username} isProfiGuide={k.isProfiGuide} badgeSize={16} />
+              </p>
               <p className="text-xs text-gray-500 truncate flex items-center gap-1.5">
                 <span>@{k.username}</span>
                 <span className="w-0.5 h-0.5 rounded-full bg-gray-300 flex-shrink-0" />

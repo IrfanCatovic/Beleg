@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
-import { ProfiGuideBadge } from '../../components/guides/ProfiGuideBadge'
+import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
@@ -56,6 +56,7 @@ interface Korisnik {
   brojPopeoSe: number
   klubNaziv?: string
   klubLogoUrl?: string
+  isProfiGuide?: boolean
 }
 
 const TEZINA_BORDER: Record<string, { bg: string; text: string; border: string }> = {
@@ -248,7 +249,7 @@ export default function UserProfile() {
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
   const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
-  const showProfiGuideBadge = isOwn && myGuideProfile?.status === 'approved'
+  const showProfiGuideBadge = !!korisnik?.isProfiGuide
 
   useEffect(() => {
     if (!isOwn || !currentUser) {
@@ -815,12 +816,12 @@ export default function UserProfile() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-lg font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                      {korisnik.fullName || korisnik.username}
-                    </p>
-                    {showProfiGuideBadge && <ProfiGuideBadge size={26} />}
-                  </div>
+                  <UserNameWithProfiBadge
+                    name={korisnik.fullName || korisnik.username}
+                    isProfiGuide={showProfiGuideBadge}
+                    badgeSize={26}
+                    nameClassName="text-lg font-extrabold text-gray-900 tracking-tight leading-tight"
+                  />
                   <p className="text-[13px] text-gray-400 font-semibold truncate -mt-0.5">@{korisnik.username}</p>
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-1">
                     <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -906,12 +907,13 @@ export default function UserProfile() {
               {/* identity */}
               <div className="flex-1 min-w-0 text-left pb-0.5">
                 <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-2.5 min-w-0 max-w-full">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                      {korisnik.fullName || korisnik.username}
-                    </h1>
-                    {showProfiGuideBadge && <ProfiGuideBadge size={32} />}
-                  </div>
+                  <UserNameWithProfiBadge
+                    name={korisnik.fullName || korisnik.username}
+                    isProfiGuide={showProfiGuideBadge}
+                    badgeSize={32}
+                    nameClassName="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight"
+                    className="max-w-full"
+                  />
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>

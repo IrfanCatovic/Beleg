@@ -10,6 +10,7 @@ export interface SearchKorisnik {
   role: string
   klubNaziv?: string
   klubLogoUrl?: string
+  isProfiGuide?: boolean
 }
 
 export interface SearchAkcija {

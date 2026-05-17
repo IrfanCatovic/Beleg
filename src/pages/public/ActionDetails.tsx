@@ -23,6 +23,7 @@ import AddTransportModal from '../../components/action-details/AddTransportModal
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
+import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import FinishActionFinanceModal from '../../components/action-details/FinishActionFinanceModal'
 import { GuideRatingModal } from '../../components/action-details/GuideRatingModal'
 import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '../../services/guideRatings'
@@ -43,7 +44,7 @@ interface Akcija {
   zimskiUspon?: boolean
   drugiVodicIme?: string
   vodicId?: number
-  vodic?: { fullName: string; username: string }
+  vodic?: { fullName: string; username: string; isProfiGuide?: boolean }
   addedBy?: { fullName: string; username: string }
   prijaveCount?: number
   javna?: boolean
@@ -86,6 +87,7 @@ interface Prijava {
   korisnik: string
   fullName?: string
   avatarUrl?: string
+  isProfiGuide?: boolean
   prijavljenAt: string
   status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
   platio?: boolean
@@ -2380,7 +2382,7 @@ export default function ActionDetails() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-700 transition-colors">
-                              {displayName}
+                              <UserNameWithProfiBadge name={displayName} isProfiGuide={p.isProfiGuide} badgeSize={16} />
                             </p>
                             <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
 

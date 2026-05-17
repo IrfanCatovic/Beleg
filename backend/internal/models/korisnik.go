@@ -50,6 +50,9 @@ type Korisnik struct {
 
 	KlubNaziv   string `gorm:"-" json:"klubNaziv,omitempty"`
 	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
+
+	// Odobren profi vodički profil (guide_profiles.status = approved); nije kolona u bazi.
+	IsProfiGuide bool `gorm:"-" json:"isProfiGuide,omitempty"`
 }
 
 func (Korisnik) TableName() string {

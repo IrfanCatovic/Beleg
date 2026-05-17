@@ -212,14 +212,15 @@ func GetKorisnici(c *gin.Context) {
 	// Koristi se za pronalazak korisnika (profil/follow) preko header pretrage.
 	if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
 		type PublicUserDTO struct {
-			ID          uint   `json:"id"`
-			Username    string `json:"username"`
-			FullName    string `json:"fullName,omitempty"`
-			AvatarURL   string `json:"avatar_url,omitempty"`
-			Role        string `json:"role"`
-			KlubID      *uint  `json:"klubId,omitempty"`
-			KlubNaziv   string `json:"klubNaziv,omitempty"`
-			KlubLogoURL string `json:"klubLogoUrl,omitempty"`
+			ID           uint   `json:"id"`
+			Username     string `json:"username"`
+			FullName     string `json:"fullName,omitempty"`
+			AvatarURL    string `json:"avatar_url,omitempty"`
+			Role         string `json:"role"`
+			KlubID       *uint  `json:"klubId,omitempty"`
+			KlubNaziv    string `json:"klubNaziv,omitempty"`
+			KlubLogoURL  string `json:"klubLogoUrl,omitempty"`
+			IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 		}
 
 		var blocks []models.Block
@@ -240,6 +241,7 @@ func GetKorisnici(c *gin.Context) {
 		}
 
 		out := make([]PublicUserDTO, 0, len(all))
+		candidateIDs := make([]uint, 0, len(all))
 		for i := range all {
 			if all[i].ID == currentUser.ID {
 				continue
@@ -247,7 +249,21 @@ func GetKorisnici(c *gin.Context) {
 			if _, blocked := blockedSet[all[i].ID]; blocked {
 				continue
 			}
-			dto := PublicUserDTO{ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName, AvatarURL: all[i].AvatarURL, Role: all[i].Role, KlubID: all[i].KlubID}
+			candidateIDs = append(candidateIDs, all[i].ID)
+		}
+		profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, candidateIDs)
+		for i := range all {
+			if all[i].ID == currentUser.ID {
+				continue
+			}
+			if _, blocked := blockedSet[all[i].ID]; blocked {
+				continue
+			}
+			dto := PublicUserDTO{
+				ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName,
+				AvatarURL: all[i].AvatarURL, Role: all[i].Role, KlubID: all[i].KlubID,
+				IsProfiGuide: profiSet[all[i].ID],
+			}
 			if all[i].Klub != nil {
 				dto.KlubNaziv = all[i].Klub.Naziv
 				dto.KlubLogoURL = all[i].Klub.LogoURL
@@ -299,6 +315,7 @@ func GetKorisnici(c *gin.Context) {
 		}
 		filtered = append(filtered, korisnici[i])
 	}
+	helpers.ApplyProfiGuideFlagsToKorisnici(db, filtered)
 	c.JSON(200, gin.H{"korisnici": filtered})
 }
 
@@ -332,6 +349,7 @@ func GetKorisnikInfo(c *gin.Context) {
 		}
 	}
 
+	korisnik.IsProfiGuide = helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID)
 	c.JSON(http.StatusOK, korisnik)
 }
 

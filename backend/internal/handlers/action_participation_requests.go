@@ -37,15 +37,16 @@ type actionParticipationRequestDTO struct {
 }
 
 type externalUserCandidateDTO struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	FullName  string `json:"fullName,omitempty"`
-	AvatarURL string `json:"avatarUrl,omitempty"`
-	KlubID    *uint  `json:"klubId,omitempty"`
-	KlubNaziv string `json:"klubNaziv,omitempty"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	FullName     string `json:"fullName,omitempty"`
+	AvatarURL    string `json:"avatarUrl,omitempty"`
+	KlubID       *uint  `json:"klubId,omitempty"`
+	KlubNaziv    string `json:"klubNaziv,omitempty"`
+	IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 }
 
-func buildActionParticipationRequestDTO(req models.ActionParticipationRequest) actionParticipationRequestDTO {
+func buildActionParticipationRequestDTO(db *gorm.DB, req models.ActionParticipationRequest) actionParticipationRequestDTO {
 	actionPayload := gin.H{
 		"id":          req.Akcija.ID,
 		"naziv":       req.Akcija.Naziv,
@@ -60,22 +61,24 @@ func buildActionParticipationRequestDTO(req models.ActionParticipationRequest) a
 	}
 
 	targetPayload := gin.H{
-		"id":        req.TargetUser.ID,
-		"username":  req.TargetUser.Username,
-		"fullName":  req.TargetUser.FullName,
-		"avatarUrl": req.TargetUser.AvatarURL,
-		"klubId":    req.TargetUser.KlubID,
+		"id":           req.TargetUser.ID,
+		"username":     req.TargetUser.Username,
+		"fullName":     req.TargetUser.FullName,
+		"avatarUrl":    req.TargetUser.AvatarURL,
+		"klubId":       req.TargetUser.KlubID,
+		"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, req.TargetUser.ID),
 	}
 	if req.TargetUser.Klub != nil {
 		targetPayload["klubNaziv"] = req.TargetUser.Klub.Naziv
 	}
 
 	requestedByPayload := gin.H{
-		"id":        req.RequestedBy.ID,
-		"username":  req.RequestedBy.Username,
-		"fullName":  req.RequestedBy.FullName,
-		"avatarUrl": req.RequestedBy.AvatarURL,
-		"klubId":    req.RequestedBy.KlubID,
+		"id":           req.RequestedBy.ID,
+		"username":     req.RequestedBy.Username,
+		"fullName":     req.RequestedBy.FullName,
+		"avatarUrl":    req.RequestedBy.AvatarURL,
+		"klubId":       req.RequestedBy.KlubID,
+		"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, req.RequestedBy.ID),
 	}
 	if req.RequestedBy.Klub != nil {
 		requestedByPayload["klubNaziv"] = req.RequestedBy.Klub.Naziv
@@ -232,17 +235,26 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 		return
 	}
 
+	candidateIDs := make([]uint, 0, len(users))
+	for _, u := range users {
+		if u.Role != "deleted" {
+			candidateIDs = append(candidateIDs, u.ID)
+		}
+	}
+	candidateProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, candidateIDs)
+
 	out := make([]externalUserCandidateDTO, 0, len(users))
 	for _, u := range users {
 		if u.Role == "deleted" {
 			continue
 		}
 		row := externalUserCandidateDTO{
-			ID:        u.ID,
-			Username:  u.Username,
-			FullName:  u.FullName,
-			AvatarURL: u.AvatarURL,
-			KlubID:    u.KlubID,
+			ID:           u.ID,
+			Username:     u.Username,
+			FullName:     u.FullName,
+			AvatarURL:    u.AvatarURL,
+			KlubID:       u.KlubID,
+			IsProfiGuide: candidateProfiSet[u.ID],
 		}
 		if u.Klub != nil {
 			row.KlubNaziv = u.Klub.Naziv
@@ -372,7 +384,7 @@ func ListActionParticipationRequests(c *gin.Context) {
 
 	out := make([]actionParticipationRequestDTO, 0, len(requests))
 	for _, req := range requests {
-		out = append(out, buildActionParticipationRequestDTO(req))
+		out = append(out, buildActionParticipationRequestDTO(db, req))
 	}
 	c.JSON(http.StatusOK, gin.H{"requests": out})
 }
@@ -501,7 +513,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		req.Akcija = akcija
 		req.TargetUser = target
 		req.RequestedBy = *currentUser
-		reqDTO = buildActionParticipationRequestDTO(req)
+		reqDTO = buildActionParticipationRequestDTO(db, req)
 		createActionParticipationRequestNotification(tx, req)
 		return nil
 	}); err != nil {
@@ -569,7 +581,7 @@ func ListMyActionParticipationRequests(c *gin.Context) {
 
 	out := make([]actionParticipationRequestDTO, 0, len(requests))
 	for _, req := range requests {
-		out = append(out, buildActionParticipationRequestDTO(req))
+		out = append(out, buildActionParticipationRequestDTO(db, req))
 	}
 	c.JSON(http.StatusOK, gin.H{"requests": out})
 }
@@ -595,7 +607,7 @@ func GetMyActionParticipationRequest(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pristup ovom zahtevu"})
 		return
 	}
-	c.JSON(http.StatusOK, buildActionParticipationRequestDTO(*req))
+	c.JSON(http.StatusOK, buildActionParticipationRequestDTO(db, *req))
 }
 
 func RespondToActionParticipationRequest(c *gin.Context) {
@@ -655,7 +667,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			if err := tx.Save(&req).Error; err != nil {
 				return err
 			}
-			responseDTO = buildActionParticipationRequestDTO(req)
+			responseDTO = buildActionParticipationRequestDTO(db, req)
 			return nil
 		}
 
@@ -697,7 +709,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 		if err := tx.Save(&req).Error; err != nil {
 			return err
 		}
-		responseDTO = buildActionParticipationRequestDTO(req)
+		responseDTO = buildActionParticipationRequestDTO(db, req)
 		return nil
 	})
 	if err != nil {

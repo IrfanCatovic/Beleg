@@ -515,7 +515,11 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 		if akcija.VodicID > 0 {
 			var v models.Korisnik
 			if db.First(&v, akcija.VodicID).Error == nil {
-				resp["vodic"] = gin.H{"fullName": v.FullName, "username": v.Username}
+				resp["vodic"] = gin.H{
+					"fullName":     v.FullName,
+					"username":     v.Username,
+					"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, v.ID),
+				}
 			}
 		}
 		if akcija.AddedByID > 0 {
@@ -1513,6 +1517,7 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		Korisnik           string            `json:"korisnik"`
 		FullName           string            `json:"fullName"`
 		AvatarURL          string            `json:"avatarUrl,omitempty"`
+		IsProfiGuide       bool              `json:"isProfiGuide,omitempty"`
 		PrijavljenAt       time.Time         `json:"prijavljenAt"`
 		Status             string            `json:"status"`
 		Platio             bool              `json:"platio"`
@@ -1542,13 +1547,23 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		rentByID[r.ID] = r.CenaPoSetu
 	}
 
+	korisnikIDs := make([]uint, 0, len(prijave))
+	for _, p := range prijave {
+		if p.Korisnik.ID != 0 {
+			korisnikIDs = append(korisnikIDs, p.Korisnik.ID)
+		}
+	}
+	profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, korisnikIDs)
+
 	var out []PrijavaDTO
 	for _, p := range prijave {
 		fullName := ""
 		avatarURL := ""
+		isProfi := false
 		if p.Korisnik.ID != 0 {
 			fullName = p.Korisnik.FullName
 			avatarURL = p.Korisnik.AvatarURL
+			isProfi = profiSet[p.Korisnik.ID]
 		}
 		selSmestaj := []uint{}
 		selPrevoz := []uint{}
@@ -1588,6 +1603,7 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 			Korisnik:           p.Korisnik.Username,
 			FullName:           fullName,
 			AvatarURL:          avatarURL,
+			IsProfiGuide:       isProfi,
 			PrijavljenAt:       p.PrijavljenAt,
 			Status:             p.Status,
 			Platio:             p.Platio,

@@ -4,6 +4,7 @@ import { useModal } from '../context/ModalContext'
 import api from '../services/api'
 import { formatRelativeTime } from '../utils/dateUtils'
 import MentionContent from './MentionContent'
+import { UserNameWithProfiBadge } from './users/UserNameWithProfiBadge'
 import { useTranslation } from 'react-i18next'
 
 export interface PostUser {
@@ -13,6 +14,7 @@ export interface PostUser {
   avatarUrl?: string
   role: string
   klubNaziv?: string
+  isProfiGuide?: boolean
 }
 
 export interface Post {
@@ -31,6 +33,7 @@ export interface PostCommentUser {
   username: string
   fullName?: string
   avatarUrl?: string
+  isProfiGuide?: boolean
 }
 
 export interface MentionUser {
@@ -38,6 +41,7 @@ export interface MentionUser {
   username: string
   fullName?: string
   avatar_url?: string
+  isProfiGuide?: boolean
 }
 
 interface PostComment {
@@ -308,7 +312,12 @@ export default function PostCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[14px] font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{displayName}</p>
+              <UserNameWithProfiBadge
+                name={displayName}
+                isProfiGuide={post.user.isProfiGuide}
+                badgeSize={18}
+                nameClassName="text-[14px] font-bold text-gray-900 group-hover:text-emerald-600 transition-colors"
+              />
               {post.user.klubNaziv && (
                 <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-500 truncate max-w-[100px]">
                   {post.user.klubNaziv}
@@ -513,8 +522,8 @@ export default function PostCard({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] leading-snug">
-                        <Link to={`/korisnik/${cm.user.username}`} className="font-bold text-gray-900 hover:text-emerald-700 transition-colors mr-1.5">
-                          {cmName}
+                        <Link to={`/korisnik/${cm.user.username}`} className="inline-flex items-center gap-1 font-bold text-gray-900 hover:text-emerald-700 transition-colors mr-1.5">
+                          <UserNameWithProfiBadge name={cmName} isProfiGuide={cm.user.isProfiGuide} badgeSize={16} />
                         </Link>
                         <MentionContent text={cm.content} className="text-gray-700" />
                       </p>

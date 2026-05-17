@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
+import { UserNameWithProfiBadge } from '../../../components/users/UserNameWithProfiBadge'
 import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult, type AkcijaZaRanking } from '../../../utils/rankingUtils'
 
 interface Korisnik {
@@ -22,6 +23,7 @@ interface Korisnik {
   ukupnoMetaraUspona?: number
   klubNaziv?: string
   klubLogoUrl?: string
+  isProfiGuide?: boolean
 }
 
 export default function Korisnici() {
@@ -426,7 +428,11 @@ export default function Korisnici() {
                               </div>
                               <div>
                                 <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                                  {k.fullName || k.username}
+                                  <UserNameWithProfiBadge
+                                    name={k.fullName || k.username}
+                                    isProfiGuide={k.isProfiGuide}
+                                    badgeSize={18}
+                                  />
                                 </h3>
                                 <p className="text-sm text-gray-500">
                                   @{k.username}
@@ -598,7 +604,7 @@ export default function Korisnici() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-gray-900">
-                          {k.fullName || k.username}
+                          <UserNameWithProfiBadge name={k.fullName || k.username} isProfiGuide={k.isProfiGuide} badgeSize={18} />
                         </p>
                         <p className="truncate text-xs text-gray-500">
                           @{k.username}

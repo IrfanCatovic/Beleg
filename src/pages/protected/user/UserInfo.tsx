@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
+import { UserNameWithProfiBadge } from '../../../components/users/UserNameWithProfiBadge'
 import {
   UserCircleIcon,
   IdentificationIcon,
@@ -43,6 +44,7 @@ interface KorisnikInfo {
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
   brojPopeoSe?: number
+  isProfiGuide?: boolean
 }
 
 interface BlockedUser {
@@ -51,6 +53,7 @@ interface BlockedUser {
   fullName?: string
   avatarUrl?: string
   klubNaziv?: string
+  isProfiGuide?: boolean
 }
 
 function InfoRow({ label, value, alwaysShow = false, icon: Icon }: { label: string; value: React.ReactNode; alwaysShow?: boolean; icon?: React.ComponentType<{ className?: string }> }) {
@@ -142,7 +145,9 @@ export default function UserInfo() {
               )}
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{korisnik.fullName || korisnik.username}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                <UserNameWithProfiBadge name={korisnik.fullName || korisnik.username} isProfiGuide={korisnik.isProfiGuide} badgeSize={22} />
+              </h1>
               <p className="text-gray-500 mt-0.5">@{korisnik.username}</p>
               {hasVisibleRole(korisnik.role) && (
                 <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${getRoleStyle(korisnik.role)}`}>
@@ -190,7 +195,9 @@ export default function UserInfo() {
                         {(u.fullName || u.username || '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{u.fullName || u.username}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          <UserNameWithProfiBadge name={u.fullName || u.username} isProfiGuide={u.isProfiGuide} badgeSize={16} />
+                        </p>
                         <p className="text-xs text-gray-500 truncate">@{u.username}{u.klubNaziv ? ` · ${u.klubNaziv}` : ''}</p>
                       </div>
                     </Link>

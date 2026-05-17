@@ -408,13 +408,19 @@ func GetMyBlockedUsersHandler(c *gin.Context) {
 	for _, u := range users {
 		byID[u.ID] = u
 	}
+	blockUserIDs := make([]uint, 0, len(users))
+	for _, u := range users {
+		blockUserIDs = append(blockUserIDs, u.ID)
+	}
+	blockProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, blockUserIDs)
+
 	out := make([]FollowUserDTO, 0, len(blockedIDs))
 	for _, id := range blockedIDs {
 		u, ok := byID[id]
 		if !ok {
 			continue
 		}
-		out = append(out, toFollowUserDTO(u))
+		out = append(out, toFollowUserDTO(u, blockProfiSet))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }
@@ -465,12 +471,13 @@ func GetFollowStatusHandler(c *gin.Context) {
 type PendingFollowRequestDTO struct {
 	FollowID   uint `json:"followId"`
 	Requester  struct {
-		ID        uint   `json:"id"`
-		Username  string `json:"username"`
-		FullName  string `json:"fullName"`
-		AvatarURL string `json:"avatarUrl,omitempty"`
-		Role      string `json:"role"`
-		KlubNaziv string `json:"klubNaziv,omitempty"`
+		ID           uint   `json:"id"`
+		Username     string `json:"username"`
+		FullName     string `json:"fullName"`
+		AvatarURL    string `json:"avatarUrl,omitempty"`
+		Role         string `json:"role"`
+		KlubNaziv    string `json:"klubNaziv,omitempty"`
+		IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 	} `json:"requester"`
 	CreatedAt string `json:"createdAt"`
 }
@@ -522,6 +529,8 @@ func GetPendingIncomingFollowRequestsHandler(c *gin.Context) {
 		requesterByID[r.ID] = r
 	}
 
+	pendingProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, requesterIDs)
+
 	out := make([]PendingFollowRequestDTO, 0, len(follows))
 	for _, f := range follows {
 		r, ok := requesterByID[f.RequesterID]
@@ -533,18 +542,20 @@ func GetPendingIncomingFollowRequestsHandler(c *gin.Context) {
 			FollowID:   f.ID,
 			CreatedAt:  f.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			Requester: struct {
-				ID        uint   `json:"id"`
-				Username  string `json:"username"`
-				FullName  string `json:"fullName"`
-				AvatarURL string `json:"avatarUrl,omitempty"`
-				Role      string `json:"role"`
-				KlubNaziv string `json:"klubNaziv,omitempty"`
+				ID           uint   `json:"id"`
+				Username     string `json:"username"`
+				FullName     string `json:"fullName"`
+				AvatarURL    string `json:"avatarUrl,omitempty"`
+				Role         string `json:"role"`
+				KlubNaziv    string `json:"klubNaziv,omitempty"`
+				IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 			}{
-				ID:        r.ID,
-				Username:  r.Username,
-				FullName:  r.FullName,
-				AvatarURL: r.AvatarURL,
-				Role:      r.Role,
+				ID:           r.ID,
+				Username:     r.Username,
+				FullName:     r.FullName,
+				AvatarURL:    r.AvatarURL,
+				Role:         r.Role,
+				IsProfiGuide: pendingProfiSet[r.ID],
 			},
 		}
 		if r.Klub != nil {
@@ -587,21 +598,23 @@ func GetFollowCountsHandler(c *gin.Context) {
 }
 
 type FollowUserDTO struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	FullName  string `json:"fullName,omitempty"`
-	AvatarURL string `json:"avatarUrl,omitempty"`
-	Role      string `json:"role"`
-	KlubNaziv string `json:"klubNaziv,omitempty"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	FullName     string `json:"fullName,omitempty"`
+	AvatarURL    string `json:"avatarUrl,omitempty"`
+	Role         string `json:"role"`
+	KlubNaziv    string `json:"klubNaziv,omitempty"`
+	IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
 }
 
-func toFollowUserDTO(u models.Korisnik) FollowUserDTO {
+func toFollowUserDTO(u models.Korisnik, profiSet map[uint]bool) FollowUserDTO {
 	dto := FollowUserDTO{
-		ID:        u.ID,
-		Username:  u.Username,
-		FullName:  u.FullName,
-		AvatarURL: u.AvatarURL,
-		Role:      u.Role,
+		ID:           u.ID,
+		Username:     u.Username,
+		FullName:     u.FullName,
+		AvatarURL:    u.AvatarURL,
+		Role:         u.Role,
+		IsProfiGuide: profiSet[u.ID],
 	}
 	if u.Klub != nil {
 		dto.KlubNaziv = u.Klub.Naziv
@@ -642,13 +655,19 @@ func GetFollowingListHandler(c *gin.Context) {
 		byID[u.ID] = u
 	}
 
+	userIDs := make([]uint, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.ID)
+	}
+	profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, userIDs)
+
 	out := make([]FollowUserDTO, 0, len(ids))
 	for _, id := range ids {
 		u, ok := byID[id]
 		if !ok {
 			continue
 		}
-		out = append(out, toFollowUserDTO(u))
+		out = append(out, toFollowUserDTO(u, profiSet))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }
@@ -686,13 +705,19 @@ func GetFollowersListHandler(c *gin.Context) {
 		byID[u.ID] = u
 	}
 
+	followerUserIDs := make([]uint, 0, len(users))
+	for _, u := range users {
+		followerUserIDs = append(followerUserIDs, u.ID)
+	}
+	followerProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, followerUserIDs)
+
 	out := make([]FollowUserDTO, 0, len(ids))
 	for _, id := range ids {
 		u, ok := byID[id]
 		if !ok {
 			continue
 		}
-		out = append(out, toFollowUserDTO(u))
+		out = append(out, toFollowUserDTO(u, followerProfiSet))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }

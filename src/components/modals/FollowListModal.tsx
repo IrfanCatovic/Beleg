@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { UserNameWithProfiBadge } from '../users/UserNameWithProfiBadge'
 
 export type FollowListUser = {
   id: number
@@ -9,6 +10,7 @@ export type FollowListUser = {
   avatarUrl?: string
   role?: string
   klubNaziv?: string
+  isProfiGuide?: boolean
 }
 
 export default function FollowListModal({
@@ -98,7 +100,13 @@ export default function FollowListModal({
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 truncate">{u.fullName?.trim() || u.username}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        <UserNameWithProfiBadge
+                          name={u.fullName?.trim() || u.username}
+                          isProfiGuide={u.isProfiGuide}
+                          badgeSize={18}
+                        />
+                      </p>
                       <p className="text-xs text-gray-500 truncate">
                         @{u.username}
                         {u.klubNaziv ? <span className="text-gray-300"> · </span> : null}

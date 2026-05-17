@@ -65,6 +65,7 @@ func GetPublicKorisnik(c *gin.Context) {
 	if korisnik.CoverPositionYMobile != nil {
 		respPub["cover_position_y_mobile"] = *korisnik.CoverPositionYMobile
 	}
+	respPub["isProfiGuide"] = helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID)
 	c.JSON(200, respPub)
 }
 
