@@ -16,14 +16,12 @@ import (
 )
 
 type guideApplyBody struct {
-	Naslov          string   `json:"naslov"`
 	Opis            string   `json:"opis"`
 	Drzava          string   `json:"drzava"`
 	Region          string   `json:"region"`
 	Grad            string   `json:"grad"`
 	BaseLat         float64  `json:"baseLat"`
 	BaseLng         float64  `json:"baseLng"`
-	GodineIskustva  int      `json:"godineIskustva"`
 	Jezici          []string `json:"jezici"`
 	SertifikatiOpis string   `json:"sertifikatiOpis"`
 	TourTypes       []string `json:"tourTypes"`
@@ -75,10 +73,6 @@ func parseJeziciJSON(raw json.RawMessage) []string {
 }
 
 func validateGuideApplyBody(body guideApplyBody, telefonOnUser string) (string, bool) {
-	naslov := strings.TrimSpace(body.Naslov)
-	if naslov == "" {
-		return "Naslov profila je obavezan", false
-	}
 	opis := strings.TrimSpace(body.Opis)
 	if len(opis) < 30 {
 		return "Opis mora imati najmanje 30 karaktera", false
@@ -90,9 +84,6 @@ func validateGuideApplyBody(body guideApplyBody, telefonOnUser string) (string, 
 	}
 	if body.BaseLat < -90 || body.BaseLat > 90 || body.BaseLng < -180 || body.BaseLng > 180 {
 		return "Koordinate baze nisu u dozvoljenom opsegu", false
-	}
-	if body.GodineIskustva < 0 {
-		return "Godine iskustva moraju biti >= 0", false
 	}
 	jezici := make([]string, 0)
 	for _, j := range body.Jezici {
@@ -207,19 +198,33 @@ func guideProfileToDTO(gp *models.GuideProfile, k *models.Korisnik, tourTypes []
 	return resp
 }
 
-func buildGuideProfileFromBody(body guideApplyBody) models.GuideProfile {
+// guideProfileNaslov interni naslov (NOT NULL u bazi); korisnik ga ne unosi — ime ili username.
+func guideProfileNaslov(k *models.Korisnik) string {
+	if k == nil {
+		return "Vodič"
+	}
+	if n := strings.TrimSpace(k.FullName); n != "" {
+		return n
+	}
+	if u := strings.TrimSpace(k.Username); u != "" {
+		return u
+	}
+	return "Vodič"
+}
+
+func buildGuideProfileFromBody(body guideApplyBody, k *models.Korisnik) models.GuideProfile {
 	lat := body.BaseLat
 	lng := body.BaseLng
 	return models.GuideProfile{
 		Status:          models.GuideStatusPending,
-		Naslov:          strings.TrimSpace(body.Naslov),
+		Naslov:          guideProfileNaslov(k),
 		Opis:            strings.TrimSpace(body.Opis),
 		Drzava:          strings.TrimSpace(body.Drzava),
 		Region:          strings.TrimSpace(body.Region),
 		Grad:            strings.TrimSpace(body.Grad),
 		BaseLat:         &lat,
 		BaseLng:         &lng,
-		GodineIskustva:  body.GodineIskustva,
+		GodineIskustva:  0,
 		JeziciJSON:      marshalJezici(body.Jezici),
 		SertifikatiOpis: strings.TrimSpace(body.SertifikatiOpis),
 	}
@@ -265,7 +270,7 @@ func ApplyGuideProfile(c *gin.Context) {
 	}
 	types := normalizeTourTypes(body.TourTypes)
 
-	profile := buildGuideProfileFromBody(body)
+	profile := buildGuideProfileFromBody(body, k)
 	profile.KorisnikID = k.ID
 
 	err = db.Transaction(func(tx *gorm.DB) error {
@@ -349,7 +354,7 @@ func UpdateMyGuideProfile(c *gin.Context) {
 	}
 	types := normalizeTourTypes(body.TourTypes)
 
-	updated := buildGuideProfileFromBody(body)
+	updated := buildGuideProfileFromBody(body, k)
 	updated.ID = gp.ID
 	updated.KorisnikID = gp.KorisnikID
 	updated.Status = models.GuideStatusPending

@@ -139,7 +139,7 @@ export default function SuperadminGuideProfiles() {
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-500">
                 <th className="px-4 py-3">{t('superadmin.tableUser')}</th>
-                <th className="px-4 py-3">{t('superadmin.tableTitle')}</th>
+                <th className="px-4 py-3">{t('superadmin.tableOpis')}</th>
                 <th className="px-4 py-3">{t('superadmin.tableLocation')}</th>
                 <th className="px-4 py-3">{t('superadmin.tableStatus')}</th>
                 <th className="px-4 py-3">{t('superadmin.tableDate')}</th>
@@ -153,7 +153,9 @@ export default function SuperadminGuideProfiles() {
                     <div className="font-medium text-gray-900">{gp.user?.fullName || gp.user?.username}</div>
                     <div className="text-xs text-gray-500">@{gp.user?.username}</div>
                   </td>
-                  <td className="px-4 py-3 max-w-[200px] truncate">{gp.naslov}</td>
+                  <td className="px-4 py-3 max-w-[240px] truncate text-gray-600" title={gp.opis}>
+                    {gp.opis}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{locationLabel(gp)}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-semibold">
@@ -218,10 +220,17 @@ export default function SuperadminGuideProfiles() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
             <div className="flex justify-between items-start gap-2 mb-4">
-              <h2 className="text-lg font-bold text-gray-900">{detail.naslov}</h2>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900">
+                  {detail.user?.fullName || detail.user?.username || '—'}
+                </h2>
+                {detail.user?.username && (
+                  <p className="text-sm text-gray-500">@{detail.user.username}</p>
+                )}
+              </div>
               <button
                 type="button"
-                className="text-sm text-gray-500 hover:text-gray-800"
+                className="shrink-0 text-sm text-gray-500 hover:text-gray-800"
                 onClick={() => setDetail(null)}
               >
                 {t('superadmin.close')}

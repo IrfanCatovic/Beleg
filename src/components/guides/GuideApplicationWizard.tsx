@@ -7,14 +7,12 @@ import { GUIDE_TOUR_TYPE_KEYS, type GuideTourTypeKey } from '../../i18n/guidePro
 import type { GuideApplyPayload, GuideProfile } from '../../services/guideProfiles'
 
 export type GuideWizardFormState = {
-  naslov: string
   opis: string
   drzava: string
   region: string
   grad: string
   baseLat: string
   baseLng: string
-  godineIskustva: string
   jezici: string
   sertifikatiOpis: string
   tourTypes: GuideTourTypeKey[]
@@ -33,14 +31,12 @@ const navBtnSubmit = `${navBtnBase} text-white bg-gradient-to-r from-emerald-500
 
 export function emptyGuideWizardForm(): GuideWizardFormState {
   return {
-    naslov: '',
     opis: '',
     drzava: '',
     region: '',
     grad: '',
     baseLat: '',
     baseLng: '',
-    godineIskustva: '0',
     jezici: '',
     sertifikatiOpis: '',
     tourTypes: [],
@@ -50,14 +46,12 @@ export function emptyGuideWizardForm(): GuideWizardFormState {
 
 export function guideProfileToForm(gp: GuideProfile): GuideWizardFormState {
   return {
-    naslov: gp.naslov ?? '',
     opis: gp.opis ?? '',
     drzava: gp.drzava ?? '',
     region: gp.region ?? '',
     grad: gp.grad ?? '',
     baseLat: gp.baseLat != null ? String(gp.baseLat) : '',
     baseLng: gp.baseLng != null ? String(gp.baseLng) : '',
-    godineIskustva: String(gp.godineIskustva ?? 0),
     jezici: (gp.jezici ?? []).join(', '),
     sertifikatiOpis: gp.sertifikatiOpis ?? '',
     tourTypes: (gp.tourTypes ?? []).filter((t): t is GuideTourTypeKey =>
@@ -87,14 +81,12 @@ function formToPayload(form: GuideWizardFormState, telefonFallback: string): Gui
   const region = form.region.trim()
   if (!grad && !region) return null
   return {
-    naslov: form.naslov.trim(),
     opis: form.opis.trim(),
     drzava: form.drzava.trim() || undefined,
     region: region || undefined,
     grad: grad || undefined,
     baseLat: lat,
     baseLng: lng,
-    godineIskustva: Math.max(0, Number(form.godineIskustva) || 0),
     jezici,
     sertifikatiOpis: form.sertifikatiOpis.trim() || undefined,
     tourTypes: form.tourTypes,
@@ -136,8 +128,10 @@ export function GuideApplicationWizard(props: {
 
   const patch = (data: Partial<GuideWizardFormState>) => setForm((prev) => ({ ...prev, ...data }))
 
-  const accountTelefon = (me?.telefon || form.telefon || '').trim()
-  const needsTelefon = !accountTelefon
+  // Samo telefon sa naloga (/api/me) — ne form.telefon, inače polje nestane posle prve cifre
+  const savedTelefon = (me?.telefon ?? '').trim()
+  const needsTelefon = savedTelefon === ''
+  const telefonForSubmit = savedTelefon || form.telefon.trim()
 
   const toggleTour = (key: GuideTourTypeKey) => {
     setForm((prev) => {
@@ -151,9 +145,8 @@ export function GuideApplicationWizard(props: {
 
   const validateStep = (s: number): boolean => {
     if (s === 1) {
-      if (!form.naslov.trim()) return false
       if (form.opis.trim().length < 30) return false
-      if (needsTelefon && !form.telefon.trim()) return false
+      if (telefonForSubmit === '') return false
       const jezici = form.jezici.split(/[,;]+/).map((j) => j.trim()).filter(Boolean)
       if (jezici.length === 0) return false
       return true
@@ -183,7 +176,7 @@ export function GuideApplicationWizard(props: {
       setLocalErr(t('errors.validation'))
       return
     }
-    const payload = formToPayload(form, accountTelefon)
+    const payload = formToPayload(form, telefonForSubmit)
     if (!payload) {
       setLocalErr(t('errors.validation'))
       return
@@ -236,8 +229,8 @@ export function GuideApplicationWizard(props: {
                 <div className="min-w-0 text-sm">
                   <p className="font-semibold text-gray-900 truncate">{me?.fullName || me?.username}</p>
                   {me?.email && <p className="text-gray-500 truncate">{me.email}</p>}
-                  {accountTelefon ? (
-                    <p className="text-gray-600">{accountTelefon}</p>
+                  {savedTelefon ? (
+                    <p className="text-gray-600">{savedTelefon}</p>
                   ) : (
                     <p className="text-amber-700 text-xs mt-1">{t('step1.telefonMissing')}</p>
                   )}
@@ -262,15 +255,6 @@ export function GuideApplicationWizard(props: {
           </div>
 
           <div>
-            <label className={labelClass}>{t('step1.naslov')}</label>
-            <input
-              className={baseInput}
-              value={form.naslov}
-              onChange={(e) => patch({ naslov: e.target.value })}
-              placeholder={t('step1.naslovPlaceholder')}
-            />
-          </div>
-          <div>
             <label className={labelClass}>{t('step1.opis')}</label>
             <textarea
               className={`${baseInput} min-h-[120px]`}
@@ -279,16 +263,6 @@ export function GuideApplicationWizard(props: {
               placeholder={t('step1.opisPlaceholder')}
             />
             <p className="mt-1 text-xs text-gray-400">{t('step1.opisHint')}</p>
-          </div>
-          <div>
-            <label className={labelClass}>{t('step1.godineIskustva')}</label>
-            <input
-              type="number"
-              min={0}
-              className={baseInput}
-              value={form.godineIskustva}
-              onChange={(e) => patch({ godineIskustva: e.target.value })}
-            />
           </div>
           <div>
             <label className={labelClass}>{t('step1.jezici')}</label>
@@ -354,8 +328,8 @@ export function GuideApplicationWizard(props: {
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm space-y-2">
             <h3 className="font-bold text-gray-800">{t('step3.review')}</h3>
-            <p>
-              <span className="text-gray-500">{t('step1.naslov')}:</span> {form.naslov}
+            <p className="line-clamp-3">
+              <span className="text-gray-500">{t('step1.opis')}:</span> {form.opis.trim() || '—'}
             </p>
             <p>
               <span className="text-gray-500">{t('step2.selected')}:</span>{' '}

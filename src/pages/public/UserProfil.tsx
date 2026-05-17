@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
+import { ProfiGuideBadge } from '../../components/guides/ProfiGuideBadge'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
@@ -814,9 +815,12 @@ export default function UserProfile() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-lg font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                    {korisnik.fullName || korisnik.username}
-                  </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-lg font-extrabold text-gray-900 tracking-tight truncate leading-tight">
+                      {korisnik.fullName || korisnik.username}
+                    </p>
+                    {showProfiGuideBadge && <ProfiGuideBadge size={26} />}
+                  </div>
                   <p className="text-[13px] text-gray-400 font-semibold truncate -mt-0.5">@{korisnik.username}</p>
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-1">
                     <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -831,11 +835,6 @@ export default function UserProfile() {
                     <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                       {getRoleLabel(korisnik.role)}
                     </span>
-                    {showProfiGuideBadge && (
-                      <span className="inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {tGuide('profiGuideBadge')}
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -907,20 +906,18 @@ export default function UserProfile() {
               {/* identity */}
               <div className="flex-1 min-w-0 text-left pb-0.5">
                 <div className="flex flex-col items-start gap-1">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
-                    {korisnik.fullName || korisnik.username}
-                  </h1>
+                  <div className="flex items-center gap-2.5 min-w-0 max-w-full">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight truncate leading-tight">
+                      {korisnik.fullName || korisnik.username}
+                    </h1>
+                    {showProfiGuideBadge && <ProfiGuideBadge size={32} />}
+                  </div>
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
                     {showRoleBadge && (
                       <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
                         {getRoleLabel(korisnik.role)}
-                      </span>
-                    )}
-                    {showProfiGuideBadge && (
-                      <span className="inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {tGuide('profiGuideBadge')}
                       </span>
                     )}
                     {korisnik.klubNaziv && (

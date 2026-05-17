@@ -23,7 +23,6 @@ export type GuideProfile = {
   grad?: string
   baseLat?: number
   baseLng?: number
-  godineIskustva: number
   jezici: string[]
   sertifikatiOpis?: string
   tourTypes: string[]
@@ -34,14 +33,12 @@ export type GuideProfile = {
 }
 
 export type GuideApplyPayload = {
-  naslov: string
   opis: string
   drzava?: string
   region?: string
   grad?: string
   baseLat: number
   baseLng: number
-  godineIskustva: number
   jezici: string[]
   sertifikatiOpis?: string
   tourTypes: GuideTourTypeKey[]
