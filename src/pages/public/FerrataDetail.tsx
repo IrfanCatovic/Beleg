@@ -265,108 +265,33 @@ export default function FerrataDetail() {
             </div>
           )}
 
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 space-y-8 lg:space-y-10">
-            {/* Red 1: O ferati | Planiraj polazak */}
-            <div className={`grid gap-6 items-stretch ${hasAbout ? 'lg:grid-cols-[1fr_minmax(0,340px)]' : 'lg:grid-cols-1'}`}>
-              {hasAbout && (
-                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <div className="mb-2 flex items-center gap-3">
-                    <PlaninerIcon name="about" variant="solid" />
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('aboutTitle')}</h2>
-                  </div>
-                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis!.trim()}</p>
-                </article>
-              )}
-              <aside className={hasAbout ? '' : 'lg:max-w-sm lg:justify-self-end w-full'}>
-                <div className="flex h-full min-h-0 flex-col space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900">{t('sidebarPlanTitle')}</h3>
-                  <p className="text-xs text-gray-500">{t('sidebarPlanHint')}</p>
-                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                    {t('statusAvailable')}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      to={createActionHref}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-                    >
-                      <PlusIcon className="h-4 w-4" />
-                      {t('heroCtaCreate')}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setBookOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50/80"
-                    >
-                      <CalendarDaysIcon className="h-4 w-4" />
-                      {t('heroCtaBook')}
-                    </button>
-                    {user?.role === 'superadmin' && (
-                      <Link
-                        to={`/superadmin/ferrate/${String(f.id)}/galerija`}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-900 transition hover:bg-violet-100"
-                      >
-                        <PhotoIcon className="h-4 w-4" />
-                        {t('detailSuperadminGalleryCta')}
-                      </Link>
-                    )}
-                  </div>
-                  <p className="mt-auto hidden text-xs leading-relaxed text-gray-600 pt-1 lg:block">{t('heroNote')}</p>
-                </div>
-              </aside>
-            </div>
-
-            {/* Red 2: Zašto ići | hoteli u okolini (sa pina ferate) */}
-            {hasWhy && (
-              <div className={`grid gap-6 items-stretch ${hasMapCoords ? 'lg:grid-cols-[1fr_minmax(0,340px)]' : 'lg:grid-cols-1'}`}>
-                <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                  <div className="mb-4 flex items-center gap-3">
-                    <PlaninerIcon name="why" variant="solid" />
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {f.highlights!.map((h) => (
-                      <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
-                        <PlaninerIcon name="why" variant="small" className="mt-0.5" />
-                        <p className="text-sm font-medium text-gray-800">{h}</p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-                {hasMapCoords && (
-                  <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
-                )}
-              </div>
-            )}
-
-            {/* Red 3: mapa, okolina, oprema, kontakti | nadolazeće, savet, lokalni vodiči */}
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,340px)] lg:items-start">
               <div className="space-y-6">
-                {hasMapCoords && (
-                  <FerrataDetailMapCard
-                    key={f.slug}
-                    lat={f.lat as number}
-                    lng={f.lng as number}
-                    naziv={f.naziv}
-                    subtitle={regionSubtitle}
-                    routeNote={f.mapNote}
-                  />
-                )}
-
-                {hasMapCoords && !hasWhy && (
-                  <FerrataHotelsSection ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
-                )}
-
-                {Boolean(f.okolina?.some((x) => x?.trim())) && (
+                {hasAbout && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
-                    <ul className="space-y-2 text-sm text-gray-800">
-                      {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
-                        <li key={`okolina-${idx}`} className="flex gap-2">
-                          <span className="font-bold text-emerald-600">·</span>
-                          <span>{line.trim()}</span>
-                        </li>
+                    <div className="mb-2 flex items-center gap-3">
+                      <PlaninerIcon name="about" variant="solid" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('aboutTitle')}</h2>
+                    </div>
+                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line leading-relaxed">{f.opis!.trim()}</p>
+                  </article>
+                )}
+
+                {hasWhy && (
+                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <div className="mb-4 flex items-center gap-3">
+                      <PlaninerIcon name="why" variant="solid" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {f.highlights!.map((h) => (
+                        <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
+                          <PlaninerIcon name="why" variant="small" className="mt-0.5" />
+                          <p className="text-sm font-medium text-gray-800">{h}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </article>
                 )}
 
@@ -398,33 +323,25 @@ export default function FerrataDetail() {
                   )
                 })()}
 
-                {contacts.length > 0 && (
+                {hasMapCoords && (
+                  <FerrataDetailMapCard
+                    key={f.slug}
+                    lat={f.lat as number}
+                    lng={f.lng as number}
+                    naziv={f.naziv}
+                    subtitle={regionSubtitle}
+                    routeNote={f.mapNote}
+                  />
+                )}
+
+                {Boolean(f.okolina?.some((x) => x?.trim())) && (
                   <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
-                    <div className="mb-4 flex items-center gap-3">
-                      <PlaninerIcon name="guide" variant="solid" />
-                      <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailGuidesTitle')}</h2>
-                    </div>
-                    <ul className="space-y-4">
-                      {contacts.map((c) => (
-                        <li key={c.id} className="space-y-2 rounded-xl border border-gray-50 bg-gray-50/60 p-4">
-                          <p className="font-semibold text-gray-900">{c.ime}</p>
-                          {c.telefon && <p className="text-sm text-gray-700">{c.telefon}</p>}
-                          {c.whatsapp && (
-                            <a
-                              href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-sm font-semibold text-emerald-700 hover:underline"
-                            >
-                              {t('whatsApp')}
-                            </a>
-                          )}
-                          {c.email && (
-                            <a href={`mailto:${c.email}`} className="break-all text-sm font-semibold text-emerald-700 hover:underline">
-                              {c.email}
-                            </a>
-                          )}
-                          {c.napomena?.trim() && <p className="whitespace-pre-line text-xs text-gray-600">{c.napomena.trim()}</p>}
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
+                    <ul className="space-y-2 text-sm text-gray-800">
+                      {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
+                        <li key={`okolina-${idx}`} className="flex gap-2">
+                          <span className="font-bold text-emerald-600">·</span>
+                          <span>{line.trim()}</span>
                         </li>
                       ))}
                     </ul>
@@ -432,7 +349,54 @@ export default function FerrataDetail() {
                 )}
               </div>
 
-              <aside className="mt-8 space-y-5 lg:mt-0">
+              <aside className="space-y-5">
+                <div className="flex flex-col space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-gray-900">{t('sidebarPlanTitle')}</h3>
+                  <p className="text-xs text-gray-500">{t('sidebarPlanHint')}</p>
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                    {t('statusAvailable')}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to={createActionHref}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      {t('heroCtaCreate')}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setBookOpen(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50/80"
+                    >
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      {t('heroCtaBook')}
+                    </button>
+                    {user?.role === 'superadmin' && (
+                      <Link
+                        to={`/superadmin/ferrate/${String(f.id)}/galerija`}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-900 transition hover:bg-violet-100"
+                      >
+                        <PhotoIcon className="h-4 w-4" />
+                        {t('detailSuperadminGalleryCta')}
+                      </Link>
+                    )}
+                  </div>
+                  <p className="hidden text-xs leading-relaxed text-gray-600 pt-1 lg:block">{t('heroNote')}</p>
+                </div>
+
+                {hasMapCoords && (
+                  <FerrataGuidesSection
+                    ferrataLat={f.lat as number}
+                    ferrataLng={f.lng as number}
+                    tourType="via_ferrata"
+                  />
+                )}
+
+                {hasMapCoords && (
+                  <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
+                )}
+
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                   <div className="mb-3 flex items-center gap-3">
                     <PlaninerIcon name="actions" variant="solid" />
@@ -483,14 +447,6 @@ export default function FerrataDetail() {
                       <p className="mt-1 text-xs leading-relaxed text-emerald-900/80 whitespace-pre-line">{f.quickTip.trim()}</p>
                     </div>
                   </div>
-                )}
-
-                {hasMapCoords && (
-                  <FerrataGuidesSection
-                    ferrataLat={f.lat as number}
-                    ferrataLng={f.lng as number}
-                    tourType="via_ferrata"
-                  />
                 )}
               </aside>
             </div>
