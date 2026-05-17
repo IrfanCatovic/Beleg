@@ -26,6 +26,30 @@ interface Korisnik {
   isProfiGuide?: boolean
 }
 
+const PODIUM_STYLES: Record<
+  1 | 2 | 3,
+  { row: string; position: string; rankBadge: string; mmr: string }
+> = {
+  1: {
+    row: 'rounded-xl border border-amber-300/80 bg-gradient-to-br from-amber-100 via-yellow-50 to-amber-50 shadow-md shadow-amber-900/[0.08] ring-1 ring-amber-300/40',
+    position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 text-sm font-bold text-amber-950 shadow-sm',
+    rankBadge: 'bg-amber-100/90 border border-amber-200/80 text-amber-900',
+    mmr: 'text-amber-900',
+  },
+  2: {
+    row: 'rounded-xl border border-slate-300/80 bg-gradient-to-br from-slate-200/70 via-gray-50 to-slate-100 shadow-md shadow-slate-900/[0.06] ring-1 ring-slate-300/40',
+    position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-400 text-sm font-bold text-slate-800 shadow-sm',
+    rankBadge: 'bg-slate-100/90 border border-slate-200/80 text-slate-800',
+    mmr: 'text-slate-800',
+  },
+  3: {
+    row: 'rounded-xl border border-orange-300/70 bg-gradient-to-br from-orange-100/90 via-amber-50/80 to-orange-50 shadow-md shadow-orange-900/[0.06] ring-1 ring-orange-300/35',
+    position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-300 to-amber-700 text-sm font-bold text-orange-950 shadow-sm',
+    rankBadge: 'bg-orange-100/90 border border-orange-200/70 text-orange-900',
+    mmr: 'text-orange-900',
+  },
+}
+
 export default function Korisnici() {
   const { t } = useTranslation('users')
   const { user } = useAuth()
@@ -395,7 +419,7 @@ export default function Korisnici() {
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+            <div className="rounded-2xl border border-gray-200/70 bg-gray-50/70 shadow-sm overflow-hidden relative">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 p-4 sm:p-5 md:p-6">
                 {filteredKorisnici.map((k) => {
                   const rank = rankByUserId[k.id] ?? computeRank({
@@ -407,7 +431,7 @@ export default function Korisnici() {
                   return (
                     <div
                       key={k.id}
-                      className="group bg-gradient-to-b from-gray-50/90 via-white to-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                      className="group bg-white rounded-2xl overflow-hidden border border-gray-200/90 shadow-md shadow-gray-900/[0.06] ring-1 ring-black/[0.04] hover:border-gray-200 hover:shadow-lg hover:shadow-gray-900/[0.08] transition-all duration-200 hover:-translate-y-0.5"
                     >
                       <div className="p-5 md:p-6">
                         <Link to={`/korisnik/${k.username}`} className="block" onClick={(e) => e.stopPropagation()}>
@@ -440,7 +464,7 @@ export default function Korisnici() {
                               </div>
                             </div>
                             <div
-                              className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-1.5 text-right bg-white/80 border border-gray-100"
+                              className="hidden sm:inline-flex flex-col items-end rounded-2xl px-3 py-1.5 text-right bg-gray-50 border border-gray-200/80 shadow-sm"
                             >
                               <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900">
                                 {formatRankDisplayName(rank, globalPositionByUserId[k.id])}
@@ -463,7 +487,7 @@ export default function Korisnici() {
                                 )}
                               </div>
                               <div
-                                className="sm:hidden inline-flex flex-col items-end rounded-xl px-2.5 py-1 text-right bg-gray-50"
+                                className="sm:hidden inline-flex flex-col items-end rounded-xl px-2.5 py-1 text-right bg-gray-50 border border-gray-200/80 shadow-sm"
                                 style={{ borderLeft: `3px solid ${rank.boja}` }}
                               >
                                 <span className="text-[11px] font-semibold text-gray-800">
@@ -498,7 +522,7 @@ export default function Korisnici() {
                         </Link>
 
                         {(user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar') && (
-                          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-end gap-1.5 sm:gap-2">
+                          <div className="mt-4 pt-4 border-t border-gray-200/70 flex items-center justify-end gap-1.5 sm:gap-2">
                             <Link
                               to={user?.username === k.username ? '/profil/podesavanja' : `/profil/podesavanja/${k.id}`}
                               className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
@@ -568,20 +592,32 @@ export default function Korisnici() {
                 {t('notEnoughRankingData')}
               </p>
             ) : (
-              <ul className="divide-y divide-gray-100">
-                {rankingKorisnici.map((k, index) => (
+              <ul className="space-y-2">
+                {rankingKorisnici.map((k, index) => {
+                  const place = index + 1
+                  const podium = place <= 3 ? PODIUM_STYLES[place as 1 | 2 | 3] : null
+
+                  return (
                   <li
                     key={k.id}
-                    className="flex items-center gap-3 py-3 sm:py-3.5 bg-white"
+                    className={`flex items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-3.5 ${
+                      podium
+                        ? podium.row
+                        : `border-b border-gray-100 last:border-b-0${place === 4 ? ' mt-3 border-t border-gray-200 pt-4' : ''}`
+                    }`}
                   >
-                    <span className="w-7 text-sm font-semibold text-gray-500 text-right">
-                      {index + 1}.
-                    </span>
+                    {podium ? (
+                      <span className={podium.position}>{place}</span>
+                    ) : (
+                      <span className="w-7 shrink-0 text-right text-sm font-semibold text-gray-500">
+                        {place}.
+                      </span>
+                    )}
                     <Link
                       to={`/korisnik/${k.username}`}
                       className="flex flex-1 items-center gap-3 sm:gap-4 hover:no-underline"
                     >
-                      <div className="relative h-10 w-10 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold text-lg">
+                      <div className={`relative h-10 w-10 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold text-lg ${podium ? 'ring-2 ring-white/80 shadow-sm' : ''}`}>
                         {k.avatar_url && !avatarFailed[k.id] ? (
                           <img
                             src={k.avatar_url}
@@ -611,16 +647,21 @@ export default function Korisnici() {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-700">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                            podium ? podium.rankBadge : 'bg-gray-50 text-gray-700'
+                          }`}
+                        >
                           {formatRankDisplayName(k.rank, globalPositionByUserId[k.id])}
                         </span>
-                        <span className="text-xs font-semibold text-gray-800">
+                        <span className={`text-xs font-semibold ${podium ? podium.mmr : 'text-gray-800'}`}>
                           {k.rank.mmr} MMR
                         </span>
                       </div>
                     </Link>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             )}
           </section>
