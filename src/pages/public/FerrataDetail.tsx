@@ -7,6 +7,11 @@ import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapC
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataHotelsSection } from '../../components/ferrate/FerrataHotelsSection'
 import { FerrataGuidesSection } from '../../components/ferrate/FerrataGuidesSection'
+import {
+  ferrataDetailAccentCardClass,
+  ferrataDetailCardClass,
+  ferrataDetailPanelClass,
+} from '../../components/ferrate/ferrataDetailCardStyles'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
 import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
@@ -265,11 +270,11 @@ export default function FerrataDetail() {
             </div>
           )}
 
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10">
+          <div className={`mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 mt-10 ${ferrataDetailPanelClass}`}>
             <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,340px)] lg:items-start">
               <div className="space-y-6">
                 {hasAbout && (
-                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <article className={ferrataDetailCardClass}>
                     <div className="mb-2 flex items-center gap-3">
                       <PlaninerIcon name="about" variant="solid" />
                       <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('aboutTitle')}</h2>
@@ -279,14 +284,14 @@ export default function FerrataDetail() {
                 )}
 
                 {hasWhy && (
-                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <article className={ferrataDetailCardClass}>
                     <div className="mb-4 flex items-center gap-3">
                       <PlaninerIcon name="why" variant="solid" />
                       <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('whyTitle')}</h2>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {f.highlights!.map((h) => (
-                        <div key={h} className="flex gap-3 rounded-xl border border-gray-50 bg-emerald-50/40 p-3">
+                        <div key={h} className="flex gap-3 rounded-xl border border-emerald-100/80 bg-white p-3 shadow-sm ring-1 ring-black/[0.03]">
                           <PlaninerIcon name="why" variant="small" className="mt-0.5" />
                           <p className="text-sm font-medium text-gray-800">{h}</p>
                         </div>
@@ -299,7 +304,7 @@ export default function FerrataDetail() {
                   const opremaItems = normalizeOprema(f.obaveznaOprema).filter((it) => it.label?.trim())
                   if (!opremaItems.length) return null
                   return (
-                    <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                    <article className={ferrataDetailCardClass}>
                       <div className="mb-4 flex items-center gap-3">
                         <PlaninerIcon name="gear" variant="solid" />
                         <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('equipmentTitle')}</h2>
@@ -311,7 +316,7 @@ export default function FerrataDetail() {
                           return (
                             <span
                               key={`${item.label}-${item.icon ?? ''}`}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-800"
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/80 bg-white px-3 py-2 text-xs font-semibold text-gray-800 shadow-sm ring-1 ring-black/[0.03]"
                             >
                               <FerrataEquipmentGlyph name={iconKey} className="h-4 w-4 shrink-0 text-emerald-600" />
                               {item.label.trim()}
@@ -335,7 +340,7 @@ export default function FerrataDetail() {
                 )}
 
                 {Boolean(f.okolina?.some((x) => x?.trim())) && (
-                  <article className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-6">
+                  <article className={ferrataDetailCardClass}>
                     <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4">{t('detailOkolinaTitle')}</h2>
                     <ul className="space-y-2 text-sm text-gray-800">
                       {f.okolina!.filter((x) => x?.trim()).map((line, idx) => (
@@ -349,8 +354,8 @@ export default function FerrataDetail() {
                 )}
               </div>
 
-              <aside className="space-y-5">
-                <div className="flex flex-col space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <aside className="space-y-6">
+                <div className={`flex flex-col space-y-4 ${ferrataDetailCardClass}`}>
                   <h3 className="text-sm font-bold text-gray-900">{t('sidebarPlanTitle')}</h3>
                   <p className="text-xs text-gray-500">{t('sidebarPlanHint')}</p>
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
@@ -397,7 +402,7 @@ export default function FerrataDetail() {
                   <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
                 )}
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className={ferrataDetailCardClass}>
                   <div className="mb-3 flex items-center gap-3">
                     <PlaninerIcon name="actions" variant="solid" />
                     <h3 className="text-sm font-bold text-gray-900">{t('sidebarUpcomingTitle')}</h3>
@@ -440,7 +445,7 @@ export default function FerrataDetail() {
                 </div>
 
                 {f.quickTip?.trim() && (
-                  <div className="flex gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+                  <div className={`flex gap-3 ${ferrataDetailAccentCardClass}`}>
                     <StarIcon className="h-6 w-6 shrink-0 text-emerald-600" />
                     <div>
                       <h3 className="text-sm font-bold text-emerald-900">{t('sidebarRecTitle')}</h3>

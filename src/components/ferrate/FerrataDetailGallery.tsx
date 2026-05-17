@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeftIcon, ChevronRightIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ferrataDetailCardClass } from './ferrataDetailCardStyles'
 
 type Props = {
   urls: string[]
@@ -42,7 +43,7 @@ export function FerrataDetailGallery(props: Props) {
 
   return (
     <>
-      <section className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-emerald-50/30 p-5 shadow-sm sm:p-6">
+      <section className={`${ferrataDetailCardClass} bg-gradient-to-b from-white to-emerald-50/40`}>
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
             <PhotoIcon className="h-5 w-5" />

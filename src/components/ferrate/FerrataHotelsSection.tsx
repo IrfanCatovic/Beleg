@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
+import { ferrataDetailCardClass } from './ferrataDetailCardStyles'
 import { FerrataDetailMapCard } from './FerrataDetailMapCard'
 import { normalizeInstagramUrl, safeHttpUrl } from './smestajExternalUrls'
 
@@ -290,7 +291,7 @@ export function FerrataHotelsSection(props: {
   if (variant === 'sidebar') {
     return (
       <>
-        <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <article className={`min-w-0 max-w-full ${ferrataDetailCardClass}`}>
           <div className="mb-4 flex items-center gap-3">
             <PlaninerIcon name="stay" variant="solid" />
             <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailHotelsTitle')}</h2>
@@ -321,7 +322,7 @@ export function FerrataHotelsSection(props: {
 
   return (
     <>
-      <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+      <article className={`min-w-0 max-w-full ${ferrataDetailCardClass}`}>
         <div className="mb-4 flex items-center gap-3">
           <PlaninerIcon name="stay" variant="solid" />
           <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailHotelsTitle')}</h2>

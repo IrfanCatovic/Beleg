@@ -7,6 +7,7 @@ import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { resolvePlaninerMapStyleForDetail } from '../../map/style/resolvePlaninerMapStyle'
 import { googleMapsPinUrl } from '../../map/utils/externalMapsUrl'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
+import { ferrataDetailCardShellClass } from './ferrataDetailCardStyles'
 
 function formatCoords(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
@@ -150,7 +151,7 @@ export function FerrataDetailMapCard(props: {
 
   return (
     <article
-      className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+      className={ferrataDetailCardShellClass}
       aria-label={`${props.naziv}${props.subtitle.trim() ? ` — ${props.subtitle.trim()}` : ''}`}
     >
       {inner}

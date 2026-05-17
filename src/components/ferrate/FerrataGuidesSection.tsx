@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { listGuidesNearby, type GuideNearbyPublic } from '../../services/guidesPublic'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
+import { ferrataDetailCardClass } from './ferrataDetailCardStyles'
 import { ProfiGuideBadge } from '../guides/ProfiGuideBadge'
 
 function formatDistanceKm(km: number | undefined): string {
@@ -181,7 +182,7 @@ export function FerrataGuidesSection(props: {
   const visibleList = expanded ? list : list.slice(0, 2)
 
   return (
-    <article className="min-w-0 max-w-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+    <article className={`min-w-0 max-w-full ${ferrataDetailCardClass}`}>
       <div className="mb-4 flex items-center gap-3">
         <PlaninerIcon name="guide" variant="solid" />
         <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailLocalGuidesTitle')}</h2>
