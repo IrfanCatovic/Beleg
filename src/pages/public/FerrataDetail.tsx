@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataHotelsSection } from '../../components/ferrate/FerrataHotelsSection'
+import { FerrataGuidesSection } from '../../components/ferrate/FerrataGuidesSection'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
 import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
@@ -484,19 +485,13 @@ export default function FerrataDetail() {
                   </div>
                 )}
 
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50 p-5">
-                  <div className="flex gap-3">
-                    <PlaninerIcon name="guide" variant="solid" className="shrink-0" />
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-gray-900">{t('detailLocalGuidesTitle')}</h3>
-                      <p className="mt-2 text-xs leading-relaxed text-gray-500">{t('detailLocalGuidesSoon')}</p>
-                    </div>
-                  </div>
-                  <div className="mt-5 flex flex-col items-center gap-2">
-                    <PlaninerIcon name="guide" variant="soft" />
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">{t('detailLocalGuidesBadge')}</span>
-                  </div>
-                </div>
+                {hasMapCoords && (
+                  <FerrataGuidesSection
+                    ferrataLat={f.lat as number}
+                    ferrataLng={f.lng as number}
+                    tourType="via_ferrata"
+                  />
+                )}
               </aside>
             </div>
           </div>
