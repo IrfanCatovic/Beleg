@@ -109,6 +109,14 @@ export function FerrataGuidesSection(props: {
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2 pr-3">
                 <p className="truncate text-sm font-bold text-gray-900 group-hover:text-emerald-900">{name}</p>
+                {(g.brojOcena ?? 0) > 0 && (
+                  <p className="mt-0.5 text-[11px] font-semibold text-amber-700">
+                    {t('detailGuideRatingShort', {
+                      avg: String(g.prosecnaOcena ?? 0).replace(/\.0$/, ''),
+                      count: g.brojOcena,
+                    })}
+                  </p>
+                )}
                 <p className="mt-0.5 truncate text-xs font-medium text-gray-600">
                   {t('detailGuideDistanceShort', { km })}
                   {loc ? ` · ${loc}` : ''}

@@ -26,6 +26,8 @@ export type GuideProfile = {
   jezici: string[]
   sertifikatiOpis?: string
   tourTypes: string[]
+  prosecnaOcena?: number
+  brojOcena?: number
   razlogOdbijanja?: string
   createdAt: string
   updatedAt: string

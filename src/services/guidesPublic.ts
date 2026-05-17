@@ -11,6 +11,8 @@ export type GuideNearbyPublic = {
   baseLng?: number
   jezici: string[]
   tourTypes: string[]
+  prosecnaOcena?: number
+  brojOcena?: number
   distanceKm?: number
   user?: {
     id: number

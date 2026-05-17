@@ -42,6 +42,7 @@ interface Akcija {
   visinaVrhM?: number
   zimskiUspon?: boolean
   drugiVodicIme?: string
+  vodicId?: number
   vodic?: { fullName: string; username: string }
   addedBy?: { fullName: string; username: string }
   prijaveCount?: number
@@ -2833,7 +2834,7 @@ export default function ActionDetails() {
       </div>
 
       <GuideRatingModal
-        open={guideRatingOpen && canShowGuideRatingPrompt}
+        open={guideRatingOpen && canShowGuideRatingPrompt && !guideRatingSkipped}
         guideName={guideRatingGuideName}
         saving={guideRatingSaving}
         onClose={() => setGuideRatingOpen(false)}
