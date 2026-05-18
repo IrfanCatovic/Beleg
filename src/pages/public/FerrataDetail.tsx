@@ -74,7 +74,7 @@ function FerrataBookModal(props: {
   onClose: () => void
   contacts: ContactRow[]
 }) {
-  const { t } = useTranslation('ferrate')
+  const { t } = useTranslation('ferrate') //ovo je translator za naslov modala
   if (!props.open) return null
   return (
     <div
