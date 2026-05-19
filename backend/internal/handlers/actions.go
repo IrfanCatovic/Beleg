@@ -2630,14 +2630,14 @@ func ZavrsiAkciju(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":         "Akcija uspešno završena",
-		"akcija":          akcija,
-		"importedUplate":  importedCount,
-		"importedIznos":   prihodUkupan,
-		"prihodUkupan":    prihodUkupan,
-		"rashodNaAkciji":  rashodNaAkciji,
-		"netoFinansije":   netoFinansije,
-		"finansijeTip":    finansijeTip,
+		"message":        "Akcija uspešno završena",
+		"akcija":         akcija,
+		"importedUplate": importedCount,
+		"importedIznos":  prihodUkupan,
+		"prihodUkupan":   prihodUkupan,
+		"rashodNaAkciji": rashodNaAkciji,
+		"netoFinansije":  netoFinansije,
+		"finansijeTip":   finansijeTip,
 	})
 }
 
