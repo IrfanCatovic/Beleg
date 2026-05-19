@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom'
+import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
@@ -35,6 +36,18 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       ? 'bg-white/[0.08] text-white'
       : 'text-white/70 hover:text-white hover:bg-white/[0.05]'
   }`
+
+function navDropdownTriggerClass(open: boolean, routeActive: boolean) {
+  const on = open || routeActive
+  return `inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-semibold tracking-wide transition-all duration-200 ${
+    on ? 'bg-white/[0.1] text-white shadow-inner shadow-black/20' : 'text-white/70 hover:text-white hover:bg-white/[0.06]'
+  }`
+}
+
+const navDropdownPanelClass =
+  'absolute left-0 top-full z-50 mt-1.5 min-w-[14.5rem] rounded-xl border border-white/10 bg-slate-900/97 py-1 shadow-2xl ring-1 ring-black/30 backdrop-blur-xl'
+const navDropdownLinkClass =
+  'flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-white/90 hover:bg-white/[0.08] transition-colors'
 
 const canSeeFinance = (role?: string) =>
   role === 'superadmin' || role === 'admin' || role === 'blagajnik'
@@ -75,6 +88,12 @@ export default function AppLayout() {
   const [pullDistance, setPullDistance] = useState(0)
   const [pullRefreshing, setPullRefreshing] = useState(false)
   const [summitRewardDismissed, setSummitRewardDismissed] = useState(false)
+  const [navExploreOpen, setNavExploreOpen] = useState(false)
+  const [navClubOpen, setNavClubOpen] = useState(false)
+  const [mobileExploreOpen, setMobileExploreOpen] = useState(false)
+  const [mobileClubOpen, setMobileClubOpen] = useState(false)
+  const navExploreRef = useRef<HTMLDivElement>(null)
+  const navClubRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -103,10 +122,28 @@ export default function AppLayout() {
       if (isProfileMenuOpen && profileBlockRef.current && !profileBlockRef.current.contains(target)) {
         setIsProfileMenuOpen(false)
       }
+      const insideNavExplore = navExploreRef.current?.contains(target)
+      const insideNavClub = navClubRef.current?.contains(target)
+      if (navExploreOpen && !insideNavExplore) setNavExploreOpen(false)
+      if (navClubOpen && !insideNavClub) setNavClubOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen])
+  }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen, navExploreOpen, navClubOpen])
+
+  useEffect(() => {
+    setNavExploreOpen(false)
+    setNavClubOpen(false)
+    setMobileExploreOpen(false)
+    setMobileClubOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      setMobileExploreOpen(false)
+      setMobileClubOpen(false)
+    }
+  }, [isMenuOpen])
 
   useEffect(() => {
     if (!isLoggedIn || isSuperadminNoClub) return
@@ -246,6 +283,14 @@ export default function AppLayout() {
 
   const iconBtnClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
+  const exploreNavActive =
+    location.pathname.startsWith('/ferate') || location.pathname === '/search'
+  const clubNavActive =
+    location.pathname === '/klub' ||
+    location.pathname.startsWith('/klubovi') ||
+    location.pathname.startsWith('/users') ||
+    location.pathname === '/zadaci' ||
+    location.pathname === '/finansije'
   const totalPendingRequests = pendingActionRequestsCount + pendingFollowRequestsCount
   const hasPendingRequests = totalPendingRequests > 0
   const showSummitRewardModal = !!(isLoggedIn && pendingSummitReward && !summitRewardDismissed)
@@ -308,19 +353,144 @@ export default function AppLayout() {
 
                 {/* Desktop nav – sakriven za superadmina bez kluba */}
                 {!isSuperadminNoClub && (
-                <nav className="hidden md:flex items-center gap-1">
-                  <NavLink to="/home" className={navLinkClass}>{t('home')}</NavLink>
-                  <NavLink to="/akcije" className={navLinkClass}>{t('actions')}</NavLink>
-                  <NavLink to="/ferate" className={navLinkClass}>{tFerrate('nav')}</NavLink>
-                  {hasClubContext && <NavLink to="/zadaci" className={navLinkClass}>{t('tasks')}</NavLink>}
-                  {hasClubContext && <NavLink to="/users" className={navLinkClass}>{t('members')}</NavLink>}
-                  <NavLink to="/klub" className={navLinkClass}>{t('club')}</NavLink>
-                  {canSeeFinance(user?.role) && (
-                    <NavLink to="/finansije" className={navLinkClass}>{t('finances')}</NavLink>
-                  )}
+                <nav className="hidden md:flex items-center gap-0.5">
+                  <NavLink to="/home" className={navLinkClass}>
+                    {t('home')}
+                  </NavLink>
+                  <NavLink to="/akcije" className={navLinkClass}>
+                    {t('actions')}
+                  </NavLink>
+
+                  <div className="relative" ref={navExploreRef}>
+                    <button
+                      type="button"
+                      className={navDropdownTriggerClass(navExploreOpen, exploreNavActive)}
+                      aria-expanded={navExploreOpen}
+                      aria-haspopup="menu"
+                      onClick={() => {
+                        setNavExploreOpen((v) => !v)
+                        setNavClubOpen(false)
+                        setIsSearchOpen(false)
+                        setIsNotificationsOpen(false)
+                        setIsProfileMenuOpen(false)
+                      }}
+                    >
+                      {t('explore')}
+                      <ChevronDownIcon className={`h-4 w-4 shrink-0 opacity-90 transition-transform ${navExploreOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {navExploreOpen && (
+                      <div className={navDropdownPanelClass} role="menu">
+                        <Link
+                          to="/ferate"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavExploreOpen(false)}
+                        >
+                          {t('exploreFerate')}
+                        </Link>
+                        <Link
+                          to="/akcije"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavExploreOpen(false)}
+                        >
+                          {t('exploreMountains')}
+                        </Link>
+                        <Link
+                          to="/search"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavExploreOpen(false)}
+                        >
+                          {t('exploreGuides')}
+                        </Link>
+                        <Link
+                          to="/ferate"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavExploreOpen(false)}
+                        >
+                          {t('exploreHotels')}
+                        </Link>
+                        <Link
+                          to="/ferate#ferrate-katalog-mapa"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavExploreOpen(false)}
+                        >
+                          {t('exploreMap')}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative" ref={navClubRef}>
+                    <button
+                      type="button"
+                      className={navDropdownTriggerClass(navClubOpen, clubNavActive)}
+                      aria-expanded={navClubOpen}
+                      aria-haspopup="menu"
+                      onClick={() => {
+                        setNavClubOpen((v) => !v)
+                        setNavExploreOpen(false)
+                        setIsSearchOpen(false)
+                        setIsNotificationsOpen(false)
+                        setIsProfileMenuOpen(false)
+                      }}
+                    >
+                      {t('myClubNav')}
+                      <ChevronDownIcon className={`h-4 w-4 shrink-0 opacity-90 transition-transform ${navClubOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {navClubOpen && (
+                      <div className={navDropdownPanelClass} role="menu">
+                        <Link
+                          to="/klub"
+                          className={navDropdownLinkClass}
+                          role="menuitem"
+                          onClick={() => setNavClubOpen(false)}
+                        >
+                          {t('clubOverview')}
+                        </Link>
+                        {hasClubContext && (
+                          <Link
+                            to="/users"
+                            className={navDropdownLinkClass}
+                            role="menuitem"
+                            onClick={() => setNavClubOpen(false)}
+                          >
+                            {t('members')}
+                          </Link>
+                        )}
+                        {hasClubContext && (
+                          <Link
+                            to="/zadaci"
+                            className={navDropdownLinkClass}
+                            role="menuitem"
+                            onClick={() => setNavClubOpen(false)}
+                          >
+                            {t('tasks')}
+                          </Link>
+                        )}
+                        {canSeeFinance(user?.role) && (
+                          <Link
+                            to="/finansije"
+                            className={navDropdownLinkClass}
+                            role="menuitem"
+                            onClick={() => setNavClubOpen(false)}
+                          >
+                            {t('finances')}
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {user?.role === 'superadmin' && (
                     <>
-                      <NavLink to="/superadmin" end className={navLinkClass}>{t('clubs')}</NavLink>
+                      <span className="mx-1 hidden h-5 w-px self-center bg-white/15 lg:block" aria-hidden />
+                      <NavLink to="/superadmin" end className={navLinkClass}>
+                        {t('clubs')}
+                      </NavLink>
                       <NavLink to="/superadmin/hoteli" className={navLinkClass}>
                         {tHotels('title')}
                       </NavLink>
@@ -377,6 +547,8 @@ export default function AppLayout() {
                     onClick={() => {
                       setIsNotificationsOpen(false)
                       setIsProfileMenuOpen(false)
+                      setNavExploreOpen(false)
+                      setNavClubOpen(false)
                       setIsSearchOpen((v) => !v)
                     }}
                     className={iconBtnClass}
@@ -394,6 +566,8 @@ export default function AppLayout() {
                       onClick={() => {
                         setIsSearchOpen(false)
                         setIsProfileMenuOpen(false)
+                        setNavExploreOpen(false)
+                        setNavClubOpen(false)
                         setIsNotificationsOpen((v) => !v)
                       }}
                       className={`relative ${iconBtnClass} ${hasPendingRequests ? 'ring-2 ring-amber-300/60 bg-amber-500/15 text-amber-100 hover:text-amber-50 hover:bg-amber-500/25' : ''}`}
@@ -493,6 +667,8 @@ export default function AppLayout() {
                         onClick={() => {
                           setIsSearchOpen(false)
                           setIsNotificationsOpen(false)
+                          setNavExploreOpen(false)
+                          setNavClubOpen(false)
                           setIsProfileMenuOpen((v) => !v)
                         }}
                         className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-white/[0.06] transition-all duration-200 group"
@@ -670,6 +846,17 @@ export default function AppLayout() {
                 {!isSuperadminNoClub && (
                 <>
                 <NavLink
+                  to="/home"
+                  className={({ isActive }) =>
+                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
+                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                    }`
+                  }
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {t('home')}
+                </NavLink>
+                <NavLink
                   to="/akcije"
                   className={({ isActive }) =>
                     `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
@@ -680,69 +867,113 @@ export default function AppLayout() {
                 >
                   {t('actions')}
                 </NavLink>
-                <NavLink
-                  to="/ferate"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                    }`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {tFerrate('nav')}
-                </NavLink>
-                {hasClubContext && (
-                  <NavLink
-                    to="/zadaci"
-                    className={({ isActive }) =>
-                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                      }`
-                    }
-                    onClick={() => setIsMenuOpen(false)}
+
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-[15px] font-semibold text-white"
+                    aria-expanded={mobileExploreOpen}
+                    onClick={() => setMobileExploreOpen((v) => !v)}
                   >
-                    {t('tasks')}
-                  </NavLink>
-                )}
-                {hasClubContext && (
-                  <NavLink
-                    to="/users"
-                    className={({ isActive }) =>
-                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                      }`
-                    }
-                    onClick={() => setIsMenuOpen(false)}
+                    <span>{t('explore')}</span>
+                    <ChevronDownIcon className={`h-5 w-5 shrink-0 text-white/70 transition-transform ${mobileExploreOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileExploreOpen && (
+                    <div className="border-t border-white/10 bg-black/15 px-2 py-2 flex flex-col gap-0.5">
+                      <Link
+                        to="/ferate"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('exploreFerate')}
+                      </Link>
+                      <Link
+                        to="/akcije"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('exploreMountains')}
+                      </Link>
+                      <Link
+                        to="/search"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('exploreGuides')}
+                      </Link>
+                      <Link
+                        to="/ferate"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('exploreHotels')}
+                      </Link>
+                      <Link
+                        to="/ferate#ferrate-katalog-mapa"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('exploreMap')}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-[15px] font-semibold text-white"
+                    aria-expanded={mobileClubOpen}
+                    onClick={() => setMobileClubOpen((v) => !v)}
                   >
-                    {t('members')}
-                  </NavLink>
-                )}
-                <NavLink
-                  to="/klub"
-                  className={({ isActive }) =>
-                    `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                      isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                    }`
-                  }
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t('club')}
-                </NavLink>
-                {canSeeFinance(user?.role) && (
-                  <NavLink
-                    to="/finansije"
-                    className={({ isActive }) =>
-                      `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${
-                        isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
-                      }`
-                    }
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {t('finances')}
-                  </NavLink>
-                )}
+                    <span>{t('myClubNav')}</span>
+                    <ChevronDownIcon className={`h-5 w-5 shrink-0 text-white/70 transition-transform ${mobileClubOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {mobileClubOpen && (
+                    <div className="border-t border-white/10 bg-black/15 px-2 py-2 flex flex-col gap-0.5">
+                      <Link
+                        to="/klub"
+                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('clubOverview')}
+                      </Link>
+                      {hasClubContext && (
+                        <Link
+                          to="/users"
+                          className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          {t('members')}
+                        </Link>
+                      )}
+                      {hasClubContext && (
+                        <Link
+                          to="/zadaci"
+                          className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          {t('tasks')}
+                        </Link>
+                      )}
+                      {canSeeFinance(user?.role) && (
+                        <Link
+                          to="/finansije"
+                          className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          {t('finances')}
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {user?.role === 'superadmin' && (
                   <>
+                    <p className="px-1 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">
+                      Superadmin
+                    </p>
                     <NavLink
                       to="/superadmin"
                       end

@@ -374,7 +374,7 @@ export default function FerrataList() {
 
         {/* Sidebar */}
         <aside className="mt-10 space-y-6 lg:mt-0">
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div id="ferrate-katalog-mapa" className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm scroll-mt-24">
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                 <MapIcon className="h-5 w-5 text-emerald-600" />
