@@ -492,6 +492,12 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 			"prikaziListuPrijavljenih": akcija.PrikaziListuPrijavljenih,
 			"omoguciGrupniChat":        akcija.OmoguciGrupniChat,
 		}
+		if akcija.PlaninaLat != nil {
+			resp["planinaLat"] = *akcija.PlaninaLat
+		}
+		if akcija.PlaninaLng != nil {
+			resp["planinaLng"] = *akcija.PlaninaLng
+		}
 		if akcija.FerrataID != nil {
 			resp["ferrataId"] = *akcija.FerrataID
 		}
@@ -712,6 +718,32 @@ func calendarDatumUTCFromBelgradeClock(t time.Time) time.Time {
 	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
 }
 
+// parseRequiredPlaninaLatLng validira obavezne koordinate za planinarske akcije (mapa ili ručni unos).
+func parseRequiredPlaninaLatLng(latStr, lngStr string) (lat, lng *float64, errMsg string) {
+	ls := strings.TrimSpace(strings.Replace(latStr, ",", ".", 1))
+	gs := strings.TrimSpace(strings.Replace(lngStr, ",", ".", 1))
+	if ls == "" || gs == "" {
+		return nil, nil, "Za planinarsku akciju obavezno je postaviti tačku na mapi ili unijeti koordinate (širina i dužina)."
+	}
+	la, e1 := strconv.ParseFloat(ls, 64)
+	ln, e2 := strconv.ParseFloat(gs, 64)
+	if e1 != nil || e2 != nil {
+		return nil, nil, "Koordinate nisu ispravni brojevi."
+	}
+	if la < -90 || la > 90 || ln < -180 || ln > 180 {
+		return nil, nil, "Koordinate su van dozvoljenog opsega (širina −90…90, dužina −180…180)."
+	}
+	return &la, &ln, ""
+}
+
+func ferrataLatLngPointers(ft *models.Ferrata) (lat, lng *float64) {
+	if ft == nil || ft.Lat == nil || ft.Lng == nil {
+		return nil, nil
+	}
+	la, ln := *ft.Lat, *ft.Lng
+	return &la, &ln
+}
+
 func CreateAkcija(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" && role != "vodic" && role != "superadmin" {
@@ -763,6 +795,7 @@ func CreateAkcija(c *gin.Context) {
 	var ferrataIDPtr *uint
 	var snapshotJSON json.RawMessage
 	var startAtPtr *time.Time
+	var planinaLatPtr, planinaLngPtr *float64
 
 	if tipAkcije == "via_ferrata" {
 		if strings.TrimSpace(naziv) == "" {
@@ -818,6 +851,7 @@ func CreateAkcija(c *gin.Context) {
 			duzinaStazeKm = 0
 		}
 		visinaVrhM = 0
+		planinaLatPtr, planinaLngPtr = ferrataLatLngPointers(&ft)
 	} else {
 		planina = strings.TrimSpace(c.PostForm("planina"))
 		vrh = c.PostForm("vrh")
@@ -857,6 +891,12 @@ func CreateAkcija(c *gin.Context) {
 				return
 			}
 		}
+		var em string
+		planinaLatPtr, planinaLngPtr, em = parseRequiredPlaninaLatLng(c.PostForm("planinaLat"), c.PostForm("planinaLng"))
+		if em != "" {
+			c.JSON(400, gin.H{"error": em})
+			return
+		}
 	}
 
 	zimskiUspon := false
@@ -874,6 +914,8 @@ func CreateAkcija(c *gin.Context) {
 	akcija := models.Akcija{
 		Naziv:                    naziv,
 		Planina:                  planina,
+		PlaninaLat:               planinaLatPtr,
+		PlaninaLng:               planinaLngPtr,
 		Vrh:                      vrh,
 		Datum:                    datum,
 		Opis:                     opis,
@@ -1112,6 +1154,7 @@ func UpdateAkcija(c *gin.Context) {
 		}
 		akcija.UkupnoKmAkcija = float64(ft.DuzinaM) / 1000.0
 		akcija.VisinaVrhM = 0
+		akcija.PlaninaLat, akcija.PlaninaLng = ferrataLatLngPointers(&ft)
 	} else {
 		akcija.FerrataID = nil
 		akcija.FerrataSnapshotJSON = nil
@@ -1170,6 +1213,13 @@ func UpdateAkcija(c *gin.Context) {
 		akcija.UkupnoMetaraUsponaAkcija = kumulativniUsponM
 		akcija.UkupnoKmAkcija = duzinaStazeKm
 		akcija.TipAkcije = tipAkcije
+		plt, plg, em := parseRequiredPlaninaLatLng(c.PostForm("planinaLat"), c.PostForm("planinaLng"))
+		if em != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": em})
+			return
+		}
+		akcija.PlaninaLat = plt
+		akcija.PlaninaLng = plg
 	}
 
 	if tipAkcije == "via_ferrata" {

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/middleware"
 	"time"
 
@@ -39,6 +40,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 	protected.Use(middleware.ClubHoldMiddleware())
 	{
 		RegisterClubMembershipRoutes(r, protected, db)
+		protected.GET("/geocode", handlers.GetGeocodeSearch)
 		RegisterFinanceRoutes(protected)
 		RegisterZadatakRoutes(protected)
 		RegisterObavestenjaRoutes(protected)

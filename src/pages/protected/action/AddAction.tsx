@@ -41,6 +41,8 @@ const initialWizardValues = (tip: 'planina' | 'via_ferrata'): WizardValues => ({
   cenaOstali: '',
   prikaziListuPrijavljenih: true,
   omoguciGrupniChat: false,
+  planinaLat: '',
+  planinaLng: '',
   smestaj: [],
   oprema: [],
   prevoz: [],
@@ -200,6 +202,13 @@ export default function AddAction() {
         setLoading(false)
         return
       }
+      const la = parseFloat(String(values.planinaLat).replace(',', '.'))
+      const ln = parseFloat(String(values.planinaLng).replace(',', '.'))
+      if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+        setError(t('errors.missingPlaninaLocation'))
+        setLoading(false)
+        return
+      }
     }
 
     try {
@@ -225,6 +234,8 @@ export default function AddAction() {
       formData.append('javna', String(values.visibility === 'javna'))
       formData.append('tipAkcije', values.actionKind)
       if (values.actionKind === 'planina') {
+        formData.append('planinaLat', values.planinaLat.trim())
+        formData.append('planinaLng', values.planinaLng.trim())
         formData.append('trajanjeSati', values.trajanjeSati)
       }
       formData.append('rokPrijava', values.rokPrijava)

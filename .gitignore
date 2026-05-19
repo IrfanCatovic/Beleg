@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 .npm
+
+# Frontend (Vite): korenski .env (VITE_* i sl.); ne commitovati / ne pushati
+.env
 .env.local
 .env.*
 !.env.example
@@ -20,7 +23,6 @@ dist-ssr
 *.exe
 vendor/
 **/planiner-api
-.env
 backend/.env
 backend/.env.*
 !backend/.env.example
@@ -44,3 +46,5 @@ tmp-en-i18n.json
 # pgAdmin 
 .pgadmin/
 *.log
+
+

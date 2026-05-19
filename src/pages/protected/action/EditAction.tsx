@@ -46,6 +46,8 @@ interface AkcijaData {
   omoguciGrupniChat?: boolean
   ferrataId?: number
   startAt?: string
+  planinaLat?: number
+  planinaLng?: number
   smestaj?: Array<{ id: number; naziv: string; cenaPoOsobiUkupno: number; opis?: string }>
   opremaRent?: Array<{ id: number; nazivOpreme: string; dostupnaKolicina: number; cenaPoSetu: number }>
   prevoz?: Array<{ id: number; tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number }>
@@ -79,6 +81,8 @@ const emptyWizardValues: WizardValues = {
   cenaOstali: '',
   prikaziListuPrijavljenih: true,
   omoguciGrupniChat: false,
+  planinaLat: '',
+  planinaLng: '',
   smestaj: [],
   oprema: [],
   prevoz: [],
@@ -214,6 +218,10 @@ export default function EditAction() {
           cenaOstali: a.cenaOstali != null ? String(a.cenaOstali) : '',
           prikaziListuPrijavljenih: a.prikaziListuPrijavljenih ?? true,
           omoguciGrupniChat: a.omoguciGrupniChat ?? false,
+          planinaLat:
+            !isVia && a.planinaLat != null && Number.isFinite(Number(a.planinaLat)) ? String(a.planinaLat) : '',
+          planinaLng:
+            !isVia && a.planinaLng != null && Number.isFinite(Number(a.planinaLng)) ? String(a.planinaLng) : '',
           smestaj: isVia ? [] : (a.smestaj || []).map((s) => ({
             localId: `s-${s.id}`,
             naziv: s.naziv || '',
@@ -283,6 +291,13 @@ export default function EditAction() {
         setLoading(false)
         return
       }
+      const la = parseFloat(String(formValues.planinaLat).replace(',', '.'))
+      const ln = parseFloat(String(formValues.planinaLng).replace(',', '.'))
+      if (!Number.isFinite(la) || !Number.isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+        setError(t('errors.missingPlaninaLocation'))
+        setLoading(false)
+        return
+      }
     }
 
     try {
@@ -308,6 +323,8 @@ export default function EditAction() {
       formData.append('javna', String(formValues.visibility === 'javna'))
       formData.append('tipAkcije', formValues.actionKind)
       if (formValues.actionKind === 'planina') {
+        formData.append('planinaLat', formValues.planinaLat.trim())
+        formData.append('planinaLng', formValues.planinaLng.trim())
         formData.append('trajanjeSati', formValues.trajanjeSati)
       }
       formData.append('rokPrijava', formValues.rokPrijava)

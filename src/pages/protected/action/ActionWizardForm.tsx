@@ -3,6 +3,8 @@ import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import type { ClubCurrencyCode } from '../../../utils/clubCurrency'
 import { useTranslation } from 'react-i18next'
+import { FerrataPinPicker } from '../../../components/ferrate/FerrataPinPicker'
+import api from '../../../services/api'
 
 type ActionKind = 'planina' | 'via_ferrata'
 type VisibilityKind = 'klubska' | 'javna'
@@ -74,6 +76,9 @@ export interface WizardValues {
   cenaOstali: string
   prikaziListuPrijavljenih: boolean
   omoguciGrupniChat: boolean
+  /** Geografska širina/dužina glavne tačke ture (planina) — obavezno za tip planina */
+  planinaLat: string
+  planinaLng: string
   smestaj: WizardSmestaj[]
   oprema: WizardOprema[]
   prevoz: WizardPrevoz[]
@@ -137,12 +142,48 @@ export function ActionWizardForm({
   const [step, setStep] = useState(1)
   const [values, setValues] = useState<WizardValues>(initialValues)
   const [image, setImage] = useState<File | null>(null)
+  const [geoQuery, setGeoQuery] = useState('')
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoErr, setGeoErr] = useState('')
 
   useEffect(() => {
     setValues(initialValues)
   }, [initialValues])
 
+  const hintCenterForMountain = useMemo(() => {
+    const la = parseFloat(String(values.planinaLat).replace(',', '.'))
+    const ln = parseFloat(String(values.planinaLng).replace(',', '.'))
+    if (Number.isFinite(la) && Number.isFinite(ln)) return { lat: la, lng: ln }
+    return null
+  }, [values.planinaLat, values.planinaLng])
+
   const isVia = values.actionKind === 'via_ferrata'
+
+  const patch = (data: Partial<WizardValues>) => setValues((prev) => ({ ...prev, ...data }))
+
+  const runGeocode = async () => {
+    const q = (geoQuery.trim() || `${values.planina}, ${values.vrh}`).trim()
+    if (q.length < 3) {
+      setGeoErr(t('fields.planinaGeocodeMinQuery'))
+      return
+    }
+    setGeoErr('')
+    setGeoBusy(true)
+    try {
+      const res = await api.get<{ lat: number; lng: number }>('/api/geocode', { params: { q } })
+      patch({
+        planinaLat: Number(res.data.lat).toFixed(6),
+        planinaLng: Number(res.data.lng).toFixed(6),
+      })
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { error?: string } } }).response?.data?.error || t('fields.planinaGeocodeNoResults')
+      setGeoErr(msg)
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   const maxStep = isVia ? 3 : 4
 
   const selectedFerrata = useMemo(
@@ -165,7 +206,6 @@ export function ActionWizardForm({
     return sm + pr + op
   }, [values])
 
-  const patch = (data: Partial<WizardValues>) => setValues((prev) => ({ ...prev, ...data }))
   const toStepLabel = (currentStep: number) => {
     if (currentStep === 1) return t('wizard.tabs.basic')
     if (currentStep === 2) return t('wizard.tabs.logistics')
@@ -249,6 +289,7 @@ export function ActionWizardForm({
                     const k = v as ActionKind
                     if (k === 'via_ferrata') {
                       setImage(null)
+                      setGeoErr('')
                       setValues((prev) => ({
                         ...prev,
                         actionKind: k,
@@ -259,6 +300,8 @@ export function ActionWizardForm({
                         mestoPolaska: '',
                         zimskiUspon: false,
                         visinaVrhM: '',
+                        planinaLat: '',
+                        planinaLng: '',
                       }))
                       setStep((s) => Math.min(s, 3))
                     } else {
@@ -337,6 +380,66 @@ export function ActionWizardForm({
                     placeholder={t('placeholders.peak')}
                     className={baseInput}
                   />
+                </div>
+                <div className="sm:col-span-2 space-y-3">
+                  <label className={labelClass}>{t('fields.planinaLocationTitle')}</label>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">{t('fields.planinaLocationHint')}</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">{t('fields.planinaLatShort')}</label>
+                      <input
+                        required
+                        value={values.planinaLat}
+                        onChange={(e) => patch({ planinaLat: e.target.value })}
+                        className={baseInput}
+                        inputMode="decimal"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">{t('fields.planinaLngShort')}</label>
+                      <input
+                        required
+                        value={values.planinaLng}
+                        onChange={(e) => patch({ planinaLng: e.target.value })}
+                        className={baseInput}
+                        inputMode="decimal"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                  <FerrataPinPicker
+                    lat={values.planinaLat}
+                    lng={values.planinaLng}
+                    onLatChange={(lat) => patch({ planinaLat: lat })}
+                    onLngChange={(lng) => patch({ planinaLng: lng })}
+                    hintCenter={hintCenterForMountain}
+                    mapHint={t('fields.planinaMapPickerHint')}
+                    compact
+                  />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex-1 min-w-0">
+                      <label className="mb-1 block text-xs font-medium text-gray-600">{t('fields.planinaGeocodeLabel')}</label>
+                      <input
+                        value={geoQuery}
+                        onChange={(e) => {
+                          setGeoQuery(e.target.value)
+                          setGeoErr('')
+                        }}
+                        placeholder={t('fields.planinaGeocodePlaceholder')}
+                        className={baseInput}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void runGeocode()}
+                      disabled={geoBusy}
+                      className="shrink-0 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+                    >
+                      {geoBusy ? t('fields.planinaGeocodeSearching') : t('fields.planinaGeocodeSearch')}
+                    </button>
+                  </div>
+                  {geoErr ? <p className="text-[11px] text-rose-600">{geoErr}</p> : null}
                 </div>
               </>
             )}

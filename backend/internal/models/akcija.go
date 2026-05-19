@@ -9,6 +9,9 @@ type Akcija struct {
 	ID                       uint      `gorm:"primaryKey" json:"id"`
 	Naziv                    string    `json:"naziv"`
 	Planina                  string    `json:"planina"` // Ime planine
+	// Tačka na mapi za planinarske akcije (vezivanje hotela/vodiča po lokaciji); za via ferrata često iz kataloga ferate.
+	PlaninaLat *float64 `gorm:"column:planina_lat" json:"planinaLat,omitempty"`
+	PlaninaLng *float64 `gorm:"column:planina_lng" json:"planinaLng,omitempty"`
 	Vrh                      string    `json:"vrh"`
 	Datum                    time.Time `json:"datum"`
 	Opis                     string    `json:"opis,omitempty"`
