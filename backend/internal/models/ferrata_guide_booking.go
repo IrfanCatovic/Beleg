@@ -2,6 +2,12 @@ package models
 
 import "time"
 
+const (
+	GuideBookingTargetStatusPending  = "pending"
+	GuideBookingTargetStatusRejected = "rejected"
+	GuideBookingTargetStatusAccepted = "accepted"
+)
+
 // FerrataGuideBookingRequest zahtev korisnika za vođenje na ferati.
 type FerrataGuideBookingRequest struct {
 	ID                uint      `gorm:"primaryKey" json:"id"`
@@ -30,10 +36,13 @@ func (FerrataGuideBookingRequest) TableName() string {
 
 // FerrataGuideBookingTarget vodič kome je poslat zahtev.
 type FerrataGuideBookingTarget struct {
-	ID               uint `gorm:"primaryKey" json:"id"`
-	BookingRequestID uint `gorm:"column:booking_request_id;index;not null" json:"bookingRequestId"`
-	GuideProfileID   uint `gorm:"column:guide_profile_id;index;not null" json:"guideProfileId"`
-	GuideUserID      uint `gorm:"column:guide_user_id;index;not null" json:"guideUserId"`
+	ID               uint       `gorm:"primaryKey" json:"id"`
+	BookingRequestID uint       `gorm:"column:booking_request_id;index;not null" json:"bookingRequestId"`
+	GuideProfileID   uint       `gorm:"column:guide_profile_id;index;not null" json:"guideProfileId"`
+	GuideUserID      uint       `gorm:"column:guide_user_id;index;not null" json:"guideUserId"`
+	Status           string     `gorm:"column:status;type:varchar(20);not null;default:pending" json:"status"`
+	ActionID         *uint      `gorm:"column:action_id;index" json:"actionId,omitempty"`
+	RespondedAt      *time.Time `gorm:"column:responded_at" json:"respondedAt,omitempty"`
 
 	GuideProfile *GuideProfile `gorm:"foreignKey:GuideProfileID" json:"-"`
 }

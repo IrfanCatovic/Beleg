@@ -9,4 +9,6 @@ import (
 func RegisterFerrataGuideBookingRoutes(g *gin.RouterGroup) {
 	g.POST("/ferrata-guide-bookings", handlers.CreateFerrataGuideBooking)
 	g.GET("/ferrata-guide-bookings/:id", handlers.GetFerrataGuideBooking)
+	g.POST("/ferrata-guide-bookings/:id/reject", handlers.RejectFerrataGuideBooking)
+	g.POST("/ferrata-guide-bookings/:id/accept", handlers.AcceptFerrataGuideBooking)
 }

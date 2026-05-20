@@ -1,6 +1,22 @@
 import api from './api'
 import type { FerrataGuideBookingFormState } from '../components/ferrate/ferrataGuideBookingTypes'
 
+export type GuideBookingGuideResponse = {
+  status: 'pending' | 'rejected' | 'accepted'
+  canRespond: boolean
+  actionId?: number | null
+  targetId?: number
+}
+
+export type GuideBookingGuideResponseSummary = {
+  guideUserId: number
+  guideProfileId: number
+  guideName?: string
+  status: 'pending' | 'rejected' | 'accepted'
+  actionId?: number | null
+  respondedAt?: string | null
+}
+
 export type FerrataGuideBookingPublic = {
   id: number
   ferrataId: number
@@ -15,6 +31,8 @@ export type FerrataGuideBookingPublic = {
   additionalMessage?: string
   skipGuides: boolean
   createdAt: string
+  guideResponse?: GuideBookingGuideResponse
+  guideResponses?: GuideBookingGuideResponseSummary[]
   ferrata: {
     id: number
     naziv: string
@@ -80,4 +98,24 @@ export async function createFerrataGuideBooking(payload: {
 export async function getFerrataGuideBooking(id: number): Promise<FerrataGuideBookingPublic> {
   const res = await api.get<{ booking: FerrataGuideBookingPublic }>(`/api/ferrata-guide-bookings/${id}`)
   return res.data.booking
+}
+
+export async function rejectFerrataGuideBooking(
+  id: number,
+): Promise<{ booking: FerrataGuideBookingPublic; message?: string }> {
+  const res = await api.post<{ booking: FerrataGuideBookingPublic; message?: string }>(
+    `/api/ferrata-guide-bookings/${id}/reject`,
+  )
+  return res.data
+}
+
+export async function acceptFerrataGuideBooking(
+  id: number,
+  actionId: number,
+): Promise<{ booking: FerrataGuideBookingPublic; message?: string }> {
+  const res = await api.post<{ booking: FerrataGuideBookingPublic; message?: string }>(
+    `/api/ferrata-guide-bookings/${id}/accept`,
+    { actionId },
+  )
+  return res.data
 }

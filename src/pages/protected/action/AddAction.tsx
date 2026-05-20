@@ -5,6 +5,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
 import { parseClubCurrency } from '../../../utils/clubCurrency'
+import {
+  bookingDepartureTime,
+  buildGuideBookingActionDescription,
+} from '../../../components/ferrate/guideBookingActionPrefill'
+import {
+  acceptFerrataGuideBooking,
+  getFerrataGuideBooking,
+} from '../../../services/ferrataGuideBookings'
+import {
+  labelGuideBookingEquipment,
+  labelGuideBookingExperience,
+  labelGuideBookingTimeOfDay,
+} from '../../../components/ferrate/guideBookingDisplayLabels'
 
 interface Korisnik {
   id: number
@@ -97,18 +110,64 @@ export default function AddAction() {
         }))
         setFerrataCatalog(catalog)
         const fid = searchParams.get('ferrata_id')
-        if (tipAkcije === 'via_ferrata' && fid) {
-          const row = catalog.find((x) => String(x.id) === fid)
-          if (row) {
+        const bookingIdRaw = searchParams.get('booking_id')
+        const bookingId = bookingIdRaw ? Number(bookingIdRaw) : 0
+
+        let bookingPrefill: Partial<WizardValues> | null = null
+        if (tipAkcije === 'via_ferrata' && bookingId > 0) {
+          try {
+            const booking = await getFerrataGuideBooking(bookingId)
+            if (cancelled) return
+            const ferrataRow = catalog.find((x) => x.id === booking.ferrataId)
+            const trajanje =
+              ferrataRow && (ferrataRow.trajanjeMax > 0 || ferrataRow.trajanjeMin > 0)
+                ? String(
+                    Math.round(
+                      ((ferrataRow.trajanjeMin || 0) + (ferrataRow.trajanjeMax || ferrataRow.trajanjeMin || 0)) / 2,
+                    ) || ferrataRow.trajanjeMax || ferrataRow.trajanjeMin,
+                  )
+                : ''
+            bookingPrefill = {
+              actionKind: 'via_ferrata',
+              ferrataId: String(booking.ferrataId),
+              naziv: booking.ferrata.naziv ? `${booking.ferrata.naziv} — vođenje` : '',
+              datum: booking.desiredDate,
+              vremePolaska: bookingDepartureTime(booking.timeOfDay, booking.exactTime),
+              maxLjudi: String(booking.numberOfPeople),
+              kontaktTelefon: booking.contactPhone,
+              opis: buildGuideBookingActionDescription(booking, {
+                experience: labelGuideBookingExperience(tFr, booking.groupExperience),
+                equipment: labelGuideBookingEquipment(tFr, booking.equipmentStatus),
+                timeOfDay: labelGuideBookingTimeOfDay(tFr, booking.timeOfDay, booking.exactTime),
+              }),
+              trajanjeSati: trajanje,
+              planina: (booking.ferrata.drzava || '').trim() || 'Via ferrata',
+              vrh: booking.ferrata.naziv || '',
+              tezina: ferrataRow?.tezina ?? '',
+              kumulativniUsponM: ferrataRow ? String(ferrataRow.visinskaRazlikaM ?? 0) : '',
+              duzinaStazeKm: ferrataRow ? String((ferrataRow.duzinaM ?? 0) / 1000) : '',
+            }
+          } catch {
+            bookingPrefill = null
+          }
+        }
+
+        if (tipAkcije === 'via_ferrata' && (fid || bookingPrefill?.ferrataId)) {
+          const effectiveFid = bookingPrefill?.ferrataId || fid || ''
+          const row = catalog.find((x) => String(x.id) === effectiveFid)
+          if (row || bookingPrefill) {
             setInitial((prev) => ({
               ...prev,
               actionKind: 'via_ferrata',
-              ferrataId: fid,
-              tezina: row.tezina,
-              planina: (row.drzava || '').trim() || 'Via ferrata',
-              vrh: row.naziv,
-              kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
-              duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
+              ferrataId: effectiveFid,
+              tezina: bookingPrefill?.tezina || row?.tezina || prev.tezina,
+              planina: bookingPrefill?.planina || (row?.drzava || '').trim() || 'Via ferrata',
+              vrh: bookingPrefill?.vrh || row?.naziv || prev.vrh,
+              kumulativniUsponM:
+                bookingPrefill?.kumulativniUsponM || (row ? String(row.visinskaRazlikaM ?? 0) : prev.kumulativniUsponM),
+              duzinaStazeKm:
+                bookingPrefill?.duzinaStazeKm || (row ? String((row.duzinaM ?? 0) / 1000) : prev.duzinaStazeKm),
+              ...bookingPrefill,
             }))
           }
         }
@@ -120,7 +179,14 @@ export default function AddAction() {
     return () => {
       cancelled = true
     }
-  }, [tipAkcije, searchParams])
+  }, [tipAkcije, searchParams, tFr])
+
+  useEffect(() => {
+    if (!user?.username || !searchParams.get('booking_id')) return
+    const me = vodici.find((v) => v.username === user.username)
+    if (!me) return
+    setInitial((prev) => (prev.vodicId ? prev : { ...prev, vodicId: String(me.id) }))
+  }, [vodici, user?.username, searchParams])
 
   const todayYmd = (() => {
     const d = new Date()
@@ -293,7 +359,23 @@ export default function AddAction() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      setSuccess(t('add.successWithId', { id: res.data.akcija.id }))
+      const newActionId = res.data?.akcija?.id as number | undefined
+      const bookingIdRaw = searchParams.get('booking_id')
+      const bookingId = bookingIdRaw ? Number(bookingIdRaw) : 0
+      if (values.actionKind === 'via_ferrata' && bookingId > 0 && newActionId) {
+        try {
+          await acceptFerrataGuideBooking(bookingId, newActionId)
+        } catch {
+          setSuccess(
+            t('add.successWithId', { id: newActionId }) +
+              ' (zahtev za vođenje nije automatski povezan — pokušajte ručno.)',
+          )
+          navigate('/akcije')
+          return
+        }
+      }
+
+      setSuccess(t('add.successWithId', { id: newActionId }))
       navigate('/akcije')
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.addAction'))
@@ -327,7 +409,10 @@ export default function AddAction() {
             imageHelpText={t('fields.imageHelp')}
             lockActionKind={searchParams.has('tip')}
             ferrataCatalog={ferrataCatalog}
-            lockFerrataSelection={!!searchParams.get('ferrata_id') && tipAkcije === 'via_ferrata'}
+            lockFerrataSelection={
+              tipAkcije === 'via_ferrata' &&
+              (!!searchParams.get('ferrata_id') || !!searchParams.get('booking_id'))
+            }
             onSubmit={handleSubmit}
           />
         </div>

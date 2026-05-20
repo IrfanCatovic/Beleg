@@ -12,12 +12,17 @@ import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/date
 import { userHasClubContext } from '../../utils/clubContext'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
-import { getFerrataGuideBooking, type FerrataGuideBookingPublic } from '../../services/ferrataGuideBookings'
+import {
+  getFerrataGuideBooking,
+  rejectFerrataGuideBooking,
+  type FerrataGuideBookingPublic,
+} from '../../services/ferrataGuideBookings'
 import {
   labelGuideBookingEquipment,
   labelGuideBookingExperience,
   labelGuideBookingTimeOfDay,
 } from '../../components/ferrate/guideBookingDisplayLabels'
+import { guideBookingCreateActionPath } from '../../components/ferrate/guideBookingActionPrefill'
 
 interface ObavestenjeFull {
   id: number
@@ -163,6 +168,7 @@ export default function ObavestenjeDetalj() {
   const [entityLoading, setEntityLoading] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
   const [actionRequestBusy, setActionRequestBusy] = useState(false)
+  const [guideBookingBusy, setGuideBookingBusy] = useState(false)
   const [followStatusChecked, setFollowStatusChecked] = useState(false)
   const [incomingFollowState, setIncomingFollowState] = useState<'pending' | 'accepted' | 'gone'>('pending')
   const [followBackStatus, setFollowBackStatus] = useState<'none' | 'outgoing_pending' | 'outgoing_accepted'>('none')
@@ -588,6 +594,35 @@ export default function ObavestenjeDetalj() {
   const requesterLabel = (followMeta.requesterFullName || followMeta.requesterUsername || t('notificationDetails:follow.defaultUser')).trim()
   const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || t('notificationDetails:follow.defaultUser')).trim()
 
+  const handleRejectGuideBooking = async () => {
+    if (!guideBooking || guideBookingBusy) return
+    const ok = await showConfirm('Da li želite da odbijete ovaj zahtev za vođenje?', {
+      title: 'Odbij zahtev',
+      confirmLabel: 'Odbij',
+      cancelLabel: t('home:cancel'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    setGuideBookingBusy(true)
+    try {
+      const res = await rejectFerrataGuideBooking(guideBooking.id)
+      setGuideBooking(res.booking)
+      await showAlert(res.message || 'Zahtev je odbijen.', 'Zahtev za vođenje')
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Greška pri odbijanju zahteva.'
+      await showAlert(msg, 'Zahtev za vođenje')
+    } finally {
+      setGuideBookingBusy(false)
+    }
+  }
+
+  const handleCreateActionFromGuideBooking = () => {
+    if (!guideBooking) return
+    navigate(guideBookingCreateActionPath(guideBooking))
+  }
+
   const handleRespondActionParticipationRequest = async (decision: 'accept' | 'reject') => {
     if (!actionParticipationRequest || actionRequestBusy) return
     if (decision === 'reject') {
@@ -974,6 +1009,54 @@ export default function ObavestenjeDetalj() {
                 className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
                 Otvori feratu →
+              </Link>
+            )}
+
+            {guideBooking.guideResponse && (
+              <div
+                className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  guideBooking.guideResponse.status === 'pending'
+                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                    : guideBooking.guideResponse.status === 'accepted'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}
+              >
+                {guideBooking.guideResponse.status === 'pending'
+                  ? 'Na čekanju'
+                  : guideBooking.guideResponse.status === 'accepted'
+                    ? 'Akcija kreirana'
+                    : 'Odbijeno'}
+              </div>
+            )}
+
+            {guideBooking.guideResponse?.canRespond && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => void handleRejectGuideBooking()}
+                  disabled={guideBookingBusy}
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {guideBookingBusy ? '...' : 'Odbij zahtev'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateActionFromGuideBooking}
+                  disabled={guideBookingBusy}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Napravi akciju
+                </button>
+              </div>
+            )}
+
+            {guideBooking.guideResponse?.status === 'accepted' && guideBooking.guideResponse.actionId && (
+              <Link
+                to={`/akcije/${guideBooking.guideResponse.actionId}`}
+                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+              >
+                Otvori akciju →
               </Link>
             )}
           </div>

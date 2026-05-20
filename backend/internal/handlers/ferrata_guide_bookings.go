@@ -5,6 +5,7 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -122,6 +123,7 @@ func CreateFerrataGuideBooking(c *gin.Context) {
 			targets = append(targets, models.FerrataGuideBookingTarget{
 				GuideProfileID: p.ID,
 				GuideUserID:    p.KorisnikID,
+				Status:         models.GuideBookingTargetStatusPending,
 			})
 		}
 	}
@@ -264,10 +266,163 @@ func GetFerrataGuideBooking(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"booking": buildFerrataGuideBookingDTO(db, req)})
+	c.JSON(http.StatusOK, gin.H{"booking": buildFerrataGuideBookingDTO(db, req, viewer.ID)})
 }
 
-func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequest) gin.H {
+func RejectFerrataGuideBooking(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	viewer, err := getCurrentKorisnik(c, db)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
+		return
+	}
+	target, req, err := loadGuideBookingTargetForGuide(c, db, viewer.ID)
+	if err != nil {
+		return
+	}
+	if target.Status != models.GuideBookingTargetStatusPending {
+		c.JSON(http.StatusConflict, gin.H{"error": "Zahtev je već obrađen."})
+		return
+	}
+	now := time.Now()
+	if err := db.Model(target).Updates(map[string]any{
+		"status":       models.GuideBookingTargetStatusRejected,
+		"responded_at": now,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Odbijanje nije uspelo."})
+		return
+	}
+	target.Status = models.GuideBookingTargetStatusRejected
+	target.RespondedAt = &now
+	notifyGuideBookingRequesterRejected(db, req, *target, *viewer)
+	c.JSON(http.StatusOK, gin.H{
+		"booking": buildFerrataGuideBookingDTO(db, req, viewer.ID),
+		"message": "Zahtev je odbijen.",
+	})
+}
+
+type acceptFerrataGuideBookingBody struct {
+	ActionID uint `json:"actionId"`
+}
+
+func AcceptFerrataGuideBooking(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	viewer, err := getCurrentKorisnik(c, db)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
+		return
+	}
+	var body acceptFerrataGuideBookingBody
+	if err := c.ShouldBindJSON(&body); err != nil || body.ActionID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID akcije je obavezan."})
+		return
+	}
+	target, req, err := loadGuideBookingTargetForGuide(c, db, viewer.ID)
+	if err != nil {
+		return
+	}
+	if target.Status != models.GuideBookingTargetStatusPending {
+		c.JSON(http.StatusConflict, gin.H{"error": "Zahtev je već obrađen."})
+		return
+	}
+	var akcija models.Akcija
+	if err := db.First(&akcija, body.ActionID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija nije pronađena."})
+		return
+	}
+	if akcija.TipAkcije != "via_ferrata" || akcija.FerrataID == nil || *akcija.FerrataID != req.FerrataID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija mora biti via ferrata na istoj ferati kao zahtev."})
+		return
+	}
+	now := time.Now()
+	actionID := body.ActionID
+	if err := db.Model(target).Updates(map[string]any{
+		"status":       models.GuideBookingTargetStatusAccepted,
+		"action_id":    actionID,
+		"responded_at": now,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Povezivanje akcije nije uspelo."})
+		return
+	}
+	target.Status = models.GuideBookingTargetStatusAccepted
+	target.ActionID = &actionID
+	target.RespondedAt = &now
+	c.JSON(http.StatusOK, gin.H{
+		"booking": buildFerrataGuideBookingDTO(db, req, viewer.ID),
+		"message": "Akcija je povezana sa zahtevom.",
+	})
+}
+
+func loadGuideBookingTargetForGuide(c *gin.Context, db *gorm.DB, guideUserID uint) (*models.FerrataGuideBookingTarget, models.FerrataGuideBookingRequest, error) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID."})
+		return nil, models.FerrataGuideBookingRequest{}, err
+	}
+	var req models.FerrataGuideBookingRequest
+	if err := db.
+		Preload("Ferrata").
+		Preload("Requester").
+		Preload("Requester.Klub").
+		Preload("Targets").
+		Preload("Targets.GuideProfile").
+		Preload("Targets.GuideProfile.Korisnik").
+		First(&req, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen."})
+		return nil, models.FerrataGuideBookingRequest{}, err
+	}
+	var target *models.FerrataGuideBookingTarget
+	for i := range req.Targets {
+		if req.Targets[i].GuideUserID == guideUserID {
+			target = &req.Targets[i]
+			break
+		}
+	}
+	if target == nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Niste vodič za ovaj zahtev."})
+		return nil, models.FerrataGuideBookingRequest{}, errors.New("not guide target")
+	}
+	return target, req, nil
+}
+
+func notifyGuideBookingRequesterRejected(db *gorm.DB, req models.FerrataGuideBookingRequest, target models.FerrataGuideBookingTarget, guide models.Korisnik) {
+	guideName := strings.TrimSpace(guide.FullName)
+	if guideName == "" {
+		guideName = strings.TrimSpace(guide.Username)
+	}
+	if guideName == "" {
+		guideName = "Vodič"
+	}
+	ferrataName := ""
+	if req.Ferrata != nil {
+		ferrataName = strings.TrimSpace(req.Ferrata.Naziv)
+	}
+	if ferrataName == "" {
+		ferrataName = "feratu"
+	}
+	dateStr := req.DesiredDate.Format("02.01.2006")
+	title := "Zahtev za vođenje je odbijen"
+	body := guideName + " je odbio zahtev za vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
+	meta := map[string]any{
+		"bookingRequestId": req.ID,
+		"ferrataId":        req.FerrataID,
+		"ferrataNaziv":     ferrataName,
+		"guideUserId":      target.GuideUserID,
+		"status":           models.GuideBookingTargetStatusRejected,
+	}
+	metaBytes, _ := json.Marshal(meta)
+	notifications.NotifyUsers(
+		db,
+		[]uint{req.RequesterID},
+		models.ObavestenjeTipGuideBookingRequest,
+		title,
+		body,
+		"",
+		string(metaBytes),
+	)
+}
+
+func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequest, viewerID uint) gin.H {
 	ferrataPayload := gin.H{
 		"id":    req.FerrataID,
 		"naziv": "",
@@ -293,7 +448,7 @@ func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequ
 		}
 	}
 
-	return gin.H{
+	payload := gin.H{
 		"id":                req.ID,
 		"ferrataId":         req.FerrataID,
 		"desiredDate":       req.DesiredDate.Format("2006-01-02"),
@@ -310,6 +465,39 @@ func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequ
 		"ferrata":           ferrataPayload,
 		"requester":         requesterPayload,
 	}
+
+	var guideResponses []gin.H
+	for _, t := range req.Targets {
+		name := ""
+		if t.GuideProfile != nil && t.GuideProfile.KorisnikID != 0 {
+			name = strings.TrimSpace(t.GuideProfile.Korisnik.FullName)
+			if name == "" {
+				name = strings.TrimSpace(t.GuideProfile.Korisnik.Username)
+			}
+		}
+		entry := gin.H{
+			"guideUserId":      t.GuideUserID,
+			"guideProfileId":   t.GuideProfileID,
+			"guideName":        name,
+			"status":           t.Status,
+			"actionId":         t.ActionID,
+			"respondedAt":      t.RespondedAt,
+		}
+		guideResponses = append(guideResponses, entry)
+		if t.GuideUserID == viewerID {
+			payload["guideResponse"] = gin.H{
+				"status":     t.Status,
+				"canRespond": t.Status == models.GuideBookingTargetStatusPending,
+				"actionId":   t.ActionID,
+				"targetId":   t.ID,
+			}
+		}
+	}
+	if len(guideResponses) > 0 {
+		payload["guideResponses"] = guideResponses
+	}
+
+	return payload
 }
 
 func uniqueUints(in []uint) []uint {
