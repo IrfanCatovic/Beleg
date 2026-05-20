@@ -13,6 +13,11 @@ import { userHasClubContext } from '../../utils/clubContext'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { getFerrataGuideBooking, type FerrataGuideBookingPublic } from '../../services/ferrataGuideBookings'
+import {
+  labelGuideBookingEquipment,
+  labelGuideBookingExperience,
+  labelGuideBookingTimeOfDay,
+} from '../../components/ferrate/guideBookingDisplayLabels'
 
 interface ObavestenjeFull {
   id: number
@@ -140,6 +145,7 @@ function numFromMeta(v: unknown): number | null {
 
 export default function ObavestenjeDetalj() {
   const { t } = useTranslation(['notificationDetails', 'tasks', 'home', 'finance', 'notifications'])
+  const { t: tFerrate } = useTranslation('ferrate')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { isLoggedIn, user } = useAuth()
@@ -933,13 +939,7 @@ export default function ObavestenjeDetalj() {
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Vreme</dt>
                 <dd>
-                  {guideBooking.timeOfDay === 'morning'
-                    ? 'Jutro'
-                    : guideBooking.timeOfDay === 'afternoon'
-                      ? 'Popodne'
-                      : guideBooking.timeOfDay === 'exact'
-                        ? `Tačno: ${guideBooking.exactTime || '—'}`
-                        : 'Svejedno'}
+                  {labelGuideBookingTimeOfDay(tFerrate, guideBooking.timeOfDay, guideBooking.exactTime)}
                 </dd>
               </div>
               <div>
@@ -948,11 +948,11 @@ export default function ObavestenjeDetalj() {
               </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Iskustvo grupe</dt>
-                <dd>{guideBooking.groupExperience}</dd>
+                <dd>{labelGuideBookingExperience(tFerrate, guideBooking.groupExperience)}</dd>
               </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Oprema</dt>
-                <dd>{guideBooking.equipmentStatus}</dd>
+                <dd>{labelGuideBookingEquipment(tFerrate, guideBooking.equipmentStatus)}</dd>
               </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Telefon</dt>
