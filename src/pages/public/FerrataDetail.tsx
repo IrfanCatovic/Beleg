@@ -398,6 +398,8 @@ export default function FerrataDetail() {
           ferrataId={f.id}
           ferrataName={f.naziv}
           ferrataLocation={regionSubtitle}
+          ferrataLat={hasMapCoords ? (f.lat as number) : 0}
+          ferrataLng={hasMapCoords ? (f.lng as number) : 0}
         />
       )}
     </div>

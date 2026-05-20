@@ -13,6 +13,7 @@ const (
 	ObavestenjeTipFollow                     = "follow"       // novi zahtev za praćenje → target korisnik
 	ObavestenjeTipActionParticipationRequest = "action_participation_request"
 	ObavestenjeTipSummitReward               = "summit_reward" // čestitka + preuzimanje nagrade za uspešan uspon
+	ObavestenjeTipGuideBookingRequest        = "guide_booking_request" // zahtev za vođenje na ferati → odabrani vodiči
 )
 
 // Obavestenje je jedno obaveštenje za jednog korisnika (recipient).

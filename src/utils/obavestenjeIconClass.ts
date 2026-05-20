@@ -15,6 +15,7 @@ export function obavestenjeBellIconClass(type: string): string {
     case 'follow':
       return 'bg-emerald-100 text-emerald-700'
     case 'action_participation_request':
+    case 'guide_booking_request':
       return 'bg-amber-100 text-amber-700'
     case 'summit_reward':
       return 'bg-emerald-100 text-emerald-700'

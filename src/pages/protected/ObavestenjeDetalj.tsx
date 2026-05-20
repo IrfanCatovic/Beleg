@@ -12,6 +12,7 @@ import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/date
 import { userHasClubContext } from '../../utils/clubContext'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+import { getFerrataGuideBooking, type FerrataGuideBookingPublic } from '../../services/ferrataGuideBookings'
 
 interface ObavestenjeFull {
   id: number
@@ -149,6 +150,7 @@ export default function ObavestenjeDetalj() {
   const [task, setTask] = useState<Task | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
   const [actionParticipationRequest, setActionParticipationRequest] = useState<ActionParticipationRequestPayload | null>(null)
+  const [guideBooking, setGuideBooking] = useState<FerrataGuideBookingPublic | null>(null)
   const [entityError, setEntityError] = useState('')
   const [pageError, setPageError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -383,6 +385,7 @@ export default function ObavestenjeDetalj() {
       setTask(null)
       setTrans(null)
       setActionParticipationRequest(null)
+      setGuideBooking(null)
 
       try {
         const { data: n } = await api.get<ObavestenjeFull>(`/api/obavestenja/${id}`)
@@ -406,6 +409,7 @@ export default function ObavestenjeDetalj() {
         const zadatakId = numFromMeta(meta.zadatakId)
         const transakcijaId = numFromMeta(meta.transakcijaId)
         const actionRequestId = numFromMeta(meta.requestId)
+        const bookingRequestId = numFromMeta(meta.bookingRequestId)
 
         setEntityLoading(true)
         try {
@@ -426,6 +430,9 @@ export default function ObavestenjeDetalj() {
           } else if (n.type === 'action_participation_request' && actionRequestId != null) {
             const rr = await api.get<ActionParticipationRequestPayload>(`/api/moja-ucesca-zahtevi/${actionRequestId}`)
             if (!cancelled) setActionParticipationRequest(rr.data)
+          } else if (n.type === 'guide_booking_request' && bookingRequestId != null) {
+            const booking = await getFerrataGuideBooking(bookingRequestId)
+            if (!cancelled) setGuideBooking(booking)
           }
         } catch (e: unknown) {
           const msg =
@@ -551,19 +558,23 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.zadatakId) != null ||
     numFromMeta(meta.transakcijaId) != null ||
     numFromMeta(meta.followId) != null ||
-    (notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null)
+    (notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null) ||
+    (notif.type === 'guide_booking_request' && numFromMeta(meta.bookingRequestId) != null)
   const expectingPost = numFromMeta(meta.postId) != null
   const expectingTask = numFromMeta(meta.zadatakId) != null
   const expectingTrans = numFromMeta(meta.transakcijaId) != null
   const expectingFollow = numFromMeta(meta.followId) != null
   const expectingActionParticipationRequest = notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null
+  const expectingGuideBooking = notif.type === 'guide_booking_request' && numFromMeta(meta.bookingRequestId) != null
   // Bez duplog naslova obaveštenja iznad feed / zadatak / transakcija kartice
   const showNotifSummary =
     !post &&
     !task &&
     !trans &&
+    !guideBooking &&
     !(expectingFollow && followBusy) &&
     !(expectingActionParticipationRequest && entityLoading) &&
+    !(expectingGuideBooking && entityLoading) &&
     !(expectingPost && entityLoading) &&
     !(expectingTask && entityLoading) &&
     !(expectingTrans && entityLoading)
@@ -897,6 +908,74 @@ export default function ObavestenjeDetalj() {
                 </>
               )}
             </h2>
+          </div>
+        </div>
+      )}
+
+      {!entityLoading && notif.type === 'guide_booking_request' && guideBooking && (
+        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
+          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
+          <div className="p-5 sm:p-6 space-y-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Zahtev za vođenje</p>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">{guideBooking.ferrata.naziv}</h2>
+            <p className="text-sm text-gray-600">
+              {guideBooking.requester.fullName?.trim() || guideBooking.requester.username}
+              {guideBooking.requester.klubNaziv ? ` · ${guideBooking.requester.klubNaziv}` : ''}
+            </p>
+            <dl className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Datum</dt>
+                <dd>
+                  {formatDate(guideBooking.desiredDate)}
+                  {guideBooking.dateFlexible ? ' (fleksibilan)' : ''}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Vreme</dt>
+                <dd>
+                  {guideBooking.timeOfDay === 'morning'
+                    ? 'Jutro'
+                    : guideBooking.timeOfDay === 'afternoon'
+                      ? 'Popodne'
+                      : guideBooking.timeOfDay === 'exact'
+                        ? `Tačno: ${guideBooking.exactTime || '—'}`
+                        : 'Svejedno'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Broj osoba</dt>
+                <dd>{guideBooking.numberOfPeople}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Iskustvo grupe</dt>
+                <dd>{guideBooking.groupExperience}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Oprema</dt>
+                <dd>{guideBooking.equipmentStatus}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Telefon</dt>
+                <dd>
+                  <a href={`tel:${guideBooking.contactPhone}`} className="font-semibold text-emerald-700 hover:underline">
+                    {guideBooking.contactPhone}
+                  </a>
+                </dd>
+              </div>
+            </dl>
+            {guideBooking.additionalMessage?.trim() && (
+              <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3 text-sm text-gray-700 whitespace-pre-line">
+                {guideBooking.additionalMessage.trim()}
+              </div>
+            )}
+            {guideBooking.ferrata.slug && (
+              <Link
+                to={`/ferrate/${guideBooking.ferrata.slug}`}
+                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+              >
+                Otvori feratu →
+              </Link>
+            )}
           </div>
         </div>
       )}

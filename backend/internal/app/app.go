@@ -111,6 +111,8 @@ func migrateAndSeed(db *gorm.DB) {
 		&models.GuideProfile{},
 		&models.GuideTourType{},
 		&models.GuideActionRating{},
+		&models.FerrataGuideBookingRequest{},
+		&models.FerrataGuideBookingTarget{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
