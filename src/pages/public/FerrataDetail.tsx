@@ -14,6 +14,7 @@ import {
 } from '../../components/ferrate/ferrataDetailCardStyles'
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
+import { FerrataGuideBookingModal } from '../../components/ferrate/FerrataGuideBookingModal'
 import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
 
 type OpremaItem = { label: string; icon?: string }
@@ -45,15 +46,6 @@ type FerrataDTO = {
   lng?: number | null
 }
 
-type ContactRow = {
-  id: number
-  ime: string
-  telefon?: string
-  whatsapp?: string
-  email?: string
-  napomena?: string
-}
-
 type UpcomingRow = {
   id: number
   naziv: string
@@ -69,69 +61,12 @@ function normalizeOprema(raw: FerrataDTO['obaveznaOprema']): OpremaItem[] {
   return raw as OpremaItem[]
 }
 
-function FerrataBookModal(props: {
-  open: boolean
-  onClose: () => void
-  contacts: ContactRow[]
-}) {
-  const { t } = useTranslation('ferrate') //ovo je translator za naslov modala
-  if (!props.open) return null
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      role="dialog"
-      aria-modal
-      onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose()
-      }}
-    >
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">{t('modalBookTitle')}</h2>
-          <button type="button" onClick={props.onClose} className="text-sm font-semibold text-gray-500 hover:text-gray-800">
-            {t('modalClose')}
-          </button>
-        </div>
-        <div className="p-4 space-y-4">
-          {props.contacts.length === 0 ? (
-            <p className="text-sm text-gray-600">{t('modalBookEmpty')}</p>
-          ) : (
-            props.contacts.map((c) => (
-              <div key={c.id} className="rounded-xl border border-gray-100 p-3 space-y-1.5">
-                <p className="font-semibold text-gray-900">{c.ime}</p>
-                {c.telefon && <p className="text-sm text-gray-700">{c.telefon}</p>}
-                {c.whatsapp && (
-                  <a
-                    href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-                  >
-                    {t('whatsApp')}
-                  </a>
-                )}
-                {c.email && (
-                  <a href={`mailto:${c.email}`} className="block text-sm text-emerald-700 font-medium">
-                    {c.email}
-                  </a>
-                )}
-                {c.napomena && <p className="text-xs text-gray-500">{c.napomena}</p>}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function FerrataDetail() {
   const { slug } = useParams<{ slug: string }>()
   const { t } = useTranslation('ferrate')
   const navigate = useNavigate()
   const { user } = useAuth()
   const [f, setF] = useState<FerrataDTO | null>(null)
-  const [contacts, setContacts] = useState<ContactRow[]>([])
   const [upcoming, setUpcoming] = useState<UpcomingRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -146,11 +81,7 @@ export default function FerrataDetail() {
       const ferrata = res.data?.ferrata as FerrataDTO
       setF(ferrata || null)
       if (ferrata?.id) {
-        const [cRes, uRes] = await Promise.all([
-          api.get(`/api/ferratas/${ferrata.id}/contacts`),
-          api.get(`/api/ferratas/${ferrata.id}/upcoming-actions`),
-        ])
-        setContacts(cRes.data?.contacts ?? [])
+        const uRes = await api.get(`/api/ferratas/${ferrata.id}/upcoming-actions`)
         setUpcoming(uRes.data?.akcije ?? [])
       }
     } catch {
@@ -460,7 +391,15 @@ export default function FerrataDetail() {
         </>
       )}
 
-      <FerrataBookModal open={bookOpen} onClose={() => setBookOpen(false)} contacts={contacts} />
+      {f && (
+        <FerrataGuideBookingModal
+          open={bookOpen}
+          onClose={() => setBookOpen(false)}
+          ferrataId={f.id}
+          ferrataName={f.naziv}
+          ferrataLocation={regionSubtitle}
+        />
+      )}
     </div>
   )
 }
