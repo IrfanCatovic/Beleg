@@ -222,6 +222,10 @@ export function ActionWizardForm({
   const organizerLabel =
     values.organizerType === 'vodic' ? t('wizard.organizer.guide') : t('wizard.organizer.club')
   const isGuideOrganizer = values.organizerType === 'vodic'
+  const selectedGuide = guides.find((g) => String(g.id) === values.vodicId)
+  const selectedGuideLabel = selectedGuide
+    ? `${selectedGuide.fullName} (@${selectedGuide.username})`
+    : ''
 
   const addSmestaj = () =>
     patch({
@@ -597,9 +601,20 @@ export function ActionWizardForm({
 
           <div className="border-t border-gray-100 pt-4 space-y-4">
             {isGuideOrganizer ? (
-              <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950">
-                {t('wizard.organizer.guideSelfHint')}
-              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>{t('fields.guide')}</label>
+                  <div
+                    className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2.5 text-sm font-semibold text-gray-900"
+                    aria-readonly="true"
+                  >
+                    {selectedGuideLabel || t('guide.pick')}
+                  </div>
+                </div>
+                <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950">
+                  {t('wizard.organizer.guideSelfHint')}
+                </p>
+              </div>
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">

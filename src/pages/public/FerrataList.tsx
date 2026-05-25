@@ -68,7 +68,6 @@ export default function FerrataList() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [tezina, setTezina] = useState('')
-  const [sortBy, setSortBy] = useState<'newest' | 'name'>('newest')
   const [page, setPage] = useState(1)
   const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null)
 
@@ -100,17 +99,9 @@ export default function FerrataList() {
 
   const sorted = useMemo(() => {
     const copy = [...rows]
-    if (sortBy === 'name') {
-      copy.sort((a, b) => a.naziv.localeCompare(b.naziv, 'sr', { sensitivity: 'base' }))
-    } else {
-      copy.sort((a, b) => {
-        const ta = a.createdAt ? new Date(a.createdAt).getTime() : a.id
-        const tb = b.createdAt ? new Date(b.createdAt).getTime() : b.id
-        return tb - ta
-      })
-    }
+    copy.sort((a, b) => a.naziv.localeCompare(b.naziv, 'sr', { sensitivity: 'base' }))
     return copy
-  }, [rows, sortBy])
+  }, [rows])
 
   useEffect(() => {
     const tp = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
@@ -192,7 +183,7 @@ export default function FerrataList() {
       {/* Filter bar */}
       <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm mb-8">
         <div className="grid gap-3 lg:grid-cols-12 lg:items-end">
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-6">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
               {t('searchPlaceholder')}
             </label>
@@ -219,17 +210,10 @@ export default function FerrataList() {
               <option value="D/E">D/E</option>
             </select>
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-4">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">{t('filterStatus')}</label>
             <select value="active" disabled className={`${sel} opacity-80 cursor-not-allowed bg-gray-50`} aria-label={t('filterStatus')}>
               <option value="active">{t('filterStatusActive')}</option>
-            </select>
-          </div>
-          <div className="lg:col-span-3">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">{t('filterSort')}</label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'newest' | 'name')} className={sel}>
-              <option value="newest">{t('sortNewest')}</option>
-              <option value="name">{t('sortNameAsc')}</option>
             </select>
           </div>
         </div>

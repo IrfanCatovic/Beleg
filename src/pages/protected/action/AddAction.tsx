@@ -93,6 +93,20 @@ export default function AddAction() {
   const [raceLostActionId, setRaceLostActionId] = useState<number | null>(null)
 
   const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije, fromGuideBooking))
+  const [myKorisnikId, setMyKorisnikId] = useState<number | null>(null)
+
+  const resolveMyKorisnikId = async (): Promise<number | null> => {
+    try {
+      const res = await api.get<{ id?: number }>('/api/me')
+      const id = res.data?.id
+      if (typeof id === 'number' && id > 0) return id
+    } catch {
+      /* fallback na listu vodiča kluba */
+    }
+    if (!user?.username) return null
+    const fromClub = vodici.find((v) => v.username === user.username)
+    return fromClub?.id ?? null
+  }
 
   useEffect(() => {
     // Ne resetuj formu dok učitavamo zahtev — inače kratko “blinkuje” prazna forma pa prefill.
@@ -157,7 +171,14 @@ export default function AddAction() {
             })
 
             setBookingContext(buildGuideBookingFormContext(booking, timeOfDayLabel))
-            setInitial((prev) => ({ ...prev, ...prefill }))
+            const selfId = await resolveMyKorisnikId()
+            if (!cancelled && selfId) setMyKorisnikId(selfId)
+            setInitial((prev) => ({
+              ...prev,
+              ...prefill,
+              organizerType: 'vodic',
+              vodicId: selfId ? String(selfId) : prev.vodicId,
+            }))
           } catch {
             if (!cancelled) {
               setBookingPrefillError('Zahtev za vođenje nije učitan. Proverite da li vam je i dalje dostupan.')
@@ -202,11 +223,20 @@ export default function AddAction() {
   }, [tipAkcije, searchParams, tFr, fromGuideBooking, bookingId])
 
   useEffect(() => {
-    if (!user?.username || !searchParams.get('booking_id')) return
-    const me = vodici.find((v) => v.username === user.username)
-    if (!me) return
-    setInitial((prev) => (prev.vodicId ? prev : { ...prev, vodicId: String(me.id) }))
-  }, [vodici, user?.username, searchParams])
+    if (!fromGuideBooking || !user?.username) return
+    let cancelled = false
+    void (async () => {
+      const selfId = await resolveMyKorisnikId()
+      if (cancelled || !selfId) return
+      setMyKorisnikId(selfId)
+      setInitial((prev) =>
+        prev.vodicId ? prev : { ...prev, organizerType: 'vodic', vodicId: String(selfId) },
+      )
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fromGuideBooking, user?.username, vodici])
 
   const todayYmd = (() => {
     const d = new Date()
@@ -445,7 +475,14 @@ export default function AddAction() {
     }
   }
 
-  const guides: WizardGuide[] = vodici.map((v) => ({ id: v.id, username: v.username, fullName: v.fullName }))
+  const guides: WizardGuide[] = (() => {
+    const base = vodici.map((v) => ({ id: v.id, username: v.username, fullName: v.fullName }))
+    if (!fromGuideBooking || !user?.username) return base
+    if (base.some((g) => g.username === user.username)) return base
+    const id = myKorisnikId ?? (initial.vodicId ? Number(initial.vodicId) : 0)
+    if (!id || !Number.isFinite(id)) return base
+    return [{ id, username: user.username, fullName: user.fullName || user.username }, ...base]
+  })()
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
