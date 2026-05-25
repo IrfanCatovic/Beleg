@@ -1,12 +1,27 @@
 import type { User } from '../context/AuthContext'
 
-/** Samo admin/vodič/superadmin kluba koji je kreirao akciju (domaćin) može da je uređuje. */
-export function canManageHostAkcija(
-  user: User | null,
-  akcijaKlubId: number | undefined | null
-): boolean {
-  if (!user || akcijaKlubId == null || akcijaKlubId === 0) return false
-  if (!['admin', 'vodic', 'superadmin'].includes(user.role)) return false
+export type AkcijaManageContext = {
+  klubId?: number | null
+  organizatorTip?: string | null
+  vodicId?: number | null
+  vodicUsername?: string | null
+}
+
+/** Admin/vodič kluba (domaćin) ili vodič koji vodi nezavisnu turu. */
+export function canManageHostAkcija(user: User | null, akcija: AkcijaManageContext): boolean {
+  if (!user || !['admin', 'vodic', 'superadmin'].includes(user.role)) return false
+
+  const org = (akcija.organizatorTip ?? 'klub').toLowerCase()
+  if (org === 'vodic' && (akcija.vodicId || akcija.vodicUsername)) {
+    if (akcija.vodicUsername && user.username) {
+      return akcija.vodicUsername === user.username
+    }
+    return false
+  }
+
+  const akcijaKlubId = akcija.klubId
+  if (akcijaKlubId == null || akcijaKlubId === 0) return false
+
   if (user.role === 'superadmin') {
     const sid = localStorage.getItem('superadmin_club_id')
     if (!sid) return false

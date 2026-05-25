@@ -48,7 +48,7 @@ export type FerrataGuideBookingPublic = {
     id: number
     username?: string
     fullName?: string
-    avatarUrl?: string
+    avatarUrl?: string 
     telefon?: string
     klubNaziv?: string
     isProfiGuide?: boolean

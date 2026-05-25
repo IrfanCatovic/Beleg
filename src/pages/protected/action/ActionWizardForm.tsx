@@ -8,6 +8,7 @@ import api from '../../../services/api'
 
 type ActionKind = 'planina' | 'via_ferrata'
 type VisibilityKind = 'klubska' | 'javna'
+export type OrganizerKind = 'klub' | 'vodic'
 
 export interface WizardGuide {
   id: number
@@ -51,6 +52,7 @@ export interface WizardFerrataOption {
 export interface WizardValues {
   naziv: string
   actionKind: ActionKind
+  organizerType: OrganizerKind
   visibility: VisibilityKind
   planina: string
   vrh: string
@@ -102,6 +104,8 @@ interface ActionWizardFormProps {
   lockActionKind?: boolean
   ferrataCatalog?: WizardFerrataOption[]
   lockFerrataSelection?: boolean
+  /** Zaključava tip organizatora (npr. zahtev za vođenje → uvek vodič). */
+  lockOrganizerType?: boolean
   onSubmit: (values: WizardValues, image: File | null) => void | Promise<void>
 }
 
@@ -135,6 +139,7 @@ export function ActionWizardForm({
   lockActionKind = false,
   ferrataCatalog = [],
   lockFerrataSelection = false,
+  lockOrganizerType = false,
   onSubmit,
 }: ActionWizardFormProps) {
   const { t } = useTranslation('actionForms')
@@ -214,6 +219,9 @@ export function ActionWizardForm({
     return t('wizard.tabs.transportOptions')
   }
   const visibilityLabel = values.visibility === 'javna' ? t('wizard.visibility.public') : t('wizard.visibility.club')
+  const organizerLabel =
+    values.organizerType === 'vodic' ? t('wizard.organizer.guide') : t('wizard.organizer.club')
+  const isGuideOrganizer = values.organizerType === 'vodic'
 
   const addSmestaj = () =>
     patch({
@@ -313,17 +321,40 @@ export function ActionWizardForm({
               )}
             </div>
             <div>
+              <label className={labelClass}>{t('wizard.labels.organizer')}</label>
+              <Dropdown
+                aria-label={t('wizard.aria.organizer')}
+                options={[
+                  { value: 'klub', label: t('wizard.organizer.club') },
+                  { value: 'vodic', label: t('wizard.organizer.guide') },
+                ]}
+                value={values.organizerType}
+                onChange={(v) => patch({ organizerType: v as OrganizerKind })}
+                fullWidth
+                disabled={lockOrganizerType}
+              />
+              {isGuideOrganizer && (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-violet-800/90">{t('wizard.organizer.guideHint')}</p>
+              )}
+            </div>
+            <div>
               <label className={labelClass}>{t('wizard.labels.visibility')}</label>
               <Dropdown
                 aria-label={t('wizard.aria.visibility')}
                 options={[
-                  { value: 'klubska', label: t('wizard.visibility.club') },
+                  {
+                    value: 'klubska',
+                    label: isGuideOrganizer ? t('wizard.visibility.private') : t('wizard.visibility.club'),
+                  },
                   { value: 'javna', label: t('wizard.visibility.public') },
                 ]}
                 value={values.visibility}
                 onChange={(v) => patch({ visibility: v as VisibilityKind })}
                 fullWidth
               />
+              <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
+                {isGuideOrganizer ? t('wizard.visibility.guideHint') : t('wizard.visibility.clubHint')}
+              </p>
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>{t('fields.actionName')}</label>
@@ -565,43 +596,51 @@ export function ActionWizardForm({
           </div>
 
           <div className="border-t border-gray-100 pt-4 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {!values.drugiVodicCheck && (
-                <div>
-                  <label className={labelClass}>{t('fields.guide')}</label>
-                  <Dropdown
-                    aria-label={t('fields.guide')}
-                    options={[
-                      { value: '', label: t('guide.pick') },
-                      ...guides.map((v) => ({ value: String(v.id), label: `${v.fullName} (@${v.username})` })),
-                    ]}
-                    value={values.vodicId}
-                    onChange={(v) => patch({ vodicId: v })}
-                    fullWidth
-                  />
+            {isGuideOrganizer ? (
+              <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950">
+                {t('wizard.organizer.guideSelfHint')}
+              </p>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {!values.drugiVodicCheck && (
+                    <div>
+                      <label className={labelClass}>{t('fields.guide')}</label>
+                      <Dropdown
+                        aria-label={t('fields.guide')}
+                        options={[
+                          { value: '', label: t('guide.pick') },
+                          ...guides.map((v) => ({ value: String(v.id), label: `${v.fullName} (@${v.username})` })),
+                        ]}
+                        value={values.vodicId}
+                        onChange={(v) => patch({ vodicId: v })}
+                        fullWidth
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 self-end">
+                    <input
+                      type="checkbox"
+                      id="drugi-vodic"
+                      checked={values.drugiVodicCheck}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        patch({ drugiVodicCheck: checked, vodicId: checked ? '' : values.vodicId, drugiVodicIme: checked ? values.drugiVodicIme : '' })
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <label htmlFor="drugi-vodic" className="text-sm text-gray-700">
+                      {t('fields.secondGuideManual')}
+                    </label>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-2 self-end">
-                <input
-                  type="checkbox"
-                  id="drugi-vodic"
-                  checked={values.drugiVodicCheck}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    patch({ drugiVodicCheck: checked, vodicId: checked ? '' : values.vodicId, drugiVodicIme: checked ? values.drugiVodicIme : '' })
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
-                />
-                <label htmlFor="drugi-vodic" className="text-sm text-gray-700">
-                  {t('fields.secondGuideManual')}
-                </label>
-              </div>
-            </div>
-            {values.drugiVodicCheck && (
-              <div>
-                <label className={labelClass}>{t('fields.secondGuideName')}</label>
-                <input value={values.drugiVodicIme} onChange={(e) => patch({ drugiVodicIme: e.target.value })} placeholder={t('placeholders.secondGuideName')} className={baseInput} />
-              </div>
+                {values.drugiVodicCheck && (
+                  <div>
+                    <label className={labelClass}>{t('fields.secondGuideName')}</label>
+                    <input value={values.drugiVodicIme} onChange={(e) => patch({ drugiVodicIme: e.target.value })} placeholder={t('placeholders.secondGuideName')} className={baseInput} />
+                  </div>
+                )}
+              </>
             )}
 
             <div>
@@ -746,6 +785,7 @@ export function ActionWizardForm({
               <span className="text-gray-500">{t('wizard.step4.summary.date')}</span> {values.datum || '—'} · <span className="text-gray-500">{t('wizard.step4.summary.difficulty')}</span> {values.tezina || '—'}
             </p>
             <p>
+              <span className="text-gray-500">{t('wizard.labels.organizer')}</span> {organizerLabel} ·{' '}
               <span className="text-gray-500">{t('wizard.step4.summary.visibility')}</span> {visibilityLabel} · <span className="text-gray-500">{t('wizard.step4.summary.currency')}</span>{' '}
               <span className="font-semibold text-emerald-800">{cur}</span>
             </p>

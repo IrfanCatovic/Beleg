@@ -58,10 +58,13 @@ function Fieldset(props: { title: string; children: ReactNode }) {
   )
 }
 
+const FERRATA_HOTELS_HASH = '#ferrata-hoteli'
+
 export function FerrataGuideBookingModal(props: {
   open: boolean
   onClose: () => void
   ferrataId: number
+  ferrataSlug?: string
   ferrataName: string
   ferrataLocation: string
   ferrataLat: number
@@ -224,6 +227,21 @@ export function FerrataGuideBookingModal(props: {
     if (step === 2) return t('bookGuideStepGuidesTitle')
     return t('bookGuideStepHotelsTitle')
   }, [step, t])
+
+  const scrollToHotelsSection = () => {
+    window.setTimeout(() => {
+      document.getElementById('ferrata-hoteli')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
+  const viewAllHotels = () => {
+    props.onClose()
+    const slug = (props.ferrataSlug ?? '').trim()
+    if (slug) {
+      navigate(`/ferate/${slug}${FERRATA_HOTELS_HASH}`)
+    }
+    scrollToHotelsSection()
+  }
 
   if (!props.open) return null
 
@@ -434,7 +452,11 @@ export function FerrataGuideBookingModal(props: {
           )}
 
           {step === 3 && hasMapCoords && (
-            <FerrataGuideBookingHotelsStep ferrataLat={props.ferrataLat} ferrataLng={props.ferrataLng} />
+            <FerrataGuideBookingHotelsStep
+              ferrataLat={props.ferrataLat}
+              ferrataLng={props.ferrataLng}
+              onViewAllHotels={viewAllHotels}
+            />
           )}
 
           {step === 3 && !hasMapCoords && (
@@ -461,53 +483,55 @@ export function FerrataGuideBookingModal(props: {
           )}
 
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              {t('modalClose')}
-            </button>
-
-            {step === 1 && (
-              <button
-                type="submit"
-                form="ferrata-guide-booking-form"
-                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-              >
-                {t('bookGuideNext')}
-              </button>
-            )}
-
-            {step === 2 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  disabled={submitting}
-                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {t('bookGuideBack')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void submitBooking(false)}
-                  disabled={submitting || selectedGuideIds.size === 0}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
-                >
-                  {submitting ? '…' : t('bookGuideSubmit')}
-                </button>
-              </>
-            )}
-
-            {step === 3 && (
+            {step === 3 ? (
               <button
                 type="button"
                 onClick={props.onClose}
-                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 {t('modalClose')}
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={props.onClose}
+                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  {t('modalClose')}
+                </button>
+
+                {step === 1 && (
+                  <button
+                    type="submit"
+                    form="ferrata-guide-booking-form"
+                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                  >
+                    {t('bookGuideNext')}
+                  </button>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      disabled={submitting}
+                      className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {t('bookGuideBack')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void submitBooking(false)}
+                      disabled={submitting || selectedGuideIds.size === 0}
+                      className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
+                    >
+                      {submitting ? '…' : t('bookGuideSubmit')}
+                    </button>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

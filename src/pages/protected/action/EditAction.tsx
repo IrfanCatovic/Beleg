@@ -27,9 +27,11 @@ interface AkcijaData {
   kumulativniUsponM?: number
   duzinaStazeKm?: number
   vodicId?: number
+  vodic?: { username: string }
   drugiVodicIme?: string
   isCompleted?: boolean
   javna?: boolean
+  organizatorTip?: 'klub' | 'vodic'
   klubId?: number
   visinaVrhM?: number
   zimskiUspon?: boolean
@@ -56,6 +58,7 @@ interface AkcijaData {
 const emptyWizardValues: WizardValues = {
   naziv: '',
   actionKind: 'planina',
+  organizerType: 'klub',
   visibility: 'klubska',
   planina: '',
   vrh: '',
@@ -172,8 +175,19 @@ export default function EditAction() {
         const res = await api.get(`/api/akcije/${id}`)
         const a: AkcijaData = res.data
 
-        const canKnowHost = user.role === 'superadmin' || user.klubId != null
-        if (a.klubId != null && canKnowHost && !canManageHostAkcija(user, a.klubId)) {
+        const canKnowHost =
+          user.role === 'superadmin' ||
+          user.klubId != null ||
+          a.organizatorTip === 'vodic'
+        if (
+          canKnowHost &&
+          !canManageHostAkcija(user, {
+            klubId: a.klubId,
+            organizatorTip: a.organizatorTip,
+            vodicId: a.vodicId,
+            vodicUsername: a.vodic?.username,
+          })
+        ) {
           navigate(`/akcije/${id}`, { replace: true })
           return
         }
@@ -193,6 +207,7 @@ export default function EditAction() {
         setValues({
           naziv: a.naziv || '',
           actionKind: tip,
+          organizerType: a.organizatorTip === 'vodic' ? 'vodic' : 'klub',
           visibility: a.javna ? 'javna' : 'klubska',
           planina: a.planina || '',
           vrh: a.vrh || '',
@@ -321,6 +336,7 @@ export default function EditAction() {
       formData.append('visinaVrhM', formValues.visinaVrhM)
       formData.append('zimskiUspon', String(formValues.zimskiUspon))
       formData.append('javna', String(formValues.visibility === 'javna'))
+      formData.append('organizatorTip', formValues.organizerType)
       formData.append('tipAkcije', formValues.actionKind)
       if (formValues.actionKind === 'planina') {
         formData.append('planinaLat', formValues.planinaLat.trim())
@@ -424,6 +440,7 @@ export default function EditAction() {
             success={success}
             imageHelpText={values.actionKind === 'via_ferrata' ? t('wizard.ferrata.coverFromCatalog') : t('edit.imageKeepHint')}
             ferrataCatalog={ferrataCatalog}
+            lockOrganizerType={values.organizerType === 'vodic'}
             onSubmit={handleSubmit}
           />
         </div>

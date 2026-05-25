@@ -176,6 +176,7 @@ export const ferrateTranslations = {
   bookGuideStepGuidesHint: 'Označite vodiče kojima želite da pošaljete zahtev. Podrazumevano su svi izabrani.',
   bookGuideStepHotelsTitle: 'Smeštaj u okolini',
   bookGuideHotelsIntro: 'Da li vam je potreban smeštaj? Pogledajte opcije u blizini ferate.',
+  bookGuideViewAllHotels: 'Pogledaj sve hotele',
   bookGuideStepIndicator: 'Korak {{current}} od {{total}}',
   bookGuideSkipGuides: 'Ne treba mi vodič',
   bookGuideDoneNoHotels: 'Zahtev je poslat. Hvala!',

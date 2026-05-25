@@ -47,7 +47,11 @@ function telHref(phone: string): string {
   return digits ? `tel:${digits}` : `tel:${phone.trim()}`
 }
 
-export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferrataLng: number }) {
+export function FerrataGuideBookingHotelsStep(props: {
+  ferrataLat: number
+  ferrataLng: number
+  onViewAllHotels?: () => void
+}) {
   const { t } = useTranslation('ferrate')
   const [rows, setRows] = useState<HotelNearbyPublic[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +64,7 @@ export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferra
       setLoading(true)
       try {
         const res = await api.get<{ hotels?: HotelNearbyPublic[] }>('/api/hotels/nearby', {
-          params: { lat: props.ferrataLat, lng: props.ferrataLng, radius_km: 100, limit: 30 },
+          params: { lat: props.ferrataLat, lng: props.ferrataLng, radius_km: 100, limit: 10 },
         })
         if (!cancelled) setRows((res.data?.hotels as HotelNearbyPublic[]) ?? [])
       } catch {
@@ -84,6 +88,8 @@ export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferra
     [rows],
   )
 
+  const nearestTwo = useMemo(() => list.slice(0, 2), [list])
+
   const active = openIx != null ? list[openIx] : null
   const bookingHref = active ? safeHttpUrl(active.bookingUrl) : null
   const instagramHref = active ? normalizeInstagramUrl(active.instagramUrl) : null
@@ -99,9 +105,10 @@ export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferra
       <p className="text-sm text-gray-700">{t('bookGuideHotelsIntro')}</p>
       {loading && <p className="text-sm text-gray-500">…</p>}
       {!loading && list.length === 0 && <p className="text-sm text-gray-500">{t('detailHotelsEmpty')}</p>}
-      {!loading && list.length > 0 && (
-        <ul className="grid max-h-[min(50vh,22rem)] min-w-0 gap-3 overflow-y-auto pr-1">
-          {list.map((h, ix) => {
+      {!loading && nearestTwo.length > 0 && (
+        <ul className="grid min-w-0 gap-3">
+          {nearestTwo.map((h) => {
+            const ix = list.findIndex((row) => row.id === h.id)
             const thumb = hotelThumb(h)
             const title = (h.naziv ?? '').trim() || t('detailHotelUnnamed')
             const km = formatDistanceKm(h.distanceKm)
@@ -109,7 +116,7 @@ export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferra
               <li key={h.id} className="min-w-0">
                 <button
                   type="button"
-                  onClick={() => setOpenIx(ix)}
+                  onClick={() => setOpenIx(ix >= 0 ? ix : null)}
                   className="group flex w-full min-w-0 gap-3 overflow-hidden rounded-xl border border-emerald-100/90 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-200 hover:shadow-md"
                 >
                   <div className="relative h-24 w-28 shrink-0 bg-gradient-to-br from-slate-100 to-emerald-50/50">
@@ -131,6 +138,16 @@ export function FerrataGuideBookingHotelsStep(props: { ferrataLat: number; ferra
             )
           })}
         </ul>
+      )}
+
+      {!loading && list.length > 0 && props.onViewAllHotels && (
+        <button
+          type="button"
+          onClick={props.onViewAllHotels}
+          className="w-full text-center text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+        >
+          {t('bookGuideViewAllHotels')} →
+        </button>
       )}
 
       {active && openIx != null && (

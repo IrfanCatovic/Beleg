@@ -41,6 +41,7 @@ interface Akcija {
   isCompleted: boolean
   uIstorijiKluba?: boolean
   javna?: boolean
+  organizatorTip?: 'klub' | 'vodic'
   klubNaziv?: string
   duzinaStazeKm?: number
   kumulativniUsponM?: number
@@ -69,6 +70,8 @@ export default function Actions() {
   const { showAlert, showConfirm } = useModal()
   const [aktivneAkcije, setAktivneAkcije] = useState<Akcija[]>([])
   const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
+  const [vodeneAktivne, setVodeneAktivne] = useState<Akcija[]>([])
+  const [vodeneZavrsene, setVodeneZavrsene] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
   const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -149,6 +152,16 @@ export default function Actions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [zavrseneAkcije, filters],
   )
+  const filteredVodeneAktivne = useMemo(
+    () => vodeneAktivne.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vodeneAktivne, filters],
+  )
+  const filteredVodeneZavrsene = useMemo(
+    () => vodeneZavrsene.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vodeneZavrsene, filters],
+  )
 
   const availableMonths = useMemo(() => {
     const months = new Set<number>()
@@ -175,6 +188,8 @@ export default function Actions() {
         const uIstoriji = (a: Akcija) => a.uIstorijiKluba !== false
         setAktivneAkcije((akcijeRes.data.aktivne || []).filter(uIstoriji))
         setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(uIstoriji))
+        setVodeneAktivne(akcijeRes.data.vodeneAktivne || [])
+        setVodeneZavrsene(akcijeRes.data.vodeneZavrsene || [])
 
         const mojeRes = await api.get('/api/moje-prijave')
         const ids = mojeRes.data.prijavljeneAkcije || []
@@ -665,6 +680,71 @@ export default function Actions() {
           )}
         </section>
 
+        {isAdminOrVodic && (
+          <section className="mb-12 sm:mb-16">
+            <div className="flex items-center gap-2 mb-5">
+              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-violet-100">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+              </span>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('guidedToursActive')}</h2>
+              {vodeneAktivne.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-violet-600 text-white">
+                  {activeFilterCount > 0 ? `${filteredVodeneAktivne.length}/${vodeneAktivne.length}` : vodeneAktivne.length}
+                </span>
+              )}
+            </div>
+            {filteredVodeneAktivne.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('emptyGuidedActive')}</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+                {filteredVodeneAktivne.map((akcija) => {
+                  const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                  return (
+                    <Link
+                      key={`guide-active-${akcija.id}`}
+                      to={`/akcije/${akcija.id}`}
+                      className="group flex flex-col overflow-hidden rounded-xl border-2 border-violet-200/90 bg-white shadow-[0_2px_20px_-4px_rgba(124,58,237,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-[0_8px_28px_-4px_rgba(124,58,237,0.35)] hover:no-underline"
+                    >
+                      <div className="relative aspect-[3/2] overflow-hidden bg-violet-50">
+                        <AkcijaImageOrFallback
+                          src={akcija.slikaUrl}
+                          alt={akcija.naziv}
+                          imgClassName="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                        <span className="absolute top-2 left-2.5 rounded-md bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                          {t('guidedTourBadge')}
+                        </span>
+                        {akcija.javna && (
+                          <span className="absolute top-2 right-2.5 rounded-md bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950">
+                            {t('public')}
+                          </span>
+                        )}
+                        <span className="absolute bottom-2 left-2.5 rounded-md bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                          {formatDateShort(akcija.datum)}
+                        </span>
+                      </div>
+                      <div className="flex grow flex-col p-3.5">
+                        <h3 className="mb-1 line-clamp-2 text-sm font-bold leading-snug text-gray-900 group-hover:text-violet-800">
+                          {akcija.naziv}
+                        </h3>
+                        <p className="mb-2 truncate text-[11px] font-medium text-gray-500">
+                          {akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}
+                        </p>
+                        <div className="mt-auto flex items-center justify-between border-t border-violet-50 pt-2.5">
+                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                            {difficultyBadge.label}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-violet-700">{t('active')}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* ══════════ ZAVRŠENE AKCIJE ══════════ */}
         <section>
           <div className="flex items-center gap-2 mb-5">
@@ -789,6 +869,63 @@ export default function Actions() {
             </div>
           )}
         </section>
+
+        {isAdminOrVodic && (
+          <section className="mt-12 sm:mt-16">
+            <div className="mb-5 flex items-center gap-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100">
+                <svg className="h-3.5 w-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <h2 className="text-base font-bold tracking-tight text-gray-900 sm:text-lg">{t('guidedToursCompleted')}</h2>
+              {vodeneZavrsene.length > 0 && (
+                <span className="ml-1 inline-flex min-w-[22px] h-[22px] items-center justify-center rounded-full bg-violet-200 px-1.5 text-[10px] font-bold text-violet-900">
+                  {activeFilterCount > 0 ? `${filteredVodeneZavrsene.length}/${vodeneZavrsene.length}` : vodeneZavrsene.length}
+                </span>
+              )}
+            </div>
+            {filteredVodeneZavrsene.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('emptyGuidedCompleted')}</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6 xl:grid-cols-3 2xl:grid-cols-4">
+                {filteredVodeneZavrsene.map((akcija) => {
+                  const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                  return (
+                    <Link
+                      key={`guide-done-${akcija.id}`}
+                      to={`/akcije/${akcija.id}`}
+                      className="group flex flex-col overflow-hidden rounded-xl border-2 border-violet-200/80 bg-white opacity-95 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md hover:no-underline"
+                    >
+                      <div className="relative aspect-[3/2] overflow-hidden bg-violet-50">
+                        <AkcijaImageOrFallback
+                          src={akcija.slikaUrl}
+                          alt={akcija.naziv}
+                          imgClassName="absolute inset-0 h-full w-full object-cover grayscale-[0.15]"
+                        />
+                        <span className="absolute top-2 left-2.5 rounded-md bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          {t('guidedTourBadge')}
+                        </span>
+                        <span className="absolute bottom-2 left-2.5 rounded-md bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                          {formatDateShort(akcija.datum)}
+                        </span>
+                      </div>
+                      <div className="flex grow flex-col p-3.5">
+                        <h3 className="mb-1 line-clamp-2 text-sm font-bold text-gray-900">{akcija.naziv}</h3>
+                        <div className="mt-auto flex items-center justify-between border-t border-violet-50 pt-2.5">
+                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                            {difficultyBadge.label}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase text-gray-500">{t('completed')}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ══════════ MODAL: Godišnji izveštaj ══════════ */}
         {showAnnualReportModal && (

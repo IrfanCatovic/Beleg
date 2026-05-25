@@ -40,6 +40,9 @@ type Akcija struct {
 	KlubNaziv   string `gorm:"-" json:"klubNaziv,omitempty"`
 	KlubLogoURL string `gorm:"-" json:"klubLogoUrl,omitempty"`
 
+	// OrganizatorTip: klub = akcija kluba (klub_id); vodic = nezavisna tura vodiča (bez kluba, uIstorijiKluba=false).
+	OrganizatorTip string `gorm:"column:organizator_tip;type:varchar(16);not null;default:'klub'" json:"organizatorTip"`
+
 	TipAkcije                string     `gorm:"type:varchar(30);default:'planina'" json:"tipAkcije"`
 	FerrataID                *uint      `gorm:"column:ferrata_id;index" json:"ferrataId,omitempty"`
 	Ferrata                  *Ferrata   `gorm:"foreignKey:FerrataID" json:"-"`

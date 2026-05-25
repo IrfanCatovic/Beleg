@@ -96,6 +96,14 @@ export default function FerrataDetail() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (loading || !f || window.location.hash !== '#ferrata-hoteli') return
+    const id = window.setTimeout(() => {
+      document.getElementById('ferrata-hoteli')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 120)
+    return () => window.clearTimeout(id)
+  }, [loading, f])
+
   const coverUrl = (f?.coverImage ?? '').trim()
   const regionSubtitle =
     f?.podrucje?.trim() || [f?.gradOpstina, f?.drzava].filter((x) => x && String(x).trim()).join(', ')
@@ -330,7 +338,9 @@ export default function FerrataDetail() {
                 )}
 
                 {hasMapCoords && (
-                  <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
+                  <div id="ferrata-hoteli" className="scroll-mt-24">
+                    <FerrataHotelsSection variant="sidebar" ferrataLat={f.lat as number} ferrataLng={f.lng as number} />
+                  </div>
                 )}
 
                 <div className={ferrataDetailCardClass}>
@@ -396,6 +406,7 @@ export default function FerrataDetail() {
           open={bookOpen}
           onClose={() => setBookOpen(false)}
           ferrataId={f.id}
+          ferrataSlug={f.slug}
           ferrataName={f.naziv}
           ferrataLocation={regionSubtitle}
           ferrataLat={hasMapCoords ? (f.lat as number) : 0}

@@ -373,6 +373,13 @@ func AcceptFerrataGuideBooking(c *gin.Context) {
 		if akcija.VodicID > 0 && akcija.VodicID != viewer.ID {
 			return errors.New("action not owned by guide")
 		}
+		orgTip := strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip))
+		if orgTip != "vodic" && akcija.KlubID != nil && *akcija.KlubID > 0 {
+			return errors.New("za zahtev za vođenje akcija mora biti vodička (bez kluba)")
+		}
+		if orgTip == "vodic" && akcija.VodicID == 0 {
+			return errors.New("vodička akcija mora imati dodeljenog vodiča")
+		}
 
 		now := time.Now()
 		actionID := body.ActionID

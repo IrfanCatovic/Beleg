@@ -50,6 +50,7 @@ interface Akcija {
   javna?: boolean
   klubNaziv?: string
   klubId?: number
+  organizatorTip?: 'klub' | 'vodic'
   limited?: boolean
   kumulativniUsponM?: number
   duzinaStazeKm?: number
@@ -506,7 +507,12 @@ export default function ActionDetails() {
   }, [id, user, akcija])
 
   useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted) {
+    if (!user || !akcija || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }) || !akcija.isCompleted) {
       setClubMembers([])
       setSelectedMemberId('')
       return
@@ -527,7 +533,12 @@ export default function ActionDetails() {
   }, [user, akcija])
 
   useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted || !id) {
+    if (!user || !akcija || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }) || !akcija.isCompleted || !id) {
       setActionParticipationRequests([])
       return
     }
@@ -556,7 +567,12 @@ export default function ActionDetails() {
   }, [externalScope, externalSearch])
 
   useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, akcija.klubId) || !akcija.isCompleted || !id) {
+    if (!user || !akcija || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }) || !akcija.isCompleted || !id) {
       setExternalCandidates([])
       setExternalError('')
       setExternalOffset(0)
@@ -773,7 +789,12 @@ export default function ActionDetails() {
   }
 
   const handleDeletePrevoz = async (row: { id: number; nazivGrupe: string }) => {
-    if (!id || !user || !akcija || !canManageHostAkcija(user, akcija.klubId)) return
+    if (!id || !user || !akcija || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      })) return
     const ok = await showConfirm(
       `Da li ste sigurni da želite da obrišete prevoz „${row.nazivGrupe}”? Svi koji su bili prijavljeni na ovaj prevoz biće uklonjeni sa prevoza (neće biti automatski prebačeni na drugi prevoz).`,
       { variant: 'danger', confirmLabel: 'Obriši', cancelLabel: 'Otkaži' }
@@ -1166,7 +1187,12 @@ export default function ActionDetails() {
 
       if (inviteToken) {
         setActionShareUrl(`${resolvePublic()}?inviteToken=${encodeURIComponent(inviteToken)}`)
-      } else if (akcija.javna || !canManageHostAkcija(user, akcija.klubId)) {
+      } else if (akcija.javna || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      })) {
         setActionShareUrl(resolvePublic())
       } else if (!actionShareUrl) {
         setActionShareLoading(true)
@@ -1213,7 +1239,12 @@ export default function ActionDetails() {
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const difficultyBadge = tzStyle(akcija.tezina, t)
-  const canManageHost = !!(user && canManageHostAkcija(user, akcija.klubId))
+  const canManageHost = !!(user && canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }))
   const isLimitedView = !!akcija.limited
   /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
   const isHostClubPlainMember =
@@ -2041,7 +2072,12 @@ export default function ActionDetails() {
                             selected={selPrevoz.has(p.id)}
                             disabled={!user || akcija.isCompleted || (mojaPrijava != null && mojaPrijava.status !== 'prijavljen')}
                             onToggle={() => togglePrevoz(p.id)}
-                            canDelete={!!user && canManageHostAkcija(user, akcija.klubId) && !akcija.isCompleted}
+                            canDelete={!!user && canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }) && !akcija.isCompleted}
                             onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
                           />
                         ))}

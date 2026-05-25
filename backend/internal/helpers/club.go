@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"beleg-app/backend/internal/models"
@@ -73,6 +74,27 @@ func CanManageAkcija(c *gin.Context, db *gorm.DB, akcijaKlubID *uint) bool {
 		return false
 	}
 	return effectiveClubID == *akcijaKlubID
+}
+
+// CanManageAkcijaEx: klupske akcije — CanManageAkcija; vodičke — samo vodič koji vodi turu.
+func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
+	if ak == nil {
+		return false
+	}
+	if strings.TrimSpace(strings.ToLower(ak.OrganizatorTip)) == "vodic" && ak.VodicID > 0 {
+		roleVal, _ := c.Get("role")
+		role, _ := roleVal.(string)
+		if role != "admin" && role != "vodic" && role != "superadmin" {
+			return false
+		}
+		username, _ := c.Get("username")
+		var u models.Korisnik
+		if err := DBWhereUsername(db, UsernameFromContext(username)).First(&u).Error; err != nil {
+			return false
+		}
+		return u.ID == ak.VodicID
+	}
+	return CanManageAkcija(c, db, ak.KlubID)
 }
 
 // EnsureClubHoldState učitava klub, i ako je subskripcija istekla pre više od HoldDaysAfterSubscriptionEnd dana,

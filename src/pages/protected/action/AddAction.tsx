@@ -32,10 +32,11 @@ interface Korisnik {
   role: string
 }
 
-const initialWizardValues = (tip: 'planina' | 'via_ferrata'): WizardValues => ({
+const initialWizardValues = (tip: 'planina' | 'via_ferrata', fromBooking = false): WizardValues => ({
   naziv: '',
   actionKind: tip,
-  visibility: 'klubska',
+  organizerType: fromBooking ? 'vodic' : 'klub',
+  visibility: fromBooking ? 'klubska' : 'klubska',
   planina: '',
   vrh: '',
   datum: '',
@@ -91,12 +92,12 @@ export default function AddAction() {
   const [bookingPrefillError, setBookingPrefillError] = useState('')
   const [raceLostActionId, setRaceLostActionId] = useState<number | null>(null)
 
-  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije))
+  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije, fromGuideBooking))
 
   useEffect(() => {
     // Ne resetuj formu dok učitavamo zahtev — inače kratko “blinkuje” prazna forma pa prefill.
     if (fromGuideBooking) return
-    setInitial(initialWizardValues(tipAkcije))
+    setInitial(initialWizardValues(tipAkcije, false))
   }, [tipAkcije, fromGuideBooking])
 
   useEffect(() => {
@@ -355,6 +356,7 @@ export default function AddAction() {
       formData.append('visinaVrhM', values.visinaVrhM)
       formData.append('zimskiUspon', String(values.zimskiUspon))
       formData.append('javna', String(values.visibility === 'javna'))
+      formData.append('organizatorTip', values.organizerType)
       formData.append('tipAkcije', values.actionKind)
       if (values.actionKind === 'planina') {
         formData.append('planinaLat', values.planinaLat.trim())
@@ -498,6 +500,7 @@ export default function AddAction() {
               tipAkcije === 'via_ferrata' &&
               (!!searchParams.get('ferrata_id') || !!searchParams.get('booking_id'))
             }
+            lockOrganizerType={fromGuideBooking}
             onSubmit={handleSubmit}
           />
         </div>
