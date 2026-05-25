@@ -13,7 +13,9 @@ import { userHasClubContext } from '../../utils/clubContext'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import {
+  canGuideCreateActionFromBooking,
   getFerrataGuideBooking,
+  guideBookingBlockedMessage,
   rejectFerrataGuideBooking,
   type FerrataGuideBookingPublic,
 } from '../../services/ferrataGuideBookings'
@@ -618,9 +620,25 @@ export default function ObavestenjeDetalj() {
     }
   }
 
-  const handleCreateActionFromGuideBooking = () => {
-    if (!guideBooking) return
-    navigate(guideBookingCreateActionPath(guideBooking))
+  const handleAcceptGuideBooking = async () => {
+    if (!guideBooking || guideBookingBusy) return
+    setGuideBookingBusy(true)
+    try {
+      const fresh = await getFerrataGuideBooking(guideBooking.id)
+      setGuideBooking(fresh)
+      if (!canGuideCreateActionFromBooking(fresh)) {
+        await showAlert(guideBookingBlockedMessage(fresh), 'Zahtev za vođenje')
+        return
+      }
+      navigate(guideBookingCreateActionPath(fresh))
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Greška pri proveri zahteva.'
+      await showAlert(msg, 'Zahtev za vođenje')
+    } finally {
+      setGuideBookingBusy(false)
+    }
   }
 
   const handleRespondActionParticipationRequest = async (decision: 'accept' | 'reject') => {
@@ -1019,35 +1037,64 @@ export default function ObavestenjeDetalj() {
                     ? 'border-amber-200 bg-amber-50 text-amber-800'
                     : guideBooking.guideResponse.status === 'accepted'
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : 'border-rose-200 bg-rose-50 text-rose-800'
+                      : guideBooking.guideResponse.status === 'closed'
+                        ? 'border-gray-200 bg-gray-50 text-gray-700'
+                        : 'border-rose-200 bg-rose-50 text-rose-800'
                 }`}
               >
                 {guideBooking.guideResponse.status === 'pending'
                   ? 'Na čekanju'
                   : guideBooking.guideResponse.status === 'accepted'
                     ? 'Akcija kreirana'
-                    : 'Odbijeno'}
+                    : guideBooking.guideResponse.status === 'closed'
+                      ? 'Rešio drugi vodič'
+                      : 'Odbijeno'}
               </div>
             )}
 
+            {guideBooking.guideResponse?.status === 'closed' && guideBooking.requestFulfilled && (
+              <p className="text-sm text-gray-600">
+                {guideBooking.fulfilledByGuideName
+                  ? `${guideBooking.fulfilledByGuideName} je već kreirao akciju za ovaj zahtev.`
+                  : 'Drugi vodič je već kreirao akciju za ovaj zahtev.'}
+                {guideBooking.fulfilledActionId ? (
+                  <>
+                    {' '}
+                    <Link
+                      to={`/akcije/${guideBooking.fulfilledActionId}`}
+                      className="font-semibold text-emerald-600 hover:text-emerald-700"
+                    >
+                      Pogledaj akciju
+                    </Link>
+                  </>
+                ) : null}
+              </p>
+            )}
+
             {guideBooking.guideResponse?.canRespond && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => void handleRejectGuideBooking()}
-                  disabled={guideBookingBusy}
-                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {guideBookingBusy ? '...' : 'Odbij zahtev'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateActionFromGuideBooking}
-                  disabled={guideBookingBusy}
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  Napravi akciju
-                </button>
+              <div className="space-y-2 pt-2">
+                <p className="text-xs text-gray-500">
+                  Prihvatanje otvara formu za akciju sa podacima iz zahteva. Možete izmeniti datum i vreme pre
+                  kreiranja. Zahtev ostaje otvoren za ostale vodiče dok ne sačuvate akciju.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleRejectGuideBooking()}
+                    disabled={guideBookingBusy}
+                    className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {guideBookingBusy ? '...' : 'Odbij'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAcceptGuideBooking()}
+                    disabled={guideBookingBusy}
+                    className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {guideBookingBusy ? '...' : 'Prihvati'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1056,7 +1103,7 @@ export default function ObavestenjeDetalj() {
                 to={`/akcije/${guideBooking.guideResponse.actionId}`}
                 className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
-                Otvori akciju →
+                Otvori akciju
               </Link>
             )}
           </div>

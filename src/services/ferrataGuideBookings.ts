@@ -2,7 +2,7 @@ import api from './api'
 import type { FerrataGuideBookingFormState } from '../components/ferrate/ferrataGuideBookingTypes'
 
 export type GuideBookingGuideResponse = {
-  status: 'pending' | 'rejected' | 'accepted'
+  status: 'pending' | 'rejected' | 'accepted' | 'closed'
   canRespond: boolean
   actionId?: number | null
   targetId?: number
@@ -12,7 +12,7 @@ export type GuideBookingGuideResponseSummary = {
   guideUserId: number
   guideProfileId: number
   guideName?: string
-  status: 'pending' | 'rejected' | 'accepted'
+  status: 'pending' | 'rejected' | 'accepted' | 'closed'
   actionId?: number | null
   respondedAt?: string | null
 }
@@ -31,6 +31,9 @@ export type FerrataGuideBookingPublic = {
   additionalMessage?: string
   skipGuides: boolean
   createdAt: string
+  requestFulfilled?: boolean
+  fulfilledActionId?: number | null
+  fulfilledByGuideName?: string
   guideResponse?: GuideBookingGuideResponse
   guideResponses?: GuideBookingGuideResponseSummary[]
   ferrata: {
@@ -118,4 +121,50 @@ export async function acceptFerrataGuideBooking(
     { actionId },
   )
   return res.data
+}
+
+export function canGuideCreateActionFromBooking(booking: FerrataGuideBookingPublic): boolean {
+  return !!booking.guideResponse?.canRespond
+}
+
+export function guideBookingBlockedMessage(booking: FerrataGuideBookingPublic): string {
+  if (booking.guideResponse?.status === 'accepted') {
+    return 'Već ste kreirali akciju za ovaj zahtev.'
+  }
+  if (booking.guideResponse?.status === 'rejected') {
+    return 'Odbili ste ovaj zahtev.'
+  }
+  if (booking.requestFulfilled) {
+    const who = booking.fulfilledByGuideName?.trim()
+    return who
+      ? `Drugi vodič (${who}) je već kreirao akciju za ovaj zahtev.`
+      : 'Drugi vodič je već kreirao akciju za ovaj zahtev.'
+  }
+  return 'Zahtev više nije dostupan.'
+}
+
+/** Poslednja provera pre Save — sprečava kreiranje akcije ako je neko drugi stigao prvi. */
+export async function ensureGuideCanAcceptBooking(bookingId: number): Promise<FerrataGuideBookingPublic> {
+  const booking = await getFerrataGuideBooking(bookingId)
+  if (!canGuideCreateActionFromBooking(booking)) {
+    const err = new Error(guideBookingBlockedMessage(booking)) as Error & { booking?: FerrataGuideBookingPublic }
+    err.booking = booking
+    throw err
+  }
+  return booking
+}
+
+export type GuideBookingAcceptConflict = {
+  error?: string
+  fulfilledActionId?: number
+  fulfilledByGuideName?: string
+}
+
+export function parseGuideBookingAcceptConflict(err: unknown): GuideBookingAcceptConflict {
+  const data = (err as { response?: { data?: GuideBookingAcceptConflict } })?.response?.data
+  return {
+    error: data?.error,
+    fulfilledActionId: data?.fulfilledActionId,
+    fulfilledByGuideName: data?.fulfilledByGuideName,
+  }
 }

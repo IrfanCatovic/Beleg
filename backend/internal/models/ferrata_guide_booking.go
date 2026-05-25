@@ -6,6 +6,7 @@ const (
 	GuideBookingTargetStatusPending  = "pending"
 	GuideBookingTargetStatusRejected = "rejected"
 	GuideBookingTargetStatusAccepted = "accepted"
+	GuideBookingTargetStatusClosed   = "closed" // drugi vodič je kreirao akciju
 )
 
 // FerrataGuideBookingRequest zahtev korisnika za vođenje na ferati.

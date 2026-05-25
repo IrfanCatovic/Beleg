@@ -13,7 +13,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+var errGuideBookingAlreadyFulfilled = errors.New("guide booking already fulfilled")
 
 type createFerrataGuideBookingBody struct {
 	FerrataID         uint   `json:"ferrataId"`
@@ -284,6 +287,10 @@ func RejectFerrataGuideBooking(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Zahtev je već obrađen."})
 		return
 	}
+	if fulfilled, _, _ := guideBookingFulfilledInfo(req); fulfilled {
+		c.JSON(http.StatusConflict, gin.H{"error": "Zahtev je već rešen — drugi vodič je kreirao akciju."})
+		return
+	}
 	now := time.Now()
 	if err := db.Model(target).Updates(map[string]any{
 		"status":       models.GuideBookingTargetStatusRejected,
@@ -317,36 +324,124 @@ func AcceptFerrataGuideBooking(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID akcije je obavezan."})
 		return
 	}
-	target, req, err := loadGuideBookingTargetForGuide(c, db, viewer.ID)
-	if err != nil {
+
+	bookingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || bookingID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID."})
 		return
 	}
-	if target.Status != models.GuideBookingTargetStatusPending {
-		c.JSON(http.StatusConflict, gin.H{"error": "Zahtev je već obrađen."})
-		return
-	}
+
 	var akcija models.Akcija
 	if err := db.First(&akcija, body.ActionID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija nije pronađena."})
 		return
 	}
-	if akcija.TipAkcije != "via_ferrata" || akcija.FerrataID == nil || *akcija.FerrataID != req.FerrataID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija mora biti via ferrata na istoj ferati kao zahtev."})
-		return
-	}
-	now := time.Now()
-	actionID := body.ActionID
-	if err := db.Model(target).Updates(map[string]any{
-		"status":       models.GuideBookingTargetStatusAccepted,
-		"action_id":    actionID,
-		"responded_at": now,
-	}).Error; err != nil {
+
+	var req models.FerrataGuideBookingRequest
+	acceptErr := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.
+			Preload("Ferrata").
+			Preload("Requester").
+			Preload("Requester.Klub").
+			Preload("Targets").
+			Preload("Targets.GuideProfile").
+			Preload("Targets.GuideProfile.Korisnik").
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&req, bookingID).Error; err != nil {
+			return err
+		}
+
+		var target *models.FerrataGuideBookingTarget
+		for i := range req.Targets {
+			if req.Targets[i].GuideUserID == viewer.ID {
+				target = &req.Targets[i]
+				break
+			}
+		}
+		if target == nil {
+			return errors.New("not guide target")
+		}
+		if target.Status != models.GuideBookingTargetStatusPending {
+			return errGuideBookingAlreadyFulfilled
+		}
+		if fulfilled, _, _ := guideBookingFulfilledInfo(req); fulfilled {
+			return errGuideBookingAlreadyFulfilled
+		}
+		if akcija.TipAkcije != "via_ferrata" || akcija.FerrataID == nil || *akcija.FerrataID != req.FerrataID {
+			return errors.New("invalid action for booking")
+		}
+		if akcija.VodicID > 0 && akcija.VodicID != viewer.ID {
+			return errors.New("action not owned by guide")
+		}
+
+		now := time.Now()
+		actionID := body.ActionID
+		if err := tx.Model(target).Updates(map[string]any{
+			"status":       models.GuideBookingTargetStatusAccepted,
+			"action_id":    actionID,
+			"responded_at": now,
+		}).Error; err != nil {
+			return err
+		}
+		target.Status = models.GuideBookingTargetStatusAccepted
+		target.ActionID = &actionID
+		target.RespondedAt = &now
+
+		if err := tx.Model(&models.FerrataGuideBookingTarget{}).
+			Where(
+				"booking_request_id = ? AND id <> ? AND status = ?",
+				req.ID, target.ID, models.GuideBookingTargetStatusPending,
+			).
+			Updates(map[string]any{
+				"status":       models.GuideBookingTargetStatusClosed,
+				"responded_at": now,
+			}).Error; err != nil {
+			return err
+		}
+		for i := range req.Targets {
+			if req.Targets[i].ID != target.ID && req.Targets[i].Status == models.GuideBookingTargetStatusPending {
+				req.Targets[i].Status = models.GuideBookingTargetStatusClosed
+				req.Targets[i].RespondedAt = &now
+			}
+		}
+		return nil
+	})
+
+	if acceptErr != nil {
+		if errors.Is(acceptErr, errGuideBookingAlreadyFulfilled) {
+			fulfilled, actionID, guideName := guideBookingFulfilledInfo(req)
+			payload := gin.H{"error": "Zahtev je već rešen — drugi vodič je kreirao akciju."}
+			if fulfilled && actionID != nil {
+				payload["fulfilledActionId"] = *actionID
+			}
+			if guideName != "" {
+				payload["fulfilledByGuideName"] = guideName
+			}
+			c.JSON(http.StatusConflict, payload)
+			return
+		}
+		if acceptErr.Error() == "not guide target" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Niste vodič za ovaj zahtev."})
+			return
+		}
+		if acceptErr.Error() == "invalid action for booking" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija mora biti via ferrata na istoj ferati kao zahtev."})
+			return
+		}
+		if acceptErr.Error() == "action not owned by guide" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Akciju može povezati samo vodič koji je kreirao akciju."})
+			return
+		}
+		if errors.Is(acceptErr, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen."})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Povezivanje akcije nije uspelo."})
 		return
 	}
-	target.Status = models.GuideBookingTargetStatusAccepted
-	target.ActionID = &actionID
-	target.RespondedAt = &now
+
+	notifyGuideBookingRequesterFulfilled(db, req, *viewer, body.ActionID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"booking": buildFerrataGuideBookingDTO(db, req, viewer.ID),
 		"message": "Akcija je povezana sa zahtevom.",
@@ -422,6 +517,60 @@ func notifyGuideBookingRequesterRejected(db *gorm.DB, req models.FerrataGuideBoo
 	)
 }
 
+func guideBookingFulfilledInfo(req models.FerrataGuideBookingRequest) (fulfilled bool, actionID *uint, guideName string) {
+	for _, t := range req.Targets {
+		if t.Status == models.GuideBookingTargetStatusAccepted && t.ActionID != nil {
+			name := ""
+			if t.GuideProfile != nil && t.GuideProfile.KorisnikID != 0 {
+				name = strings.TrimSpace(t.GuideProfile.Korisnik.FullName)
+				if name == "" {
+					name = strings.TrimSpace(t.GuideProfile.Korisnik.Username)
+				}
+			}
+			return true, t.ActionID, name
+		}
+	}
+	return false, nil, ""
+}
+
+func notifyGuideBookingRequesterFulfilled(db *gorm.DB, req models.FerrataGuideBookingRequest, guide models.Korisnik, actionID uint) {
+	guideName := strings.TrimSpace(guide.FullName)
+	if guideName == "" {
+		guideName = strings.TrimSpace(guide.Username)
+	}
+	if guideName == "" {
+		guideName = "Vodič"
+	}
+	ferrataName := ""
+	if req.Ferrata != nil {
+		ferrataName = strings.TrimSpace(req.Ferrata.Naziv)
+	}
+	if ferrataName == "" {
+		ferrataName = "feratu"
+	}
+	dateStr := req.DesiredDate.Format("02.01.2006")
+	title := "Akcija je kreirana za vaš zahtev"
+	body := guideName + " je kreirao akciju za vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
+	meta := map[string]any{
+		"bookingRequestId": req.ID,
+		"ferrataId":        req.FerrataID,
+		"ferrataNaziv":     ferrataName,
+		"guideUserId":      guide.ID,
+		"actionId":         actionID,
+		"status":           models.GuideBookingTargetStatusAccepted,
+	}
+	metaBytes, _ := json.Marshal(meta)
+	notifications.NotifyUsers(
+		db,
+		[]uint{req.RequesterID},
+		models.ObavestenjeTipGuideBookingRequest,
+		title,
+		body,
+		"",
+		string(metaBytes),
+	)
+}
+
 func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequest, viewerID uint) gin.H {
 	ferrataPayload := gin.H{
 		"id":    req.FerrataID,
@@ -466,6 +615,17 @@ func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequ
 		"requester":         requesterPayload,
 	}
 
+	fulfilled, fulfilledActionID, fulfilledGuideName := guideBookingFulfilledInfo(req)
+	if fulfilled {
+		payload["requestFulfilled"] = true
+		payload["fulfilledActionId"] = fulfilledActionID
+		if fulfilledGuideName != "" {
+			payload["fulfilledByGuideName"] = fulfilledGuideName
+		}
+	} else {
+		payload["requestFulfilled"] = false
+	}
+
 	var guideResponses []gin.H
 	for _, t := range req.Targets {
 		name := ""
@@ -485,9 +645,10 @@ func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequ
 		}
 		guideResponses = append(guideResponses, entry)
 		if t.GuideUserID == viewerID {
+			canRespond := !fulfilled && t.Status == models.GuideBookingTargetStatusPending
 			payload["guideResponse"] = gin.H{
 				"status":     t.Status,
-				"canRespond": t.Status == models.GuideBookingTargetStatusPending,
+				"canRespond": canRespond,
 				"actionId":   t.ActionID,
 				"targetId":   t.ID,
 			}
