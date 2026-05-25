@@ -48,6 +48,10 @@ const navDropdownPanelClass =
   'absolute left-0 top-full z-50 mt-1.5 min-w-[14.5rem] rounded-xl border border-white/10 bg-slate-900/97 py-1 shadow-2xl ring-1 ring-black/30 backdrop-blur-xl'
 const navDropdownLinkClass =
   'flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-white/90 hover:bg-white/[0.08] transition-colors'
+const navDropdownSoonClass =
+  'flex w-full cursor-not-allowed items-center justify-between gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-white/45 select-none'
+const mobileExploreSoonClass =
+  'flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/45 select-none'
 
 const canSeeFinance = (role?: string) =>
   role === 'superadmin' || role === 'admin' || role === 'blagajnik'
@@ -284,7 +288,9 @@ export default function AppLayout() {
   const iconBtnClass =
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
   const exploreNavActive =
-    location.pathname.startsWith('/ferate') || location.pathname === '/search'
+    location.pathname.startsWith('/ferate') ||
+    location.pathname === '/vodici' ||
+    location.pathname === '/akcije'
   const clubNavActive =
     location.pathname === '/klub' ||
     location.pathname.startsWith('/klubovi') ||
@@ -397,29 +403,25 @@ export default function AppLayout() {
                           {t('exploreMountains')}
                         </Link>
                         <Link
-                          to="/search"
+                          to="/vodici"
                           className={navDropdownLinkClass}
                           role="menuitem"
                           onClick={() => setNavExploreOpen(false)}
                         >
                           {t('exploreGuides')}
                         </Link>
-                        <Link
-                          to="/ferate"
-                          className={navDropdownLinkClass}
-                          role="menuitem"
-                          onClick={() => setNavExploreOpen(false)}
-                        >
-                          {t('exploreHotels')}
-                        </Link>
-                        <Link
-                          to="/ferate#ferrate-katalog-mapa"
-                          className={navDropdownLinkClass}
-                          role="menuitem"
-                          onClick={() => setNavExploreOpen(false)}
-                        >
-                          {t('exploreMap')}
-                        </Link>
+                        <span className={navDropdownSoonClass} role="menuitem" aria-disabled="true">
+                          <span>{t('exploreHotels')}</span>
+                          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                            {t('exploreComingSoon')}
+                          </span>
+                        </span>
+                        <span className={navDropdownSoonClass} role="menuitem" aria-disabled="true">
+                          <span>{t('exploreMap')}</span>
+                          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                            {t('exploreComingSoon')}
+                          </span>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -895,26 +897,24 @@ export default function AppLayout() {
                         {t('exploreMountains')}
                       </Link>
                       <Link
-                        to="/search"
+                        to="/vodici"
                         className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {t('exploreGuides')}
                       </Link>
-                      <Link
-                        to="/ferate"
-                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {t('exploreHotels')}
-                      </Link>
-                      <Link
-                        to="/ferate#ferrate-katalog-mapa"
-                        className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/90 hover:bg-white/[0.07]"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {t('exploreMap')}
-                      </Link>
+                      <span className={mobileExploreSoonClass} aria-disabled="true">
+                        <span>{t('exploreHotels')}</span>
+                        <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                          {t('exploreComingSoon')}
+                        </span>
+                      </span>
+                      <span className={mobileExploreSoonClass} aria-disabled="true">
+                        <span>{t('exploreMap')}</span>
+                        <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                          {t('exploreComingSoon')}
+                        </span>
+                      </span>
                     </div>
                   )}
                 </div>

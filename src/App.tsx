@@ -32,6 +32,7 @@ import Obavestenja from './pages/protected/Obavestenja'
 import ObavestenjeDetalj from './pages/protected/ObavestenjeDetalj'
 import FerrataList from './pages/public/FerrataList'
 import FerrataDetail from './pages/public/FerrataDetail'
+import GuidesList from './pages/public/GuidesList'
 import Landing from './pages/public/Landing'
 import Kontakt from './pages/public/Kontakt'
 import Cena from './pages/public/Cena'
@@ -135,6 +136,7 @@ const router = createBrowserRouter([
       { path: '/akcije/:id', element: <ActionDetails /> },
       { path: '/ferate', element: <FerrataList /> },
       { path: '/ferate/:slug', element: <FerrataDetail /> },
+      { path: '/vodici', element: <GuidesList /> },
       { path: '/users/:id', element: <UserProfile /> },
       { path: '/korisnik/:username', element: <UserProfile /> },
 

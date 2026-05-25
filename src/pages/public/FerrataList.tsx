@@ -5,7 +5,6 @@ import {
   CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  HeartIcon,
   MagnifyingGlassIcon,
   MapIcon,
 } from '@heroicons/react/24/outline'
@@ -270,9 +269,6 @@ export default function FerrataList() {
                         <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                           {t('listCardActive')}
                         </span>
-                      </div>
-                      <div className="absolute top-3 right-3 rounded-full bg-white/90 p-1.5 shadow-sm backdrop-blur-sm" aria-hidden>
-                        <HeartIcon className="h-4 w-4 text-gray-400" strokeWidth={1.8} />
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col p-4 sm:p-5">

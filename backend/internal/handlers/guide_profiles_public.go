@@ -129,3 +129,95 @@ func ListGuidesNearby(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"guides": out})
 }
+
+var guideCatalogMountainTypes = []string{
+	models.GuideTourPlaninarska,
+	models.GuideTourUsponNaVrh,
+	models.GuideTourVisokogorska,
+	models.GuideTourZimska,
+	models.GuideTourAlpinisticka,
+	models.GuideTourVisednevna,
+	models.GuideTourPorodicna,
+	models.GuideTourPrivatna,
+	models.GuideTourEdukativna,
+}
+
+func guideMatchesCatalogCategory(db *gorm.DB, profileID uint, category string) bool {
+	switch category {
+	case "ferrata":
+		return guideHasTourType(db, profileID, models.GuideTourViaFerrata)
+	case "planine":
+		for _, tt := range guideCatalogMountainTypes {
+			if guideHasTourType(db, profileID, tt) {
+				return true
+			}
+		}
+		return false
+	default:
+		return true
+	}
+}
+
+func guideCatalogSortKey(gp *models.GuideProfile) (float64, int, string) {
+	return gp.ProsecnaOcena, gp.BrojVodjenihTura, strings.TrimSpace(gp.Naslov)
+}
+
+// ListGuidesCatalog GET /api/guides?category=all|ferrata|planine&limit=
+func ListGuidesCatalog(c *gin.Context) {
+	category := strings.TrimSpace(strings.ToLower(c.Query("category")))
+	if category == "" {
+		category = "all"
+	}
+	if category != "all" && category != "ferrata" && category != "planine" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeća kategorija"})
+		return
+	}
+	limit := 100
+	if n, err := strconv.Atoi(c.Query("limit")); err == nil && n > 0 {
+		if n > 200 {
+			limit = 200
+		} else {
+			limit = n
+		}
+	}
+
+	db := c.MustGet("db").(*gorm.DB)
+	var rows []models.GuideProfile
+	if err := db.Where("status = ?", models.GuideStatusApproved).
+		Preload("Korisnik").
+		Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vodiča"})
+		return
+	}
+
+	filtered := make([]*models.GuideProfile, 0, len(rows))
+	for i := range rows {
+		gp := &rows[i]
+		if !guideMatchesCatalogCategory(db, gp.ID, category) {
+			continue
+		}
+		filtered = append(filtered, gp)
+	}
+	sort.Slice(filtered, func(i, j int) bool {
+		ai, ti, ni := guideCatalogSortKey(filtered[i])
+		aj, tj, nj := guideCatalogSortKey(filtered[j])
+		if ai != aj {
+			return ai > aj
+		}
+		if ti != tj {
+			return ti > tj
+		}
+		return strings.ToLower(ni) < strings.ToLower(nj)
+	})
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	out := make([]gin.H, 0, len(filtered))
+	for _, gp := range filtered {
+		k := gp.Korisnik
+		types, _ := loadTourTypeStrings(db, gp.ID)
+		out = append(out, guideNearbyToPublicDTO(gp, &k, types, 0))
+	}
+	c.JSON(http.StatusOK, gin.H{"guides": out})
+}
