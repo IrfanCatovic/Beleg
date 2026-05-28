@@ -48,6 +48,8 @@ interface Akcija {
   brojDana?: number
 }
 
+type ActionSourceFilter = 'all' | 'club' | 'guide'
+
 const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
   lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
   srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
@@ -82,6 +84,7 @@ export default function Actions() {
   const [showAddActionModal, setShowAddActionModal] = useState(false)
   const [addActionModalStep, setAddActionModalStep] = useState<'type' | 'kind'>('type')
   const [addActionTip, setAddActionTip] = useState<'planina' | 'via_ferrata' | null>(null)
+  const [actionSourceFilter, setActionSourceFilter] = useState<ActionSourceFilter>('all')
   const isViaFerrataComingSoon = true
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -118,6 +121,9 @@ export default function Actions() {
   }
 
   const matchesFilters = (a: Akcija): boolean => {
+    if (actionSourceFilter === 'club' && a.organizatorTip === 'vodic') return false
+    if (actionSourceFilter === 'guide' && a.organizatorTip !== 'vodic') return false
+
     if (filters.visibility === 'klubske' && a.javna) return false
     if (filters.visibility === 'javne' && !a.javna) return false
 
@@ -142,39 +148,32 @@ export default function Actions() {
     return true
   }
 
+  const combinedAktivne = useMemo(() => [...aktivneAkcije, ...vodeneAktivne], [aktivneAkcije, vodeneAktivne])
+  const combinedZavrsene = useMemo(() => [...zavrseneAkcije, ...vodeneZavrsene], [zavrseneAkcije, vodeneZavrsene])
+
   const filteredAktivne = useMemo(
-    () => aktivneAkcije.filter(matchesFilters),
+    () => combinedAktivne.filter(matchesFilters),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [aktivneAkcije, filters],
+    [combinedAktivne, filters, actionSourceFilter],
   )
   const filteredZavrsene = useMemo(
-    () => zavrseneAkcije.filter(matchesFilters),
+    () => combinedZavrsene.filter(matchesFilters),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [zavrseneAkcije, filters],
-  )
-  const filteredVodeneAktivne = useMemo(
-    () => vodeneAktivne.filter(matchesFilters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vodeneAktivne, filters],
-  )
-  const filteredVodeneZavrsene = useMemo(
-    () => vodeneZavrsene.filter(matchesFilters),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vodeneZavrsene, filters],
+    [combinedZavrsene, filters, actionSourceFilter],
   )
 
   const availableMonths = useMemo(() => {
     const months = new Set<number>()
-    const all = [...aktivneAkcije, ...zavrseneAkcije]
+    const all = [...combinedAktivne, ...combinedZavrsene]
     all.forEach((a) => {
       if (!a.datum) return
       const d = new Date(a.datum)
       if (!isNaN(d.getTime())) months.add(d.getMonth() + 1)
     })
     return Array.from(months).sort((a, b) => a - b)
-  }, [aktivneAkcije, zavrseneAkcije])
+  }, [combinedAktivne, combinedZavrsene])
 
-  const totalCount = aktivneAkcije.length + zavrseneAkcije.length
+  const totalCount = combinedAktivne.length + combinedZavrsene.length
   const visibleCount = filteredAktivne.length + filteredZavrsene.length
   const activeFilterCount = countActiveFilters(filters)
 
@@ -208,17 +207,17 @@ export default function Actions() {
 
   const yearsWithCompleted = useMemo(() => {
     const years = new Set<number>()
-    zavrseneAkcije.forEach((a) => {
+    combinedZavrsene.forEach((a) => {
       if (a.datum) {
         const y = new Date(a.datum).getFullYear()
         if (!isNaN(y)) years.add(y)
       }
     })
     return Array.from(years).sort((a, b) => b - a)
-  }, [zavrseneAkcije])
+  }, [combinedZavrsene])
 
   const handleOpenAnnualReport = () => {
-    if (zavrseneAkcije.length === 0) {
+    if (combinedZavrsene.length === 0) {
       showAlert(t('noCompletedForAnnual'))
       return
     }
@@ -262,7 +261,7 @@ export default function Actions() {
     }
     setLoadingReport(true)
     try {
-      const actionsInYear = zavrseneAkcije.filter((a) => {
+      const actionsInYear = combinedZavrsene.filter((a) => {
         if (!a.datum) return false
         if (a.uIstorijiKluba === false) return false
         const y = new Date(a.datum).getFullYear()
@@ -507,6 +506,41 @@ export default function Actions() {
             }
           />
         )}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActionSourceFilter('all')}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              actionSourceFilter === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Sve
+          </button>
+          <button
+            type="button"
+            onClick={() => setActionSourceFilter('club')}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              actionSourceFilter === 'club'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-emerald-50'
+            }`}
+          >
+            Klubske
+          </button>
+          <button
+            type="button"
+            onClick={() => setActionSourceFilter('guide')}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              actionSourceFilter === 'guide'
+                ? 'bg-violet-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-violet-50'
+            }`}
+          >
+            Vodičke
+          </button>
+        </div>
 
         {/* ══════════ AKTIVNE AKCIJE ══════════ */}
         <section className="mb-12 sm:mb-16">
@@ -515,9 +549,11 @@ export default function Actions() {
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </span>
             <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('activeActions')}</h2>
-            {aktivneAkcije.length > 0 && (
+            {combinedAktivne.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                {activeFilterCount > 0 ? `${filteredAktivne.length}/${aktivneAkcije.length}` : aktivneAkcije.length}
+                {activeFilterCount > 0 || actionSourceFilter !== 'all'
+                  ? `${filteredAktivne.length}/${combinedAktivne.length}`
+                  : combinedAktivne.length}
               </span>
             )}
           </div>
@@ -529,7 +565,7 @@ export default function Actions() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              {activeFilterCount > 0 && aktivneAkcije.length > 0 ? (
+              {activeFilterCount > 0 || actionSourceFilter !== 'all' ? (
                 <>
                   <p className="text-sm text-gray-500 font-medium">{t('filters.noResultsActive')}</p>
                   <button
@@ -564,10 +600,12 @@ export default function Actions() {
                   <Link
                     key={akcija.id}
                     to={`/akcije/${akcija.id}`}
-                    className={`group bg-white rounded-xl border border-gray-100 overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
-                      akcija.javna
+                    className={`group bg-white rounded-xl border overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
+                      akcija.organizatorTip === 'vodic'
+                        ? 'border-violet-200 shadow-[0_2px_20px_-4px_rgba(124,58,237,0.25)] hover:border-violet-300 hover:shadow-[0_8px_28px_-4px_rgba(124,58,237,0.35)]'
+                        : akcija.javna
                         ? 'shadow-[0_2px_20px_-2px_rgba(180,83,9,0.28),0_10px_40px_-4px_rgba(245,158,11,0.24),0_0_52px_-8px_rgba(253,224,71,0.38)] hover:shadow-[0_4px_28px_-2px_rgba(180,83,9,0.34),0_14px_48px_-4px_rgba(245,158,11,0.3),0_0_64px_-6px_rgba(253,224,71,0.48)]'
-                        : 'shadow-sm hover:shadow-md'
+                        : 'border-gray-100 shadow-sm hover:shadow-md'
                     }`}
                   >
                     {/* Image */}
@@ -586,7 +624,12 @@ export default function Actions() {
                           +{mmr} MMR
                         </span>
                       </div>
-                      {akcija.javna && (
+                      {akcija.organizatorTip === 'vodic' && (
+                        <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">
+                          {t('guidedTourBadge')}
+                        </span>
+                      )}
+                      {akcija.javna && akcija.organizatorTip !== 'vodic' && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
                           {t('public')}
                         </span>
@@ -600,7 +643,7 @@ export default function Actions() {
 
                     {/* Body */}
                     <div className="p-3.5 flex flex-col grow">
-                      <h3 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
+                      <h3 className={`text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 transition-colors leading-snug ${akcija.organizatorTip === 'vodic' ? 'group-hover:text-violet-700' : 'group-hover:text-emerald-600'}`}>
                         {akcija.naziv}
                       </h3>
 
@@ -640,7 +683,7 @@ export default function Actions() {
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
                           {difficultyBadge.label}
                         </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${akcija.organizatorTip === 'vodic' ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-600'}`}>
                           {t('active')}
                         </span>
                       </div>
@@ -680,7 +723,7 @@ export default function Actions() {
           )}
         </section>
 
-        {isAdminOrVodic && (
+        {false && isAdminOrVodic && (
           <section className="mb-12 sm:mb-16">
             <div className="flex items-center gap-2 mb-5">
               <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-violet-100">
@@ -754,9 +797,11 @@ export default function Actions() {
               </svg>
             </span>
             <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
-            {zavrseneAkcije.length > 0 && (
+            {combinedZavrsene.length > 0 && (
               <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600">
-                {activeFilterCount > 0 ? `${filteredZavrsene.length}/${zavrseneAkcije.length}` : zavrseneAkcije.length}
+                {activeFilterCount > 0 || actionSourceFilter !== 'all'
+                  ? `${filteredZavrsene.length}/${combinedZavrsene.length}`
+                  : combinedZavrsene.length}
               </span>
             )}
           </div>
@@ -768,7 +813,7 @@ export default function Actions() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              {activeFilterCount > 0 && zavrseneAkcije.length > 0 ? (
+              {activeFilterCount > 0 || actionSourceFilter !== 'all' ? (
                 <>
                   <p className="text-sm text-gray-500 font-medium">{t('filters.noResultsCompleted')}</p>
                   <button
@@ -800,10 +845,12 @@ export default function Actions() {
                   <Link
                     key={akcija.id}
                     to={`/akcije/${akcija.id}`}
-                    className={`group bg-white rounded-xl border border-gray-100 overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
-                      akcija.javna
+                    className={`group bg-white rounded-xl border overflow-hidden hover:-translate-y-0.5 transition-all duration-300 hover:no-underline flex flex-col ${
+                      akcija.organizatorTip === 'vodic'
+                        ? 'border-violet-200 shadow-[0_2px_20px_-4px_rgba(124,58,237,0.2)] hover:border-violet-300 hover:shadow-[0_8px_28px_-4px_rgba(124,58,237,0.3)]'
+                        : akcija.javna
                         ? 'shadow-[0_2px_18px_-2px_rgba(180,83,9,0.24),0_8px_36px_-4px_rgba(245,158,11,0.2),0_0_48px_-8px_rgba(253,224,71,0.32)] hover:shadow-[0_4px_24px_-2px_rgba(180,83,9,0.3),0_12px_44px_-4px_rgba(245,158,11,0.26),0_0_58px_-6px_rgba(253,224,71,0.42)]'
-                        : 'shadow-sm hover:shadow-md'
+                        : 'border-gray-100 shadow-sm hover:shadow-md'
                     }`}
                   >
                     {/* Image */}
@@ -822,7 +869,12 @@ export default function Actions() {
                           +{mmr} MMR
                         </span>
                       </div>
-                      {akcija.javna && (
+                      {akcija.organizatorTip === 'vodic' && (
+                        <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">
+                          {t('guidedTourBadge')}
+                        </span>
+                      )}
+                      {akcija.javna && akcija.organizatorTip !== 'vodic' && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-amber-950 bg-gradient-to-r from-amber-400 to-yellow-500 backdrop-blur-sm px-2 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/60">
                           {t('public')}
                         </span>
@@ -831,7 +883,7 @@ export default function Actions() {
 
                     {/* Body */}
                     <div className="p-3.5 flex flex-col grow">
-                      <h3 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
+                      <h3 className={`text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 transition-colors leading-snug ${akcija.organizatorTip === 'vodic' ? 'group-hover:text-violet-700' : 'group-hover:text-emerald-600'}`}>
                         {akcija.naziv}
                       </h3>
 
@@ -870,7 +922,7 @@ export default function Actions() {
           )}
         </section>
 
-        {isAdminOrVodic && (
+        {false && isAdminOrVodic && (
           <section className="mt-12 sm:mt-16">
             <div className="mb-5 flex items-center gap-2">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100">
