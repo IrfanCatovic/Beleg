@@ -162,6 +162,16 @@ export default function Actions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [combinedZavrsene, filters, actionSourceFilter],
   )
+  const filteredVodeneAktivne = useMemo(
+    () => vodeneAktivne.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vodeneAktivne, filters, actionSourceFilter],
+  )
+  const filteredVodeneZavrsene = useMemo(
+    () => vodeneZavrsene.filter(matchesFilters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vodeneZavrsene, filters, actionSourceFilter],
+  )
 
   const availableMonths = useMemo(() => {
     const months = new Set<number>()
