@@ -289,8 +289,7 @@ export default function AppLayout() {
     'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
   const exploreNavActive =
     location.pathname.startsWith('/ferate') ||
-    location.pathname === '/vodici' ||
-    location.pathname === '/akcije'
+    location.pathname === '/vodici'
   const clubNavActive =
     location.pathname === '/klub' ||
     location.pathname.startsWith('/klubovi') ||
