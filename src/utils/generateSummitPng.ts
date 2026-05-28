@@ -239,6 +239,7 @@ function buildSummitDrawData(
   dateFormatted: string
 ): SummitDrawData {
   const per = computePERForAkcija({
+    tipAkcije: akcija.tipAkcije,
     duzinaStazeKm: akcija.duzinaStazeKm ?? 0,
     kumulativniUsponM: akcija.kumulativniUsponM ?? 0,
     visinaVrhM: akcija.visinaVrhM,

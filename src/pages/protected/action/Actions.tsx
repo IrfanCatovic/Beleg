@@ -30,6 +30,7 @@ import ActionsFilterBar, {
 interface Akcija {
   id: number
   naziv: string
+  tipAkcije?: 'planina' | 'via_ferrata'
   planina?: string
   vrh: string
   datum: string
@@ -587,6 +588,7 @@ export default function Actions() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {filteredAktivne.map((akcija) => {
                 const per = computePERForAkcija({
+                  tipAkcije: akcija.tipAkcije,
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
@@ -620,9 +622,11 @@ export default function Actions() {
                         <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
                           {formatDateShort(akcija.datum)}
                         </span>
-                        <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-                          +{per} PER
-                        </span>
+                        {akcija.tipAkcije !== 'via_ferrata' && (
+                          <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
+                            +{per} PER
+                          </span>
+                        )}
                       </div>
                       {akcija.organizatorTip === 'vodic' && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">
@@ -832,6 +836,7 @@ export default function Actions() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {filteredZavrsene.map((akcija) => {
                 const per = computePERForAkcija({
+                  tipAkcije: akcija.tipAkcije,
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
@@ -865,9 +870,11 @@ export default function Actions() {
                         <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
                           {formatDateShort(akcija.datum)}
                         </span>
-                        <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-                          +{per} PER
-                        </span>
+                        {akcija.tipAkcije !== 'via_ferrata' && (
+                          <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
+                            +{per} PER
+                          </span>
+                        )}
                       </div>
                       {akcija.organizatorTip === 'vodic' && (
                         <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">

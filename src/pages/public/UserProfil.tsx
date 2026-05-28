@@ -22,6 +22,7 @@ import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 interface UspesnaAkcija {
   id: number
   naziv: string
+  tipAkcije?: 'planina' | 'via_ferrata'
   planina?: string
   vrh: string
   datum: string
@@ -1214,6 +1215,7 @@ function StatCell({ value, unit, label, accent }: { value: string; unit?: string
 function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
   const { t, i18n } = useTranslation('userProfile')
   const per = computePERForAkcija({
+    tipAkcije: akcija.tipAkcije,
     duzinaStazeKm: akcija.duzinaStazeKm,
     kumulativniUsponM: akcija.kumulativniUsponM,
     visinaVrhM: akcija.visinaVrhM,
@@ -1240,9 +1242,11 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
           <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
             {formatDateShort(akcija.datum)}
           </span>
-          <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-            +{per} PER
-          </span>
+          {akcija.tipAkcije !== 'via_ferrata' && (
+            <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
+              +{per} PER
+            </span>
+          )}
         </div>
       </div>
 

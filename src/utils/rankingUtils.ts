@@ -215,11 +215,23 @@ export interface AkcijaZaRanking {
   visinaVrhM?: number
   zimskiUspon?: boolean
   tezina?: string
+  tipAkcije?: 'planina' | 'via_ferrata'
   datum: string
 }
 
 /** Mapira API akciju na Tura za PER (tezina: lako→laka, srednje→srednja, teško→teska, alpinizam→alpinizam). */
 export function mapAkcijaToTura(a: AkcijaZaRanking): Tura {
+  if (a.tipAkcije === 'via_ferrata') {
+    return {
+      km: 0,
+      uspon_m: 0,
+      zimski: false,
+      tezinaKategorija: 'laka',
+      visinaVrha: 0,
+      datum: a.datum,
+    }
+  }
+
   const tezina = (a.tezina ?? '').toLowerCase()
   let tezinaKategorija: TezinaKategorija = 'laka'
   if (tezina.includes('srednj') || tezina === 'srednje') tezinaKategorija = 'srednja'
@@ -238,6 +250,7 @@ export function mapAkcijaToTura(a: AkcijaZaRanking): Tura {
 
 /** Računa PER koji se dobija iz jedne akcije iz API-ja. */
 export function computePERForAkcija(a: AkcijaZaRanking): number {
+  if (a.tipAkcije === 'via_ferrata') return 0
   const tura = mapAkcijaToTura(a)
   return computePERForTura(tura)
 }
