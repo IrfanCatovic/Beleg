@@ -2767,8 +2767,19 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 		return
 	}
 	if prijava.Status != "prijavljen" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh"})
-		return
+		var akcija models.Akcija
+		if err := db.Select("id", "organizator_tip", "vodic_id", "is_completed").First(&akcija, id).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		isOwnActiveGuideAction :=
+			strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic" &&
+				akcija.VodicID == korisnik.ID &&
+				!akcija.IsCompleted
+		if !isOwnActiveGuideAction {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh"})
+			return
+		}
 	}
 	if err := db.Delete(&prijava).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju"})
@@ -2982,7 +2993,18 @@ func GetMojePrijave(c *gin.Context) {
 	var prijavljene []uint
 	db.Model(&models.Prijava{}).Where("korisnik_id = ?", korisnik.ID).Pluck("akcija_id", &prijavljene)
 	var otkazive []uint
-	db.Model(&models.Prijava{}).Where("korisnik_id = ? AND status = ?", korisnik.ID, "prijavljen").Pluck("akcija_id", &otkazive)
+	db.Table("prijave AS p").
+		Joins("JOIN akcije AS a ON a.id = p.akcija_id").
+		Where("p.korisnik_id = ?", korisnik.ID).
+		Where(
+			"p.status = ? OR (LOWER(TRIM(a.organizator_tip)) = ? AND a.vodic_id = ? AND a.is_completed = ?)",
+			"prijavljen",
+			"vodic",
+			korisnik.ID,
+			false,
+		).
+		Distinct().
+		Pluck("p.akcija_id", &otkazive)
 
 	c.JSON(http.StatusOK, gin.H{
 		"prijavljeneAkcije": prijavljene,
