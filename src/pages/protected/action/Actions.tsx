@@ -149,8 +149,16 @@ export default function Actions() {
     return true
   }
 
-  const combinedAktivne = useMemo(() => [...aktivneAkcije, ...vodeneAktivne], [aktivneAkcije, vodeneAktivne])
-  const combinedZavrsene = useMemo(() => [...zavrseneAkcije, ...vodeneZavrsene], [zavrseneAkcije, vodeneZavrsene])
+  const combinedAktivne = useMemo(() => {
+    const byId = new Map<number, Akcija>()
+    ;[...aktivneAkcije, ...vodeneAktivne].forEach((a) => byId.set(a.id, a))
+    return Array.from(byId.values())
+  }, [aktivneAkcije, vodeneAktivne])
+  const combinedZavrsene = useMemo(() => {
+    const byId = new Map<number, Akcija>()
+    ;[...zavrseneAkcije, ...vodeneZavrsene].forEach((a) => byId.set(a.id, a))
+    return Array.from(byId.values())
+  }, [zavrseneAkcije, vodeneZavrsene])
 
   const filteredAktivne = useMemo(
     () => combinedAktivne.filter(matchesFilters),
@@ -616,8 +624,8 @@ export default function Actions() {
                       akcija.organizatorTip === 'vodic'
                         ? 'border-violet-200 shadow-[0_2px_20px_-4px_rgba(124,58,237,0.25)] hover:border-violet-300 hover:shadow-[0_8px_28px_-4px_rgba(124,58,237,0.35)]'
                         : akcija.javna
-                        ? 'shadow-[0_2px_20px_-2px_rgba(180,83,9,0.28),0_10px_40px_-4px_rgba(245,158,11,0.24),0_0_52px_-8px_rgba(253,224,71,0.38)] hover:shadow-[0_4px_28px_-2px_rgba(180,83,9,0.34),0_14px_48px_-4px_rgba(245,158,11,0.3),0_0_64px_-6px_rgba(253,224,71,0.48)]'
-                        : 'border-gray-100 shadow-sm hover:shadow-md'
+                        ? 'border-amber-100 shadow-sm hover:shadow-md'
+                        : 'border-gray-100 shadow-none hover:shadow-sm'
                     }`}
                   >
                     {/* Image */}
@@ -864,8 +872,8 @@ export default function Actions() {
                       akcija.organizatorTip === 'vodic'
                         ? 'border-violet-200 shadow-[0_2px_20px_-4px_rgba(124,58,237,0.2)] hover:border-violet-300 hover:shadow-[0_8px_28px_-4px_rgba(124,58,237,0.3)]'
                         : akcija.javna
-                        ? 'shadow-[0_2px_18px_-2px_rgba(180,83,9,0.24),0_8px_36px_-4px_rgba(245,158,11,0.2),0_0_48px_-8px_rgba(253,224,71,0.32)] hover:shadow-[0_4px_24px_-2px_rgba(180,83,9,0.3),0_12px_44px_-4px_rgba(245,158,11,0.26),0_0_58px_-6px_rgba(253,224,71,0.42)]'
-                        : 'border-gray-100 shadow-sm hover:shadow-md'
+                        ? 'border-amber-100 shadow-sm hover:shadow-md'
+                        : 'border-gray-100 shadow-none hover:shadow-sm'
                     }`}
                   >
                     {/* Image */}

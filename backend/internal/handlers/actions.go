@@ -417,11 +417,9 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 
 		canSeePrivateDetails := akcija.Javna
 		var viewer *models.Korisnik
-		if !akcija.Javna && akcija.KlubID != nil {
-			if hasValidActionInviteLink(db, akcija.ID, c.Query("inviteToken")) {
-				canSeePrivateDetails = true
-			}
+		if !akcija.Javna {
 			tokenStr := middleware.GetTokenFromRequest(c)
+			roleClaim := ""
 			if tokenStr != "" {
 				claims := jwt.MapClaims{}
 				if token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
@@ -431,23 +429,33 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 					return jwtSecret, nil
 				}); err == nil && token.Valid {
 					usernameClaim, _ := claims["username"].(string)
-					roleClaim, _ := claims["role"].(string)
+					roleClaim, _ = claims["role"].(string)
 					usernameClaim = strings.TrimSpace(usernameClaim)
 					if usernameClaim != "" {
 						var viewerUser models.Korisnik
 						if err := helpers.DBWhereUsername(db, usernameClaim).First(&viewerUser).Error; err == nil {
 							viewer = &viewerUser
-							if viewerUser.KlubID != nil && *viewerUser.KlubID == *akcija.KlubID {
-								canSeePrivateDetails = true
-							}
-							if roleClaim == "superadmin" {
-								if selectedClubID, err := strconv.ParseUint(strings.TrimSpace(c.GetHeader("X-Club-Id")), 10, 64); err == nil && uint(selectedClubID) == *akcija.KlubID {
-									canSeePrivateDetails = true
-								}
-							}
 						}
 					}
 				}
+			}
+
+			hasInvite := hasValidActionInviteLink(db, akcija.ID, c.Query("inviteToken"))
+			if akcija.KlubID != nil {
+				if hasInvite {
+					canSeePrivateDetails = true
+				}
+				if viewer != nil && viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
+					canSeePrivateDetails = true
+				}
+				if viewer != nil && roleClaim == "superadmin" {
+					if selectedClubID, err := strconv.ParseUint(strings.TrimSpace(c.GetHeader("X-Club-Id")), 10, 64); err == nil && uint(selectedClubID) == *akcija.KlubID {
+						canSeePrivateDetails = true
+					}
+				}
+			} else if viewer != nil && hasInvite {
+				// Privatna vodička akcija: detalji su dostupni ulogovanom korisniku sa validnim linkom.
+				canSeePrivateDetails = true
 			}
 		}
 
@@ -658,7 +666,7 @@ func GetAkcije(c *gin.Context) {
 
 	var aktivne []models.Akcija
 	var zavrsene []models.Akcija
-	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR (javna = ? AND (organizator_tip = 'klub' OR organizator_tip IS NULL OR organizator_tip = '')))"
+	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR javna = ?)"
 	if err := gormDb.Preload("Klub").Where(aktivneWhere, false, true, clubID, true).Find(&aktivne).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 		return

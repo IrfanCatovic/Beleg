@@ -380,23 +380,30 @@ func AcceptFerrataGuideBooking(c *gin.Context) {
 		if orgTip == "vodic" && akcija.VodicID == 0 {
 			return errors.New("vodička akcija mora imati dodeljenog vodiča")
 		}
-		// Kada vodič prihvati zahtev i poveže akciju, pošiljalac zahteva mora
-		// automatski biti prijavljen na tu akciju.
-		var existingSignup models.Prijava
-		signupErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, req.RequesterID).First(&existingSignup).Error
-		if signupErr != nil {
+		// Kada vodič prihvati zahtev i poveže akciju, i pošiljalac zahteva i
+		// vodič koji je prihvatio zahtev moraju automatski biti prijavljeni.
+		ensureSignup := func(userID uint) error {
+			var existingSignup models.Prijava
+			signupErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, userID).First(&existingSignup).Error
+			if signupErr == nil {
+				return nil
+			}
 			if !errors.Is(signupErr, gorm.ErrRecordNotFound) {
 				return signupErr
 			}
 			autoSignup := models.Prijava{
 				AkcijaID:   akcija.ID,
-				KorisnikID: req.RequesterID,
+				KorisnikID: userID,
 				Status:     "prijavljen",
 				Platio:     false,
 			}
-			if err := tx.Create(&autoSignup).Error; err != nil {
-				return err
-			}
+			return tx.Create(&autoSignup).Error
+		}
+		if err := ensureSignup(req.RequesterID); err != nil {
+			return err
+		}
+		if err := ensureSignup(viewer.ID); err != nil {
+			return err
 		}
 
 		now := time.Now()
