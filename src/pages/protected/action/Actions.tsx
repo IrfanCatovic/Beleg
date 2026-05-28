@@ -14,7 +14,7 @@ import {
 import Loader from '../../../components/Loader'
 import { AkcijaImageOrFallback } from '../../../components/AkcijaImageFallback'
 import Dropdown from '../../../components/Dropdown'
-import { computeMMRForAkcija } from '../../../utils/rankingUtils'
+import { computePERForAkcija } from '../../../utils/rankingUtils'
 import { tezinaLabel } from '../../../utils/difficultyI18n'
 import type { TFunction } from 'i18next'
 import ActionsFilterBar, {
@@ -586,7 +586,7 @@ export default function Actions() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {filteredAktivne.map((akcija) => {
-                const mmr = computeMMRForAkcija({
+                const per = computePERForAkcija({
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
@@ -621,7 +621,7 @@ export default function Actions() {
                           {formatDateShort(akcija.datum)}
                         </span>
                         <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-                          +{mmr} MMR
+                          +{per} PER
                         </span>
                       </div>
                       {akcija.organizatorTip === 'vodic' && (
@@ -831,7 +831,7 @@ export default function Actions() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {filteredZavrsene.map((akcija) => {
-                const mmr = computeMMRForAkcija({
+                const per = computePERForAkcija({
                   duzinaStazeKm: akcija.duzinaStazeKm,
                   kumulativniUsponM: akcija.kumulativniUsponM,
                   visinaVrhM: akcija.visinaVrhM,
@@ -866,7 +866,7 @@ export default function Actions() {
                           {formatDateShort(akcija.datum)}
                         </span>
                         <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-                          +{mmr} MMR
+                          +{per} PER
                         </span>
                       </div>
                       {akcija.organizatorTip === 'vodic' && (

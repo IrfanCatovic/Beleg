@@ -1,4 +1,4 @@
-import { computeMMRForAkcija, type AkcijaZaRanking } from './rankingUtils'
+import { computePERForAkcija, type AkcijaZaRanking } from './rankingUtils'
 
 export type SummitAspect = '9:16' | '16:9'
 
@@ -11,7 +11,7 @@ export interface SummitPngLabels {
   trail: string
   ascent: string
   date: string
-  mmr: string
+  per: string
 }
 
 export interface SummitPngAkcijaPayload extends AkcijaZaRanking {
@@ -227,7 +227,7 @@ function rowGapFor(aspect: SummitAspect): number {
 
 type ClassicRow = [string, string, string, string]
 
-/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | MMR. */
+/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | PER. */
 interface SummitDrawData {
   classicRows: ClassicRow[]
   compactCells: [string, string][]
@@ -238,7 +238,7 @@ function buildSummitDrawData(
   labels: SummitPngLabels,
   dateFormatted: string
 ): SummitDrawData {
-  const mmr = computeMMRForAkcija({
+  const per = computePERForAkcija({
     duzinaStazeKm: akcija.duzinaStazeKm ?? 0,
     kumulativniUsponM: akcija.kumulativniUsponM ?? 0,
     visinaVrhM: akcija.visinaVrhM,
@@ -252,12 +252,12 @@ function buildSummitDrawData(
     trail: formatTrailKm(akcija.duzinaStazeKm),
     ascent: formatAscentM(akcija.kumulativniUsponM),
     date: dateFormatted || '—',
-    mmr: `+${mmr} MMR`,
+    per: `+${per} PER`,
   }
   const classicRows: ClassicRow[] = [
     [labels.mountain, values.mountain, labels.peak, values.peak],
     [labels.trail, values.trail, labels.ascent, values.ascent],
-    [labels.date, values.date, labels.mmr, values.mmr],
+    [labels.date, values.date, labels.per, values.per],
   ]
   const compactCells: [string, string][] = [
     [labels.mountain, values.mountain],
@@ -265,7 +265,7 @@ function buildSummitDrawData(
     [labels.trail, values.trail],
     [labels.ascent, values.ascent],
     [labels.date, values.date],
-    [labels.mmr, values.mmr],
+    [labels.per, values.per],
   ]
   return { classicRows, compactCells }
 }

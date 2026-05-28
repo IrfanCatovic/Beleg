@@ -13,7 +13,7 @@ import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtil
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
-import { computeMMRForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura, type AkcijaZaRanking } from '../../utils/rankingUtils'
+import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura, type AkcijaZaRanking } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import { tezinaLabel } from '../../utils/difficultyI18n'
 import type { TFunction } from 'i18next'
@@ -216,7 +216,7 @@ export default function UserProfile() {
           })
         )
         if (cancelled) return
-        const sorted = rankedUsers.sort((a, b) => b.rank.mmr - a.rank.mmr)
+        const sorted = rankedUsers.sort((a, b) => b.rank.per - a.rank.per)
         const idx = sorted.findIndex(k => k.id === korisnik.id)
         setTop30(idx >= 0 && idx < 30 ? idx + 1 : null)
       } catch {
@@ -987,7 +987,7 @@ export default function UserProfile() {
                   <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
 
                   <span className="relative text-xs sm:text-sm font-extrabold tracking-wide">{formatRankDisplayName(rank, top30)}</span>
-                  <span className="relative pl-2 ml-1 border-l border-white/25 text-[11px] sm:text-xs font-extrabold tabular-nums">{rank.mmr} MMR</span>
+                  <span className="relative pl-2 ml-1 border-l border-white/25 text-[11px] sm:text-xs font-extrabold tabular-nums">{rank.per} PER</span>
                 </div>
 
                 {currentUser ? (
@@ -1213,7 +1213,7 @@ function StatCell({ value, unit, label, accent }: { value: string; unit?: string
 
 function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
   const { t, i18n } = useTranslation('userProfile')
-  const mmr = computeMMRForAkcija({
+  const per = computePERForAkcija({
     duzinaStazeKm: akcija.duzinaStazeKm,
     kumulativniUsponM: akcija.kumulativniUsponM,
     visinaVrhM: akcija.visinaVrhM,
@@ -1241,7 +1241,7 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
             {formatDateShort(akcija.datum)}
           </span>
           <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-            +{mmr} MMR
+            +{per} PER
           </span>
         </div>
       </div>

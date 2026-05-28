@@ -316,7 +316,7 @@ export default function ActionDetails() {
       trail: t('summitPngTrail'),
       ascent: t('summitPngAscent'),
       date: t('date'),
-      mmr: t('summitPngMmr'),
+      per: t('summitPngPer'),
     }
     const dateFormatted = formatDate(akcija.datum)
     setSummitPreviewBalanced(null)
@@ -1421,7 +1421,7 @@ export default function ActionDetails() {
           trail: t('summitPngTrail'),
           ascent: t('summitPngAscent'),
           date: t('date'),
-          mmr: t('summitPngMmr'),
+          per: t('summitPngPer'),
         },
         formatDate(akcija.datum)
       )

@@ -18,8 +18,8 @@ export interface StatistikaZaRanking {
 }
 
 /**
- * Hook: iz statistike (ture ili uspesneAkcije + ukupnoKm/ukupnoMetaraUspona) računa MMR i rank.
- * Vraća { naziv, boja, mmr, segment, glavniRank }.
+ * Hook: iz statistike (ture ili uspesneAkcije + ukupnoKm/ukupnoMetaraUspona) računa PER i rank.
+ * Vraća { naziv, boja, per, segment, glavniRank }.
  */
 export function useRanking(statistika: StatistikaZaRanking | null | undefined): RankResult {
   return useMemo(() => {
@@ -27,7 +27,7 @@ export function useRanking(statistika: StatistikaZaRanking | null | undefined): 
       return {
         naziv: 'Početnik I',
         boja: '#ccc4b1',
-        mmr: 0,
+        per: 0,
         segment: 1,
         glavniRank: 1,
       }

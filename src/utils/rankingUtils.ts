@@ -1,5 +1,5 @@
 /**
- * Planinarski MMR i rank sistem – računanje po turi sa bonusima i 6 glavnih rankova sa podnivoima.
+ * Planinarski PER i rank sistem – računanje po turi sa bonusima i 6 glavnih rankova sa podnivoima.
  */
 
 export type TezinaKategorija = 'laka' | 'srednja' | 'teska' | 'alpinizam'
@@ -31,8 +31,8 @@ function getVisinaVrhaBonus(visinaVrha: number): number {
   return 0.1
 }
 
-/** Računa MMR za jednu turu. */
-function mmrJedneTure(t: Tura): number {
+/** Računa PER za jednu turu. */
+function perJedneTure(t: Tura): number {
   const baza = t.km * 1 + t.uspon_m * 0.04
   const tezinaProcenat = TEZINA_BONUS[t.tezinaKategorija]
 
@@ -51,18 +51,18 @@ function mmrJedneTure(t: Tura): number {
 
   ukupniBonus = Math.min(ukupniBonus, BONUS_CAP)
 
-  const mmr = Math.round(baza * (1 + ukupniBonus))
-  return mmr
+  const per = Math.round(baza * (1 + ukupniBonus))
+  return per
 }
 
-/** Ukupni MMR na osnovu niza tura. */
-export function computeMMR(ture: Tura[]): number {
-  return ture.reduce((sum, t) => sum + mmrJedneTure(t), 0)
+/** Ukupni PER na osnovu niza tura. */
+export function computePER(ture: Tura[]): number {
+  return ture.reduce((sum, t) => sum + perJedneTure(t), 0)
 }
 
-/** MMR samo za jednu turu (izvezeno za prikaz po akciji). */
-export function computeMMRForTura(t: Tura): number {
-  return mmrJedneTure(t)
+/** PER samo za jednu turu (izvezeno za prikaz po akciji). */
+export function computePERForTura(t: Tura): number {
+  return perJedneTure(t)
 }
 
 /** Boje po glavnom ranku (1–6). */
@@ -86,13 +86,13 @@ export const RANK_NAMES: Record<number, string> = {
 }
 
 const SEGMENT_ROMAN = ['I', 'II', 'III', 'IV', 'V'] as const
-const MMR_PER_MAIN_RANK = 500
-const MMR_PER_SEGMENT = 100
+const PER_PER_MAIN_RANK = 500
+const PER_PER_SEGMENT = 100
 
 export interface RankResult {
   naziv: string
   boja: string
-  mmr: number
+  per: number
   segment: number
   glavniRank: number
 }
@@ -112,35 +112,35 @@ export function formatRankDisplayName(
 }
 
 /**
- * Za dati ukupni MMR vraća glavni rank (1–6), segment (1–5 za rank 1–5; 0 za rank 6),
+ * Za dati ukupni PER vraća glavni rank (1–6), segment (1–5 za rank 1–5; 0 za rank 6),
  * pun naziv (npr. "Početnik III") i boju.
  */
-export function getRankFromMMR(mmr: number): RankResult {
-  const mmrClamped = Math.max(0, Math.floor(mmr))
+export function getRankFromPER(per: number): RankResult {
+  const perClamped = Math.max(0, Math.floor(per))
 
-  if (mmrClamped >= 2500) {
+  if (perClamped >= 2500) {
     return {
       naziv: RANK_NAMES[6],
       boja: RANK_COLORS[6],
-      mmr: mmrClamped,
+      per: perClamped,
       segment: 0,
       glavniRank: 6,
     }
   }
 
-  const glavniRank = Math.min(6, Math.floor(mmrClamped / MMR_PER_MAIN_RANK) + 1)
+  const glavniRank = Math.min(6, Math.floor(perClamped / PER_PER_MAIN_RANK) + 1)
   if (glavniRank <= 0) {
     return {
       naziv: `${RANK_NAMES[1]} I`,
       boja: RANK_COLORS[1],
-      mmr: mmrClamped,
+      per: perClamped,
       segment: 1,
       glavniRank: 1,
     }
   }
 
-  const mmrURanku = mmrClamped - (glavniRank - 1) * MMR_PER_MAIN_RANK
-  const segment = Math.min(5, Math.floor(mmrURanku / MMR_PER_SEGMENT) + 1)
+  const perURanku = perClamped - (glavniRank - 1) * PER_PER_MAIN_RANK
+  const segment = Math.min(5, Math.floor(perURanku / PER_PER_SEGMENT) + 1)
   const segmentClamped = Math.max(1, segment)
   const naziv =
     glavniRank <= 5
@@ -150,7 +150,7 @@ export function getRankFromMMR(mmr: number): RankResult {
   return {
     naziv,
     boja: RANK_COLORS[glavniRank],
-    mmr: mmrClamped,
+    per: perClamped,
     segment: segmentClamped,
     glavniRank,
   }
@@ -159,14 +159,14 @@ export function getRankFromMMR(mmr: number): RankResult {
 /** Broj dana neaktivnosti posle kojeg se primenjuje kazna (mesec dana). */
 const INACTIVITY_DAYS = 30
 
-/** MMR kazna ako nema uspešne akcije u poslednjih INACTIVITY_DAYS dana. */
-const INACTIVITY_PENALTY_MMR = 25
+/** PER kazna ako nema uspešne akcije u poslednjih INACTIVITY_DAYS dana. */
+const INACTIVITY_PENALTY_PER = 25
 
 /**
  * Računa rank iz objekta statistike koji sadrži niz tura.
  * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback
  * (jedna "sintetička" tura bez bonusa).
- * Ako u poslednjih 30 dana nije bilo nijedne uspešne akcije, oduzima se 35 MMR.
+ * Ako u poslednjih 30 dana nije bilo nijedne uspešne akcije, oduzima se 35 PER.
  */
 export function computeRank(statistika: {
   ture?: Tura[]
@@ -175,7 +175,7 @@ export function computeRank(statistika: {
   createdAt?: string | Date
 }): RankResult {
   const ture = statistika.ture ?? []
-  let mmr: number
+  let per: number
 
   const danas = new Date()
   danas.setHours(0, 0, 0, 0)
@@ -190,25 +190,25 @@ export function computeRank(statistika: {
     createdAtDate.getTime() > granicaNeaktivnosti.getTime()
 
   if (ture.length > 0) {
-    mmr = computeMMR(ture)
+    per = computePER(ture)
 
     const poslednjiDatumMs = Math.max(...ture.map((t) => new Date(t.datum).getTime()))
     if (!korisnikJeUNovomGracePeriodu && poslednjiDatumMs < granicaNeaktivnosti.getTime()) {
-      mmr -= INACTIVITY_PENALTY_MMR
+      per -= INACTIVITY_PENALTY_PER
     }
   } else {
     const km = statistika.ukupnoKm ?? 0
     const uspon = statistika.ukupnoMetaraUspona ?? 0
-    mmr = Math.round(km * 1 + uspon * 0.04)
+    per = Math.round(km * 1 + uspon * 0.04)
     if (!korisnikJeUNovomGracePeriodu) {
-      mmr -= INACTIVITY_PENALTY_MMR
+      per -= INACTIVITY_PENALTY_PER
     }
   }
 
-  return getRankFromMMR(mmr)
+  return getRankFromPER(per)
 }
 
-/** Objekat akcije kao iz API-ja (uspesneAkcije)  polja potrebna za MMR. */
+/** Objekat akcije kao iz API-ja (uspesneAkcije)  polja potrebna za PER. */
 export interface AkcijaZaRanking {
   duzinaStazeKm?: number
   kumulativniUsponM?: number
@@ -218,7 +218,7 @@ export interface AkcijaZaRanking {
   datum: string
 }
 
-/** Mapira API akciju na Tura za MMR (tezina: lako→laka, srednje→srednja, teško→teska, alpinizam→alpinizam). */
+/** Mapira API akciju na Tura za PER (tezina: lako→laka, srednje→srednja, teško→teska, alpinizam→alpinizam). */
 export function mapAkcijaToTura(a: AkcijaZaRanking): Tura {
   const tezina = (a.tezina ?? '').toLowerCase()
   let tezinaKategorija: TezinaKategorija = 'laka'
@@ -236,8 +236,8 @@ export function mapAkcijaToTura(a: AkcijaZaRanking): Tura {
   }
 }
 
-/** Računa MMR koji se dobija iz jedne akcije iz API-ja. */
-export function computeMMRForAkcija(a: AkcijaZaRanking): number {
+/** Računa PER koji se dobija iz jedne akcije iz API-ja. */
+export function computePERForAkcija(a: AkcijaZaRanking): number {
   const tura = mapAkcijaToTura(a)
-  return computeMMRForTura(tura)
+  return computePERForTura(tura)
 }

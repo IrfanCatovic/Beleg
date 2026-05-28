@@ -28,25 +28,25 @@ interface Korisnik {
 
 const PODIUM_STYLES: Record<
   1 | 2 | 3,
-  { row: string; position: string; rankBadge: string; mmr: string }
+  { row: string; position: string; rankBadge: string; per: string }
 > = {
   1: {
     row: 'rounded-xl border border-amber-300/80 bg-gradient-to-br from-amber-100 via-yellow-50 to-amber-50 shadow-md shadow-amber-900/[0.08] ring-1 ring-amber-300/40',
     position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 text-sm font-bold text-amber-950 shadow-sm',
     rankBadge: 'bg-amber-100/90 border border-amber-200/80 text-amber-900',
-    mmr: 'text-amber-900',
+    per: 'text-amber-900',
   },
   2: {
     row: 'rounded-xl border border-slate-300/80 bg-gradient-to-br from-slate-200/70 via-gray-50 to-slate-100 shadow-md shadow-slate-900/[0.06] ring-1 ring-slate-300/40',
     position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-400 text-sm font-bold text-slate-800 shadow-sm',
     rankBadge: 'bg-slate-100/90 border border-slate-200/80 text-slate-800',
-    mmr: 'text-slate-800',
+    per: 'text-slate-800',
   },
   3: {
     row: 'rounded-xl border border-orange-300/70 bg-gradient-to-br from-orange-100/90 via-amber-50/80 to-orange-50 shadow-md shadow-orange-900/[0.06] ring-1 ring-orange-300/35',
     position: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-300 to-amber-700 text-sm font-bold text-orange-950 shadow-sm',
     rankBadge: 'bg-orange-100/90 border border-orange-200/70 text-orange-900',
-    mmr: 'text-orange-900',
+    per: 'text-orange-900',
   },
 }
 
@@ -180,7 +180,7 @@ export default function Korisnici() {
           })
           return { ...k, rank }
         })
-        .sort((a, b) => b.rank.mmr - a.rank.mmr),
+        .sort((a, b) => b.rank.per - a.rank.per),
     [korisnici, rankByUserId]
   )
 
@@ -205,7 +205,7 @@ export default function Korisnici() {
           })
           return { ...k, rank, globalPosition: globalPositionByUserId[k.id] }
         })
-        .sort((a, b) => b.rank.mmr - a.rank.mmr),
+        .sort((a, b) => b.rank.per - a.rank.per),
     [filteredKorisnici, globalPositionByUserId, rankByUserId]
   )
 
@@ -470,7 +470,7 @@ export default function Korisnici() {
                                 {formatRankDisplayName(rank, globalPositionByUserId[k.id])}
                               </span>
                               <span className="text-[10px] text-gray-600">
-                                MMR {rank.mmr}
+                                PER {rank.per}
                               </span>
                             </div>
                           </div>
@@ -494,7 +494,7 @@ export default function Korisnici() {
                                   {formatRankDisplayName(rank, globalPositionByUserId[k.id])}
                                 </span>
                                 <span className="text-[10px] text-gray-500">
-                                  MMR {rank.mmr}
+                                  PER {rank.per}
                                 </span>
                               </div>
                             </div>
@@ -654,8 +654,8 @@ export default function Korisnici() {
                         >
                           {formatRankDisplayName(k.rank, globalPositionByUserId[k.id])}
                         </span>
-                        <span className={`text-xs font-semibold ${podium ? podium.mmr : 'text-gray-800'}`}>
-                          {k.rank.mmr} MMR
+                        <span className={`text-xs font-semibold ${podium ? podium.per : 'text-gray-800'}`}>
+                          {k.rank.per} PER
                         </span>
                       </div>
                     </Link>
