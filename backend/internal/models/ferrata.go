@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Ferrata stalni katalog via ferrata destinacija.
+// Ferrata stalni katalog via ferrata destinacija; slug se generiše na serveru.
 type Ferrata struct {
 	ID                  uint            `gorm:"primaryKey" json:"id"`
 	Naziv               string          `gorm:"type:varchar(255);not null" json:"naziv"`

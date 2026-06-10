@@ -78,3 +78,29 @@ func UniqueHotelSlug(db *gorm.DB, naziv string, excludeID uint) (string, error) 
 	}
 	return "", fmt.Errorf("slug: previše kolizija za bazu %q", base)
 }
+
+// UniqueFerrataSlug vraća jedinstven slug za ferratas tabelu; excludeID 0 = novi zapis.
+func UniqueFerrataSlug(db *gorm.DB, naziv string, excludeID uint) (string, error) {
+	base := FromName(naziv)
+	if base == "" {
+		base = "ferrata"
+	}
+	for n := 0; n < 1000; n++ {
+		candidate := base
+		if n > 0 {
+			candidate = fmt.Sprintf("%s-%d", base, n+1)
+		}
+		var count int64
+		q := db.Model(&models.Ferrata{}).Where("slug = ?", candidate)
+		if excludeID > 0 {
+			q = q.Where("id <> ?", excludeID)
+		}
+		if err := q.Count(&count).Error; err != nil {
+			return "", err
+		}
+		if count == 0 {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("slug: previše kolizija za bazu %q", base)
+}

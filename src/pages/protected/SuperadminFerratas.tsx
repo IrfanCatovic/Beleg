@@ -15,7 +15,6 @@ type FerrataRow = Record<string, unknown> & { id: number; naziv: string; slug: s
 function emptyForm() {
   return {
     naziv: '',
-    slug: '',
     drzava: '',
     gradOpstina: '',
     opis: '',
@@ -78,7 +77,6 @@ function highlightsRawFromRow(row: FerrataRow): string {
 function formStateFromFerrataRow(row: FerrataRow) {
   return {
     naziv: String(row.naziv ?? ''),
-    slug: String(row.slug ?? ''),
     drzava: String(row.drzava ?? ''),
     gradOpstina: String(row.gradOpstina ?? ''),
     opis: String(row.opis ?? ''),
@@ -241,7 +239,6 @@ export default function SuperadminFerratas() {
       .map((o) => ({ label: o.label.trim(), icon: o.icon.trim() || 'HandRaisedIcon' }))
     const payload = {
       naziv: form.naziv,
-      slug: form.slug,
       drzava: form.drzava,
       gradOpstina: form.gradOpstina,
       opis: form.opis,
@@ -356,7 +353,6 @@ export default function SuperadminFerratas() {
         <p className="text-xs text-gray-500">{t('superadminSectionCatalog')}</p>
         <div className="grid sm:grid-cols-2 gap-3">
           <input className={inp} placeholder="Naziv" value={form.naziv} onChange={(e) => setForm({ ...form, naziv: e.target.value })} />
-          <input className={inp} placeholder="slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           <input className={inp} placeholder="Država" value={form.drzava} onChange={(e) => setForm({ ...form, drzava: e.target.value })} />
           <input className={inp} placeholder="Grad / opština (za prikaz regiona)" value={form.gradOpstina} onChange={(e) => setForm({ ...form, gradOpstina: e.target.value })} />
           <input className={inp} placeholder="Težina" value={form.tezina} onChange={(e) => setForm({ ...form, tezina: e.target.value })} />
@@ -377,6 +373,12 @@ export default function SuperadminFerratas() {
             <option value="archived">archived</option>
           </select>
         </div>
+        {editingId != null && (
+          <p className="text-xs text-gray-500">
+            {tHotels('slugReadonly')}:{' '}
+            <span className="font-mono font-semibold text-gray-800">{rows.find((r) => r.id === editingId)?.slug ?? '—'}</span>
+          </p>
+        )}
         <p className="text-xs font-semibold text-gray-700 pt-2">{t('superadminSectionContent')}</p>
         <textarea className={inp} rows={4} placeholder="Opis (O ferati)" value={form.opis} onChange={(e) => setForm({ ...form, opis: e.target.value })} />
         <textarea className={inp} rows={3} placeholder="Highlights — Zašto ići? (jedan po liniji)" value={form.highlightsRaw} onChange={(e) => setForm({ ...form, highlightsRaw: e.target.value })} />

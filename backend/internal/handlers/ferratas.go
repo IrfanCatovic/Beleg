@@ -13,6 +13,7 @@ import (
 
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/slug"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -433,8 +434,9 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
 		return
 	}
-	if strings.TrimSpace(body.Naziv) == "" || strings.TrimSpace(body.Slug) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv i slug su obavezni"})
+	naziv := strings.TrimSpace(body.Naziv)
+	if naziv == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv je obavezan"})
 		return
 	}
 	st := strings.TrimSpace(strings.ToLower(body.Status))
@@ -453,9 +455,15 @@ func SuperadminCreateFerrata(c *gin.Context) {
 	if body.Galerija != nil {
 		galerijaCreate = *body.Galerija
 	}
+	db := c.MustGet("db").(*gorm.DB)
+	slugStr, err := slug.UniqueFerrataSlug(db, naziv, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju slug-a"})
+		return
+	}
 	f := models.Ferrata{
-		Naziv:               strings.TrimSpace(body.Naziv),
-		Slug:                strings.TrimSpace(body.Slug),
+		Naziv:               naziv,
+		Slug:                slugStr,
 		Drzava:              strings.TrimSpace(body.Drzava),
 		GradOpstina:         strings.TrimSpace(body.GradOpstina),
 		Lokacija:            "",
@@ -489,7 +497,6 @@ func SuperadminCreateFerrata(c *gin.Context) {
 		ParkingLng:          nil,
 		MapNote:             strings.TrimSpace(body.MapNote),
 	}
-	db := c.MustGet("db").(*gorm.DB)
 	if err := db.Create(&f).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Greška pri čuvanju (slug jedinstven?)"})
 		return
@@ -521,11 +528,20 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if strings.TrimSpace(body.Naziv) != "" {
-		f.Naziv = strings.TrimSpace(body.Naziv)
+	naziv := strings.TrimSpace(body.Naziv)
+	if naziv == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Naziv je obavezan"})
+		return
 	}
-	if strings.TrimSpace(body.Slug) != "" {
-		f.Slug = strings.TrimSpace(body.Slug)
+	prevNaziv := f.Naziv
+	f.Naziv = naziv
+	if strings.TrimSpace(prevNaziv) != naziv {
+		slugStr, err := slug.UniqueFerrataSlug(db, naziv, uint(id))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju slug-a"})
+			return
+		}
+		f.Slug = slugStr
 	}
 	f.Drzava = strings.TrimSpace(body.Drzava)
 	f.GradOpstina = strings.TrimSpace(body.GradOpstina)
