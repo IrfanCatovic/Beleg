@@ -287,6 +287,7 @@ export default function ActionDetails() {
       planina: akcija.planina,
       vrh: akcija.vrh,
       datum: akcija.datum,
+      tipAkcije: akcija.tipAkcije,
       duzinaStazeKm: akcija.duzinaStazeKm,
       kumulativniUsponM: akcija.kumulativniUsponM,
       visinaVrhM: akcija.visinaVrhM,
@@ -299,7 +300,7 @@ export default function ActionDetails() {
       trail: t('summitPngTrail'),
       ascent: t('summitPngAscent'),
       date: t('date'),
-      per: t('summitPngPer'),
+      per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
     }
     const dateFormatted = formatDate(akcija.datum)
     setSummitPreviewBalanced(null)
@@ -1395,6 +1396,7 @@ export default function ActionDetails() {
           planina: akcija.planina,
           vrh: akcija.vrh,
           datum: akcija.datum,
+          tipAkcije: akcija.tipAkcije,
           duzinaStazeKm: akcija.duzinaStazeKm,
           kumulativniUsponM: akcija.kumulativniUsponM,
           visinaVrhM: akcija.visinaVrhM,
@@ -1409,7 +1411,7 @@ export default function ActionDetails() {
           trail: t('summitPngTrail'),
           ascent: t('summitPngAscent'),
           date: t('date'),
-          per: t('summitPngPer'),
+          per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
         },
         formatDate(akcija.datum)
       )

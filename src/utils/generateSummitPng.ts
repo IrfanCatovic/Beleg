@@ -1,3 +1,4 @@
+import { ferrataTezinaLabel } from './difficultyI18n'
 import { computePERForAkcija, type AkcijaZaRanking } from './rankingUtils'
 
 export type SummitAspect = '9:16' | '16:9'
@@ -227,17 +228,22 @@ function rowGapFor(aspect: SummitAspect): number {
 
 type ClassicRow = [string, string, string, string]
 
-/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | PER. */
+/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | PER ili težina (ferrata). */
 interface SummitDrawData {
   classicRows: ClassicRow[]
   compactCells: [string, string][]
 }
 
-function buildSummitDrawData(
+function summitSixthCell(
   akcija: SummitPngAkcijaPayload,
-  labels: SummitPngLabels,
-  dateFormatted: string
-): SummitDrawData {
+  perLabel: string,
+): { label: string; value: string } {
+  if (akcija.tipAkcije === 'via_ferrata') {
+    return {
+      label: perLabel,
+      value: ferrataTezinaLabel(akcija.tezina) || '-',
+    }
+  }
   const per = computePERForAkcija({
     tipAkcije: akcija.tipAkcije,
     duzinaStazeKm: akcija.duzinaStazeKm ?? 0,
@@ -247,18 +253,30 @@ function buildSummitDrawData(
     tezina: akcija.tezina,
     datum: akcija.datum,
   })
+  return {
+    label: perLabel,
+    value: `+${per} PER`,
+  }
+}
+
+function buildSummitDrawData(
+  akcija: SummitPngAkcijaPayload,
+  labels: SummitPngLabels,
+  dateFormatted: string
+): SummitDrawData {
+  const sixth = summitSixthCell(akcija, labels.per)
   const values = {
     mountain: (akcija.planina ?? '').trim() || '—',
     peak: (akcija.vrh ?? '').trim() || '—',
     trail: formatTrailKm(akcija.duzinaStazeKm),
     ascent: formatAscentM(akcija.kumulativniUsponM),
     date: dateFormatted || '—',
-    per: `+${per} PER`,
+    per: sixth.value,
   }
   const classicRows: ClassicRow[] = [
     [labels.mountain, values.mountain, labels.peak, values.peak],
     [labels.trail, values.trail, labels.ascent, values.ascent],
-    [labels.date, values.date, labels.per, values.per],
+    [labels.date, values.date, sixth.label, values.per],
   ]
   const compactCells: [string, string][] = [
     [labels.mountain, values.mountain],
@@ -266,7 +284,7 @@ function buildSummitDrawData(
     [labels.trail, values.trail],
     [labels.ascent, values.ascent],
     [labels.date, values.date],
-    [labels.per, values.per],
+    [sixth.label, values.per],
   ]
   return { classicRows, compactCells }
 }
