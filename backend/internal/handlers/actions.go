@@ -377,6 +377,9 @@ func akcijaSkipsClubFinances(akcija models.Akcija) bool {
 	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
 }
 
+// sqlClubOrganizedOnly — klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
+const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
+
 func resolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {
 	if actionClubID == nil || *actionClubID == 0 {
 		return fallbackUserID
@@ -671,12 +674,12 @@ func GetAkcije(c *gin.Context) {
 
 	var aktivne []models.Akcija
 	var zavrsene []models.Akcija
-	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR javna = ?)"
+	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR javna = ?) AND " + sqlClubOrganizedOnly
 	if err := gormDb.Preload("Klub").Where(aktivneWhere, false, true, clubID, true).Find(&aktivne).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 		return
 	}
-	zavrseneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND klub_id = ?"
+	zavrseneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND klub_id = ? AND " + sqlClubOrganizedOnly
 	if err := gormDb.Preload("Klub").Where(zavrseneWhere, true, true, clubID).Find(&zavrsene).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
 		return

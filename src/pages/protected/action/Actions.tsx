@@ -50,6 +50,10 @@ interface Akcija {
 
 type ActionSourceFilter = 'all' | 'club' | 'guide'
 
+function isClubListedAkcija(a: Akcija): boolean {
+  return a.organizatorTip !== 'vodic' && a.uIstorijiKluba !== false
+}
+
 export default function Actions() {
   const { t, i18n } = useTranslation('actions')
   const { isLoggedIn, user } = useAuth()
@@ -132,16 +136,28 @@ export default function Actions() {
     return true
   }
 
+  const clubAktivne = useMemo(() => aktivneAkcije.filter(isClubListedAkcija), [aktivneAkcije])
+  const clubZavrsene = useMemo(() => zavrseneAkcije.filter(isClubListedAkcija), [zavrseneAkcije])
+
   const combinedAktivne = useMemo(() => {
-    const byId = new Map<number, Akcija>()
-    ;[...aktivneAkcije, ...vodeneAktivne].forEach((a) => byId.set(a.id, a))
-    return Array.from(byId.values())
-  }, [aktivneAkcije, vodeneAktivne])
+    if (actionSourceFilter === 'guide') return vodeneAktivne
+    if (actionSourceFilter === 'all') {
+      const byId = new Map<number, Akcija>()
+      ;[...clubAktivne, ...vodeneAktivne].forEach((a) => byId.set(a.id, a))
+      return Array.from(byId.values())
+    }
+    return clubAktivne
+  }, [actionSourceFilter, clubAktivne, vodeneAktivne])
+
   const combinedZavrsene = useMemo(() => {
-    const byId = new Map<number, Akcija>()
-    ;[...zavrseneAkcije, ...vodeneZavrsene].forEach((a) => byId.set(a.id, a))
-    return Array.from(byId.values())
-  }, [zavrseneAkcije, vodeneZavrsene])
+    if (actionSourceFilter === 'guide') return vodeneZavrsene
+    if (actionSourceFilter === 'all') {
+      const byId = new Map<number, Akcija>()
+      ;[...clubZavrsene, ...vodeneZavrsene].forEach((a) => byId.set(a.id, a))
+      return Array.from(byId.values())
+    }
+    return clubZavrsene
+  }, [actionSourceFilter, clubZavrsene, vodeneZavrsene])
 
   const filteredAktivne = useMemo(
     () => combinedAktivne.filter(matchesFilters),
@@ -186,9 +202,8 @@ export default function Actions() {
       setLoading(true)
       try {
         const akcijeRes = await api.get('/api/akcije')
-        const uIstoriji = (a: Akcija) => a.uIstorijiKluba !== false
-        setAktivneAkcije((akcijeRes.data.aktivne || []).filter(uIstoriji))
-        setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(uIstoriji))
+        setAktivneAkcije((akcijeRes.data.aktivne || []).filter(isClubListedAkcija))
+        setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(isClubListedAkcija))
         setVodeneAktivne(akcijeRes.data.vodeneAktivne || [])
         setVodeneZavrsene(akcijeRes.data.vodeneZavrsene || [])
 
@@ -263,9 +278,8 @@ export default function Actions() {
     }
     setLoadingReport(true)
     try {
-      const actionsInYear = combinedZavrsene.filter((a) => {
+      const actionsInYear = clubZavrsene.filter((a) => {
         if (!a.datum) return false
-        if (a.uIstorijiKluba === false) return false
         const y = new Date(a.datum).getFullYear()
         return !isNaN(y) && y === selectedYear
       })
