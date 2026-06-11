@@ -13,10 +13,13 @@ export interface SummitPngLabels {
   ascent: string
   date: string
   per: string
+  /** Label „Ferata“ na nagradnoj slici via ferrata akcije. */
+  ferrata?: string
 }
 
 export interface SummitPngAkcijaPayload extends AkcijaZaRanking {
   id: number
+  naziv?: string
   planina?: string
   vrh: string
   datum: string
@@ -209,7 +212,8 @@ function drawCellCentered(
   label: string,
   value: string,
   labelPx: number,
-  valuePx: number
+  valuePx: number,
+  maxValueWidth?: number
 ): number {
   ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'center'
@@ -217,9 +221,40 @@ function drawCellCentered(
   ctx.font = `600 ${labelPx}px ${BODY}`
   ctx.fillText(label.toUpperCase(), cx, y)
   const labelH = labelPx * 1.15
+  let valueY = y + labelH + 8
   ctx.font = `700 ${valuePx}px ${BODY}`
-  ctx.fillText(value, cx, y + labelH + 6)
-  return labelH + 6 + valuePx * 1.2
+
+  if (maxValueWidth && maxValueWidth > 0) {
+    const lines = wrapTextLines(ctx, value, maxValueWidth)
+    const lineH = valuePx * 1.15
+    for (const line of lines) {
+      ctx.fillText(line, cx, valueY)
+      valueY += lineH
+    }
+    return valueY - y
+  }
+
+  ctx.fillText(value, cx, valueY)
+  return labelH + 8 + valuePx * 1.2
+}
+
+function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const trimmed = text.trim()
+  if (!trimmed) return ['-']
+  const words = trimmed.split(/\s+/)
+  const lines: string[] = []
+  let line = words[0] ?? ''
+  for (let i = 1; i < words.length; i++) {
+    const candidate = `${line} ${words[i]}`
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      line = candidate
+    } else {
+      lines.push(line)
+      line = words[i] ?? ''
+    }
+  }
+  lines.push(line)
+  return lines
 }
 
 function rowGapFor(aspect: SummitAspect): number {
@@ -228,10 +263,33 @@ function rowGapFor(aspect: SummitAspect): number {
 
 type ClassicRow = [string, string, string, string]
 
-/** Šest ćelija: prvi red planina | vrh | staza, drugi uspon | datum | PER ili težina (ferrata). */
 interface SummitDrawData {
+  mode: 'mountain' | 'ferrata'
   classicRows: ClassicRow[]
   compactCells: [string, string][]
+  ferrataCells: [string, string][]
+}
+
+function ferrataDisplayName(akcija: SummitPngAkcijaPayload): string {
+  return (akcija.vrh ?? '').trim() || (akcija.naziv ?? '').trim() || '-'
+}
+
+function buildFerrataSummitDrawData(
+  akcija: SummitPngAkcijaPayload,
+  labels: SummitPngLabels,
+  dateFormatted: string
+): SummitDrawData {
+  const ferrataLabel = labels.ferrata?.trim() || 'Ferata'
+  return {
+    mode: 'ferrata',
+    classicRows: [],
+    compactCells: [],
+    ferrataCells: [
+      [ferrataLabel, ferrataDisplayName(akcija)],
+      [labels.date, dateFormatted || '-'],
+      [labels.per, ferrataTezinaLabel(akcija.tezina) || '-'],
+    ],
+  }
 }
 
 function summitSixthCell(
@@ -264,13 +322,17 @@ function buildSummitDrawData(
   labels: SummitPngLabels,
   dateFormatted: string
 ): SummitDrawData {
+  if (akcija.tipAkcije === 'via_ferrata') {
+    return buildFerrataSummitDrawData(akcija, labels, dateFormatted)
+  }
+
   const sixth = summitSixthCell(akcija, labels.per)
   const values = {
-    mountain: (akcija.planina ?? '').trim() || '—',
-    peak: (akcija.vrh ?? '').trim() || '—',
+    mountain: (akcija.planina ?? '').trim() || '-',
+    peak: (akcija.vrh ?? '').trim() || '-',
     trail: formatTrailKm(akcija.duzinaStazeKm),
     ascent: formatAscentM(akcija.kumulativniUsponM),
-    date: dateFormatted || '—',
+    date: dateFormatted || '-',
     per: sixth.value,
   }
   const classicRows: ClassicRow[] = [
@@ -286,7 +348,204 @@ function buildSummitDrawData(
     [labels.date, values.date],
     [sixth.label, values.per],
   ]
-  return { classicRows, compactCells }
+  return { mode: 'mountain', classicRows, compactCells, ferrataCells: [] }
+}
+
+function ferrataFontSizes(aspect: SummitAspect, layout: SummitLayout) {
+  if (aspect === '9:16') {
+    return {
+      labelPx: 38,
+      nameValuePx: 52,
+      valuePx: 48,
+      rowGap: 36,
+      brandSize: 118,
+      brandGap: layout === 'stacked' ? 28 : 0,
+    }
+  }
+  if (layout === 'stacked') {
+    return { labelPx: 26, nameValuePx: 36, valuePx: 34, rowGap: 22, brandSize: 76, brandGap: 0 }
+  }
+  return { labelPx: 28, nameValuePx: 40, valuePx: 36, rowGap: 24, brandSize: 82, brandGap: 28 }
+}
+
+function ferrataMeasureCellHeight(
+  ctx: CanvasRenderingContext2D,
+  lab: string,
+  val: string,
+  labelPx: number,
+  valuePx: number,
+  maxValueWidth?: number
+): number {
+  ctx.font = `700 ${valuePx}px ${BODY}`
+  const labelH = labelPx * 1.15 + 8
+  if (maxValueWidth && maxValueWidth > 0) {
+    const lines = wrapTextLines(ctx, val, maxValueWidth)
+    return labelH + lines.length * valuePx * 1.15
+  }
+  return labelH + valuePx * 1.2
+}
+
+function ferrataVerticalStackHeight(
+  ctx: CanvasRenderingContext2D,
+  cells: [string, string][],
+  fonts: ReturnType<typeof ferrataFontSizes>,
+  maxNameWidth: number
+): number {
+  let total = 0
+  for (let i = 0; i < cells.length; i++) {
+    const [lab, val] = cells[i]!
+    const valuePx = i === 0 ? fonts.nameValuePx : fonts.valuePx
+    total += ferrataMeasureCellHeight(
+      ctx,
+      lab,
+      val,
+      fonts.labelPx,
+      valuePx,
+      i === 0 ? maxNameWidth : undefined
+    )
+    if (i < cells.length - 1) total += fonts.rowGap
+  }
+  return total
+}
+
+function ferrataHorizontalRowHeight(
+  ctx: CanvasRenderingContext2D,
+  cells: [string, string][],
+  fonts: ReturnType<typeof ferrataFontSizes>,
+  nameColMaxWidth: number
+): number {
+  let maxH = 0
+  for (let i = 0; i < cells.length; i++) {
+    const [lab, val] = cells[i]!
+    const valuePx = i === 0 ? fonts.nameValuePx : fonts.valuePx
+    maxH = Math.max(
+      maxH,
+      ferrataMeasureCellHeight(
+        ctx,
+        lab,
+        val,
+        fonts.labelPx,
+        valuePx,
+        i === 0 ? nameColMaxWidth : undefined
+      )
+    )
+  }
+  return maxH
+}
+
+function drawFerrataVerticalStack(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  yStart: number,
+  cells: [string, string][],
+  fonts: ReturnType<typeof ferrataFontSizes>,
+  maxNameWidth: number
+): number {
+  let y = yStart
+  for (let i = 0; i < cells.length; i++) {
+    const [lab, val] = cells[i]!
+    const valuePx = i === 0 ? fonts.nameValuePx : fonts.valuePx
+    const cellH = drawCellCentered(
+      ctx,
+      cx,
+      y,
+      lab,
+      val,
+      fonts.labelPx,
+      valuePx,
+      i === 0 ? maxNameWidth : undefined
+    )
+    y += cellH
+    if (i < cells.length - 1) y += fonts.rowGap
+  }
+  return y
+}
+
+function drawFerrataHorizontalRow(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  yStart: number,
+  cells: [string, string][],
+  fonts: ReturnType<typeof ferrataFontSizes>,
+  nameColMaxWidth: number
+): number {
+  const colW = w / 3
+  const cxTri: [number, number, number] = [colW / 2, colW * 1.5, colW * 2.5]
+  let maxH = 0
+  for (let i = 0; i < cells.length; i++) {
+    const [lab, val] = cells[i]!
+    const valuePx = i === 0 ? fonts.nameValuePx : fonts.valuePx
+    const cellH = drawCellCentered(
+      ctx,
+      cxTri[i]!,
+      yStart,
+      lab,
+      val,
+      fonts.labelPx,
+      valuePx,
+      i === 0 ? nameColMaxWidth : undefined
+    )
+    maxH = Math.max(maxH, cellH)
+  }
+  return yStart + maxH
+}
+
+function drawFerrataBrand(ctx: CanvasRenderingContext2D, w: number, y: number, brandSize: number): void {
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `400 ${brandSize}px ${BEBAS}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText('PLANINER', w / 2, y)
+}
+
+function drawFerrataSummitLayout(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  aspect: SummitAspect,
+  layout: SummitLayout,
+  cells: [string, string][]
+): void {
+  const fonts = ferrataFontSizes(aspect, layout)
+  const padBottom = aspect === '9:16' ? 72 : 56
+  const brandBlockH = fonts.brandSize * 1.05
+
+  if (aspect === '9:16' && layout === 'balanced') {
+    // Klasično: 3 polja u vrhu, PLANINER pri dnu
+    const padTop = 56
+    const maxNameWidth = w * 0.84
+    drawFerrataVerticalStack(ctx, w / 2, padTop, cells, fonts, maxNameWidth)
+    drawFerrataBrand(ctx, w, h - padBottom - brandBlockH, fonts.brandSize)
+    return
+  }
+
+  if (aspect === '9:16' && layout === 'stacked') {
+    // Kompaktno: vertikalno jedno ispod drugog, PLANINER odmah ispod teksta, blok centriran
+    const maxNameWidth = w * 0.84
+    const textH = ferrataVerticalStackHeight(ctx, cells, fonts, maxNameWidth)
+    const blockH = textH + fonts.brandGap + brandBlockH
+    const blockTop = Math.max(48, (h - blockH) / 2)
+    const afterText = drawFerrataVerticalStack(ctx, w / 2, blockTop, cells, fonts, maxNameWidth)
+    drawFerrataBrand(ctx, w, afterText + fonts.brandGap, fonts.brandSize)
+    return
+  }
+
+  if (aspect === '16:9' && layout === 'balanced') {
+    // Klasično: tekst levo-desno odmah iznad PLANINER-a, PLANINER pri dnu
+    const colMaxWidth = (w / 3) * 0.88
+    const brandY = h - padBottom - brandBlockH
+    const rowH = ferrataHorizontalRowHeight(ctx, cells, fonts, colMaxWidth)
+    const rowTop = brandY - fonts.brandGap - rowH
+    drawFerrataHorizontalRow(ctx, w, rowTop, cells, fonts, colMaxWidth)
+    drawFerrataBrand(ctx, w, brandY, fonts.brandSize)
+    return
+  }
+
+  // 16:9 kompaktno: tekst gore levo-desno, PLANINER u samom dnu
+  const colMaxWidth = (w / 3) * 0.88
+  const padTop = 40
+  drawFerrataHorizontalRow(ctx, w, padTop, cells, fonts, colMaxWidth)
+  drawFerrataBrand(ctx, w, h - padBottom - brandBlockH, fonts.brandSize)
 }
 
 async function loadSummitFonts(aspect: SummitAspect): Promise<void> {
@@ -309,6 +568,11 @@ function drawSummitLayoutOnContext(
   layout: SummitLayout,
   data: SummitDrawData
 ): void {
+  if (data.mode === 'ferrata') {
+    drawFerrataSummitLayout(ctx, w, h, aspect, layout, data.ferrataCells)
+    return
+  }
+
   const rowGap = rowGapFor(aspect)
   const brandSize = aspect === '9:16' ? 132 : 88
   const gapStacked = aspect === '9:16' ? 32 : 26

@@ -284,6 +284,7 @@ export default function ActionDetails() {
     let cancelled = false
     const payload = {
       id: akcija.id,
+      naziv: akcija.naziv,
       planina: akcija.planina,
       vrh: akcija.vrh,
       datum: akcija.datum,
@@ -301,6 +302,7 @@ export default function ActionDetails() {
       ascent: t('summitPngAscent'),
       date: t('date'),
       per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
+      ferrata: t('summitPngFerrata'),
     }
     const dateFormatted = formatDate(akcija.datum)
     setSummitPreviewBalanced(null)
@@ -1393,6 +1395,7 @@ export default function ActionDetails() {
       await downloadSummitSuccessPng(
         {
           id: akcija.id,
+          naziv: akcija.naziv,
           planina: akcija.planina,
           vrh: akcija.vrh,
           datum: akcija.datum,
@@ -1412,6 +1415,7 @@ export default function ActionDetails() {
           ascent: t('summitPngAscent'),
           date: t('date'),
           per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
+          ferrata: t('summitPngFerrata'),
         },
         formatDate(akcija.datum)
       )
