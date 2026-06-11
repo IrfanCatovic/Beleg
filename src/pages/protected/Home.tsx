@@ -7,7 +7,7 @@ import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
 import { formatDateShort } from '../../utils/dateUtils'
 import Loader from '../../components/Loader'
-import { tezinaLabel } from '../../utils/difficultyI18n'
+import { actionDifficultyBadge } from '../../utils/difficultyI18n'
 import { userHasClubContext } from '../../utils/clubContext'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import FollowControls from '../../components/buttons/FollowControls'
@@ -15,6 +15,7 @@ import FollowControls from '../../components/buttons/FollowControls'
 interface Akcija {
   id: number
   naziv: string
+  tipAkcije?: 'planina' | 'via_ferrata'
   planina?: string
   vrh: string
   datum: string
@@ -736,11 +737,7 @@ export default function Home() {
                 ) : (
                   <div className="space-y-2">
                     {sledeceAkcije.map(a => {
-                      const tezinaStyle = a.tezina === 'lako' ? 'bg-emerald-50 text-emerald-600'
-                        : a.tezina === 'srednje' ? 'bg-amber-50 text-amber-600'
-                        : (a.tezina === 'tesko' || a.tezina === 'teško') ? 'bg-rose-50 text-rose-600'
-                        : a.tezina === 'alpinizam' ? 'bg-violet-50 text-violet-600'
-                        : 'bg-gray-50 text-gray-500'
+                      const difficultyBadge = actionDifficultyBadge(a.tezina, t, a.tipAkcije)
                       return (
                         <Link
                           key={a.id}
@@ -755,8 +752,8 @@ export default function Home() {
                               </p>
                             </div>
                             {a.tezina && (
-                              <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${tezinaStyle}`}>
-                                {tezinaLabel(a.tezina, t)}
+                              <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                                {difficultyBadge.label}
                               </span>
                             )}
                           </div>
@@ -897,11 +894,14 @@ function SuggestedActionCard({
             </svg>
             {formatDateShort(akcija.datum)}
           </span>
-          {akcija.tezina && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-semibold">
-              {tezinaLabel(akcija.tezina, t)}
-            </span>
-          )}
+          {akcija.tezina && (() => {
+            const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
+            return (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-semibold ${difficultyBadge.bg} ${difficultyBadge.text}`}>
+                {difficultyBadge.label}
+              </span>
+            )
+          })()}
           {!akcija.slikaUrl && location && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-50 text-gray-600 font-medium truncate max-w-[60%]">
               {location}

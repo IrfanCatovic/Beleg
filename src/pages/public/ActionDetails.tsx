@@ -1,7 +1,6 @@
 import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
@@ -16,7 +15,7 @@ import { formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import Dropdown from '../../components/Dropdown'
-import { tezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
+import { actionDifficultyBadge, prijavaStatusLabel } from '../../utils/difficultyI18n'
 import { parseClubCurrency } from '../../utils/clubCurrency'
 import TransportCard, { type PrevozParticipant } from '../../components/action-details/TransportCard'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
@@ -153,22 +152,6 @@ interface ActionParticipationRequest {
     klubId?: number | null
     klubNaziv?: string
   }
-}
-
-const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
-  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
-  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
-}
-
-function tzStyle(raw: string | undefined, t: TFunction) {
-  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
-  const k = raw.toLowerCase()
-  const style = TEZINA_STYLE[k]
-  if (style) return { ...style, label: tezinaLabel(raw, t) }
-  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -1243,7 +1226,7 @@ export default function ActionDetails() {
   const imenaPolaznika = prijave.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
-  const difficultyBadge = tzStyle(akcija.tezina, t)
+  const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
   const canManageHost = !!(user && canManageHostAkcija(user, {
         klubId: akcija.klubId,
         organizatorTip: akcija.organizatorTip,

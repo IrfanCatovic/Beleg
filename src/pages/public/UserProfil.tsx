@@ -15,8 +15,7 @@ import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
 import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura, type AkcijaZaRanking } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
-import { tezinaLabel } from '../../utils/difficultyI18n'
-import type { TFunction } from 'i18next'
+import { actionDifficultyBadge } from '../../utils/difficultyI18n'
 import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -58,28 +57,6 @@ interface Korisnik {
   klubNaziv?: string
   klubLogoUrl?: string
   isProfiGuide?: boolean
-}
-
-const TEZINA_BORDER: Record<string, { bg: string; text: string; border: string }> = {
-  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  srednje: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  tesko: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  teško: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
-}
-
-function tzProfile(raw: string | undefined, t: TFunction) {
-  const fallback = {
-    bg: 'bg-gray-50',
-    text: 'text-gray-500',
-    border: 'border-gray-200',
-    label: tezinaLabel(raw, t),
-  }
-  if (!raw) return fallback
-  const k = raw.toLowerCase()
-  const row = TEZINA_BORDER[k]
-  if (row) return { ...row, label: tezinaLabel(raw, t) }
-  return fallback
 }
 
 /** Isti breakpoint kao Tailwind `md:` — cover na širem ekranu koristi drugačiju sačuvanu poziciju. */
@@ -1223,7 +1200,7 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
     tezina: akcija.tezina,
     datum: akcija.datum,
   })
-  const difficultyBadge = tzProfile(akcija.tezina, t)
+  const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije, { withBorder: true })
 
   return (
     <Link

@@ -15,8 +15,7 @@ import Loader from '../../../components/Loader'
 import { AkcijaImageOrFallback } from '../../../components/AkcijaImageFallback'
 import Dropdown from '../../../components/Dropdown'
 import { computePERForAkcija } from '../../../utils/rankingUtils'
-import { tezinaLabel } from '../../../utils/difficultyI18n'
-import type { TFunction } from 'i18next'
+import { actionDifficultyBadge } from '../../../utils/difficultyI18n'
 import ActionsFilterBar, {
   type ActionsFilters,
   type VisibilityFilter,
@@ -50,22 +49,6 @@ interface Akcija {
 }
 
 type ActionSourceFilter = 'all' | 'club' | 'guide'
-
-const TEZINA_STYLE: Record<string, { bg: string; text: string }> = {
-  lako: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  srednje: { bg: 'bg-amber-50', text: 'text-amber-700' },
-  tesko: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  teško: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  alpinizam: { bg: 'bg-violet-50', text: 'text-violet-700' },
-}
-
-function tezinaStyle(raw: string | undefined, t: TFunction) {
-  if (!raw) return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(undefined, t) }
-  const k = raw.toLowerCase()
-  const style = TEZINA_STYLE[k]
-  if (style) return { ...style, label: tezinaLabel(raw, t) }
-  return { bg: 'bg-gray-50', text: 'text-gray-500', label: tezinaLabel(raw, t) }
-}
 
 export default function Actions() {
   const { t, i18n } = useTranslation('actions')
@@ -614,7 +597,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
 
                 return (
                   <Link
@@ -763,7 +746,7 @@ export default function Actions() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                 {filteredVodeneAktivne.map((akcija) => {
-                  const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                  const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
                   return (
                     <Link
                       key={`guide-active-${akcija.id}`}
@@ -862,7 +845,7 @@ export default function Actions() {
                   tezina: akcija.tezina,
                   datum: akcija.datum,
                 })
-                const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
 
                 return (
                   <Link
@@ -967,7 +950,7 @@ export default function Actions() {
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6 xl:grid-cols-3 2xl:grid-cols-4">
                 {filteredVodeneZavrsene.map((akcija) => {
-                  const difficultyBadge = tezinaStyle(akcija.tezina, t)
+                  const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
                   return (
                     <Link
                       key={`guide-done-${akcija.id}`}
