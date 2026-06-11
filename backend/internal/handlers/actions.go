@@ -372,6 +372,11 @@ func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) floa
 	return akcija.CenaClan
 }
 
+// akcijaSkipsClubFinances — privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.
+func akcijaSkipsClubFinances(akcija models.Akcija) bool {
+	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
+}
+
 func resolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {
 	if actionClubID == nil || *actionClubID == 0 {
 		return fallbackUserID
@@ -2431,8 +2436,8 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		}
 
 		// Ako je akcija završena i sad je član označen kao plaćen,
-		// odmah upisujemo pojedinačnu uplatu u finansije.
-		if akcija.IsCompleted && !alreadyPaid && req.Platio {
+		// odmah upisujemo pojedinačnu uplatu u finansije (ne za privatne ture vodiča).
+		if akcija.IsCompleted && !alreadyPaid && req.Platio && !akcijaSkipsClubFinances(akcija) {
 			username, exists := c.Get("username")
 			if !exists {
 				return errors.New("Niste ulogovani")
@@ -2657,7 +2662,7 @@ func ZavrsiAkciju(c *gin.Context) {
 
 		neto := prihodUkupan - rashodNaAkciji
 		netoFinansije = neto
-		if math.Abs(neto) < finEps {
+		if akcijaSkipsClubFinances(akcija) || math.Abs(neto) < finEps {
 			return nil
 		}
 

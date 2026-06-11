@@ -1150,14 +1150,19 @@ export default function ActionDetails() {
     if (updated) setAkcija(updated)
     else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
 
-    const tip = res.data?.finansijeTip ?? 'nista'
-    const neto = typeof res.data?.netoFinansije === 'number' ? res.data.netoFinansije : 0
-    const absNet = Math.abs(neto).toFixed(2)
-    let body = t('finishFinanceSuccessNone')
-    if (tip === 'uplata') {
-      body = t('finishFinanceSuccessIncome', { amount: absNet, currency: clubCurrency })
-    } else if (tip === 'isplata') {
-      body = t('finishFinanceSuccessExpense', { amount: absNet, currency: clubCurrency })
+    let body: string
+    if (akcija?.organizatorTip === 'vodic') {
+      body = t('finishGuideSuccess')
+    } else {
+      const tip = res.data?.finansijeTip ?? 'nista'
+      const neto = typeof res.data?.netoFinansije === 'number' ? res.data.netoFinansije : 0
+      const absNet = Math.abs(neto).toFixed(2)
+      body = t('finishFinanceSuccessNone')
+      if (tip === 'uplata') {
+        body = t('finishFinanceSuccessIncome', { amount: absNet, currency: clubCurrency })
+      } else if (tip === 'isplata') {
+        body = t('finishFinanceSuccessExpense', { amount: absNet, currency: clubCurrency })
+      }
     }
     await showAlert(body, t('actionFinishedTitle'))
   }
@@ -2848,6 +2853,7 @@ export default function ActionDetails() {
             open={finishFinanceModalOpen}
             currency={clubCurrency}
             prihodUkupan={paidTotal}
+            skipClubFinances={akcija.organizatorTip === 'vodic'}
             onClose={() => setFinishFinanceModalOpen(false)}
             onConfirm={handleConfirmFinishFinance}
           />

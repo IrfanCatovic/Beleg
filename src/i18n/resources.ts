@@ -899,6 +899,10 @@ export const resources = {
       finishNeedStatuses: 'Za završavanje akcije potrebno je da za svakog prijavljenog člana obeležiš da li se popeo ili nije uspeo.',
       markAllMembers: 'Označi sve članove',
       finishConfirmBody: 'Posle završavanja akcije više neće biti moguće menjati prijave ili statuse učesnika.',
+      finishGuideModalTitle: 'Završi akciju',
+      finishGuideModalBody:
+        'Ovo je privatna akcija vodiča — prihodi ne ulaze u finansije kluba. Ispod je pregled uplaćenih iznosa; posle završetka više nećete moći da menjate prijave ili statuse.',
+      finishGuideSuccess: 'Akcija je završena. Prihodi sa ove ture nisu upisani u finansije kluba.',
       finishActionTitle: 'Završi akciju?',
       finishAction: 'Završi akciju',
       finishSuccess: 'Akcija je uspešno završena.',

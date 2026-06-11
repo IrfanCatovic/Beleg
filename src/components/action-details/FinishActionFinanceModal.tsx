@@ -12,6 +12,8 @@ interface FinishActionFinanceModalProps {
   open: boolean
   currency: string
   prihodUkupan: number
+  /** Privatna akcija vodiča — prikaz pregleda uplata, bez upisa u finansije kluba. */
+  skipClubFinances?: boolean
   onClose: () => void
   onConfirm: (rashodNaAkciji: number) => Promise<void>
 }
@@ -20,6 +22,7 @@ export default function FinishActionFinanceModal({
   open,
   currency,
   prihodUkupan,
+  skipClubFinances = false,
   onClose,
   onConfirm,
 }: FinishActionFinanceModalProps) {
@@ -86,7 +89,7 @@ export default function FinishActionFinanceModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/50">
           <h2 id="finish-finance-title" className="text-sm font-bold text-gray-900 tracking-tight">
-            {t('finishFinanceModalTitle')}
+            {skipClubFinances ? t('finishGuideModalTitle') : t('finishFinanceModalTitle')}
           </h2>
           <button
             type="button"
@@ -102,7 +105,9 @@ export default function FinishActionFinanceModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <p className="text-xs text-gray-600 leading-relaxed">{t('finishConfirmBody')}</p>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            {skipClubFinances ? t('finishGuideModalBody') : t('finishConfirmBody')}
+          </p>
 
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-4 py-3">
             <p className="text-xs font-medium text-emerald-800/90">{t('finishFinanceTotalIncome')}</p>
@@ -111,31 +116,35 @@ export default function FinishActionFinanceModal({
             </p>
           </div>
 
-          <div>
-            <label htmlFor="finish-finance-rashod" className="block text-xs font-semibold text-gray-700 mb-1.5">
-              {t('finishFinanceExpenseLabel')}
-            </label>
-            <input
-              id="finish-finance-rashod"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={rashodStr}
-              onChange={(e) => setRashodStr(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-300"
-              disabled={submitting}
-            />
-            <p className="mt-1 text-[11px] text-gray-500">{t('finishFinanceExpenseHelp')}</p>
-          </div>
+          {!skipClubFinances && (
+            <>
+              <div>
+                <label htmlFor="finish-finance-rashod" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  {t('finishFinanceExpenseLabel')}
+                </label>
+                <input
+                  id="finish-finance-rashod"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={rashodStr}
+                  onChange={(e) => setRashodStr(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-300"
+                  disabled={submitting}
+                />
+                <p className="mt-1 text-[11px] text-gray-500">{t('finishFinanceExpenseHelp')}</p>
+              </div>
 
-          {netPreview !== null && Number.isFinite(netPreview) && (
-            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5">
-              <p className="text-xs text-gray-600">{t('finishFinanceNetPreview')}</p>
-              <p className="text-sm font-bold text-gray-900 tabular-nums">
-                {netPreview.toFixed(2)} {currency}
-              </p>
-            </div>
+              {netPreview !== null && Number.isFinite(netPreview) && (
+                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5">
+                  <p className="text-xs text-gray-600">{t('finishFinanceNetPreview')}</p>
+                  <p className="text-sm font-bold text-gray-900 tabular-nums">
+                    {netPreview.toFixed(2)} {currency}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {error ? <p className="text-xs text-rose-600 font-medium">{error}</p> : null}
@@ -154,7 +163,7 @@ export default function FinishActionFinanceModal({
               disabled={submitting}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-sm disabled:opacity-60"
             >
-              {submitting ? t('finishFinanceSubmitting') : t('finishFinanceConfirm')}
+              {submitting ? t('finishFinanceSubmitting') : skipClubFinances ? t('finishAction') : t('finishFinanceConfirm')}
             </button>
           </div>
         </form>
