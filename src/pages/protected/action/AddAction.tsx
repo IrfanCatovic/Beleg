@@ -115,7 +115,7 @@ export default function AddAction() {
   }
 
   useEffect(() => {
-    // Ne resetuj formu dok učitavamo zahtev — inače kratko “blinkuje” prazna forma pa prefill.
+    // Ne resetuj formu dok učitavamo zahtev: inače kratko “blinkuje” prazna forma pa prefill.
     if (fromGuideOrganizer) return
     setInitial(initialWizardValues(tipAkcije, false))
   }, [tipAkcije, fromGuideOrganizer])
@@ -467,7 +467,7 @@ export default function AddAction() {
           const lostTo = who ? ` (${who})` : ''
           setError(
             conflict.error ||
-              `Drugi vodič${lostTo} je stigao prvi. Akcija #${newActionId} je sačuvana ali nije povezana sa zahtevom — obrišite je ako vam ne treba.`,
+              `Drugi vodič${lostTo} je stigao prvi. Akcija #${newActionId} je sačuvana ali nije povezana sa zahtevom. Obrišite je ako vam ne treba.`,
           )
           setLoading(false)
           return

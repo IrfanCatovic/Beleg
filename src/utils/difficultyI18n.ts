@@ -34,7 +34,7 @@ export function tezinaLabel(raw: string | undefined, t: TFunction): string {
   return t('shared:difficulty.unknown')
 }
 
-/** Ocena via ferrate (A, B/C, D, …) — prikazuje se kao u katalogu. */
+/** Ocena via ferrate (A, B/C, D, …): prikazuje se kao u katalogu. */
 export function ferrataTezinaLabel(raw: string | undefined): string {
   return raw?.trim() || ''
 }

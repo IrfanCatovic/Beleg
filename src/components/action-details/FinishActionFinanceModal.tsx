@@ -12,7 +12,7 @@ interface FinishActionFinanceModalProps {
   open: boolean
   currency: string
   prihodUkupan: number
-  /** Privatna akcija vodiča — prikaz pregleda uplata, bez upisa u finansije kluba. */
+  /** Privatna akcija vodiča: prikaz pregleda uplata, bez upisa u finansije kluba. */
   skipClubFinances?: boolean
   onClose: () => void
   onConfirm: (rashodNaAkciji: number) => Promise<void>

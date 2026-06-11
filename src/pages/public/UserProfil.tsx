@@ -1377,7 +1377,7 @@ function AkcijaCard({ akcija, mode = 'climbed' }: { akcija: UspesnaAkcija; mode?
         </h4>
 
         <p className="text-[11px] text-gray-400 font-medium truncate mb-2">
-          {akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}
+          {akcija.planina ? `${akcija.planina} · ${akcija.vrh}` : akcija.vrh}
         </p>
 
         <div className="flex items-center gap-2 text-[11px] text-gray-500 font-medium">

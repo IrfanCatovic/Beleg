@@ -147,7 +147,7 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 	})
 }
 
-// GetPublicKorisnikVodio — završene ture koje je korisnik vodio kao profi vodič (trenutno via ferrata).
+// GetPublicKorisnikVodio: završene ture koje je korisnik vodio kao profi vodič (trenutno via ferrata).
 func GetPublicKorisnikVodio(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)

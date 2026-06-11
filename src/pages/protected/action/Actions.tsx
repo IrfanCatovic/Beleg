@@ -790,7 +790,7 @@ export default function Actions() {
                           {akcija.naziv}
                         </h3>
                         <p className="mb-2 truncate text-[11px] font-medium text-gray-500">
-                          {akcija.planina ? `${akcija.planina} — ${akcija.vrh}` : akcija.vrh}
+                          {akcija.planina ? `${akcija.planina} · ${akcija.vrh}` : akcija.vrh}
                         </p>
                         <div className="mt-auto flex items-center justify-between border-t border-violet-50 pt-2.5">
                           <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>

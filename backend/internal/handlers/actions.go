@@ -372,12 +372,12 @@ func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) floa
 	return akcija.CenaClan
 }
 
-// akcijaSkipsClubFinances — privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.
+// akcijaSkipsClubFinances: privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.
 func akcijaSkipsClubFinances(akcija models.Akcija) bool {
 	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
 }
 
-// sqlClubOrganizedOnly — klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
+// sqlClubOrganizedOnly: klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
 const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
 
 func resolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {

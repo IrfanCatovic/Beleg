@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { HotelNearbyPublic } from './FerrataHotelsSection'
 
 function formatDistanceKm(km: number | undefined): string {
-  if (km == null || !Number.isFinite(km)) return '—'
+  if (km == null || !Number.isFinite(km)) return '-'
   const rounded = Math.round(km * 10) / 10
   return String(rounded).replace(/\.0$/, '')
 }
