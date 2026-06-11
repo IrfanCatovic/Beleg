@@ -348,10 +348,12 @@ export default function EditAction() {
       formData.append('mestoPolaska', formValues.mestoPolaska)
       formData.append('kontaktTelefon', formValues.kontaktTelefon)
       formData.append('brojDana', formValues.brojDana)
-      formData.append('cenaClan', formValues.cenaClan)
-      formData.append('cenaOstali', formValues.cenaOstali)
+      const cenaClan = formValues.cenaClan
+      const cenaOstali = formValues.actionKind === 'via_ferrata' ? cenaClan : formValues.cenaOstali
+      formData.append('cenaClan', cenaClan)
+      formData.append('cenaOstali', cenaOstali)
       formData.append('prikaziListuPrijavljenih', String(formValues.prikaziListuPrijavljenih))
-      formData.append('omoguciGrupniChat', String(formValues.omoguciGrupniChat))
+      formData.append('omoguciGrupniChat', 'false')
       if (formValues.vodicId) formData.append('vodic_id', formValues.vodicId)
       if (formValues.drugiVodicCheck && formValues.drugiVodicIme.trim()) formData.append('drugi_vodic_ime', formValues.drugiVodicIme.trim())
       if (formValues.actionKind !== 'via_ferrata' && image) formData.append('slika', image)

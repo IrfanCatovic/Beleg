@@ -337,9 +337,6 @@ export function ActionWizardForm({
                 fullWidth
                 disabled={lockOrganizerType}
               />
-              {isGuideOrganizer && (
-                <p className="mt-1.5 text-[11px] leading-relaxed text-violet-800/90">{t('wizard.organizer.guideHint')}</p>
-              )}
             </div>
             <div>
               <label className={labelClass}>{t('wizard.labels.visibility')}</label>
@@ -611,9 +608,6 @@ export function ActionWizardForm({
                     {selectedGuideLabel || t('guide.pick')}
                   </div>
                 </div>
-                <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950">
-                  {t('wizard.organizer.guideSelfHint')}
-                </p>
               </div>
             ) : (
               <>
@@ -658,23 +652,19 @@ export function ActionWizardForm({
               </>
             )}
 
-            <div>
-              <label className={labelClass}>{t('fields.actionImage')}</label>
-              {!isVia ? (
-                <>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setImage(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
-                  />
-                  {initialImageUrl && !image && <p className="mt-1 text-[11px] text-gray-500">{t('wizard.image.currentAlreadySet')}</p>}
-                  {imageHelpText && <p className="mt-1 text-[11px] text-gray-400">{imageHelpText}</p>}
-                </>
-              ) : (
-                <p className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3.5 py-2.5 text-xs text-emerald-900">{t('wizard.ferrata.coverFromCatalog')}</p>
-              )}
-            </div>
+            {!isVia && (
+              <div>
+                <label className={labelClass}>{t('fields.actionImage')}</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImage(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100"
+                />
+                {initialImageUrl && !image && <p className="mt-1 text-[11px] text-gray-500">{t('wizard.image.currentAlreadySet')}</p>}
+                {imageHelpText && <p className="mt-1 text-[11px] text-gray-400">{imageHelpText}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -709,15 +699,34 @@ export function ActionWizardForm({
                 <input type="number" min="1" step="1" value={values.brojDana} onChange={(e) => patch({ brojDana: e.target.value })} className={baseInput} />
               </div>
             )}
-            <div>
-              <label className={labelClass}>{t('wizard.labels.memberPrice', { currency: cur })}</label>
-              <input type="number" min="0" step="0.01" value={values.cenaClan} onChange={(e) => patch({ cenaClan: e.target.value })} className={baseInput} />
-            </div>
-            {isPublic && (
-              <div>
-                <label className={labelClass}>{t('wizard.labels.othersPrice', { currency: cur })}</label>
-                <input type="number" min="0" step="0.01" value={values.cenaOstali} onChange={(e) => patch({ cenaOstali: e.target.value })} className={baseInput} />
+            {isVia ? (
+              <div className="sm:col-span-2">
+                <label className={labelClass}>{t('wizard.labels.price', { currency: cur })}</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={values.cenaClan}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    patch({ cenaClan: v, cenaOstali: v })
+                  }}
+                  className={baseInput}
+                />
               </div>
+            ) : (
+              <>
+                <div>
+                  <label className={labelClass}>{t('wizard.labels.memberPrice', { currency: cur })}</label>
+                  <input type="number" min="0" step="0.01" value={values.cenaClan} onChange={(e) => patch({ cenaClan: e.target.value })} className={baseInput} />
+                </div>
+                {isPublic && (
+                  <div>
+                    <label className={labelClass}>{t('wizard.labels.othersPrice', { currency: cur })}</label>
+                    <input type="number" min="0" step="0.01" value={values.cenaOstali} onChange={(e) => patch({ cenaOstali: e.target.value })} className={baseInput} />
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -836,32 +845,39 @@ export function ActionWizardForm({
             </>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2 border-t border-gray-100 pt-4">
+          <div className="border-t border-gray-100 pt-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={values.prikaziListuPrijavljenih} onChange={(e) => patch({ prikaziListuPrijavljenih: e.target.checked })} />
               {t('wizard.step4.options.showRegisteredList')}
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={values.omoguciGrupniChat} onChange={(e) => patch({ omoguciGrupniChat: e.target.checked })} />
-              {t('wizard.step4.options.enableGroupChat')}
             </label>
           </div>
 
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-gray-700">
             <p className="font-semibold text-emerald-700 mb-1">{t('wizard.step4.costPreview.title', { currency: cur })}</p>
-            <p>
-              {t('wizard.step4.costPreview.memberBase')}{' '}
-              <span className="font-semibold">
-                {Number(values.cenaClan || 0).toFixed(2)} {cur}
-              </span>
-            </p>
-            {isPublic && (
+            {isVia ? (
               <p>
-                {t('wizard.step4.costPreview.othersBase')}{' '}
+                {t('wizard.step4.costPreview.base')}{' '}
                 <span className="font-semibold">
-                  {Number(values.cenaOstali || 0).toFixed(2)} {cur}
+                  {Number(values.cenaClan || 0).toFixed(2)} {cur}
                 </span>
               </p>
+            ) : (
+              <>
+                <p>
+                  {t('wizard.step4.costPreview.memberBase')}{' '}
+                  <span className="font-semibold">
+                    {Number(values.cenaClan || 0).toFixed(2)} {cur}
+                  </span>
+                </p>
+                {isPublic && (
+                  <p>
+                    {t('wizard.step4.costPreview.othersBase')}{' '}
+                    <span className="font-semibold">
+                      {Number(values.cenaOstali || 0).toFixed(2)} {cur}
+                    </span>
+                  </p>
+                )}
+              </>
             )}
             <p>
               {t('wizard.step4.costPreview.optionalAddons')}{' '}

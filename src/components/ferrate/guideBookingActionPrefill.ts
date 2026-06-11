@@ -54,7 +54,7 @@ export function buildGuideBookingActionDescription(
   const requester =
     booking.requester.fullName?.trim() || booking.requester.username?.trim() || 'Korisnik'
   const lines = [
-    `Zahtev za vođenje — ${requester}`,
+    `Zahtev za vođenje: ${requester}`,
     `Datum: ${booking.desiredDate}${booking.dateFlexible ? ' (fleksibilan)' : ''}`,
     `Vreme: ${labels.timeOfDay}`,
     `Broj osoba: ${booking.numberOfPeople}`,
@@ -81,7 +81,7 @@ export function buildGuideBookingWizardPrefill(
   return {
     actionKind: 'via_ferrata',
     ferrataId: String(booking.ferrataId),
-    naziv: booking.ferrata.naziv ? `${booking.ferrata.naziv} — vođenje` : '',
+    naziv: booking.ferrata.naziv || '',
     datum: booking.desiredDate,
     vremePolaska,
     maxLjudi: String(booking.numberOfPeople),

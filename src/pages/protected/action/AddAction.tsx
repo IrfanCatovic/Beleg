@@ -398,10 +398,12 @@ export default function AddAction() {
       formData.append('mestoPolaska', values.mestoPolaska)
       formData.append('kontaktTelefon', values.kontaktTelefon)
       formData.append('brojDana', values.brojDana)
-      formData.append('cenaClan', values.cenaClan)
-      formData.append('cenaOstali', values.cenaOstali)
+      const cenaClan = values.cenaClan
+      const cenaOstali = values.actionKind === 'via_ferrata' ? cenaClan : values.cenaOstali
+      formData.append('cenaClan', cenaClan)
+      formData.append('cenaOstali', cenaOstali)
       formData.append('prikaziListuPrijavljenih', String(values.prikaziListuPrijavljenih))
-      formData.append('omoguciGrupniChat', String(values.omoguciGrupniChat))
+      formData.append('omoguciGrupniChat', 'false')
       if (values.vodicId) formData.append('vodic_id', values.vodicId)
       if (values.drugiVodicCheck && values.drugiVodicIme.trim()) formData.append('drugi_vodic_ime', values.drugiVodicIme.trim())
       if (values.actionKind !== 'via_ferrata' && image) formData.append('slika', image)
