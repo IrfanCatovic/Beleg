@@ -52,9 +52,19 @@ export function GuideNearbyCard({
   const toursCount = g.brojVodjenihTura ?? 0
   const showStats = hasRating || toursCount > 0
 
+  const profileButton = username ? (
+    <Link
+      to={`/korisnik/${username}`}
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-xs font-bold text-emerald-900 transition hover:border-emerald-300 hover:bg-emerald-100/90 active:scale-[0.99]"
+    >
+      {t('detailGuideViewProfile')}
+    </Link>
+  ) : null
+
   const cardInner = (
     <>
-      <div className="flex gap-3">
+      <div className="flex gap-3 p-3">
         <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 ring-1 ring-gray-100/80">
           {avatar ? (
             <img src={avatar} alt="" className="h-full w-full object-cover" />
@@ -72,7 +82,7 @@ export function GuideNearbyCard({
           </div>
 
           <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-gray-500">
-            <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
+            <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
             <span className="truncate">{t('detailGuideDistanceShort', { km })}</span>
           </p>
 
@@ -96,6 +106,17 @@ export function GuideNearbyCard({
               {tourTypes.map((tt) => tGuide(`tourTypes.${tt}` as never)).join(' • ')}
             </p>
           )}
+
+          {phone && (
+            <a
+              href={telHref(phone)}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-emerald-700"
+            >
+              <PhoneIcon className="h-3.5 w-3.5 shrink-0 text-gray-500" aria-hidden />
+              <span className="truncate">{phone}</span>
+            </a>
+          )}
         </div>
 
         {selectable && (
@@ -108,57 +129,24 @@ export function GuideNearbyCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
-        {phone ? (
-          <a
-            href={telHref(phone)}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-emerald-700"
-          >
-            <PhoneIcon className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-            <span className="truncate">{phone}</span>
-          </a>
-        ) : (
-          <span className="flex-1" aria-hidden />
-        )}
-
-        {!selectable && username ? (
-          <Link
-            to={`/korisnik/${username}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-          >
-            {t('detailGuideViewProfile')}
-            <span aria-hidden>→</span>
-          </Link>
-        ) : !selectable ? (
-          <span className="text-xs font-bold text-emerald-700">{t('detailGuideViewProfile')} →</span>
-        ) : username ? (
-          <Link
-            to={`/korisnik/${username}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex shrink-0 items-center gap-0.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-          >
-            {t('detailGuideViewProfile')}
-            <span aria-hidden>→</span>
-          </Link>
-        ) : null}
-      </div>
+      {profileButton && (
+        <div className="border-t border-emerald-50/90 bg-gradient-to-b from-white to-emerald-50/25 px-3 py-2.5">
+          {profileButton}
+        </div>
+      )}
     </>
   )
+
+  const shellClass = `overflow-hidden rounded-xl border bg-white shadow-sm ring-1 ring-black/[0.02] transition hover:shadow-md ${
+    selected
+      ? 'border-emerald-400 ring-emerald-400/30 bg-emerald-50/30'
+      : 'border-emerald-100/90 hover:border-emerald-200'
+  }`
 
   if (selectable) {
     return (
       <li className="min-w-0 list-none">
-        <button
-          type="button"
-          onClick={onToggle}
-          className={`w-full overflow-hidden rounded-xl border bg-white p-4 text-left shadow-sm ring-1 transition hover:shadow-md ${
-            selected
-              ? 'border-emerald-400 ring-emerald-400/30 bg-emerald-50/30'
-              : 'border-gray-100 ring-black/[0.02] hover:border-emerald-100'
-          }`}
-        >
+        <button type="button" onClick={onToggle} className={`w-full text-left ${shellClass}`}>
           {cardInner}
         </button>
       </li>
@@ -167,9 +155,7 @@ export function GuideNearbyCard({
 
   return (
     <li className="min-w-0 list-none">
-      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-100 hover:shadow-md">
-        {cardInner}
-      </div>
+      <article className={shellClass}>{cardInner}</article>
     </li>
   )
 }

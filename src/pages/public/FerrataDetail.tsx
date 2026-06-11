@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
@@ -16,6 +16,7 @@ import {
 import { FerrataEquipmentGlyph, suggestEquipmentIcon } from '../../components/ferrate/ferrataEquipmentIcons'
 import { PlaninerIcon, type PlaninerIconName } from '../../components/ui/PlaninerIcon'
 import { FerrataGuideBookingModal } from '../../components/ferrate/FerrataGuideBookingModal'
+import { FerrataUpcomingActionCard } from '../../components/ferrate/FerrataUpcomingActionCard'
 import { CalendarDaysIcon, PhotoIcon, PlusIcon, StarIcon } from '@heroicons/react/24/outline'
 
 type OpremaItem = { label: string; icon?: string }
@@ -47,15 +48,6 @@ type FerrataDTO = {
   lng?: number | null
 }
 
-type UpcomingRow = {
-  id: number
-  naziv: string
-  startAt: string
-  klubNaziv?: string
-  maxLjudi: number
-  prijavljeno: number
-}
-
 function normalizeOprema(raw: FerrataDTO['obaveznaOprema']): OpremaItem[] {
   if (!raw?.length) return []
   if (typeof raw[0] === 'string') return (raw as string[]).map((label) => ({ label }))
@@ -65,10 +57,18 @@ function normalizeOprema(raw: FerrataDTO['obaveznaOprema']): OpremaItem[] {
 export default function FerrataDetail() {
   const { slug } = useParams<{ slug: string }>()
   const { t } = useTranslation('ferrate')
-  const navigate = useNavigate()
   const { user } = useAuth()
   const [f, setF] = useState<FerrataDTO | null>(null)
-  const [upcoming, setUpcoming] = useState<UpcomingRow[]>([])
+  const [upcoming, setUpcoming] = useState<
+    Array<{
+      id: number
+      naziv: string
+      startAt: string
+      klubNaziv?: string
+      maxLjudi: number
+      prijavljeno: number
+    }>
+  >([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [bookOpen, setBookOpen] = useState(false)
@@ -372,38 +372,20 @@ export default function FerrataDetail() {
                   {upcoming.length === 0 ? (
                     <p className="text-xs text-gray-600">{t('sidebarUpcomingEmpty')}</p>
                   ) : (
-                    <ul className="space-y-3">
-                      {upcoming.map((a) => {
-                        const d = new Date(a.startAt)
-                        const day = d.toLocaleDateString('sr-Latn', { day: '2-digit', month: 'short' }).toUpperCase()
-                        const spots = a.maxLjudi > 0 ? Math.max(0, a.maxLjudi - Number(a.prijavljeno || 0)) : '—'
-                        return (
-                          <li key={a.id} className="flex gap-3 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                            <div className="w-12 shrink-0 rounded-lg border border-emerald-100 bg-emerald-50 py-1 text-center">
-                              <span className="block text-[10px] font-bold leading-tight text-emerald-800">{day}</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="line-clamp-2 text-xs font-bold text-gray-900">{a.naziv}</p>
-                              {a.klubNaziv && <p className="mt-0.5 text-[11px] text-gray-500">{a.klubNaziv}</p>}
-                              <p className="mt-1 text-[11px] font-semibold text-emerald-700">
-                                {typeof spots === 'number' ? t('sidebarUpcomingSpots', { n: spots }) : spots}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/akcije/${a.id}`)}
-                                className="mt-1 text-[11px] font-semibold text-emerald-700 hover:underline"
-                              >
-                                {t('sidebarViewActions')} →
-                              </button>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
+                    <>
+                      <ul className="grid min-w-0 gap-3">
+                        {upcoming.map((a) => (
+                          <FerrataUpcomingActionCard key={a.id} action={a} />
+                        ))}
+                      </ul>
+                      <Link
+                        to="/akcije"
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-xs font-bold text-emerald-900 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/80 active:scale-[0.99]"
+                      >
+                        {t('sidebarViewAllActions')}
+                      </Link>
+                    </>
                   )}
-                  <Link to="/akcije" className="mt-3 inline-block text-xs font-semibold text-emerald-700 hover:underline">
-                    {t('sidebarViewActions')} →
-                  </Link>
                 </div>
 
                 {f.quickTip?.trim() && (
