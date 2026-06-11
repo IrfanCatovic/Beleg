@@ -26,6 +26,7 @@ import RegisterUser from './pages/protected/user/RegisterUser'
 import ProtectedRoute from './components/routes/ProtectedRoute'
 import ClubScopedRoute from './components/routes/ClubScopedRoute'
 import RoleRoute from './components/routes/RoleRoute'
+import AddActionRoute from './components/routes/AddActionRoute'
 import RegisterAdmin from './pages/protected/user/RegisterAdmin'
 import ProfileSettings from './pages/protected/user/ProfileSettings'
 import Obavestenja from './pages/protected/Obavestenja'
@@ -175,11 +176,16 @@ const router = createBrowserRouter([
             ],
           },
 
-          // Dodaj/izmeni akciju samo admin i vodič
+          // Dodaj akciju: klub (admin/vodič) ili odobreni profi vodič za via ferrata vođenje
+          {
+            element: <AddActionRoute />,
+            children: [{ path: '/dodaj-akciju', element: <AddAction /> }],
+          },
+
+          // Izmena akcije i prošle akcije samo admin i klubski vodič
           {
             element: <RoleRoute allowedRoles={['superadmin', 'admin', 'vodic']} />,
             children: [
-              { path: '/dodaj-akciju', element: <AddAction /> },
               { path: '/profil/dodaj-proslu-akciju', element: <AddPastAction /> },
               { path: '/akcije/:id/izmeni', element: <EditAction /> },
             ],

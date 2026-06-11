@@ -786,11 +786,6 @@ func ferrataLatLngPointers(ft *models.Ferrata) (lat, lng *float64) {
 }
 
 func CreateAkcija(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(403, gin.H{"error": "Samo admin, superadmin ili vodič mogu dodavati akcije"})
-		return
-	}
 	username, _ := c.Get("username")
 	db := c.MustGet("db").(*gorm.DB)
 	var currentUser models.Korisnik
@@ -805,6 +800,19 @@ func CreateAkcija(c *gin.Context) {
 	}
 	if organizatorTip != "klub" && organizatorTip != "vodic" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "organizatorTip mora biti klub ili vodic"})
+		return
+	}
+
+	role, _ := c.Get("role")
+	roleStr, _ := role.(string)
+	isClubActionRole := roleStr == "admin" || roleStr == "vodic" || roleStr == "superadmin"
+	if organizatorTip == "vodic" {
+		if !helpers.KorisnikIsApprovedProfiGuide(db, currentUser.ID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Samo odobreni profi vodiči mogu kreirati akcije kao vodič"})
+			return
+		}
+	} else if !isClubActionRole {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič mogu dodavati klupske akcije"})
 		return
 	}
 

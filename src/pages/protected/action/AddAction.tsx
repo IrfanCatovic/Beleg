@@ -86,13 +86,19 @@ export default function AddAction() {
   const bookingIdParam = searchParams.get('booking_id')
   const bookingId = bookingIdParam ? Number(bookingIdParam) : 0
   const fromGuideBooking = tipAkcije === 'via_ferrata' && bookingId > 0
+  const fromFerrataProfiGuide =
+    tipAkcije === 'via_ferrata' &&
+    !fromGuideBooking &&
+    searchParams.get('organizator') === 'vodic' &&
+    Boolean(searchParams.get('ferrata_id'))
+  const fromGuideOrganizer = fromGuideBooking || fromFerrataProfiGuide
 
   const [bookingContext, setBookingContext] = useState<GuideBookingFormContext | null>(null)
   const [bookingPrefillLoading, setBookingPrefillLoading] = useState(fromGuideBooking)
   const [bookingPrefillError, setBookingPrefillError] = useState('')
   const [raceLostActionId, setRaceLostActionId] = useState<number | null>(null)
 
-  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije, fromGuideBooking))
+  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije, fromGuideOrganizer))
   const [myKorisnikId, setMyKorisnikId] = useState<number | null>(null)
 
   const resolveMyKorisnikId = async (): Promise<number | null> => {
@@ -110,9 +116,9 @@ export default function AddAction() {
 
   useEffect(() => {
     // Ne resetuj formu dok učitavamo zahtev — inače kratko “blinkuje” prazna forma pa prefill.
-    if (fromGuideBooking) return
+    if (fromGuideOrganizer) return
     setInitial(initialWizardValues(tipAkcije, false))
-  }, [tipAkcije, fromGuideBooking])
+  }, [tipAkcije, fromGuideOrganizer])
 
   useEffect(() => {
     let cancelled = false
@@ -193,6 +199,8 @@ export default function AddAction() {
         if (tipAkcije === 'via_ferrata' && fid) {
           const row = catalog.find((x) => String(x.id) === fid)
           if (row) {
+            const selfId = fromFerrataProfiGuide ? await resolveMyKorisnikId() : null
+            if (!cancelled && selfId) setMyKorisnikId(selfId)
             setInitial((prev) => ({
               ...prev,
               actionKind: 'via_ferrata',
@@ -202,6 +210,12 @@ export default function AddAction() {
               vrh: row.naziv,
               kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
               duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
+              ...(fromFerrataProfiGuide
+                ? {
+                    organizerType: 'vodic' as const,
+                    vodicId: selfId ? String(selfId) : prev.vodicId,
+                  }
+                : {}),
             }))
           }
         }
@@ -220,7 +234,7 @@ export default function AddAction() {
     return () => {
       cancelled = true
     }
-  }, [tipAkcije, searchParams, tFr, fromGuideBooking, bookingId])
+  }, [tipAkcije, searchParams, tFr, fromGuideBooking, fromFerrataProfiGuide, bookingId])
 
   useEffect(() => {
     if (!fromGuideBooking || !user?.username) return
@@ -271,14 +285,6 @@ export default function AddAction() {
     }
     void loadKlubValuta()
   }, [])
-
-  if (!user || !['superadmin', 'admin', 'vodic'].includes(user.role)) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <p className="text-sm text-gray-500 font-medium">{t('add.onlyAdminGuide')}</p>
-      </div>
-    )
-  }
 
   if (fromGuideBooking && bookingPrefillLoading) {
     return (

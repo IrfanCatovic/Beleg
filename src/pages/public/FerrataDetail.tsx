@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
 import { FerrataDetailGallery } from '../../components/ferrate/FerrataDetailGallery'
 import { FerrataHotelsSection } from '../../components/ferrate/FerrataHotelsSection'
@@ -71,6 +72,7 @@ export default function FerrataDetail() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [bookOpen, setBookOpen] = useState(false)
+  const [canCreateGuideAction, setCanCreateGuideAction] = useState(false)
 
   const load = useCallback(async () => {
     if (!slug) return
@@ -97,6 +99,24 @@ export default function FerrataDetail() {
   }, [load])
 
   useEffect(() => {
+    if (!user) {
+      setCanCreateGuideAction(false)
+      return
+    }
+    let cancelled = false
+    void isApprovedProfiGuide()
+      .then((ok) => {
+        if (!cancelled) setCanCreateGuideAction(ok)
+      })
+      .catch(() => {
+        if (!cancelled) setCanCreateGuideAction(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  useEffect(() => {
     if (loading || !f || window.location.hash !== '#ferrata-hoteli') return
     const id = window.setTimeout(() => {
       document.getElementById('ferrata-hoteli')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -113,10 +133,9 @@ export default function FerrataDetail() {
   const hasAbout = Boolean(f?.opis?.trim())
   const hasWhy = Boolean(f?.highlights?.length)
 
-  const createActionHref =
-    user && ['superadmin', 'admin', 'vodic'].includes(user.role) && f
-      ? `/dodaj-akciju?tip=via_ferrata&ferrata_id=${f.id}`
-      : '/login'
+  const createActionHref = f
+    ? `/dodaj-akciju?tip=via_ferrata&ferrata_id=${f.id}&organizator=vodic`
+    : '/dodaj-akciju'
 
   return (
     <div className="pb-20">
@@ -301,13 +320,15 @@ export default function FerrataDetail() {
                     {t('statusAvailable')}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Link
-                      to={createActionHref}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-                    >
-                      <PlusIcon className="h-4 w-4" />
-                      {t('heroCtaCreate')}
-                    </Link>
+                    {canCreateGuideAction && (
+                      <Link
+                        to={createActionHref}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        {t('heroCtaCreate')}
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={() => setBookOpen(true)}

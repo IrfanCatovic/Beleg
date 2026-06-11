@@ -52,6 +52,11 @@ export async function getMyGuideProfile(): Promise<GuideProfile | null> {
   return res.data?.guideProfile ?? null
 }
 
+export async function isApprovedProfiGuide(): Promise<boolean> {
+  const gp = await getMyGuideProfile()
+  return gp?.status === 'approved'
+}
+
 export async function applyGuideProfile(payload: GuideApplyPayload): Promise<GuideProfile> {
   const res = await api.post<{ guideProfile: GuideProfile }>('/api/guide-profiles/apply', payload)
   return res.data.guideProfile
