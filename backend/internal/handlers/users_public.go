@@ -146,3 +146,43 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 		},
 	})
 }
+
+// GetPublicKorisnikVodio — završene ture koje je korisnik vodio kao profi vodič (trenutno via ferrata).
+func GetPublicKorisnikVodio(c *gin.Context) {
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+	param := c.Param("id")
+	korisnik := getKorisnikByIDOrUsername(db, param)
+	if korisnik == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	if !helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID) {
+		c.JSON(http.StatusOK, gin.H{"vodeneAkcije": []models.Akcija{}})
+		return
+	}
+
+	var vodeneAkcije []models.Akcija
+	q := db.Where(
+		"vodic_id = ? AND LOWER(TRIM(organizator_tip)) = ? AND is_completed = ? AND tip_akcije = ?",
+		korisnik.ID, "vodic", true, "via_ferrata",
+	)
+	if err := q.Order("datum DESC").Find(&vodeneAkcije).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vođenih akcija"})
+		return
+	}
+
+	for i := range vodeneAkcije {
+		if vodeneAkcije[i].SlikaURL != "" || vodeneAkcije[i].FerrataID == nil {
+			continue
+		}
+		var ft models.Ferrata
+		if err := db.Select("cover_image").First(&ft, *vodeneAkcije[i].FerrataID).Error; err == nil {
+			if u := strings.TrimSpace(ft.CoverImage); u != "" {
+				vodeneAkcije[i].SlikaURL = u
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"vodeneAkcije": vodeneAkcije})
+}

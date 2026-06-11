@@ -85,6 +85,8 @@ export default function UserProfile() {
 
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null)
   const [akcije, setAkcije] = useState<UspesnaAkcija[]>([])
+  const [vodeneAkcije, setVodeneAkcije] = useState<UspesnaAkcija[]>([])
+  const [profileActionsTab, setProfileActionsTab] = useState<'climbed' | 'guided'>('climbed')
   const [stats, setStats] = useState({ ukupnoKm: 0, ukupnoMetaraUspona: 0, brojPopeoSe: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -137,20 +139,29 @@ export default function UserProfile() {
         const idOrUsername = id ?? username
         if (!idOrUsername) { setError(t('notFound')); setLoading(false); return }
 
-        const [rK, rS, rA] = await Promise.all([
-          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`),
-          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/statistika`),
-          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/popeo-se`),
-        ])
+        const rK = await api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`)
         if (cancelled) return
 
         const k = rK.data as Korisnik
         setKorisnik(k)
         if (!username && k.username) navigate(`/korisnik/${k.username}`, { replace: true })
 
+        const guidedReq = k.isProfiGuide
+          ? api.get<{ vodeneAkcije?: UspesnaAkcija[] }>(`/api/korisnici/${encodeURIComponent(idOrUsername)}/vodio`)
+          : null
+
+        const [rS, rA, rG] = await Promise.all([
+          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/statistika`),
+          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/popeo-se`),
+          guidedReq ?? Promise.resolve(null),
+        ])
+        if (cancelled) return
+
         const s = rS.data.statistika || {}
         setStats({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
         setAkcije(rA.data.uspesneAkcije || [])
+        setVodeneAkcije(rG?.data?.vodeneAkcije || [])
+        setProfileActionsTab('climbed')
       } catch (e: any) {
         if (!cancelled) setError(e.response?.data?.error || t('loadError'))
       } finally {
@@ -1014,29 +1025,59 @@ export default function UserProfile() {
       {/* ══════════ AKCIJE GRID ══════════ */}
       <div className="bg-gray-50/80 min-h-[40vh]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-
-          <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
-            {akcije.length > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                {akcije.length}
-              </span>
-            )}
-          </div>
-          {akcije.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">
-                <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
-                </svg>
+          {showProfiGuideBadge ? (
+            <>
+              <div className="mb-7 sm:mb-8">
+                <ProfileActionsToggle
+                  tab={profileActionsTab}
+                  climbedCount={akcije.length}
+                  guidedCount={vodeneAkcije.length}
+                  climbedLabel={t('actionsTabClimbed')}
+                  guidedLabel={t('actionsTabGuided')}
+                  onChange={setProfileActionsTab}
+                />
               </div>
-              <p className="text-sm text-gray-400">{t('noCompletedActions')}</p>
-            </div>
+              {profileActionsTab === 'guided' ? (
+                vodeneAkcije.length === 0 ? (
+                  <ProfileActionsEmpty message={t('noGuidedTours')} />
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {vodeneAkcije.map((a) => (
+                      <AkcijaCard key={`guided-${a.id}`} akcija={a} mode="guided" />
+                    ))}
+                  </div>
+                )
+              ) : akcije.length === 0 ? (
+                <ProfileActionsEmpty message={t('noCompletedActions')} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {akcije.map((a) => (
+                    <AkcijaCard key={a.id} akcija={a} mode="climbed" />
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {akcije.map(a => <AkcijaCard key={a.id} akcija={a} />)}
-            </div>
+            <>
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
+                {akcije.length > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                    {akcije.length}
+                  </span>
+                )}
+              </div>
+              {akcije.length === 0 ? (
+                <ProfileActionsEmpty message={t('noCompletedActions')} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {akcije.map((a) => (
+                    <AkcijaCard key={a.id} akcija={a} mode="climbed" />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1189,8 +1230,99 @@ function StatCell({ value, unit, label, accent }: { value: string; unit?: string
   )
 }
 
-function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
+function ProfileActionsToggle({
+  tab,
+  climbedCount,
+  guidedCount,
+  climbedLabel,
+  guidedLabel,
+  onChange,
+}: {
+  tab: 'climbed' | 'guided'
+  climbedCount: number
+  guidedCount: number
+  climbedLabel: string
+  guidedLabel: string
+  onChange: (tab: 'climbed' | 'guided') => void
+}) {
+  const isClimbed = tab === 'climbed'
+
+  return (
+    <div
+      className="relative mx-auto w-full max-w-lg rounded-2xl border border-gray-200/90 bg-white p-1 shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
+      role="tablist"
+      aria-label="Pregled akcija na profilu"
+    >
+      <div
+        className={`pointer-events-none absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl transition-all duration-300 ease-out ${
+          isClimbed
+            ? 'left-1 bg-gradient-to-br from-emerald-50 to-teal-50/90 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.18)]'
+            : 'left-[calc(50%+2px)] bg-gradient-to-br from-violet-50 to-purple-50/90 shadow-[inset_0_0_0_1px_rgba(124,58,237,0.18)]'
+        }`}
+        aria-hidden
+      />
+
+      <div className="relative grid grid-cols-2 items-stretch">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={isClimbed}
+          onClick={() => onChange('climbed')}
+          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors sm:min-h-[56px] sm:flex-row sm:gap-2 ${
+            isClimbed ? 'text-emerald-900' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="text-xs font-bold tracking-tight sm:text-sm">{climbedLabel}</span>
+          <span
+            className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
+              isClimbed ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            {climbedCount}
+          </span>
+        </button>
+
+        <div className="pointer-events-none absolute left-1/2 top-3 bottom-3 z-[2] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gray-200 to-transparent" aria-hidden />
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!isClimbed}
+          onClick={() => onChange('guided')}
+          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors sm:min-h-[56px] sm:flex-row sm:gap-2 ${
+            !isClimbed ? 'text-violet-900' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="text-xs font-bold tracking-tight sm:text-sm">{guidedLabel}</span>
+          <span
+            className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
+              !isClimbed ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            {guidedCount}
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ProfileActionsEmpty({ message }: { message: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">
+        <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
+        </svg>
+      </div>
+      <p className="text-sm text-gray-400">{message}</p>
+    </div>
+  )
+}
+
+function AkcijaCard({ akcija, mode = 'climbed' }: { akcija: UspesnaAkcija; mode?: 'climbed' | 'guided' }) {
   const { t, i18n } = useTranslation('userProfile')
+  const isGuided = mode === 'guided'
   const per = computePERForAkcija({
     tipAkcije: akcija.tipAkcije,
     duzinaStazeKm: akcija.duzinaStazeKm,
@@ -1205,7 +1337,9 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
   return (
     <Link
       to={`/akcije/${akcija.id}`}
-      className="group bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline"
+      className={`group bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline ${
+        isGuided ? 'border-violet-100 hover:border-violet-200' : 'border-gray-100'
+      }`}
     >
       {/* image */}
       <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
@@ -1215,11 +1349,16 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
           imgClassName="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+        {isGuided && (
+          <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">
+            {t('guided')}
+          </span>
+        )}
         <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
           <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
             {formatDateShort(akcija.datum)}
           </span>
-          {akcija.tipAkcije !== 'via_ferrata' && (
+          {!isGuided && akcija.tipAkcije !== 'via_ferrata' && (
             <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
               +{per} PER
             </span>
@@ -1229,7 +1368,11 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
 
       {/* body */}
       <div className="p-3.5">
-        <h4 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
+        <h4
+          className={`text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 transition-colors leading-snug ${
+            isGuided ? 'group-hover:text-violet-700' : 'group-hover:text-emerald-600'
+          }`}
+        >
           {akcija.naziv}
         </h4>
 
@@ -1253,9 +1396,13 @@ function AkcijaCard({ akcija }: { akcija: UspesnaAkcija }) {
           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${difficultyBadge.bg} ${difficultyBadge.text} ${difficultyBadge.border}`}>
             {difficultyBadge.label}
           </span>
-          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+          <span
+            className={`inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider ${
+              isGuided ? 'text-violet-600' : 'text-emerald-500'
+            }`}
+          >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            {t('climbed')}
+            {isGuided ? t('guided') : t('climbed')}
           </span>
         </div>
       </div>

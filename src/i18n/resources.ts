@@ -1145,6 +1145,11 @@ export const resources = {
       completedActions: 'Osvojene akcije',
       noCompletedActions: 'Još nema završenih akcija.',
       climbed: 'Popeo se',
+      actionsTabClimbed: 'Osvojene',
+      actionsTabGuided: 'Vođene ture',
+      guidedToursTitle: 'Vođene ture',
+      noGuidedTours: 'Još nema završenih tura koje je vodio.',
+      guided: 'Vodio',
     },
     finance: {
       title: 'Finansije',
