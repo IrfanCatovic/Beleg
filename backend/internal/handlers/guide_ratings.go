@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -216,5 +217,92 @@ func SubmitGuideRatingForAkcija(c *gin.Context) {
 			"ocena":    row.Ocena,
 			"komentar": komentar,
 		},
+	})
+}
+
+// GetPublicKorisnikGuideRecenzije GET /api/korisnici/:id/recenzije-vodica
+func GetPublicKorisnikGuideRecenzije(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	param := c.Param("id")
+	korisnik := getKorisnikByIDOrUsername(db, param)
+	if korisnik == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
+	if !helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID) {
+		c.JSON(http.StatusOK, gin.H{
+			"guide": gin.H{
+				"id":       korisnik.ID,
+				"username": korisnik.Username,
+				"fullName": korisnik.FullName,
+			},
+			"summary": gin.H{"prosecnaOcena": 0, "brojOcena": 0, "brojKomentara": 0},
+			"recenzije": []gin.H{},
+		})
+		return
+	}
+
+	var gp models.GuideProfile
+	if err := db.Where("korisnik_id = ? AND status = ?", korisnik.ID, models.GuideStatusApproved).First(&gp).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Profil vodiča nije pronađen"})
+		return
+	}
+
+	var rows []models.GuideActionRating
+	if err := db.Where("guide_korisnik_id = ?", korisnik.ID).
+		Preload("Akcija").
+		Preload("Rater").
+		Order("created_at DESC").
+		Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju recenzija"})
+		return
+	}
+
+	var brojKomentara int64
+	for _, row := range rows {
+		if strings.TrimSpace(row.Komentar) != "" {
+			brojKomentara++
+		}
+	}
+
+	out := make([]gin.H, 0, len(rows))
+	for _, row := range rows {
+		item := gin.H{
+			"id":        row.ID,
+			"ocena":     row.Ocena,
+			"komentar":  strings.TrimSpace(row.Komentar),
+			"createdAt": row.CreatedAt,
+		}
+		if row.Akcija.ID != 0 {
+			item["akcija"] = gin.H{
+				"id":    row.Akcija.ID,
+				"naziv": row.Akcija.Naziv,
+				"datum": row.Akcija.Datum,
+			}
+		}
+		if row.Rater.ID != 0 {
+			item["rater"] = gin.H{
+				"id":         row.Rater.ID,
+				"username":   row.Rater.Username,
+				"fullName":   row.Rater.FullName,
+				"avatar_url": row.Rater.AvatarURL,
+			}
+		}
+		out = append(out, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"guide": gin.H{
+			"id":         korisnik.ID,
+			"username":   korisnik.Username,
+			"fullName":   korisnik.FullName,
+			"avatar_url": korisnik.AvatarURL,
+		},
+		"summary": gin.H{
+			"prosecnaOcena": gp.ProsecnaOcena,
+			"brojOcena":     gp.BrojOcena,
+			"brojKomentara": brojKomentara,
+		},
+		"recenzije": out,
 	})
 }

@@ -17,6 +17,7 @@ import AddAction from './pages/protected/action/AddAction'
 import AddPastAction from './pages/protected/action/AddPastAction'
 import Users from './pages/protected/user/Users'
 import UserProfile from './pages/public/UserProfil'
+import GuideReviewsPage from './pages/public/GuideReviewsPage'
 import UserInfo from './pages/protected/user/UserInfo'
 import ActionDetails from './pages/public/ActionDetails'
 import EditAction from './pages/protected/action/EditAction'
@@ -139,7 +140,9 @@ const router = createBrowserRouter([
       { path: '/ferate/:slug', element: <FerrataDetail /> },
       { path: '/vodici', element: <GuidesList /> },
       { path: '/users/:id', element: <UserProfile /> },
+      { path: '/users/:id/recenzije', element: <GuideReviewsPage /> },
       { path: '/korisnik/:username', element: <UserProfile /> },
+      { path: '/korisnik/:username/recenzije', element: <GuideReviewsPage /> },
 
       {
         element: <ProtectedRoute />,

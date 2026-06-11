@@ -22,3 +22,31 @@ export async function submitGuideRatingForAction(
 ): Promise<void> {
   await api.post(`/api/akcije/${akcijaId}/guide-rating`, body)
 }
+
+export type GuideRatingSummary = {
+  prosecnaOcena: number
+  brojOcena: number
+  brojKomentara: number
+}
+
+export type GuidePublicReview = {
+  id: number
+  ocena?: number | null
+  komentar?: string
+  createdAt: string
+  akcija?: { id: number; naziv: string; datum: string }
+  rater?: { id: number; username: string; fullName?: string; avatar_url?: string }
+}
+
+export type GuidePublicReviewsResponse = {
+  guide: { id: number; username: string; fullName?: string; avatar_url?: string }
+  summary: GuideRatingSummary
+  recenzije: GuidePublicReview[]
+}
+
+export async function fetchGuidePublicReviews(userKey: string | number): Promise<GuidePublicReviewsResponse> {
+  const res = await api.get<GuidePublicReviewsResponse>(
+    `/api/korisnici/${encodeURIComponent(String(userKey))}/recenzije-vodica`,
+  )
+  return res.data
+}

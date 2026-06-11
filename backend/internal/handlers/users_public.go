@@ -65,7 +65,22 @@ func GetPublicKorisnik(c *gin.Context) {
 	if korisnik.CoverPositionYMobile != nil {
 		respPub["cover_position_y_mobile"] = *korisnik.CoverPositionYMobile
 	}
-	respPub["isProfiGuide"] = helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID)
+	isProfi := helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID)
+	respPub["isProfiGuide"] = isProfi
+	if isProfi {
+		var gp models.GuideProfile
+		if err := db.Where("korisnik_id = ? AND status = ?", korisnik.ID, models.GuideStatusApproved).First(&gp).Error; err == nil {
+			var brojKomentara int64
+			db.Model(&models.GuideActionRating{}).
+				Where("guide_korisnik_id = ? AND TRIM(komentar) <> ''", korisnik.ID).
+				Count(&brojKomentara)
+			respPub["guideRatingSummary"] = gin.H{
+				"prosecnaOcena": gp.ProsecnaOcena,
+				"brojOcena":     gp.BrojOcena,
+				"brojKomentara": brojKomentara,
+			}
+		}
+	}
 	c.JSON(200, respPub)
 }
 

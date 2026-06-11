@@ -11,4 +11,5 @@ func RegisterUsersPublicRoutes(r *gin.Engine) {
 	r.GET("/api/korisnici/:id/statistika", handlers.GetPublicKorisnikStatistika)
 	r.GET("/api/korisnici/:id/popeo-se", handlers.GetPublicKorisnikPopeoSe)
 	r.GET("/api/korisnici/:id/vodio", handlers.GetPublicKorisnikVodio)
+	r.GET("/api/korisnici/:id/recenzije-vodica", handlers.GetPublicKorisnikGuideRecenzije)
 }

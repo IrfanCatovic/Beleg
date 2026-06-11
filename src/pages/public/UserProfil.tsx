@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
+import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
+import type { GuideRatingSummary } from '../../services/guideRatings'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
@@ -57,6 +59,7 @@ interface Korisnik {
   klubNaziv?: string
   klubLogoUrl?: string
   isProfiGuide?: boolean
+  guideRatingSummary?: GuideRatingSummary
 }
 
 /** Isti breakpoint kao Tailwind `md:` — cover na širem ekranu koristi drugačiju sačuvanu poziciju. */
@@ -239,6 +242,11 @@ export default function UserProfile() {
   const canShowBlockControls = !!currentUser && !isOwn
   const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
   const showProfiGuideBadge = !!korisnik?.isProfiGuide
+  const guideRatingSummary: GuideRatingSummary = korisnik?.guideRatingSummary ?? {
+    prosecnaOcena: 0,
+    brojOcena: 0,
+    brojKomentara: 0,
+  }
 
   useEffect(() => {
     if (!isOwn || !currentUser) {
@@ -861,6 +869,11 @@ export default function UserProfile() {
                   </span>
                 </div>
               )}
+              {showProfiGuideBadge && (
+                <div className="mt-3 flex justify-end">
+                  <ProfiGuideRatingChip username={korisnik.username} summary={guideRatingSummary} />
+                </div>
+              )}
               {isOwn && myGuideProfile !== undefined && (
                 <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
               )}
@@ -957,6 +970,11 @@ export default function UserProfile() {
                 )}
               </div>
 
+              {showProfiGuideBadge && (
+                <div className="hidden sm:flex shrink-0 self-center pb-1">
+                  <ProfiGuideRatingChip username={korisnik.username} summary={guideRatingSummary} />
+                </div>
+              )}
             </div>
           </div>
         </div>
