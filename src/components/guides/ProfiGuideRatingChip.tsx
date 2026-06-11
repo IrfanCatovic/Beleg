@@ -5,6 +5,32 @@ import { useTranslation } from 'react-i18next'
 import type { GuideRatingSummary } from '../../services/guideRatings'
 import { formatGuideRating } from '../ferrate/GuideNearbyCard'
 
+const chipClassName =
+  'inline-flex items-center gap-2.5 rounded-xl border border-gray-200/90 bg-white px-3 py-2 shadow-sm'
+
+export function ProfiGuideRatingBadge(props: {
+  summary: GuideRatingSummary
+  className?: string
+}) {
+  const hasRating = (props.summary.brojOcena ?? 0) > 0
+  const ratingLabel = hasRating ? formatGuideRating(props.summary.prosecnaOcena) : '-'
+  const comments = props.summary.brojKomentara ?? 0
+
+  return (
+    <span className={`${chipClassName} ${props.className ?? ''}`}>
+      <span className="inline-flex items-center gap-1">
+        <StarIcon className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+        <span className="text-sm font-extrabold tabular-nums text-gray-900 leading-none">{ratingLabel}</span>
+      </span>
+      <span className="h-4 w-px bg-gray-200" aria-hidden />
+      <span className="inline-flex items-center gap-1">
+        <ChatBubbleLeftEllipsisIcon className="h-4 w-4 shrink-0 text-violet-500" aria-hidden />
+        <span className="text-sm font-extrabold tabular-nums text-gray-900 leading-none">{comments}</span>
+      </span>
+    </span>
+  )
+}
+
 export function ProfiGuideRatingChip(props: {
   username: string
   summary: GuideRatingSummary
@@ -19,18 +45,17 @@ export function ProfiGuideRatingChip(props: {
   return (
     <Link
       to={`/korisnik/${encodeURIComponent(username)}/recenzije`}
-      className={`inline-flex items-stretch overflow-hidden rounded-xl border border-amber-200/90 bg-gradient-to-b from-amber-50/90 to-white shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.99] ${className}`}
+      className={`${chipClassName} transition hover:border-emerald-200 hover:bg-emerald-50/40 active:scale-[0.99] ${className}`}
       aria-label={t('guideReviewsChipAria', { rating: ratingLabel, count: comments })}
     >
-      <span className="inline-flex items-center gap-1.5 px-3 py-2 border-r border-amber-100/90">
+      <span className="inline-flex items-center gap-1">
         <StarIcon className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
         <span className="text-sm font-extrabold tabular-nums text-gray-900 leading-none">{ratingLabel}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-amber-800/70">{t('guideReviewsRating')}</span>
       </span>
-      <span className="inline-flex items-center gap-1.5 px-3 py-2">
+      <span className="h-4 w-px bg-gray-200" aria-hidden />
+      <span className="inline-flex items-center gap-1">
         <ChatBubbleLeftEllipsisIcon className="h-4 w-4 shrink-0 text-violet-500" aria-hidden />
         <span className="text-sm font-extrabold tabular-nums text-gray-900 leading-none">{comments}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-violet-700/70">{t('guideReviewsComments')}</span>
       </span>
     </Link>
   )

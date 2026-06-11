@@ -782,7 +782,7 @@ export default function UserProfile() {
       {/* ══════════ PROFILE HEADER ══════════ */}
       <div className="relative bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-3 sm:pb-6">
 
             {/* mobile layout */}
             <div className="sm:hidden">
@@ -855,23 +855,29 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {korisnik.klubNaziv && (
-                <div className="mt-3">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
-                    {korisnik.klubLogoUrl ? (
-                      <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
-                    ) : (
-                      <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                      </svg>
+              {(korisnik.klubNaziv || showProfiGuideBadge) && (
+                <div className="mt-2.5 flex items-center justify-between gap-2 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    {korisnik.klubNaziv && (
+                      <span className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
+                        {korisnik.klubLogoUrl ? (
+                          <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 shrink-0 rounded-sm object-cover" />
+                        ) : (
+                          <svg className="w-3 h-3 shrink-0 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                          </svg>
+                        )}
+                        <span className="truncate">{korisnik.klubNaziv}</span>
+                      </span>
                     )}
-                    <span className="truncate">{korisnik.klubNaziv}</span>
-                  </span>
-                </div>
-              )}
-              {showProfiGuideBadge && (
-                <div className="mt-3 flex justify-end">
-                  <ProfiGuideRatingChip username={korisnik.username} summary={guideRatingSummary} />
+                  </div>
+                  {showProfiGuideBadge && (
+                    <ProfiGuideRatingChip
+                      username={korisnik.username}
+                      summary={guideRatingSummary}
+                      className="shrink-0"
+                    />
+                  )}
                 </div>
               )}
               {isOwn && myGuideProfile !== undefined && (
@@ -981,10 +987,10 @@ export default function UserProfile() {
       </div>
 
       {/* ══════════ STATS BAR ══════════ */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white border-b border-gray-100 -mt-0.5 sm:mt-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Top row: premium rank + follow mini panel */}
-          <div className="py-3 border-b border-gray-50">
+          <div className="py-2 sm:py-3 border-b border-gray-50">
             <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/70 shadow-[0_10px_30px_rgba(15,23,42,0.06)] px-3 sm:px-4 py-2.5">
               <div className="flex items-center justify-between gap-2.5">
                 <div

@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { StarIcon } from '@heroicons/react/24/solid'
-import { ChatBubbleLeftEllipsisIcon, ChevronLeftIcon } from '@heroicons/react/24/outline'
 import {
   fetchGuidePublicReviews,
   type GuidePublicReview,
   type GuidePublicReviewsResponse,
 } from '../../services/guideRatings'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
-import { formatGuideRating } from '../../components/ferrate/GuideNearbyCard'
+import { ProfiGuideRatingBadge } from '../../components/guides/ProfiGuideRatingChip'
 import { formatDateShort } from '../../utils/dateUtils'
 
 function StarsRow(props: { score?: number | null }) {
@@ -106,62 +105,28 @@ export default function GuideReviewsPage() {
   }, [userKey, t])
 
   const guideName = data?.guide.fullName?.trim() || data?.guide.username || ''
-  const profileHref = data?.guide.username
-    ? `/korisnik/${data.guide.username}`
-    : data?.guide.id
-      ? `/users/${data.guide.id}`
-      : '/home'
-  const summary = data?.summary
-  const hasRating = (summary?.brojOcena ?? 0) > 0
+  const summary = data?.summary ?? { prosecnaOcena: 0, brojOcena: 0, brojKomentara: 0 }
 
   return (
     <div className="pb-16">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-        <Link
-          to={profileHref}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800 mb-5"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          {t('guideReviewsBack')}
-        </Link>
-
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {loading && <p className="text-sm text-gray-500">…</p>}
         {error && <p className="text-sm text-rose-600">{error}</p>}
 
         {data && (
           <>
-            <header className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm mb-6">
-              <UserNameWithProfiBadge
-                name={guideName}
-                isProfiGuide
-                badgeSize={22}
-                nameClassName="text-xl font-extrabold text-gray-900"
-              />
-              <p className="mt-1 text-sm text-gray-500">{t('guideReviewsTitle')}</p>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <div className="inline-flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/80 px-3 py-2">
-                  <StarIcon className="h-5 w-5 text-amber-400" />
-                  <div>
-                    <p className="text-lg font-extrabold tabular-nums text-gray-900 leading-none">
-                      {hasRating ? formatGuideRating(summary?.prosecnaOcena) : '-'}
-                    </p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-amber-800/70">
-                      {t('guideReviewsRatingCount', { count: summary?.brojOcena ?? 0 })}
-                    </p>
-                  </div>
+            <header className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm mb-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <UserNameWithProfiBadge
+                    name={guideName}
+                    isProfiGuide
+                    badgeSize={22}
+                    nameClassName="text-xl font-extrabold text-gray-900"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">{t('guideReviewsTitle')}</p>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/80 px-3 py-2">
-                  <ChatBubbleLeftEllipsisIcon className="h-5 w-5 text-violet-500" />
-                  <div>
-                    <p className="text-lg font-extrabold tabular-nums text-gray-900 leading-none">
-                      {summary?.brojKomentara ?? 0}
-                    </p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-violet-700/70">
-                      {t('guideReviewsComments')}
-                    </p>
-                  </div>
-                </div>
+                <ProfiGuideRatingBadge summary={summary} className="shrink-0" />
               </div>
             </header>
 
