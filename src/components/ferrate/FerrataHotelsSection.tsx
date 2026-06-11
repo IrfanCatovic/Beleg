@@ -11,6 +11,7 @@ import api from '../../services/api'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
 import { ferrataDetailCardClass } from './ferrataDetailCardStyles'
 import { FerrataDetailMapCard } from './FerrataDetailMapCard'
+import { HotelNearbyCard } from './HotelNearbyCard'
 import { normalizeInstagramUrl, safeHttpUrl } from './smestajExternalUrls'
 
 export type HotelNearbyPublic = {
@@ -51,11 +52,6 @@ function formatDistanceKm(km: number | undefined): string {
   if (km == null || !Number.isFinite(km)) return '—'
   const rounded = Math.round(km * 10) / 10
   return String(rounded).replace(/\.0$/, '')
-}
-
-function hotelThumb(h: HotelNearbyPublic): string | null {
-  const u = h.slike?.find((x) => x?.trim())
-  return u?.trim() ?? null
 }
 
 function telHref(phone: string): string {
@@ -126,36 +122,9 @@ export function FerrataHotelsSection(props: {
   function renderHotelRows(items: HotelNearbyPublic[], baseIndex: number) {
     return (
       <ul className="grid min-w-0 gap-3">
-        {items.map((h, i) => {
-          const thumb = hotelThumb(h)
-          const title = (h.naziv ?? '').trim() || t('detailHotelUnnamed')
-          const km = formatDistanceKm(h.distanceKm)
-          const ix = baseIndex + i
-          return (
-            <li key={h.id} className="min-w-0">
-              <button
-                type="button"
-                onClick={() => setOpenIx(ix)}
-                className="group flex w-full min-w-0 max-w-full gap-3 overflow-hidden rounded-xl border border-emerald-100/90 bg-white text-left shadow-sm ring-1 ring-black/[0.02] transition hover:border-emerald-200 hover:shadow-md"
-              >
-                <div className="relative h-24 w-28 shrink-0 bg-gradient-to-br from-slate-100 to-emerald-50/50">
-                  {thumb ? (
-                    <img src={thumb} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-emerald-300">
-                      <HomeModernIcon className="h-10 w-10" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center overflow-hidden py-2 pr-3">
-                  <p className="truncate text-sm font-bold text-gray-900 group-hover:text-emerald-900">{title}</p>
-                  <p className="mt-0.5 truncate text-xs font-medium text-gray-600">{t('detailHotelDistanceShort', { km })}</p>
-                  <span className="mt-1.5 inline-flex min-w-0 max-w-full truncate text-[11px] font-semibold text-emerald-700">{t('detailHotelOpenHint')} →</span>
-                </div>
-              </button>
-            </li>
-          )
-        })}
+        {items.map((h, i) => (
+          <HotelNearbyCard key={h.id} hotel={h} onOpen={() => setOpenIx(baseIndex + i)} />
+        ))}
       </ul>
     )
   }

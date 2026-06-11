@@ -107,6 +107,7 @@ export const ferrateTranslations = {
   detailHotelsShowLess: 'Prikaži manje',
   detailHotelUnnamed: 'Hotel',
   detailHotelOpenHint: 'Detalji',
+  detailHotelViewCta: 'Pogledaj smeštaj',
   detailHotelAboutTitle: 'O hotelu {{name}}',
   detailHotelDistance: 'Udaljenost od ferate: {{km}} km',
   detailHotelDistanceShort: '{{km}} km od ferate',
