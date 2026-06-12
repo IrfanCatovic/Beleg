@@ -5,6 +5,7 @@ import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingCh
 import type { GuideRatingSummary } from '../../services/guideRatings'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'

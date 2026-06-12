@@ -370,7 +370,7 @@ function ferrataFontSizes(aspect: SummitAspect, layout: SummitLayout) {
 
 function ferrataMeasureCellHeight(
   ctx: CanvasRenderingContext2D,
-  lab: string,
+  _lab: string,
   val: string,
   labelPx: number,
   valuePx: number,
