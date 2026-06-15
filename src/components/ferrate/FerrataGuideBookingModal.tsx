@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
-import { listGuidesNearby, type GuideNearbyPublic } from '../../services/guidesPublic'
+import { listGuidesNearby, listGuidesCatalog, type GuideNearbyPublic } from '../../services/guidesPublic'
 import { createFerrataGuideBooking } from '../../services/ferrataGuideBookings'
 import { GuideNearbyCard, guideDisplayName } from './GuideNearbyCard'
 import { FerrataGuideBookingHotelsStep } from './FerrataGuideBookingHotelsStep'
@@ -81,8 +81,40 @@ export function FerrataGuideBookingModal(props: {
   const [submitting, setSubmitting] = useState(false)
 
   const [guides, setGuides] = useState<GuideNearbyPublic[]>([])
+  const [guidesFromCatalog, setGuidesFromCatalog] = useState(false)
   const [guidesLoading, setGuidesLoading] = useState(false)
+  const [guideSearch, setGuideSearch] = useState('')
   const [selectedGuideIds, setSelectedGuideIds] = useState<Set<number>>(new Set())
+
+  const filterValidGuides = (list: GuideNearbyPublic[], requireLocationPin = true) =>
+    list.filter((g) => {
+      if (guideDisplayName(g) === '—') return false
+      if (!requireLocationPin) return true
+      const pin = g.baseLat != null && g.baseLng != null && Number.isFinite(g.baseLat) && Number.isFinite(g.baseLng)
+      return pin
+    })
+
+  const guideMatchesSearch = (g: GuideNearbyPublic, query: string): boolean => {
+    const haystack = [
+      guideDisplayName(g),
+      g.naslov,
+      g.grad,
+      g.region,
+      g.drzava,
+      g.user?.username,
+      g.user?.fullName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    return haystack.includes(query)
+  }
+
+  const filteredGuides = useMemo(() => {
+    const q = guideSearch.trim().toLowerCase()
+    if (!q) return guides
+    return guides.filter((g) => guideMatchesSearch(g, q))
+  }, [guides, guideSearch])
 
   const hasMapCoords = Number.isFinite(props.ferrataLat) && Number.isFinite(props.ferrataLng)
 
@@ -93,6 +125,8 @@ export function FerrataGuideBookingModal(props: {
     setLocalErr('')
     setSubmitting(false)
     setSelectedGuideIds(new Set())
+    setGuideSearch('')
+    setGuidesFromCatalog(false)
     if (!user) return
     api
       .get('/api/me')
@@ -107,28 +141,52 @@ export function FerrataGuideBookingModal(props: {
     if (!props.open || step !== 2 || !hasMapCoords) return
     let cancelled = false
     setGuidesLoading(true)
-    listGuidesNearby({
-      lat: props.ferrataLat,
-      lng: props.ferrataLng,
-      radiusKm: 100,
-      limit: 30,
-      tourType: 'via_ferrata',
-    })
-      .then((list) => {
+    setGuidesFromCatalog(false)
+    setGuideSearch('')
+
+    const loadGuides = async () => {
+      try {
+        const nearby = filterValidGuides(
+          await listGuidesNearby({
+            lat: props.ferrataLat,
+            lng: props.ferrataLng,
+            radiusKm: 100,
+            limit: 30,
+            tourType: 'via_ferrata',
+          }),
+        )
         if (cancelled) return
-        const filtered = list.filter((g) => {
-          const pin = g.baseLat != null && g.baseLng != null && Number.isFinite(g.baseLat) && Number.isFinite(g.baseLng)
-          return pin && guideDisplayName(g) !== '—'
-        })
-        setGuides(filtered)
-        setSelectedGuideIds(new Set(filtered.map((g) => g.id)))
-      })
-      .catch(() => {
-        if (!cancelled) setGuides([])
-      })
-      .finally(() => {
+
+        if (nearby.length > 0) {
+          setGuides(nearby)
+          setGuidesFromCatalog(false)
+          setSelectedGuideIds(new Set(nearby.map((g) => g.id)))
+          return
+        }
+
+        const catalog = filterValidGuides(
+          await listGuidesCatalog({
+            category: 'ferrata',
+            limit: 100,
+          }),
+          false,
+        )
+        if (cancelled) return
+        setGuides(catalog)
+        setGuidesFromCatalog(true)
+        setSelectedGuideIds(new Set())
+      } catch {
+        if (!cancelled) {
+          setGuides([])
+          setGuidesFromCatalog(false)
+          setSelectedGuideIds(new Set())
+        }
+      } finally {
         if (!cancelled) setGuidesLoading(false)
-      })
+      }
+    }
+
+    void loadGuides()
     return () => {
       cancelled = true
     }
@@ -270,9 +328,6 @@ export function FerrataGuideBookingModal(props: {
       role="dialog"
       aria-modal
       aria-labelledby="ferrata-guide-booking-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose()
-      }}
     >
       <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-xl ring-1 ring-black/[0.04]">
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
@@ -289,9 +344,12 @@ export function FerrataGuideBookingModal(props: {
           <button
             type="button"
             onClick={props.onClose}
-            className="text-sm font-semibold text-gray-500 hover:text-gray-800"
+            className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+            aria-label={t('modalClose')}
           >
-            {t('modalClose')}
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -428,14 +486,44 @@ export function FerrataGuideBookingModal(props: {
 
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">{t('bookGuideStepGuidesHint')}</p>
+              <p className="text-sm text-gray-600">
+                {guidesFromCatalog ? t('bookGuideSearchOthersPrompt') : t('bookGuideStepGuidesHint')}
+              </p>
+
+              {guidesFromCatalog && !guidesLoading && (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+                  {t('bookGuideNoGuidesNearby')}
+                </p>
+              )}
+
+              <div>
+                <label htmlFor="book-guide-search" className="sr-only">
+                  {t('bookGuideSearchPlaceholder')}
+                </label>
+                <input
+                  id="book-guide-search"
+                  type="search"
+                  value={guideSearch}
+                  onChange={(e) => setGuideSearch(e.target.value)}
+                  placeholder={t('bookGuideSearchPlaceholder')}
+                  className={baseInput}
+                  autoComplete="off"
+                />
+              </div>
+
               {guidesLoading && <p className="text-sm text-gray-500">…</p>}
-              {!guidesLoading && guides.length === 0 && (
+
+              {!guidesLoading && guides.length === 0 && !guidesFromCatalog && (
                 <p className="text-sm text-gray-500">{t('detailGuidesEmpty')}</p>
               )}
-              {!guidesLoading && guides.length > 0 && (
+
+              {!guidesLoading && guides.length > 0 && filteredGuides.length === 0 && (
+                <p className="text-sm text-gray-500">{t('bookGuideSearchEmpty')}</p>
+              )}
+
+              {!guidesLoading && filteredGuides.length > 0 && (
                 <ul className="grid min-w-0 gap-3">
-                  {guides.map((g) => (
+                  {filteredGuides.map((g) => (
                     <GuideNearbyCard
                       key={g.id}
                       guide={g}
@@ -483,29 +571,13 @@ export function FerrataGuideBookingModal(props: {
           )}
 
           <div className="flex gap-2">
-            {step === 3 ? (
-              <button
-                type="button"
-                onClick={props.onClose}
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                {t('modalClose')}
-              </button>
-            ) : (
+            {step === 3 ? null : (
               <>
-                <button
-                  type="button"
-                  onClick={props.onClose}
-                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  {t('modalClose')}
-                </button>
-
                 {step === 1 && (
                   <button
                     type="submit"
                     form="ferrata-guide-booking-form"
-                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                    className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
                   >
                     {t('bookGuideNext')}
                   </button>

@@ -377,6 +377,28 @@ func akcijaSkipsClubFinances(akcija models.Akcija) bool {
 	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
 }
 
+func viewerIsRegisteredOnAkcija(db *gorm.DB, akcijaID uint, viewerID uint) bool {
+	if viewerID == 0 {
+		return false
+	}
+	var n int64
+	db.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND korisnik_id = ? AND status <> ?", akcijaID, viewerID, "otkazano").
+		Count(&n)
+	return n > 0
+}
+
+// viewerCanAccessPrivateAkcija: vodič akcije ili prijavljeni učesnik vide pun detalj privatne ture.
+func viewerCanAccessPrivateAkcija(db *gorm.DB, akcija *models.Akcija, viewer *models.Korisnik) bool {
+	if viewer == nil || akcija == nil {
+		return false
+	}
+	if akcija.VodicID > 0 && akcija.VodicID == viewer.ID {
+		return true
+	}
+	return viewerIsRegisteredOnAkcija(db, akcija.ID, viewer.ID)
+}
+
 // sqlClubOrganizedOnly: klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
 const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
 
@@ -465,6 +487,9 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 				// Privatna vodička akcija: detalji su dostupni ulogovanom korisniku sa validnim linkom.
 				canSeePrivateDetails = true
 			}
+			if viewer != nil && viewerCanAccessPrivateAkcija(db, &akcija, viewer) {
+				canSeePrivateDetails = true
+			}
 		}
 
 		if !canSeePrivateDetails {
@@ -496,6 +521,7 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 			"vodicId":       akcija.VodicID,
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
 			"javna":                    akcija.Javna,
+			"organizatorTip":           akcija.OrganizatorTip,
 			"tipAkcije":                akcija.TipAkcije,
 			"trajanjeSati":             akcija.TrajanjeSati,
 			"rokPrijava":               akcija.RokPrijava,
@@ -651,7 +677,10 @@ func GetAkcije(c *gin.Context) {
 				aktivne[i].KlubLogoURL = aktivne[i].Klub.LogoURL
 			}
 		}
-		c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
+		resp := gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}}
+		appendGuideOwnedAkcije(gormDb, c, resp)
+		appendMyPrivateAkcije(gormDb, c, resp)
+		c.JSON(http.StatusOK, resp)
 		return
 	}
 
@@ -668,7 +697,10 @@ func GetAkcije(c *gin.Context) {
 				aktivne[i].KlubLogoURL = aktivne[i].Klub.LogoURL
 			}
 		}
-		c.JSON(http.StatusOK, gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}})
+		resp := gin.H{"aktivne": aktivne, "zavrsene": []models.Akcija{}}
+		appendGuideOwnedAkcije(gormDb, c, resp)
+		appendMyPrivateAkcije(gormDb, c, resp)
+		c.JSON(http.StatusOK, resp)
 		return
 	}
 
@@ -702,6 +734,7 @@ func GetAkcije(c *gin.Context) {
 		"zavrsene": zavrsene,
 	}
 	appendGuideOwnedAkcije(gormDb, c, resp)
+	appendMyPrivateAkcije(gormDb, c, resp)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -726,6 +759,41 @@ func appendGuideOwnedAkcije(db *gorm.DB, c *gin.Context, resp gin.H) {
 	_ = db.Where(guideBase+" AND is_completed = ?", "vodic", viewer.ID, true).Order("datum DESC").Find(&vodeneZavrsene).Error
 	resp["vodeneAktivne"] = vodeneAktivne
 	resp["vodeneZavrsene"] = vodeneZavrsene
+}
+
+func appendMyPrivateAkcije(db *gorm.DB, c *gin.Context, resp gin.H) {
+	empty := []models.Akcija{}
+	resp["mojePrivatneAktivne"] = empty
+	resp["mojePrivatneZavrsene"] = empty
+
+	usernameVal, ok := c.Get("username")
+	if !ok {
+		return
+	}
+	var viewer models.Korisnik
+	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(usernameVal)).First(&viewer).Error; err != nil {
+		return
+	}
+
+	var prijavaAkcijaIDs []uint
+	db.Model(&models.Prijava{}).
+		Where("korisnik_id = ? AND status <> ?", viewer.ID, "otkazano").
+		Pluck("akcija_id", &prijavaAkcijaIDs)
+
+	loadPrivate := func(completed bool) []models.Akcija {
+		q := db.Where("javna = ? AND is_completed = ?", false, completed)
+		if len(prijavaAkcijaIDs) > 0 {
+			q = q.Where("vodic_id = ? OR id IN ?", viewer.ID, prijavaAkcijaIDs)
+		} else {
+			q = q.Where("vodic_id = ?", viewer.ID)
+		}
+		var rows []models.Akcija
+		_ = q.Order("datum DESC").Find(&rows).Error
+		return rows
+	}
+
+	resp["mojePrivatneAktivne"] = loadPrivate(false)
+	resp["mojePrivatneZavrsene"] = loadPrivate(true)
 }
 
 func belgradeLoc() *time.Location {
@@ -1620,6 +1688,17 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 	} else if akcijaZaPravo.KlubID != nil {
 		if viewerClubID, ok := helpers.GetEffectiveClubID(c, db); ok && viewerClubID == *akcijaZaPravo.KlubID {
 			canSeePrijave = true
+		}
+	}
+	if !canSeePrijave {
+		username, exists := c.Get("username")
+		if exists {
+			var viewer models.Korisnik
+			if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&viewer).Error; err == nil {
+				if viewerCanAccessPrivateAkcija(db, &akcijaZaPravo, &viewer) {
+					canSeePrijave = true
+				}
+			}
 		}
 	}
 	if !canSeePrijave {

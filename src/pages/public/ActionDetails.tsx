@@ -782,7 +782,13 @@ export default function ActionDetails() {
       const mp = await api.get(`/api/akcije/${id}/moja-prijava`)
       setMojaPrijava(mp.data.prijava ?? null)
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'Greška pri čuvanju izbora', t('errorTitle'))
+      const apiError = err?.response?.data?.error as string | undefined
+      const friendly =
+        apiError && (/maksimalan broj/i.test(apiError) || /popunjen/i.test(apiError))
+          ? t('registrationFullFriendly')
+          : (apiError || 'Greška pri čuvanju izbora')
+      const isFull = friendly === t('registrationFullFriendly')
+      await showAlert(friendly, isFull ? undefined : t('errorTitle'))
     } finally {
       setSavingSelections(false)
     }
@@ -1277,6 +1283,8 @@ export default function ActionDetails() {
   const uspesnoPopeli = prijave.filter((p) => p.status === 'popeo se')
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
+  const isFerrataAction = akcija.tipAkcije === 'via_ferrata'
+  const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
   const canManageHost = !!(user && canManageHostAkcija(user, {
         klubId: akcija.klubId,
         organizatorTip: akcija.organizatorTip,
@@ -1545,7 +1553,7 @@ export default function ActionDetails() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
               </svg>
               {locationSubtitle}
-              {akcija.visinaVrhM != null && ` · ${akcija.visinaVrhM} m`}
+              {showPeakHeight && ` · ${akcija.visinaVrhM} m`}
             </p>
           </div>
         </div>
@@ -1627,7 +1635,7 @@ export default function ActionDetails() {
                     </svg>
                     {locationSubtitle}
                   </span>
-                  {akcija.visinaVrhM != null && (
+                  {showPeakHeight && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
@@ -1754,8 +1762,8 @@ export default function ActionDetails() {
                   )}
                 </div>
 
-                {/* Top left: peak altitude */}
-                {akcija.visinaVrhM != null && (
+                {/* Top left: peak altitude (planina) */}
+                {showPeakHeight && (
                   <div className="absolute top-4 left-4 px-3 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
                     <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/80">{t('height', { defaultValue: 'Visina' })}</p>
                     <p className="text-xl font-extrabold text-white leading-none mt-0.5">
@@ -1849,7 +1857,7 @@ export default function ActionDetails() {
               value={akcija.vrh}
               label={t('peak')}
             />
-            {akcija.visinaVrhM != null && (
+            {showPeakHeight && (
               <StatCell
                 icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
                 value={`${akcija.visinaVrhM}`}

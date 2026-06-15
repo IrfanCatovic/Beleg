@@ -62,6 +62,8 @@ export default function Actions() {
   const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
   const [vodeneAktivne, setVodeneAktivne] = useState<Akcija[]>([])
   const [vodeneZavrsene, setVodeneZavrsene] = useState<Akcija[]>([])
+  const [mojePrivatneAktivne, setMojePrivatneAktivne] = useState<Akcija[]>([])
+  const [mojePrivatneZavrsene, setMojePrivatneZavrsene] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
   const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -139,25 +141,29 @@ export default function Actions() {
   const clubAktivne = useMemo(() => aktivneAkcije.filter(isClubListedAkcija), [aktivneAkcije])
   const clubZavrsene = useMemo(() => zavrseneAkcije.filter(isClubListedAkcija), [zavrseneAkcije])
 
-  const combinedAktivne = useMemo(() => {
-    if (actionSourceFilter === 'guide') return vodeneAktivne
-    if (actionSourceFilter === 'all') {
-      const byId = new Map<number, Akcija>()
-      ;[...clubAktivne, ...vodeneAktivne].forEach((a) => byId.set(a.id, a))
-      return Array.from(byId.values())
+  const mergeAkcijeById = (...lists: Akcija[][]) => {
+    const byId = new Map<number, Akcija>()
+    for (const list of lists) {
+      for (const a of list) byId.set(a.id, a)
     }
-    return clubAktivne
-  }, [actionSourceFilter, clubAktivne, vodeneAktivne])
+    return Array.from(byId.values())
+  }
+
+  const combinedAktivne = useMemo(() => {
+    if (actionSourceFilter === 'guide') return mergeAkcijeById(vodeneAktivne, mojePrivatneAktivne)
+    if (actionSourceFilter === 'all') {
+      return mergeAkcijeById(clubAktivne, vodeneAktivne, mojePrivatneAktivne)
+    }
+    return mergeAkcijeById(clubAktivne, mojePrivatneAktivne)
+  }, [actionSourceFilter, clubAktivne, vodeneAktivne, mojePrivatneAktivne])
 
   const combinedZavrsene = useMemo(() => {
-    if (actionSourceFilter === 'guide') return vodeneZavrsene
+    if (actionSourceFilter === 'guide') return mergeAkcijeById(vodeneZavrsene, mojePrivatneZavrsene)
     if (actionSourceFilter === 'all') {
-      const byId = new Map<number, Akcija>()
-      ;[...clubZavrsene, ...vodeneZavrsene].forEach((a) => byId.set(a.id, a))
-      return Array.from(byId.values())
+      return mergeAkcijeById(clubZavrsene, vodeneZavrsene, mojePrivatneZavrsene)
     }
-    return clubZavrsene
-  }, [actionSourceFilter, clubZavrsene, vodeneZavrsene])
+    return mergeAkcijeById(clubZavrsene, mojePrivatneZavrsene)
+  }, [actionSourceFilter, clubZavrsene, vodeneZavrsene, mojePrivatneZavrsene])
 
   const filteredAktivne = useMemo(
     () => combinedAktivne.filter(matchesFilters),
@@ -206,6 +212,8 @@ export default function Actions() {
         setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(isClubListedAkcija))
         setVodeneAktivne(akcijeRes.data.vodeneAktivne || [])
         setVodeneZavrsene(akcijeRes.data.vodeneZavrsene || [])
+        setMojePrivatneAktivne(akcijeRes.data.mojePrivatneAktivne || [])
+        setMojePrivatneZavrsene(akcijeRes.data.mojePrivatneZavrsene || [])
 
         const mojeRes = await api.get('/api/moje-prijave')
         const ids = mojeRes.data.prijavljeneAkcije || []
