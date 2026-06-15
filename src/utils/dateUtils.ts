@@ -39,6 +39,36 @@ export function formatDateShort(
 }
 
 /**
+ * Datum za bedž nagrade (npr. "15. 06. 2025.") — samo brojevi.
+ */
+export function formatBadgeDate(
+  value: string | number | Date | null | undefined,
+  fallback = '—'
+): string {
+  if (value == null) return fallback
+  const d = parseLocalDate(value)
+  if (!d) return fallback
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}. ${month}. ${year}.`
+}
+
+function parseLocalDate(value: string | number | Date): Date | null {
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value
+  if (typeof value === 'string') {
+    const ymd = value.trim().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+      const [y, m, day] = ymd.split('-').map(Number)
+      const d = new Date(y, m - 1, day)
+      return isNaN(d.getTime()) ? null : d
+    }
+  }
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? null : d
+}
+
+/**
  * Datum i vreme (npr. "15.1.2025., 14:30").
  */
 export function formatDateTime(

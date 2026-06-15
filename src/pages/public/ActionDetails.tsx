@@ -289,7 +289,6 @@ export default function ActionDetails() {
     }
 
     const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
-    const dateFormatted = formatDate(akcija.datum)
     const ferrataPayload = {
       id: akcija.id,
       naziv: akcija.naziv,
@@ -310,7 +309,7 @@ export default function ActionDetails() {
       setSummitPreviewLoading(true)
       void (async () => {
         try {
-          const preview = await getFerrataBadgePreviewDataUrl(ferrataPayload, dateFormatted, 220)
+          const preview = await getFerrataBadgePreviewDataUrl(ferrataPayload, 220)
           if (!cancelled) setFerrataBadgePreview(preview)
         } catch {
           if (!cancelled) setFerrataBadgePreview(null)
@@ -352,6 +351,7 @@ export default function ActionDetails() {
       per: t('summitPngPer'),
       ferrata: t('summitPngFerrata'),
     }
+    const dateFormatted = formatDate(akcija.datum)
     setSummitPreviewBalanced(null)
     setSummitPreviewStacked(null)
     setSummitPreviewLoading(true)
@@ -1442,17 +1442,14 @@ export default function ActionDetails() {
 
   const handleFerrataBadgeDownload = async () => {
     try {
-      await downloadFerrataBadgePng(
-        {
+      await downloadFerrataBadgePng({
           id: akcija.id,
           naziv: akcija.naziv,
           vrh: akcija.vrh,
           datum: akcija.datum,
           tezina: akcija.tezina,
           ferrataSnapshot: akcija.ferrataSnapshot,
-        },
-        formatDate(akcija.datum),
-      )
+        })
       closeSummitShareModal()
     } catch {
       await showAlert(t('summitPngError'), t('errorTitle'))
