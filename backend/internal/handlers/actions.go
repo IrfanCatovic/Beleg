@@ -2283,14 +2283,16 @@ func DodajClanaPopeoSe(c *gin.Context) {
 		}
 	}
 
-	korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
-	korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
-	korisnik.BrojPopeoSe += 1
-	if err := db.Save(&korisnik).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
-		return
+	if helpers.PrijavaCountsAsClimbedPeak(db, &akcija, korisnik.ID) {
+		korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
+		korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
+		korisnik.BrojPopeoSe += 1
+		if err := db.Save(&korisnik).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
+			return
+		}
+		notifications.NotifySummitReward(db, korisnik.ID, akcija)
 	}
-	notifications.NotifySummitReward(db, korisnik.ID, akcija)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Član je dodat na završenu akciju kao uspešno popeo se",
@@ -2430,7 +2432,7 @@ func BulkAddClubMembersCompleted(c *gin.Context) {
 				perUser = append(perUser, gin.H{"korisnikId": korisnikID, "status": "updated"})
 			}
 
-			if newlySummited {
+			if newlySummited && helpers.PrijavaCountsAsClimbedPeak(tx, &akcija, korisnik.ID) {
 				korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
 				korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
 				korisnik.BrojPopeoSe += 1
@@ -2981,7 +2983,8 @@ func UpdatePrijavaStatus(c *gin.Context) {
 
 	wasPopeoSe := prijava.Status == "popeo se"
 	willBePopeoSe := req.Status == "popeo se"
-	if wasPopeoSe != willBePopeoSe {
+	countsAsPeak := helpers.PrijavaCountsAsClimbedPeak(db, &prijava.Akcija, prijava.KorisnikID)
+	if wasPopeoSe != willBePopeoSe && countsAsPeak {
 		var korisnik models.Korisnik
 		if err := db.First(&korisnik, prijava.KorisnikID).Error; err != nil {
 			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
@@ -3048,7 +3051,7 @@ func DeletePrijava(c *gin.Context) {
 		return
 	}
 
-	if prijava.Status == "popeo se" {
+	if prijava.Status == "popeo se" && helpers.PrijavaCountsAsClimbedPeak(db, &prijava.Akcija, prijava.KorisnikID) {
 		var korisnik models.Korisnik
 		if err := db.First(&korisnik, prijava.KorisnikID).Error; err == nil {
 			korisnik.UkupnoKmKorisnik -= prijava.Akcija.UkupnoKmAkcija

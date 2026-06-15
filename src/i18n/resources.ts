@@ -1680,6 +1680,7 @@ export const resources = {
           guideSelfHint: 'Vi ste vodič ove ture; akcija nije vezana za klub.',
         },
         visibility: { club: 'Klubska', private: 'Privatna', public: 'Javna', clubHint: 'Klubska: vide je klub; javna: svi mogu da je vide i prijave se.', guideHint: 'Privatna: samo vaše vođene ture; javna: vidljiva u javnom katalogu (npr. ferata).' },
+        guidePicker: { clubSection: 'Vodiči kluba', profiSection: 'Profi vodiči na app-u' },
         currency: { title: 'Valuta kluba:', help: 'Sve cene u sledećim koracima unosite u {{currency}} (kao u finansijama kluba).' },
         image: { currentAlreadySet: 'Trenutna slika je već postavljena.' },
         ferrata: {

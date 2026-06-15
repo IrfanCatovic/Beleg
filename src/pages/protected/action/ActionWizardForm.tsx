@@ -16,6 +16,8 @@ export interface WizardGuide {
   id: number
   username: string
   fullName: string
+  isProfiGuide?: boolean
+  source?: 'club' | 'profi'
 }
 
 export interface WizardSmestaj {
@@ -233,6 +235,30 @@ export function ActionWizardForm({
     ? `${selectedGuide.fullName} (@${selectedGuide.username})`
     : ''
 
+  const guideDropdownOptions = useMemo(() => {
+    const club = guides.filter((g) => g.source !== 'profi')
+    const profi = guides.filter((g) => g.source === 'profi')
+    const opts: { value: string; label: string; disabled?: boolean }[] = [{ value: '', label: t('guide.pick') }]
+    if (club.length > 0) {
+      opts.push({ value: '__club_hdr__', label: t('wizard.guidePicker.clubSection'), disabled: true })
+      for (const g of club) {
+        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+      }
+    }
+    if (profi.length > 0) {
+      opts.push({ value: '__profi_hdr__', label: t('wizard.guidePicker.profiSection'), disabled: true })
+      for (const g of profi) {
+        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+      }
+    }
+    if (club.length === 0 && profi.length === 0) {
+      for (const g of guides) {
+        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+      }
+    }
+    return opts
+  }, [guides, t])
+
   const addSmestaj = () =>
     patch({
       smestaj: [
@@ -359,9 +385,6 @@ export function ActionWizardForm({
                 onChange={(v) => patch({ visibility: v as VisibilityKind })}
                 fullWidth
               />
-              <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
-                {isGuideOrganizer ? t('wizard.visibility.guideHint') : t('wizard.visibility.clubHint')}
-              </p>
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>{t('fields.actionName')}</label>
@@ -628,10 +651,7 @@ export function ActionWizardForm({
                       <label className={labelClass}>{t('fields.guide')}</label>
                       <Dropdown
                         aria-label={t('fields.guide')}
-                        options={[
-                          { value: '', label: t('guide.pick') },
-                          ...guides.map((v) => ({ value: String(v.id), label: `${v.fullName} (@${v.username})` })),
-                        ]}
+                        options={guideDropdownOptions}
                         value={values.vodicId}
                         onChange={(v) => patch({ vodicId: v })}
                         fullWidth

@@ -7,13 +7,9 @@ import { canManageHostAkcija } from '../../../utils/canManageAkcija'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
 import { parseClubCurrency } from '../../../utils/clubCurrency'
+import { loadActionFormGuides } from '../../../services/actionFormGuides'
 
-interface Korisnik {
-  id: number
-  username: string
-  fullName: string
-  role: string
-}
+interface Korisnik extends WizardGuide {}
 
 interface AkcijaData {
   id: number
@@ -111,9 +107,7 @@ export default function EditAction() {
   useEffect(() => {
     const fetchVodici = async () => {
       try {
-        const res = await api.get('/api/korisnici')
-        const korisnici = res.data.korisnici || []
-        setVodici(korisnici.filter((k: Korisnik) => k.role === 'vodic'))
+        setVodici(await loadActionFormGuides())
       } catch {
         setVodici([])
       }
@@ -409,7 +403,7 @@ export default function EditAction() {
     }
   }
 
-  const guides: WizardGuide[] = vodici.map((v) => ({ id: v.id, username: v.username, fullName: v.fullName }))
+  const guides: WizardGuide[] = vodici
 
   if (loadingData) {
     return (

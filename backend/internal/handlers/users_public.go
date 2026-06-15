@@ -109,6 +109,9 @@ func GetPublicKorisnikStatistika(c *gin.Context) {
 		if p.Akcija.ID == 0 {
 			continue
 		}
+		if !helpers.PrijavaCountsAsClimbedPeak(db, &p.Akcija, korisnik.ID) {
+			continue
+		}
 		ukupnoKm += p.Akcija.UkupnoKmAkcija
 		ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
 		brojPopeoSe++
@@ -146,6 +149,9 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 	var brojPopeoSe int
 	for _, p := range prijave {
 		if p.Akcija.ID != 0 {
+			if !helpers.PrijavaCountsAsClimbedPeak(db, &p.Akcija, uint(targetID)) {
+				continue
+			}
 			uspesneAkcije = append(uspesneAkcije, p.Akcija)
 			ukupnoKm += p.Akcija.UkupnoKmAkcija
 			ukupnoMetaraUspona += p.Akcija.UkupnoMetaraUsponaAkcija
@@ -178,13 +184,17 @@ func GetPublicKorisnikVodio(c *gin.Context) {
 	}
 
 	var vodeneAkcije []models.Akcija
-	q := db.Where(
-		"vodic_id = ? AND LOWER(TRIM(organizator_tip)) = ? AND is_completed = ? AND tip_akcije = ?",
-		korisnik.ID, "vodic", true, "via_ferrata",
-	)
-	if err := q.Order("datum DESC").Find(&vodeneAkcije).Error; err != nil {
+	var allLed []models.Akcija
+	if err := db.Where("vodic_id = ? AND is_completed = ?", korisnik.ID, true).
+		Order("datum DESC").
+		Find(&allLed).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vođenih akcija"})
 		return
+	}
+	for i := range allLed {
+		if helpers.AkcijaCountsAsGuidedTourForVodic(db, &allLed[i], korisnik.ID) {
+			vodeneAkcije = append(vodeneAkcije, allLed[i])
+		}
 	}
 
 	for i := range vodeneAkcije {

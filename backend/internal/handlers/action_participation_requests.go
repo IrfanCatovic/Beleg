@@ -695,7 +695,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			return err
 		}
 
-		if !alreadyPopeoSe {
+		if !alreadyPopeoSe && helpers.PrijavaCountsAsClimbedPeak(tx, &req.Akcija, req.TargetUserID) {
 			req.TargetUser.UkupnoKmKorisnik += req.Akcija.UkupnoKmAkcija
 			req.TargetUser.UkupnoMetaraUsponaKorisnik += req.Akcija.UkupnoMetaraUsponaAkcija
 			req.TargetUser.BrojPopeoSe += 1

@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
 import { parseClubCurrency } from '../../../utils/clubCurrency'
+import { loadActionFormGuides } from '../../../services/actionFormGuides'
 import {
   buildGuideBookingFormContext,
   buildGuideBookingWizardPrefill,
@@ -29,12 +30,7 @@ import {
 } from '../../../components/ferrate/guideBookingDisplayLabels'
 import Loader from '../../../components/Loader'
 
-interface Korisnik {
-  id: number
-  username: string
-  fullName: string
-  role: string
-}
+interface Korisnik extends WizardGuide {}
 
 const initialWizardValues = (tip: 'planina' | 'via_ferrata', fromBooking = false): WizardValues => ({
   naziv: '',
@@ -257,9 +253,7 @@ export default function AddAction() {
   useEffect(() => {
     const fetchVodici = async () => {
       try {
-        const res = await api.get('/api/korisnici')
-        const korisnici = res.data.korisnici || []
-        setVodici(korisnici.filter((k: Korisnik) => k.role === 'vodic'))
+        setVodici(await loadActionFormGuides())
       } catch {
         setVodici([])
       }
@@ -478,7 +472,7 @@ export default function AddAction() {
   }
 
   const guides: WizardGuide[] = (() => {
-    const base = vodici.map((v) => ({ id: v.id, username: v.username, fullName: v.fullName }))
+    const base = vodici
     if (!fromGuideBooking || !user?.username) return base
     if (base.some((g) => g.username === user.username)) return base
     const id = myKorisnikId ?? (initial.vodicId ? Number(initial.vodicId) : 0)

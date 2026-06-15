@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 export interface DropdownOption {
   value: string
   label: string
+  disabled?: boolean
 }
 
 interface DropdownProps {
@@ -91,12 +92,18 @@ export default function Dropdown({
               type="button"
               role="option"
               aria-selected={value === opt.value}
+              disabled={opt.disabled}
               onClick={() => {
+                if (opt.disabled) return
                 onChange(opt.value)
                 setOpen(false)
               }}
-              className={`block w-full px-3 py-2.5 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${
-                value === opt.value ? 'bg-green-50 text-[#41ac53] font-medium' : 'text-gray-700'
+              className={`block w-full px-3 py-2.5 text-left text-sm focus:outline-none ${
+                opt.disabled
+                  ? 'cursor-default text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50/80'
+                  : value === opt.value
+                    ? 'bg-green-50 text-[#41ac53] font-medium hover:bg-gray-100 focus:bg-gray-100'
+                    : 'text-gray-700 hover:bg-gray-100 focus:bg-gray-100'
               }`}
             >
               {opt.label}
