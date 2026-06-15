@@ -10,7 +10,9 @@ import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { HotelMarkerElement } from '../../map/markers/HotelMarkerElement'
+import { PeakMarkerElement } from '../../map/markers/PeakMarkerElement'
 import { FerrataGuideBookingModal } from '../../components/ferrate/FerrataGuideBookingModal'
+import { PeakCreateActionModal, type PeakActionPeak } from '../../components/map/PeakCreateActionModal'
 
 const DEFAULT_CENTER = { longitude: 21.0059, latitude: 44.0165, zoom: 6.2 }
 
@@ -34,7 +36,20 @@ type HotelPin = {
   lng: number
 }
 
-type ActivePopup = { kind: 'ferrata' | 'hotel'; id: number } | null
+type PeakPin = {
+  id: number
+  naziv: string
+  planina: string
+  visinaM: number
+  drzava: string
+  grad: string
+  lat: number
+  lng: number
+}
+
+type ActivePopup = { kind: 'ferrata' | 'hotel' | 'peak'; id: number } | null
+
+const CLUB_ROLES = ['superadmin', 'admin', 'vodic']
 
 function toFiniteNumber(v: unknown): number | null {
   const n = Number(v)
@@ -58,14 +73,20 @@ export default function MapaExplore() {
 
   const [ferrate, setFerrate] = useState<FerrataPin[]>([])
   const [hotels, setHotels] = useState<HotelPin[]>([])
+  const [peaks, setPeaks] = useState<PeakPin[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [showFerrate, setShowFerrate] = useState(true)
   const [showHotels, setShowHotels] = useState(true)
+  const [showPeaks, setShowPeaks] = useState(true)
   const [activePopup, setActivePopup] = useState<ActivePopup>(null)
   const [bookingFerrata, setBookingFerrata] = useState<FerrataPin | null>(null)
   const [canCreateGuideAction, setCanCreateGuideAction] = useState(false)
+  const [createActionPeak, setCreateActionPeak] = useState<PeakActionPeak | null>(null)
+
+  const canClub = !!user && CLUB_ROLES.includes(user.role)
+  const canCreatePeakAction = canClub || canCreateGuideAction
 
   useEffect(() => {
     let cancelled = false
@@ -73,10 +94,15 @@ export default function MapaExplore() {
       setLoading(true)
       setError('')
       try {
-        const [fRes, hRes] = await Promise.all([api.get('/api/ferratas'), api.get('/api/hotels')])
+        const [fRes, hRes, pRes] = await Promise.all([
+          api.get('/api/ferratas'),
+          api.get('/api/hotels'),
+          api.get('/api/peaks'),
+        ])
         if (cancelled) return
         const fRows = (fRes.data?.ferrate ?? []) as Array<Record<string, unknown>>
         const hRows = (hRes.data?.hotels ?? []) as Array<Record<string, unknown>>
+        const pRows = (pRes.data?.peaks ?? []) as Array<Record<string, unknown>>
 
         const fPins: FerrataPin[] = []
         for (const r of fRows) {
@@ -110,8 +136,26 @@ export default function MapaExplore() {
           })
         }
 
+        const pPins: PeakPin[] = []
+        for (const r of pRows) {
+          const lat = toFiniteNumber(r.lat)
+          const lng = toFiniteNumber(r.lng)
+          if (lat == null || lng == null) continue
+          pPins.push({
+            id: Number(r.id),
+            naziv: String(r.naziv ?? ''),
+            planina: String(r.planina ?? ''),
+            visinaM: toFiniteNumber(r.visinaM) ?? 0,
+            drzava: String(r.drzava ?? ''),
+            grad: String(r.grad ?? ''),
+            lat,
+            lng,
+          })
+        }
+
         setFerrate(fPins)
         setHotels(hPins)
+        setPeaks(pPins)
       } catch {
         if (!cancelled) setError(t('mapExplore.error'))
       } finally {
@@ -144,14 +188,16 @@ export default function MapaExplore() {
 
   const visibleFerrate = showFerrate ? ferrate : []
   const visibleHotels = showHotels ? hotels : []
+  const visiblePeaks = showPeaks ? peaks : []
 
   const boundsKey = useMemo(
     () =>
       [
         showFerrate ? visibleFerrate.map((m) => m.id).join(',') : '',
         showHotels ? visibleHotels.map((m) => m.id).join(',') : '',
+        showPeaks ? visiblePeaks.map((m) => m.id).join(',') : '',
       ].join('|'),
-    [showFerrate, showHotels, visibleFerrate, visibleHotels],
+    [showFerrate, showHotels, showPeaks, visibleFerrate, visibleHotels, visiblePeaks],
   )
 
   const fitMarkers = useCallback(() => {
@@ -160,6 +206,7 @@ export default function MapaExplore() {
     const pts: Array<[number, number]> = [
       ...visibleFerrate.map((m) => [m.lng, m.lat] as [number, number]),
       ...visibleHotels.map((m) => [m.lng, m.lat] as [number, number]),
+      ...visiblePeaks.map((m) => [m.lng, m.lat] as [number, number]),
     ]
     if (pts.length === 0) {
       map.jumpTo({ center: [DEFAULT_CENTER.longitude, DEFAULT_CENTER.latitude], zoom: DEFAULT_CENTER.zoom })
@@ -172,7 +219,7 @@ export default function MapaExplore() {
     const b = new maplibregl.LngLatBounds()
     for (const p of pts) b.extend(p)
     map.fitBounds(b, { padding: 64, maxZoom: 12, duration: 400 })
-  }, [visibleFerrate, visibleHotels])
+  }, [visibleFerrate, visibleHotels, visiblePeaks])
 
   useEffect(() => {
     const map = mapRef.current?.getMap()
@@ -189,8 +236,9 @@ export default function MapaExplore() {
   const activeFerrata =
     activePopup?.kind === 'ferrata' ? ferrate.find((f) => f.id === activePopup.id) : undefined
   const activeHotel = activePopup?.kind === 'hotel' ? hotels.find((h) => h.id === activePopup.id) : undefined
+  const activePeak = activePopup?.kind === 'peak' ? peaks.find((p) => p.id === activePopup.id) : undefined
 
-  const totalPins = ferrate.length + hotels.length
+  const totalPins = ferrate.length + hotels.length + peaks.length
 
   const chipBase =
     'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold shadow-sm transition active:scale-[0.97] sm:text-sm'
@@ -239,6 +287,22 @@ export default function MapaExplore() {
                 {t('mapExplore.layerHotels')}
                 <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">
                   {hotels.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPeaks((v) => !v)}
+                aria-pressed={showPeaks}
+                className={`${chipBase} ${
+                  showPeaks
+                    ? 'border-indigo-300 bg-indigo-50 text-indigo-800'
+                    : 'border-gray-200 bg-white text-gray-400'
+                }`}
+              >
+                <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-sky-300 to-indigo-700" />
+                {t('mapExplore.layerPeaks')}
+                <span className="rounded-full bg-indigo-100 px-1.5 text-[10px] font-bold text-indigo-700">
+                  {peaks.length}
                 </span>
               </button>
             </div>
@@ -306,6 +370,23 @@ export default function MapaExplore() {
             >
               <div className="touch-manipulation" role="presentation">
                 <HotelMarkerElement />
+              </div>
+            </Marker>
+          ))}
+
+          {visiblePeaks.map((m) => (
+            <Marker
+              key={`p-${m.id}`}
+              longitude={m.lng}
+              latitude={m.lat}
+              anchor="bottom"
+              onClick={(e) => {
+                e.originalEvent.stopPropagation()
+                setActivePopup((p) => (p?.kind === 'peak' && p.id === m.id ? null : { kind: 'peak', id: m.id }))
+              }}
+            >
+              <div className="touch-manipulation" role="presentation">
+                <PeakMarkerElement />
               </div>
             </Marker>
           ))}
@@ -426,6 +507,65 @@ export default function MapaExplore() {
               </div>
             </Popup>
           )}
+
+          {activePeak && (
+            <Popup
+              longitude={activePeak.lng}
+              latitude={activePeak.lat}
+              anchor="bottom"
+              offset={20}
+              onClose={() => setActivePopup(null)}
+              closeButton
+              closeOnClick={false}
+              maxWidth="280px"
+            >
+              <div className="min-w-[12rem] space-y-2.5 p-1 text-sm">
+                <div>
+                  <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+                    {t('mapExplore.popupPeakBadge')}
+                  </span>
+                  <p className="mt-1 font-bold leading-snug text-gray-900">{activePeak.naziv}</p>
+                  {activePeak.planina?.trim() && (
+                    <p className="mt-0.5 text-xs text-gray-500">{activePeak.planina}</p>
+                  )}
+                </div>
+                <dl className="space-y-1 text-xs text-gray-600">
+                  {activePeak.visinaM > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-400">{t('mapExplore.popupPeakHeight')}</dt>
+                      <dd className="font-semibold text-gray-800">{activePeak.visinaM} m</dd>
+                    </div>
+                  )}
+                  {(activePeak.grad?.trim() || activePeak.drzava?.trim()) && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-gray-400">{t('mapExplore.popupPeakLocation')}</dt>
+                      <dd className="truncate font-semibold text-gray-800">
+                        {[activePeak.grad, activePeak.drzava].filter((s) => s?.trim()).join(', ')}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+                {canCreatePeakAction && (
+                  <div className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCreateActionPeak({
+                          id: activePeak.id,
+                          naziv: activePeak.naziv,
+                          planina: activePeak.planina,
+                        })
+                      }
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      {t('mapExplore.popupCreateAction')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Popup>
+          )}
         </PlaninerMapFrame>
       </div>
 
@@ -441,6 +581,14 @@ export default function MapaExplore() {
           ferrataLng={bookingFerrata.lng}
         />
       )}
+
+      <PeakCreateActionModal
+        open={createActionPeak != null}
+        onClose={() => setCreateActionPeak(null)}
+        peak={createActionPeak}
+        canClub={canClub}
+        canGuide={canCreateGuideAction}
+      />
     </div>
   )
 }

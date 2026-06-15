@@ -82,6 +82,7 @@ func migrateAndSeed(db *gorm.DB) {
 		&models.Ferrata{},
 		&models.FerrataContact{},
 		&models.Hotel{},
+		&models.Peak{},
 		&models.Akcija{},
 		&models.AkcijaSmestaj{},
 		&models.AkcijaOprema{},

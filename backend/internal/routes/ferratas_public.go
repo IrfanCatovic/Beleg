@@ -9,6 +9,8 @@ import (
 func RegisterFerrataPublicRoutes(r *gin.Engine) {
 	r.GET("/api/hotels", handlers.ListHotelsAll)
 	r.GET("/api/hotels/nearby", handlers.ListHotelsNearby)
+	r.GET("/api/peaks", handlers.ListPeaks)
+	r.GET("/api/peaks/:id", handlers.GetPeakByID)
 	r.GET("/api/guides", handlers.ListGuidesCatalog)
 	r.GET("/api/guides/nearby", handlers.ListGuidesNearby)
 	r.GET("/api/ferratas", handlers.ListFerratas)

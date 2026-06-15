@@ -36,6 +36,12 @@ func RegisterSuperadminRoutes(g *gin.RouterGroup) {
 	g.PUT("/superadmin/hotels/:id", handlers.SuperadminUpdateHotel)
 	g.DELETE("/superadmin/hotels/:id", handlers.SuperadminDeleteHotel)
 
+	g.GET("/superadmin/peaks", handlers.SuperadminListPeaks)
+	g.POST("/superadmin/peaks", handlers.SuperadminCreatePeak)
+	g.GET("/superadmin/peaks/:id", handlers.SuperadminGetPeak)
+	g.PUT("/superadmin/peaks/:id", handlers.SuperadminUpdatePeak)
+	g.DELETE("/superadmin/peaks/:id", handlers.SuperadminDeletePeak)
+
 	g.GET("/superadmin/guide-profiles", handlers.SuperadminListGuideProfiles)
 	g.GET("/superadmin/guide-profiles/pending", handlers.SuperadminListPendingGuideProfiles)
 	g.PUT("/superadmin/guide-profiles/:id/approve", handlers.SuperadminApproveGuideProfile)

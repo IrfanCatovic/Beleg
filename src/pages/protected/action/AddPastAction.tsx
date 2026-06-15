@@ -5,6 +5,7 @@ import api from '../../../services/api'
 import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 import { useTranslation } from 'react-i18next'
+import { peakActionPrefillFrom, type PeakDTO } from '../../../components/map/peakActionPrefill'
 
 interface Korisnik {
   id: number
@@ -110,6 +111,34 @@ export default function AddPastAction() {
 
     fetchData()
   }, [user])
+
+  useEffect(() => {
+    const peakIdParam = searchParams.get('peak_id')
+    const peakId = peakIdParam ? Number(peakIdParam) : 0
+    if (tipAkcije !== 'planina' || !(peakId > 0)) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await api.get(`/api/peaks/${peakId}`)
+        if (cancelled) return
+        const peak = res.data?.peak as PeakDTO | undefined
+        if (!peak) return
+        const patch = peakActionPrefillFrom(peak)
+        setShowLegacyCreate(true)
+        if (patch.planina) setPlanina(patch.planina)
+        if (patch.vrh) setVrh(patch.vrh)
+        if (patch.visinaVrhM) setVisinaVrhM(patch.visinaVrhM)
+        setNaziv((prev) => prev || patch.naziv)
+        setOpis((prev) => prev || patch.opis)
+      } catch {
+        /* prefill nije kritičan */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, tipAkcije])
 
   const filteredActions = useMemo(() => {
     const q = actionQuery.trim().toLowerCase()

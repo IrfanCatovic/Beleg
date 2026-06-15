@@ -45,6 +45,7 @@ import SuperadminKlubovi from './pages/protected/SuperadminKlubovi'
 import SuperadminFerratas from './pages/protected/SuperadminFerratas'
 import SuperadminFerrataGallery from './pages/protected/SuperadminFerrataGallery'
 import SuperadminHotels from './pages/protected/SuperadminHotels'
+import SuperadminPeaks from './pages/protected/SuperadminPeaks'
 import SuperadminGuideProfiles from './pages/protected/SuperadminGuideProfiles'
 import BecomeGuideWizard from './pages/protected/guide/BecomeGuideWizard'
 import Klub from './pages/protected/Klub'
@@ -212,6 +213,7 @@ const router = createBrowserRouter([
               { path: '/superadmin/ferrate', element: <SuperadminFerratas /> },
               { path: '/superadmin/ferrate/:ferrataId/galerija', element: <SuperadminFerrataGallery /> },
               { path: '/superadmin/hoteli', element: <SuperadminHotels /> },
+              { path: '/superadmin/vrhovi', element: <SuperadminPeaks /> },
               { path: '/superadmin/vodici-profiles', element: <SuperadminGuideProfiles /> },
             ],
           },

@@ -47,7 +47,8 @@
 }
 
 .planiner-marker-ferrata,
-.planiner-marker-hotel {
+.planiner-marker-hotel,
+.planiner-marker-peak {
   cursor: pointer;
   /* svetla aura — marker se vidi i na tamnoj karti i na svetloj */
   filter:
@@ -57,6 +58,7 @@
 }
 
 .planiner-marker-ferrata:hover,
-.planiner-marker-hotel:hover {
+.planiner-marker-hotel:hover,
+.planiner-marker-peak:hover {
   transform: scale(1.08) translateY(-0.25rem);
 }

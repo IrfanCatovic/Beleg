@@ -6,10 +6,16 @@ import Loader from '../Loader'
 
 const CLUB_ACTION_ROLES = ['superadmin', 'admin', 'vodic'] as const
 
-function isGuideFerrataFlow(searchParams: URLSearchParams): boolean {
-  if (searchParams.get('tip') !== 'via_ferrata') return false
-  if (searchParams.get('booking_id')) return true
-  return searchParams.get('organizator') === 'vodic'
+function isGuideFlow(searchParams: URLSearchParams): boolean {
+  const tip = searchParams.get('tip')
+  if (tip === 'via_ferrata') {
+    if (searchParams.get('booking_id')) return true
+    return searchParams.get('organizator') === 'vodic'
+  }
+  if (tip === 'planina') {
+    return searchParams.get('organizator') === 'vodic'
+  }
+  return false
 }
 
 export default function AddActionRoute() {
@@ -28,7 +34,7 @@ export default function AddActionRoute() {
       return
     }
 
-    if (!isGuideFerrataFlow(searchParams)) {
+    if (!isGuideFlow(searchParams)) {
       setAccess('denied')
       return
     }

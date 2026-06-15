@@ -15,6 +15,7 @@ import {
   buildWizardPatchFromFerrataRow,
   ferrataCatalogFromApiRow,
 } from '../../../components/ferrate/ferrataWizardPrefill'
+import { peakActionPrefillFrom, type PeakDTO } from '../../../components/map/peakActionPrefill'
 import {
   acceptFerrataGuideBooking,
   canGuideCreateActionFromBooking,
@@ -91,7 +92,11 @@ export default function AddAction() {
     !fromGuideBooking &&
     searchParams.get('organizator') === 'vodic' &&
     Boolean(searchParams.get('ferrata_id'))
-  const fromGuideOrganizer = fromGuideBooking || fromFerrataProfiGuide
+  const peakIdParam = searchParams.get('peak_id')
+  const peakId = peakIdParam ? Number(peakIdParam) : 0
+  const fromPeak = tipAkcije === 'planina' && peakId > 0
+  const fromPeakGuide = fromPeak && searchParams.get('organizator') === 'vodic'
+  const fromGuideOrganizer = fromGuideBooking || fromFerrataProfiGuide || fromPeakGuide
 
   const [bookingContext, setBookingContext] = useState<GuideBookingFormContext | null>(null)
   const [bookingPrefillLoading, setBookingPrefillLoading] = useState(fromGuideBooking)
@@ -241,6 +246,45 @@ export default function AddAction() {
       cancelled = true
     }
   }, [fromGuideBooking, user?.username, vodici])
+
+  useEffect(() => {
+    if (!fromPeak) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await api.get(`/api/peaks/${peakId}`)
+        if (cancelled) return
+        const peak = res.data?.peak as PeakDTO | undefined
+        if (!peak) return
+        const patch = peakActionPrefillFrom(peak)
+        const selfId = fromPeakGuide ? await resolveMyKorisnikId() : null
+        if (!cancelled && selfId) setMyKorisnikId(selfId)
+        setInitial((prev) => ({
+          ...prev,
+          actionKind: 'planina',
+          planina: patch.planina || prev.planina,
+          vrh: patch.vrh || prev.vrh,
+          visinaVrhM: patch.visinaVrhM || prev.visinaVrhM,
+          planinaLat: patch.planinaLat || prev.planinaLat,
+          planinaLng: patch.planinaLng || prev.planinaLng,
+          naziv: prev.naziv || patch.naziv,
+          opis: prev.opis || patch.opis,
+          ...(fromPeakGuide
+            ? {
+                organizerType: 'vodic' as const,
+                vodicId: selfId ? String(selfId) : prev.vodicId,
+              }
+            : {}),
+        }))
+      } catch {
+        /* prefill nije kritičan — forma ostaje upotrebljiva i bez njega */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromPeak, fromPeakGuide, peakId])
 
   const todayYmd = (() => {
     const d = new Date()
