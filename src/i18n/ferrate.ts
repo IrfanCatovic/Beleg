@@ -253,6 +253,8 @@ export const ferrateTranslations = {
     popupBooking: 'Booking',
     popupInstagram: 'Instagram',
     popupHotelBadge: 'Smeštaj',
+    popupHotelGalleryEnlarge: 'Uvećaj fotografiju',
+    popupHotelGalleryCounter: '{{current}} / {{total}}',
     popupPeakBadge: 'Vrh',
     popupPeakHeight: 'Visina',
     popupPeakLocation: 'Lokacija',

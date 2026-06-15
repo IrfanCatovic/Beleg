@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CalendarDaysIcon, ArrowTopRightOnSquareIcon, PhoneIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { MapPopupShell } from './MapPopupShell'
+import { HotelPhotoCarousel } from './HotelPhotoCarousel'
 import { difficultyBadgeClass } from '../utils/difficultyBadgeClass'
 
 const btnPrimary =
@@ -109,7 +110,7 @@ type HotelPopupProps = {
 }
 
 export function HotelMapPopup({ hotel, onClose, t }: HotelPopupProps) {
-  const photos = (hotel.slike ?? []).map((u) => u?.trim()).filter(Boolean)
+  const photos = hotel.slike ?? []
 
   return (
     <MapPopupShell variant="hotel" longitude={hotel.lng} latitude={hotel.lat} onClose={onClose}>
@@ -129,19 +130,7 @@ export function HotelMapPopup({ hotel, onClose, t }: HotelPopupProps) {
       </div>
 
       <div className="planiner-map-popup-content">
-        {photos.length > 0 && (
-          <div
-            className="planiner-map-popup-stagger planiner-map-popup-stagger-1 planiner-map-popup-gallery"
-            role="list"
-            aria-label={hotel.naziv}
-          >
-            {photos.map((src) => (
-              <div key={src} className="planiner-map-popup-gallery-item" role="listitem">
-                <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-              </div>
-            ))}
-          </div>
-        )}
+        {photos.length > 0 && <HotelPhotoCarousel photos={photos} title={hotel.naziv} t={t} />}
 
         {hotel.telefon?.trim() && (
           <a
