@@ -23,16 +23,6 @@ export interface FerrataBadgeAkcijaPayload {
   ferrataSnapshot?: { naziv?: string; tezina?: string }
 }
 
-interface TextSlot {
-  cx: number
-  y: number
-  maxWidth: number
-  fontSize: number
-  color: string
-  fontFamily: string
-  fontWeight: string
-}
-
 /** Centar pravougaonika (u odnosu na bedž), za vertikalno i horizontalno centriranje teksta. */
 interface RectTextSlot {
   cx: number
@@ -45,10 +35,25 @@ interface RectTextSlot {
 }
 
 const UNIVERSAL_SLOTS = {
-  name: { cx: 0.5, y: 0.538, maxWidth: 0.7, fontSize: 52, color: '#f5f5f4', fontFamily: BEBAS, fontWeight: '400' },
-  date: { cx: 0.5, y: 0.628, maxWidth: 0.5, fontSize: 34, color: '#ffffff', fontFamily: BODY, fontWeight: '700' },
-  tezina: { cx: 0.5, y: 0.708, maxWidth: 0.2, fontSize: 38, color: '#1c1917', fontFamily: BEBAS, fontWeight: '400' },
-} satisfies Record<string, TextSlot>
+  date: {
+    cx: 0.5,
+    cy: 0.598,
+    maxWidth: 0.5,
+    fontSize: 30,
+    color: '#ffffff',
+    fontFamily: BODY,
+    fontWeight: '700',
+  },
+  tezina: {
+    cx: 0.5,
+    cy: 0.688,
+    maxWidth: 0.22,
+    fontSize: 34,
+    color: '#1c1917',
+    fontFamily: BEBAS,
+    fontWeight: '400',
+  },
+} satisfies Record<string, RectTextSlot>
 
 const DJURDJEVICA_SLOTS = {
   // Tamni pravougaonik ispod natpisa „DATUM“ (desno od siluete penjača)
@@ -63,19 +68,19 @@ const DJURDJEVICA_SLOTS = {
   },
 } satisfies Record<string, RectTextSlot>
 
-const CAPTION_FILL = '#6F7B4A'
+const CAPTION_FILL = '#ffffff'
 const CAPTION_OUTLINE = '#111111'
 
 const CAPTION = {
   padTop: 0,
-  gapAfterBadge: 32,
-  nameSize: 54,
-  brandSize: 108,
-  brandGap: 14,
-  padBottom: 44,
-  outlineWidth: 6,
-  brandMinWidthRatio: 1.08,
-  brandLetterSpacing: 10,
+  gapAfterBadge: 36,
+  nameSize: 72,
+  brandSize: 148,
+  brandGap: 18,
+  padBottom: 52,
+  outlineWidth: 7,
+  brandMinWidthRatio: 1.14,
+  brandLetterSpacing: 14,
 }
 
 let badgeImageCache: Partial<Record<BadgeVariant, HTMLImageElement>> = {}
@@ -141,25 +146,6 @@ function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: nu
   }
   lines.push(line)
   return lines
-}
-
-function fitFontSize(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  slot: TextSlot,
-  badgeW: number,
-  minPx: number,
-): number {
-  let size = slot.fontSize
-  const maxW = badgeW * slot.maxWidth
-  while (size > minPx) {
-    ctx.font = `${slot.fontWeight} ${size}px ${slot.fontFamily}`
-    const lines = wrapTextLines(ctx, text, maxW)
-    const tooWide = lines.some((line) => ctx.measureText(line).width > maxW)
-    if (!tooWide) return size
-    size -= 2
-  }
-  return minPx
 }
 
 function drawCenteredRectText(
@@ -243,13 +229,13 @@ function resolveBrandTypography(ctx: CanvasRenderingContext2D, badgeWidth: numbe
   let fontSize = CAPTION.brandSize
   let letterSpacing = CAPTION.brandLetterSpacing
 
-  while (fontSize <= 150) {
+  while (fontSize <= 190) {
     ctx.font = `400 ${fontSize}px ${BEBAS}`
     const width = measureSpacedText(ctx, 'PLANINER', letterSpacing)
     if (width >= targetMinWidth) {
       return { fontSize, letterSpacing }
     }
-    if (letterSpacing < 22) {
+    if (letterSpacing < 28) {
       letterSpacing += 1
     } else {
       fontSize += 2
@@ -265,35 +251,6 @@ function computeExportWidth(ctx: CanvasRenderingContext2D): number {
   ctx.font = `400 ${fontSize}px ${BEBAS}`
   const brandW = measureSpacedText(ctx, 'PLANINER', letterSpacing)
   return Math.max(BADGE_W, Math.ceil(brandW + 80))
-}
-
-function drawSlotText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  slot: TextSlot,
-  badgeW: number,
-  badgeH: number,
-): void {
-  const x = badgeW * slot.cx
-  const y = badgeH * slot.y
-  const maxW = badgeW * slot.maxWidth
-  const fontSize = fitFontSize(ctx, text, slot, badgeW, Math.round(slot.fontSize * 0.55))
-
-  ctx.fillStyle = slot.color
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.font = `${slot.fontWeight} ${fontSize}px ${slot.fontFamily}`
-
-  const lines = wrapTextLines(ctx, text, maxW)
-  const lineH = fontSize * 1.1
-  let drawY = y
-  if (lines.length > 1) {
-    drawY = y - ((lines.length - 1) * lineH) / 2
-  }
-  for (const line of lines) {
-    ctx.fillText(line, x, drawY)
-    drawY += lineH
-  }
 }
 
 async function loadBadgeImage(variant: BadgeVariant): Promise<HTMLImageElement> {
@@ -314,7 +271,7 @@ async function loadBadgeImage(variant: BadgeVariant): Promise<HTMLImageElement> 
 async function loadFonts(): Promise<void> {
   await document.fonts.ready
   try {
-    await document.fonts.load(`400 96px ${BEBAS}`)
+    await document.fonts.load(`400 148px ${BEBAS}`)
     await document.fonts.load(`700 34px ${BODY}`)
   } catch {
     /* ignore */
@@ -394,9 +351,8 @@ function drawBadgeComposition(
   ctx.clip()
 
   if (variant === 'universal') {
-    drawSlotText(ctx, ferataName, UNIVERSAL_SLOTS.name, BADGE_W, BADGE_H)
-    drawSlotText(ctx, dateFormatted || '-', UNIVERSAL_SLOTS.date, BADGE_W, BADGE_H)
-    drawSlotText(ctx, difficulty, UNIVERSAL_SLOTS.tezina, BADGE_W, BADGE_H)
+    drawCenteredRectText(ctx, dateFormatted || '-', UNIVERSAL_SLOTS.date, BADGE_W, BADGE_H)
+    drawCenteredRectText(ctx, difficulty, UNIVERSAL_SLOTS.tezina, BADGE_W, BADGE_H)
   } else {
     drawCenteredRectText(ctx, dateFormatted || '-', DJURDJEVICA_SLOTS.date, BADGE_W, BADGE_H)
   }
