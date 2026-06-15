@@ -45,6 +45,17 @@ export const resources = {
           payments: 'Uplate i dugovanja',
         },
       },
+      ferrataSpotlightSection: {
+        badge: 'Via ferrate',
+        title: 'U ponudi',
+        subtitle: 'Svaki put kada osvežite stranicu prikazujemo jednu feratu iz kataloga — istražite rutu, vodiče i predstojeće akcije.',
+        inOffer: 'U ponudi',
+        pickLabel: 'Današnji izbor',
+        cardHint: 'Rezervišite licenciranog vodiča, pogledajte smeštaj u blizini ili pronađite feratu na interaktivnoj mapi.',
+        viewFerrata: 'Pogledaj feratu',
+        exploreMap: 'Otvori mapu',
+        allFerratas: 'Sve ferate',
+      },
       problemSection: {
         title: 'Ako vodite planinarsko društvo, ovaj haos vam je verovatno poznat',
         subtitle:

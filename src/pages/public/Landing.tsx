@@ -1,4 +1,5 @@
 import HeroLanding from '../../components/landingPage/HeroLanding'
+import FerrataSpotlightSection from '../../components/landingPage/FerrataSpotlightSection'
 import ProblemSection from '../../components/landingPage/ProblemSection'
 import SolutionSection from '../../components/landingPage/SolutionSection'
 import AudienceSection from '../../components/landingPage/AudienceSection'
@@ -14,6 +15,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900">
       <HeroLanding />
+      <FerrataSpotlightSection />
       <ProblemSection />
       <SolutionSection />
       <AudienceSection />
