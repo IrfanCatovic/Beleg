@@ -6,6 +6,10 @@ import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
 import {
+  downloadFerrataBadgePng,
+  getFerrataBadgePreviewDataUrl,
+} from '../../utils/generateFerrataBadgePng'
+import {
   downloadSummitSuccessPng,
   getSummitLayoutPreviewDataUrl,
   type SummitAspect,
@@ -184,6 +188,7 @@ export default function ActionDetails() {
   const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
   const [summitPreviewBalanced, setSummitPreviewBalanced] = useState<string | null>(null)
   const [summitPreviewStacked, setSummitPreviewStacked] = useState<string | null>(null)
+  const [ferrataBadgePreview, setFerrataBadgePreview] = useState<string | null>(null)
   const [summitPreviewLoading, setSummitPreviewLoading] = useState(false)
   const [actionShareUrl, setActionShareUrl] = useState('')
   const [actionShareLoading, setActionShareLoading] = useState(false)
@@ -275,7 +280,50 @@ export default function ActionDetails() {
   }, [registerOptionsOpen])
 
   useEffect(() => {
-    if (summitShareStep !== 2 || !summitPickedAspect || !akcija) {
+    if (!akcija) {
+      setSummitPreviewBalanced(null)
+      setSummitPreviewStacked(null)
+      setFerrataBadgePreview(null)
+      setSummitPreviewLoading(false)
+      return
+    }
+
+    const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
+    const dateFormatted = formatDate(akcija.datum)
+    const ferrataPayload = {
+      id: akcija.id,
+      naziv: akcija.naziv,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      tezina: akcija.tezina,
+      ferrataSnapshot: akcija.ferrataSnapshot,
+    }
+
+    if (isFerrataReward) {
+      if (summitShareStep !== 1) {
+        setFerrataBadgePreview(null)
+        setSummitPreviewLoading(false)
+        return
+      }
+      let cancelled = false
+      setFerrataBadgePreview(null)
+      setSummitPreviewLoading(true)
+      void (async () => {
+        try {
+          const preview = await getFerrataBadgePreviewDataUrl(ferrataPayload, dateFormatted, 220)
+          if (!cancelled) setFerrataBadgePreview(preview)
+        } catch {
+          if (!cancelled) setFerrataBadgePreview(null)
+        } finally {
+          if (!cancelled) setSummitPreviewLoading(false)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (summitShareStep !== 2 || !summitPickedAspect) {
       setSummitPreviewBalanced(null)
       setSummitPreviewStacked(null)
       setSummitPreviewLoading(false)
@@ -301,10 +349,9 @@ export default function ActionDetails() {
       trail: t('summitPngTrail'),
       ascent: t('summitPngAscent'),
       date: t('date'),
-      per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
+      per: t('summitPngPer'),
       ferrata: t('summitPngFerrata'),
     }
-    const dateFormatted = formatDate(akcija.datum)
     setSummitPreviewBalanced(null)
     setSummitPreviewStacked(null)
     setSummitPreviewLoading(true)
@@ -1326,9 +1373,12 @@ export default function ActionDetails() {
     setSummitShareOpen(false)
     setSummitShareStep(0)
     setSummitPickedAspect(null)
+    setFerrataBadgePreview(null)
     setActionShareCopied(false)
     setActionShareError('')
   }
+
+  const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
 
   const resolveActionPublicUrl = () => {
     const base =
@@ -1390,6 +1440,25 @@ export default function ActionDetails() {
     }
   }
 
+  const handleFerrataBadgeDownload = async () => {
+    try {
+      await downloadFerrataBadgePng(
+        {
+          id: akcija.id,
+          naziv: akcija.naziv,
+          vrh: akcija.vrh,
+          datum: akcija.datum,
+          tezina: akcija.tezina,
+          ferrataSnapshot: akcija.ferrataSnapshot,
+        },
+        formatDate(akcija.datum),
+      )
+      closeSummitShareModal()
+    } catch {
+      await showAlert(t('summitPngError'), t('errorTitle'))
+    }
+  }
+
   const handleSummitPngDownload = async (aspect: SummitAspect, layout: SummitLayout) => {
     try {
       await downloadSummitSuccessPng(
@@ -1414,7 +1483,7 @@ export default function ActionDetails() {
           trail: t('summitPngTrail'),
           ascent: t('summitPngAscent'),
           date: t('date'),
-          per: akcija.tipAkcije === 'via_ferrata' ? t('summitPngDifficulty') : t('summitPngPer'),
+          per: t('summitPngPer'),
           ferrata: t('summitPngFerrata'),
         },
         formatDate(akcija.datum)
@@ -2947,7 +3016,50 @@ export default function ActionDetails() {
                 </>
               )}
 
-              {summitShareStep === 1 && (
+              {summitShareStep === 1 && isFerrataReward && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSummitShareStep(0)}
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    {t('summitBack')}
+                  </button>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Via ferrata bedž</p>
+                  <p className="text-[11px] text-gray-400 leading-snug">
+                    Preuzmi personalizovani bedž sa imenom ferate, datumom i ocenom.
+                  </p>
+                  <div className="rounded-xl overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-200 ring-1 ring-gray-200 shadow-inner">
+                    {summitPreviewLoading ? (
+                      <div className="w-full aspect-[3/4] min-h-[280px] animate-pulse bg-neutral-300" />
+                    ) : ferrataBadgePreview ? (
+                      <img
+                        src={ferrataBadgePreview}
+                        alt="Via ferrata bedž"
+                        className="w-full h-auto block"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="w-full aspect-[3/4] min-h-[280px] flex items-center justify-center text-sm text-neutral-500">
+                        —
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleFerrataBadgeDownload()}
+                    disabled={summitPreviewLoading || !ferrataBadgePreview}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Preuzmi bedž
+                  </button>
+                </>
+              )}
+
+              {summitShareStep === 1 && !isFerrataReward && (
                 <>
                   <button
                     type="button"
@@ -2987,7 +3099,7 @@ export default function ActionDetails() {
                 </>
               )}
 
-              {summitShareStep === 2 && summitPickedAspect && (
+              {summitShareStep === 2 && !isFerrataReward && summitPickedAspect && (
                 <>
                   <button
                     type="button"
