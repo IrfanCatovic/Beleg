@@ -11,6 +11,10 @@ import {
   type GuideBookingFormContext,
 } from '../../../components/ferrate/guideBookingActionPrefill'
 import {
+  buildWizardPatchFromFerrataRow,
+  ferrataCatalogFromApiRow,
+} from '../../../components/ferrate/ferrataWizardPrefill'
+import {
   acceptFerrataGuideBooking,
   canGuideCreateActionFromBooking,
   ensureGuideCanAcceptBooking,
@@ -136,23 +140,18 @@ export default function AddAction() {
           naziv: string
           tezina: string
           drzava?: string
+          gradOpstina?: string
+          lokacija?: string
           duzinaM: number
           visinskaRazlikaM: number
           trajanjeMin: number
           trajanjeMax: number
+          opis?: string
+          quickTip?: string
         }>
         if (cancelled) return
 
-        const catalog: WizardFerrataOption[] = rows.map((r) => ({
-          id: r.id,
-          naziv: r.naziv,
-          tezina: r.tezina,
-          drzava: r.drzava,
-          duzinaM: r.duzinaM,
-          visinskaRazlikaM: r.visinskaRazlikaM,
-          trajanjeMin: Number(r.trajanjeMin ?? 0),
-          trajanjeMax: Number(r.trajanjeMax ?? 0),
-        }))
+        const catalog: WizardFerrataOption[] = rows.map((r) => ferrataCatalogFromApiRow(r))
         setFerrataCatalog(catalog)
 
         const fid = searchParams.get('ferrata_id')
@@ -203,13 +202,8 @@ export default function AddAction() {
             if (!cancelled && selfId) setMyKorisnikId(selfId)
             setInitial((prev) => ({
               ...prev,
+              ...buildWizardPatchFromFerrataRow(row, prev, { fillOpis: false }),
               actionKind: 'via_ferrata',
-              ferrataId: fid,
-              tezina: row.tezina,
-              planina: (row.drzava || '').trim() || 'Via ferrata',
-              vrh: row.naziv,
-              kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
-              duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
               ...(fromFerrataProfiGuide
                 ? {
                     organizerType: 'vodic' as const,
@@ -527,8 +521,8 @@ export default function AddAction() {
             </div>
           )}
           <ActionWizardForm
-            title={fromGuideBooking ? 'Kreiraj akciju iz zahteva' : t('add.title')}
-            badge={fromGuideBooking ? 'Via ferrata · zahtev' : t('add.badge')}
+            title={fromGuideBooking ? 'Kreiraj akciju iz zahteva' : tipAkcije === 'via_ferrata' ? tFr('wizardAddActionTitle') : t('add.title')}
+            badge={fromGuideBooking ? 'Via ferrata · zahtev' : tipAkcije === 'via_ferrata' ? tFr('wizardAddActionBadge') : t('add.badge')}
             submitText={t('add.submit')}
             submitLoadingText={t('add.adding')}
             guides={guides}

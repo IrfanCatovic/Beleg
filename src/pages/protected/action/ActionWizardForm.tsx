@@ -4,6 +4,8 @@ import CalendarDropdown from '../../../components/CalendarDropdown'
 import type { ClubCurrencyCode } from '../../../utils/clubCurrency'
 import { useTranslation } from 'react-i18next'
 import { FerrataPinPicker } from '../../../components/ferrate/FerrataPinPicker'
+import { FerrataCatalogAutocomplete } from '../../../components/ferrate/FerrataCatalogAutocomplete'
+import { buildWizardPatchFromFerrataRow } from '../../../components/ferrate/ferrataWizardPrefill'
 import api from '../../../services/api'
 
 type ActionKind = 'planina' | 'via_ferrata'
@@ -43,10 +45,14 @@ export interface WizardFerrataOption {
   naziv: string
   tezina: string
   drzava?: string
+  gradOpstina?: string
+  lokacija?: string
   duzinaM: number
   visinskaRazlikaM: number
   trajanjeMin: number
   trajanjeMax: number
+  opis?: string
+  quickTip?: string
 }
 
 export interface WizardValues {
@@ -362,33 +368,53 @@ export function ActionWizardForm({
               <input required value={values.naziv} onChange={(e) => patch({ naziv: e.target.value })} placeholder={t('placeholders.actionName')} className={baseInput} />
             </div>
             {values.actionKind === 'via_ferrata' && (
-              <div className="sm:col-span-2">
-                <label className={labelClass}>{tFr('wizardSelectFerrata')}</label>
-                <Dropdown
-                  aria-label={tFr('wizardSelectFerrata')}
-                  options={[
-                    { value: '', label: '—' },
-                    ...ferrataCatalog.map((x) => ({ value: String(x.id), label: `${x.naziv} (${x.tezina})` })),
-                  ]}
-                  value={values.ferrataId}
-                  onChange={(v) => {
-                    const row = ferrataCatalog.find((x) => String(x.id) === v)
-                    if (!row) {
-                      patch({ ferrataId: v, tezina: '' })
-                      return
+              <div className="sm:col-span-2 space-y-3">
+                <div>
+                  <label className={labelClass}>{tFr('wizardSelectFerrata')}</label>
+                  <FerrataCatalogAutocomplete
+                    catalog={ferrataCatalog}
+                    selectedId={values.ferrataId}
+                    disabled={lockFerrataSelection}
+                    onSelect={(row) => patch(buildWizardPatchFromFerrataRow(row, values))}
+                    onClear={() =>
+                      patch({
+                        ferrataId: '',
+                        tezina: '',
+                        vrh: '',
+                        kumulativniUsponM: '',
+                        duzinaStazeKm: '',
+                        trajanjeSati: '',
+                      })
                     }
-                    patch({
-                      ferrataId: v,
-                      tezina: row.tezina,
-                      planina: (row.drzava || '').trim() || 'Via ferrata',
-                      vrh: row.naziv,
-                      kumulativniUsponM: String(row.visinskaRazlikaM ?? 0),
-                      duzinaStazeKm: String((row.duzinaM ?? 0) / 1000),
-                    })
-                  }}
-                  fullWidth
-                  disabled={lockFerrataSelection}
-                />
+                  />
+                </div>
+                {selectedFerrata && (
+                  <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-sky-100 bg-sky-50/50 px-3.5 py-3 text-sm text-gray-800">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">{t('fields.difficulty')}</p>
+                      <p className="font-semibold">{selectedFerrata.tezina}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">{t('wizard.labels.durationHours')}</p>
+                      <p className="font-semibold">
+                        {tFr('cardDuration', {
+                          min: Math.round(selectedFerrata.trajanjeMin),
+                          max: Math.round(selectedFerrata.trajanjeMax),
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">{t('fields.ascentM')}</p>
+                      <p className="font-semibold">{selectedFerrata.visinskaRazlikaM} m</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">{t('fields.trailLengthKm')}</p>
+                      <p className="font-semibold">
+                        {((selectedFerrata.duzinaM ?? 0) / 1000).toFixed(selectedFerrata.duzinaM % 1000 === 0 ? 0 : 1)} km
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {!isVia && (
@@ -515,21 +541,6 @@ export function ActionWizardForm({
               <div>
                 <label className={labelClass}>{t('wizard.labels.durationHours')}</label>
                 <input type="number" min="0.1" step="0.1" required value={values.trajanjeSati} onChange={(e) => patch({ trajanjeSati: e.target.value })} className={baseInput} />
-              </div>
-            )}
-            {isVia && (
-              <div className="sm:col-span-2">
-                <label className={labelClass}>{t('wizard.labels.durationHours')}</label>
-                <div className={`${baseInput} bg-gray-50 text-gray-800`}>
-                  {selectedFerrata ? (
-                    <>
-                      <span className="font-semibold">{tFr('cardDuration', { min: Math.round(selectedFerrata.trajanjeMin), max: Math.round(selectedFerrata.trajanjeMax) })}</span>
-                      <p className="mt-1 text-xs font-normal text-gray-600">{t('wizard.ferrata.durationFromCatalog', { max: Math.round(selectedFerrata.trajanjeMax) })}</p>
-                    </>
-                  ) : (
-                    <span className="text-gray-500">—</span>
-                  )}
-                </div>
               </div>
             )}
             <div>
