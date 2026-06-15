@@ -39,12 +39,20 @@ const UNIVERSAL_SLOTS = {
 } satisfies Record<string, TextSlot>
 
 const DJURDJEVICA_SLOTS = {
-  date: { cx: 0.5, y: 0.588, maxWidth: 0.5, fontSize: 34, color: '#ffffff', fontFamily: BODY, fontWeight: '700' },
+  date: { cx: 0.5, y: 0.602, maxWidth: 0.46, fontSize: 32, color: '#ffffff', fontFamily: BODY, fontWeight: '700' },
 } satisfies Record<string, TextSlot>
+
+const CAPTION_FILL = '#C98A1A'
+const CAPTION_OUTLINE = '#1B1B1B'
 
 const CAPTION = {
   padTop: 0,
-  padBottom: 0,
+  gapAfterBadge: 28,
+  nameSize: 42,
+  brandSize: 88,
+  brandGap: 10,
+  padBottom: 40,
+  outlineWidth: 5,
 }
 
 let badgeImageCache: Partial<Record<BadgeVariant, HTMLImageElement>> = {}
@@ -52,8 +60,24 @@ let badgeImageCache: Partial<Record<BadgeVariant, HTMLImageElement>> = {}
 function normalizeForMatch(value: string): string {
   return value
     .toLowerCase()
+    .replace(/đ/g, 'dj')
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
+}
+
+function isDjurdjevicaName(value: string): boolean {
+  const n = normalizeForMatch(value)
+  return n === 'djurdjevica' || n.includes('djurdjevica') || n.includes('durdevica')
+}
+
+export function isDjurdjevicaFerrata(akcija: FerrataBadgeAkcijaPayload): boolean {
+  const candidates = [
+    ferrataDisplayName(akcija),
+    akcija.ferrataSnapshot?.naziv ?? '',
+    akcija.vrh ?? '',
+    akcija.naziv ?? '',
+  ]
+  return candidates.some((name) => isDjurdjevicaName(name))
 }
 
 export function ferrataDisplayName(akcija: FerrataBadgeAkcijaPayload): string {
@@ -67,11 +91,6 @@ export function ferrataDisplayName(akcija: FerrataBadgeAkcijaPayload): string {
 
 export function ferrataDifficultyValue(akcija: FerrataBadgeAkcijaPayload): string {
   return ferrataTezinaLabel(akcija.ferrataSnapshot?.tezina || akcija.tezina) || '-'
-}
-
-export function isDjurdjevicaFerrata(akcija: FerrataBadgeAkcijaPayload): boolean {
-  const name = normalizeForMatch(ferrataDisplayName(akcija))
-  return name.includes('djurdjevic')
 }
 
 export function ferrataBadgeVariant(akcija: FerrataBadgeAkcijaPayload): BadgeVariant {
@@ -170,8 +189,53 @@ async function loadFonts(): Promise<void> {
   }
 }
 
-function exportHeight(): number {
-  return CAPTION.padTop + BADGE_H + CAPTION.padBottom
+function drawOutlinedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  fontFamily: string,
+  fontWeight: string,
+): number {
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.lineJoin = 'round'
+  ctx.miterLimit = 2
+  ctx.lineWidth = CAPTION.outlineWidth
+  ctx.strokeStyle = CAPTION_OUTLINE
+  ctx.fillStyle = CAPTION_FILL
+  ctx.strokeText(text, x, y)
+  ctx.fillText(text, x, y)
+  return fontSize * 1.12
+}
+
+function captionBlockHeight(ctx: CanvasRenderingContext2D, ferataName: string, canvasW: number): number {
+  const maxW = canvasW * 0.88
+  ctx.font = `400 ${CAPTION.nameSize}px ${BEBAS}`
+  const nameLines = wrapTextLines(ctx, ferataName, maxW)
+  const nameH = nameLines.length * CAPTION.nameSize * 1.12
+  return CAPTION.gapAfterBadge + nameH + CAPTION.brandGap + CAPTION.brandSize * 1.05
+}
+
+function drawCaption(ctx: CanvasRenderingContext2D, canvasW: number, badgeBottom: number, ferataName: string): void {
+  let y = badgeBottom + CAPTION.gapAfterBadge
+  const maxW = canvasW * 0.88
+  const cx = canvasW / 2
+
+  ctx.font = `400 ${CAPTION.nameSize}px ${BEBAS}`
+  const nameLines = wrapTextLines(ctx, ferataName, maxW)
+  for (const line of nameLines) {
+    y += drawOutlinedText(ctx, line, cx, y, CAPTION.nameSize, BEBAS, '400')
+  }
+
+  y += CAPTION.brandGap
+  drawOutlinedText(ctx, 'PLANINER', cx, y, CAPTION.brandSize, BEBAS, '400')
+}
+
+function exportHeight(ctx: CanvasRenderingContext2D, ferataName: string): number {
+  return CAPTION.padTop + BADGE_H + captionBlockHeight(ctx, ferataName, BADGE_W) + CAPTION.padBottom
 }
 
 function drawBadgeComposition(
@@ -204,6 +268,7 @@ function drawBadgeComposition(
   }
 
   ctx.restore()
+  drawCaption(ctx, w, badgeY + BADGE_H, ferataName)
 }
 
 export async function getFerrataBadgePreviewDataUrl(
@@ -215,8 +280,15 @@ export async function getFerrataBadgePreviewDataUrl(
   const badgeImg = await loadBadgeImage(variant)
   await loadFonts()
 
+  const ferataName = ferrataDisplayName(akcija)
   const exportW = BADGE_W
-  const exportH = exportHeight()
+
+  const measureCanvas = document.createElement('canvas')
+  measureCanvas.width = exportW
+  measureCanvas.height = 1
+  const measureCtx = measureCanvas.getContext('2d')
+  if (!measureCtx) throw new Error('Canvas nije dostupan')
+  const exportH = exportHeight(measureCtx, ferataName)
   const previewW = Math.max(120, Math.round(maxWidthPx))
   const previewH = Math.max(160, Math.round((previewW * exportH) / exportW))
 
@@ -297,8 +369,15 @@ export async function downloadFerrataBadgePng(
   const badgeImg = await loadBadgeImage(variant)
   await loadFonts()
 
+  const ferataName = ferrataDisplayName(akcija)
   const exportW = BADGE_W
-  const exportH = exportHeight()
+
+  const measureCanvas = document.createElement('canvas')
+  measureCanvas.width = exportW
+  measureCanvas.height = 1
+  const measureCtx = measureCanvas.getContext('2d')
+  if (!measureCtx) throw new Error('Canvas nije dostupan')
+  const exportH = exportHeight(measureCtx, ferataName)
 
   const canvas = document.createElement('canvas')
   canvas.width = exportW
