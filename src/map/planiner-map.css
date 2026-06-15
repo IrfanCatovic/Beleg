@@ -24,16 +24,320 @@
 }
 
 .planiner-map-frame .maplibregl-popup-content {
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   padding: 0;
   overflow: hidden;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.14);
-  border: 1px solid rgb(209 250 229 / 0.65);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.08),
+    0 20px 40px -8px rgb(0 0 0 / 0.18);
+  border: none;
+  background: transparent;
 }
+
 .planiner-map-frame .maplibregl-popup-tip {
-  border-top-color: rgb(255 255 255);
+  border-top-color: transparent;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.12));
 }
+
+/* —— Popup enter animation —— */
+@keyframes planiner-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes planiner-popup-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes planiner-marker-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.35;
+  }
+}
+
+@keyframes planiner-elevation-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.planiner-map-popup .maplibregl-popup-content {
+  animation: planiner-popup-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.planiner-map-popup-stagger {
+  animation: planiner-popup-stagger-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.planiner-map-popup-stagger-1 { animation-delay: 0.06s; }
+.planiner-map-popup-stagger-2 { animation-delay: 0.12s; }
+.planiner-map-popup-stagger-3 { animation-delay: 0.18s; }
+.planiner-map-popup-stagger-4 { animation-delay: 0.24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .planiner-map-popup .maplibregl-popup-content,
+  .planiner-map-popup-stagger,
+  .planiner-map-popup-elevation {
+    animation: none !important;
+  }
+  .planiner-marker--active::before {
+    animation: none !important;
+  }
+}
+
+/* Close button */
+.planiner-map-popup .maplibregl-popup-close-button {
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 18px;
+  line-height: 1;
+  color: rgb(100 116 139);
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid rgb(226 232 240 / 0.9);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+  z-index: 2;
+}
+.planiner-map-popup .maplibregl-popup-close-button:hover {
+  background: rgb(255 255 255);
+  color: rgb(15 23 42);
+  transform: scale(1.06);
+}
+
+/* Variant shells */
+.planiner-map-popup--ferrata .maplibregl-popup-content {
+  box-shadow:
+    0 4px 6px -1px rgb(16 185 129 / 0.12),
+    0 24px 48px -12px rgb(5 150 105 / 0.28);
+}
+.planiner-map-popup--ferrata .maplibregl-popup-tip {
+  border-top-color: rgb(236 253 245);
+}
+
+.planiner-map-popup--hotel .maplibregl-popup-content {
+  box-shadow:
+    0 4px 6px -1px rgb(245 158 11 / 0.12),
+    0 24px 48px -12px rgb(234 88 12 / 0.22);
+}
+.planiner-map-popup--hotel .maplibregl-popup-tip {
+  border-top-color: rgb(255 251 235);
+}
+
+.planiner-map-popup--peak .maplibregl-popup-content {
+  box-shadow:
+    0 4px 6px -1px rgb(99 102 241 / 0.12),
+    0 24px 48px -12px rgb(79 70 229 / 0.28);
+}
+.planiner-map-popup--peak .maplibregl-popup-tip {
+  border-top-color: rgb(238 242 255);
+}
+
+/* Inner layout */
+.planiner-map-popup-body {
+  min-width: 13.5rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: rgb(255 255 255);
+}
+
+.planiner-map-popup-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.875rem;
+  position: relative;
+}
+.planiner-map-popup-hero--compact {
+  padding-bottom: 0.5rem;
+}
+.planiner-map-popup-hero--ferrata {
+  background: linear-gradient(135deg, rgb(236 253 245) 0%, rgb(209 250 229) 55%, rgb(167 243 208 / 0.5) 100%);
+  border-bottom: 1px solid rgb(167 243 208 / 0.45);
+}
+.planiner-map-popup-hero--hotel {
+  background: linear-gradient(135deg, rgb(255 251 235) 0%, rgb(254 243 199) 55%, rgb(253 230 138 / 0.45) 100%);
+  border-bottom: 1px solid rgb(253 230 138 / 0.5);
+}
+.planiner-map-popup-hero--peak {
+  background: linear-gradient(135deg, rgb(238 242 255) 0%, rgb(224 231 255) 55%, rgb(199 210 254 / 0.5) 100%);
+  border-bottom: 1px solid rgb(199 210 254 / 0.45);
+}
+
+.planiner-map-popup-hero-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.75);
+  color: inherit;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+  backdrop-filter: blur(4px);
+}
+.planiner-map-popup-hero--ferrata .planiner-map-popup-hero-icon { color: rgb(5 150 105); }
+.planiner-map-popup-hero--hotel .planiner-map-popup-hero-icon { color: rgb(217 119 6); }
+.planiner-map-popup-hero--peak .planiner-map-popup-hero-icon { color: rgb(79 70 229); }
+
+.planiner-map-popup-kicker {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.planiner-map-popup-hero--ferrata .planiner-map-popup-kicker { color: rgb(4 120 87); }
+.planiner-map-popup-hero--hotel .planiner-map-popup-kicker { color: rgb(180 83 9); }
+.planiner-map-popup-hero--peak .planiner-map-popup-kicker { color: rgb(67 56 202); }
+
+.planiner-map-popup-title {
+  margin-top: 0.125rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: rgb(15 23 42);
+}
+
+.planiner-map-popup-sub {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(71 85 105);
+}
+
+.planiner-map-popup-elevation {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.8);
+  border: 1px solid rgb(199 210 254 / 0.6);
+  box-shadow: 0 2px 10px rgb(99 102 241 / 0.15);
+  animation: planiner-elevation-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+.planiner-map-popup-elevation-value {
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: rgb(67 56 202);
+}
+.planiner-map-popup-elevation-unit {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgb(99 102 241);
+}
+
+.planiner-map-popup-content {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.planiner-map-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.planiner-map-popup-gallery {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.125rem;
+  margin: 0 -0.125rem;
+  padding-left: 0.125rem;
+  padding-right: 0.125rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(251 191 36 / 0.5) transparent;
+}
+.planiner-map-popup-gallery::-webkit-scrollbar {
+  height: 4px;
+}
+.planiner-map-popup-gallery::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgb(251 191 36 / 0.45);
+}
+
+.planiner-map-popup-gallery-item {
+  flex: 0 0 auto;
+  width: 4.75rem;
+  height: 3.5rem;
+  overflow: hidden;
+  border-radius: 0.625rem;
+  border: 1px solid rgb(253 230 138 / 0.65);
+  background: rgb(254 243 199 / 0.35);
+  box-shadow: 0 2px 8px rgb(245 158 11 / 0.12);
+  scroll-snap-align: start;
+}
+
+.planiner-map-popup-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.75rem;
+  background: rgb(248 250 252 / 0.9);
+  border: 1px solid rgb(226 232 240 / 0.8);
+}
+.planiner-map-popup-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+}
+.planiner-map-popup-stat dt {
+  color: rgb(148 163 184);
+  font-weight: 600;
+}
+.planiner-map-popup-stat dd {
+  font-weight: 700;
+  color: rgb(30 41 59);
+  text-align: right;
+}
+
 .planiner-map-frame .maplibregl-ctrl-attrib {
   font-size: 10px;
   background: rgb(255 255 255 / 0.9) !important;
@@ -62,3 +366,21 @@
 .planiner-marker-peak:hover {
   transform: scale(1.08) translateY(-0.25rem);
 }
+
+.planiner-marker--active {
+  transform: scale(1.1) translateY(-0.3rem);
+  z-index: 1;
+}
+.planiner-marker--active::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  opacity: 0.5;
+  animation: planiner-marker-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+.planiner-marker-ferrata.planiner-marker--active::before { color: rgb(16 185 129); }
+.planiner-marker-hotel.planiner-marker--active::before { color: rgb(245 158 11); }
+.planiner-marker-peak.planiner-marker--active::before { color: rgb(99 102 241); }

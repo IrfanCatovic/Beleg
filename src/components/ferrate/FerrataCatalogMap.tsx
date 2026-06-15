@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
-import { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
+import { Marker, type MapRef } from 'react-map-gl/maplibre'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
+import { FerrataCatalogMapPopup } from '../../map/components/MapExplorePopups'
 
 export type CatalogMapMarker = {
   id: number
@@ -17,16 +17,6 @@ export type CatalogMapMarker = {
 }
 
 const DEFAULT_CENTER = { longitude: 21.0059, latitude: 44.0165, zoom: 6.2 }
-
-function difficultyBadgeClass(tezina: string) {
-  const s = tezina.toUpperCase()
-  if (s.includes('E')) return 'bg-zinc-900 text-white border-zinc-800'
-  if (s.includes('D')) return 'bg-rose-600 text-white border-rose-700'
-  if (s.includes('C')) return 'bg-amber-500 text-white border-amber-600'
-  if (s.includes('B')) return 'bg-sky-600 text-white border-sky-700'
-  if (s.includes('A')) return 'bg-emerald-600 text-white border-emerald-700'
-  return 'bg-slate-600 text-white border-slate-700'
-}
 
 export function FerrataCatalogMap(props: {
   markers: CatalogMapMarker[]
@@ -98,42 +88,12 @@ export function FerrataCatalogMap(props: {
               }}
             >
               <div className="touch-manipulation" role="presentation">
-                <FerrataMarkerElement />
+                <FerrataMarkerElement active={popupId === m.id} />
               </div>
             </Marker>
           ))}
           {activePopup && (
-            <Popup
-              longitude={activePopup.lng}
-              latitude={activePopup.lat}
-              anchor="bottom"
-              offset={18}
-              onClose={() => setPopupId(null)}
-              closeButton
-              closeOnClick={false}
-              maxWidth="280px"
-            >
-              <div className="min-w-[11rem] space-y-2 p-1 text-sm">
-                <p className="font-bold leading-snug text-gray-900">{activePopup.naziv}</p>
-                {activePopup.subtitle?.trim() && <p className="text-xs text-gray-600">{activePopup.subtitle}</p>}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-lg border px-2 py-0.5 text-[11px] font-bold ${difficultyBadgeClass(activePopup.tezina)}`}
-                  >
-                    {activePopup.tezina}
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                    {t('listMapPopupDifficulty')}
-                  </span>
-                </div>
-                <Link
-                  to={`/ferate/${activePopup.slug}`}
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-                >
-                  {t('listMapPopupView')}
-                </Link>
-              </div>
-            </Popup>
+            <FerrataCatalogMapPopup marker={activePopup} onClose={() => setPopupId(null)} t={t} />
           )}
         </PlaninerMapFrame>
       </div>

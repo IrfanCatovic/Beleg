@@ -1,9 +1,11 @@
 /**
  * Topli amber marker sa ikonom kreveta — vizuelno jasno razlicit od zelenog ferata markera.
  */
-export function HotelMarkerElement() {
+export function HotelMarkerElement({ active = false }: { active?: boolean }) {
   return (
-    <div className="planiner-marker-hotel relative flex h-11 w-11 -translate-y-1 items-center justify-center select-none">
+    <div
+      className={`planiner-marker-hotel relative flex h-11 w-11 -translate-y-1 items-center justify-center select-none${active ? ' planiner-marker--active' : ''}`}
+    >
       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-300 via-amber-500 to-orange-600 shadow-lg ring-[3px] ring-white/95" />
       <svg
         className="relative z-10 h-6 w-6 text-white drop-shadow-sm"

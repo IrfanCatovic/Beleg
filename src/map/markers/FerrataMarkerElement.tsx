@@ -3,6 +3,7 @@ import type { PlaninerMapMarkerKind } from './markerKinds'
 type Props = {
   /** Za buduće: isti DOM omotač, druga ikonica po vrsti. */
   kind?: Extract<PlaninerMapMarkerKind, 'ferrata'>
+  active?: boolean
 }
 
 /**
@@ -11,7 +12,9 @@ type Props = {
 export function FerrataMarkerElement(props: Props) {
   void props.kind
   return (
-    <div className="planiner-marker-ferrata relative flex h-12 w-12 -translate-y-1 items-center justify-center select-none">
+    <div
+      className={`planiner-marker-ferrata relative flex h-12 w-12 -translate-y-1 items-center justify-center select-none${props.active ? ' planiner-marker--active' : ''}`}
+    >
       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-900 shadow-lg ring-[3px] ring-white/95" />
       <svg
         className="relative z-10 h-7 w-7 text-white drop-shadow-sm"

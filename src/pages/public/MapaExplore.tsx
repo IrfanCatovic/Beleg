@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import maplibregl from 'maplibre-gl'
-import { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
-import { PlusIcon, CalendarDaysIcon, ArrowTopRightOnSquareIcon, PhoneIcon } from '@heroicons/react/24/outline'
+import { Marker, type MapRef } from 'react-map-gl/maplibre'
 import api from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
+import { FerrataMapPopup, HotelMapPopup, PeakMapPopup } from '../../map/components/MapExplorePopups'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { HotelMarkerElement } from '../../map/markers/HotelMarkerElement'
 import { PeakMarkerElement } from '../../map/markers/PeakMarkerElement'
@@ -32,6 +31,7 @@ type HotelPin = {
   telefon: string
   bookingUrl: string
   instagramUrl: string
+  slike: string[]
   lat: number
   lng: number
 }
@@ -54,16 +54,6 @@ const CLUB_ROLES = ['superadmin', 'admin', 'vodic']
 function toFiniteNumber(v: unknown): number | null {
   const n = Number(v)
   return Number.isFinite(n) ? n : null
-}
-
-function difficultyBadgeClass(tezina: string) {
-  const s = (tezina || '').toUpperCase()
-  if (s.includes('E')) return 'bg-zinc-900 text-white border-zinc-800'
-  if (s.includes('D')) return 'bg-rose-600 text-white border-rose-700'
-  if (s.includes('C')) return 'bg-amber-500 text-white border-amber-600'
-  if (s.includes('B')) return 'bg-sky-600 text-white border-sky-700'
-  if (s.includes('A')) return 'bg-emerald-600 text-white border-emerald-700'
-  return 'bg-slate-600 text-white border-slate-700'
 }
 
 export default function MapaExplore() {
@@ -131,6 +121,9 @@ export default function MapaExplore() {
             telefon: String(r.telefon ?? ''),
             bookingUrl: String(r.bookingUrl ?? ''),
             instagramUrl: String(r.instagramUrl ?? ''),
+            slike: Array.isArray(r.slike)
+              ? (r.slike as unknown[]).map((u) => String(u ?? '').trim()).filter(Boolean)
+              : [],
             lat,
             lng,
           })
@@ -352,7 +345,7 @@ export default function MapaExplore() {
               }}
             >
               <div className="touch-manipulation" role="presentation">
-                <FerrataMarkerElement />
+                <FerrataMarkerElement active={activePopup?.kind === 'ferrata' && activePopup.id === m.id} />
               </div>
             </Marker>
           ))}
@@ -369,7 +362,7 @@ export default function MapaExplore() {
               }}
             >
               <div className="touch-manipulation" role="presentation">
-                <HotelMarkerElement />
+                <HotelMarkerElement active={activePopup?.kind === 'hotel' && activePopup.id === m.id} />
               </div>
             </Marker>
           ))}
@@ -386,185 +379,37 @@ export default function MapaExplore() {
               }}
             >
               <div className="touch-manipulation" role="presentation">
-                <PeakMarkerElement />
+                <PeakMarkerElement active={activePopup?.kind === 'peak' && activePopup.id === m.id} />
               </div>
             </Marker>
           ))}
 
           {activeFerrata && (
-            <Popup
-              longitude={activeFerrata.lng}
-              latitude={activeFerrata.lat}
-              anchor="bottom"
-              offset={20}
+            <FerrataMapPopup
+              ferrata={activeFerrata}
               onClose={() => setActivePopup(null)}
-              closeButton
-              closeOnClick={false}
-              maxWidth="280px"
-            >
-              <div className="min-w-[12rem] space-y-2.5 p-1 text-sm">
-                <div>
-                  <p className="font-bold leading-snug text-gray-900">{activeFerrata.naziv}</p>
-                  {activeFerrata.podrucje?.trim() && (
-                    <p className="mt-0.5 text-xs text-gray-500">{activeFerrata.podrucje}</p>
-                  )}
-                </div>
-                {activeFerrata.tezina?.trim() && (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-lg border px-2 py-0.5 text-[11px] font-bold ${difficultyBadgeClass(activeFerrata.tezina)}`}
-                    >
-                      {activeFerrata.tezina}
-                    </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                      {t('mapExplore.popupFerrataDifficulty')}
-                    </span>
-                  </div>
-                )}
-                <div className="space-y-1.5 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setBookingFerrata(activeFerrata)}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
-                  >
-                    <CalendarDaysIcon className="h-4 w-4" />
-                    {t('mapExplore.popupBookAction')}
-                  </button>
-                  {canCreateGuideAction && (
-                    <Link
-                      to={`/dodaj-akciju?tip=via_ferrata&ferrata_id=${activeFerrata.id}&organizator=vodic`}
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50"
-                    >
-                      <PlusIcon className="h-4 w-4" />
-                      {t('mapExplore.popupCreateAction')}
-                    </Link>
-                  )}
-                  {activeFerrata.slug && (
-                    <Link
-                      to={`/ferate/${activeFerrata.slug}`}
-                      className="inline-flex w-full items-center justify-center rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-500 transition hover:text-emerald-700"
-                    >
-                      {t('mapExplore.popupDetails')}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </Popup>
+              onBook={() => setBookingFerrata(activeFerrata)}
+              canCreateGuideAction={canCreateGuideAction}
+              t={t}
+            />
           )}
 
-          {activeHotel && (
-            <Popup
-              longitude={activeHotel.lng}
-              latitude={activeHotel.lat}
-              anchor="bottom"
-              offset={20}
-              onClose={() => setActivePopup(null)}
-              closeButton
-              closeOnClick={false}
-              maxWidth="280px"
-            >
-              <div className="min-w-[12rem] space-y-2.5 p-1 text-sm">
-                <div>
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                    {t('mapExplore.popupHotelBadge')}
-                  </span>
-                  <p className="mt-1 font-bold leading-snug text-gray-900">{activeHotel.naziv}</p>
-                </div>
-                {activeHotel.telefon?.trim() && (
-                  <a
-                    href={`tel:${activeHotel.telefon.trim()}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-amber-700"
-                  >
-                    <PhoneIcon className="h-3.5 w-3.5" />
-                    {activeHotel.telefon}
-                  </a>
-                )}
-                {(activeHotel.bookingUrl?.trim() || activeHotel.instagramUrl?.trim()) && (
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {activeHotel.bookingUrl?.trim() && (
-                      <a
-                        href={activeHotel.bookingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-amber-600"
-                      >
-                        <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                        {t('mapExplore.popupBooking')}
-                      </a>
-                    )}
-                    {activeHotel.instagramUrl?.trim() && (
-                      <a
-                        href={activeHotel.instagramUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-300 px-3 py-2 text-xs font-bold text-amber-800 transition hover:bg-amber-50"
-                      >
-                        {t('mapExplore.popupInstagram')}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Popup>
-          )}
+          {activeHotel && <HotelMapPopup hotel={activeHotel} onClose={() => setActivePopup(null)} t={t} />}
 
           {activePeak && (
-            <Popup
-              longitude={activePeak.lng}
-              latitude={activePeak.lat}
-              anchor="bottom"
-              offset={20}
+            <PeakMapPopup
+              peak={activePeak}
               onClose={() => setActivePopup(null)}
-              closeButton
-              closeOnClick={false}
-              maxWidth="280px"
-            >
-              <div className="min-w-[12rem] space-y-2.5 p-1 text-sm">
-                <div>
-                  <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
-                    {t('mapExplore.popupPeakBadge')}
-                  </span>
-                  <p className="mt-1 font-bold leading-snug text-gray-900">{activePeak.naziv}</p>
-                  {activePeak.planina?.trim() && (
-                    <p className="mt-0.5 text-xs text-gray-500">{activePeak.planina}</p>
-                  )}
-                </div>
-                <dl className="space-y-1 text-xs text-gray-600">
-                  {activePeak.visinaM > 0 && (
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-gray-400">{t('mapExplore.popupPeakHeight')}</dt>
-                      <dd className="font-semibold text-gray-800">{activePeak.visinaM} m</dd>
-                    </div>
-                  )}
-                  {(activePeak.grad?.trim() || activePeak.drzava?.trim()) && (
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-gray-400">{t('mapExplore.popupPeakLocation')}</dt>
-                      <dd className="truncate font-semibold text-gray-800">
-                        {[activePeak.grad, activePeak.drzava].filter((s) => s?.trim()).join(', ')}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-                {canCreatePeakAction && (
-                  <div className="pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCreateActionPeak({
-                          id: activePeak.id,
-                          naziv: activePeak.naziv,
-                          planina: activePeak.planina,
-                        })
-                      }
-                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700"
-                    >
-                      <PlusIcon className="h-4 w-4" />
-                      {t('mapExplore.popupCreateAction')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </Popup>
+              onCreateAction={() =>
+                setCreateActionPeak({
+                  id: activePeak.id,
+                  naziv: activePeak.naziv,
+                  planina: activePeak.planina,
+                })
+              }
+              canCreatePeakAction={canCreatePeakAction}
+              t={t}
+            />
           )}
         </PlaninerMapFrame>
       </div>
