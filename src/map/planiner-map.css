@@ -46,10 +46,17 @@
   border: 1px solid rgb(226 232 240 / 0.9);
 }
 
-.planiner-marker-ferrata {
+.planiner-marker-ferrata,
+.planiner-marker-hotel {
   cursor: pointer;
   /* svetla aura — marker se vidi i na tamnoj karti i na svetloj */
   filter:
     drop-shadow(0 0 1px rgb(255 255 255 / 0.85))
     drop-shadow(0 2px 4px rgb(0 0 0 / 0.55));
+  transition: transform 0.15s ease;
+}
+
+.planiner-marker-ferrata:hover,
+.planiner-marker-hotel:hover {
+  transform: scale(1.08) translateY(-0.25rem);
 }

@@ -19,6 +19,21 @@ type hotelWithDist struct {
 	km float64
 }
 
+// ListHotelsAll GET /api/hotels — svi aktivni hoteli (za prikaz pinova na mapi).
+func ListHotelsAll(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+	var rows []models.Hotel
+	if err := db.Where("status = ?", "active").Order("naziv ASC").Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju hotela"})
+		return
+	}
+	out := make([]gin.H, 0, len(rows))
+	for i := range rows {
+		out = append(out, hotelToMap(&rows[i]))
+	}
+	c.JSON(http.StatusOK, gin.H{"hotels": out})
+}
+
 // ListHotelsNearby GET /api/hotels/nearby?lat=&lng=&radius_km=&limit=
 func ListHotelsNearby(c *gin.Context) {
 	latStr := c.Query("lat")
