@@ -7,7 +7,6 @@ import (
 	"beleg-app/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func peakToMap(p *models.Peak) gin.H {
@@ -39,7 +38,7 @@ func peakToMap(p *models.Peak) gin.H {
 
 // ListPeaks GET /api/peaks — svi aktivni vrhovi (za prikaz pinova na mapi).
 func ListPeaks(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.Peak
 	if err := db.Where("status = ?", "active").Order("naziv_vrha ASC").Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vrhova"})
@@ -59,7 +58,7 @@ func GetPeakByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var p models.Peak
 	if err := db.First(&p, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Vrh nije pronađen"})

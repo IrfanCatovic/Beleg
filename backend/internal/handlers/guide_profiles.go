@@ -232,7 +232,7 @@ func buildGuideProfileFromBody(body guideApplyBody, k *models.Korisnik) models.G
 
 // ApplyGuideProfile POST /api/guide-profiles/apply
 func ApplyGuideProfile(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	k, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -293,7 +293,7 @@ func ApplyGuideProfile(c *gin.Context) {
 
 // GetMyGuideProfile GET /api/me/guide-profile
 func GetMyGuideProfile(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	k, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -313,7 +313,7 @@ func GetMyGuideProfile(c *gin.Context) {
 
 // UpdateMyGuideProfile PUT /api/me/guide-profile
 func UpdateMyGuideProfile(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	k, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -408,7 +408,7 @@ func SuperadminListGuideProfiles(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	status := strings.TrimSpace(c.Query("status"))
 	list, err := loadGuideProfileAdminList(db, status)
 	if err != nil {
@@ -423,7 +423,7 @@ func SuperadminListPendingGuideProfiles(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	list, err := loadGuideProfileAdminList(db, models.GuideStatusPending)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju liste"})
@@ -455,7 +455,7 @@ func SuperadminApproveGuideProfile(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	admin, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -492,7 +492,7 @@ func SuperadminRejectGuideProfile(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	gp, k, ok := superadminGetGuideByID(c, db)
 	if !ok {
 		return
@@ -530,7 +530,7 @@ func SuperadminSuspendGuideProfile(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	gp, k, ok := superadminGetGuideByID(c, db)
 	if !ok {
 		return

@@ -66,7 +66,7 @@ func createActionInviteLinkForAkcija(db *gorm.DB, akcija models.Akcija) (string,
 }
 
 func CreateOrRegenerateActionInviteLink(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
@@ -107,7 +107,7 @@ func CreateOrRegenerateActionInviteLink(c *gin.Context) {
 }
 
 func RevokeActionInviteLink(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})

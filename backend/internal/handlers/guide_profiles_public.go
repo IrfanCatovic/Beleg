@@ -93,7 +93,7 @@ func ListGuidesNearby(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.GuideProfile
 	if err := db.Where("status = ? AND base_lat IS NOT NULL AND base_lng IS NOT NULL", models.GuideStatusApproved).
 		Preload("Korisnik").
@@ -181,7 +181,7 @@ func ListGuidesCatalog(c *gin.Context) {
 		}
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.GuideProfile
 	if err := db.Where("status = ?", models.GuideStatusApproved).
 		Preload("Korisnik").

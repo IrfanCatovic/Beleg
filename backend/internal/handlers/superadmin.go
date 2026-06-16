@@ -434,7 +434,7 @@ func UpdateKlubLogo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID kluba"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var klub models.Klubovi
 	if err := db.First(&klub, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Klub nije pronađen"})

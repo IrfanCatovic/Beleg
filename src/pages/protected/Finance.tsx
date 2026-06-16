@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createClanarina,
+  createTransakcija,
+  deleteTransakcija,
+  fetchClanarine as fetchClanarineApi,
+  fetchFinansijeDashboard,
+} from '../../services/finansije'
+import { fetchKlub, updateKlub } from '../../services/club'
 import Dropdown from '../../components/Dropdown'
 import CalendarDropdown from '../../components/CalendarDropdown'
 import DatePartsSelect from '../../components/DatePartsSelect'
@@ -147,8 +154,7 @@ export default function Finance() {
     setError('')
     try {
       const params = new URLSearchParams({ from: fromDate, to: toDate })
-      const res = await api.get(`/api/finansije/dashboard?${params}`)
-      const data = res.data as DashboardData
+      const data = await fetchFinansijeDashboard(params) as DashboardData
       setDashboardData({
         ...data,
         transakcije: Array.isArray(data?.transakcije) ? data.transakcije : [],
@@ -166,8 +172,8 @@ export default function Finance() {
     setClanarineLoading(true)
     setError('')
     try {
-      const res = await api.get(`/api/finansije/clanarine?godina=${clanarineGodina}`)
-      setClanarine(res.data.clanarine || [])
+      const data = await fetchClanarineApi(clanarineGodina) as { clanarine?: typeof clanarine }
+      setClanarine(data.clanarine || [])
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.load')
       setError(msg)
@@ -179,8 +185,8 @@ export default function Finance() {
   const fetchClubCurrency = useCallback(async () => {
     if (!user) return
     try {
-      const res = await api.get<KlubCurrencyResponse>('/api/klub')
-      const nextCurrency = normalizeCurrency(res.data?.klub?.valuta)
+      const klubData = await fetchKlub()
+      const nextCurrency = normalizeCurrency((klubData as KlubCurrencyResponse)?.klub?.valuta)
       setCurrency(nextCurrency)
     } catch {
       setCurrency('RSD')
@@ -204,7 +210,7 @@ export default function Finance() {
     setCurrencySaving(true)
     setError('')
     try {
-      await api.patch('/api/klub', { valuta: nextCurrency })
+      await updateKlub({ valuta: nextCurrency })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
       setError(msg)
@@ -263,7 +269,7 @@ export default function Finance() {
     setTransakcijaSubmitting(true)
     setError('')
     try {
-      await api.post('/api/finansije', {
+      await createTransakcija({
         tip: transakcijaTip,
         iznos,
         datum: transakcijaDatum,
@@ -287,7 +293,7 @@ export default function Finance() {
     setError('')
     try {
       const today = dateToYMD(new Date())
-      await api.post('/api/finansije/clanarina', {
+      await createClanarina({
         korisnikId,
         iznos: clanarinaIznos,
         datum: today,
@@ -324,7 +330,7 @@ export default function Finance() {
     setDeleteLoadingId(pendingDeleteTx.id)
     setError('')
     try {
-      await api.delete(`/api/finansije/transakcije/${pendingDeleteTx.id}`)
+      await deleteTransakcija(pendingDeleteTx.id)
       await fetchDashboard()
       await fetchClanarine()
     } catch (err: unknown) {

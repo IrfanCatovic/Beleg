@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,342 +20,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type ferrataSnapshotPayload struct {
-	Naziv              string   `json:"naziv"`
-	Lokacija           string   `json:"lokacija"`
-	Tezina             string   `json:"tezina"`
-	TezinaOpcija       string   `json:"tezina_opcija"`
-	DuzinaM            int      `json:"duzina_m"`
-	VisinskaRazlikaM   int      `json:"visinska_razlika_m"`
-	PrilazMin          int      `json:"prilaz_min"`
-	TrajanjeMin        int      `json:"trajanje_min"`
-	TrajanjeMax        int      `json:"trajanje_max"`
-	PogodnoZaPocetnike string   `json:"pogodno_za_pocetnike"`
-	ObaveznaOprema     []string `json:"obavezna_oprema"`
-	Lat                *float64 `json:"lat,omitempty"`
-	Lng                *float64 `json:"lng,omitempty"`
-}
-
-type ferrataOpremaItem struct {
-	Label string `json:"label"`
-	Icon  string `json:"icon"`
-}
-
-func displayFerrataRegion(f *models.Ferrata) string {
-	a := strings.TrimSpace(f.GradOpstina)
-	b := strings.TrimSpace(f.Drzava)
-	if a != "" && b != "" {
-		return a + ", " + b
-	}
-	if a != "" {
-		return a
-	}
-	return b
-}
-
-func parseStringSliceJSON(raw json.RawMessage) []string {
-	if len(raw) == 0 || string(raw) == "null" {
-		return []string{}
-	}
-	var out []string
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return []string{}
-	}
-	return out
-}
-
-func marshalGalleryJSON(urls []string) json.RawMessage {
-	filtered := make([]string, 0, len(urls))
-	for _, u := range urls {
-		u = strings.TrimSpace(u)
-		if u != "" {
-			filtered = append(filtered, u)
-		}
-	}
-	b, _ := json.Marshal(filtered)
-	return json.RawMessage(b)
-}
-
-func buildFerrataSnapshotBytes(f *models.Ferrata) ([]byte, error) {
-	labels := obaveznaOpremaLabels(f.ObaveznaOpremaJSON)
-	p := ferrataSnapshotPayload{
-		Naziv:              f.Naziv,
-		Lokacija:           displayFerrataRegion(f),
-		Tezina:             f.Tezina,
-		TezinaOpcija:       f.TezinaOpcija,
-		DuzinaM:            f.DuzinaM,
-		VisinskaRazlikaM:   f.VisinskaRazlikaM,
-		PrilazMin:          f.PrilazMin,
-		TrajanjeMin:        f.TrajanjeMin,
-		TrajanjeMax:        f.TrajanjeMax,
-		PogodnoZaPocetnike: f.PogodnoZaPocetnike,
-		ObaveznaOprema:     labels,
-		Lat:                f.Lat,
-		Lng:                f.Lng,
-	}
-	return json.Marshal(p)
-}
-
-func obaveznaOpremaLabels(raw json.RawMessage) []string {
-	items := parseObaveznaOpremaItems(raw)
-	out := make([]string, 0, len(items))
-	for _, it := range items {
-		if strings.TrimSpace(it.Label) != "" {
-			out = append(out, strings.TrimSpace(it.Label))
-		}
-	}
-	return out
-}
-
-func parseObaveznaOpremaItems(raw json.RawMessage) []ferrataOpremaItem {
-	if len(raw) == 0 || string(raw) == "null" {
-		return nil
-	}
-	var objs []ferrataOpremaItem
-	if err := json.Unmarshal(raw, &objs); err == nil && len(objs) > 0 {
-		// Novi format [{label, icon}, ...] ili prazan objekat
-		if len(objs) > 1 || strings.TrimSpace(objs[0].Label) != "" || strings.TrimSpace(objs[0].Icon) != "" {
-			return objs
-		}
-	}
-	var strs []string
-	if err := json.Unmarshal(raw, &strs); err == nil {
-		out := make([]ferrataOpremaItem, 0, len(strs))
-		for _, s := range strs {
-			s = strings.TrimSpace(s)
-			if s != "" {
-				out = append(out, ferrataOpremaItem{Label: s})
-			}
-		}
-		return out
-	}
-	return nil
-}
-
-func marshalObaveznaOpremaJSON(items []ferrataOpremaItem) json.RawMessage {
-	filtered := make([]ferrataOpremaItem, 0, len(items))
-	for _, it := range items {
-		if strings.TrimSpace(it.Label) == "" {
-			continue
-		}
-		filtered = append(filtered, ferrataOpremaItem{Label: strings.TrimSpace(it.Label), Icon: strings.TrimSpace(it.Icon)})
-	}
-	b, _ := json.Marshal(filtered)
-	return json.RawMessage(b)
-}
-
-func obaveznaOpremaForAPI(raw json.RawMessage) []gin.H {
-	items := parseObaveznaOpremaItems(raw)
-	out := make([]gin.H, 0, len(items))
-	for _, it := range items {
-		if strings.TrimSpace(it.Label) == "" {
-			continue
-		}
-		out = append(out, gin.H{"label": it.Label, "icon": strings.TrimSpace(it.Icon)})
-	}
-	return out
-}
-
-// Smeštaj u katalogu ferate više nije u upotrebi (hoteli + udaljenost); kolona ostaje u bazi.
-var ferrataSmestajJSONEmpty = json.RawMessage([]byte("[]"))
-
-func ferrataCoordJSON(v *float64) interface{} {
-	if v == nil {
-		return nil
-	}
-	return *v
-}
-
-// validateFerrataLatLngRequired glavna tačka ferate — potrebna za mapu i kasnije udaljenost do vodiča.
-func validateFerrataLatLngRequired(lat, lng *float64) error {
-	if lat == nil || lng == nil {
-		return fmt.Errorf("Koordinate ferate (lat i lng) su obavezne")
-	}
-	if math.IsNaN(*lat) || math.IsInf(*lat, 0) || math.IsNaN(*lng) || math.IsInf(*lng, 0) {
-		return fmt.Errorf("Koordinate nisu validne")
-	}
-	if *lat < -90 || *lat > 90 {
-		return fmt.Errorf("Geografska širina (lat) mora biti između -90 i 90")
-	}
-	if *lng < -180 || *lng > 180 {
-		return fmt.Errorf("Geografska dužina (lng) mora biti između -180 i 180")
-	}
-	return nil
-}
-
-func ferrataToMap(f *models.Ferrata, upcoming int64) gin.H {
-	m := gin.H{
-		"id":               f.ID,
-		"naziv":            f.Naziv,
-		"slug":             f.Slug,
-		"drzava":           f.Drzava,
-		"gradOpstina":      f.GradOpstina,
-		"podrucje":         displayFerrataRegion(f),
-		"opis":             f.Opis,
-		"tezina":           f.Tezina,
-		"tezinaOpcija":     f.TezinaOpcija,
-		"duzinaM":          f.DuzinaM,
-		"visinskaRazlikaM": f.VisinskaRazlikaM,
-		"trajanjeMin":      f.TrajanjeMin,
-		"trajanjeMax":      f.TrajanjeMax,
-		"quickTip":         f.QuickTip,
-		"lat":              ferrataCoordJSON(f.Lat),
-		"lng":              ferrataCoordJSON(f.Lng),
-		"highlights":       parseStringSliceJSON(f.HighlightsJSON),
-		"okolina":          parseStringSliceJSON(f.OkolinaJSON),
-		"galerija":         parseStringSliceJSON(f.GalerijaJSON),
-		"obaveznaOprema":   obaveznaOpremaForAPI(f.ObaveznaOpremaJSON),
-		"coverImage":       f.CoverImage,
-		"mapNote":          strings.TrimSpace(f.MapNote),
-		"status":           f.Status,
-		"createdAt":        f.CreatedAt,
-		"updatedAt":        f.UpdatedAt,
-	}
-	if upcoming >= 0 {
-		m["upcomingActionsCount"] = upcoming
-	}
-	return m
-}
-
-// ListFerratas GET /api/ferratas — samo active za javnost.
-func ListFerratas(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
-	search := strings.TrimSpace(strings.ToLower(c.Query("search")))
-	tezinaFilter := strings.TrimSpace(c.Query("tezina"))
-
-	q := db.Model(&models.Ferrata{}).Where("status = ?", "active")
-	if search != "" {
-		pat := "%" + search + "%"
-		q = q.Where("(LOWER(naziv) LIKE ? OR LOWER(drzava) LIKE ? OR LOWER(grad_opstina) LIKE ?)", pat, pat, pat)
-	}
-	if tezinaFilter != "" {
-		q = q.Where("LOWER(tezina) = LOWER(?) OR LOWER(tezina_opcija) = LOWER(?)", tezinaFilter, tezinaFilter)
-	}
-
-	var rows []models.Ferrata
-	if err := q.Order("naziv ASC").Find(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju ferata"})
-		return
-	}
-
-	out := make([]gin.H, 0, len(rows))
-	for i := range rows {
-		var cnt int64
-		db.Model(&models.Akcija{}).
-			Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-				rows[i].ID, "via_ferrata", true, false).
-			Count(&cnt)
-		out = append(out, ferrataToMap(&rows[i], cnt))
-	}
-	c.JSON(http.StatusOK, gin.H{"ferrate": out})
-}
-
-// GetFerrataBySlug GET /api/ferratas/slug/:slug
-func GetFerrataBySlug(c *gin.Context) {
-	slug := strings.TrimSpace(c.Param("slug"))
-	if slug == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći slug"})
-		return
-	}
-	db := c.MustGet("db").(*gorm.DB)
-	var f models.Ferrata
-	if err := db.Where("slug = ? AND status = ?", slug, "active").First(&f).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
-		return
-	}
-	var cnt int64
-	db.Model(&models.Akcija{}).
-		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-			f.ID, "via_ferrata", true, false).
-		Count(&cnt)
-	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, cnt)})
-}
-
-// GetFerrataContactsByFerrataID GET /api/ferratas/:id/contacts
-func GetFerrataContactsByFerrataID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
-		return
-	}
-	db := c.MustGet("db").(*gorm.DB)
-	var f models.Ferrata
-	if err := db.Where("id = ? AND status = ?", id, "active").First(&f).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
-		return
-	}
-	var contacts []models.FerrataContact
-	if err := db.Where("ferrata_id = ? AND aktivan = ?", id, true).Order("ime ASC").Find(&contacts).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju kontakata"})
-		return
-	}
-	out := make([]gin.H, 0, len(contacts))
-	for i := range contacts {
-		out = append(out, gin.H{
-			"id":        contacts[i].ID,
-			"ime":       contacts[i].Ime,
-			"telefon":   contacts[i].Telefon,
-			"whatsapp":  contacts[i].Whatsapp,
-			"email":     contacts[i].Email,
-			"napomena":  contacts[i].Napomena,
-			"aktivan":   contacts[i].Aktivan,
-			"createdAt": contacts[i].CreatedAt,
-			"updatedAt": contacts[i].UpdatedAt,
-		})
-	}
-	c.JSON(http.StatusOK, gin.H{"contacts": out})
-}
-
-// GetFerrataUpcomingActions GET /api/ferratas/:id/upcoming-actions
-func GetFerrataUpcomingActions(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
-		return
-	}
-	db := c.MustGet("db").(*gorm.DB)
-	var f models.Ferrata
-	if err := db.Where("id = ? AND status = ?", id, "active").First(&f).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
-		return
-	}
-
-	var akcije []models.Akcija
-	if err := db.Preload("Klub").
-		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-			id, "via_ferrata", true, false).
-		Order("start_at ASC").
-		Find(&akcije).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju akcija"})
-		return
-	}
-
-	out := make([]gin.H, 0, len(akcije))
-	for i := range akcije {
-		var prijavljeno int64
-		db.Model(&models.Prijava{}).Where("akcija_id = ? AND status = ?", akcije[i].ID, "prijavljen").Count(&prijavljeno)
-		row := gin.H{
-			"id":          akcije[i].ID,
-			"naziv":       akcije[i].Naziv,
-			"startAt":     akcije[i].StartAt,
-			"maxLjudi":    akcije[i].MaxLjudi,
-			"prijavljeno": prijavljeno,
-		}
-		if akcije[i].Klub != nil {
-			row["klubNaziv"] = akcije[i].Klub.Naziv
-		}
-		out = append(out, row)
-	}
-	c.JSON(http.StatusOK, gin.H{"akcije": out})
-}
-
-// --- Superadmin ---
-
 func SuperadminListFerratas(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	status := strings.TrimSpace(c.Query("status"))
 	q := db.Model(&models.Ferrata{})
 	if status != "" {
@@ -383,7 +51,7 @@ func SuperadminGetFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var f models.Ferrata
 	if err := db.First(&f, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
@@ -413,8 +81,8 @@ type superadminFerrataBody struct {
 	/** Ako je izostavljeno u PUT-u, galerija u bazi se ne menja. */
 	Galerija *[]string `json:"galerija,omitempty"`
 	Status   string    `json:"status"`
-	Lat              *float64            `json:"lat"`
-	Lng              *float64            `json:"lng"`
+	Lat      *float64  `json:"lat"`
+	Lng      *float64  `json:"lng"`
 }
 
 func marshalJSONArray(a []string) json.RawMessage {
@@ -455,7 +123,7 @@ func SuperadminCreateFerrata(c *gin.Context) {
 	if body.Galerija != nil {
 		galerijaCreate = *body.Galerija
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	slugStr, err := slug.UniqueFerrataSlug(db, naziv, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju slug-a"})
@@ -518,7 +186,7 @@ func SuperadminUpdateFerrata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var f models.Ferrata
 	if err := db.First(&f, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
@@ -601,7 +269,7 @@ func SuperadminDeleteFerrata(c *gin.Context) {
 		return
 	}
 	uid := uint(id)
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var f models.Ferrata
 	if err := db.First(&f, uid).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
@@ -642,7 +310,7 @@ func SuperadminPatchFerrataGalerija(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var f models.Ferrata
 	if err := db.First(&f, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
@@ -658,7 +326,7 @@ func SuperadminPatchFerrataGalerija(c *gin.Context) {
 
 // uploadCatalogSlikaMultipart polje "slika" → Cloudinary (katalog ferata ili hoteli).
 func uploadCatalogSlikaMultipart(c *gin.Context, publicID, cloudinaryFolder string) (secureURL string, ok bool) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	if err := c.Request.ParseMultipartForm(12 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format"})
 		return "", false
@@ -733,7 +401,7 @@ func SuperadminUploadFerrataCover(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var f models.Ferrata
 	if err := db.First(&f, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena"})
@@ -764,7 +432,7 @@ func SuperadminUploadFerrataGallery(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var cnt int64
 	db.Model(&models.Ferrata{}).Where("id = ?", id).Count(&cnt)
 	if cnt == 0 {
@@ -816,7 +484,7 @@ func SuperadminCreateFerrataContact(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ime je obavezno"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var cnt int64
 	db.Model(&models.Ferrata{}).Where("id = ?", fid).Count(&cnt)
 	if cnt == 0 {
@@ -856,7 +524,7 @@ func SuperadminUpdateFerrataContact(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rec models.FerrataContact
 	if err := db.First(&rec, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Kontakt nije pronađen"})

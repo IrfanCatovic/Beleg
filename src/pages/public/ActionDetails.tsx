@@ -30,88 +30,13 @@ import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfi
 import FinishActionFinanceModal from '../../components/action-details/FinishActionFinanceModal'
 import { GuideRatingModal } from '../../components/action-details/GuideRatingModal'
 import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '../../services/guideRatings'
+import type { Akcija } from '../../types/akcija'
+import type { Prijava } from '../../types/prijava'
+import type { KorisnikRef } from '../../types/korisnik'
 
-interface Akcija {
-  id: number
-  naziv: string
-  planina?: string
-  vrh: string
-  datum: string
-  opis?: string
-  tezina?: string
-  slikaUrl?: string
-  createdAt: string
-  updatedAt: string
-  isCompleted: boolean
-  visinaVrhM?: number
-  zimskiUspon?: boolean
-  drugiVodicIme?: string
-  vodicId?: number
-  vodic?: { fullName: string; username: string; isProfiGuide?: boolean }
-  addedBy?: { fullName: string; username: string }
-  prijaveCount?: number
-  javna?: boolean
-  klubNaziv?: string
-  klubId?: number
-  organizatorTip?: 'klub' | 'vodic'
-  limited?: boolean
-  kumulativniUsponM?: number
-  duzinaStazeKm?: number
-  tipAkcije?: 'planina' | 'via_ferrata'
-  ferrataId?: number
-  ferrataSnapshot?: {
-    naziv?: string
-    lokacija?: string
-    tezina?: string
-    obavezna_oprema?: string[]
-    lat?: number
-    lng?: number
-  }
-  startAt?: string
-  trajanjeSati?: number
-  rokPrijava?: string
-  maxLjudi?: number
-  mestoPolaska?: string
-  kontaktTelefon?: string
-  brojDana?: number
-  cenaClan?: number
-  cenaOstali?: number
-  prikaziListuPrijavljenih?: boolean
-  omoguciGrupniChat?: boolean
-  mojSaldo?: number
-  isClanKluba?: boolean
-  smestaj?: Array<{ id: number; naziv: string; cenaPoOsobiUkupno: number; opis?: string }>
-  oprema?: Array<{ id: number; naziv: string; obavezna?: boolean }>
-  opremaRent?: Array<{ id: number; akcijaOpremaId?: number; nazivOpreme: string; dostupnaKolicina: number; cenaPoSetu: number }>
-  prevoz?: Array<{ id: number; tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number }>
-}
+interface ClubMember extends KorisnikRef {}
 
-interface Prijava {
-  id: number
-  korisnik: string
-  fullName?: string
-  avatarUrl?: string
-  isProfiGuide?: boolean
-  prijavljenAt: string
-  status: 'prijavljen' | 'popeo se' | 'nije uspeo' | 'otkazano'
-  platio?: boolean
-  selectedSmestajIds?: number[]
-  selectedPrevozIds?: number[]
-  selectedRentItems?: Array<{ rentId: number; kolicina: number }>
-  saldo?: number
-  isClanKluba?: boolean
-}
-
-interface ClubMember {
-  id: number
-  username: string
-  fullName?: string
-}
-
-interface ExternalUserCandidate {
-  id: number
-  username: string
-  fullName?: string
+interface ExternalUserCandidate extends KorisnikRef {
   avatarUrl?: string
   klubId?: number | null
   klubNaziv?: string

@@ -90,7 +90,7 @@ func ensureInviteCodeForKlub(db *gorm.DB, k *models.Klubovi, now time.Time) erro
 
 // GetInviteCodeForAdmin GET /api/klub/invite-code
 func GetInviteCodeForAdmin(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageInviteCode(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar kluba mogu da vide invite kod"})
@@ -126,7 +126,7 @@ func GetInviteCodeForAdmin(c *gin.Context) {
 
 // RegenerateInviteCode POST /api/klub/invite-code/regenerate
 func RegenerateInviteCode(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageInviteCode(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili sekretar kluba mogu da menjaju invite kod"})
@@ -165,7 +165,7 @@ func RegenerateInviteCode(c *gin.Context) {
 
 // ValidateInviteCode POST /api/invite-code/validate
 func ValidateInviteCode(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var body inviteValidateBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"valid": false, "error": "Nevažeći zahtev"})
@@ -199,7 +199,7 @@ func ValidateInviteCode(c *gin.Context) {
 
 // RegisterInvite POST /api/register/invite — javna registracija kao član (multipart + inviteCode + klubId)
 func RegisterInvite(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
 		return

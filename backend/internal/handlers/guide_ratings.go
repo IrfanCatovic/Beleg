@@ -106,7 +106,7 @@ func approvedGuideProfileForVodic(db *gorm.DB, vodicID uint) (*models.GuideProfi
 
 // GetMyGuideRatingForAkcija GET /api/akcije/:id/guide-rating/mine
 func GetMyGuideRatingForAkcija(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	k, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -137,7 +137,7 @@ func GetMyGuideRatingForAkcija(c *gin.Context) {
 
 // SubmitGuideRatingForAkcija POST /api/akcije/:id/guide-rating
 func SubmitGuideRatingForAkcija(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	k, ok := currentKorisnik(c, db)
 	if !ok {
 		return
@@ -222,7 +222,7 @@ func SubmitGuideRatingForAkcija(c *gin.Context) {
 
 // GetPublicKorisnikGuideRecenzije GET /api/korisnici/:id/recenzije-vodica
 func GetPublicKorisnikGuideRecenzije(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	param := c.Param("id")
 	korisnik := getKorisnikByIDOrUsername(db, param)
 	if korisnik == nil {

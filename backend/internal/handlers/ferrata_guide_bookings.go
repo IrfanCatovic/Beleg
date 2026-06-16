@@ -46,7 +46,7 @@ var (
 )
 
 func CreateFerrataGuideBooking(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	requester, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
@@ -227,7 +227,7 @@ func notifyGuideBookingTargets(db *gorm.DB, req models.FerrataGuideBookingReques
 }
 
 func GetFerrataGuideBooking(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	viewer, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
@@ -273,7 +273,7 @@ func GetFerrataGuideBooking(c *gin.Context) {
 }
 
 func RejectFerrataGuideBooking(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	viewer, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
@@ -313,7 +313,7 @@ type acceptFerrataGuideBookingBody struct {
 }
 
 func AcceptFerrataGuideBooking(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	viewer, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})

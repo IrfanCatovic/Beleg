@@ -39,7 +39,7 @@ func sendPasswordResetEmail(toEmail string, rawToken string) error {
 }
 
 func ForgotPassword(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var req forgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})
@@ -87,7 +87,7 @@ func ForgotPassword(c *gin.Context) {
 }
 
 func ResetPassword(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var req resetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})

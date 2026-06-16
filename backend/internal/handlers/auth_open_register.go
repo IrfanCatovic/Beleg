@@ -244,7 +244,7 @@ func verifyEmailFromPending(c *gin.Context, db *gorm.DB, pending *models.Pending
 }
 
 func VerifyEmail(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	rawToken := strings.TrimSpace(c.Query("token"))
 	if rawToken == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Token je obavezan"})
@@ -294,7 +294,7 @@ func VerifyEmail(c *gin.Context) {
 }
 
 func ResendVerificationEmail(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var req resendVerificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći format zahteva"})

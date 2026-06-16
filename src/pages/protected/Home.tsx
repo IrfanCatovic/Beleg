@@ -5,30 +5,13 @@ import type { TFunction } from 'i18next'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import api from '../../services/api'
+import type { AkcijaListItem as Akcija } from '../../types/akcija'
 import { formatDateShort } from '../../utils/dateUtils'
 import Loader from '../../components/Loader'
 import { actionDifficultyBadge } from '../../utils/difficultyI18n'
 import { userHasClubContext } from '../../utils/clubContext'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import FollowControls from '../../components/buttons/FollowControls'
-
-interface Akcija {
-  id: number
-  naziv: string
-  tipAkcije?: 'planina' | 'via_ferrata'
-  planina?: string
-  vrh: string
-  datum: string
-  tezina?: string
-  javna?: boolean
-  klubNaziv?: string
-  klubLogoUrl?: string
-  addedById?: number
-  slikaUrl?: string
-  opis?: string
-  isCompleted: boolean
-  createdAt?: string
-}
 
 interface Statistika {
   ukupnoKm: number

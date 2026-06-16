@@ -9,7 +9,6 @@ import (
 	"beleg-app/backend/internal/slug"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type superadminPeakBody struct {
@@ -53,7 +52,7 @@ func SuperadminListPeaks(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.Peak
 	if err := db.Order("naziv_vrha ASC").Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vrhova"})
@@ -76,7 +75,7 @@ func SuperadminGetPeak(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var p models.Peak
 	if err := db.First(&p, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Vrh nije pronađen"})
@@ -109,7 +108,7 @@ func SuperadminCreatePeak(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active ili draft"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	slugStr, err := slug.UniquePeakSlug(db, naziv, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju slug-a"})
@@ -163,7 +162,7 @@ func SuperadminUpdatePeak(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active ili draft"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var p models.Peak
 	if err := db.First(&p, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Vrh nije pronađen"})
@@ -204,7 +203,7 @@ func SuperadminDeletePeak(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	res := db.Delete(&models.Peak{}, id)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Brisanje nije uspelo"})

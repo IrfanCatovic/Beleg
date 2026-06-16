@@ -12,7 +12,6 @@ import (
 	"beleg-app/backend/internal/slug"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func validateHotelCoords(lat, lng float64) string {
@@ -23,15 +22,15 @@ func validateHotelCoords(lat, lng float64) string {
 }
 
 type superadminHotelBody struct {
-	Naziv         string   `json:"naziv"`
-	Lat           float64  `json:"lat"`
-	Lng           float64  `json:"lng"`
-	Opis          string   `json:"opis"`
-	Telefon       string   `json:"telefon"`
-	Status        string   `json:"status"`
-	Slike         []string `json:"slike"`
-	BookingUrl    string   `json:"bookingUrl"`
-	InstagramUrl  string   `json:"instagramUrl"`
+	Naziv        string   `json:"naziv"`
+	Lat          float64  `json:"lat"`
+	Lng          float64  `json:"lng"`
+	Opis         string   `json:"opis"`
+	Telefon      string   `json:"telefon"`
+	Status       string   `json:"status"`
+	Slike        []string `json:"slike"`
+	BookingUrl   string   `json:"bookingUrl"`
+	InstagramUrl string   `json:"instagramUrl"`
 }
 
 // SuperadminListHotels GET /api/superadmin/hotels
@@ -39,7 +38,7 @@ func SuperadminListHotels(c *gin.Context) {
 	if !requireSuperadmin(c) {
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.Hotel
 	if err := db.Order("naziv ASC").Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju hotela"})
@@ -62,7 +61,7 @@ func SuperadminGetHotel(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var h models.Hotel
 	if err := db.First(&h, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Hotel nije pronađen"})
@@ -98,23 +97,23 @@ func SuperadminCreateHotel(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active ili draft"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	slugStr, err := slug.UniqueHotelSlug(db, naziv, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri generisanju slug-a"})
 		return
 	}
 	h := models.Hotel{
-		Naziv:          naziv,
-		Slug:           slugStr,
-		Lat:            body.Lat,
-		Lng:            body.Lng,
-		Opis:           strings.TrimSpace(body.Opis),
-		Telefon:        strings.TrimSpace(body.Telefon),
-		Status:         st,
-		SlikeJSON:      marshalHotelSlikeJSON(body.Slike),
-		BookingURL:     strings.TrimSpace(body.BookingUrl),
-		InstagramURL:   strings.TrimSpace(body.InstagramUrl),
+		Naziv:        naziv,
+		Slug:         slugStr,
+		Lat:          body.Lat,
+		Lng:          body.Lng,
+		Opis:         strings.TrimSpace(body.Opis),
+		Telefon:      strings.TrimSpace(body.Telefon),
+		Status:       st,
+		SlikeJSON:    marshalHotelSlikeJSON(body.Slike),
+		BookingURL:   strings.TrimSpace(body.BookingUrl),
+		InstagramURL: strings.TrimSpace(body.InstagramUrl),
 	}
 	if err := db.Create(&h).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Greška pri čuvanju (slug jedinstven?)"})
@@ -155,7 +154,7 @@ func SuperadminUpdateHotel(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status mora biti active ili draft"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var h models.Hotel
 	if err := db.First(&h, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Hotel nije pronađen"})
@@ -197,7 +196,7 @@ func SuperadminDeleteHotel(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	res := db.Delete(&models.Hotel{}, id)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Brisanje nije uspelo"})
@@ -232,7 +231,7 @@ func SuperadminUploadHotelGallery(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var cnt int64
 	db.Model(&models.Hotel{}).Where("id = ?", id).Count(&cnt)
 	if cnt == 0 {

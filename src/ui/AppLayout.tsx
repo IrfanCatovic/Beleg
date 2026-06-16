@@ -4,57 +4,29 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
-import api from '../services/api'
-import { formatRelativeTime } from '../utils/dateUtils'
+import {
+  fetchObavestenja,
+  fetchPendingFollowRequests,
+  fetchPendingParticipationRequests,
+  fetchUnreadCount,
+  markAllObavestenjaRead,
+  markObavestenjeRead,
+} from '../services/obavestenja'
 import { userHasClubContext } from '../utils/clubContext'
+import { formatRelativeTime } from '../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
-import LanguageSwitcher from '../components/LanguageSwitcher'
-
-interface ObavestenjeItem {
-  id: number
-  userId: number
-  type: string
-  title: string
-  body?: string
-  link?: string
-  readAt?: string | null
-  createdAt: string
-}
-
-interface PendingParticipationRequest {
-  id: number
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
-}
-
-interface PendingFollowRequest {
-  followId: number
-}
-
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `relative px-3.5 py-1.5 text-[13px] font-semibold tracking-wide rounded-lg transition-all duration-200 ${
-    isActive
-      ? 'bg-white/[0.08] text-white'
-      : 'text-white/70 hover:text-white hover:bg-white/[0.05]'
-  }`
-
-function navDropdownTriggerClass(open: boolean, routeActive: boolean) {
-  const on = open || routeActive
-  return `inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-semibold tracking-wide transition-all duration-200 ${
-    on ? 'bg-white/[0.1] text-white shadow-inner shadow-black/20' : 'text-white/70 hover:text-white hover:bg-white/[0.06]'
-  }`
-}
-
-const navDropdownPanelClass =
-  'absolute left-0 top-full z-50 mt-1.5 min-w-[14.5rem] rounded-xl border border-white/10 bg-slate-900/97 py-1 shadow-2xl ring-1 ring-black/30 backdrop-blur-xl'
-const navDropdownLinkClass =
-  'flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-white/90 hover:bg-white/[0.08] transition-colors'
-const navDropdownSoonClass =
-  'flex w-full cursor-not-allowed items-center justify-between gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-white/45 select-none'
-const mobileExploreSoonClass =
-  'flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/45 select-none'
-
-const canSeeFinance = (role?: string) =>
-  role === 'superadmin' || role === 'admin' || role === 'blagajnik'
+import {
+  canSeeFinance,
+  iconBtnClass,
+  mobileExploreSoonClass,
+  navDropdownLinkClass,
+  navDropdownPanelClass,
+  navDropdownSoonClass,
+  navDropdownTriggerClass,
+  navLinkClass,
+} from './appLayoutStyles'
+import { AppNotificationsBellButton, AppNotificationsPanel } from './AppNotificationsPanel'
+import type { ObavestenjeItem } from '../types/obavestenje'
 
 export default function AppLayout() {
   const { t } = useTranslation('appLayout')
@@ -152,19 +124,19 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (!isLoggedIn || isSuperadminNoClub) return
-    api.get('/api/obavestenja/unread-count').then((r) => setUnreadCount(r.data.unreadCount ?? 0)).catch(() => {})
+    void fetchUnreadCount().then(setUnreadCount).catch(() => {})
   }, [isLoggedIn, isSuperadminNoClub])
 
   useEffect(() => {
     if (!isLoggedIn || isSuperadminNoClub) return
     const loadRequestCounts = async () => {
       try {
-        const [actionRes, followRes] = await Promise.all([
-          api.get<{ requests: PendingParticipationRequest[] }>('/api/moja-ucesca-zahtevi', { params: { status: 'pending' } }),
-          api.get<{ requests: PendingFollowRequest[] }>('/api/follows/requests/pending'),
+        const [actionReqs, followReqs] = await Promise.all([
+          fetchPendingParticipationRequests(),
+          fetchPendingFollowRequests(),
         ])
-        setPendingActionRequestsCount((actionRes.data.requests || []).filter((req) => req.status === 'pending').length)
-        setPendingFollowRequestsCount((followRes.data.requests || []).length)
+        setPendingActionRequestsCount(actionReqs.filter((req) => req.status === 'pending').length)
+        setPendingFollowRequestsCount(followReqs.length)
       } catch {
         setPendingActionRequestsCount(0)
         setPendingFollowRequestsCount(0)
@@ -177,10 +149,9 @@ export default function AppLayout() {
     if (!isLoggedIn || isSuperadminNoClub || !isNotificationsOpen) return
     setNotificationsLoading(true)
     setUnreadCount(0)
-    api
-      .patch('/api/obavestenja/read-all')
-      .then(() => api.get('/api/obavestenja', { params: { limit: 20 } }))
-      .then((r) => setNotifications(r.data.obavestenja ?? []))
+    void markAllObavestenjaRead()
+      .then(() => fetchObavestenja(20))
+      .then(setNotifications)
       .catch(() => setNotifications([]))
       .finally(() => setNotificationsLoading(false))
   }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen])
@@ -260,7 +231,7 @@ export default function AppLayout() {
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
-      api.patch(`/api/obavestenja/${n.id}/read`).then(() => setUnreadCount((c) => Math.max(0, c - 1))).catch(() => {})
+      void markObavestenjeRead(n.id).then(() => setUnreadCount((c) => Math.max(0, c - 1)))
     }
     setIsNotificationsOpen(false)
     // Akcije i nagrade vode direktno na povezani ekran; ostalo na detalj obaveštenja.
@@ -286,8 +257,6 @@ export default function AppLayout() {
     return <Navigate to="/superadmin" replace />
   }
 
-  const iconBtnClass =
-    'inline-flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-emerald-400/40 transition-all duration-200'
   const exploreNavActive =
     location.pathname.startsWith('/ferate') ||
     location.pathname === '/vodici' ||
@@ -310,7 +279,7 @@ export default function AppLayout() {
     if (!pendingSummitReward) return
     setSummitRewardDismissed(true)
     if (pendingSummitReward.notificationId) {
-      await api.patch(`/api/obavestenja/${pendingSummitReward.notificationId}/read`).catch(() => {})
+      await markObavestenjeRead(pendingSummitReward.notificationId).catch(() => {})
     }
     clearPendingSummitReward()
     if (pendingSummitReward.actionId) {
@@ -564,95 +533,29 @@ export default function AppLayout() {
 
                   {/* Notifications */}
                   <div ref={notificationsBlockRef} className="relative">
-                    <button
-                      type="button"
-                      onClick={() => {
+                    <AppNotificationsBellButton
+                      open={isNotificationsOpen}
+                      unreadCount={unreadCount}
+                      hasPendingRequests={hasPendingRequests}
+                      onToggle={() => {
                         setIsSearchOpen(false)
                         setIsProfileMenuOpen(false)
                         setNavExploreOpen(false)
                         setNavClubOpen(false)
                         setIsNotificationsOpen((v) => !v)
                       }}
-                      className={`relative ${iconBtnClass} ${hasPendingRequests ? 'ring-2 ring-amber-300/60 bg-amber-500/15 text-amber-100 hover:text-amber-50 hover:bg-amber-500/25' : ''}`}
-                      aria-label={t('notifications')}
-                    >
-                      <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
-                      </svg>
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-emerald-500">
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {isNotificationsOpen && (
-                      <div className="absolute right-0 top-12 w-80 rounded-2xl bg-white py-2 shadow-2xl ring-1 ring-black/5 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
-                          <p className="text-xs font-semibold text-gray-800">{t('notifications')}</p>
-                          <LanguageSwitcher />
-                        </div>
-                        <div className="px-4 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
-                            className={`w-full rounded-xl border px-3 py-2 text-left text-[11px] font-semibold transition-colors ${requestsSummaryMobileClass}`}
-                          >
-                            <p className="uppercase tracking-wider">Trenutni zahtevi</p>
-                            {hasPendingRequests ? (
-                              <p className="mt-1 normal-case">Trenutno imate: {totalPendingRequests} zahteva</p>
-                            ) : (
-                              <p className="mt-1 normal-case">Nemate zahteva</p>
-                            )}
-                          </button>
-                        </div>
-                        <div className="max-h-80 overflow-y-auto">
-                          {notificationsLoading ? (
-                            <p className="px-4 py-4 text-xs text-gray-500">{t('loading')}</p>
-                          ) : notifications.length === 0 ? (
-                            <p className="px-4 py-4 text-xs text-gray-500">{t('noNotifications')}</p>
-                          ) : (
-                            notifications.map((n) => {
-                              return (
-                                <button
-                                  key={n.id}
-                                  type="button"
-                                  onClick={() => handleNotificationClick(n)}
-                                  className={`flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${!n.readAt ? 'bg-emerald-50/40' : ''}`}
-                                >
-                                  <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${obavestenjeBellIconClass(n.type)}`}>
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 104 0v-1m-4 0h4" />
-                                    </svg>
-                                  </span>
-                                  <span className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-gray-900 truncate">{n.title}</p>
-                                    {n.body && <p className="mt-0.5 text-[11px] text-gray-500 line-clamp-2">{n.body}</p>}
-                                    <p className="mt-0.5 text-[11px] text-gray-400">{formatRelativeTime(n.createdAt)}</p>
-                                  </span>
-                                </button>
-                              )
-                            })
-                          )}
-                        </div>
-                        <div className="mt-1 border-t border-gray-100 px-4 pt-2 pb-1.5 flex items-center justify-between">
-                          <button
-                            type="button"
-                                  onClick={() => { navigate('/obavestenja'); setIsNotificationsOpen(false) }}
-                            className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
-                          >
-                            {t('showAllNotifications')}
-                          </button>
-                          <button
-                            type="button"
-                            className="text-[11px] text-gray-400 hover:text-gray-600"
-                            onClick={() => setIsNotificationsOpen(false)}
-                          >
-                            {t('close')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    />
+                    <AppNotificationsPanel
+                      open={isNotificationsOpen}
+                      loading={notificationsLoading}
+                      notifications={notifications}
+                      hasPendingRequests={hasPendingRequests}
+                      totalPendingRequests={totalPendingRequests}
+                      requestsSummaryClass={requestsSummaryMobileClass}
+                      onClose={() => setIsNotificationsOpen(false)}
+                      onUnreadCountChange={setUnreadCount}
+                      variant="desktop"
+                    />
                   </div>
                   </>
                   )}

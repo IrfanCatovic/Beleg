@@ -3,7 +3,16 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
-import api from '../../../services/api'
+import {
+  fetchAkcije,
+  fetchMojePrijave,
+  fetchPrijaveZaAkciju,
+  otkaziPrijavu,
+  prijaviNaAkciju,
+} from '../../../services/actions'
+import { fetchKlub } from '../../../services/club'
+import { fetchKorisnici } from '../../../services/users'
+import type { AkcijaListItem as Akcija } from '../../../types/akcija'
 import { formatDateShort } from '../../../utils/dateUtils'
 import { generateAnnualReportPdf } from '../../../utils/generateAnnualReportPdf'
 import {
@@ -25,28 +34,6 @@ import ActionsFilterBar, {
   EMPTY_ACTIONS_FILTERS,
   countActiveFilters,
 } from './ActionsFilterBar'
-
-interface Akcija {
-  id: number
-  naziv: string
-  tipAkcije?: 'planina' | 'via_ferrata'
-  planina?: string
-  vrh: string
-  datum: string
-  opis?: string
-  tezina?: string
-  visinaVrhM?: number
-  zimskiUspon?: boolean
-  slikaUrl?: string
-  isCompleted: boolean
-  uIstorijiKluba?: boolean
-  javna?: boolean
-  organizatorTip?: 'klub' | 'vodic'
-  klubNaziv?: string
-  duzinaStazeKm?: number
-  kumulativniUsponM?: number
-  brojDana?: number
-}
 
 type ActionSourceFilter = 'all' | 'club' | 'guide'
 
@@ -206,17 +193,17 @@ export default function Actions() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const akcijeRes = await api.get('/api/akcije')
-        setAktivneAkcije((akcijeRes.data.aktivne || []).filter(isClubListedAkcija))
-        setZavrseneAkcije((akcijeRes.data.zavrsene || []).filter(isClubListedAkcija))
-        setVodeneAktivne(akcijeRes.data.vodeneAktivne || [])
-        setVodeneZavrsene(akcijeRes.data.vodeneZavrsene || [])
-        setMojePrivatneAktivne(akcijeRes.data.mojePrivatneAktivne || [])
-        setMojePrivatneZavrsene(akcijeRes.data.mojePrivatneZavrsene || [])
+        const akcijeData = await fetchAkcije()
+        setAktivneAkcije((akcijeData.aktivne || []).filter(isClubListedAkcija))
+        setZavrseneAkcije((akcijeData.zavrsene || []).filter(isClubListedAkcija))
+        setVodeneAktivne(akcijeData.vodeneAktivne || [])
+        setVodeneZavrsene(akcijeData.vodeneZavrsene || [])
+        setMojePrivatneAktivne(akcijeData.mojePrivatneAktivne || [])
+        setMojePrivatneZavrsene(akcijeData.mojePrivatneZavrsene || [])
 
-        const mojeRes = await api.get('/api/moje-prijave')
-        const ids = mojeRes.data.prijavljeneAkcije || []
-        const otkaziveIds = mojeRes.data.otkaziveAkcije || []
+        const mojeData = await fetchMojePrijave()
+        const ids = mojeData.prijavljeneAkcije || []
+        const otkaziveIds = mojeData.otkaziveAkcije || []
         setPrijavljeneAkcije(new Set(ids))
         setOtkaziveAkcije(new Set(otkaziveIds))
       } catch (err: any) {
@@ -299,13 +286,7 @@ export default function Actions() {
         (a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime()
       )
 
-      const korisniciRes = await api.get('/api/korisnici')
-      const korisniciList = (korisniciRes.data.korisnici || []) as Array<{
-        id: number
-        username?: string
-        datum_rodjenja?: string | null
-        pol?: string
-      }>
+      const korisniciList = await fetchKorisnici()
       const userDataById: Record<number, { datum_rodjenja?: string | null; pol?: string }> = {}
       const userDataByUsername: Record<string, { datum_rodjenja?: string | null; pol?: string }> = {}
       korisniciList.forEach((k) => {
@@ -333,8 +314,8 @@ export default function Actions() {
           pol?: string
         }> = []
         try {
-          const res = await api.get(`/api/akcije/${akcija.id}/prijave`)
-          prijave = res.data.prijave || []
+          const prijaveList = await fetchPrijaveZaAkciju(akcija.id)
+          prijave = prijaveList
         } catch {
           // skip
         }
@@ -359,8 +340,8 @@ export default function Actions() {
       }
       let clubName = sorted.find((a) => a.klubNaziv)?.klubNaziv || ''
       try {
-        const klubRes = await api.get('/api/klub')
-        const naziv = (klubRes.data?.klub?.naziv as string | undefined) || (klubRes.data?.naziv as string | undefined)
+        const klubData = await fetchKlub()
+        const naziv = (klubData?.klub as { naziv?: string } | undefined)?.naziv || klubData?.naziv
         if (naziv?.trim()) clubName = naziv.trim()
       } catch {
         // fallback ostaje iz akcije ako postoji
@@ -380,8 +361,8 @@ export default function Actions() {
     if (!confirmed) return
 
     try {
-      const response = await api.post(`/api/akcije/${akcijaId}/prijavi`)
-      await showAlert(response.data.message)
+      const response = await prijaviNaAkciju(akcijaId)
+      await showAlert(response.message)
 
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
       setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
@@ -403,7 +384,7 @@ export default function Actions() {
     if (!confirmed) return
 
     try {
-      await api.delete(`/api/akcije/${akcijaId}/prijavi`)
+      await otkaziPrijavu(akcijaId)
       await showAlert(t('cancelJoinSuccess'))
 
       setPrijavljeneAkcije(prev => {

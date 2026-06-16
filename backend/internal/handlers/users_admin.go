@@ -151,7 +151,7 @@ func DeleteKorisnikByAdmin(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Nevažeći ID korisnika"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	usernameVal, _ := c.Get("username")
 	username, _ := usernameVal.(string)
 
@@ -326,7 +326,7 @@ func GetKorisnikInfo(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pristup ovim podacima"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	param := c.Param("id")
 	korisnik := getKorisnikByIDOrUsernameAdmin(db, param)
@@ -368,7 +368,7 @@ func AddProslaAkcija(c *gin.Context) {
 	}
 
 	username, _ := c.Get("username")
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var currentUser models.Korisnik
 	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&currentUser).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Korisnik nije pronađen"})

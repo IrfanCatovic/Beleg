@@ -268,7 +268,7 @@ func CreateTransakcija(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
@@ -326,7 +326,7 @@ func GetClanarine(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
@@ -405,7 +405,7 @@ func PostClanarinaPlati(c *gin.Context) {
 		return
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})

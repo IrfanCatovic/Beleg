@@ -1,134 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
-import type { ClubCurrencyCode } from '../../../utils/clubCurrency'
 import { useTranslation } from 'react-i18next'
 import { FerrataPinPicker } from '../../../components/ferrate/FerrataPinPicker'
 import { FerrataCatalogAutocomplete } from '../../../components/ferrate/FerrataCatalogAutocomplete'
 import { buildWizardPatchFromFerrataRow } from '../../../components/ferrate/ferrataWizardPrefill'
 import api from '../../../services/api'
+import {
+  type ActionKind,
+  type ActionWizardFormProps,
+  type OrganizerKind,
+  type VisibilityKind,
+  type WizardFerrataOption,
+  type WizardGuide,
+  type WizardOprema,
+  type WizardPrevoz,
+  type WizardSmestaj,
+  type WizardValues,
+  wizardBaseInput as baseInput,
+  wizardLabelClass as labelClass,
+  wizardNavBtnPrimary as navBtnPrimary,
+  wizardNavBtnSecondary as navBtnSecondary,
+  wizardNavBtnSubmit as navBtnSubmit,
+} from './wizardTypes'
 
-type ActionKind = 'planina' | 'via_ferrata'
-type VisibilityKind = 'klubska' | 'javna'
-export type OrganizerKind = 'klub' | 'vodic'
-
-export interface WizardGuide {
-  id: number
-  username: string
-  fullName: string
-  isProfiGuide?: boolean
-  source?: 'club' | 'profi'
-}
-
-export interface WizardSmestaj {
-  localId: string
-  naziv: string
-  cenaPoOsobiUkupno: string
-  opis: string
-}
-
-export interface WizardOprema {
-  localId: string
-  naziv: string
-  dostupnaKolicina: string
-  cenaPoSetu: string
-}
-
-export interface WizardPrevoz {
-  localId: string
-  tipPrevoza: string
-  nazivGrupe: string
-  kapacitet: string
-  cenaPoOsobi: string
-}
-
-export interface WizardFerrataOption {
-  id: number
-  naziv: string
-  tezina: string
-  drzava?: string
-  gradOpstina?: string
-  lokacija?: string
-  duzinaM: number
-  visinskaRazlikaM: number
-  trajanjeMin: number
-  trajanjeMax: number
-  opis?: string
-  quickTip?: string
-}
-
-export interface WizardValues {
-  naziv: string
-  actionKind: ActionKind
-  organizerType: OrganizerKind
-  visibility: VisibilityKind
-  planina: string
-  vrh: string
-  datum: string
-  vremePolaska: string
-  ferrataId: string
-  opis: string
-  tezina: string
-  kumulativniUsponM: string
-  duzinaStazeKm: string
-  visinaVrhM: string
-  zimskiUspon: boolean
-  vodicId: string
-  drugiVodicCheck: boolean
-  drugiVodicIme: string
-  trajanjeSati: string
-  rokPrijava: string
-  maxLjudi: string
-  mestoPolaska: string
-  kontaktTelefon: string
-  brojDana: string
-  cenaClan: string
-  cenaOstali: string
-  prikaziListuPrijavljenih: boolean
-  omoguciGrupniChat: boolean
-  /** Geografska širina/dužina glavne tačke ture (planina) — obavezno za tip planina */
-  planinaLat: string
-  planinaLng: string
-  smestaj: WizardSmestaj[]
-  oprema: WizardOprema[]
-  prevoz: WizardPrevoz[]
-}
-
-interface ActionWizardFormProps {
-  title: string
-  badge: string
-  submitText: string
-  submitLoadingText: string
-  guides: WizardGuide[]
-  initialValues: WizardValues
-  initialImageUrl?: string
-  /** Valuta kluba iz finansija — sve cene su u ovoj valuti */
-  clubCurrency: ClubCurrencyCode
-  loading: boolean
-  error: string
-  success: string
-  minDate?: string
-  imageHelpText?: string
-  lockActionKind?: boolean
-  ferrataCatalog?: WizardFerrataOption[]
-  lockFerrataSelection?: boolean
-  /** Zaključava tip organizatora (npr. zahtev za vođenje → uvek vodič). */
-  lockOrganizerType?: boolean
-  onSubmit: (values: WizardValues, image: File | null) => void | Promise<void>
-}
-
-const baseInput =
-  'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30 outline-none transition'
-const labelClass = 'block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-[0.16em]'
-
-const navBtnBase =
-  'px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 active:scale-[0.97]'
-const navBtnSecondary =
-  `${navBtnBase} border border-gray-200 text-gray-600 bg-white hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800 disabled:opacity-40 disabled:pointer-events-none disabled:active:scale-100`
-const navBtnPrimary =
-  `${navBtnBase} border border-emerald-300 text-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 hover:border-emerald-400 hover:shadow-md`
-const navBtnSubmit =
-  `${navBtnBase} text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 hover:shadow-md disabled:opacity-60 disabled:cursor-wait disabled:active:scale-100`
+export type { OrganizerKind, WizardGuide, WizardSmestaj, WizardOprema, WizardPrevoz, WizardFerrataOption, WizardValues }
 
 export function ActionWizardForm({
   title,

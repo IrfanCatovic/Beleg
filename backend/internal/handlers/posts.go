@@ -115,7 +115,7 @@ type UpdatePostRequest struct {
 }
 
 func GetPosts(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -317,7 +317,7 @@ func GetPosts(c *gin.Context) {
 
 // GetPost vraća jednu objavu u istom formatu kao element liste feed-a.
 func GetPost(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -399,7 +399,7 @@ func GetPost(c *gin.Context) {
 }
 
 func CreatePost(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -586,7 +586,7 @@ func CreatePost(c *gin.Context) {
 // Dozvoljeno: samo autor objave.
 // Body: JSON { content?: string, imageUrl?: string }
 func UpdatePost(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -705,7 +705,7 @@ func UpdatePost(c *gin.Context) {
 }
 
 func DeletePost(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -774,7 +774,7 @@ type PostLikeUserDTO struct {
 // POST /api/posts/:id/like
 // Toggle lajk: ako korisnik već lajkuje post -> uklanja lajk, inače dodaje.
 func TogglePostLike(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -851,7 +851,7 @@ func TogglePostLike(c *gin.Context) {
 
 // GET /api/posts/:id/likes
 func GetPostLikes(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	idStr := c.Param("id")
 	postID, err := strconv.ParseUint(idStr, 10, 32)
@@ -889,7 +889,7 @@ type CreateCommentRequest struct {
 
 // GET /api/posts/:id/comments?limit=20&offset=0
 func GetPostComments(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	idStr := c.Param("id")
 	postID, err := strconv.ParseUint(idStr, 10, 32)
@@ -982,7 +982,7 @@ func GetPostComments(c *gin.Context) {
 
 // POST /api/posts/:id/comments
 func CreatePostComment(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {
@@ -1090,7 +1090,7 @@ func CreatePostComment(c *gin.Context) {
 // DELETE /api/posts/:id/comments/:commentId
 // Dozvoljeno: vlasnik objave, admin kluba kome objava pripada, ili superadmin.
 func DeletePostComment(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	usernameVal, exists := c.Get("username")
 	if !exists {

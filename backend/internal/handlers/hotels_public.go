@@ -11,7 +11,6 @@ import (
 	"beleg-app/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type hotelWithDist struct {
@@ -21,7 +20,7 @@ type hotelWithDist struct {
 
 // ListHotelsAll GET /api/hotels — svi aktivni hoteli (za prikaz pinova na mapi).
 func ListHotelsAll(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.Hotel
 	if err := db.Where("status = ?", "active").Order("naziv ASC").Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju hotela"})
@@ -62,7 +61,7 @@ func ListHotelsNearby(c *gin.Context) {
 		}
 	}
 
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	var rows []models.Hotel
 	if err := db.Where("status = ?", "active").Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju hotela"})

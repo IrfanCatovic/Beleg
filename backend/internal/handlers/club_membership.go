@@ -73,7 +73,7 @@ func hasBlock(db *gorm.DB, userID uint, clubID uint) bool {
 }
 
 func CreateClubJoinRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	user, ok := currentUser(c, db)
 	if !ok {
 		return
@@ -136,7 +136,7 @@ func CreateClubJoinRequest(c *gin.Context) {
 }
 
 func GetMyClubJoinRequests(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	user, ok := currentUser(c, db)
 	if !ok {
 		return
@@ -179,7 +179,7 @@ func GetMyClubJoinRequests(c *gin.Context) {
 }
 
 func CancelMyClubJoinRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	user, ok := currentUser(c, db)
 	if !ok {
 		return
@@ -219,7 +219,7 @@ func canManageOwnClubRequests(c *gin.Context, db *gorm.DB) (uint, bool) {
 }
 
 func ListClubJoinRequestsForAdmin(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageOwnClubRequests(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo pristupa zahtevima kluba"})
@@ -267,7 +267,7 @@ func ListClubJoinRequestsForAdmin(c *gin.Context) {
 }
 
 func AcceptClubJoinRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageOwnClubRequests(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da prihvatite zahtev"})
@@ -353,7 +353,7 @@ func AcceptClubJoinRequest(c *gin.Context) {
 }
 
 func RejectClubJoinRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageOwnClubRequests(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da odbijete zahtev"})
@@ -390,7 +390,7 @@ func RejectClubJoinRequest(c *gin.Context) {
 }
 
 func BlockClubJoinRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageOwnClubRequests(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da blokirate zahtev"})
@@ -439,7 +439,7 @@ func BlockClubJoinRequest(c *gin.Context) {
 }
 
 func LeaveCurrentClub(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	user, ok := currentUser(c, db)
 	if !ok {
 		return
@@ -459,7 +459,7 @@ func LeaveCurrentClub(c *gin.Context) {
 }
 
 func RemoveMemberFromClub(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := canManageOwnClubRequests(c, db)
 	if !ok {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da uklonite člana"})

@@ -166,7 +166,7 @@ func loadActionParticipationRequestWithRelations(db *gorm.DB, requestID uint) (*
 }
 
 func SearchEligibleExternalUsers(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	actionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
@@ -268,7 +268,7 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 }
 
 func SearchEligibleClubMembers(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	actionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
@@ -350,7 +350,7 @@ func SearchEligibleClubMembers(c *gin.Context) {
 }
 
 func ListActionParticipationRequests(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	actionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
@@ -390,7 +390,7 @@ func ListActionParticipationRequests(c *gin.Context) {
 }
 
 func CancelActionParticipationRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
@@ -439,7 +439,7 @@ func CancelActionParticipationRequest(c *gin.Context) {
 }
 
 func CreateActionParticipationRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	actionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
@@ -543,7 +543,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 }
 
 func ListMyActionParticipationRequests(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
@@ -587,7 +587,7 @@ func ListMyActionParticipationRequests(c *gin.Context) {
 }
 
 func GetMyActionParticipationRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
@@ -611,7 +611,7 @@ func GetMyActionParticipationRequest(c *gin.Context) {
 }
 
 func RespondToActionParticipationRequest(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, err := getCurrentKorisnik(c, db)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})

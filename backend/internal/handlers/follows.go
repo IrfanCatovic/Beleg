@@ -37,7 +37,7 @@ func getCurrentUser(c *gin.Context) (models.Korisnik, bool) {
 		return models.Korisnik{}, false
 	}
 	username, _ := usernameVal.(string)
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	var currentUser models.Korisnik
 	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
@@ -87,7 +87,7 @@ func isBlockedEitherDirection(db *gorm.DB, a, b uint) bool {
 // POST /api/follows/requests
 // Kreira zahtev za praćenje (status = "pending").
 func CreateFollowRequestHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
@@ -169,7 +169,7 @@ func CreateFollowRequestHandler(c *gin.Context) {
 // PATCH /api/follows/requests/:id/accept
 // Ciljani korisnik prihvata zahtev => status = "accepted".
 func AcceptFollowRequestHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -222,7 +222,7 @@ func AcceptFollowRequestHandler(c *gin.Context) {
 // DELETE /api/follows/requests/:id
 // Odbijanje => samo briše pending red iz tabele.
 func RejectFollowRequestHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -253,7 +253,7 @@ func RejectFollowRequestHandler(c *gin.Context) {
 // DELETE /api/follows/user/:targetId
 // Uklanja outgoing follow/request (pending ili accepted) od currentUser ka target-u.
 func UnfollowUserHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -287,7 +287,7 @@ func UnfollowUserHandler(c *gin.Context) {
 
 // POST /api/blocks/:targetId
 func BlockUserHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -332,7 +332,7 @@ func BlockUserHandler(c *gin.Context) {
 
 // DELETE /api/blocks/:targetId
 func UnblockUserHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -358,7 +358,7 @@ func UnblockUserHandler(c *gin.Context) {
 
 // GET /api/blocks/status/:targetId
 func GetBlockStatusHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -379,7 +379,7 @@ func GetBlockStatusHandler(c *gin.Context) {
 
 // GET /api/blocks/mine
 func GetMyBlockedUsersHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -428,7 +428,7 @@ func GetMyBlockedUsersHandler(c *gin.Context) {
 // GET /api/follows/status/:targetId
 // Vraca status odnosa između trenutnog korisnika (viewer) i target-a.
 func GetFollowStatusHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -485,7 +485,7 @@ type PendingFollowRequestDTO struct {
 // GET /api/follows/requests/pending
 // Lista pending zahteva koje currentUser prima (target).
 func GetPendingIncomingFollowRequestsHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	currentUser, ok := getCurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
@@ -575,7 +575,7 @@ type FollowCountsResponse struct {
 // GET /api/follows/user/:id/counts
 // :id može biti numeric id ili username. Broji samo accepted.
 func GetFollowCountsHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 
 	// zahteva auth (routes su protected), ali counts su vezani za target user
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
@@ -624,7 +624,7 @@ func toFollowUserDTO(u models.Korisnik, profiSet map[uint]bool) FollowUserDTO {
 
 // GET /api/follows/user/:id/following
 func GetFollowingListHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
@@ -674,7 +674,7 @@ func GetFollowingListHandler(c *gin.Context) {
 
 // GET /api/follows/user/:id/followers
 func GetFollowersListHandler(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})

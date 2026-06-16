@@ -253,7 +253,7 @@ func UpdateMojKlub(c *gin.Context) {
 
 // UpdateMojKlubLogo menja logo effective kluba (admin/sekretar kluba ili superadmin).
 func UpdateMojKlubLogo(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := DB(c)
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok || clubID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (X-Club-Id) ili niste u klubu"})
