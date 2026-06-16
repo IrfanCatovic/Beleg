@@ -1,13 +1,12 @@
 import api from './api'
-import type { Task } from '../components/TaskCard'
-import type { Role } from '../components/NewTaskModal'
+import type { Task, ZadatakRole } from '../types/zadatak'
 
 export interface CreateZadatakPayload {
   naziv: string
   opis: string
   deadline: string | null
   hitno: boolean
-  allowedRoles: Role[]
+  allowedRoles: ZadatakRole[]
   allowAll: boolean
 }
 
@@ -50,4 +49,9 @@ export async function zavrsiZadatak(taskId: number) {
 
 export async function deleteZadatak(taskId: number) {
   await api.delete(`/api/zadaci/${taskId}`)
+}
+
+export async function fetchZadatakById(taskId: number) {
+  const res = await api.get(`/api/zadaci/${taskId}`)
+  return unwrapTask(res.data)
 }

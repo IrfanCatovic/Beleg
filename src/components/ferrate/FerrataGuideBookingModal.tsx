@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import { fetchMeProfile } from '../../services/auth'
 import { useAuth } from '../../context/AuthContext'
 import { listGuidesNearby, listGuidesCatalog, type GuideNearbyPublic } from '../../services/guidesPublic'
 import { createFerrataGuideBooking } from '../../services/ferrataGuideBookings'
@@ -128,10 +128,9 @@ export function FerrataGuideBookingModal(props: {
     setGuideSearch('')
     setGuidesFromCatalog(false)
     if (!user) return
-    api
-      .get('/api/me')
-      .then((res) => {
-        const tel = (res.data?.telefon as string | undefined)?.trim()
+    void fetchMeProfile()
+      .then((data) => {
+        const tel = (data as { telefon?: string } | null)?.telefon?.trim()
         if (tel) setForm((f) => ({ ...f, contactPhone: tel }))
       })
       .catch(() => {})

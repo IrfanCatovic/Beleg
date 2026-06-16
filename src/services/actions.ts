@@ -60,8 +60,10 @@ export interface ZavrsiAkcijaResponse {
   netoFinansije?: number
 }
 
-export async function fetchAkcije() {
-  const res = await api.get<AkcijeListResponse>('/api/akcije')
+export async function fetchAkcije(options?: { scope?: string }) {
+  const res = await api.get<AkcijeListResponse>('/api/akcije', {
+    params: options?.scope ? { scope: options.scope } : undefined,
+  })
   return res.data
 }
 
@@ -172,5 +174,47 @@ export async function zavrsiAkciju(akcijaId: number | string, rashodNaAkciji: nu
 
 export async function regenerateAkcijaInviteLink(akcijaId: number | string) {
   const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${akcijaId}/invite-link/regenerate`)
+  return res.data
+}
+
+export async function createAkcija(formData: FormData) {
+  const res = await api.post('/api/akcije', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export async function updateAkcija(id: number | string, formData: FormData) {
+  await api.patch(`/api/akcije/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export async function geocodeQuery(q: string) {
+  const res = await api.get<{ lat: number; lng: number }>('/api/geocode', { params: { q } })
+  return res.data
+}
+
+export async function fetchEligibleClubMembers(
+  akcijaId: number,
+  params: { q?: string; offset?: number; limit?: number },
+) {
+  const res = await api.get<{ users: ExternalUserCandidate[] }>(
+    `/api/akcije/${akcijaId}/eligible-club-members`,
+    { params },
+  )
+  return res.data.users ?? []
+}
+
+export async function addClubMembersCompleted(
+  akcijaId: number,
+  payload: { korisnikIds: number[] },
+) {
+  const res = await api.post(`/api/akcije/${akcijaId}/add-club-members-completed`, payload)
+  return res.data
+}
+
+export async function fetchMojePopeoSe() {
+  const res = await api.get('/api/moje-popeo-se')
   return res.data
 }

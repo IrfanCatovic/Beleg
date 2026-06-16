@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
-import api from '../../../services/api'
+import { fetchPeakById } from '../../../services/catalog'
+import {
+  addClubMembersCompleted,
+  createParticipationRequest,
+  fetchAkcije,
+  fetchEligibleClubMembers,
+} from '../../../services/actions'
+import { fetchKorisnici, addPastActionToUser } from '../../../services/users'
 import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 import { useTranslation } from 'react-i18next'
@@ -109,14 +116,10 @@ export default function AddPastAction() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const [korisniciRes, akcijeRes] = await Promise.all([
-          api.get<{ korisnici: Korisnik[] }>('/api/korisnici'),
-          api.get<{ zavrsene: Akcija[] }>('/api/akcije'),
-        ])
-        const list = korisniciRes.data.korisnici || []
-        setKorisnici(list)
-        setVodici(list.filter((k) => k.role === 'vodic'))
-        setZavrseneAkcije(akcijeRes.data.zavrsene || [])
+        const [list, akcijeData] = await Promise.all([fetchKorisnici(), fetchAkcije()])
+        setKorisnici(list as Korisnik[])
+        setVodici(list.filter((k) => k.role === 'vodic') as Korisnik[])
+        setZavrseneAkcije((akcijeData.zavrsene || []) as Akcija[])
       } catch (err: any) {
         setError(err.response?.data?.error || t('errors.loadUsers'))
       } finally {
@@ -134,9 +137,9 @@ export default function AddPastAction() {
     let cancelled = false
     void (async () => {
       try {
-        const res = await api.get(`/api/peaks/${peakId}`)
+        const data = await fetchPeakById(peakId)
         if (cancelled) return
-        const peak = res.data?.peak as PeakDTO | undefined
+        const peak = data?.peak as PeakDTO | undefined
         if (!peak) return
         const patch = peakActionPrefillFrom(peak)
         setShowLegacyCreate(true)
@@ -169,10 +172,11 @@ export default function AddPastAction() {
     const nextOffset = replace ? 0 : clubOffset
     setClubLoading(true)
     try {
-      const res = await api.get<{ users: CandidateUser[] }>(`/api/akcije/${selectedExistingAction.id}/eligible-club-members`, {
-        params: { q, limit: PAGE_SIZE, offset: nextOffset },
+      const users = await fetchEligibleClubMembers(selectedExistingAction.id, {
+        q,
+        limit: PAGE_SIZE,
+        offset: nextOffset,
       })
-      const users = res.data.users || []
       setClubUsers((prev) => (replace ? users : [...prev, ...users]))
       setClubOffset(nextOffset + users.length)
       setClubHasMore(users.length === PAGE_SIZE)
@@ -226,11 +230,11 @@ export default function AddPastAction() {
     setManageSuccess('')
     setSendingAction(true)
     try {
-      const res = await api.post(`/api/akcije/${selectedExistingAction.id}/add-club-members-completed`, {
+      const res = await addClubMembersCompleted(selectedExistingAction.id, {
         korisnikIds: selectedClubUserIds,
       })
       setManageSuccess(
-        `Obrađeno: dodato ${res.data?.added ?? 0}, ažurirano ${res.data?.updated ?? 0}, preskočeno ${res.data?.skipped ?? 0}.`,
+        `Obrađeno: dodato ${res?.added ?? 0}, ažurirano ${res?.updated ?? 0}, preskočeno ${res?.skipped ?? 0}.`,
       )
       setSelectedClubUserIds([])
       await fetchClubUsers(true)
@@ -252,7 +256,7 @@ export default function AddPastAction() {
     try {
       const responses = await Promise.allSettled(
         selectedExternalUserIds.map((targetUserId) =>
-          api.post(`/api/akcije/${selectedExistingAction.id}/participation-requests`, { targetUserId }),
+          createParticipationRequest(selectedExistingAction.id, targetUserId),
         ),
       )
       const successCount = responses.filter((item) => item.status === 'fulfilled').length
@@ -335,9 +339,7 @@ export default function AddPastAction() {
       formData.append('korisnik_ids', selectedKorisnikIds.join(','))
       if (slika) formData.append('slika', slika)
 
-      await api.post(`/api/korisnici/${targetKorisnikId}/dodaj-proslu-akciju`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await addPastActionToUser(Number(targetKorisnikId), formData)
       if (selectedKorisnikIds.length === 1) {
         const selected = korisnici.find((k) => String(k.id) === targetKorisnikId)
         if (selected?.username) {

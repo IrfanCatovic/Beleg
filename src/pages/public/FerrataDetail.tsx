@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import { fetchFerrataBySlug, fetchFerrataUpcomingActions } from '../../services/catalog'
 import { useAuth } from '../../context/AuthContext'
 import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { FerrataDetailMapCard } from '../../components/ferrate/FerrataDetailMapCard'
@@ -79,12 +79,12 @@ export default function FerrataDetail() {
     setLoading(true)
     setErr('')
     try {
-      const res = await api.get(`/api/ferratas/slug/${encodeURIComponent(slug)}`)
-      const ferrata = res.data?.ferrata as FerrataDTO
+      const data = await fetchFerrataBySlug(slug)
+      const ferrata = data?.ferrata as FerrataDTO
       setF(ferrata || null)
       if (ferrata?.id) {
-        const uRes = await api.get(`/api/ferratas/${ferrata.id}/upcoming-actions`)
-        setUpcoming(uRes.data?.akcije ?? [])
+        const uData = await fetchFerrataUpcomingActions(ferrata.id)
+        setUpcoming(uData?.akcije ?? [])
       }
     } catch {
       setErr('Greška pri učitavanju.')

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/slug"
 
-	"github.com/cloudinary/cloudinary-go/v2"
-	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -352,28 +349,13 @@ func uploadCatalogSlikaMultipart(c *gin.Context, publicID, cloudinaryFolder stri
 	}
 	defer fp.Close()
 
-	cld, err := cloudinary.NewFromParams(
-		os.Getenv("CLOUDINARY_CLOUD_NAME"),
-		os.Getenv("CLOUDINARY_API_KEY"),
-		os.Getenv("CLOUDINARY_API_SECRET"),
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary"})
-		return "", false
-	}
-	ctx := context.Background()
-	uploadParams := uploader.UploadParams{
-		PublicID:       publicID,
-		Folder:         cloudinaryFolder,
-		Transformation: "q_auto:good,f_auto",
-	}
-	uploadResult, err := cld.Upload.Upload(ctx, fp, uploadParams)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Upload greška: " + err.Error()})
+	secureURL, uploadErr := helpers.UploadImage(cloudinaryFolder, publicID, fp)
+	if uploadErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Upload greška: " + uploadErr.Error()})
 		return "", false
 	}
 	helpers.AddStorageUsage(db, 0, file.Size)
-	return uploadResult.SecureURL, true
+	return secureURL, true
 }
 
 func uploadFerrataSlikaMultipart(c *gin.Context, publicID string) (secureURL string, ok bool) {

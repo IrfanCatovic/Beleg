@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, Cog6ToothIcon, InformationCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
-import api from '../../../services/api'
+import {
+  fetchKorisnici as loadKorisnici,
+  fetchKorisnikPopeoSeById,
+  removeClubMember,
+  fetchKorisnikById,
+} from '../../../services/users'
 import type { Korisnik } from '../../../types/korisnik'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
@@ -11,7 +16,7 @@ import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMe
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
 import { UserNameWithProfiBadge } from '../../../components/users/UserNameWithProfiBadge'
-import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult, type AkcijaZaRanking } from '../../../utils/rankingUtils'
+import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult } from '../../../utils/rankingUtils'
 
 const PODIUM_STYLES: Record<
   1 | 2 | 3,
@@ -63,10 +68,10 @@ export default function Korisnici() {
       return
     }
 
-    const fetchKorisnici = async () => {
+    const loadUsers = async () => {
       try {
-        const res = await api.get('/api/korisnici')
-        setKorisnici(res.data.korisnici || [])
+        const korisniciList = await loadKorisnici()
+        setKorisnici(korisniciList)
       } catch (err: any) {
         setError(err.response?.data?.error || t('loadError'))
       } finally {
@@ -74,7 +79,7 @@ export default function Korisnici() {
       }
     }
 
-    fetchKorisnici()
+    loadUsers()
   }, [user])
 
   useEffect(() => {
@@ -87,8 +92,7 @@ export default function Korisnici() {
       const entries = await Promise.all(
         korisnici.map(async (k) => {
           try {
-            const res = await api.get<{ uspesneAkcije?: AkcijaZaRanking[] }>(`/api/korisnici/${k.id}/popeo-se`)
-            const akcije = res.data.uspesneAkcije || []
+            const akcije = await fetchKorisnikPopeoSeById(k.id)
             const rank = computeRank({
               ture: akcije.map(mapAkcijaToTura),
               ukupnoKm: k.ukupnoKm ?? 0,
@@ -205,7 +209,7 @@ export default function Korisnici() {
     if (!ok) return
     setKickingId(k.id)
     try {
-      await api.post('/api/club-membership/remove', { userId: k.id, reason: '' })
+      await removeClubMember(k.id, '')
       setKorisnici((prev) => prev.filter((u) => u.id !== k.id))
       await showAlert('Korisnik je izbačen iz kluba.')
     } catch (err: any) {
@@ -219,8 +223,7 @@ export default function Korisnici() {
     if (printingId) return
     setPrintingId(k.id)
     try {
-      const res = await api.get(`/api/korisnici/${k.id}`)
-      const data = res.data as Record<string, unknown>
+      const data = (await fetchKorisnikById(k.id)) as unknown as Record<string, unknown>
       const clubNameFromApi =
         (data.klubNaziv as string | undefined) ||
         (data.clubName as string | undefined) ||

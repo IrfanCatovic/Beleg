@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import api from '../../../services/api'
+import { fetchKlub } from '../../../services/club'
+import { fetchPublicFerratasCatalog } from '../../../services/ferratasPublic'
+import { fetchAkcijaById, updateAkcija } from '../../../services/actions'
 import { useNavigate, useParams } from 'react-router-dom'
 import BackButton from '../../../components/buttons/BackButton'
 import { canManageHostAkcija } from '../../../utils/canManageAkcija'
@@ -81,8 +83,8 @@ export default function EditAction() {
   useEffect(() => {
     const loadKlubValuta = async () => {
       try {
-        const res = await api.get('/api/klub')
-        const raw = res.data?.klub?.valuta ?? res.data?.valuta
+        const klub = await fetchKlub()
+        const raw = klub?.valuta
         setClubCurrency(parseClubCurrency(raw))
       } catch {
         setClubCurrency(parseClubCurrency('RSD'))
@@ -94,25 +96,15 @@ export default function EditAction() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await api.get('/api/ferratas')
-        const rows = (res.data?.ferrate ?? []) as Array<{
-          id: number
-          naziv: string
-          tezina: string
-          drzava?: string
-          duzinaM: number
-          visinskaRazlikaM: number
-          trajanjeMin: number
-          trajanjeMax: number
-        }>
+        const rows = await fetchPublicFerratasCatalog()
         setFerrataCatalog(
           rows.map((r) => ({
             id: r.id,
             naziv: r.naziv,
             tezina: r.tezina,
             drzava: r.drzava,
-            duzinaM: r.duzinaM,
-            visinskaRazlikaM: r.visinskaRazlikaM,
+            duzinaM: r.duzinaM ?? 0,
+            visinskaRazlikaM: r.visinskaRazlikaM ?? 0,
             trajanjeMin: Number(r.trajanjeMin ?? 0),
             trajanjeMax: Number(r.trajanjeMax ?? 0),
           })),
@@ -129,8 +121,7 @@ export default function EditAction() {
     const fetchAkcija = async () => {
       setLoadingData(true)
       try {
-        const res = await api.get(`/api/akcije/${id}`)
-        const a: AkcijaData = res.data
+        const a = (await fetchAkcijaById(id)) as AkcijaData
 
         const canKnowHost =
           user.role === 'superadmin' ||
@@ -353,9 +344,7 @@ export default function EditAction() {
         ),
       )
 
-      await api.patch(`/api/akcije/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await updateAkcija(id, formData)
 
       setSuccess(t('edit.success'))
       navigate(`/akcije/${id}`)

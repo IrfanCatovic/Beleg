@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import api from '../../../services/api'
+import { fetchKorisnikInfo } from '../../../services/users'
+import { fetchMyBlocks } from '../../../services/blocks'
 import { useAuth } from '../../../context/AuthContext'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { formatDate } from '../../../utils/dateUtils'
@@ -88,8 +89,7 @@ export default function UserInfo() {
       setLoading(true)
       setError('')
       try {
-        const res = await api.get(`/api/korisnici/${id}/info`)
-        const data = res.data as KorisnikInfo
+        const data = await fetchKorisnikInfo(Number(id)) as KorisnikInfo
         setKorisnik(data)
       } catch (err: any) {
         setError(err.response?.data?.error || t('loadError'))
@@ -104,8 +104,8 @@ export default function UserInfo() {
     if (!currentUser || !korisnik) return
     const isOwnProfile = korisnik.username === currentUser.username
     if (!isOwnProfile) return
-    api.get('/api/blocks/mine')
-      .then((res) => setBlockedUsers((res.data.users || []) as BlockedUser[]))
+    fetchMyBlocks()
+      .then((data) => setBlockedUsers((data.users || []) as BlockedUser[]))
       .catch(() => setBlockedUsers([]))
   }, [currentUser, korisnik])
 

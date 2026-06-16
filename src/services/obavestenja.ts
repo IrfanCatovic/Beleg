@@ -48,17 +48,25 @@ export async function deleteObavestenje(id: number) {
 }
 
 export async function respondParticipationRequest(requestId: number, decision: 'accept' | 'reject') {
-  await api.post(`/api/moja-ucesca-zahtevi/${requestId}/respond`, { decision })
+  const res = await api.post<{ request: ParticipationRequestItem; message?: string }>(
+    `/api/moja-ucesca-zahtevi/${requestId}/respond`,
+    { decision },
+  )
+  return res.data
 }
 
-export async function acceptFollowRequest(followId: number) {
-  await api.patch(`/api/follows/requests/${followId}/accept`)
+export async function fetchParticipationRequestById<T = ParticipationRequestItem>(id: number) {
+  const res = await api.get<T>(`/api/moja-ucesca-zahtevi/${id}`)
+  return res.data
 }
 
-export async function rejectFollowRequest(followId: number) {
-  await api.delete(`/api/follows/requests/${followId}`)
-}
+export { acceptFollowRequest, rejectFollowRequest } from './follows'
 
 export async function broadcastObavestenje(title: string, body: string) {
   await api.post('/api/obavestenja/broadcast', { title, body })
+}
+
+export async function fetchObavestenjeById<T = ObavestenjeItem>(id: number) {
+  const res = await api.get<T>(`/api/obavestenja/${id}`)
+  return res.data
 }

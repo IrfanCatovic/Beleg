@@ -1,13 +1,6 @@
-export type Role = 'admin' | 'clan' | 'vodic' | 'blagajnik' | 'sekretar' | 'menadzer-opreme'
+import type { TaskFormData } from '../../types/zadatak'
 
-export interface TaskFormData {
-  naziv: string
-  opis: string
-  deadline: string | null
-  hitno: boolean
-  allowedRoles: Role[]
-  allowAll: boolean
-}
+export type { ZadatakRole as Role, TaskFormData } from '../../types/zadatak'
 
 export interface TaskForEdit extends TaskFormData {
   id: number

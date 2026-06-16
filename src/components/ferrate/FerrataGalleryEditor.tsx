@@ -1,5 +1,4 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
-import api from '../../services/api'
 import { superadminUploadFerrataGalleryImage } from '../../services/superadminUpload'
 import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
@@ -18,7 +17,7 @@ export function FerrataGalleryEditor(props: Props) {
     let acc = [...list]
     for (const file of files) {
       try {
-        const url = await superadminUploadFerrataGalleryImage(api, file, props.ferrataId)
+        const url = await superadminUploadFerrataGalleryImage(file, props.ferrataId)
         acc = [...acc, url]
         props.onChange(acc)
       } catch {

@@ -1,31 +1,14 @@
 import type { KeyboardEvent, ReactNode } from 'react'
 import { formatDateShort } from '../utils/dateUtils'
 import { getRoleLabel } from '../utils/roleUtils'
-import type { Role } from './NewTaskModal'
+import type { Task, ZadatakRole } from '../types/zadatak'
 import { useTranslation } from 'react-i18next'
 
-export interface TaskAssignee {
-  username: string
-  fullName?: string
-  role: Role | string
-}
-
-export interface Task {
-  id: number
-  naziv: string
-  opis: string
-  allowedRoles: Role[]
-  allowAll: boolean
-  deadline: string | null
-  hitno: boolean
-  status: 'aktivni' | 'u_toku' | 'zavrsen'
-  createdAt: string
-  assignees?: TaskAssignee[]
-}
+export type { Task, TaskAssignee } from '../types/zadatak'
 
 function canTakeTask(task: Task, userRole: string): boolean {
   if (task.allowAll) return true
-  return task.allowedRoles?.includes(userRole as Role) ?? false
+  return task.allowedRoles?.includes(userRole as ZadatakRole) ?? false
 }
 
 function hasTakenTask(task: Task, username: string): boolean {

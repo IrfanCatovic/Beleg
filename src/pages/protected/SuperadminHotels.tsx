@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createSuperadminHotel,
+  deleteSuperadminHotel,
+  fetchSuperadminHotels,
+  updateSuperadminHotel,
+} from '../../services/superadminCatalog'
 import { superadminUploadHotelGalleryImage } from '../../services/superadminUpload'
 import { FerrataPinPicker } from '../../components/ferrate/FerrataPinPicker'
 import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
@@ -74,8 +79,8 @@ export default function SuperadminHotels() {
     setLoading(true)
     setErr('')
     try {
-      const res = await api.get<{ hotels?: HotelRow[] }>('/api/superadmin/hotels')
-      setRows((res.data?.hotels as HotelRow[]) ?? [])
+      const data = await fetchSuperadminHotels()
+      setRows((data?.hotels as HotelRow[]) ?? [])
     } catch {
       setErr(t('loadError'))
     } finally {
@@ -107,7 +112,7 @@ export default function SuperadminHotels() {
     try {
       const added: string[] = []
       for (const file of batch) {
-        const url = await superadminUploadHotelGalleryImage(api, file, editingId)
+        const url = await superadminUploadHotelGalleryImage(file, editingId)
         added.push(url)
       }
       setForm((f) => ({ ...f, slike: [...f.slike, ...added].slice(0, HOTEL_MAX_SLIKE) }))
@@ -145,9 +150,9 @@ export default function SuperadminHotels() {
     }
     try {
       if (editingId != null) {
-        await api.put(`/api/superadmin/hotels/${editingId}`, payload)
+        await updateSuperadminHotel(editingId, payload)
       } else {
-        await api.post('/api/superadmin/hotels', payload)
+        await createSuperadminHotel(payload)
       }
       setEditingId(null)
       setForm(emptyForm())
@@ -165,7 +170,7 @@ export default function SuperadminHotels() {
     if (!window.confirm(t('deleteConfirm'))) return
     setErr('')
     try {
-      await api.delete(`/api/superadmin/hotels/${id}`)
+      await deleteSuperadminHotel(id)
       if (editingId === id) {
         setEditingId(null)
         setForm(emptyForm())

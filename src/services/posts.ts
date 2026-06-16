@@ -54,26 +54,49 @@ export async function deletePostComment(postId: number, commentId: number) {
   await api.delete(`/api/posts/${postId}/comments/${commentId}`)
 }
 
-export interface FollowStatusResponse {
-  outgoing: 'none' | 'pending' | 'accepted'
-  incoming: 'none' | 'pending' | 'accepted'
-  outgoingFollowId?: number
-  incomingFollowId?: number
+export interface PostFeedItem {
+  id: number
+  content: string
+  createdAt: string
+  author?: {
+    id: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+  }
+  likeCount?: number
+  commentCount?: number
+  likedByMe?: boolean
+  [key: string]: unknown
 }
 
-export async function fetchFollowStatus(targetId: number) {
-  const res = await api.get<FollowStatusResponse>(`/api/follows/status/${targetId}`)
+export async function fetchPosts(limit: number, offset: number) {
+  const res = await api.get<{ posts?: PostFeedItem[]; total?: number }>('/api/posts', {
+    params: { limit, offset },
+  })
   return res.data
 }
 
-export async function sendFollowRequest(targetId: number) {
-  await api.post('/api/follows/requests', { targetId })
+export async function createPost(payload: FormData | { content: string }) {
+  const res = await api.post('/api/posts', payload)
+  return res.data
 }
 
-export async function unfollowUser(targetId: number) {
-  await api.delete(`/api/follows/user/${targetId}`)
+export async function deletePost(postId: number) {
+  await api.delete(`/api/posts/${postId}`)
 }
 
-export async function cancelFollowRequest(targetId: number) {
-  await api.delete(`/api/follows/user/${targetId}`)
+export async function fetchPostById(postId: number) {
+  const res = await api.get<{ post: PostFeedItem }>(`/api/posts/${postId}`)
+  return res.data.post
 }
+
+export {
+  acceptFollowRequest,
+  cancelFollowRequest,
+  fetchFollowStatus,
+  rejectFollowRequest,
+  sendFollowRequest,
+  unfollowUser,
+} from './follows'
+export type { FollowStatusResponse } from './follows'

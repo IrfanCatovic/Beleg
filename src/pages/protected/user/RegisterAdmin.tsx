@@ -1,7 +1,7 @@
 // src/pages/RegisterAdmin.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../../services/api'
+import { fetchSetupStatus, setupAdmin } from '../../../services/auth'
 import Dropdown from '../../../components/Dropdown'
 import { useTranslation } from 'react-i18next'
 
@@ -38,8 +38,8 @@ export default function RegisterAdmin() {
   useEffect(() => {
     const checkSetup = async () => {
       try {
-        const res = await api.get('/api/setup/status')
-        if (res.data.hasUsers) {
+        const data = await fetchSetupStatus()
+        if (data.hasUsers) {
           navigate('/', { replace: true })
         }
       } catch (err) {
@@ -97,9 +97,7 @@ export default function RegisterAdmin() {
 
       if (avatarFile) formData.append('avatar', avatarFile)
 
-      await api.post('/api/setup/admin', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await setupAdmin(formData)
 
       setSuccess(true)
       setTimeout(() => navigate('/', { replace: true }), 2000)

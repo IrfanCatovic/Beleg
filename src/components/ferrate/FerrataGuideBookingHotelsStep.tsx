@@ -7,7 +7,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import { fetchHotelsNearby } from '../../services/catalog'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
 import { FerrataDetailMapCard } from './FerrataDetailMapCard'
 import type { HotelNearbyPublic } from './FerrataHotelsSection'
@@ -59,10 +59,13 @@ export function FerrataGuideBookingHotelsStep(props: {
     async function run() {
       setLoading(true)
       try {
-        const res = await api.get<{ hotels?: HotelNearbyPublic[] }>('/api/hotels/nearby', {
-          params: { lat: props.ferrataLat, lng: props.ferrataLng, radius_km: 100, limit: 10 },
+        const hotels = await fetchHotelsNearby({
+          lat: props.ferrataLat,
+          lng: props.ferrataLng,
+          radius_km: 100,
+          limit: 10,
         })
-        if (!cancelled) setRows((res.data?.hotels as HotelNearbyPublic[]) ?? [])
+        if (!cancelled) setRows(hotels as HotelNearbyPublic[])
       } catch {
         if (!cancelled) setRows([])
       } finally {

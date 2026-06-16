@@ -3,7 +3,8 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import MarketingNavbar from '../../components/MarketingNavbar'
-import api from '../../services/api'
+import { checkUsernameAvailable } from '../../services/auth'
+import { submitCenaZahtev } from '../../services/marketing'
 
 const PILLAR_KEYS = ['care', 'all', 'family'] as const
 const INCLUDE_KEYS = ['m1', 'm2', 'm3', 'm4'] as const
@@ -36,13 +37,9 @@ export default function Cena() {
     }
     setUsernameStatus('checking')
     const timer = window.setTimeout(() => {
-      void api
-        .get<{ available: boolean }>('/api/username-available', {
-          params: { username: u },
-          withCredentials: false,
-        })
-        .then((res) => {
-          setUsernameStatus(res.data.available ? 'available' : 'taken')
+      void checkUsernameAvailable(u)
+        .then((available) => {
+          setUsernameStatus(available ? 'available' : 'taken')
         })
         .catch(() => {
           setUsernameStatus('error')
@@ -86,27 +83,23 @@ export default function Cena() {
 
     setSending(true)
     try {
-      await api.post(
-        '/api/cena-zahtev',
-        {
-          paket: 'Cena stranica',
-          extraUsers: 0,
-          extraAdmins: 0,
-          note: q,
-          imeKluba: club,
-          contactEmail: email,
-          contactPhone: '',
-          contactPerson: person,
-          city: place,
-          clubMemberCount: membersParsed,
-          adminUsername: admin,
-          basePriceRsd: 0,
-          extraUsersCostRsd: 0,
-          extraAdminsCostRsd: 0,
-          totalMonthlyRsd: 0,
-        },
-        { timeout: 45_000, withCredentials: false },
-      )
+      await submitCenaZahtev({
+        paket: 'Cena stranica',
+        extraUsers: 0,
+        extraAdmins: 0,
+        note: q,
+        imeKluba: club,
+        contactEmail: email,
+        contactPhone: '',
+        contactPerson: person,
+        city: place,
+        clubMemberCount: membersParsed,
+        adminUsername: admin,
+        basePriceRsd: 0,
+        extraUsersCostRsd: 0,
+        extraAdminsCostRsd: 0,
+        totalMonthlyRsd: 0,
+      })
       setSubmitMessage({ type: 'success', text: t('messages.success') })
       setContactPerson('')
       setClubName('')

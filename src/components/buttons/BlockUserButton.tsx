@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api from '../../services/api'
+import { blockUser, fetchBlockStatus, unblockUser } from '../../services/blocks'
 import { useModal } from '../../context/ModalContext'
 import { useTranslation } from 'react-i18next'
 
@@ -17,9 +17,9 @@ export default function BlockUserButton({ targetId, onBlockChange }: Props) {
 
   const fetchStatus = async () => {
     try {
-      const res = await api.get<{ blockedByMe?: boolean; blockedByTarget?: boolean }>(`/api/blocks/status/${targetId}`)
-      const byMe = !!res.data.blockedByMe
-      const byThem = !!res.data.blockedByTarget
+      const data = await fetchBlockStatus(targetId)
+      const byMe = !!data.blockedByMe
+      const byThem = !!data.blockedByTarget
       setBlockedByMe(byMe)
       setBlockedByTarget(byThem)
       onBlockChange?.(byMe, byThem)
@@ -46,7 +46,7 @@ export default function BlockUserButton({ targetId, onBlockChange }: Props) {
     if (!ok) return
     setBusy(true)
     try {
-      await api.post(`/api/blocks/${targetId}`)
+      await blockUser(targetId)
       setBlockedByMe(true)
       onBlockChange?.(true, blockedByTarget)
       await showAlert(t('block.blockedSuccess'), t('block.alertTitle'))
@@ -67,7 +67,7 @@ export default function BlockUserButton({ targetId, onBlockChange }: Props) {
     if (!ok) return
     setBusy(true)
     try {
-      await api.delete(`/api/blocks/${targetId}`)
+      await unblockUser(targetId)
       setBlockedByMe(false)
       onBlockChange?.(false, blockedByTarget)
       await showAlert(t('block.unblockedSuccess'), t('block.alertTitle'))

@@ -32,18 +32,7 @@ type BlockStatusResponse struct {
 }
 
 func getCurrentUser(c *gin.Context) (models.Korisnik, bool) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
-		return models.Korisnik{}, false
-	}
-	username, _ := usernameVal.(string)
-	db := DB(c)
-
-	var currentUser models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
-		return models.Korisnik{}, false
-	}
-	return currentUser, true
+	return CurrentUser(c)
 }
 
 func getUserByIDOrUsername(db *gorm.DB, param string) (models.Korisnik, bool) {

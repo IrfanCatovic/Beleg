@@ -1,7 +1,7 @@
 import TaskFormModal from './tasks/TaskFormModal'
-import type { Role, TaskFormData } from './tasks/taskModalTypes'
+import type { ZadatakRole, TaskFormData } from '../types/zadatak'
 
-export type { Role }
+export type Role = ZadatakRole
 
 interface NewTaskModalProps {
   open: boolean

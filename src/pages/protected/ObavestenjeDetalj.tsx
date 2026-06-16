@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import api from '../../services/api'
 import Loader from '../../components/Loader'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
@@ -26,6 +25,31 @@ import {
 } from '../../components/ferrate/guideBookingDisplayLabels'
 import { guideBookingCreateActionPath } from '../../components/ferrate/guideBookingActionPrefill'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { deletePost, fetchPostById } from '../../services/posts'
+import {
+  deleteZadatak,
+  fetchZadatakById,
+  napustiZadatak,
+  preuzmiZadatak,
+  updateZadatak,
+  zavrsiZadatak,
+} from '../../services/zadaci'
+import { deleteTransakcija, fetchTransakcijaById } from '../../services/finansije'
+import {
+  deleteObavestenje,
+  fetchObavestenjeById,
+  fetchParticipationRequestById,
+  markObavestenjeRead,
+  respondParticipationRequest,
+} from '../../services/obavestenja'
+import {
+  acceptFollowRequest,
+  fetchFollowStatus,
+  rejectFollowRequest,
+  sendFollowRequest,
+  unfollowUser,
+} from '../../services/follows'
+import { fetchKorisnici } from '../../services/users'
 
 interface ObavestenjeFull {
   id: number
@@ -103,16 +127,6 @@ function normalizeApiTask(raw: TaskPayload): Task {
     createdAt: raw.createdAt,
     assignees: raw.assignees,
   }
-}
-
-function unwrapZadatak(data: unknown): TaskPayload | null {
-  if (!data || typeof data !== 'object') return null
-  const o = data as Record<string, unknown>
-  if (o.zadatak && typeof o.zadatak === 'object' && o.zadatak !== null) {
-    return o.zadatak as unknown as TaskPayload
-  }
-  if (typeof o.id === 'number') return o as unknown as TaskPayload
-  return null
 }
 
 interface TransPayload {
@@ -206,9 +220,8 @@ export default function ObavestenjeDetalj() {
 
   useEffect(() => {
     if (!isLoggedIn) return
-    api
-      .get('/api/korisnici')
-      .then((res) => setMentionUsers((res.data.korisnici as MentionUser[]) || []))
+    fetchKorisnici()
+      .then((korisnici) => setMentionUsers((korisnici as MentionUser[]) || []))
       .catch(() => setMentionUsers([]))
   }, [isLoggedIn])
 
@@ -222,7 +235,7 @@ export default function ObavestenjeDetalj() {
       })
       if (!ok) return
       try {
-        await api.delete(`/api/posts/${postId}`)
+        await deletePost(postId)
         setPost(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
@@ -256,9 +269,8 @@ export default function ObavestenjeDetalj() {
       const ok = await showConfirm(t('tasks:takeConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${taskItem.id}/preuzmi`)
-        const raw = unwrapZadatak(res.data)
-        if (raw) setTask(normalizeApiTask(raw))
+        const raw = await preuzmiZadatak(taskItem.id)
+        setTask(normalizeApiTask(raw as unknown as TaskPayload))
       } catch (err: unknown) {
         const msg = getApiErrorMessage(err, t('tasks:takeError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
@@ -273,9 +285,8 @@ export default function ObavestenjeDetalj() {
       const ok = await showConfirm(t('tasks:leaveConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${taskItem.id}/napusti`)
-        const raw = unwrapZadatak(res.data)
-        if (raw) setTask(normalizeApiTask(raw))
+        const raw = await napustiZadatak(taskItem.id)
+        setTask(normalizeApiTask(raw as unknown as TaskPayload))
       } catch (err: unknown) {
         const msg = getApiErrorMessage(err, t('tasks:leaveError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
@@ -290,9 +301,8 @@ export default function ObavestenjeDetalj() {
       const ok = await showConfirm(t('tasks:finishConfirm', { name: taskItem.naziv }))
       if (!ok) return
       try {
-        const res = await api.post(`/api/zadaci/${taskItem.id}/zavrsi`)
-        const raw = unwrapZadatak(res.data)
-        if (raw) setTask(normalizeApiTask(raw))
+        const raw = await zavrsiZadatak(taskItem.id)
+        setTask(normalizeApiTask(raw as unknown as TaskPayload))
       } catch (err: unknown) {
         const msg = getApiErrorMessage(err, t('tasks:genericError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
@@ -313,10 +323,9 @@ export default function ObavestenjeDetalj() {
         allowAll: boolean
       }
     ) => {
-      const res = await api.patch(`/api/zadaci/${taskId}`, data)
-      const raw = unwrapZadatak(res.data)
+      const raw = await updateZadatak(taskId, data)
       if (!raw) throw new Error('Nepoznat odgovor servera.')
-      setTask(normalizeApiTask(raw))
+      setTask(normalizeApiTask(raw as unknown as TaskPayload))
       setEditTask(null)
     },
     []
@@ -332,7 +341,7 @@ export default function ObavestenjeDetalj() {
       })
       if (!confirmed) return
       try {
-        await api.delete(`/api/zadaci/${taskItem.id}`)
+        await deleteZadatak(taskItem.id)
         setTask(null)
         setEditTask(null)
         navigate('/obavestenja')
@@ -362,7 +371,7 @@ export default function ObavestenjeDetalj() {
       )
       if (!confirmed) return
       try {
-        await api.delete(`/api/finansije/transakcije/${tx.id}`)
+        await deleteTransakcija(tx.id)
         setTrans(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
@@ -397,7 +406,7 @@ export default function ObavestenjeDetalj() {
       setGuideBooking(null)
 
       try {
-        const { data: n } = await api.get<ObavestenjeFull>(`/api/obavestenja/${id}`)
+        const n = await fetchObavestenjeById<ObavestenjeFull>(Number(id))
         if (cancelled) return
         setNotif(n)
         setFollowStatusChecked(false)
@@ -405,7 +414,7 @@ export default function ObavestenjeDetalj() {
         setFollowBackStatus('none')
 
         if (!n.readAt) {
-          await api.patch(`/api/obavestenja/${id}/read`).catch(() => {})
+          await markObavestenjeRead(Number(id)).catch(() => {})
         }
 
         if (n.type === 'akcija' && n.link?.trim()) {
@@ -423,22 +432,21 @@ export default function ObavestenjeDetalj() {
         setEntityLoading(true)
         try {
           if (postId != null) {
-            const pr = await api.get<{ post: Post }>(`/api/posts/${postId}`)
-            if (!cancelled) setPost(pr.data.post)
+            const postData = await fetchPostById(postId)
+            if (!cancelled) setPost(postData as unknown as Post)
           } else if (zadatakId != null) {
-            const tr = await api.get(`/api/zadaci/${zadatakId}`)
-            const raw = unwrapZadatak(tr.data)
-            if (!cancelled && raw) setTask(normalizeApiTask(raw))
+            const raw = await fetchZadatakById(zadatakId)
+            if (!cancelled) setTask(normalizeApiTask(raw as unknown as TaskPayload))
           } else if (transakcijaId != null) {
             if (!canSeeFinance) {
               if (!cancelled) setEntityError(t('notificationDetails:noFinanceAccess'))
             } else {
-              const fr = await api.get<TransPayload>(`/api/finansije/transakcije/${transakcijaId}`)
-              if (!cancelled) setTrans(fr.data)
+              const transData = await fetchTransakcijaById<TransPayload>(transakcijaId)
+              if (!cancelled) setTrans(transData)
             }
           } else if (n.type === 'action_participation_request' && actionRequestId != null) {
-            const rr = await api.get<ActionParticipationRequestPayload>(`/api/moja-ucesca-zahtevi/${actionRequestId}`)
-            if (!cancelled) setActionParticipationRequest(rr.data)
+            const requestData = await fetchParticipationRequestById<ActionParticipationRequestPayload>(actionRequestId)
+            if (!cancelled) setActionParticipationRequest(requestData)
           } else if (n.type === 'guide_booking_request' && bookingRequestId != null) {
             const booking = await getFerrataGuideBooking(bookingRequestId)
             if (!cancelled) setGuideBooking(booking)
@@ -479,15 +487,10 @@ export default function ObavestenjeDetalj() {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await api.get<{
-          outgoing?: string
-          incoming?: string
-          outgoingFollowId?: number
-          incomingFollowId?: number
-        }>(`/api/follows/status/${requesterID}`)
+        const status = await fetchFollowStatus(requesterID)
         if (cancelled) return
-        const inc = res.data?.incoming ?? 'none'
-        const out = res.data?.outgoing ?? 'none'
+        const inc = status?.incoming ?? 'none'
+        const out = status?.outgoing ?? 'none'
 
         if (inc === 'accepted') {
           setIncomingFollowState('accepted')
@@ -501,7 +504,7 @@ export default function ObavestenjeDetalj() {
         } else {
           const looksLikeHistory = n.type === 'follow_request_accepted'
           if (!looksLikeHistory) {
-            await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+            await deleteObavestenje(Number(id)).catch(() => {})
             await showAlertRef.current(t('notificationDetails:follow.requestCanceledInBetween'), t('notificationDetails:follow.title'))
             navigateRef.current('/obavestenja')
             return
@@ -643,13 +646,10 @@ export default function ObavestenjeDetalj() {
     }
     setActionRequestBusy(true)
     try {
-      const res = await api.post<{ request: ActionParticipationRequestPayload; message?: string }>(
-        `/api/moja-ucesca-zahtevi/${actionParticipationRequest.id}/respond`,
-        { decision }
-      )
-      setActionParticipationRequest(res.data.request)
+      const res = await respondParticipationRequest(actionParticipationRequest.id, decision)
+      setActionParticipationRequest(res.request)
       await showAlert(
-        res.data.message ||
+        res.message ||
           (decision === 'accept'
             ? 'Učešće je potvrđeno i akcija je dodata na vaš profil.'
             : 'Zahtev je odbijen.'),
@@ -666,7 +666,7 @@ export default function ObavestenjeDetalj() {
     if (!followMeta.followId || followBusy) return
     setFollowBusy(true)
     try {
-      await api.patch(`/api/follows/requests/${followMeta.followId}/accept`)
+      await acceptFollowRequest(followMeta.followId)
       setIncomingFollowState('accepted')
       setNotif((prev) => prev ? {
         ...prev,
@@ -692,8 +692,8 @@ export default function ObavestenjeDetalj() {
     if (!ok) return
     setFollowBusy(true)
     try {
-      await api.delete(`/api/follows/requests/${followMeta.followId}`)
-      await api.delete(`/api/obavestenja/${id}`).catch(() => {})
+      await rejectFollowRequest(followMeta.followId)
+      await deleteObavestenje(Number(id)).catch(() => {})
       await showAlert(t('notificationDetails:follow.rejected'), t('notificationDetails:follow.title'))
       navigate('/obavestenja')
     } catch (e: any) {
@@ -707,7 +707,7 @@ export default function ObavestenjeDetalj() {
     if (!followMeta.requesterId || followBusy) return
     setFollowBusy(true)
     try {
-      await api.post('/api/follows/requests', { targetId: followMeta.requesterId })
+      await sendFollowRequest(followMeta.requesterId)
       setFollowBackStatus('outgoing_pending')
       await showAlert(t('notificationDetails:follow.followBackSent'), t('notificationDetails:follow.title'))
     } catch (e: any) {
@@ -728,7 +728,7 @@ export default function ObavestenjeDetalj() {
     if (!ok) return
     setFollowBusy(true)
     try {
-      await api.delete(`/api/follows/user/${followMeta.requesterId}`)
+      await unfollowUser(followMeta.requesterId)
       setFollowBackStatus('none')
       await showAlert(t('notificationDetails:follow.unfollowed'), t('notificationDetails:follow.title'))
     } catch (e: any) {
@@ -749,7 +749,7 @@ export default function ObavestenjeDetalj() {
     if (!ok) return
     setFollowBusy(true)
     try {
-      await api.delete(`/api/follows/user/${followMeta.requesterId}`)
+      await unfollowUser(followMeta.requesterId)
       setFollowBackStatus('none')
       await showAlert(t('notificationDetails:follow.requestCanceled'), t('notificationDetails:follow.title'))
     } catch (e: any) {

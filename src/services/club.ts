@@ -52,3 +52,21 @@ export async function respondClubJoinRequest(requestId: number, action: 'accept'
 export async function leaveClub() {
   await api.post('/api/club-membership/leave')
 }
+
+export async function searchKlubovi(search?: string) {
+  const res = await api.get('/api/klubovi', { params: search ? { search } : undefined })
+  return res.data
+}
+
+export async function fetchMyJoinRequests() {
+  const res = await api.get('/api/club-membership/requests/mine')
+  return res.data
+}
+
+export async function createJoinRequest(clubId: number) {
+  await api.post('/api/club-membership/requests', { clubId })
+}
+
+export async function cancelJoinRequest(requestId: number) {
+  await api.delete(`/api/club-membership/requests/${requestId}`)
+}

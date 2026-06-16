@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
-import api from '../../../services/api'
+import { fetchKorisnikById, patchKorisnik } from '../../../services/users'
+import { fetchMeProfile, updateMe, resendEmailVerification } from '../../../services/auth'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import DatePartsSelect from '../../../components/DatePartsSelect'
@@ -83,8 +84,13 @@ export default function ProfileSettings() {
     if (isAdminEdit) {
       const fetchUser = async () => {
         try {
-          const res = await api.get(`/api/korisnici/${id}`)
-          const k = res.data
+          const k = await fetchKorisnikById(Number(id)) as {
+            username?: string
+            role?: string
+            izrecene_disciplinske_kazne?: string
+            izbor_u_organe_sportskog_udruzenja?: string
+            napomene?: string
+          }
           setForm({
             ...initialForm,
             username: k.username || '',
@@ -107,14 +113,29 @@ export default function ProfileSettings() {
     // Uobičajeno: korisnik menja svoj profil
     const fetchMe = async () => {
       try {
-        const res = await api.get('/api/me')
-        const k = res.data
+        const k = (await fetchMeProfile()) as (Awaited<ReturnType<typeof fetchMeProfile>> & {
+          ime_roditelja?: string
+          drzavljanstvo?: string
+          adresa?: string
+          telefon?: string
+          broj_licnog_dokumenta?: string
+          broj_planinarske_legitimacije?: string
+          broj_planinarske_markice?: string
+          datum_uclanjenja?: string | null
+          izrecene_disciplinske_kazne?: string
+          izbor_u_organe_sportskog_udruzenja?: string
+          napomene?: string
+        }) | null
+        if (!k) {
+          setError(t('loadProfileError'))
+          return
+        }
         setForm({
           username: k.username || '',
           fullName: k.fullName || '',
           imeRoditelja: k.ime_roditelja || '',
           pol: k.pol || '',
-          datumRodjenja: dateOnly(k.datum_rodjenja),
+          datumRodjenja: dateOnly(k.datum_rodjenja ?? undefined),
           drzavljanstvo: k.drzavljanstvo || '',
           adresa: k.adresa || '',
           telefon: k.telefon || '',
@@ -122,7 +143,7 @@ export default function ProfileSettings() {
           brojLicnogDokumenta: k.broj_licnog_dokumenta || '',
           brojPlaninarskeLegitimacije: k.broj_planinarske_legitimacije || '',
           brojPlaninarskeMarkice: k.broj_planinarske_markice || '',
-          datumUclanjenja: dateOnly(k.datum_uclanjenja),
+          datumUclanjenja: dateOnly(k.datum_uclanjenja ?? undefined),
           izreceneDisciplinskeKazne: k.izrecene_disciplinske_kazne || '',
           izborUOrganeSportskogUdruzenja: k.izbor_u_organe_sportskog_udruzenja || '',
           napomene: k.napomene || '',
@@ -201,9 +222,8 @@ export default function ProfileSettings() {
           body.napomene = form.napomene.trim()
         }
         if (newPassword) body.newPassword = newPassword
-        const res = await api.get(`/api/korisnici/${id}`)
-        const k = res.data as { username: string }
-        await api.patch(`/api/korisnici/${id}`, body)
+        const k = await fetchKorisnikById(Number(id))
+        await patchKorisnik(Number(id), body)
         setSuccess(true)
         setTimeout(() => navigate(`/korisnik/${k.username}`, { replace: true }), 1500)
         return
@@ -258,18 +278,22 @@ export default function ProfileSettings() {
         formData.append('napomene', form.napomene.trim())
       }
 
-      const res = await api.patch('/api/me', formData)
+      const res = await updateMe(formData) as {
+        role?: string
+        user?: { username: string; fullName: string; avatar_url?: string; klubId?: number }
+        token?: string
+      }
 
-      if (res.data?.role && res.data?.user) {
+      if (res?.role && res?.user) {
         login({
-          role: res.data.role,
-          user: res.data.user,
-          token: typeof res.data.token === 'string' ? res.data.token : undefined,
+          role: res.role,
+          user: res.user,
+          token: typeof res.token === 'string' ? res.token : undefined,
         })
       }
       await refreshUser()
-      const meRes = await api.get('/api/me')
-      const verifiedNow = !!meRes.data?.email_verified_at
+      const me = await fetchMeProfile()
+      const verifiedNow = !!me?.email_verified_at
       setEmailVerified(verifiedNow)
 
       setSuccess(true)
@@ -277,7 +301,7 @@ export default function ProfileSettings() {
         const email = form.email.trim().toLowerCase()
         if (email) {
           try {
-            await api.post('/api/email/resend', { email })
+            await resendEmailVerification(email)
           } catch {
             // Korisnik i dalje ide na stranicu za potvrdu gde može ručno ponoviti slanje.
           }

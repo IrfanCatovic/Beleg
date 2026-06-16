@@ -1,16 +1,11 @@
 import type { ClubCurrencyCode } from '../../../utils/clubCurrency'
+import type { WizardGuide } from '../../../types/actionWizard'
+
+export type { WizardGuide }
 
 export type ActionKind = 'planina' | 'via_ferrata'
 export type VisibilityKind = 'klubska' | 'javna'
 export type OrganizerKind = 'klub' | 'vodic'
-
-export interface WizardGuide {
-  id: number
-  username: string
-  fullName: string
-  isProfiGuide?: boolean
-  source?: 'club' | 'profi'
-}
 
 export interface WizardSmestaj {
   localId: string

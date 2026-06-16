@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 import MarketingNavbar from '../../components/MarketingNavbar'
-import api from '../../services/api'
+import { checkUsernameAvailable } from '../../services/auth'
+import { submitCenaZahtev } from '../../services/marketing'
 import { useTranslation } from 'react-i18next'
 
 type Mode = 'club' | 'hiker'
@@ -69,13 +70,9 @@ export default function Kontakt() {
     }
     setUsernameStatus('checking')
     const timer = window.setTimeout(() => {
-      void api
-        .get<{ available: boolean }>('/api/username-available', {
-          params: { username: u },
-          withCredentials: false,
-        })
-        .then((res) => {
-          setUsernameStatus(res.data.available ? 'available' : 'taken')
+      void checkUsernameAvailable(u)
+        .then((available) => {
+          setUsernameStatus(available ? 'available' : 'taken')
         })
         .catch(() => {
           setUsernameStatus('error')
@@ -162,8 +159,7 @@ export default function Kontakt() {
 
     setSending(true)
     try {
-      await api.post(
-        '/api/cena-zahtev',
+      await submitCenaZahtev(
         {
           paket: t('mail.packageNameClub'),
           extraUsers: 0,
@@ -181,7 +177,6 @@ export default function Kontakt() {
           extraAdminsCostRsd: 0,
           totalMonthlyRsd: 0,
         },
-        { timeout: 45_000, withCredentials: false },
       )
       setSubmitMessage({ type: 'success', text: t('messages.success') })
       setContactPerson('')
@@ -220,8 +215,7 @@ export default function Kontakt() {
 
     setSending(true)
     try {
-      await api.post(
-        '/api/cena-zahtev',
+      await submitCenaZahtev(
         {
           paket: t('mail.packageNameHiker'),
           extraUsers: 0,
@@ -239,7 +233,6 @@ export default function Kontakt() {
           extraAdminsCostRsd: 0,
           totalMonthlyRsd: 0,
         },
-        { timeout: 45_000, withCredentials: false },
       )
       setSubmitMessage({ type: 'success', text: t('messages.success') })
       setHikerName('')

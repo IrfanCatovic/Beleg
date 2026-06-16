@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import maplibregl from 'maplibre-gl'
 import { Marker, type MapRef } from 'react-map-gl/maplibre'
-import api from '../../services/api'
+import { fetchExploreMapData } from '../../services/catalog'
 import { useAuth } from '../../context/AuthContext'
 import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
@@ -84,15 +84,11 @@ export default function MapaExplore() {
       setLoading(true)
       setError('')
       try {
-        const [fRes, hRes, pRes] = await Promise.all([
-          api.get('/api/ferratas'),
-          api.get('/api/hotels'),
-          api.get('/api/peaks'),
-        ])
+        const { ferratas, hotels, peaks } = await fetchExploreMapData()
         if (cancelled) return
-        const fRows = (fRes.data?.ferrate ?? []) as Array<Record<string, unknown>>
-        const hRows = (hRes.data?.hotels ?? []) as Array<Record<string, unknown>>
-        const pRows = (pRes.data?.peaks ?? []) as Array<Record<string, unknown>>
+        const fRows = (ferratas?.ferrate ?? []) as Array<Record<string, unknown>>
+        const hRows = (hotels?.hotels ?? []) as Array<Record<string, unknown>>
+        const pRows = (peaks?.peaks ?? []) as Array<Record<string, unknown>>
 
         const fPins: FerrataPin[] = []
         for (const r of fRows) {

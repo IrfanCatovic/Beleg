@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
-import api from '../services/api'
+import { fetchAkcije } from '../services/actions'
+import { fetchFinansijeDashboard } from '../services/finansije'
+import { fetchKorisnici } from '../services/users'
 import { serbianSearchIncludes } from '../utils/serbianSearchUtils'
 
 export interface SearchKorisnik {
@@ -107,22 +109,23 @@ export function useGlobalSearch(
     const promises: Promise<void>[] = []
 
     promises.push(
-      api.get('/api/korisnici?scope=global').then((res) => {
-        if (!cancelled) setKorisnici(res.data.korisnici || [])
-      })
+      fetchKorisnici({ scope: 'global' }).then((korisnici) => {
+        if (!cancelled) setKorisnici(korisnici as SearchKorisnik[])
+      }),
     )
     promises.push(
-      api.get('/api/akcije?scope=global').then((res) => {
-        const aktivne = res.data.aktivne || []
-        const zavrsene = res.data.zavrsene || []
+      fetchAkcije({ scope: 'global' }).then((data) => {
+        const aktivne = data.aktivne || []
+        const zavrsene = data.zavrsene || []
         if (!cancelled) setAkcije([...aktivne, ...zavrsene])
-      })
+      }),
     )
     if (canSeeFinances) {
+      const params = new URLSearchParams({ from: fromStr, to: toStr })
       promises.push(
-        api.get(`/api/finansije/dashboard?from=${fromStr}&to=${toStr}`).then((res) => {
-          if (!cancelled) setTransakcije(res.data?.transakcije || [])
-        })
+        fetchFinansijeDashboard(params).then((data) => {
+          if (!cancelled) setTransakcije(data?.transakcije || [])
+        }),
       )
     }
 

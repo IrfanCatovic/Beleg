@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import api from '../../../services/api'
+import { geocodeQuery } from '../../../services/actions'
 import {
   type ActionWizardFormProps,
   type OrganizerKind,
@@ -75,10 +75,10 @@ export function ActionWizardForm({
     setGeoErr('')
     setGeoBusy(true)
     try {
-      const res = await api.get<{ lat: number; lng: number }>('/api/geocode', { params: { q } })
+      const coords = await geocodeQuery(q)
       patch({
-        planinaLat: Number(res.data.lat).toFixed(6),
-        planinaLng: Number(res.data.lng).toFixed(6),
+        planinaLat: Number(coords.lat).toFixed(6),
+        planinaLng: Number(coords.lng).toFixed(6),
       })
     } catch (e: unknown) {
       const msg =

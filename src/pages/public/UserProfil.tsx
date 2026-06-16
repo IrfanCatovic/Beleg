@@ -6,7 +6,19 @@ import type { GuideRatingSummary } from '../../services/guideRatings'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import api from '../../services/api'
+import {
+  fetchFollowCounts as loadFollowCounts,
+  fetchKorisnikByIdOrUsername,
+  fetchKorisnikStatistika,
+  fetchKorisnikPopeoSe,
+  fetchKorisnikVodio,
+  fetchKorisnici,
+  fetchKorisnikPopeoSeById,
+  updateMyCoverPosition,
+  updateMyCover,
+  updateMyAvatar,
+} from '../../services/users'
+import { fetchUserFollowingList, fetchUserFollowersList } from '../../services/follows'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
 import FollowControls from '../../components/buttons/FollowControls'
@@ -16,7 +28,7 @@ import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtil
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
 import { useRanking } from '../../hooks/useRanking'
-import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura, type AkcijaZaRanking } from '../../utils/rankingUtils'
+import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import { actionDifficultyBadge } from '../../utils/difficultyI18n'
 import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
@@ -125,9 +137,8 @@ export default function UserProfile() {
   const fetchFollowCounts = useCallback(async () => {
     if (!korisnik?.id) return
     try {
-      const r = await api.get(`/api/follows/user/${korisnik.id}/counts`)
-      const d = r.data as { following?: number; followers?: number }
-      setFollowCounts({ following: d.following ?? 0, followers: d.followers ?? 0 })
+      const counts = await loadFollowCounts(korisnik.id)
+      setFollowCounts(counts)
     } catch {
       setFollowCounts({ following: 0, followers: 0 })
     }
@@ -143,28 +154,24 @@ export default function UserProfile() {
         const idOrUsername = id ?? username
         if (!idOrUsername) { setError(t('notFound')); setLoading(false); return }
 
-        const rK = await api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}`)
-        if (cancelled) return
-
-        const k = rK.data as Korisnik
+        const k = await fetchKorisnikByIdOrUsername(idOrUsername) as Korisnik
         setKorisnik(k)
         if (!username && k.username) navigate(`/korisnik/${k.username}`, { replace: true })
 
         const guidedReq = k.isProfiGuide
-          ? api.get<{ vodeneAkcije?: UspesnaAkcija[] }>(`/api/korisnici/${encodeURIComponent(idOrUsername)}/vodio`)
+          ? fetchKorisnikVodio(idOrUsername)
           : null
 
-        const [rS, rA, rG] = await Promise.all([
-          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/statistika`),
-          api.get(`/api/korisnici/${encodeURIComponent(idOrUsername)}/popeo-se`),
+        const [statsData, akcijeData, vodeneData] = await Promise.all([
+          fetchKorisnikStatistika(idOrUsername),
+          fetchKorisnikPopeoSe(idOrUsername),
           guidedReq ?? Promise.resolve(null),
         ])
         if (cancelled) return
 
-        const s = rS.data.statistika || {}
-        setStats({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
-        setAkcije(rA.data.uspesneAkcije || [])
-        setVodeneAkcije(rG?.data?.vodeneAkcije || [])
+        setStats(statsData)
+        setAkcije(akcijeData as UspesnaAkcija[])
+        setVodeneAkcije((vodeneData as UspesnaAkcija[] | null) ?? [])
         setProfileActionsTab('climbed')
       } catch (e: any) {
         if (!cancelled) setError(e.response?.data?.error || t('loadError'))
@@ -182,18 +189,16 @@ export default function UserProfile() {
     let cancelled = false
     ;(async () => {
       try {
-        const r = await api.get('/api/korisnici')
-        const baseUsers = (r.data.korisnici || []) as Array<{ id: number; ukupnoKm?: number; ukupnoMetaraUspona?: number }>
+        const baseUsers = await fetchKorisnici()
         const rankedUsers = await Promise.all(
           baseUsers.map(async (k) => {
             try {
-              const actionsRes = await api.get<{ uspesneAkcije?: AkcijaZaRanking[] }>(`/api/korisnici/${k.id}/popeo-se`)
-              const akcije = actionsRes.data.uspesneAkcije || []
+              const akcije = await fetchKorisnikPopeoSeById(k.id)
               const rank = computeRank({
                 ture: akcije.map(mapAkcijaToTura),
                 ukupnoKm: k.ukupnoKm ?? 0,
                 ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-                createdAt: (k as { createdAt?: string }).createdAt,
+                createdAt: k.createdAt,
               })
               return { ...k, rank }
             } catch {
@@ -202,7 +207,7 @@ export default function UserProfile() {
                 rank: computeRank({
                   ukupnoKm: k.ukupnoKm ?? 0,
                   ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-                  createdAt: (k as { createdAt?: string }).createdAt,
+                  createdAt: k.createdAt,
                 }),
               }
             }
@@ -278,11 +283,9 @@ export default function UserProfile() {
     setFollowModalLoading(true)
     setFollowModalUsers([])
     try {
-      const endpoint = mode === 'following'
-        ? `/api/follows/user/${korisnik.id}/following`
-        : `/api/follows/user/${korisnik.id}/followers`
-      const res = await api.get(endpoint)
-      const users = ((res.data as { users?: FollowListUser[] }).users || [])
+      const users = (mode === 'following'
+        ? await fetchUserFollowingList(korisnik.id)
+        : await fetchUserFollowersList(korisnik.id)) as FollowListUser[]
       setFollowModalUsers(users)
     } catch {
       setFollowModalUsers([])
@@ -295,10 +298,10 @@ export default function UserProfile() {
     setSaving(true)
     try {
       if (variant === 'desktop') {
-        await api.patch('/api/me/cover-position', { coverPositionY: coverYDesktop })
+        await updateMyCoverPosition({ coverPositionY: coverYDesktop })
         setKorisnik((k) => (k ? { ...k, cover_position_y: coverYDesktop } : null))
       } else {
-        await api.patch('/api/me/cover-position', { coverPositionYMobile: coverYMobile })
+        await updateMyCoverPosition({ coverPositionYMobile: coverYMobile })
         setKorisnik((k) => (k ? { ...k, cover_position_y_mobile: coverYMobile } : null))
       }
       setPositioning(false)
@@ -317,8 +320,8 @@ export default function UserProfile() {
     try {
       const formData = new FormData()
       formData.append('coverImage', file)
-      const res = await api.patch('/api/me/cover', formData)
-      const url = (res.data as { cover_image_url?: string }).cover_image_url
+      const res = await updateMyCover(formData)
+      const url = res.cover_image_url
       if (url) {
         setKorisnik((k) => (k ? { ...k, cover_image_url: url } : null))
         setPositioning(false)
@@ -336,7 +339,7 @@ export default function UserProfile() {
     try {
       const formData = new FormData()
       formData.append('removeCover', '1')
-      await api.patch('/api/me/cover', formData)
+      await updateMyCover(formData)
       setKorisnik((k) => (k ? { ...k, cover_image_url: '' } : null))
       setPositioning(false)
     } catch {
@@ -354,8 +357,8 @@ export default function UserProfile() {
     try {
       const formData = new FormData()
       formData.append('avatar', file)
-      const res = await api.patch('/api/me/avatar', formData)
-      const avatarUrl = (res.data as { avatar_url?: string }).avatar_url
+      const res = await updateMyAvatar(formData)
+      const avatarUrl = res.avatar_url
       if (avatarUrl) {
         setKorisnik((k) => (k ? { ...k, avatar_url: avatarUrl } : null))
       }
@@ -373,7 +376,7 @@ export default function UserProfile() {
     try {
       const formData = new FormData()
       formData.append('removeAvatar', '1')
-      await api.patch('/api/me/avatar', formData)
+      await updateMyAvatar(formData)
       setKorisnik((k) => (k ? { ...k, avatar_url: '' } : null))
       setAvatarLightboxOpen(false)
     } catch {

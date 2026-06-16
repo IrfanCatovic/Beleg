@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createSuperadminFerrata,
+  fetchSuperadminFerrataById,
+  fetchSuperadminFerratas,
+  updateSuperadminFerrata,
+} from '../../services/superadminCatalog'
 import { superadminUploadFerrataCover } from '../../services/superadminUpload'
 import { FerrataLocationEditor } from '../../components/ferrate/FerrataLocationEditor'
 import { DynamicTextRows } from '../../components/ferrate/DynamicTextRows'
@@ -114,8 +119,8 @@ export default function SuperadminFerratas() {
     setLoading(true)
     setErr('')
     try {
-      const res = await api.get('/api/superadmin/ferratas')
-      setRows((res.data?.ferrate as FerrataRow[]) ?? [])
+      const data = await fetchSuperadminFerratas()
+      setRows((data?.ferrate as FerrataRow[]) ?? [])
     } catch {
       setErr('Greška pri učitavanju.')
     } finally {
@@ -174,9 +179,9 @@ export default function SuperadminFerratas() {
     let cancelled = false
     void (async () => {
       try {
-        const res = await api.get<{ ferrata?: FerrataRow }>(`/api/superadmin/ferratas/${id}`)
+        const data = await fetchSuperadminFerrataById(id)
         if (cancelled) return
-        const fer = res.data?.ferrata
+        const fer = data?.ferrata
         if (fer) {
           setEditingId(fer.id as number)
           setForm(formStateFromFerrataRow(fer))
@@ -260,12 +265,12 @@ export default function SuperadminFerratas() {
     }
     try {
       if (editingId) {
-        await api.put(`/api/superadmin/ferratas/${editingId}`, payload)
+        await updateSuperadminFerrata(editingId, payload)
         await load()
         setErr('')
       } else {
-        const res = await api.post<{ ferrata?: FerrataRow }>('/api/superadmin/ferratas', payload)
-        const fer = res.data?.ferrata
+        const data = await createSuperadminFerrata(payload)
+        const fer = data?.ferrata
         await load()
         if (fer && typeof fer.id === 'number') {
           await startEdit(fer)
@@ -283,8 +288,8 @@ export default function SuperadminFerratas() {
   async function startEdit(row: FerrataRow) {
     setErr('')
     try {
-      const res = await api.get<{ ferrata?: FerrataRow }>(`/api/superadmin/ferratas/${row.id}`)
-      const fer = res.data?.ferrata
+      const data = await fetchSuperadminFerrataById(row.id)
+      const fer = data?.ferrata
       if (!fer) {
         setErr('Ferata nije učitana.')
         return
@@ -300,7 +305,7 @@ export default function SuperadminFerratas() {
   async function uploadCoverFromForm(file: File | null) {
     if (!file) return
     try {
-      const url = await superadminUploadFerrataCover(api, file, editingId)
+      const url = await superadminUploadFerrataCover(file, editingId)
       setForm((f) => ({ ...f, coverImage: url }))
       if (editingId != null) await load()
     } catch {
@@ -311,7 +316,7 @@ export default function SuperadminFerratas() {
   async function uploadCoverFromTableRow(ferrataId: number, file: File | null) {
     if (!file) return
     try {
-      const url = await superadminUploadFerrataCover(api, file, ferrataId)
+      const url = await superadminUploadFerrataCover(file, ferrataId)
       if (editingId === ferrataId) setForm((f) => ({ ...f, coverImage: url }))
       await load()
     } catch {

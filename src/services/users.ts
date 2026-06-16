@@ -3,8 +3,10 @@ import type { Korisnik } from '../types/korisnik'
 import type { UspesnaAkcija, KorisnikStatistika } from '../types/uspesnaAkcija'
 import type { AkcijaZaRanking } from '../utils/rankingUtils'
 
-export async function fetchKorisnici() {
-  const res = await api.get<{ korisnici?: Korisnik[] }>('/api/korisnici')
+export async function fetchKorisnici(options?: { scope?: string }) {
+  const res = await api.get<{ korisnici?: Korisnik[] }>('/api/korisnici', {
+    params: options?.scope ? { scope: options.scope } : undefined,
+  })
   return res.data.korisnici ?? []
 }
 
@@ -65,4 +67,28 @@ export async function updateMyCover(formData: FormData) {
 export async function updateMyAvatar(formData: FormData) {
   const res = await api.patch<{ avatar_url?: string }>('/api/me/avatar', formData)
   return res.data
+}
+
+export async function fetchKorisnikById(id: number) {
+  const res = await api.get<Korisnik>(`/api/korisnici/${id}`)
+  return res.data
+}
+
+export async function fetchKorisnikInfo(id: number) {
+  const res = await api.get(`/api/korisnici/${id}/info`)
+  return res.data
+}
+
+export async function patchKorisnik(id: number, body: Record<string, unknown>) {
+  await api.patch(`/api/korisnici/${id}`, body)
+}
+
+export async function removeClubMember(userId: number, reason = '') {
+  await api.post('/api/club-membership/remove', { userId, reason })
+}
+
+export async function addPastActionToUser(korisnikId: number, formData: FormData) {
+  await api.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }

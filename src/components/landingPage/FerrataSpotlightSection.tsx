@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import { fetchPublicFerratasCatalog } from '../../services/ferratasPublic'
 
 type FerrataRow = {
   id: number
@@ -42,8 +42,7 @@ export default function FerrataSpotlightSection() {
     async function run() {
       setLoading(true)
       try {
-        const res = await api.get<{ ferrate?: FerrataRow[] }>('/api/ferratas')
-        const rows = (res.data?.ferrate ?? []).filter((f) => f.slug && f.naziv?.trim())
+        const rows = (await fetchPublicFerratasCatalog() as FerrataRow[]).filter((f) => f.slug && f.naziv?.trim())
         if (!cancelled) setFerrata(pickRandomFerrata(rows))
       } catch {
         if (!cancelled) setFerrata(null)

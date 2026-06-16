@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api from '../../services/api'
+import { fetchSetupStatus } from '../../services/auth'
 import Loader from '../../components/Loader'
 import { useTranslation } from 'react-i18next'
 
@@ -12,9 +12,8 @@ export default function Welcome() {
   useEffect(() => {
   const checkSetup = async () => {
     try {
-      const res = await api.get('/api/setup/status')
-
-      const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false;
+      const data = await fetchSetupStatus()
+      const setupCompleted = data.hasUsers || data.setupCompleted || false
       if (setupCompleted) {
         navigate('/navrhu', { replace: true })
       }

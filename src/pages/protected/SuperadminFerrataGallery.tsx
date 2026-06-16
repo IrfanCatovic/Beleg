@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import { fetchSuperadminFerrataById, updateSuperadminFerrataGalerija } from '../../services/superadminCatalog'
 import { FerrataGalleryEditor } from '../../components/ferrate/FerrataGalleryEditor'
 
 type FerrataApi = {
@@ -32,8 +32,8 @@ export default function SuperadminFerrataGallery() {
     setLoading(true)
     setErr('')
     try {
-      const res = await api.get<{ ferrata: FerrataApi }>(`/api/superadmin/ferratas/${id}`)
-      const f = res.data?.ferrata
+      const data = await fetchSuperadminFerrataById(id)
+      const f = data?.ferrata
       setFerrata(f ?? null)
       setUrls(f ? galerijaFromApi(f.galerija) : [])
     } catch {
@@ -52,7 +52,7 @@ export default function SuperadminFerrataGallery() {
   async function persistGallery(next: string[]) {
     setErr('')
     try {
-      await api.patch(`/api/superadmin/ferratas/${id}/galerija`, { galerija: next })
+      await updateSuperadminFerrataGalerija(id, next)
       setUrls(next)
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error

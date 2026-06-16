@@ -20,9 +20,7 @@ import (
 )
 
 func DodajClanaPopeoSe(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može dodati člana na završenu akciju"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može dodati člana na završenu akciju", "admin", "vodic", "superadmin") {
 		return
 	}
 
@@ -117,9 +115,7 @@ func DodajClanaPopeoSe(c *gin.Context) {
 }
 
 func BulkAddClubMembersCompleted(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može dodati članove na završenu akciju"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može dodati članove na završenu akciju", "admin", "vodic", "superadmin") {
 		return
 	}
 
@@ -438,9 +434,7 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 }
 
 func ZavrsiAkciju(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može završiti akciju"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može završiti akciju", "admin", "vodic", "superadmin") {
 		return
 	}
 
@@ -613,9 +607,7 @@ func ZavrsiAkciju(c *gin.Context) {
 }
 
 func DeleteAkcija(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može obrisati akciju"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može obrisati akciju", "admin", "vodic", "superadmin") {
 		return
 	}
 
@@ -755,9 +747,7 @@ func GetMojePopeoSe(c *gin.Context) {
 }
 
 func UpdatePrijavaStatus(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(403, gin.H{"error": "Samo admin, superadmin ili vodič može menjati status"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može menjati status", "admin", "vodic", "superadmin") {
 		return
 	}
 
@@ -842,9 +832,7 @@ func UpdatePrijavaStatus(c *gin.Context) {
 }
 
 func DeletePrijava(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može da ukloni člana sa akcije"})
+	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može da ukloni člana sa akcije", "admin", "vodic", "superadmin") {
 		return
 	}
 

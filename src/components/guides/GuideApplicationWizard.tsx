@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import { fetchMeProfile } from '../../services/auth'
 import { GuideBaseLocationPicker } from './GuideBaseLocationPicker'
 import { GUIDE_TOUR_TYPE_KEYS, type GuideTourTypeKey } from '../../i18n/guideProfiles'
 import type { GuideApplyPayload, GuideProfile } from '../../services/guideProfiles'
@@ -120,9 +120,8 @@ export function GuideApplicationWizard(props: {
   }, [props.initialForm])
 
   useEffect(() => {
-    void api
-      .get<MeInfo>('/api/me')
-      .then((res) => setMe(res.data))
+    void fetchMeProfile()
+      .then((data) => setMe((data as MeInfo | null) ?? null))
       .catch(() => setMe(null))
   }, [])
 

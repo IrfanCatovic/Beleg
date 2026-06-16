@@ -21,3 +21,8 @@ export async function createClanarina(payload: Record<string, unknown>) {
 export async function deleteTransakcija(id: number) {
   await api.delete(`/api/finansije/transakcije/${id}`)
 }
+
+export async function fetchTransakcijaById<T = unknown>(id: number) {
+  const res = await api.get<T>(`/api/finansije/transakcije/${id}`)
+  return res.data
+}

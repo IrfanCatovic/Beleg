@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import api from '../../services/api'
+import { fetchPosts as loadPosts, createPost, deletePost } from '../../services/posts'
+import { fetchAkcije, fetchMojePopeoSe } from '../../services/actions'
+import { fetchKorisnici } from '../../services/users'
+import { fetchUserFollowingList } from '../../services/follows'
 import type { AkcijaListItem as Akcija } from '../../types/akcija'
 import { formatDateShort } from '../../utils/dateUtils'
 import Loader from '../../components/Loader'
@@ -80,10 +83,9 @@ export default function Home() {
   useEffect(() => {
     if (!isLoggedIn) return
     setMentionUsersLoading(true)
-    api
-      .get('/api/korisnici')
-      .then((res) => {
-        setMentionUsers((res.data.korisnici as MentionUser[]) || [])
+    fetchKorisnici()
+      .then((korisnici) => {
+        setMentionUsers(korisnici as MentionUser[])
       })
       .catch(() => setMentionUsers([]))
       .finally(() => setMentionUsersLoading(false))
@@ -91,10 +93,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoggedIn) return
-    api
-      .get('/api/korisnici', { params: { scope: 'global' } })
-      .then((res) => {
-        setDiscoverUsers((res.data.korisnici as DiscoverUser[]) || [])
+    fetchKorisnici({ scope: 'global' })
+      .then((korisnici) => {
+        setDiscoverUsers(korisnici as DiscoverUser[])
       })
       .catch(() => setDiscoverUsers([]))
   }, [isLoggedIn])
@@ -139,12 +140,11 @@ export default function Home() {
 
   const fetchPosts = useCallback(async (offset = 0, append = false) => {
     try {
-      const res = await api.get('/api/posts', { params: { limit: POST_LIMIT, offset } })
-      const data = res.data
+      const data = await loadPosts(POST_LIMIT, offset)
       if (append) {
-        setPosts(prev => [...prev, ...(data.posts || [])])
+        setPosts(prev => [...prev, ...((data.posts || []) as unknown as Post[])])
       } else {
-        setPosts(data.posts || [])
+        setPosts((data.posts || []) as unknown as Post[])
       }
       setTotal(data.total ?? 0)
     } catch {
@@ -162,11 +162,11 @@ export default function Home() {
     if (!isLoggedIn) return
     setLoadingSidebar(true)
     Promise.all([
-      api.get('/api/akcije').catch(() => ({ data: { aktivne: [] } })),
-      api.get('/api/moje-popeo-se').catch(() => ({ data: { statistika: {} } })),
-    ]).then(([akcijeRes, popeoRes]) => {
-      setAktivneAkcije((akcijeRes.data.aktivne || []) as Akcija[])
-      const s = popeoRes.data.statistika || {}
+      fetchAkcije().catch(() => ({ aktivne: [] })),
+      fetchMojePopeoSe().catch(() => ({ statistika: {} })),
+    ]).then(([akcijeData, popeoData]) => {
+      setAktivneAkcije((akcijeData.aktivne || []) as Akcija[])
+      const s = (popeoData as { statistika?: Partial<Statistika> }).statistika || {}
       setStatistika({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
     }).finally(() => setLoadingSidebar(false))
   }, [isLoggedIn])
@@ -232,16 +232,16 @@ export default function Home() {
     if (!content && !newPostImage) return
     setSubmitting(true)
     try {
-      let res
+      let data
       if (newPostImage) {
         const fd = new FormData()
         fd.append('content', content)
         fd.append('image', newPostImage)
-        res = await api.post('/api/posts', fd)
+        data = await createPost(fd)
       } else {
-        res = await api.post('/api/posts', { content })
+        data = await createPost({ content })
       }
-      setPosts(prev => [res.data.post, ...prev])
+      setPosts(prev => [(data as { post: Post }).post, ...prev])
       setTotal(prev => prev + 1)
       setNewPostContent('')
       setNewPostImage(null)
@@ -267,7 +267,7 @@ export default function Home() {
     })
     if (!ok) return
     try {
-      await api.delete(`/api/posts/${postId}`)
+      await deletePost(postId)
       setPosts(prev => prev.filter(p => p.id !== postId))
       setTotal(prev => prev - 1)
     } catch (err: any) {
@@ -376,11 +376,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoggedIn || !user?.username) return
-    api
-      .get<{ users?: Array<{ id: number }> }>(`/api/follows/user/${encodeURIComponent(user.username)}/following`)
-      .then((res) => {
-        const ids = (res.data.users || [])
-          .map((u) => Number(u.id))
+    fetchUserFollowingList(user.username)
+      .then((users) => {
+        const ids = users
+          .map((u) => Number((u as { id?: number }).id))
           .filter((id) => Number.isFinite(id) && id > 0)
         setFollowingUserIds(ids)
       })

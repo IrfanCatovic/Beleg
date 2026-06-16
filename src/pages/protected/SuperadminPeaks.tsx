@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createSuperadminPeak,
+  deleteSuperadminPeak,
+  fetchSuperadminPeaks,
+  updateSuperadminPeak,
+} from '../../services/superadminCatalog'
 import { FerrataPinPicker } from '../../components/ferrate/FerrataPinPicker'
 
 type PeakRow = {
@@ -68,8 +73,8 @@ export default function SuperadminPeaks() {
     setLoading(true)
     setErr('')
     try {
-      const res = await api.get<{ peaks?: PeakRow[] }>('/api/superadmin/peaks')
-      setRows((res.data?.peaks as PeakRow[]) ?? [])
+      const data = await fetchSuperadminPeaks()
+      setRows((data?.peaks as PeakRow[]) ?? [])
     } catch {
       setErr(t('loadError'))
     } finally {
@@ -115,9 +120,9 @@ export default function SuperadminPeaks() {
     }
     try {
       if (editingId != null) {
-        await api.put(`/api/superadmin/peaks/${editingId}`, payload)
+        await updateSuperadminPeak(editingId, payload)
       } else {
-        await api.post('/api/superadmin/peaks', payload)
+        await createSuperadminPeak(payload)
       }
       setEditingId(null)
       setForm(emptyForm())
@@ -135,7 +140,7 @@ export default function SuperadminPeaks() {
     if (!window.confirm(t('deleteConfirm'))) return
     setErr('')
     try {
-      await api.delete(`/api/superadmin/peaks/${id}`)
+      await deleteSuperadminPeak(id)
       if (editingId === id) {
         setEditingId(null)
         setForm(emptyForm())

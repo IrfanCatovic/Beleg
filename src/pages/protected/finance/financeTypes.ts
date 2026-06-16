@@ -3,18 +3,8 @@ export type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
 export type CurrencyCode = 'RSD' | 'BAM' | 'HRK' | 'EUR'
 export type DatePickType = 'day' | 'month' | 'year' | 'range'
 
-export interface Transakcija {
-  id: number
-  tip: string
-  iznos: number
-  opis?: string
-  datum: string
-  korisnikId: number
-  clanarinaKorisnikId?: number
-  createdAt: string
-  korisnik?: { fullName?: string; username?: string }
-  clanarinaKorisnik?: { fullName?: string; username?: string }
-}
+export type { Transakcija } from '../../../types/transakcija'
+import type { Transakcija } from '../../../types/transakcija'
 
 export interface DashboardData {
   saldo: number

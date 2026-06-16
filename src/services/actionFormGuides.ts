@@ -1,5 +1,5 @@
 import api from './api'
-import type { WizardGuide } from '../pages/protected/action/ActionWizardForm'
+import type { WizardGuide } from '../types/actionWizard'
 import { listGuidesCatalog } from './guidesPublic'
 
 export async function loadActionFormGuides(): Promise<WizardGuide[]> {

@@ -1,4 +1,8 @@
 import api from './api'
+import { fetchMe, logoutApi, type MeResponse } from '@beleg/shared'
+
+export { fetchMe, logoutApi as logout } from '@beleg/shared'
+export type { MeResponse }
 
 export async function fetchSetupStatus() {
   const res = await api.get<{
@@ -43,4 +47,36 @@ export async function resetPassword(token: string, newPassword: string) {
 export async function verifyEmail(token: string) {
   const res = await api.get<{ message?: string }>('/api/email/verify', { params: { token } })
   return res.data
+}
+
+export async function resendEmailVerification(email: string) {
+  const res = await api.post<{ message?: string }>('/api/email/resend', { email })
+  return res.data
+}
+
+export async function updateMe(formData: FormData) {
+  const res = await api.patch('/api/me', formData)
+  return res.data
+}
+
+export async function fetchMeProfile(): Promise<MeResponse | null> {
+  return fetchMe(api)
+}
+
+export async function logoutSession() {
+  await logoutApi(api)
+}
+
+export async function setupAdmin(formData: FormData) {
+  await api.post('/api/setup/admin', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export async function checkUsernameAvailable(username: string) {
+  const res = await api.get<{ available: boolean }>('/api/username-available', {
+    params: { username },
+    withCredentials: false,
+  })
+  return res.data.available
 }

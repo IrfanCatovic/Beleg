@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import api from '../../services/api'
+import {
+  cancelJoinRequest,
+  createJoinRequest,
+  fetchMyJoinRequests,
+  searchKlubovi,
+} from '../../services/club'
 
 type Club = {
   id: number
@@ -30,12 +35,12 @@ export default function NoClubJoinView() {
     setLoading(true)
     setError('')
     try {
-      const [clubsRes, reqRes] = await Promise.all([
-        api.get('/api/klubovi', { params: q ? { search: q } : undefined }),
-        api.get('/api/club-membership/requests/mine'),
+      const [clubsData, reqData] = await Promise.all([
+        searchKlubovi(q),
+        fetchMyJoinRequests(),
       ])
-      setClubs(clubsRes.data?.klubovi ?? [])
-      setRequests(reqRes.data?.requests ?? [])
+      setClubs(clubsData?.klubovi ?? [])
+      setRequests(reqData?.requests ?? [])
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
@@ -62,7 +67,7 @@ export default function NoClubJoinView() {
     setBusyClubId(clubId)
     setError('')
     try {
-      await api.post('/api/club-membership/requests', { clubId })
+      await createJoinRequest(clubId)
       await load(search.trim() || undefined)
     } catch (err: unknown) {
       const msg =
@@ -78,7 +83,7 @@ export default function NoClubJoinView() {
     setBusyClubId(clubId)
     setError('')
     try {
-      await api.delete(`/api/club-membership/requests/${requestId}`)
+      await cancelJoinRequest(requestId)
       await load(search.trim() || undefined)
     } catch (err: unknown) {
       const msg =

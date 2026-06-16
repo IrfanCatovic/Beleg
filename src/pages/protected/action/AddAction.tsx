@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../../context/AuthContext'
-import api from '../../../services/api'
+import { fetchMeProfile } from '../../../services/auth'
+import { fetchKlub } from '../../../services/club'
+import { fetchPublicFerratasCatalog } from '../../../services/ferratasPublic'
+import { fetchPeakById } from '../../../services/catalog'
+import { createAkcija } from '../../../services/actions'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
@@ -71,8 +75,8 @@ export default function AddAction() {
 
   const resolveMyKorisnikId = async (): Promise<number | null> => {
     try {
-      const res = await api.get<{ id?: number }>('/api/me')
-      const id = res.data?.id
+      const profile = await fetchMeProfile()
+      const id = (profile as { id?: number } | null)?.id
       if (typeof id === 'number' && id > 0) return id
     } catch {
       /* fallback na listu vodiča kluba */
@@ -98,24 +102,12 @@ export default function AddAction() {
       }
 
       try {
-        const res = await api.get('/api/ferratas')
-        const rows = (res.data?.ferrate ?? []) as Array<{
-          id: number
-          naziv: string
-          tezina: string
-          drzava?: string
-          gradOpstina?: string
-          lokacija?: string
-          duzinaM: number
-          visinskaRazlikaM: number
-          trajanjeMin: number
-          trajanjeMax: number
-          opis?: string
-          quickTip?: string
-        }>
+        const rows = await fetchPublicFerratasCatalog()
         if (cancelled) return
 
-        const catalog: WizardFerrataOption[] = rows.map((r) => ferrataCatalogFromApiRow(r))
+        const catalog: WizardFerrataOption[] = rows.map((r) =>
+          ferrataCatalogFromApiRow(r as Parameters<typeof ferrataCatalogFromApiRow>[0]),
+        )
         setFerrataCatalog(catalog)
 
         const fid = searchParams.get('ferrata_id')
@@ -215,9 +207,9 @@ export default function AddAction() {
     let cancelled = false
     void (async () => {
       try {
-        const res = await api.get(`/api/peaks/${peakId}`)
+        const data = await fetchPeakById(peakId)
         if (cancelled) return
-        const peak = res.data?.peak as PeakDTO | undefined
+        const peak = data?.peak as PeakDTO | undefined
         if (!peak) return
         const patch = peakActionPrefillFrom(peak)
         const selfId = fromPeakGuide ? await resolveMyKorisnikId() : null
@@ -271,8 +263,8 @@ export default function AddAction() {
   useEffect(() => {
     const loadKlubValuta = async () => {
       try {
-        const res = await api.get('/api/klub')
-        const raw = res.data?.klub?.valuta ?? res.data?.valuta
+        const klub = await fetchKlub()
+        const raw = klub?.valuta
         setClubCurrency(parseClubCurrency(raw))
       } catch {
         setClubCurrency(parseClubCurrency('RSD'))
@@ -447,11 +439,9 @@ export default function AddAction() {
         ),
       )
 
-      const res = await api.post('/api/akcije', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const res = await createAkcija(formData)
 
-      const newActionId = res.data?.akcija?.id as number | undefined
+      const newActionId = res?.akcija?.id as number | undefined
       if (values.actionKind === 'via_ferrata' && bookingId > 0 && newActionId) {
         try {
           await acceptFerrataGuideBooking(bookingId, newActionId)

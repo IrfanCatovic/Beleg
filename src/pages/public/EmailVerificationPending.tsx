@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import api from '../../services/api'
+import { resendEmailVerification } from '../../services/auth'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 
 type LocationState = { email?: string } | null
@@ -22,8 +22,8 @@ export default function EmailVerificationPending() {
     setMessage('')
     setError('')
     try {
-      const res = await api.post('/api/email/resend', { email })
-      setMessage(res.data?.message || 'Verifikacioni email je ponovo poslat.')
+      const data = await resendEmailVerification(email)
+      setMessage(data?.message || 'Verifikacioni email je ponovo poslat.')
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??

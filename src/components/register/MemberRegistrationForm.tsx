@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import api from '../../services/api'
+import { registerSuperAdmin } from '../../services/auth'
 import { registerMemberByInvite } from '../../services/invite'
 import Dropdown from '../Dropdown'
 import { useTranslation } from 'react-i18next'
@@ -170,7 +170,7 @@ export default function MemberRegistrationForm(props: MemberRegistrationFormProp
         formData.append('klubId', String(props.klubId))
         await registerMemberByInvite(formData)
       } else {
-        await api.post('/api/register', formData)
+        await registerSuperAdmin(formData)
       }
 
       setSuccess(true)
