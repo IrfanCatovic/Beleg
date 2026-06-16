@@ -2,61 +2,22 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import api from '../../services/api'
+import {
+  acceptFollowRequest,
+  broadcastObavestenje,
+  deleteObavestenje,
+  fetchFollowRequestsPending,
+  fetchObavestenja,
+  fetchParticipationRequests,
+  markObavestenjeRead,
+  rejectFollowRequest,
+  respondParticipationRequest,
+} from '../../services/obavestenja'
+import type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } from '../../types/obavestenje'
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../../utils/obavestenjeIconClass'
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
-
-interface ObavestenjeItem {
-  id: number
-  userId: number
-  type: string
-  title: string
-  body?: string
-  link?: string
-  metadata?: string
-  readAt?: string | null
-  createdAt: string
-}
-
-interface ParticipationRequestItem {
-  id: number
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
-  createdAt: string
-  updatedAt: string
-  respondedAt?: string | null
-  action: {
-    id: number
-    naziv: string
-    datum: string
-    klubNaziv?: string
-  }
-  targetUser: {
-    id: number
-    username: string
-    fullName?: string
-    klubNaziv?: string
-  }
-  requestedBy: {
-    id: number
-    username: string
-    fullName?: string
-    klubNaziv?: string
-  }
-}
-
-interface FollowRequestItem {
-  followId: number
-  requester: {
-    id: number
-    username: string
-    fullName?: string
-    avatarUrl?: string
-    klubNaziv?: string
-  }
-  createdAt: string
-}
 
 export default function Obavestenja() {
   const { t } = useTranslation('notifications')
@@ -78,10 +39,8 @@ export default function Obavestenja() {
   const loadParticipationRequests = async () => {
     setRequestsLoading(true)
     try {
-      const res = await api.get<{ requests: ParticipationRequestItem[] }>('/api/moja-ucesca-zahtevi', {
-        params: { status: 'all' },
-      })
-      setParticipationRequests(res.data.requests ?? [])
+      const requests = await fetchParticipationRequests('all')
+      setParticipationRequests(requests)
     } catch {
       setParticipationRequests([])
     } finally {
@@ -91,8 +50,8 @@ export default function Obavestenja() {
 
   const loadFollowRequests = async () => {
     try {
-      const res = await api.get<{ requests: FollowRequestItem[] }>('/api/follows/requests/pending')
-      setFollowRequests(res.data.requests ?? [])
+      const requests = await fetchFollowRequestsPending()
+      setFollowRequests(requests)
     } catch {
       setFollowRequests([])
     }
@@ -104,10 +63,9 @@ export default function Obavestenja() {
       return
     }
     setLoading(true)
-    api
-      .get('/api/obavestenja', { params: { limit: 50 } })
-      .then((r) => {
-        setList(r.data.obavestenja ?? [])
+    fetchObavestenja(50)
+      .then((obavestenja) => {
+        setList(obavestenja)
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false))
@@ -117,7 +75,7 @@ export default function Obavestenja() {
 
   const handleNotificationClick = (n: ObavestenjeItem) => {
     if (!n.readAt) {
-      api.patch(`/api/obavestenja/${n.id}/read`).then(() => {
+      void markObavestenjeRead(n.id).then(() => {
         setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
       }).catch(() => {})
     }
@@ -131,7 +89,7 @@ export default function Obavestenja() {
   const handleDelete = async (e: React.MouseEvent, n: ObavestenjeItem) => {
     e.stopPropagation()
     try {
-      await api.delete(`/api/obavestenja/${n.id}`)
+      await deleteObavestenje(n.id)
       setList((prev) => prev.filter((x) => x.id !== n.id))
     } catch {
       // ignore
@@ -152,7 +110,7 @@ export default function Obavestenja() {
     }
     setRequestActionId(request.id)
     try {
-      await api.post(`/api/moja-ucesca-zahtevi/${request.id}/respond`, { decision })
+      await respondParticipationRequest(request.id, decision)
       await loadParticipationRequests()
       if (decision === 'accept') {
         await showAlert(`${requesterLabel} će sada videti da ste potvrdili učešće na akciji "${actionLabel}".`)
@@ -178,9 +136,9 @@ export default function Obavestenja() {
     setFollowActionId(request.followId)
     try {
       if (decision === 'accept') {
-        await api.patch(`/api/follows/requests/${request.followId}/accept`)
+        await acceptFollowRequest(request.followId)
       } else {
-        await api.delete(`/api/follows/requests/${request.followId}`)
+        await rejectFollowRequest(request.followId)
       }
       await loadFollowRequests()
     } catch (err: any) {
@@ -199,15 +157,14 @@ export default function Obavestenja() {
       return
     }
     setBroadcastSending(true)
-    api
-      .post('/api/obavestenja/broadcast', { title, body: broadcastBody.trim() })
+    broadcastObavestenje(title, broadcastBody.trim())
       .then(() => {
         setBroadcastTitle('')
         setBroadcastBody('')
-        return api.get('/api/obavestenja', { params: { limit: 50 } })
+        return fetchObavestenja(50)
       })
-      .then((r) => {
-        setList(r.data.obavestenja ?? [])
+      .then((obavestenja) => {
+        setList(obavestenja)
       })
       .catch((err) => setBroadcastError(err.response?.data?.error || t('broadcast.sendError')))
       .finally(() => setBroadcastSending(false))

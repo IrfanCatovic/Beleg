@@ -1,6 +1,7 @@
 import api from './api'
 import type { AkcijaDetail, AkcijaListItem } from '../types/akcija'
 import type { Prijava } from '../types/prijava'
+import type { KorisnikRef } from '../types/korisnik'
 
 export interface AkcijeListResponse {
   aktivne?: AkcijaListItem[]
@@ -11,14 +12,57 @@ export interface AkcijeListResponse {
   mojePrivatneZavrsene?: AkcijaListItem[]
 }
 
-export async function fetchAkcije() {
-  const res = await api.get<AkcijeListResponse>('/api/akcije')
-  return res.data
-}
-
 export interface MojePrijaveResponse {
   prijavljeneAkcije?: number[]
   otkaziveAkcije?: number[]
+}
+
+export interface MojaPrijavaPayload {
+  status: string
+  selectedSmestajIds?: number[]
+  selectedPrevozIds?: number[]
+  selectedRentItems?: Array<{ rentId: number; kolicina: number }>
+}
+
+export interface MojaPrijavaResponse {
+  prijava: MojaPrijavaPayload | null
+}
+
+export interface ActionParticipationRequest {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  respondedAt?: string | null
+  action: {
+    id: number
+    naziv: string
+    datum: string
+    planina?: string
+    vrh?: string
+    klubId?: number | null
+    klubNaziv?: string
+    isCompleted?: boolean
+  }
+  targetUser: KorisnikRef & { avatarUrl?: string; klubId?: number | null; klubNaziv?: string }
+  requestedBy: KorisnikRef & { avatarUrl?: string; klubId?: number | null; klubNaziv?: string }
+}
+
+export interface ExternalUserCandidate extends KorisnikRef {
+  avatarUrl?: string
+  klubId?: number | null
+  klubNaziv?: string
+}
+
+export interface ZavrsiAkcijaResponse {
+  akcija?: AkcijaDetail
+  finansijeTip?: 'nista' | 'uplata' | 'isplata'
+  netoFinansije?: number
+}
+
+export async function fetchAkcije() {
+  const res = await api.get<AkcijeListResponse>('/api/akcije')
+  return res.data
 }
 
 export async function fetchMojePrijave() {
@@ -37,7 +81,7 @@ export async function fetchPrijaveZaAkciju(id: number | string) {
 }
 
 export async function fetchMojaPrijavaZaAkciju(id: number | string) {
-  const res = await api.get(`/api/akcije/${id}/moja-prijava`)
+  const res = await api.get<MojaPrijavaResponse>(`/api/akcije/${id}/moja-prijava`)
   return res.data
 }
 
@@ -83,6 +127,10 @@ export async function updatePrijavaPlatio(prijavaId: number, platio: boolean) {
   await api.patch(`/api/prijave/${prijavaId}/platio`, { platio })
 }
 
+export async function markPrijavePlatio(prijavaIds: number[]) {
+  return Promise.allSettled(prijavaIds.map((pid) => updatePrijavaPlatio(pid, true)))
+}
+
 export async function deletePrijava(prijavaId: number) {
   await api.delete(`/api/prijave/${prijavaId}`)
 }
@@ -93,4 +141,36 @@ export async function dodajClanaPopeoSe(akcijaId: number | string, korisnikId: n
 
 export async function cancelParticipationRequest(akcijaId: number | string, requestId: number) {
   await api.patch(`/api/akcije/${akcijaId}/participation-requests/${requestId}/cancel`)
+}
+
+export async function fetchParticipationRequests(akcijaId: number | string) {
+  const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${akcijaId}/participation-requests`)
+  return res.data.requests ?? []
+}
+
+export async function createParticipationRequest(akcijaId: number | string, targetUserId: number) {
+  const res = await api.post<{ request: ActionParticipationRequest }>(`/api/akcije/${akcijaId}/participation-requests`, {
+    targetUserId,
+  })
+  return res.data.request
+}
+
+export async function fetchEligibleExternalUsers(
+  akcijaId: number | string,
+  params: { scope: string; q?: string; offset?: number; limit?: number },
+) {
+  const res = await api.get<{ users: ExternalUserCandidate[] }>(`/api/akcije/${akcijaId}/eligible-external-users`, {
+    params,
+  })
+  return res.data.users ?? []
+}
+
+export async function zavrsiAkciju(akcijaId: number | string, rashodNaAkciji: number) {
+  const res = await api.post<ZavrsiAkcijaResponse>(`/api/akcije/${akcijaId}/zavrsi`, { rashodNaAkciji })
+  return res.data
+}
+
+export async function regenerateAkcijaInviteLink(akcijaId: number | string) {
+  const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${akcijaId}/invite-link/regenerate`)
+  return res.data
 }

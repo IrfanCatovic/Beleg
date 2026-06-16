@@ -186,7 +186,7 @@ export default function Finance() {
     if (!user) return
     try {
       const klubData = await fetchKlub()
-      const nextCurrency = normalizeCurrency((klubData as KlubCurrencyResponse)?.klub?.valuta)
+      const nextCurrency = normalizeCurrency(klubData?.valuta)
       setCurrency(nextCurrency)
     } catch {
       setCurrency('RSD')

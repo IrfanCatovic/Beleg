@@ -341,7 +341,7 @@ export default function Actions() {
       let clubName = sorted.find((a) => a.klubNaziv)?.klubNaziv || ''
       try {
         const klubData = await fetchKlub()
-        const naziv = (klubData?.klub as { naziv?: string } | undefined)?.naziv || klubData?.naziv
+        const naziv = klubData?.naziv
         if (naziv?.trim()) clubName = naziv.trim()
       } catch {
         // fallback ostaje iz akcije ako postoji

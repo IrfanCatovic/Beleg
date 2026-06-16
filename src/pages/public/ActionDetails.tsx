@@ -1,7 +1,32 @@
-import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+﻿import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import api from '../../services/api'
+import {
+  cancelParticipationRequest,
+  createParticipationRequest,
+  deleteAkcija,
+  deletePrijava,
+  dodajClanaPopeoSe,
+  dodajPrevoz,
+  fetchAkcijaById,
+  fetchEligibleExternalUsers,
+  fetchMojaPrijavaZaAkciju,
+  fetchParticipationRequests,
+  fetchPrijaveZaAkciju,
+  markPrijavePlatio,
+  obrisiPrevoz,
+  otkaziPrijavu,
+  prijaviNaAkciju,
+  regenerateAkcijaInviteLink,
+  updateMojaPrijava,
+  updatePrijavaPlatio,
+  updatePrijavaStatus,
+  zavrsiAkciju,
+  type ActionParticipationRequest,
+  type ExternalUserCandidate,
+} from '../../services/actions'
+import { fetchKlub } from '../../services/club'
+import { fetchKorisnici, fetchKorisnikByUsername } from '../../services/users'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
@@ -17,7 +42,6 @@ import {
 } from '../../utils/generateSummitPng'
 import { formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
-import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import Dropdown from '../../components/Dropdown'
 import { actionDifficultyBadge, prijavaStatusLabel } from '../../utils/difficultyI18n'
 import { parseClubCurrency } from '../../utils/clubCurrency'
@@ -34,61 +58,10 @@ import type { Akcija } from '../../types/akcija'
 import type { Prijava } from '../../types/prijava'
 import type { KorisnikRef } from '../../types/korisnik'
 
-interface ClubMember extends KorisnikRef {}
-
-interface ExternalUserCandidate extends KorisnikRef {
-  avatarUrl?: string
-  klubId?: number | null
-  klubNaziv?: string
-}
-
-/** Jedan prevoz po prijavi; ako API vrati više ID-jeva, zadržava poslednji. */
-function singlePrevozIdSet(ids: number[] | undefined): Set<number> {
-  const clean = (ids ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0)
-  if (clean.length === 0) return new Set()
-  return new Set([clean[clean.length - 1]])
-}
-
-interface ActionParticipationRequest {
-  id: number
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
-  createdAt: string
-  updatedAt: string
-  respondedAt?: string | null
-  action: {
-    id: number
-    naziv: string
-    datum: string
-    planina?: string
-    vrh?: string
-    klubId?: number | null
-    klubNaziv?: string
-    isCompleted?: boolean
-  }
-  targetUser: {
-    id: number
-    username: string
-    fullName?: string
-    avatarUrl?: string
-    klubId?: number | null
-    klubNaziv?: string
-  }
-  requestedBy: {
-    id: number
-    username: string
-    fullName?: string
-    avatarUrl?: string
-    klubId?: number | null
-    klubNaziv?: string
-  }
-}
-
-const STATUS_STYLE: Record<string, string> = {
-  'popeo se':   'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'nije uspeo': 'bg-rose-50 text-rose-700 border-rose-200',
-  'otkazano':   'bg-gray-100 text-gray-500 border-gray-200',
-  'prijavljen': 'bg-emerald-50 text-emerald-600 border-emerald-200',
-}
+type ClubMember = KorisnikRef
+import { PRIJAVA_STATUS_STYLE, singlePrevozIdSet } from '../../components/action-details/actionDetailsUtils'
+import { StatCell, InfoRow } from '../../components/action-details/actionDetailsUi'
+import { ActionDetailsHeader } from '../../components/action-details/ActionDetailsHeader'
 
 export default function ActionDetails() {
   const { t, i18n } = useTranslation('actionDetails')
@@ -155,9 +128,9 @@ export default function ActionDetails() {
     if (!akcija) return ''
     if (akcija.tipAkcije === 'via_ferrata' && akcija.ferrataSnapshot?.lokacija) {
       const s = akcija.ferrataSnapshot
-      return [s.lokacija, s.naziv].filter(Boolean).join(' · ')
+      return [s.lokacija, s.naziv].filter(Boolean).join(' Â· ')
     }
-    return [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
+    return [akcija.planina, akcija.vrh].filter(Boolean).join(' Â· ')
   }, [akcija])
 
   useEffect(() => {
@@ -166,8 +139,8 @@ export default function ActionDetails() {
       setLoading(true)
       setError('')
       try {
-        const res = await api.get(`/api/akcije/${id}`, inviteToken ? { params: { inviteToken } } : undefined)
-        if (!cancelled) setAkcija(res.data)
+        const data = await fetchAkcijaById(id!, inviteToken || undefined)
+        if (!cancelled) setAkcija(data)
       } catch (err: any) {
         if (!cancelled) setError(err.response?.data?.error || t('loadError'))
       } finally {
@@ -313,9 +286,9 @@ export default function ActionDetails() {
     let cancelled = false
     const run = async () => {
       try {
-        const res = await api.get<{ prijava: { status: string; selectedSmestajIds?: number[]; selectedPrevozIds?: number[]; selectedRentItems?: Array<{ rentId: number; kolicina: number }> } | null }>(`/api/akcije/${id}/moja-prijava`)
+        const res = await fetchMojaPrijavaZaAkciju(id!)
         if (!cancelled) {
-          const p = res.data.prijava ?? null
+          const p = res.prijava ?? null
           setMojaPrijava(p)
           if (p) {
             setSelSmestaj(new Set(p.selectedSmestajIds || []))
@@ -381,10 +354,9 @@ export default function ActionDetails() {
   useEffect(() => {
     if (!user) return
     let cancelled = false
-    api
-      .get('/api/klub')
-      .then((res) => {
-        if (!cancelled) setClubCurrency(parseClubCurrency(res.data?.valuta))
+    fetchKlub()
+      .then((data) => {
+        if (!cancelled) setClubCurrency(parseClubCurrency(data?.valuta as string | undefined))
       })
       .catch(() => undefined)
     return () => {
@@ -424,13 +396,13 @@ export default function ActionDetails() {
           }
           try {
             if (!p.korisnik) return p
-            const res = await api.get(`/api/korisnici/${encodeURIComponent(p.korisnik)}`)
-            const avatar = (res.data as any)?.avatar_url
+            const korisnik = await fetchKorisnikByUsername(p.korisnik)
+            const avatar = korisnik?.avatar_url
             if (avatar) {
               return { ...p, avatarUrl: avatar }
             }
           } catch {
-            // ignore, zadrži bez avatara
+            // ignore, zadrÅ¾i bez avatara
           }
           return p
         })
@@ -445,8 +417,7 @@ export default function ActionDetails() {
 
     const run = async () => {
       try {
-        const res = await api.get(`/api/akcije/${id}/prijave`)
-        const list: Prijava[] = res.data.prijave || []
+        const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
         const enriched = await enrichWithAvatars(list)
         setPrijave(enriched)
         setCanSeePrijave(true)
@@ -478,8 +449,8 @@ export default function ActionDetails() {
     let cancelled = false
     const run = async () => {
       try {
-        const res = await api.get<{ korisnici: ClubMember[] }>('/api/korisnici')
-        if (!cancelled) setClubMembers(res.data.korisnici || [])
+        const korisnici = await fetchKorisnici()
+        if (!cancelled) setClubMembers(korisnici)
       } catch {
         if (!cancelled) setClubMembers([])
       }
@@ -504,7 +475,8 @@ export default function ActionDetails() {
     const run = async () => {
       setRequestsLoading(true)
       try {
-        const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${id}/participation-requests`)
+        const requests = await fetchParticipationRequests(id!)
+        const res = { data: { requests } }
         if (!cancelled) setActionParticipationRequests(res.data.requests || [])
       } catch {
         if (!cancelled) setActionParticipationRequests([])
@@ -544,16 +516,13 @@ export default function ActionDetails() {
       setExternalError('')
       try {
         const pageSize = 5
-        const res = await api.get<{ users: ExternalUserCandidate[] }>(`/api/akcije/${id}/eligible-external-users`, {
-          params: {
-            scope: externalScope,
-            q: externalSearch.trim(),
-            limit: pageSize,
-            offset: externalOffset,
-          },
+        const received = await fetchEligibleExternalUsers(id!, {
+          scope: externalScope,
+          q: externalSearch.trim(),
+          limit: pageSize,
+          offset: externalOffset,
         })
         if (cancelled) return
-        const received = res.data.users || []
         setExternalCandidates((prev) => {
           if (externalOffset === 0) return received
           const seen = new Set(prev.map((x) => x.id))
@@ -567,7 +536,7 @@ export default function ActionDetails() {
       } catch (err: any) {
         if (!cancelled) {
           if (externalOffset === 0) setExternalCandidates([])
-          setExternalError(err?.response?.data?.error || 'Greška pri pretrazi korisnika van kluba.')
+          setExternalError(err?.response?.data?.error || 'GreÅ¡ka pri pretrazi korisnika van kluba.')
         }
       } finally {
         if (!cancelled) setExternalLoading(false)
@@ -585,8 +554,7 @@ export default function ActionDetails() {
   const refreshPrijave = async () => {
     if (!id) return
     try {
-      const res = await api.get(`/api/akcije/${id}/prijave`)
-      const list: Prijava[] = res.data.prijave || []
+      const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
       const avatarMap = new Map<number, string | undefined>()
       prijave.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
       setPrijave(
@@ -603,8 +571,8 @@ export default function ActionDetails() {
   const reloadAkcija = async () => {
     if (!id) return
     try {
-      const res = await api.get(`/api/akcije/${id}`, inviteToken ? { params: { inviteToken } } : undefined)
-      setAkcija(res.data)
+      const data = await fetchAkcijaById(id, inviteToken || undefined)
+      setAkcija(data)
     } catch {
       // ignore
     }
@@ -672,11 +640,11 @@ export default function ActionDetails() {
   const handleSavePrijavaOrUpdate = async () => {
     if (!id) return
     if (akcija?.isCompleted) {
-      await showAlert('Akcija je završena.')
+      await showAlert('Akcija je zavrÅ¡ena.')
       return
     }
     if (mojaPrijava && mojaPrijava.status !== 'prijavljen') {
-      await showAlert('Ne možete menjati izbore nakon što je status prijave promenjen.', t('errorTitle'))
+      await showAlert('Ne moÅ¾ete menjati izbore nakon Å¡to je status prijave promenjen.', t('errorTitle'))
       return
     }
     setSavingSelections(true)
@@ -685,17 +653,17 @@ export default function ActionDetails() {
       // Backend reads inviteToken from query (or header / form), not from JSON body.
       const inviteParams = inviteToken ? { params: { inviteToken } } : undefined
       if (!mojaPrijava) {
-        await api.post(`/api/akcije/${id}/prijavi`, payload, inviteParams)
-        await showAlert('Uspešno ste se prijavili!')
+        await prijaviNaAkciju(id!, payload, inviteParams)
+        await showAlert('UspeÅ¡no ste se prijavili!')
       } else {
         try {
-          await api.patch(`/api/akcije/${id}/moja-prijava`, payload, inviteParams)
+          await updateMojaPrijava(id!, payload, inviteParams)
         } catch (err: any) {
           // Backward compatibility: older backend instances do not have PATCH /moja-prijava.
           // In that case, recreate registration with updated choices.
           if (err?.response?.status === 404) {
-            await api.delete(`/api/akcije/${id}/prijavi`)
-            await api.post(`/api/akcije/${id}/prijavi`, payload, inviteParams)
+            await otkaziPrijavu(id!)
+            await prijaviNaAkciju(id!, payload, inviteParams)
           } else {
             throw err
           }
@@ -704,14 +672,14 @@ export default function ActionDetails() {
       setSelectionsDirty(false)
       await reloadAkcija()
       await refreshPrijave()
-      const mp = await api.get(`/api/akcije/${id}/moja-prijava`)
-      setMojaPrijava(mp.data.prijava ?? null)
+      const mp = await fetchMojaPrijavaZaAkciju(id!)
+      setMojaPrijava(mp.prijava ?? null)
     } catch (err: any) {
       const apiError = err?.response?.data?.error as string | undefined
       const friendly =
         apiError && (/maksimalan broj/i.test(apiError) || /popunjen/i.test(apiError))
           ? t('registrationFullFriendly')
-          : (apiError || 'Greška pri čuvanju izbora')
+          : (apiError || 'GreÅ¡ka pri Äuvanju izbora')
       const isFull = friendly === t('registrationFullFriendly')
       await showAlert(friendly, isFull ? undefined : t('errorTitle'))
     } finally {
@@ -721,10 +689,10 @@ export default function ActionDetails() {
 
   const handleCancelPrijava = async () => {
     if (!id || !mojaPrijava) return
-    const ok = await showConfirm(t('confirmCancelJoin', { defaultValue: 'Da li želite da otkažete prijavu?' }))
+    const ok = await showConfirm(t('confirmCancelJoin', { defaultValue: 'Da li Å¾elite da otkaÅ¾ete prijavu?' }))
     if (!ok) return
     try {
-      await api.delete(`/api/akcije/${id}/prijavi`)
+      await otkaziPrijavu(id!)
       setMojaPrijava(null)
       setSelSmestaj(new Set())
       setSelPrevoz(new Set())
@@ -733,18 +701,18 @@ export default function ActionDetails() {
       await reloadAkcija()
       await refreshPrijave()
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || t('cancelJoinError', { defaultValue: 'Greška' }), t('errorTitle'))
+      await showAlert(err?.response?.data?.error || t('cancelJoinError', { defaultValue: 'GreÅ¡ka' }), t('errorTitle'))
     }
   }
 
   const handleAddTransport = async (data: { tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number; join: boolean }) => {
     if (!id) return
-    await api.post(`/api/akcije/${id}/prevoz`, data)
+    await dodajPrevoz(id!, data)
     setAddTransportOpen(false)
     await reloadAkcija()
     if (data.join) {
-      const mp = await api.get(`/api/akcije/${id}/moja-prijava`)
-      const p = mp.data.prijava ?? null
+      const mp = await fetchMojaPrijavaZaAkciju(id!)
+      const p = mp.prijava ?? null
       setMojaPrijava(p)
       if (p) {
         setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
@@ -760,12 +728,12 @@ export default function ActionDetails() {
         vodicUsername: akcija.vodic?.username,
       })) return
     const ok = await showConfirm(
-      `Da li ste sigurni da želite da obrišete prevoz „${row.nazivGrupe}”? Svi koji su bili prijavljeni na ovaj prevoz biće uklonjeni sa prevoza (neće biti automatski prebačeni na drugi prevoz).`,
-      { variant: 'danger', confirmLabel: 'Obriši', cancelLabel: 'Otkaži' }
+      `Da li ste sigurni da Å¾elite da obriÅ¡ete prevoz â€ž${row.nazivGrupe}â€? Svi koji su bili prijavljeni na ovaj prevoz biÄ‡e uklonjeni sa prevoza (neÄ‡e biti automatski prebaÄeni na drugi prevoz).`,
+      { variant: 'danger', confirmLabel: 'ObriÅ¡i', cancelLabel: 'OtkaÅ¾i' }
     )
     if (!ok) return
     try {
-      await api.delete(`/api/akcije/${id}/prevoz/${row.id}`)
+      await obrisiPrevoz(id!, row.id)
       setSelPrevoz((prev) => {
         const next = new Set(prev)
         next.delete(row.id)
@@ -775,8 +743,8 @@ export default function ActionDetails() {
       await refreshPrijave()
       if (user) {
         try {
-          const mp = await api.get(`/api/akcije/${id}/moja-prijava`)
-          const p = mp.data.prijava ?? null
+          const mp = await fetchMojaPrijavaZaAkciju(id!)
+          const p = mp.prijava ?? null
           setMojaPrijava(p)
           if (p) {
             setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
@@ -786,7 +754,7 @@ export default function ActionDetails() {
         }
       }
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'Greška pri brisanju prevoza', t('errorTitle'))
+      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri brisanju prevoza', t('errorTitle'))
     }
   }
 
@@ -794,7 +762,7 @@ export default function ActionDetails() {
     const confirmed = await showConfirm(t('deleteConfirmMessage'), { variant: 'danger', confirmLabel: t('delete') })
     if (!confirmed) return
     try {
-      await api.delete(`/api/akcije/${id}`)
+      await deleteAkcija(id!)
       await showAlert(t('deleteSuccess'))
       navigate('/akcije')
     } catch (err: any) {
@@ -807,10 +775,9 @@ export default function ActionDetails() {
   const handleUpdateStatus = async (prijavaId: number, newStatus: string) => {
     if (!canManageHost) return
     try {
-      await api.post(`/api/prijave/${prijavaId}/status`, { status: newStatus })
-      const res = await api.get(`/api/akcije/${id}/prijave`)
-      const list: Prijava[] = res.data.prijave || []
-      // nije neophodno ponovo povlačiti avatare, ali možemo zadržati postojeće
+      await updatePrijavaStatus(prijavaId, newStatus)
+      const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
+      // nije neophodno ponovo povlaÄiti avatare, ali moÅ¾emo zadrÅ¾ati postojeÄ‡e
       setPrijave((prev) => {
         const avatarMap = new Map<number, string | undefined>()
         prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
@@ -827,11 +794,11 @@ export default function ActionDetails() {
   const handleTogglePaymentStatus = async (prijavaId: number, nextPlatio: boolean) => {
     if (!canManageHost) return
     try {
-      await api.patch(`/api/prijave/${prijavaId}/platio`, { platio: nextPlatio })
+      await updatePrijavaPlatio(prijavaId, nextPlatio)
       setPrijave((prev) => prev.map((p) => (p.id === prijavaId ? { ...p, platio: nextPlatio } : p)))
       setMemberModal((prev) => (prev && prev.id === prijavaId ? { ...prev, platio: nextPlatio } : prev))
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'Greška pri ažuriranju statusa uplate', t('errorTitle'))
+      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri aÅ¾uriranju statusa uplate', t('errorTitle'))
     }
   }
 
@@ -860,20 +827,18 @@ export default function ActionDetails() {
     if (!canManageHost) return
     const selectedIds = Array.from(bulkSelectedPaymentIds)
     if (selectedIds.length === 0) {
-      await showAlert('Označite bar jednog člana.', t('errorTitle'))
+      await showAlert('OznaÄite bar jednog Älana.', t('errorTitle'))
       return
     }
     const confirmed = await showConfirm(
-      `Označio si ${selectedIds.length} član(a) da je platio. Da li želiš da potvrdiš uplatu?`,
+      `OznaÄio si ${selectedIds.length} Älan(a) da je platio. Da li Å¾eliÅ¡ da potvrdiÅ¡ uplatu?`,
       { title: 'Potvrda', confirmLabel: 'Plati', cancelLabel: t('cancel') },
     )
     if (!confirmed) return
 
     setBulkPaymentSubmitting(true)
     try {
-      const results = await Promise.allSettled(
-        selectedIds.map((pid) => api.patch(`/api/prijave/${pid}/platio`, { platio: true })),
-      )
+      const results = await markPrijavePlatio(selectedIds)
       const successIds: number[] = []
       let failed = 0
       results.forEach((r, idx) => {
@@ -888,10 +853,10 @@ export default function ActionDetails() {
       setBulkPaymentMode(false)
 
       if (failed > 0) {
-        await showAlert(`Uspešno ažurirano: ${successIds.length}. Neuspešno: ${failed}.`, t('errorTitle'))
+        await showAlert(`UspeÅ¡no aÅ¾urirano: ${successIds.length}. NeuspeÅ¡no: ${failed}.`, t('errorTitle'))
       }
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'Greška pri grupnom ažuriranju uplata.', t('errorTitle'))
+      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri grupnom aÅ¾uriranju uplata.', t('errorTitle'))
     } finally {
       setBulkPaymentSubmitting(false)
     }
@@ -902,13 +867,12 @@ export default function ActionDetails() {
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
       title: t('removeMemberTitle'),
       confirmLabel: 'Prihvati',
-      cancelLabel: 'Otkaži',
+      cancelLabel: 'OtkaÅ¾i',
     })
     if (!confirmed) return
     try {
-      await api.delete(`/api/prijave/${prijavaId}`)
-      const res = await api.get(`/api/akcije/${id}/prijave`)
-      const list: Prijava[] = res.data.prijave || []
+      await deletePrijava(prijavaId)
+      const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
       setPrijave((prev) => {
         const avatarMap = new Map<number, string | undefined>()
         prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
@@ -927,9 +891,8 @@ export default function ActionDetails() {
     setAddingMemberError('')
     setAddingMember(true)
     try {
-      await api.post(`/api/akcije/${id}/dodaj-clana-popeo-se`, { korisnikId: Number(selectedMemberId) })
-      const res = await api.get(`/api/akcije/${id}/prijave`)
-      const list: Prijava[] = res.data.prijave || []
+      await dodajClanaPopeoSe(id!, Number(selectedMemberId))
+      const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
       setPrijave((prev) => {
         const avatarMap = new Map<number, string | undefined>()
         prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
@@ -950,8 +913,8 @@ export default function ActionDetails() {
   const refreshActionParticipationRequests = async () => {
     if (!id) return
     try {
-      const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${id}/participation-requests`)
-      setActionParticipationRequests(res.data.requests || [])
+      const requests = await fetchParticipationRequests(id!)
+      setActionParticipationRequests(requests)
     } catch {
       // ignore
     }
@@ -962,14 +925,11 @@ export default function ActionDetails() {
     setSendingExternalRequestId(candidate.id)
     setExternalError('')
     try {
-      const res = await api.post<{ request: ActionParticipationRequest }>(`/api/akcije/${id}/participation-requests`, {
-        targetUserId: candidate.id,
-      })
-      const created = res.data.request
+      const created = await createParticipationRequest(id!, candidate.id)
       setActionParticipationRequests((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
       setExternalCandidates((prev) => prev.filter((item) => item.id !== candidate.id))
       setExternalHasMore(true)
-      await showAlert('Zahtev je poslat. Korisnik će dobiti obaveštenje i potvrditi učešće iz svog dela aplikacije.')
+      await showAlert('Zahtev je poslat. Korisnik Ä‡e dobiti obaveÅ¡tenje i potvrditi uÄeÅ¡Ä‡e iz svog dela aplikacije.')
     } catch (err: any) {
       setExternalError(err?.response?.data?.error || 'Slanje zahteva nije uspelo.')
     } finally {
@@ -980,18 +940,18 @@ export default function ActionDetails() {
   const handleCancelExternalRequest = async (request: ActionParticipationRequest) => {
     if (!id) return
     const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
-    const confirmed = await showConfirm(`Da li želite da otkažete zahtev za ${targetLabel}?`, {
-      title: 'Otkaži zahtev',
-      confirmLabel: 'Otkaži zahtev',
+    const confirmed = await showConfirm(`Da li Å¾elite da otkaÅ¾ete zahtev za ${targetLabel}?`, {
+      title: 'OtkaÅ¾i zahtev',
+      confirmLabel: 'OtkaÅ¾i zahtev',
       cancelLabel: 'Nazad',
       variant: 'danger',
     })
     if (!confirmed) return
     try {
-      await api.patch(`/api/akcije/${id}/participation-requests/${request.id}/cancel`)
+      await cancelParticipationRequest(id!, request.id)
       await refreshActionParticipationRequests()
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'Greška pri otkazivanju zahteva.', t('errorTitle'))
+      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri otkazivanju zahteva.', t('errorTitle'))
     }
   }
 
@@ -1052,17 +1012,17 @@ export default function ActionDetails() {
 
     selSmestaj.forEach((sid) => {
       const s = smestajMap.get(sid)
-      if (s) out.push({ label: s.naziv, amount: s.cenaPoOsobiUkupno, tag: 'Smeštaj', tagBg: 'bg-amber-100 text-amber-700' })
+      if (s) out.push({ label: s.naziv, amount: s.cenaPoOsobiUkupno, tag: 'SmeÅ¡taj', tagBg: 'bg-amber-100 text-amber-700' })
     })
     selPrevoz.forEach((pid) => {
       const p = prevozMap.get(pid)
-      if (p) out.push({ label: `${p.tipPrevoza} · ${p.nazivGrupe}`, amount: p.cenaPoOsobi, tag: 'Prevoz', tagBg: 'bg-sky-100 text-sky-700' })
+      if (p) out.push({ label: `${p.tipPrevoza} Â· ${p.nazivGrupe}`, amount: p.cenaPoOsobi, tag: 'Prevoz', tagBg: 'bg-sky-100 text-sky-700' })
     })
     for (const [rid, qty] of Object.entries(selRent)) {
       const r = rentMap.get(Number(rid))
       if (r && qty > 0) {
         out.push({
-          label: `${r.naziv} × ${qty}`,
+          label: `${r.naziv} Ã— ${qty}`,
           amount: r.cenaPoSetu * qty,
           tag: 'Rent',
           tagBg: 'bg-violet-100 text-violet-700',
@@ -1104,13 +1064,9 @@ export default function ActionDetails() {
 
   const handleConfirmFinishFinance = async (rashodNaAkciji: number) => {
     if (!id) throw new Error('missing id')
-    const res = await api.post<{
-      akcija?: Akcija
-      finansijeTip?: 'nista' | 'uplata' | 'isplata'
-      netoFinansije?: number
-    }>(`/api/akcije/${id}/zavrsi`, { rashodNaAkciji })
+    const res = await zavrsiAkciju(id!, rashodNaAkciji)
     setFinishFinanceModalOpen(false)
-    const updated = res.data?.akcija
+    const updated = res?.akcija
     if (updated) setAkcija(updated)
     else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
 
@@ -1118,8 +1074,8 @@ export default function ActionDetails() {
     if (akcija?.organizatorTip === 'vodic') {
       body = t('finishGuideSuccess')
     } else {
-      const tip = res.data?.finansijeTip ?? 'nista'
-      const neto = typeof res.data?.netoFinansije === 'number' ? res.data.netoFinansije : 0
+      const tip = res?.finansijeTip ?? 'nista'
+      const neto = typeof res?.netoFinansije === 'number' ? res.netoFinansije : 0
       const absNet = Math.abs(neto).toFixed(2)
       body = t('finishFinanceSuccessNone')
       if (tip === 'uplata') {
@@ -1166,11 +1122,11 @@ export default function ActionDetails() {
       } else if (!actionShareUrl) {
         setActionShareLoading(true)
         try {
-          const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${id}/invite-link/regenerate`)
-          const inviteUrl = (res.data?.inviteUrl || '').trim()
+          const res = await regenerateAkcijaInviteLink(id!)
+          const inviteUrl = (res?.inviteUrl || '').trim()
           setActionShareUrl(inviteUrl || resolvePublic())
         } catch (err: any) {
-          setActionShareError(err?.response?.data?.error || 'Neuspešno kreiranje share linka.')
+          setActionShareError(err?.response?.data?.error || 'NeuspeÅ¡no kreiranje share linka.')
           setActionShareUrl(resolvePublic())
         } finally {
           setActionShareLoading(false)
@@ -1217,14 +1173,14 @@ export default function ActionDetails() {
         vodicUsername: akcija.vodic?.username,
       }))
   const isLimitedView = !!akcija.limited
-  /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
+  /** ÄŒlan domaÄ‡eg kluba sa ulogom `clan` â€” bez klika na kartice i bez modala detalja. */
   const isHostClubPlainMember =
     !!user &&
     user.role === 'clan' &&
     user.klubId != null &&
     akcija.klubId != null &&
     Number(user.klubId) === Number(akcija.klubId)
-  /** Blagajnik, sekretar, menadžer opreme, itd. mogu da vide modal; admin/vodič i dalje `canManageHost` za tri akcije. */
+  /** Blagajnik, sekretar, menadÅ¾er opreme, itd. mogu da vide modal; admin/vodiÄ i dalje `canManageHost` za tri akcije. */
   const canOpenMemberModal = !!user && canSeePrijave && !isLimitedView && !isHostClubPlainMember
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
@@ -1270,7 +1226,7 @@ export default function ActionDetails() {
   const canClaimSummitReward =
     !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
 
-  const guideRatingGuideName = akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'Vodič'
+  const guideRatingGuideName = akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'VodiÄ'
   const canShowGuideRatingPrompt =
     !!user &&
     !!akcija?.isCompleted &&
@@ -1344,11 +1300,11 @@ export default function ActionDetails() {
 
     setActionShareLoading(true)
     try {
-      const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${id}/invite-link/regenerate`)
-      const inviteUrl = (res.data?.inviteUrl || '').trim()
+      const res = await regenerateAkcijaInviteLink(id!)
+      const inviteUrl = (res?.inviteUrl || '').trim()
       setActionShareUrl(inviteUrl || resolveActionPublicUrl())
     } catch (err: any) {
-      setActionShareError(err?.response?.data?.error || 'Neuspešno kreiranje share linka.')
+      setActionShareError(err?.response?.data?.error || 'NeuspeÅ¡no kreiranje share linka.')
       setActionShareUrl(resolveActionPublicUrl())
     } finally {
       setActionShareLoading(false)
@@ -1369,7 +1325,7 @@ export default function ActionDetails() {
       setActionShareCopied(true)
       window.setTimeout(() => setActionShareCopied(false), 1600)
     } catch {
-      await showAlert('Kopiranje nije uspelo. Link možete ručno kopirati.', t('errorTitle'))
+      await showAlert('Kopiranje nije uspelo. Link moÅ¾ete ruÄno kopirati.', t('errorTitle'))
     }
   }
 
@@ -1426,301 +1382,18 @@ export default function ActionDetails() {
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-16 md:pb-10">
-
-      {/* ══════════ COVER IMAGE (mobile/tablet) ══════════ */}
-      <div className="relative h-64 sm:h-72 md:h-80 lg:hidden overflow-hidden -mt-6 w-screen left-1/2 -translate-x-1/2">
-        <AkcijaImageOrFallback
-          src={akcija.slikaUrl}
-          alt={akcija.naziv}
-          imgClassName="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
-
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 sm:top-5 sm:left-6 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-white bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 transition-all"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-          {t('back')}
-        </button>
-
-        {/* Cover content */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
-          <div className="max-w-6xl mx-auto">
-            {(akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
-              <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                {akcija.zimskiUspon && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-500/80 text-white backdrop-blur-sm border border-sky-400/30">
-                    {t('winterAscent')}
-                  </span>
-                )}
-                {akcija.javna && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-500/80 text-white backdrop-blur-sm border border-violet-400/30">
-                    {t('public')}
-                  </span>
-                )}
-                {akcija.isCompleted && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/10">
-                    {t('completed')}
-                  </span>
-                )}
-              </div>
-            )}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight drop-shadow-lg leading-tight max-w-3xl">
-              {akcija.naziv}
-            </h1>
-            <p className="mt-1.5 text-sm sm:text-base text-white/80 font-medium flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-white/50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              {locationSubtitle}
-              {showPeakHeight && ` · ${akcija.visinaVrhM} m`}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════ DESKTOP HEADER (HERO) ══════════ */}
-      <div className="hidden lg:block pt-6 xl:pt-8 relative">
-        {/* Ambient background blobs */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-emerald-200/30 blur-3xl" />
-          <div className="absolute -top-10 right-0 w-[360px] h-[360px] rounded-full bg-sky-200/30 blur-3xl" />
-        </div>
-
-        <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col xl:flex-row gap-7 items-stretch">
-            {/* LEFT: main card */}
-            <div className="w-full xl:max-w-[50rem] xl:shrink-0 relative rounded-[28px] border border-gray-100 bg-white shadow-[0_12px_40px_-12px_rgba(16,185,129,0.18)] overflow-hidden">
-              {/* Accent top bar */}
-              <div aria-hidden className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" />
-              {/* Decorative corner icon */}
-              <div aria-hidden className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-gradient-to-br from-emerald-100/60 to-teal-50/30 blur-2xl" />
-
-              <div className="relative p-7 xl:p-9">
-
-                {/* Breadcrumb / back */}
-                <button
-                  onClick={() => navigate(-1)}
-                  className="group inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-emerald-700 transition-colors mb-5"
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 group-hover:bg-emerald-100 transition-colors">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                  </span>
-                  {t('back')}
-                </button>
-
-                {/* Badges */}
-                {(akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {akcija.zimskiUspon && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3m15.364-6.364l-12.728 12.728M18.364 18.364L5.636 5.636" />
-                        </svg>
-                        {t('winterAscent')}
-                      </span>
-                    )}
-                    {akcija.javna && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
-                        </svg>
-                        {t('public')}
-                      </span>
-                    )}
-                    {akcija.isCompleted && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {t('completed')}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Title */}
-                <h1 className="mt-4 text-4xl xl:text-[2.75rem] font-extrabold tracking-tight leading-[1.08] bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-800 bg-clip-text text-transparent">
-                  {akcija.naziv}
-                </h1>
-
-                {/* Subtitle: location pill */}
-                <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200">
-                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    {locationSubtitle}
-                  </span>
-                  {showPeakHeight && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                      </svg>
-                      {akcija.visinaVrhM} m
-                    </span>
-                  )}
-                  {akcija.klubNaziv && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15" />
-                      </svg>
-                      {akcija.klubNaziv}
-                    </span>
-                  )}
-                </div>
-
-                {/* Description block */}
-                {akcija.opis ? (
-                  <div className="mt-6 relative rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 shadow-inner overflow-hidden">
-                    <div aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-teal-500 to-sky-500" />
-                    <div className="pl-5 pr-5 py-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 shadow-sm">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h12" />
-                          </svg>
-                        </span>
-                        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-emerald-800">{t('actionDescription')}</p>
-                      </div>
-                      <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                        {akcija.opis}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-4 text-center">
-                    <p className="text-xs text-gray-400 italic">{t('noDescriptionHint', { defaultValue: 'Domaćin nije dodao opis akcije.' })}</p>
-                  </div>
-                )}
-
-                {/* Mini stats strip */}
-                <div className="mt-6 grid grid-cols-2 xl:grid-cols-4 gap-2.5">
-                  {akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 && (
-                    <HeroMini
-                      color="sky"
-                      label={t('summitPngTrail', { defaultValue: 'Dužina' })}
-                      value={`${akcija.duzinaStazeKm} km`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
-                        </svg>
-                      }
-                    />
-                  )}
-                  {akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0 && (
-                    <HeroMini
-                      color="amber"
-                      label={t('summitPngAscent', { defaultValue: 'Uspon' })}
-                      value={`${akcija.kumulativniUsponM} m`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
-                        </svg>
-                      }
-                    />
-                  )}
-                  {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
-                    <HeroMini
-                      color="indigo"
-                      label={t('durationHours', { defaultValue: 'Trajanje' })}
-                      value={`${akcija.trajanjeSati} h`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      }
-                    />
-                  )}
-                  {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
-                    <HeroMini
-                      color="violet"
-                      label="Mesta"
-                      value={`${memberCount}/${akcija.maxLjudi}`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
-                        </svg>
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT: image card */}
-            <div className="w-full xl:flex-1 xl:min-w-0 relative">
-              <div className="relative rounded-[28px] overflow-hidden shadow-[0_20px_50px_-15px_rgba(15,118,110,0.35)] ring-1 ring-black/5 bg-gradient-to-br from-emerald-900 via-teal-800 to-sky-900 min-h-[440px] h-full">
-                <AkcijaImageOrFallback
-                  src={akcija.slikaUrl}
-                  alt={akcija.naziv}
-                  imgClassName="absolute inset-0 w-full h-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/20" />
-                <div aria-hidden className="absolute inset-0 ring-1 ring-inset ring-white/10" />
-
-                {/* Top right overlay chips */}
-                <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                  {user && (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md border shadow-sm ${
-                      effectiveIsClanKluba
-                        ? 'bg-emerald-500/90 text-white border-emerald-300/30'
-                        : 'bg-violet-500/90 text-white border-violet-300/30'
-                    }`}>
-                      {effectiveIsClanKluba ? 'Tvoj klub' : 'Gost'}
-                    </span>
-                  )}
-                  {mojaPrijava && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white/90 text-emerald-800 backdrop-blur-md border border-white/40 shadow-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Prijavljen
-                    </span>
-                  )}
-                </div>
-
-                {/* Top left: peak altitude (planina) */}
-                {showPeakHeight && (
-                  <div className="absolute top-4 left-4 px-3 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/80">{t('height', { defaultValue: 'Visina' })}</p>
-                    <p className="text-xl font-extrabold text-white leading-none mt-0.5">
-                      {akcija.visinaVrhM}
-                      <span className="text-sm font-bold opacity-80 ml-1">m</span>
-                    </p>
-                  </div>
-                )}
-
-                {/* Bottom overlay: counts */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 px-4 py-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">{t('registered', { defaultValue: 'Prijavljeni' })}</p>
-                      <p className="text-2xl font-extrabold text-white leading-none mt-0.5">
-                        {memberCount}
-                        {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
-                          <span className="text-sm font-bold opacity-70 ml-1">/ {akcija.maxLjudi}</span>
-                        )}
-                      </p>
-                    </div>
-                    
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════ MEMBERSHIP / PRICE BANNER ══════════ */}
+      <ActionDetailsHeader
+        akcija={akcija}
+        t={t}
+        locationSubtitle={locationSubtitle}
+        showPeakHeight={showPeakHeight}
+        memberCount={memberCount}
+        effectiveIsClanKluba={effectiveIsClanKluba}
+        mojaPrijava={mojaPrijava}
+        user={user}
+        onBack={() => navigate(-1)}
+      />
+      {/* â•â•â•â•â•â•â•â•â•â• MEMBERSHIP / PRICE BANNER â•â•â•â•â•â•â•â•â•â• */}
       {user && !isLimitedView && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
@@ -1743,14 +1416,14 @@ export default function ActionDetails() {
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-bold uppercase tracking-wider ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                    {effectiveIsClanKluba ? 'Tvoj status: član kluba' : 'Tvoj status: gost (van kluba)'}
+                    {effectiveIsClanKluba ? 'Tvoj status: Älan kluba' : 'Tvoj status: gost (van kluba)'}
                   </p>
                   <p className="text-sm text-gray-700 mt-0.5">
                     {effectiveIsClanKluba
-                      ? 'Plaćaš povlašćenu cenu za članove kluba.'
+                      ? 'PlaÄ‡aÅ¡ povlaÅ¡Ä‡enu cenu za Älanove kluba.'
                       : akcija.javna
-                        ? 'Plaćaš cenu za eksterne učesnike.'
-                        : 'Akcija je interna — primenjuje se cena kao za članove.'}
+                        ? 'PlaÄ‡aÅ¡ cenu za eksterne uÄesnike.'
+                        : 'Akcija je interna â€” primenjuje se cena kao za Älanove.'}
                   </p>
                 </div>
               </div>
@@ -1766,7 +1439,7 @@ export default function ActionDetails() {
         </div>
       )}
 
-      {/* ══════════ STATS BAR ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• STATS BAR â•â•â•â•â•â•â•â•â•â• */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
@@ -1809,14 +1482,14 @@ export default function ActionDetails() {
         </div>
       )}
 
-      {/* ══════════ BODY ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• BODY â•â•â•â•â•â•â•â•â•â• */}
       <div className="bg-gray-50/80 min-h-[40vh]">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
 
-          {/* ════════ ROW 1: Vodič (lg:8) + Status (lg:4) ════════ */}
+          {/* â•â•â•â•â•â•â•â• ROW 1: VodiÄ (lg:8) + Status (lg:4) â•â•â•â•â•â•â•â• */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* Vodič / Kreator card */}
+            {/* VodiÄ / Kreator card */}
             <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
@@ -1912,7 +1585,7 @@ export default function ActionDetails() {
                           </svg>
                         }
                         iconBg="bg-violet-50"
-                        label="Maks učesnika"
+                        label="Maks uÄesnika"
                         value={`${akcija.maxLjudi}`}
                       />
                     )}
@@ -1993,7 +1666,7 @@ export default function ActionDetails() {
                     )}
                     {user && akcija.cenaClan != null && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-amber-50 border border-amber-100">
-                        <span className="text-[11px] text-amber-700 font-medium">Tvoja cena (član)</span>
+                        <span className="text-[11px] text-amber-700 font-medium">Tvoja cena (Älan)</span>
                         <span className="text-sm font-bold text-amber-800 tabular-nums">
                           {akcija.cenaClan.toFixed(2)} {clubCurrency}
                         </span>
@@ -2012,7 +1685,7 @@ export default function ActionDetails() {
               </div>
             </div>
 
-            {/* ════════ ROW 2: Logistics ════════ */}
+            {/* â•â•â•â•â•â•â•â• ROW 2: Logistics â•â•â•â•â•â•â•â• */}
             {(akcija.prevoz?.length || akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length) ? (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -2046,7 +1719,7 @@ export default function ActionDetails() {
                       <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 p-6 text-center">
                         <p className="text-sm text-gray-500">
                           Trenutno nema dostupnih opcija prevoza.
-                          {!!user && !!mojaPrijava && !akcija.isCompleted && ' Možete dodati svoj prevoz dugmetom iznad.'}
+                          {!!user && !!mojaPrijava && !akcija.isCompleted && ' MoÅ¾ete dodati svoj prevoz dugmetom iznad.'}
                         </p>
                       </div>
                     ) : (
@@ -2097,7 +1770,7 @@ export default function ActionDetails() {
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
                       <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                         <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Smeštaj</h2>
+                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">SmeÅ¡taj</h2>
                       </div>
                       <div className="p-5 sm:p-6 space-y-3">
                         {akcija.smestaj.map((s) => (
@@ -2143,12 +1816,12 @@ export default function ActionDetails() {
               </div>
             ) : null}
 
-            {/* ════════ ROW 3: Confirm / Summary ════════ */}
+            {/* â•â•â•â•â•â•â•â• ROW 3: Confirm / Summary â•â•â•â•â•â•â•â• */}
             {user && !isLimitedView && !akcija.isCompleted && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
               <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-r from-white via-emerald-50/80 to-white shadow-md">
                 <div className="px-5 sm:px-7 py-4 border-b border-emerald-100/70 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
-                  <h2 className="text-sm sm:text-base font-bold text-emerald-900 tracking-tight">Pregled tvojih izbora i ukupnog zaduženja</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-emerald-900 tracking-tight">Pregled tvojih izbora i ukupnog zaduÅ¾enja</h2>
                 </div>
                 <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -2158,7 +1831,7 @@ export default function ActionDetails() {
                       <span className="text-xs font-semibold text-gray-700">
                         Osnovna cena akcije{' '}
                         <span className={`text-[10px] font-bold uppercase ml-1 ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                          ({effectiveIsClanKluba ? 'član kluba' : akcija.javna ? 'gost' : 'klub'})
+                          ({effectiveIsClanKluba ? 'Älan kluba' : akcija.javna ? 'gost' : 'klub'})
                         </span>
                       </span>
                       <span className="text-sm font-bold text-gray-900 tabular-nums">
@@ -2210,11 +1883,11 @@ export default function ActionDetails() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         {savingSelections
-                          ? 'Čuvam…'
+                          ? 'ÄŒuvamâ€¦'
                           : mojaPrijava
                             ? selectionsDirty
-                              ? 'Sačuvaj izmene izbora'
-                              : 'Izbori su sačuvani'
+                              ? 'SaÄuvaj izmene izbora'
+                              : 'Izbori su saÄuvani'
                             : 'Potvrdi i prijavi se'}
                       </button>
                       {mojaPrijava && mojaPrijava.status === 'prijavljen' && (
@@ -2223,7 +1896,7 @@ export default function ActionDetails() {
                           onClick={handleCancelPrijava}
                           className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-emerald-50 bg-emerald-700/40 hover:bg-emerald-700/55 border border-emerald-300/30 transition-colors"
                         >
-                          Otkaži prijavu
+                          OtkaÅ¾i prijavu
                         </button>
                       )}
                     </div>
@@ -2234,7 +1907,7 @@ export default function ActionDetails() {
 
           
 
-            {/* ════════ ROW 4: Members list (FULL WIDTH) ════════ */}
+            {/* â•â•â•â•â•â•â•â• ROW 4: Members list (FULL WIDTH) â•â•â•â•â•â•â•â• */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
               <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -2253,7 +1926,7 @@ export default function ActionDetails() {
                           }}
                           className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
                         >
-                          Označi ko je platio
+                          OznaÄi ko je platio
                         </button>
                       ) : (
                         <>
@@ -2262,7 +1935,7 @@ export default function ActionDetails() {
                             onClick={handleToggleSelectAllBulkPayments}
                             className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            Označi sve
+                            OznaÄi sve
                           </button>
                           <button
                             type="button"
@@ -2270,7 +1943,7 @@ export default function ActionDetails() {
                             disabled={bulkPaymentSubmitting}
                             className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                           >
-                            {bulkPaymentSubmitting ? 'Plaćam...' : 'Plati'}
+                            {bulkPaymentSubmitting ? 'PlaÄ‡am...' : 'Plati'}
                           </button>
                           <button
                             type="button"
@@ -2289,7 +1962,7 @@ export default function ActionDetails() {
                   )}
                   {canManageHost && canSeePrijave && !isLimitedView && (
                     <span className="inline-flex items-center justify-center h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
-                      Plaćeno {paidCount}/{paymentTrackedPrijave.length}
+                      PlaÄ‡eno {paidCount}/{paymentTrackedPrijave.length}
                     </span>
                   )}
                   <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
@@ -2352,7 +2025,7 @@ export default function ActionDetails() {
                     {prijave.map((p) => {
                       const displayName = p.fullName?.trim() ? p.fullName : p.korisnik || 'Nepoznat'
                       const initial = displayName.charAt(0).toUpperCase()
-                      const statusCls = STATUS_STYLE[p.status] || 'bg-gray-100 text-gray-500 border-gray-200'
+                      const statusCls = PRIJAVA_STATUS_STYLE[p.status] || 'bg-gray-100 text-gray-500 border-gray-200'
                       const avatar = p.avatarUrl || (p as any).avatar_url
 
                       return (
@@ -2392,8 +2065,8 @@ export default function ActionDetails() {
                                       ? 'border-emerald-500 bg-emerald-500 text-white'
                                       : 'border-gray-300 bg-white text-gray-500 hover:border-emerald-400'
                                 } disabled:opacity-60 disabled:cursor-not-allowed`}
-                                title={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
-                                aria-label={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
+                                title={p.platio ? 'VeÄ‡ plaÄ‡eno' : 'OznaÄi Älana kao plaÄ‡eno'}
+                                aria-label={p.platio ? 'VeÄ‡ plaÄ‡eno' : 'OznaÄi Älana kao plaÄ‡eno'}
                               >
                                 {(p.platio || bulkSelectedPaymentIds.has(p.id)) ? (
                                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -2485,16 +2158,16 @@ export default function ActionDetails() {
                       <div>
                         <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Sve uplate</p>
                         <p className="text-sm text-gray-700 mt-0.5">
-                          Plaćeno članova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
+                          PlaÄ‡eno Älanova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-xs font-semibold text-gray-500">Ukupno plaćeno</p>
+                        <p className="text-xs font-semibold text-gray-500">Ukupno plaÄ‡eno</p>
                         <p className="text-lg font-extrabold text-emerald-700 tabular-nums">
                           {paidTotal.toFixed(2)} {clubCurrency}
                         </p>
                         <p className="text-[11px] text-gray-500">
-                          Očekivano ukupno: <span className="font-semibold text-gray-700">{expectedTotal.toFixed(2)} {clubCurrency}</span>
+                          OÄekivano ukupno: <span className="font-semibold text-gray-700">{expectedTotal.toFixed(2)} {clubCurrency}</span>
                         </p>
                       </div>
                     </div>
@@ -2545,10 +2218,10 @@ export default function ActionDetails() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                          Dodaj člana van kluba
+                          Dodaj Älana van kluba
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Pretraži korisnike iz drugih klubova ili bez kluba. Akcija će im se upisati tek nakon potvrde, bez finansija.
+                          PretraÅ¾i korisnike iz drugih klubova ili bez kluba. Akcija Ä‡e im se upisati tek nakon potvrde, bez finansija.
                         </p>
                       </div>
                       <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-[11px] font-semibold text-amber-800">
@@ -2601,12 +2274,12 @@ export default function ActionDetails() {
                           onScroll={handleExternalCandidatesScroll}
                         >
                           {externalCandidates.length === 0 && externalLoading ? (
-                            <p className="text-xs text-gray-500">Pretražujem korisnike...</p>
+                            <p className="text-xs text-gray-500">PretraÅ¾ujem korisnike...</p>
                           ) : externalCandidates.length === 0 ? (
                             <p className="text-xs text-gray-500">
                               {externalSearch.trim()
                                 ? 'Nema korisnika za ovu pretragu.'
-                                : 'Prikazujemo 5 profila. Skrolom naniže učitava se sledećih 5.'}
+                                : 'Prikazujemo 5 profila. Skrolom naniÅ¾e uÄitava se sledeÄ‡ih 5.'}
                             </p>
                           ) : (
                             <>
@@ -2629,13 +2302,13 @@ export default function ActionDetails() {
                                       disabled={sendingExternalRequestId === candidate.id}
                                       className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {sendingExternalRequestId === candidate.id ? 'Šaljem...' : 'Pošalji zahtev'}
+                                      {sendingExternalRequestId === candidate.id ? 'Å aljem...' : 'PoÅ¡alji zahtev'}
                                     </button>
                                   </div>
                                 )
                               })}
                               {externalLoading && (
-                                <p className="text-xs text-gray-500 text-center py-1">Učitavam još 5 profila...</p>
+                                <p className="text-xs text-gray-500 text-center py-1">UÄitavam joÅ¡ 5 profila...</p>
                               )}
                             </>
                           )}
@@ -2647,14 +2320,14 @@ export default function ActionDetails() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Poslati zahtevi</p>
-                            <p className="text-xs text-gray-500 mt-1">Ovde vidiš šta još čeka potvrdu i šta je već obrađeno.</p>
+                            <p className="text-xs text-gray-500 mt-1">Ovde vidiÅ¡ Å¡ta joÅ¡ Äeka potvrdu i Å¡ta je veÄ‡ obraÄ‘eno.</p>
                           </div>
-                          {requestsLoading && <span className="text-[11px] text-gray-400">Učitavanje...</span>}
+                          {requestsLoading && <span className="text-[11px] text-gray-400">UÄitavanje...</span>}
                         </div>
 
                         <div className="mt-3 space-y-2.5">
                           {actionParticipationRequests.length === 0 ? (
-                            <p className="text-xs text-gray-500">Još nema poslatih zahteva za ovu akciju.</p>
+                            <p className="text-xs text-gray-500">JoÅ¡ nema poslatih zahteva za ovu akciju.</p>
                           ) : (
                             actionParticipationRequests.map((request) => {
                               const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
@@ -2669,9 +2342,9 @@ export default function ActionDetails() {
                                       : 'bg-gray-100 text-gray-700 border-gray-200'
                               const statusLabel =
                                 request.status === 'pending'
-                                  ? 'Čeka potvrdu'
+                                  ? 'ÄŒeka potvrdu'
                                   : request.status === 'accepted'
-                                    ? 'Prihvaćeno'
+                                    ? 'PrihvaÄ‡eno'
                                     : request.status === 'rejected'
                                       ? 'Odbijeno'
                                       : 'Otkazano'
@@ -2680,10 +2353,10 @@ export default function ActionDetails() {
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                       <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
-                                      <p className="text-xs text-gray-500 truncate">@{request.targetUser.username} · {targetClubLabel}</p>
+                                      <p className="text-xs text-gray-500 truncate">@{request.targetUser.username} Â· {targetClubLabel}</p>
                                       <p className="text-[11px] text-gray-400 mt-1">
                                         Poslato {formatDate(request.createdAt)}
-                                        {request.respondedAt ? ` · obrađeno ${formatDate(request.respondedAt)}` : ''}
+                                        {request.respondedAt ? ` Â· obraÄ‘eno ${formatDate(request.respondedAt)}` : ''}
                                       </p>
                                     </div>
                                     <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusStyle}`}>
@@ -2697,7 +2370,7 @@ export default function ActionDetails() {
                                         onClick={() => void handleCancelExternalRequest(request)}
                                         className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                                       >
-                                        Otkaži zahtev
+                                        OtkaÅ¾i zahtev
                                       </button>
                                     </div>
                                   )}
@@ -2713,7 +2386,7 @@ export default function ActionDetails() {
               </div>
             </div>
 
-            {/* ════════ ROW 5: Summit share + ocena vodiča + Admin ════════ */}
+            {/* â•â•â•â•â•â•â•â• ROW 5: Summit share + ocena vodiÄa + Admin â•â•â•â•â•â•â•â• */}
             {(showSummitImageCard || canShowGuideRatingPrompt || guideRatingSubmitted || (canManageHost && !isLimitedView)) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {showSummitImageCard && (
@@ -2724,7 +2397,7 @@ export default function ActionDetails() {
                     </div>
                     <div className="p-5 space-y-4">
                       <p className="text-[12px] text-gray-500 leading-relaxed">
-                        Podeli link akcije i pozovi ekipu jednim klikom. Nagradu možeš preuzeti nakon uspešnog uspona.
+                        Podeli link akcije i pozovi ekipu jednim klikom. Nagradu moÅ¾eÅ¡ preuzeti nakon uspeÅ¡nog uspona.
                       </p>
                       <button
                         type="button"
@@ -2958,9 +2631,9 @@ export default function ActionDetails() {
                     </svg>
                     {t('summitBack')}
                   </button>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Via ferrata bedž</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Via ferrata bedÅ¾</p>
                   <p className="text-[11px] text-gray-400 leading-snug">
-                    Preuzmi personalizovani bedž sa imenom ferate, datumom i ocenom.
+                    Preuzmi personalizovani bedÅ¾ sa imenom ferate, datumom i ocenom.
                   </p>
                   <div className="rounded-xl overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-200 ring-1 ring-gray-200 shadow-inner">
                     {summitPreviewLoading ? (
@@ -2968,13 +2641,13 @@ export default function ActionDetails() {
                     ) : ferrataBadgePreview ? (
                       <img
                         src={ferrataBadgePreview}
-                        alt="Via ferrata bedž"
+                        alt="Via ferrata bedÅ¾"
                         className="w-full h-auto block"
                         draggable={false}
                       />
                     ) : (
                       <div className="w-full aspect-[3/4] min-h-[280px] flex items-center justify-center text-sm text-neutral-500">
-                        —
+                        â€”
                       </div>
                     )}
                   </div>
@@ -2984,7 +2657,7 @@ export default function ActionDetails() {
                     disabled={summitPreviewLoading || !ferrataBadgePreview}
                     className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Preuzmi bedž
+                    Preuzmi bedÅ¾
                   </button>
                 </>
               )}
@@ -3072,7 +2745,7 @@ export default function ActionDetails() {
                             className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
                             style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
                           >
-                            —
+                            â€”
                           </div>
                         )}
                       </div>
@@ -3108,7 +2781,7 @@ export default function ActionDetails() {
                             className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
                             style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
                           >
-                            —
+                            â€”
                           </div>
                         )}
                       </div>
@@ -3139,7 +2812,7 @@ export default function ActionDetails() {
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/50">
               <h2 id="register-options-title" className="text-sm font-bold text-gray-900 tracking-tight">
-                Izaberite način registracije
+                Izaberite naÄin registracije
               </h2>
               <button
                 type="button"
@@ -3178,71 +2851,6 @@ export default function ActionDetails() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Sub-components
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function StatCell({ icon, value, unit, label }: { icon: React.ReactNode; value: string; unit?: string; label: string }) {
-  return (
-    <div className="flex flex-col items-center py-4 gap-1.5">
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <span className="text-sm sm:text-base font-extrabold text-gray-900 leading-none">
-          {value}
-          {unit && <span className="text-xs font-semibold text-emerald-500 ml-0.5">{unit}</span>}
-        </span>
-      </div>
-      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{label}</p>
-    </div>
-  )
-}
-
-function HeroMini({
-  icon,
-  label,
-  value,
-  color,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  color: 'sky' | 'amber' | 'indigo' | 'violet' | 'emerald'
-}) {
-  const palette: Record<string, { bg: string; text: string; ring: string; iconBg: string }> = {
-    sky: { bg: 'bg-sky-50/80', text: 'text-sky-700', ring: 'ring-sky-100', iconBg: 'bg-sky-100 text-sky-600' },
-    amber: { bg: 'bg-amber-50/80', text: 'text-amber-700', ring: 'ring-amber-100', iconBg: 'bg-amber-100 text-amber-600' },
-    indigo: { bg: 'bg-indigo-50/80', text: 'text-indigo-700', ring: 'ring-indigo-100', iconBg: 'bg-indigo-100 text-indigo-600' },
-    violet: { bg: 'bg-violet-50/80', text: 'text-violet-700', ring: 'ring-violet-100', iconBg: 'bg-violet-100 text-violet-600' },
-    emerald: { bg: 'bg-emerald-50/80', text: 'text-emerald-700', ring: 'ring-emerald-100', iconBg: 'bg-emerald-100 text-emerald-600' },
-  }
-  const c = palette[color]
-  return (
-    <div className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ring-1 ${c.bg} ${c.ring}`}>
-      <div className={`shrink-0 w-8 h-8 rounded-lg ${c.iconBg} flex items-center justify-center`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 leading-none">{label}</p>
-        <p className={`text-sm font-extrabold ${c.text} leading-tight mt-0.5 truncate`}>{value}</p>
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({ icon, iconBg, label, value }: { icon: React.ReactNode; iconBg: string; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`shrink-0 h-9 w-9 rounded-xl ${iconBg} flex items-center justify-center`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-        <p className="text-sm font-semibold text-gray-900 truncate">{value}</p>
-      </div>
     </div>
   )
 }

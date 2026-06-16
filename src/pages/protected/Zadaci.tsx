@@ -2,7 +2,15 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createZadatak,
+  deleteZadatak,
+  fetchZadaci,
+  napustiZadatak,
+  preuzmiZadatak,
+  updateZadatak,
+  zavrsiZadatak,
+} from '../../services/zadaci'
 import Loader from '../../components/Loader'
 import NewTaskModal, { type Role } from '../../components/NewTaskModal'
 import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
@@ -49,8 +57,7 @@ export default function Zadaci() {
       setLoading(true)
       setError('')
       try {
-        const res = await api.get('/api/zadaci')
-        const list = Array.isArray(res.data) ? res.data : res.data.zadaci || []
+        const list = await fetchZadaci()
         setTasks(list)
       } catch (err: any) {
         setError(err.response?.data?.error || t('loadError'))
@@ -127,8 +134,7 @@ export default function Zadaci() {
   }) => {
     setError('')
     const body = { ...data }
-    const res = await api.post('/api/zadaci', body)
-    const created: Task = res.data?.zadatak || res.data
+    const created = await createZadatak(body)
     if (created) setTasks((prev) => [created, ...prev])
   }
 
@@ -137,8 +143,7 @@ export default function Zadaci() {
     const ok = await showConfirm(t('takeConfirm', { name: task.naziv }))
     if (!ok) return
     try {
-      const res = await api.post(`/api/zadaci/${task.id}/preuzmi`)
-      const updated: Task = res.data?.zadatak || res.data
+      const updated = await preuzmiZadatak(task.id)
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
       await showAlert(err.response?.data?.error || t('takeError'))
@@ -150,8 +155,7 @@ export default function Zadaci() {
     const ok = await showConfirm(t('leaveConfirm', { name: task.naziv }))
     if (!ok) return
     try {
-      const res = await api.post(`/api/zadaci/${task.id}/napusti`)
-      const updated: Task = res.data?.zadatak || res.data
+      const updated = await napustiZadatak(task.id)
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
       await showAlert(err.response?.data?.error || t('leaveError'))
@@ -170,8 +174,7 @@ export default function Zadaci() {
     }
   ) => {
     setError('')
-    const res = await api.patch(`/api/zadaci/${taskId}`, data)
-    const updated: Task = res.data?.zadatak || res.data
+    const updated = await updateZadatak(taskId, data)
     if (updated) {
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       setEditTask(null)
@@ -183,8 +186,7 @@ export default function Zadaci() {
     const ok = await showConfirm(t('finishConfirm', { name: task.naziv }))
     if (!ok) return
     try {
-      const res = await api.post(`/api/zadaci/${task.id}/zavrsi`)
-      const updated: Task = res.data?.zadatak || res.data
+      const updated = await zavrsiZadatak(task.id)
       if (updated) setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } catch (err: any) {
       await showAlert(err.response?.data?.error || t('genericError'))
@@ -200,7 +202,7 @@ export default function Zadaci() {
     })
     if (!confirmed) return
     try {
-      await api.delete(`/api/zadaci/${task.id}`)
+      await deleteZadatak(task.id)
       setTasks((prev) => prev.filter((t) => t.id !== task.id))
       setEditTask(null)
     } catch (err: any) {

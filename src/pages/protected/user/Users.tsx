@@ -4,6 +4,8 @@ import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, Cog6ToothIcon, Informa
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
+import { fetchKorisnici } from '../../../services/users'
+import type { Korisnik } from '../../../types/korisnik'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
 import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMemberPdf'
@@ -11,20 +13,6 @@ import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
 import { UserNameWithProfiBadge } from '../../../components/users/UserNameWithProfiBadge'
 import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult, type AkcijaZaRanking } from '../../../utils/rankingUtils'
-
-interface Korisnik {
-  id: number
-  username: string
-  fullName?: string
-  avatar_url?: string
-  role: string
-  createdAt: string
-  ukupnoKm?: number
-  ukupnoMetaraUspona?: number
-  klubNaziv?: string
-  klubLogoUrl?: string
-  isProfiGuide?: boolean
-}
 
 const PODIUM_STYLES: Record<
   1 | 2 | 3,

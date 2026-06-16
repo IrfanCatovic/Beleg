@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth, type User } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  fetchKlub,
+  fetchKlubByNaziv,
+  fetchKlubAdminStats,
+  fetchClubJoinRequests,
+  leaveClub,
+  respondClubJoinRequest,
+  updateKlub,
+  updateKlubLogo,
+} from '../../services/club'
+import type { KlubData, ClubAdminStats, ClubJoinRequestItem } from '../../types/klub'
 import Loader from '../../components/Loader'
 import DatePartsSelect from '../../components/DatePartsSelect'
 import { formatDateShort } from '../../utils/dateUtils'
@@ -21,59 +31,12 @@ import {
 import { useTranslation } from 'react-i18next'
 import NoClubJoinView from '../../components/club/NoClubJoinView'
 
-export interface KlubData {
-  id: number
-  naziv: string
-  adresa?: string
-  telefon?: string
-  email?: string
-  maticni_broj?: string
-  pib?: string
-  ziro_racun?: string
-  sediste?: string
-  web_sajt?: string
-  datum_osnivanja?: string
-  korisnik_admin_limit?: number
-  korisnik_limit?: number
-  max_storage_gb?: number
-  used_storage_gb?: number
-  subscribedAt?: string | null
-  subscriptionEndsAt?: string | null
-  logoUrl?: string
-  onHold?: boolean
-  createdAt?: string
-  updatedAt?: string
-}
-
 /** Administracija i izmene — samo admin/sekretar/superadmin čiji je izabrani klub baš ovaj (nema „tuđeg“ kluba). */
 function canManageThisClub(user: User | null, clubId: number | undefined): boolean {
   if (!user || clubId == null) return false
   if (user.role === 'superadmin') return true
   if (user.klubId !== clubId) return false
   return user.role === 'admin' || user.role === 'sekretar'
-}
-
-interface ClubAdminStats {
-  activeMembers: number
-  maxMembers: number
-  adminCount: number
-  maxAdmins: number
-  usedStorageGb: number
-  maxStorageGb: number
-  subscribedAt?: string | null
-  subscriptionEndsAt?: string | null
-  onHold?: boolean
-}
-
-interface ClubJoinRequestItem {
-  id: number
-  userId: number
-  username: string
-  fullName?: string
-  email?: string
-  status: 'pending' | 'accepted' | 'rejected' | 'blocked' | 'cancelled' | string
-  createdAt: string
-  updatedAt: string
 }
 
 export default function Klub() {
@@ -113,13 +76,11 @@ export default function Klub() {
 
   const isNoClubUser = user?.role !== 'superadmin' && (user?.klubId == null || Number(user.klubId) === 0)
 
-  const fetchKlub = useCallback(async () => {
+  const loadKlub = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const endpoint = naziv ? `/api/klubovi/${encodeURIComponent(naziv)}` : '/api/klub'
-      const res = await api.get<{ klub: KlubData }>(endpoint)
-      let k = res.data.klub
+      let k = naziv ? await fetchKlubByNaziv(naziv) : await fetchKlub()
 
       // Superadmin: odmah postavimo effective klub (X-Club-Id) na klub koji trenutno gledamo,
       // da /api/klub/admin-stats i /api/klub rade za pravi klub.
@@ -131,9 +92,9 @@ export default function Klub() {
       // Javni profil nema limite/subskripciju — ako korisnik upravlja ovim klubom, učitaj pune podatke.
       if (naziv && canManageThisClub(user, k.id)) {
         try {
-          const full = await api.get<{ klub: KlubData }>('/api/klub')
-          if (full.data.klub?.id === k.id) {
-            k = full.data.klub
+          const full = await fetchKlub()
+          if (full?.id === k.id) {
+            k = full
           }
         } catch {
           /* ostaje javni sklop */
@@ -169,8 +130,8 @@ export default function Klub() {
   }, [naziv, user?.klubId, user?.role, navigate])
 
   useEffect(() => {
-    fetchKlub()
-  }, [fetchKlub])
+    loadKlub()
+  }, [loadKlub])
 
   // Statistika samo za effective klub i samo za admin/sekretar/superadmin tog kluba (backend proverava).
   useEffect(() => {
@@ -182,8 +143,8 @@ export default function Klub() {
     setAdminStatsLoading(true)
     ;(async () => {
       try {
-        const res = await api.get<ClubAdminStats>('/api/klub/admin-stats')
-        if (!cancelled) setAdminStats(res.data)
+        const stats = await fetchKlubAdminStats()
+        if (!cancelled) setAdminStats(stats)
       } catch {
         if (!cancelled) setAdminStats(null)
       } finally {
@@ -203,10 +164,8 @@ export default function Klub() {
     setJoinRequestsLoading(true)
     setJoinRequestsError('')
     try {
-      const res = await api.get<{ requests: ClubJoinRequestItem[] }>('/api/club-membership/requests', {
-        params: { status: 'pending' },
-      })
-      setJoinRequests((res.data?.requests || []) as ClubJoinRequestItem[])
+      const requests = await fetchClubJoinRequests('pending')
+      setJoinRequests(requests)
     } catch (e: unknown) {
       const msg =
         e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data
@@ -235,7 +194,7 @@ export default function Klub() {
       setJoinRequestBusyId(requestId)
       setJoinRequestsError('')
       try {
-        await api.post(`/api/club-membership/requests/${requestId}/${action}`)
+        await respondClubJoinRequest(requestId, action)
         await fetchJoinRequests()
       } catch (e: unknown) {
         const msg =
@@ -266,8 +225,8 @@ export default function Klub() {
       payload.sediste = form.sediste
       payload.web_sajt = form.web_sajt
       if (form.datum_osnivanja) payload.datum_osnivanja = form.datum_osnivanja
-      const res = await api.patch<{ klub: KlubData }>('/api/klub', payload)
-      setKlub(res.data.klub)
+      const updated = await updateKlub(payload)
+      setKlub(updated)
       setEditing(false)
       setLogoError('')
     } catch (e: unknown) {
@@ -317,10 +276,8 @@ export default function Klub() {
     try {
       const formData = new FormData()
       formData.append('logo', file)
-      const res = await api.patch<{ klub: KlubData }>('/api/klub/logo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      setKlub(res.data.klub)
+      const updated = await updateKlubLogo(formData)
+      setKlub(updated)
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'error' in err.response.data
@@ -338,7 +295,7 @@ export default function Klub() {
     if (!ok) return
     setLeaveBusy(true)
     try {
-      await api.post('/api/club-membership/leave')
+      await leaveClub()
       await refreshUser()
       navigate('/klub', { replace: true })
     } catch (err: unknown) {
