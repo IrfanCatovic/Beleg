@@ -1,1 +1,0 @@
-export { superadminUploadHotelGalleryImage } from './superadminUpload'

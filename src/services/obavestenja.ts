@@ -24,19 +24,10 @@ export interface PendingParticipationRequest {
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
 }
 
-export interface PendingFollowRequest {
-  followId: number
-}
-
 export async function fetchPendingParticipationRequests() {
   const res = await api.get<{ requests: PendingParticipationRequest[] }>('/api/moja-ucesca-zahtevi', {
     params: { status: 'pending' },
   })
-  return res.data.requests ?? []
-}
-
-export async function fetchPendingFollowRequests() {
-  const res = await api.get<{ requests: PendingFollowRequest[] }>('/api/follows/requests/pending')
   return res.data.requests ?? []
 }
 

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import api from '../../services/api'
+import { resetPassword } from '../../services/auth'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
@@ -30,12 +31,12 @@ export default function ResetPassword() {
     }
     setLoading(true)
     try {
-      const res = await api.post('/api/password/reset', { token, newPassword })
-      setSuccess(res.data?.message || 'Lozinka je uspešno promenjena.')
+      const data = await resetPassword(token, newPassword)
+      setSuccess(data?.message || 'Lozinka je uspešno promenjena.')
       setNewPassword('')
       setConfirmPassword('')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Došlo je do greške. Pokušajte ponovo.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Došlo je do greške. Pokušajte ponovo.'))
     } finally {
       setLoading(false)
     }

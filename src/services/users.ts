@@ -8,11 +8,6 @@ export async function fetchKorisnici() {
   return res.data.korisnici ?? []
 }
 
-export async function fetchKorisnikByUsername(username: string) {
-  const res = await api.get<Korisnik>(`/api/korisnici/${encodeURIComponent(username)}`)
-  return res.data
-}
-
 export async function fetchKorisnikByIdOrUsername(idOrUsername: string) {
   const res = await api.get<Korisnik>(`/api/korisnici/${encodeURIComponent(idOrUsername)}`)
   return res.data
@@ -22,7 +17,11 @@ export async function fetchKorisnikStatistika(idOrUsername: string) {
   const res = await api.get<{ statistika?: KorisnikStatistika }>(
     `/api/korisnici/${encodeURIComponent(idOrUsername)}/statistika`,
   )
-  const s = res.data.statistika || {}
+  const s: KorisnikStatistika = res.data.statistika ?? {
+    ukupnoKm: 0,
+    ukupnoMetaraUspona: 0,
+    brojPopeoSe: 0,
+  }
   return {
     ukupnoKm: s.ukupnoKm || 0,
     ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0,

@@ -1,7 +1,14 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useModal } from '../context/ModalContext'
-import api from '../services/api'
+import {
+  createPostComment,
+  deletePostComment,
+  fetchPostComments,
+  fetchPostLikes,
+  togglePostLike,
+  updatePostContent,
+} from '../services/posts'
 import { formatRelativeTime } from '../utils/dateUtils'
 import MentionContent from './MentionContent'
 import { UserNameWithProfiBadge } from './users/UserNameWithProfiBadge'
@@ -160,9 +167,9 @@ export default function PostCard({
     commentsFetchInFlightRef.current = true
     setCommentsLoading(true)
     try {
-      const res = await api.get(`/api/posts/${post.id}/comments`, { params: { limit: 20, offset: 0 } })
-      setComments(res.data.comments || [])
-      setCommentCount(res.data.total ?? 0)
+      const { comments, total } = await fetchPostComments(post.id)
+      setComments(comments)
+      setCommentCount(total)
     } catch {
       setComments([])
       setCommentCount(0)
@@ -176,8 +183,8 @@ export default function PostCard({
   const fetchLikes = useCallback(async () => {
     setLikesLoading(true)
     try {
-      const res = await api.get(`/api/posts/${post.id}/likes`)
-      setLikes(res.data.likes || [])
+      const data = await fetchPostLikes(post.id)
+      setLikes(data.likes || [])
     } catch {
       setLikes([])
       await showAlert(t('postCard.errors.loadLikes'), t('postCard.titles.likes'))
@@ -210,9 +217,9 @@ export default function PostCard({
     if (liking) return
     try {
       setLiking(true)
-      const res = await api.post(`/api/posts/${post.id}/like`)
-      setLiked(!!res.data.liked)
-      setLikeCount(res.data.likeCount ?? 0)
+      const data = await togglePostLike(post.id)
+      setLiked(!!data.liked)
+      setLikeCount(data.likeCount ?? 0)
       if (likesOpen) {
         await fetchLikes()
       }
@@ -238,7 +245,7 @@ export default function PostCard({
     if (!content || submittingComment) return
     setSubmittingComment(true)
     try {
-      await api.post(`/api/posts/${post.id}/comments`, { content })
+      await createPostComment(post.id, content)
       setNewComment('')
       setCommentsOpen(true)
       await fetchComments()
@@ -264,8 +271,8 @@ export default function PostCard({
     }
     setSavingEdit(true)
     try {
-      const res = await api.patch(`/api/posts/${post.id}`, { content })
-      const updated = (res.data?.post || null) as Post | null
+      const data = await updatePostContent(post.id, content)
+      const updated = (data.post || null) as Post | null
       if (updated && typeof onUpdate === 'function') onUpdate(updated)
       setEditingPost(false)
       setMenuOpen(false)
@@ -279,7 +286,7 @@ export default function PostCard({
 
   const handleDeleteComment = async (commentId: number) => {
     try {
-      await api.delete(`/api/posts/${post.id}/comments/${commentId}`)
+      await deletePostComment(post.id, commentId)
       await fetchComments()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('postCard.errors.deleteComment')

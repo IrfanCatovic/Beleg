@@ -1,0 +1,371 @@
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { regenerateAkcijaInviteLink } from '../../services/actions'
+import { getApiErrorMessage } from '../../utils/apiError'
+import { canManageHostAkcija } from '../../utils/canManageAkcija'
+import type { User } from '../../context/AuthContext'
+import { formatDate } from '../../utils/dateUtils'
+import {
+  downloadFerrataBadgePng,
+  getFerrataBadgePreviewDataUrl,
+} from '../../utils/generateFerrataBadgePng'
+import {
+  downloadSummitSuccessPng,
+  getSummitLayoutPreviewDataUrl,
+  type SummitAspect,
+  type SummitLayout,
+} from '../../utils/generateSummitPng'
+import type { Akcija } from '../../types/akcija'
+import type { MojaPrijava } from './useActionRegistration'
+
+export interface UseActionShareParams {
+  id: string | undefined
+  akcija: Akcija | null
+  user: User | null
+  inviteToken: string
+  claimRewardRequested: boolean
+  mojaPrijava: MojaPrijava | undefined
+  canManageHost: boolean
+  showAlert: (message: string, title?: string) => Promise<void>
+  t: (key: string, options?: Record<string, unknown>) => string
+  i18nLanguage: string
+}
+
+export function useActionShare({
+  id,
+  akcija,
+  user,
+  inviteToken,
+  claimRewardRequested,
+  mojaPrijava,
+  canManageHost,
+  showAlert,
+  t,
+  i18nLanguage,
+}: UseActionShareParams) {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const [summitShareOpen, setSummitShareOpen] = useState(false)
+  const [summitShareStep, setSummitShareStep] = useState<0 | 1 | 2>(0)
+  const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
+  const [summitPreviewBalanced, setSummitPreviewBalanced] = useState<string | null>(null)
+  const [summitPreviewStacked, setSummitPreviewStacked] = useState<string | null>(null)
+  const [ferrataBadgePreview, setFerrataBadgePreview] = useState<string | null>(null)
+  const [summitPreviewLoading, setSummitPreviewLoading] = useState(false)
+  const [actionShareUrl, setActionShareUrl] = useState('')
+  const [actionShareLoading, setActionShareLoading] = useState(false)
+  const [actionShareCopied, setActionShareCopied] = useState(false)
+  const [actionShareError, setActionShareError] = useState('')
+
+  useEffect(() => {
+    if (!summitShareOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSummitShareOpen(false)
+        setSummitShareStep(0)
+        setSummitPickedAspect(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [summitShareOpen])
+
+  useEffect(() => {
+    if (!akcija) {
+      setSummitPreviewBalanced(null)
+      setSummitPreviewStacked(null)
+      setFerrataBadgePreview(null)
+      setSummitPreviewLoading(false)
+      return
+    }
+
+    const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
+    const ferrataPayload = {
+      id: akcija.id,
+      naziv: akcija.naziv,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      tezina: akcija.tezina,
+      ferrataSnapshot: akcija.ferrataSnapshot,
+    }
+
+    if (isFerrataReward) {
+      if (summitShareStep !== 1) {
+        setFerrataBadgePreview(null)
+        setSummitPreviewLoading(false)
+        return
+      }
+      let cancelled = false
+      setFerrataBadgePreview(null)
+      setSummitPreviewLoading(true)
+      void (async () => {
+        try {
+          const preview = await getFerrataBadgePreviewDataUrl(ferrataPayload, 220)
+          if (!cancelled) setFerrataBadgePreview(preview)
+        } catch {
+          if (!cancelled) setFerrataBadgePreview(null)
+        } finally {
+          if (!cancelled) setSummitPreviewLoading(false)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (summitShareStep !== 2 || !summitPickedAspect) {
+      setSummitPreviewBalanced(null)
+      setSummitPreviewStacked(null)
+      setSummitPreviewLoading(false)
+      return
+    }
+    let cancelled = false
+    const payload = {
+      id: akcija.id,
+      naziv: akcija.naziv,
+      planina: akcija.planina,
+      vrh: akcija.vrh,
+      datum: akcija.datum,
+      tipAkcije: akcija.tipAkcije,
+      duzinaStazeKm: akcija.duzinaStazeKm,
+      kumulativniUsponM: akcija.kumulativniUsponM,
+      visinaVrhM: akcija.visinaVrhM,
+      zimskiUspon: akcija.zimskiUspon,
+      tezina: akcija.tezina,
+    }
+    const labels = {
+      mountain: t('mountain'),
+      peak: t('peak'),
+      trail: t('summitPngTrail'),
+      ascent: t('summitPngAscent'),
+      date: t('date'),
+      per: t('summitPngPer'),
+      ferrata: t('summitPngFerrata'),
+    }
+    const dateFormatted = formatDate(akcija.datum)
+    setSummitPreviewBalanced(null)
+    setSummitPreviewStacked(null)
+    setSummitPreviewLoading(true)
+    void (async () => {
+      try {
+        const previewW = summitPickedAspect === '9:16' ? 140 : 200
+        const [b, s] = await Promise.all([
+          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'balanced', labels, dateFormatted, previewW),
+          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'stacked', labels, dateFormatted, previewW),
+        ])
+        if (!cancelled) {
+          setSummitPreviewBalanced(b)
+          setSummitPreviewStacked(s)
+        }
+      } catch {
+        if (!cancelled) {
+          setSummitPreviewBalanced(null)
+          setSummitPreviewStacked(null)
+        }
+      } finally {
+        if (!cancelled) setSummitPreviewLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [summitShareStep, summitPickedAspect, akcija, i18nLanguage, t])
+
+  const resolveActionPublicUrl = () => {
+    if (!akcija) return ''
+    const base =
+      (typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : '').replace(/\/$/, '')
+    if (base) return `${base}/akcije/${akcija.id}`
+    return `/akcije/${akcija.id}`
+  }
+
+  const ensureShareUrl = async () => {
+    if (!akcija) return
+    setActionShareError('')
+    setActionShareCopied(false)
+
+    if (inviteToken) {
+      setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
+      return
+    }
+    if (akcija.javna) {
+      setActionShareUrl(resolveActionPublicUrl())
+      return
+    }
+    if (!canManageHost) {
+      setActionShareUrl(resolveActionPublicUrl())
+      return
+    }
+    if (actionShareUrl) {
+      return
+    }
+
+    setActionShareLoading(true)
+    try {
+      const res = await regenerateAkcijaInviteLink(id!)
+      const inviteUrl = (res?.inviteUrl || '').trim()
+      setActionShareUrl(inviteUrl || resolveActionPublicUrl())
+    } catch (err: unknown) {
+      setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
+      setActionShareUrl(resolveActionPublicUrl())
+    } finally {
+      setActionShareLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!claimRewardRequested) return
+    if (!user || !akcija) return
+    if (mojaPrijava === undefined) return
+    if (mojaPrijava?.status !== 'popeo se') return
+    if (summitShareOpen) return
+
+    const run = async () => {
+      setSummitPickedAspect(null)
+      setSummitShareOpen(true)
+      setSummitShareStep(1)
+      setActionShareError('')
+      setActionShareCopied(false)
+
+      if (inviteToken) {
+        setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
+      } else if (akcija.javna || !canManageHostAkcija(user, {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      })) {
+        setActionShareUrl(resolveActionPublicUrl())
+      } else if (!actionShareUrl) {
+        setActionShareLoading(true)
+        try {
+          const res = await regenerateAkcijaInviteLink(id!)
+          const inviteUrl = (res?.inviteUrl || '').trim()
+          setActionShareUrl(inviteUrl || resolveActionPublicUrl())
+        } catch (err: unknown) {
+          setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
+          setActionShareUrl(resolveActionPublicUrl())
+        } finally {
+          setActionShareLoading(false)
+        }
+      }
+
+      navigate(location.pathname, { replace: true })
+    }
+
+    void run()
+  }, [claimRewardRequested, user, akcija, mojaPrijava, summitShareOpen, inviteToken, actionShareUrl, id, navigate, location.pathname])
+
+  const closeSummitShareModal = () => {
+    setSummitShareOpen(false)
+    setSummitShareStep(0)
+    setSummitPickedAspect(null)
+    setFerrataBadgePreview(null)
+    setActionShareCopied(false)
+    setActionShareError('')
+  }
+
+  const openSummitShareModal = async () => {
+    setSummitShareStep(0)
+    setSummitPickedAspect(null)
+    setSummitShareOpen(true)
+    await ensureShareUrl()
+  }
+
+  const copyActionShareLink = async () => {
+    if (!actionShareUrl) return
+    try {
+      await navigator.clipboard.writeText(actionShareUrl)
+      setActionShareCopied(true)
+      window.setTimeout(() => setActionShareCopied(false), 1600)
+    } catch {
+      await showAlert('Kopiranje nije uspelo. Link možete ručno kopirati.', t('errorTitle'))
+    }
+  }
+
+  const handleFerrataBadgeDownload = async () => {
+    if (!akcija) return
+    try {
+      await downloadFerrataBadgePng({
+        id: akcija.id,
+        naziv: akcija.naziv,
+        vrh: akcija.vrh,
+        datum: akcija.datum,
+        tezina: akcija.tezina,
+        ferrataSnapshot: akcija.ferrataSnapshot,
+      })
+      closeSummitShareModal()
+    } catch {
+      await showAlert(t('summitPngError'), t('errorTitle'))
+    }
+  }
+
+  const handleSummitPngDownload = async (aspect: SummitAspect, layout: SummitLayout) => {
+    if (!akcija) return
+    try {
+      await downloadSummitSuccessPng(
+        {
+          id: akcija.id,
+          naziv: akcija.naziv,
+          planina: akcija.planina,
+          vrh: akcija.vrh,
+          datum: akcija.datum,
+          tipAkcije: akcija.tipAkcije,
+          duzinaStazeKm: akcija.duzinaStazeKm,
+          kumulativniUsponM: akcija.kumulativniUsponM,
+          visinaVrhM: akcija.visinaVrhM,
+          zimskiUspon: akcija.zimskiUspon,
+          tezina: akcija.tezina,
+        },
+        aspect,
+        layout,
+        {
+          mountain: t('mountain'),
+          peak: t('peak'),
+          trail: t('summitPngTrail'),
+          ascent: t('summitPngAscent'),
+          date: t('date'),
+          per: t('summitPngPer'),
+          ferrata: t('summitPngFerrata'),
+        },
+        formatDate(akcija.datum),
+      )
+      closeSummitShareModal()
+    } catch {
+      await showAlert(t('summitPngError'), t('errorTitle'))
+    }
+  }
+
+  const isFerrataReward = akcija?.tipAkcije === 'via_ferrata'
+  const canClaimSummitReward =
+    !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
+
+  return {
+    summitShareOpen,
+    setSummitShareOpen,
+    summitShareStep,
+    setSummitShareStep,
+    summitPickedAspect,
+    setSummitPickedAspect,
+    summitPreviewBalanced,
+    summitPreviewStacked,
+    ferrataBadgePreview,
+    summitPreviewLoading,
+    actionShareUrl,
+    actionShareLoading,
+    actionShareCopied,
+    actionShareError,
+    isFerrataReward,
+    canClaimSummitReward,
+    resolveActionPublicUrl,
+    closeSummitShareModal,
+    openSummitShareModal,
+    copyActionShareLink,
+    handleFerrataBadgeDownload,
+    handleSummitPngDownload,
+    ensureShareUrl,
+  }
+}

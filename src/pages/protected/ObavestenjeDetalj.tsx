@@ -25,6 +25,7 @@ import {
   labelGuideBookingTimeOfDay,
 } from '../../components/ferrate/guideBookingDisplayLabels'
 import { guideBookingCreateActionPath } from '../../components/ferrate/guideBookingActionPrefill'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 interface ObavestenjeFull {
   id: number
@@ -225,7 +226,7 @@ export default function ObavestenjeDetalj() {
         setPost(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('home:deletePostError')
+        const msg = getApiErrorMessage(err, t('home:deletePostError'))
         await showAlert(msg, t('home:postTitle'))
       }
     },
@@ -259,9 +260,7 @@ export default function ObavestenjeDetalj() {
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          t('tasks:takeError')
+        const msg = getApiErrorMessage(err, t('tasks:takeError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
@@ -278,9 +277,7 @@ export default function ObavestenjeDetalj() {
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          t('tasks:leaveError')
+        const msg = getApiErrorMessage(err, t('tasks:leaveError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
@@ -297,7 +294,7 @@ export default function ObavestenjeDetalj() {
         const raw = unwrapZadatak(res.data)
         if (raw) setTask(normalizeApiTask(raw))
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('tasks:genericError')
+        const msg = getApiErrorMessage(err, t('tasks:genericError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
@@ -340,7 +337,7 @@ export default function ObavestenjeDetalj() {
         setEditTask(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
-        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('tasks:deleteError')
+        const msg = getApiErrorMessage(err, t('tasks:deleteError'))
         await showAlert(msg, t('notificationDetails:taskTitle'))
       }
     },
@@ -369,9 +366,7 @@ export default function ObavestenjeDetalj() {
         setTrans(null)
         navigate('/obavestenja')
       } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          t('notificationDetails:deleteTransactionError')
+        const msg = getApiErrorMessage(err, t('notificationDetails:deleteTransactionError'))
         await showAlert(msg, t('notificationDetails:transactionTitle'))
       }
     },
@@ -449,9 +444,7 @@ export default function ObavestenjeDetalj() {
             if (!cancelled) setGuideBooking(booking)
           }
         } catch (e: unknown) {
-          const msg =
-            (e as { response?: { data?: { error?: string }; status?: number } })?.response?.data?.error ||
-            t('notificationDetails:linkedContentLoadError')
+          const msg = getApiErrorMessage(e, t('notificationDetails:linkedContentLoadError'))
           if (!cancelled) setEntityError(msg)
         } finally {
           if (!cancelled) setEntityLoading(false)
@@ -611,9 +604,7 @@ export default function ObavestenjeDetalj() {
       setGuideBooking(res.booking)
       await showAlert(res.message || 'Zahtev je odbijen.', 'Zahtev za vođenje')
     } catch (e: unknown) {
-      const msg =
-        (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Greška pri odbijanju zahteva.'
+      const msg = getApiErrorMessage(e, 'Greška pri odbijanju zahteva.')
       await showAlert(msg, 'Zahtev za vođenje')
     } finally {
       setGuideBookingBusy(false)
@@ -632,9 +623,7 @@ export default function ObavestenjeDetalj() {
       }
       navigate(guideBookingCreateActionPath(fresh))
     } catch (e: unknown) {
-      const msg =
-        (e as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Greška pri proveri zahteva.'
+      const msg = getApiErrorMessage(e, 'Greška pri proveri zahteva.')
       await showAlert(msg, 'Zahtev za vođenje')
     } finally {
       setGuideBookingBusy(false)
@@ -667,7 +656,7 @@ export default function ObavestenjeDetalj() {
         'Potvrda učešća'
       )
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || 'Greška pri obradi zahteva.', 'Potvrda učešća')
+      await showAlert(getApiErrorMessage(e, 'Greška pri obradi zahteva.'), 'Potvrda učešća')
     } finally {
       setActionRequestBusy(false)
     }
@@ -686,7 +675,7 @@ export default function ObavestenjeDetalj() {
       } : prev)
       await showAlert(t('notificationDetails:follow.accepted'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || t('notificationDetails:follow.acceptError'), t('notificationDetails:follow.title'))
+      await showAlert(getApiErrorMessage(e, t('notificationDetails:follow.acceptError')), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -708,7 +697,7 @@ export default function ObavestenjeDetalj() {
       await showAlert(t('notificationDetails:follow.rejected'), t('notificationDetails:follow.title'))
       navigate('/obavestenja')
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || t('notificationDetails:follow.rejectError'), t('notificationDetails:follow.title'))
+      await showAlert(getApiErrorMessage(e, t('notificationDetails:follow.rejectError')), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -722,7 +711,7 @@ export default function ObavestenjeDetalj() {
       setFollowBackStatus('outgoing_pending')
       await showAlert(t('notificationDetails:follow.followBackSent'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || t('notificationDetails:follow.sendError'), t('notificationDetails:follow.title'))
+      await showAlert(getApiErrorMessage(e, t('notificationDetails:follow.sendError')), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -743,7 +732,7 @@ export default function ObavestenjeDetalj() {
       setFollowBackStatus('none')
       await showAlert(t('notificationDetails:follow.unfollowed'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || t('notificationDetails:follow.unfollowError'), t('notificationDetails:follow.title'))
+      await showAlert(getApiErrorMessage(e, t('notificationDetails:follow.unfollowError')), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }
@@ -764,7 +753,7 @@ export default function ObavestenjeDetalj() {
       setFollowBackStatus('none')
       await showAlert(t('notificationDetails:follow.requestCanceled'), t('notificationDetails:follow.title'))
     } catch (e: any) {
-      await showAlert(e.response?.data?.error || t('notificationDetails:follow.cancelError'), t('notificationDetails:follow.title'))
+      await showAlert(getApiErrorMessage(e, t('notificationDetails:follow.cancelError')), t('notificationDetails:follow.title'))
     } finally {
       setFollowBusy(false)
     }

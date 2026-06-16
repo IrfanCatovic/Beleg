@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEffect, useState, useMemo } from 'react'
-import api from '../../services/api'
+import { fetchSetupStatus, login as loginApi } from '../../services/auth'
 import Loader from '../../components/Loader'
 import { getRandomHikingGreeting } from '../../data/hikingGreetings'
 import { useTranslation } from 'react-i18next'
@@ -28,14 +28,14 @@ export default function Login() {
   useEffect(() => {
     const checkSetup = async () => {
       try {
-        const res = await api.get('/api/setup/status', { timeout: 15_000 })
+        const data = await fetchSetupStatus()
 
-        if (res.data.needsSuperadmin) {
+        if (data.needsSuperadmin) {
           navigate('/register-superadmin', { replace: true })
           return
         }
 
-        const setupCompleted = res.data.hasUsers || res.data.setupCompleted || false
+        const setupCompleted = data.hasUsers || data.setupCompleted || false
         if (!setupCompleted) {
           navigate('/welcome', { replace: true })
         }
@@ -52,12 +52,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const response = await api.post('/login', {
-        username: username.trim(),
-        password,
-        remember_me: rememberMe,
-      })
-      login(response.data)
+      const response = await loginApi(username, password, rememberMe)
+      login(response)
       const ok = await refreshUser()
       if (!ok) {
         await logout()
@@ -68,7 +64,7 @@ export default function Login() {
         )
         return
       }
-      const profileIncomplete = !!response.data?.profileIncomplete
+      const profileIncomplete = !!response?.profileIncomplete
       const returnToRaw = (location.state as { returnTo?: string } | null)?.returnTo
       const returnTo =
         typeof returnToRaw === 'string' && returnToRaw.startsWith('/')

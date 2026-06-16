@@ -1,3 +1,15 @@
+export function InlineLoader({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex items-center justify-center min-h-[40vh] ${className}`}>
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-[3px] border-emerald-500 border-t-transparent"
+        role="status"
+        aria-busy="true"
+      />
+    </div>
+  )
+}
+
 export default function Loader() {
   return (
     <div

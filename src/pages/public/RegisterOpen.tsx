@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api from '../../services/api'
+import { registerOpen } from '../../services/auth'
+import { getApiErrorMessage } from '../../utils/apiError'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 
 /** Dozvoljeno pri unosu (i velika slova); u bazi se čuva malim slovima — kao na backendu. */
@@ -70,7 +71,7 @@ export default function RegisterOpen() {
 
     setLoading(true)
     try {
-      await api.post('/api/register/open', {
+      await registerOpen({
         username: username.trim().toLowerCase(),
         password,
         pol,
@@ -84,10 +85,7 @@ export default function RegisterOpen() {
         state: { email: email.trim().toLowerCase() },
       })
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        'Registracija nije uspela.'
-      setError(msg)
+      setError(getApiErrorMessage(err, 'Registracija nije uspela.'))
     } finally {
       setLoading(false)
     }

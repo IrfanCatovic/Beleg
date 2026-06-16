@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import api from '../../services/api'
+import {
+  cancelFollowRequest,
+  fetchFollowStatus,
+  sendFollowRequest,
+  unfollowUser,
+} from '../../services/posts'
+import { getApiErrorMessage } from '../../utils/apiError'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { useTranslation } from 'react-i18next'
 
-type FollowStatusResponse = {
-  outgoing: 'none' | 'pending' | 'accepted'
-  incoming: 'none' | 'pending' | 'accepted'
-  outgoingFollowId?: number
-  incomingFollowId?: number
-}
+type FollowStatusResponse = Awaited<ReturnType<typeof fetchFollowStatus>>
 
 export default function FollowControls({
   targetId,
@@ -34,8 +35,8 @@ export default function FollowControls({
     if (!isEnabled) return
     setLoading(true)
     try {
-      const res = await api.get<FollowStatusResponse>(`/api/follows/status/${targetId}`)
-      setStatus(res.data)
+      const data = await fetchFollowStatus(targetId)
+      setStatus(data)
     } catch (err: any) {
       setStatus({ outgoing: 'none', incoming: 'none' })
     } finally {
@@ -52,11 +53,11 @@ export default function FollowControls({
     if (submitting) return
     setSubmitting(true)
     try {
-      await api.post('/api/follows/requests', { targetId })
+      await sendFollowRequest(targetId)
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('follow.sendRequestError'), t('follow.title'))
+      await showAlert(getApiErrorMessage(err, t('follow.sendRequestError')), t('follow.title'))
     } finally {
       setSubmitting(false)
     }
@@ -73,11 +74,11 @@ export default function FollowControls({
     if (!ok) return
     setSubmitting(true)
     try {
-      await api.delete(`/api/follows/user/${targetId}`)
+      await unfollowUser(targetId)
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('follow.unfollowError'), t('follow.title'))
+      await showAlert(getApiErrorMessage(err, t('follow.unfollowError')), t('follow.title'))
     } finally {
       setSubmitting(false)
     }
@@ -94,11 +95,11 @@ export default function FollowControls({
     if (!ok) return
     setSubmitting(true)
     try {
-      await api.delete(`/api/follows/user/${targetId}`)
+      await cancelFollowRequest(targetId)
       await fetchStatus()
       onStatusChange?.()
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('follow.cancelRequestError'), t('follow.title'))
+      await showAlert(getApiErrorMessage(err, t('follow.cancelRequestError')), t('follow.title'))
     } finally {
       setSubmitting(false)
     }

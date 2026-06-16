@@ -1,7 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
-import './index.css'
-
 
 // Pages
 import Login from './pages/public/Login'

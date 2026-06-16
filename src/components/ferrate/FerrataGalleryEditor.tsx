@@ -1,6 +1,6 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
 import api from '../../services/api'
-import { superadminUploadFerrataGalleryImage } from '../../services/superadminFerrataUpload'
+import { superadminUploadFerrataGalleryImage } from '../../services/superadminUpload'
 import { FerrataImageUploadDropzone } from './FerrataImageUploadDropzone'
 
 type Props = {

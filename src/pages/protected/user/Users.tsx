@@ -4,7 +4,6 @@ import { ArrowRightStartOnRectangleIcon, ChevronDownIcon, Cog6ToothIcon, Informa
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import api from '../../../services/api'
-import { fetchKorisnici } from '../../../services/users'
 import type { Korisnik } from '../../../types/korisnik'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../../utils/roleUtils'
 import { Link } from 'react-router-dom'
@@ -468,8 +467,8 @@ export default function Korisnici() {
                                 {hasVisibleRole(k.role) && (
                                   <>
                                     <span className="font-medium text-gray-700">{t('roleLabel')}</span>
-                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role)}`}>
-                                      {getRoleLabel(k.role)}
+                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${getRoleStyle(k.role!)}`}>
+                                      {getRoleLabel(k.role!)}
                                     </span>
                                   </>
                                 )}

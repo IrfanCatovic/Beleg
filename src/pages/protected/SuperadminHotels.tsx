@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
-import { superadminUploadHotelGalleryImage } from '../../services/superadminHotelUpload'
+import { superadminUploadHotelGalleryImage } from '../../services/superadminUpload'
 import { FerrataPinPicker } from '../../components/ferrate/FerrataPinPicker'
 import { FerrataImageUploadDropzone } from '../../components/ferrate/FerrataImageUploadDropzone'
 

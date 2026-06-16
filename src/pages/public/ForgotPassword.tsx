@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../../services/api'
+import { requestPasswordReset } from '../../services/auth'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -15,10 +16,10 @@ export default function ForgotPassword() {
     setSuccess('')
     setLoading(true)
     try {
-      const res = await api.post('/api/password/forgot', { email: email.trim() })
-      setSuccess(res.data?.message || 'Ako email postoji u sistemu, link je poslat.')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Došlo je do greške. Pokušajte ponovo.')
+      const data = await requestPasswordReset(email)
+      setSuccess(data?.message || 'Ako email postoji u sistemu, link je poslat.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Došlo je do greške. Pokušajte ponovo.'))
     } finally {
       setLoading(false)
     }

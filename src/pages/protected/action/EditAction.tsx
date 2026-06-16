@@ -6,10 +6,9 @@ import BackButton from '../../../components/buttons/BackButton'
 import { canManageHostAkcija } from '../../../utils/canManageAkcija'
 import { useTranslation } from 'react-i18next'
 import { ActionWizardForm, type WizardFerrataOption, type WizardGuide, type WizardValues } from './ActionWizardForm'
+import { createEmptyWizardValues } from './wizardDefaults'
 import { parseClubCurrency } from '../../../utils/clubCurrency'
 import { loadActionFormGuides } from '../../../services/actionFormGuides'
-
-interface Korisnik extends WizardGuide {}
 
 interface AkcijaData {
   id: number
@@ -51,42 +50,6 @@ interface AkcijaData {
   prevoz?: Array<{ id: number; tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number }>
 }
 
-const emptyWizardValues: WizardValues = {
-  naziv: '',
-  actionKind: 'planina',
-  organizerType: 'klub',
-  visibility: 'klubska',
-  planina: '',
-  vrh: '',
-  datum: '',
-  vremePolaska: '09:00',
-  ferrataId: '',
-  opis: '',
-  tezina: '',
-  kumulativniUsponM: '',
-  duzinaStazeKm: '',
-  visinaVrhM: '',
-  zimskiUspon: false,
-  vodicId: '',
-  drugiVodicCheck: false,
-  drugiVodicIme: '',
-  trajanjeSati: '',
-  rokPrijava: '',
-  maxLjudi: '',
-  mestoPolaska: '',
-  kontaktTelefon: '',
-  brojDana: '1',
-  cenaClan: '',
-  cenaOstali: '',
-  prikaziListuPrijavljenih: true,
-  omoguciGrupniChat: false,
-  planinaLat: '',
-  planinaLng: '',
-  smestaj: [],
-  oprema: [],
-  prevoz: [],
-}
-
 export default function EditAction() {
   const { t } = useTranslation('actionForms')
   const { t: tFr } = useTranslation('ferrate')
@@ -94,9 +57,9 @@ export default function EditAction() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
 
-  const [vodici, setVodici] = useState<Korisnik[]>([])
+  const [vodici, setVodici] = useState<WizardGuide[]>([])
   const [clubCurrency, setClubCurrency] = useState(() => parseClubCurrency('RSD'))
-  const [values, setValues] = useState<WizardValues>(emptyWizardValues)
+  const [values, setValues] = useState<WizardValues>(() => createEmptyWizardValues())
   const [initialImageUrl, setInitialImageUrl] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)

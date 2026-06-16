@@ -4,14 +4,7 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
-import {
-  fetchObavestenja,
-  fetchPendingFollowRequests,
-  fetchPendingParticipationRequests,
-  fetchUnreadCount,
-  markAllObavestenjaRead,
-  markObavestenjeRead,
-} from '../services/obavestenja'
+import { markObavestenjeRead } from '../services/obavestenja'
 import { userHasClubContext } from '../utils/clubContext'
 import {
   canSeeFinance,
@@ -26,6 +19,8 @@ import { AppNotificationsBellButton, AppNotificationsPanel } from './AppNotifica
 import { AppLayoutProfileDropdown } from './AppLayoutProfileDropdown'
 import { AppLayoutMobileNav } from './AppLayoutMobileNav'
 import { AppLayoutMobileBottomBar } from './AppLayoutMobileBottomBar'
+import { useNotifications } from './useNotifications'
+import { useNavDropdowns } from './useNavDropdowns'
 import type { ObavestenjeItem } from '../types/obavestenje'
 
 export default function AppLayout() {
@@ -46,13 +41,7 @@ export default function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [notifications, setNotifications] = useState<ObavestenjeItem[]>([])
-  const [notificationsLoading, setNotificationsLoading] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [pendingActionRequestsCount, setPendingActionRequestsCount] = useState(0)
-  const [pendingFollowRequestsCount, setPendingFollowRequestsCount] = useState(0)
   const searchPanelRef = useRef<HTMLDivElement>(null)
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const notificationsBlockRef = useRef<HTMLDivElement>(null)
@@ -65,12 +54,31 @@ export default function AppLayout() {
   const [pullDistance, setPullDistance] = useState(0)
   const [pullRefreshing, setPullRefreshing] = useState(false)
   const [summitRewardDismissed, setSummitRewardDismissed] = useState(false)
-  const [navExploreOpen, setNavExploreOpen] = useState(false)
-  const [navClubOpen, setNavClubOpen] = useState(false)
-  const [mobileExploreOpen, setMobileExploreOpen] = useState(false)
-  const [mobileClubOpen, setMobileClubOpen] = useState(false)
-  const navExploreRef = useRef<HTMLDivElement>(null)
-  const navClubRef = useRef<HTMLDivElement>(null)
+
+  const {
+    notifications,
+    notificationsLoading,
+    unreadCount,
+    setUnreadCount,
+    totalPendingRequests,
+    hasPendingRequests,
+    isNotificationsOpen,
+    setIsNotificationsOpen,
+  } = useNotifications(isLoggedIn, isSuperadminNoClub)
+
+  const {
+    navExploreOpen,
+    setNavExploreOpen,
+    navClubOpen,
+    setNavClubOpen,
+    mobileExploreOpen,
+    setMobileExploreOpen,
+    mobileClubOpen,
+    setMobileClubOpen,
+    navExploreRef,
+    navClubRef,
+    closeNavDropdowns,
+  } = useNavDropdowns(isMenuOpen)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -84,7 +92,7 @@ export default function AppLayout() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [setIsNotificationsOpen])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,62 +107,10 @@ export default function AppLayout() {
       if (isProfileMenuOpen && profileBlockRef.current && !profileBlockRef.current.contains(target)) {
         setIsProfileMenuOpen(false)
       }
-      const insideNavExplore = navExploreRef.current?.contains(target)
-      const insideNavClub = navClubRef.current?.contains(target)
-      if (navExploreOpen && !insideNavExplore) setNavExploreOpen(false)
-      if (navClubOpen && !insideNavClub) setNavClubOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen, navExploreOpen, navClubOpen])
-
-  useEffect(() => {
-    setNavExploreOpen(false)
-    setNavClubOpen(false)
-    setMobileExploreOpen(false)
-    setMobileClubOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
-    if (!isMenuOpen) {
-      setMobileExploreOpen(false)
-      setMobileClubOpen(false)
-    }
-  }, [isMenuOpen])
-
-  useEffect(() => {
-    if (!isLoggedIn || isSuperadminNoClub) return
-    void fetchUnreadCount().then(setUnreadCount).catch(() => {})
-  }, [isLoggedIn, isSuperadminNoClub])
-
-  useEffect(() => {
-    if (!isLoggedIn || isSuperadminNoClub) return
-    const loadRequestCounts = async () => {
-      try {
-        const [actionReqs, followReqs] = await Promise.all([
-          fetchPendingParticipationRequests(),
-          fetchPendingFollowRequests(),
-        ])
-        setPendingActionRequestsCount(actionReqs.filter((req) => req.status === 'pending').length)
-        setPendingFollowRequestsCount(followReqs.length)
-      } catch {
-        setPendingActionRequestsCount(0)
-        setPendingFollowRequestsCount(0)
-      }
-    }
-    void loadRequestCounts()
-  }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen, location.pathname])
-
-  useEffect(() => {
-    if (!isLoggedIn || isSuperadminNoClub || !isNotificationsOpen) return
-    setNotificationsLoading(true)
-    setUnreadCount(0)
-    void markAllObavestenjaRead()
-      .then(() => fetchObavestenja(20))
-      .then(setNotifications)
-      .catch(() => setNotifications([]))
-      .finally(() => setNotificationsLoading(false))
-  }, [isLoggedIn, isSuperadminNoClub, isNotificationsOpen])
+  }, [isSearchOpen, isNotificationsOpen, isProfileMenuOpen, setIsNotificationsOpen])
 
   useEffect(() => {
     pullDistanceRef.current = pullDistance
@@ -164,7 +120,6 @@ export default function AppLayout() {
     setSummitRewardDismissed(false)
   }, [pendingSummitReward?.notificationId])
 
-  // Global mobile pull-to-refresh (all protected screens)
   useEffect(() => {
     if (!isLoggedIn) return
     const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
@@ -234,7 +189,6 @@ export default function AppLayout() {
       void markObavestenjeRead(n.id).then(() => setUnreadCount((c) => Math.max(0, c - 1)))
     }
     setIsNotificationsOpen(false)
-    // Akcije i nagrade vode direktno na povezani ekran; ostalo na detalj obaveštenja.
     if ((n.type === 'akcija' || n.type === 'summit_reward') && n.link?.trim()) {
       navigate(n.link.trim())
       return
@@ -252,7 +206,6 @@ export default function AppLayout() {
     setIsMenuOpen(false)
   }
 
-  // Superadmin bez izabranog kluba: samo sekcija /superadmin/* (klubovi, ferate, hoteli…), ne ostatak aplikacije
   if (isSuperadminNoClub && !location.pathname.startsWith('/superadmin')) {
     return <Navigate to="/superadmin" replace />
   }
@@ -267,8 +220,6 @@ export default function AppLayout() {
     location.pathname.startsWith('/users') ||
     location.pathname === '/zadaci' ||
     location.pathname === '/finansije'
-  const totalPendingRequests = pendingActionRequestsCount + pendingFollowRequestsCount
-  const hasPendingRequests = totalPendingRequests > 0
   const showSummitRewardModal = !!(isLoggedIn && pendingSummitReward && !summitRewardDismissed)
   const summitActionName = pendingSummitReward?.actionName?.trim() || 'akciju'
   const requestsSummaryMobileClass = hasPendingRequests
@@ -311,7 +262,6 @@ export default function AppLayout() {
         <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-white/[0.06]">
           <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-[60px] items-center justify-between gap-4">
-              {/* Logo */}
               <div className="flex items-center gap-8">
                 <Link
                   to={isSuperadminNoClub ? '/superadmin' : '/home'}
@@ -327,7 +277,6 @@ export default function AppLayout() {
                   </span>
                 </Link>
 
-                {/* Desktop nav – sakriven za superadmina bez kluba */}
                 {!isSuperadminNoClub && (
                 <nav className="hidden md:flex items-center gap-0.5">
                   <NavLink to="/home" className={navLinkClass}>
@@ -490,7 +439,6 @@ export default function AppLayout() {
                     </NavLink>
                   </nav>
                 )}
-                {/* Superadmin sa izabranim klubom: prikaz "Ušao u: [naziv]" + Promeni klub */}
                 {user?.role === 'superadmin' && !isSuperadminNoClub && (
                   <div className="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
                     <span className="text-[12px] text-white/80 font-medium whitespace-nowrap">
@@ -506,21 +454,17 @@ export default function AppLayout() {
                 )}
               </div>
 
-              {/* Right section */}
               <div className="flex items-center gap-2">
-                {/* Desktop actions – Search i Notifications sakriveni za superadmina bez kluba */}
                 <div className="hidden md:flex md:items-center md:gap-1.5">
                   {!isSuperadminNoClub && (
                   <>
-                  {/* Search */}
                   <button
                     ref={searchButtonRef}
                     type="button"
                     onClick={() => {
                       setIsNotificationsOpen(false)
                       setIsProfileMenuOpen(false)
-                      setNavExploreOpen(false)
-                      setNavClubOpen(false)
+                      closeNavDropdowns()
                       setIsSearchOpen((v) => !v)
                     }}
                     className={iconBtnClass}
@@ -531,7 +475,6 @@ export default function AppLayout() {
                     </svg>
                   </button>
 
-                  {/* Notifications */}
                   <div ref={notificationsBlockRef} className="relative">
                     <AppNotificationsBellButton
                       open={isNotificationsOpen}
@@ -540,8 +483,7 @@ export default function AppLayout() {
                       onToggle={() => {
                         setIsSearchOpen(false)
                         setIsProfileMenuOpen(false)
-                        setNavExploreOpen(false)
-                        setNavClubOpen(false)
+                        closeNavDropdowns()
                         setIsNotificationsOpen((v) => !v)
                       }}
                     />
@@ -560,11 +502,9 @@ export default function AppLayout() {
                   </>
                   )}
 
-                  {/* Divider – sakriven kada nema search/notifications */}
                   {!isSuperadminNoClub && (
                   <div className="h-6 w-px bg-white/10 mx-1.5" />
                   )}
-                  {/* Profile dropdown */}
                   {user && (
                     <AppLayoutProfileDropdown
                       profileBlockRef={profileBlockRef}

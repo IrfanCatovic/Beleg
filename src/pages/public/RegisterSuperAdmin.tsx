@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../services/api'
+import { fetchSetupStatus, registerSuperAdmin } from '../../services/auth'
+import { getApiErrorMessage } from '../../utils/apiError'
 import Loader from '../../components/Loader'
 import { useTranslation } from 'react-i18next'
 
@@ -18,8 +19,8 @@ export default function RegisterSuperAdmin() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await api.get('/api/setup/status')
-        if (!res.data.needsSuperadmin) {
+        const data = await fetchSetupStatus()
+        if (!data.needsSuperadmin) {
           navigate('/login', { replace: true })
           return
         }
@@ -46,13 +47,11 @@ export default function RegisterSuperAdmin() {
       if (fullName) formData.append('fullName', fullName)
       if (avatarFile) formData.append('avatar', avatarFile)
 
-      await api.post('/api/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await registerSuperAdmin(formData)
 
       navigate('/login', { replace: true })
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('registerSuperadmin.submitError'))
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t('registerSuperadmin.submitError')))
     } finally {
       setSubmitting(false)
     }

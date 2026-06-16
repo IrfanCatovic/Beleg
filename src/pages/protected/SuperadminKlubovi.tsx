@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import api from '../../services/api'
+import {
+  createSuperadminKlub,
+  deleteSuperadminKlub,
+  deleteUserById,
+  fetchSuperadminAppStats,
+  fetchSuperadminKlubovi,
+  fetchSuperadminUsersWithoutClub,
+  updateSuperadminKlub,
+  uploadSuperadminKlubLogo,
+} from '../../services/superadmin'
 import Loader from '../../components/Loader'
 import CalendarDropdown from '../../components/CalendarDropdown'
 import { formatDateShort } from '../../utils/dateUtils'
@@ -16,6 +25,7 @@ import {
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 export interface Klub {
   id: number
@@ -138,10 +148,10 @@ export default function SuperadminKlubovi() {
     setLoading(true)
     setError('')
     try {
-      const res = await api.get<{ klubovi: Klub[] }>('/api/superadmin/klubovi')
-      setKlubovi(res.data.klubovi ?? [])
+      const klubovi = await fetchSuperadminKlubovi()
+      setKlubovi(klubovi as Klub[])
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.load')
+      const msg = getApiErrorMessage(err, t('superadmin.errors.load'))
       setError(msg)
     } finally {
       setLoading(false)
@@ -159,26 +169,17 @@ export default function SuperadminKlubovi() {
       setStatsLoading(true)
       setStatsError('')
       try {
-        const res = await api.get<{
-          clubs: SuperadminAppStatClub[]
-          totalUsers?: number
-          totalClubMembers?: number
-          totalMembers: number
-          totalActions: number
-        }>('/api/superadmin/app-stats')
+        const data = await fetchSuperadminAppStats()
         if (cancelled) return
-        setStatsClubs(res.data.clubs ?? [])
-        const totalClubMembers = Number(res.data.totalClubMembers ?? res.data.totalMembers) || 0
-        // Fallback na totalMembers za slučaj da backend još uvek šalje stari payload.
-        const totalUsers = Number(res.data.totalUsers ?? res.data.totalMembers) || 0
+        setStatsClubs(data.clubs ?? [])
+        const totalClubMembers = Number(data.totalClubMembers ?? data.totalMembers) || 0
+        const totalUsers = Number(data.totalUsers ?? data.totalMembers) || 0
         setStatsTotalUsers(totalUsers)
         setStatsTotalClubMembers(totalClubMembers)
-        setStatsTotalActions(Number(res.data.totalActions) || 0)
+        setStatsTotalActions(Number(data.totalActions) || 0)
       } catch (err: unknown) {
         if (cancelled) return
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-          t('superadmin.stats.errors.load')
+        const msg = getApiErrorMessage(err, t('superadmin.stats.errors.load'))
         setStatsError(msg)
       } finally {
         if (!cancelled) setStatsLoading(false)
@@ -202,16 +203,11 @@ export default function SuperadminKlubovi() {
       setNoClubError('')
       try {
         const q = debouncedNoClubSearch.trim()
-        const res = await api.get<{ korisnici: NoClubUserRow[] }>(
-          '/api/superadmin/korisnici/bez-kluba',
-          { params: q ? { q } : {} },
-        )
-        if (!cancelled) setNoClubUsers(res.data.korisnici ?? [])
+        const users = await fetchSuperadminUsersWithoutClub(q || undefined)
+        if (!cancelled) setNoClubUsers(users)
       } catch (err: unknown) {
         if (!cancelled) {
-          const msg =
-            (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-            t('superadmin.stats.otherUsersError')
+          const msg = getApiErrorMessage(err, t('superadmin.stats.otherUsersError'))
           setNoClubError(msg)
         }
       } finally {
@@ -242,12 +238,12 @@ export default function SuperadminKlubovi() {
     const id = deleteKlubId
     setDeleteLoading(true)
     try {
-      await api.delete(`/api/superadmin/klubovi/${id}`)
+      await deleteSuperadminKlub(id)
       setDeleteKlubId(null)
       setDeleteCountdown(0)
       await fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.delete')
+      const msg = getApiErrorMessage(err, t('superadmin.errors.delete'))
       setError(msg)
     } finally {
       setDeleteLoading(false)
@@ -263,12 +259,10 @@ export default function SuperadminKlubovi() {
     setNoClubDeleteId(u.id)
     setNoClubError('')
     try {
-      await api.delete(`/api/korisnici/${u.id}`)
+      await deleteUserById(u.id)
       setNoClubUsers((prev) => prev.filter((x) => x.id !== u.id))
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        'Brisanje korisnika nije uspelo.'
+      const msg = getApiErrorMessage(err, 'Brisanje korisnika nije uspelo.')
       setNoClubError(msg)
     } finally {
       setNoClubDeleteId(null)
@@ -343,22 +337,22 @@ export default function SuperadminKlubovi() {
         if (form.logoFile) {
           const fd = new FormData()
           fd.append('logo', form.logoFile)
-          await api.patch(`/api/superadmin/klubovi/${editingId}/logo`, fd)
+          await uploadSuperadminKlubLogo(editingId, fd)
         }
-        await api.patch(`/api/superadmin/klubovi/${editingId}`, payload)
+        await updateSuperadminKlub(editingId, payload)
       } else {
-        const res = await api.post<{ klub: { id: number } }>('/api/superadmin/klubovi', payload)
-        const clubId = res.data.klub.id
+        const klub = await createSuperadminKlub(payload)
+        const clubId = klub.id
         if (form.logoFile) {
           const fd = new FormData()
           fd.append('logo', form.logoFile)
-          await api.patch(`/api/superadmin/klubovi/${clubId}/logo`, fd)
+          await uploadSuperadminKlubLogo(clubId, fd)
         }
       }
       setModalOpen(false)
       fetchKlubovi()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? t('superadmin.errors.save')
+      const msg = getApiErrorMessage(err, t('superadmin.errors.save'))
       setFormError(msg)
     } finally {
       setSubmitLoading(false)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import api from '../../services/api'
+import { verifyEmail } from '../../services/auth'
+import { getApiErrorMessage } from '../../utils/apiError'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
 
 export default function VerifyEmail() {
@@ -19,13 +20,10 @@ export default function VerifyEmail() {
         return
       }
       try {
-        const res = await api.get('/api/email/verify', { params: { token } })
-        if (!cancelled) setMessage(res.data?.message || 'Email adresa je uspešno potvrđena.')
+        const data = await verifyEmail(token)
+        if (!cancelled) setMessage(data?.message || 'Email adresa je uspešno potvrđena.')
       } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-          'Verifikacija nije uspela.'
-        if (!cancelled) setError(msg)
+        if (!cancelled) setError(getApiErrorMessage(err, 'Verifikacija nije uspela.'))
       } finally {
         if (!cancelled) setLoading(false)
       }

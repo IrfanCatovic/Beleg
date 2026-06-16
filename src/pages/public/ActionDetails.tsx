@@ -1,51 +1,26 @@
-﻿import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+﻿import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  cancelParticipationRequest,
-  createParticipationRequest,
   deleteAkcija,
   deletePrijava,
   dodajClanaPopeoSe,
   dodajPrevoz,
-  fetchAkcijaById,
-  fetchEligibleExternalUsers,
   fetchMojaPrijavaZaAkciju,
-  fetchParticipationRequests,
   fetchPrijaveZaAkciju,
-  markPrijavePlatio,
   obrisiPrevoz,
-  otkaziPrijavu,
-  prijaviNaAkciju,
-  regenerateAkcijaInviteLink,
-  updateMojaPrijava,
-  updatePrijavaPlatio,
   updatePrijavaStatus,
   zavrsiAkciju,
-  type ActionParticipationRequest,
-  type ExternalUserCandidate,
 } from '../../services/actions'
-import { fetchKlub } from '../../services/club'
-import { fetchKorisnici, fetchKorisnikByUsername } from '../../services/users'
+import { getApiErrorMessage } from '../../utils/apiError'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
-import {
-  downloadFerrataBadgePng,
-  getFerrataBadgePreviewDataUrl,
-} from '../../utils/generateFerrataBadgePng'
-import {
-  downloadSummitSuccessPng,
-  getSummitLayoutPreviewDataUrl,
-  type SummitAspect,
-  type SummitLayout,
-} from '../../utils/generateSummitPng'
 import { formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import Dropdown from '../../components/Dropdown'
 import { actionDifficultyBadge, prijavaStatusLabel } from '../../utils/difficultyI18n'
-import { parseClubCurrency } from '../../utils/clubCurrency'
-import TransportCard, { type PrevozParticipant } from '../../components/action-details/TransportCard'
+import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
@@ -53,15 +28,17 @@ import MemberDetailsModal from '../../components/action-details/MemberDetailsMod
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import FinishActionFinanceModal from '../../components/action-details/FinishActionFinanceModal'
 import { GuideRatingModal } from '../../components/action-details/GuideRatingModal'
-import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '../../services/guideRatings'
-import type { Akcija } from '../../types/akcija'
 import type { Prijava } from '../../types/prijava'
-import type { KorisnikRef } from '../../types/korisnik'
-
-type ClubMember = KorisnikRef
 import { PRIJAVA_STATUS_STYLE, singlePrevozIdSet } from '../../components/action-details/actionDetailsUtils'
 import { StatCell, InfoRow } from '../../components/action-details/actionDetailsUi'
 import { ActionDetailsHeader } from '../../components/action-details/ActionDetailsHeader'
+import { useActionDetailsData } from '../../hooks/action-details/useActionDetailsData'
+import { useActionRegistration } from '../../hooks/action-details/useActionRegistration'
+import { useExternalUserSearch } from '../../hooks/action-details/useExternalUserSearch'
+import { useParticipationRequests } from '../../hooks/action-details/useParticipationRequests'
+import { useActionPayments } from '../../hooks/action-details/useActionPayments'
+import { useActionShare } from '../../hooks/action-details/useActionShare'
+import { useGuideRatings } from '../../hooks/action-details/useGuideRatings'
 
 export default function ActionDetails() {
   const { t, i18n } = useTranslation('actionDetails')
@@ -69,60 +46,208 @@ export default function ActionDetails() {
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
-  const location = useLocation()
   const navigate = useNavigate()
-  const [akcija, setAkcija] = useState<Akcija | null>(null)
-  const [prijave, setPrijave] = useState<Prijava[]>([])
-  const [canSeePrijave, setCanSeePrijave] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [mojaPrijava, setMojaPrijava] = useState<{ status: string; selectedSmestajIds?: number[]; selectedPrevozIds?: number[]; selectedRentItems?: Array<{ rentId: number; kolicina: number }> } | null | undefined>(undefined)
-  const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
+  const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
+  const claimRewardRequested = (searchParams.get('claimReward') ?? '').trim() === '1'
+
+  const {
+    akcija,
+    setAkcija,
+    prijave,
+    setPrijave,
+    canSeePrijave,
+    loading,
+    error,
+    clubMembers,
+    clubCurrency,
+    prevozPrijave,
+    reloadAkcija,
+    refreshPrijave,
+  } = useActionDetailsData({ id, inviteToken, user, loadErrorFallback: t('loadError') })
+
+  const {
+    mojaPrijava,
+    setMojaPrijava,
+    selSmestaj,
+    selPrevoz,
+    setSelPrevoz,
+    selRent,
+    selectionsDirty,
+    savingSelections,
+    registerOptionsOpen,
+    setRegisterOptionsOpen,
+    toggleSmestaj,
+    togglePrevoz,
+    setRentQty,
+    handleSavePrijavaOrUpdate,
+    handleCancelPrijava,
+  } = useActionRegistration({
+    id,
+    user,
+    akcija,
+    inviteToken,
+    reloadAkcija,
+    refreshPrijave,
+    showAlert,
+    showConfirm,
+    t,
+  })
+
+  const canManageHostForExternal = !!(
+    user &&
+    akcija &&
+    canManageHostAkcija(user, {
+      klubId: akcija.klubId,
+      organizatorTip: akcija.organizatorTip,
+      vodicId: akcija.vodicId,
+      vodicUsername: akcija.vodic?.username,
+    }) &&
+    akcija.isCompleted
+  )
+
+  const externalUserSearch = useExternalUserSearch({
+    actionId: id,
+    enabled: canManageHostForExternal,
+    autoFetch: true,
+    withScope: true,
+  })
+
+  const {
+    scope: externalScope,
+    setScope: setExternalScope,
+    search: externalSearch,
+    setSearch: setExternalSearch,
+    candidates: externalCandidates,
+    loading: externalLoading,
+    error: externalError,
+    handleScroll: handleExternalCandidatesScroll,
+    removeCandidate: removeExternalCandidate,
+    markHasMore: markExternalHasMore,
+  } = externalUserSearch
+
+  const {
+    actionParticipationRequests,
+    requestsLoading,
+    sendingExternalRequestId,
+    handleSendExternalRequest: sendExternalRequest,
+    handleCancelExternalRequest,
+  } = useParticipationRequests({
+    id,
+    user,
+    akcija,
+    showAlert,
+    showConfirm,
+    t,
+    removeExternalCandidate,
+    markExternalHasMore,
+  })
+
+  const handleSendExternalRequest = (candidate: (typeof externalCandidates)[number]) =>
+    sendExternalRequest(candidate, externalUserSearch.setError)
+
   const [selectedMemberId, setSelectedMemberId] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [addingMemberError, setAddingMemberError] = useState('')
-  const [summitShareOpen, setSummitShareOpen] = useState(false)
-  const [summitShareStep, setSummitShareStep] = useState<0 | 1 | 2>(0)
-  const [summitPickedAspect, setSummitPickedAspect] = useState<SummitAspect | null>(null)
-  const [summitPreviewBalanced, setSummitPreviewBalanced] = useState<string | null>(null)
-  const [summitPreviewStacked, setSummitPreviewStacked] = useState<string | null>(null)
-  const [ferrataBadgePreview, setFerrataBadgePreview] = useState<string | null>(null)
-  const [summitPreviewLoading, setSummitPreviewLoading] = useState(false)
-  const [actionShareUrl, setActionShareUrl] = useState('')
-  const [actionShareLoading, setActionShareLoading] = useState(false)
-  const [actionShareCopied, setActionShareCopied] = useState(false)
-  const [actionShareError, setActionShareError] = useState('')
-  const [registerOptionsOpen, setRegisterOptionsOpen] = useState(false)
-  const [clubCurrency, setClubCurrency] = useState('RSD')
-  const [prevozPrijave, setPrevozPrijave] = useState<Record<number, PrevozParticipant[]>>({})
-  const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
-  const [selPrevoz, setSelPrevoz] = useState<Set<number>>(new Set())
-  const [selRent, setSelRent] = useState<Record<number, number>>({})
-  const [selectionsDirty, setSelectionsDirty] = useState(false)
-  const [savingSelections, setSavingSelections] = useState(false)
   const [addTransportOpen, setAddTransportOpen] = useState(false)
   const [memberModal, setMemberModal] = useState<Prijava | null>(null)
-  const [bulkPaymentMode, setBulkPaymentMode] = useState(false)
-  const [bulkPaymentSubmitting, setBulkPaymentSubmitting] = useState(false)
-  const [bulkSelectedPaymentIds, setBulkSelectedPaymentIds] = useState<Set<number>>(new Set())
   const [finishFinanceModalOpen, setFinishFinanceModalOpen] = useState(false)
-  const [guideRatingOpen, setGuideRatingOpen] = useState(false)
-  const [guideRatingSubmitted, setGuideRatingSubmitted] = useState(false)
-  const [guideRatingSkipped, setGuideRatingSkipped] = useState(false)
-  const [guideRatingSaving, setGuideRatingSaving] = useState(false)
-  const [guideRatingChecked, setGuideRatingChecked] = useState(false)
-  const [externalScope, setExternalScope] = useState<'other-clubs' | 'no-club'>('other-clubs')
-  const [externalSearch, setExternalSearch] = useState('')
-  const [externalCandidates, setExternalCandidates] = useState<ExternalUserCandidate[]>([])
-  const [externalLoading, setExternalLoading] = useState(false)
-  const [externalError, setExternalError] = useState('')
-  const [externalOffset, setExternalOffset] = useState(0)
-  const [externalHasMore, setExternalHasMore] = useState(true)
-  const [sendingExternalRequestId, setSendingExternalRequestId] = useState<number | null>(null)
-  const [actionParticipationRequests, setActionParticipationRequests] = useState<ActionParticipationRequest[]>([])
-  const [requestsLoading, setRequestsLoading] = useState(false)
-  const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
-  const claimRewardRequested = (searchParams.get('claimReward') ?? '').trim() === '1'
+
+  useEffect(() => {
+    if (!user || !akcija || !canManageHostAkcija(user, {
+      klubId: akcija.klubId,
+      organizatorTip: akcija.organizatorTip,
+      vodicId: akcija.vodicId,
+      vodicUsername: akcija.vodic?.username,
+    }) || !akcija.isCompleted) {
+      setSelectedMemberId('')
+    }
+  }, [user, akcija])
+
+  const canManageHost = !!(
+    user &&
+    akcija &&
+    canManageHostAkcija(user, {
+      klubId: akcija.klubId,
+      organizatorTip: akcija.organizatorTip,
+      vodicId: akcija.vodicId,
+      vodicUsername: akcija.vodic?.username,
+    })
+  )
+
+  const {
+    bulkPaymentMode,
+    setBulkPaymentMode,
+    bulkPaymentSubmitting,
+    bulkSelectedPaymentIds,
+    setBulkSelectedPaymentIds,
+    paymentTrackedPrijave,
+    handleTogglePaymentStatus,
+    toggleBulkSelectionForUser,
+    handleToggleSelectAllBulkPayments,
+    handleBulkMarkAsPaid,
+  } = useActionPayments({
+    canManageHost,
+    prijave,
+    setPrijave,
+    setMemberModal,
+    showAlert,
+    showConfirm,
+    t,
+  })
+
+  const {
+    summitShareOpen,
+    summitShareStep,
+    setSummitShareStep,
+    summitPickedAspect,
+    setSummitPickedAspect,
+    summitPreviewBalanced,
+    summitPreviewStacked,
+    ferrataBadgePreview,
+    summitPreviewLoading,
+    actionShareUrl,
+    actionShareLoading,
+    actionShareCopied,
+    actionShareError,
+    isFerrataReward,
+    canClaimSummitReward,
+    resolveActionPublicUrl,
+    closeSummitShareModal,
+    openSummitShareModal,
+    copyActionShareLink,
+    handleFerrataBadgeDownload,
+    handleSummitPngDownload,
+  } = useActionShare({
+    id,
+    akcija,
+    user,
+    inviteToken,
+    claimRewardRequested,
+    mojaPrijava,
+    canManageHost,
+    showAlert,
+    t,
+    i18nLanguage: i18n.language,
+  })
+
+  const {
+    guideRatingOpen,
+    setGuideRatingOpen,
+    guideRatingSubmitted,
+    guideRatingSkipped,
+    guideRatingSaving,
+    guideRatingGuideName,
+    canShowGuideRatingPrompt,
+    handleGuideRatingSubmit,
+    handleGuideRatingSkip,
+  } = useGuideRatings({
+    id,
+    user,
+    akcija,
+    mojaPrijava,
+    showAlert,
+    t,
+  })
 
   const locationSubtitle = useMemo(() => {
     if (!akcija) return ''
@@ -132,578 +257,6 @@ export default function ActionDetails() {
     }
     return [akcija.planina, akcija.vrh].filter(Boolean).join(' Â· ')
   }, [akcija])
-
-  useEffect(() => {
-    let cancelled = false
-    const fetchAkcija = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const data = await fetchAkcijaById(id!, inviteToken || undefined)
-        if (!cancelled) setAkcija(data)
-      } catch (err: any) {
-        if (!cancelled) setError(err.response?.data?.error || t('loadError'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchAkcija()
-    return () => {
-      cancelled = true
-    }
-  }, [id, inviteToken])
-
-  useEffect(() => {
-    if (!summitShareOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSummitShareOpen(false)
-        setSummitShareStep(0)
-        setSummitPickedAspect(null)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [summitShareOpen])
-
-  useEffect(() => {
-    if (!registerOptionsOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setRegisterOptionsOpen(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [registerOptionsOpen])
-
-  useEffect(() => {
-    if (!akcija) {
-      setSummitPreviewBalanced(null)
-      setSummitPreviewStacked(null)
-      setFerrataBadgePreview(null)
-      setSummitPreviewLoading(false)
-      return
-    }
-
-    const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
-    const ferrataPayload = {
-      id: akcija.id,
-      naziv: akcija.naziv,
-      vrh: akcija.vrh,
-      datum: akcija.datum,
-      tezina: akcija.tezina,
-      ferrataSnapshot: akcija.ferrataSnapshot,
-    }
-
-    if (isFerrataReward) {
-      if (summitShareStep !== 1) {
-        setFerrataBadgePreview(null)
-        setSummitPreviewLoading(false)
-        return
-      }
-      let cancelled = false
-      setFerrataBadgePreview(null)
-      setSummitPreviewLoading(true)
-      void (async () => {
-        try {
-          const preview = await getFerrataBadgePreviewDataUrl(ferrataPayload, 220)
-          if (!cancelled) setFerrataBadgePreview(preview)
-        } catch {
-          if (!cancelled) setFerrataBadgePreview(null)
-        } finally {
-          if (!cancelled) setSummitPreviewLoading(false)
-        }
-      })()
-      return () => {
-        cancelled = true
-      }
-    }
-
-    if (summitShareStep !== 2 || !summitPickedAspect) {
-      setSummitPreviewBalanced(null)
-      setSummitPreviewStacked(null)
-      setSummitPreviewLoading(false)
-      return
-    }
-    let cancelled = false
-    const payload = {
-      id: akcija.id,
-      naziv: akcija.naziv,
-      planina: akcija.planina,
-      vrh: akcija.vrh,
-      datum: akcija.datum,
-      tipAkcije: akcija.tipAkcije,
-      duzinaStazeKm: akcija.duzinaStazeKm,
-      kumulativniUsponM: akcija.kumulativniUsponM,
-      visinaVrhM: akcija.visinaVrhM,
-      zimskiUspon: akcija.zimskiUspon,
-      tezina: akcija.tezina,
-    }
-    const labels = {
-      mountain: t('mountain'),
-      peak: t('peak'),
-      trail: t('summitPngTrail'),
-      ascent: t('summitPngAscent'),
-      date: t('date'),
-      per: t('summitPngPer'),
-      ferrata: t('summitPngFerrata'),
-    }
-    const dateFormatted = formatDate(akcija.datum)
-    setSummitPreviewBalanced(null)
-    setSummitPreviewStacked(null)
-    setSummitPreviewLoading(true)
-    void (async () => {
-      try {
-        const previewW = summitPickedAspect === '9:16' ? 140 : 200
-        const [b, s] = await Promise.all([
-          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'balanced', labels, dateFormatted, previewW),
-          getSummitLayoutPreviewDataUrl(payload, summitPickedAspect, 'stacked', labels, dateFormatted, previewW),
-        ])
-        if (!cancelled) {
-          setSummitPreviewBalanced(b)
-          setSummitPreviewStacked(s)
-        }
-      } catch {
-        if (!cancelled) {
-          setSummitPreviewBalanced(null)
-          setSummitPreviewStacked(null)
-        }
-      } finally {
-        if (!cancelled) setSummitPreviewLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [summitShareStep, summitPickedAspect, akcija, i18n.language, t])
-
-  useEffect(() => {
-    if (!user || !id) {
-      setMojaPrijava(undefined)
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      try {
-        const res = await fetchMojaPrijavaZaAkciju(id!)
-        if (!cancelled) {
-          const p = res.prijava ?? null
-          setMojaPrijava(p)
-          if (p) {
-            setSelSmestaj(new Set(p.selectedSmestajIds || []))
-            setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
-            const rentMap: Record<number, number> = {}
-            for (const it of p.selectedRentItems || []) {
-              if (it.rentId && it.kolicina > 0) rentMap[it.rentId] = it.kolicina
-            }
-            setSelRent(rentMap)
-            setSelectionsDirty(false)
-          }
-        }
-      } catch {
-        if (!cancelled) setMojaPrijava(null)
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [id, user])
-
-  useEffect(() => {
-    if (!user || !id || !akcija?.isCompleted) {
-      setGuideRatingChecked(false)
-      return
-    }
-    if (mojaPrijava?.status !== 'popeo se') {
-      setGuideRatingChecked(false)
-      return
-    }
-    const vodicId = akcija.vodicId ?? 0
-    if (vodicId <= 0) {
-      setGuideRatingChecked(true)
-      return
-    }
-    if (akcija.vodic?.username && akcija.vodic.username === user.username) {
-      setGuideRatingChecked(true)
-      return
-    }
-    const skipKey = `guide-rating-skip-${id}`
-    if (sessionStorage.getItem(skipKey) === '1') {
-      setGuideRatingSkipped(true)
-      setGuideRatingChecked(true)
-      return
-    }
-    let cancelled = false
-    void fetchMyGuideRatingForAction(Number(id))
-      .then((res) => {
-        if (cancelled) return
-        if (res.submitted) setGuideRatingSubmitted(true)
-        else setGuideRatingOpen(true)
-        setGuideRatingChecked(true)
-      })
-      .catch(() => {
-        if (!cancelled) setGuideRatingChecked(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [user, id, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, mojaPrijava?.status])
-
-  useEffect(() => {
-    if (!user) return
-    let cancelled = false
-    fetchKlub()
-      .then((data) => {
-        if (!cancelled) setClubCurrency(parseClubCurrency(data?.valuta as string | undefined))
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (!user || !akcija || akcija.limited || !canSeePrijave) {
-      setPrevozPrijave({})
-      return
-    }
-
-    const map: Record<number, PrevozParticipant[]> = {}
-    for (const p of prijave) {
-      if (p.status === 'otkazano') continue
-      for (const prevozId of p.selectedPrevozIds || []) {
-        if (!map[prevozId]) map[prevozId] = []
-        map[prevozId].push({
-          prijavaId: p.id,
-          korisnik: p.korisnik,
-          fullName: p.fullName,
-          avatarUrl: p.avatarUrl || (p as any).avatar_url,
-        })
-      }
-    }
-    setPrevozPrijave(map)
-  }, [user, akcija, canSeePrijave, prijave])
-
-  useEffect(() => {
-    const enrichWithAvatars = async (items: Prijava[]): Promise<Prijava[]> => {
-      return Promise.all(
-        items.map(async (p) => {
-          const existingAvatar = (p as any).avatarUrl || (p as any).avatar_url
-          if (existingAvatar) {
-            return { ...p, avatarUrl: existingAvatar }
-          }
-          try {
-            if (!p.korisnik) return p
-            const korisnik = await fetchKorisnikByUsername(p.korisnik)
-            const avatar = korisnik?.avatar_url
-            if (avatar) {
-              return { ...p, avatarUrl: avatar }
-            }
-          } catch {
-            // ignore, zadrÅ¾i bez avatara
-          }
-          return p
-        })
-      )
-    }
-
-    if (!id || !user || !akcija || akcija.limited) {
-      setPrijave([])
-      setCanSeePrijave(false)
-      return
-    }
-
-    const run = async () => {
-      try {
-        const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
-        const enriched = await enrichWithAvatars(list)
-        setPrijave(enriched)
-        setCanSeePrijave(true)
-        return
-      } catch (err: any) {
-        if (err?.response?.status === 403) {
-          setPrijave([])
-          setCanSeePrijave(false)
-          return
-        }
-        setPrijave([])
-        setCanSeePrijave(false)
-      }
-    }
-    void run()
-  }, [id, user, akcija])
-
-  useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-      }) || !akcija.isCompleted) {
-      setClubMembers([])
-      setSelectedMemberId('')
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      try {
-        const korisnici = await fetchKorisnici()
-        if (!cancelled) setClubMembers(korisnici)
-      } catch {
-        if (!cancelled) setClubMembers([])
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [user, akcija])
-
-  useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-      }) || !akcija.isCompleted || !id) {
-      setActionParticipationRequests([])
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      setRequestsLoading(true)
-      try {
-        const requests = await fetchParticipationRequests(id!)
-        const res = { data: { requests } }
-        if (!cancelled) setActionParticipationRequests(res.data.requests || [])
-      } catch {
-        if (!cancelled) setActionParticipationRequests([])
-      } finally {
-        if (!cancelled) setRequestsLoading(false)
-      }
-    }
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [user, akcija, id])
-
-  useEffect(() => {
-    setExternalCandidates([])
-    setExternalOffset(0)
-    setExternalHasMore(true)
-  }, [externalScope, externalSearch])
-
-  useEffect(() => {
-    if (!user || !akcija || !canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-      }) || !akcija.isCompleted || !id) {
-      setExternalCandidates([])
-      setExternalError('')
-      setExternalOffset(0)
-      setExternalHasMore(true)
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      if (!externalHasMore && externalOffset > 0) return
-      setExternalLoading(true)
-      setExternalError('')
-      try {
-        const pageSize = 5
-        const received = await fetchEligibleExternalUsers(id!, {
-          scope: externalScope,
-          q: externalSearch.trim(),
-          limit: pageSize,
-          offset: externalOffset,
-        })
-        if (cancelled) return
-        setExternalCandidates((prev) => {
-          if (externalOffset === 0) return received
-          const seen = new Set(prev.map((x) => x.id))
-          const merged = [...prev]
-          for (const item of received) {
-            if (!seen.has(item.id)) merged.push(item)
-          }
-          return merged
-        })
-        setExternalHasMore(received.length === pageSize)
-      } catch (err: any) {
-        if (!cancelled) {
-          if (externalOffset === 0) setExternalCandidates([])
-          setExternalError(err?.response?.data?.error || 'GreÅ¡ka pri pretrazi korisnika van kluba.')
-        }
-      } finally {
-        if (!cancelled) setExternalLoading(false)
-      }
-    }
-    const timeout = window.setTimeout(() => {
-      void run()
-    }, externalSearch.trim() ? 250 : 0)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timeout)
-    }
-  }, [user, akcija, id, externalScope, externalSearch, externalOffset, externalHasMore])
-
-  const refreshPrijave = async () => {
-    if (!id) return
-    try {
-      const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
-      const avatarMap = new Map<number, string | undefined>()
-      prijave.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
-      setPrijave(
-        list.map((p) => ({
-          ...p,
-          avatarUrl: p.avatarUrl || (p as any).avatar_url || avatarMap.get(p.id),
-        }))
-      )
-    } catch {
-      // ignore
-    }
-  }
-
-  const reloadAkcija = async () => {
-    if (!id) return
-    try {
-      const data = await fetchAkcijaById(id, inviteToken || undefined)
-      setAkcija(data)
-    } catch {
-      // ignore
-    }
-  }
-
-  const toggleSmestaj = (sid: number) => {
-    setSelSmestaj((prev) => {
-      const next = new Set(prev)
-      if (next.has(sid)) next.delete(sid)
-      else next.add(sid)
-      return next
-    })
-    setSelectionsDirty(true)
-  }
-
-  const togglePrevoz = (pid: number) => {
-    setSelPrevoz((prev) => {
-      if (prev.has(pid)) {
-        const next = new Set(prev)
-        next.delete(pid)
-        return next
-      }
-      // Jedan prevoz po osobi: klik na drugo vozilo prebacuje izbor, ne dodaje drugi.
-      return new Set([pid])
-    })
-    setSelectionsDirty(true)
-  }
-
-  const setRentQty = (rentId: number, qty: number) => {
-    setSelRent((prev) => {
-      const next = { ...prev }
-      if (qty <= 0) delete next[rentId]
-      else next[rentId] = qty
-      return next
-    })
-    setSelectionsDirty(true)
-  }
-
-  const buildChoicesPayload = () => {
-    const validSmestaj = new Set((akcija?.smestaj || []).map((s) => s.id))
-    const validPrevoz = new Set((akcija?.prevoz || []).map((p) => p.id))
-    const validRent = new Map((akcija?.opremaRent || []).map((r) => [r.id, r.dostupnaKolicina]))
-
-    const selectedSmestajIds = Array.from(selSmestaj).filter((sid) => validSmestaj.has(sid))
-    const prevFiltered = Array.from(selPrevoz).filter((pid) => validPrevoz.has(pid))
-    const selectedPrevozIds = prevFiltered.length <= 1 ? prevFiltered : [prevFiltered[prevFiltered.length - 1]]
-    const selectedRentItems = Object.entries(selRent)
-      .map(([rentIdRaw, kolicinaRaw]) => {
-        const rentId = Number(rentIdRaw)
-        const available = validRent.get(rentId)
-        if (!available) return null
-        const kolicina = Math.max(0, Math.min(Number(kolicinaRaw) || 0, available))
-        if (kolicina <= 0) return null
-        return { rentId, kolicina }
-      })
-      .filter(Boolean) as Array<{ rentId: number; kolicina: number }>
-
-    return {
-      selectedSmestajIds,
-      selectedPrevozIds,
-      selectedRentItems,
-    }
-  }
-
-  const handleSavePrijavaOrUpdate = async () => {
-    if (!id) return
-    if (akcija?.isCompleted) {
-      await showAlert('Akcija je zavrÅ¡ena.')
-      return
-    }
-    if (mojaPrijava && mojaPrijava.status !== 'prijavljen') {
-      await showAlert('Ne moÅ¾ete menjati izbore nakon Å¡to je status prijave promenjen.', t('errorTitle'))
-      return
-    }
-    setSavingSelections(true)
-    try {
-      const payload = buildChoicesPayload()
-      // Backend reads inviteToken from query (or header / form), not from JSON body.
-      const inviteParams = inviteToken ? { params: { inviteToken } } : undefined
-      if (!mojaPrijava) {
-        await prijaviNaAkciju(id!, payload, inviteParams)
-        await showAlert('UspeÅ¡no ste se prijavili!')
-      } else {
-        try {
-          await updateMojaPrijava(id!, payload, inviteParams)
-        } catch (err: any) {
-          // Backward compatibility: older backend instances do not have PATCH /moja-prijava.
-          // In that case, recreate registration with updated choices.
-          if (err?.response?.status === 404) {
-            await otkaziPrijavu(id!)
-            await prijaviNaAkciju(id!, payload, inviteParams)
-          } else {
-            throw err
-          }
-        }
-      }
-      setSelectionsDirty(false)
-      await reloadAkcija()
-      await refreshPrijave()
-      const mp = await fetchMojaPrijavaZaAkciju(id!)
-      setMojaPrijava(mp.prijava ?? null)
-    } catch (err: any) {
-      const apiError = err?.response?.data?.error as string | undefined
-      const friendly =
-        apiError && (/maksimalan broj/i.test(apiError) || /popunjen/i.test(apiError))
-          ? t('registrationFullFriendly')
-          : (apiError || 'GreÅ¡ka pri Äuvanju izbora')
-      const isFull = friendly === t('registrationFullFriendly')
-      await showAlert(friendly, isFull ? undefined : t('errorTitle'))
-    } finally {
-      setSavingSelections(false)
-    }
-  }
-
-  const handleCancelPrijava = async () => {
-    if (!id || !mojaPrijava) return
-    const ok = await showConfirm(t('confirmCancelJoin', { defaultValue: 'Da li Å¾elite da otkaÅ¾ete prijavu?' }))
-    if (!ok) return
-    try {
-      await otkaziPrijavu(id!)
-      setMojaPrijava(null)
-      setSelSmestaj(new Set())
-      setSelPrevoz(new Set())
-      setSelRent({})
-      setSelectionsDirty(false)
-      await reloadAkcija()
-      await refreshPrijave()
-    } catch (err: any) {
-      await showAlert(err?.response?.data?.error || t('cancelJoinError', { defaultValue: 'GreÅ¡ka' }), t('errorTitle'))
-    }
-  }
 
   const handleAddTransport = async (data: { tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number; join: boolean }) => {
     if (!id) return
@@ -754,7 +307,7 @@ export default function ActionDetails() {
         }
       }
     } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri brisanju prevoza', t('errorTitle'))
+      await showAlert(getApiErrorMessage(err, 'Greška pri brisanju prevoza'), t('errorTitle'))
     }
   }
 
@@ -766,7 +319,7 @@ export default function ActionDetails() {
       await showAlert(t('deleteSuccess'))
       navigate('/akcije')
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('deleteError'), t('errorTitle'))
+      await showAlert(getApiErrorMessage(err, t('deleteError')), t('errorTitle'))
     }
   }
 
@@ -791,77 +344,6 @@ export default function ActionDetails() {
     }
   }
 
-  const handleTogglePaymentStatus = async (prijavaId: number, nextPlatio: boolean) => {
-    if (!canManageHost) return
-    try {
-      await updatePrijavaPlatio(prijavaId, nextPlatio)
-      setPrijave((prev) => prev.map((p) => (p.id === prijavaId ? { ...p, platio: nextPlatio } : p)))
-      setMemberModal((prev) => (prev && prev.id === prijavaId ? { ...prev, platio: nextPlatio } : prev))
-    } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri aÅ¾uriranju statusa uplate', t('errorTitle'))
-    }
-  }
-
-  const toggleBulkSelectionForUser = (prijava: Prijava) => {
-    if (prijava.platio) return
-    setBulkSelectedPaymentIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(prijava.id)) next.delete(prijava.id)
-      else next.add(prijava.id)
-      return next
-    })
-  }
-
-  const handleToggleSelectAllBulkPayments = () => {
-    const unpaidIds = unpaidTrackedPrijave.map((p) => p.id)
-    if (unpaidIds.length === 0) return
-    const allSelected = unpaidIds.every((id) => bulkSelectedPaymentIds.has(id))
-    if (allSelected) {
-      setBulkSelectedPaymentIds(new Set())
-    } else {
-      setBulkSelectedPaymentIds(new Set(unpaidIds))
-    }
-  }
-
-  const handleBulkMarkAsPaid = async () => {
-    if (!canManageHost) return
-    const selectedIds = Array.from(bulkSelectedPaymentIds)
-    if (selectedIds.length === 0) {
-      await showAlert('OznaÄite bar jednog Älana.', t('errorTitle'))
-      return
-    }
-    const confirmed = await showConfirm(
-      `OznaÄio si ${selectedIds.length} Älan(a) da je platio. Da li Å¾eliÅ¡ da potvrdiÅ¡ uplatu?`,
-      { title: 'Potvrda', confirmLabel: 'Plati', cancelLabel: t('cancel') },
-    )
-    if (!confirmed) return
-
-    setBulkPaymentSubmitting(true)
-    try {
-      const results = await markPrijavePlatio(selectedIds)
-      const successIds: number[] = []
-      let failed = 0
-      results.forEach((r, idx) => {
-        if (r.status === 'fulfilled') successIds.push(selectedIds[idx])
-        else failed++
-      })
-
-      if (successIds.length > 0) {
-        setPrijave((prev) => prev.map((p) => (successIds.includes(p.id) ? { ...p, platio: true } : p)))
-      }
-      setBulkSelectedPaymentIds(new Set())
-      setBulkPaymentMode(false)
-
-      if (failed > 0) {
-        await showAlert(`UspeÅ¡no aÅ¾urirano: ${successIds.length}. NeuspeÅ¡no: ${failed}.`, t('errorTitle'))
-      }
-    } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri grupnom aÅ¾uriranju uplata.', t('errorTitle'))
-    } finally {
-      setBulkPaymentSubmitting(false)
-    }
-  }
-
   const handleRemoveFromAction = async (prijavaId: number, displayName: string) => {
     if (!canManageHost) return
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
@@ -882,7 +364,7 @@ export default function ActionDetails() {
         }))
       })
     } catch (err: any) {
-      await showAlert(err.response?.data?.error || t('removeMemberError'), t('errorTitle'))
+      await showAlert(getApiErrorMessage(err, t('removeMemberError')), t('errorTitle'))
     }
   }
 
@@ -904,54 +386,9 @@ export default function ActionDetails() {
       setSelectedMemberId('')
       await showAlert('Clan je dodat i oznacen kao uspesno popeo se.')
     } catch (err: any) {
-      setAddingMemberError(err.response?.data?.error || 'Neuspesno dodavanje clana na zavrsenu akciju.')
+      setAddingMemberError(getApiErrorMessage(err, 'Neuspesno dodavanje clana na zavrsenu akciju.'))
     } finally {
       setAddingMember(false)
-    }
-  }
-
-  const refreshActionParticipationRequests = async () => {
-    if (!id) return
-    try {
-      const requests = await fetchParticipationRequests(id!)
-      setActionParticipationRequests(requests)
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleSendExternalRequest = async (candidate: ExternalUserCandidate) => {
-    if (!id) return
-    setSendingExternalRequestId(candidate.id)
-    setExternalError('')
-    try {
-      const created = await createParticipationRequest(id!, candidate.id)
-      setActionParticipationRequests((prev) => [created, ...prev.filter((item) => item.id !== created.id)])
-      setExternalCandidates((prev) => prev.filter((item) => item.id !== candidate.id))
-      setExternalHasMore(true)
-      await showAlert('Zahtev je poslat. Korisnik Ä‡e dobiti obaveÅ¡tenje i potvrditi uÄeÅ¡Ä‡e iz svog dela aplikacije.')
-    } catch (err: any) {
-      setExternalError(err?.response?.data?.error || 'Slanje zahteva nije uspelo.')
-    } finally {
-      setSendingExternalRequestId(null)
-    }
-  }
-
-  const handleCancelExternalRequest = async (request: ActionParticipationRequest) => {
-    if (!id) return
-    const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
-    const confirmed = await showConfirm(`Da li Å¾elite da otkaÅ¾ete zahtev za ${targetLabel}?`, {
-      title: 'OtkaÅ¾i zahtev',
-      confirmLabel: 'OtkaÅ¾i zahtev',
-      cancelLabel: 'Nazad',
-      variant: 'danger',
-    })
-    if (!confirmed) return
-    try {
-      await cancelParticipationRequest(id!, request.id)
-      await refreshActionParticipationRequests()
-    } catch (err: any) {
-      await showAlert(err?.response?.data?.error || 'GreÅ¡ka pri otkazivanju zahteva.', t('errorTitle'))
     }
   }
 
@@ -1087,58 +524,6 @@ export default function ActionDetails() {
     await showAlert(body, t('actionFinishedTitle'))
   }
 
-  useEffect(() => {
-    if (!claimRewardRequested) return
-    if (!user || !akcija) return
-    if (mojaPrijava === undefined) return
-    if (mojaPrijava?.status !== 'popeo se') return
-    if (summitShareOpen) return
-
-    const run = async () => {
-      setSummitPickedAspect(null)
-      setSummitShareOpen(true)
-      setSummitShareStep(1)
-      setActionShareError('')
-      setActionShareCopied(false)
-
-      const resolvePublic = () => {
-        const base =
-          (typeof window !== 'undefined' && window.location?.origin
-            ? window.location.origin
-            : '').replace(/\/$/, '')
-        if (base) return `${base}/akcije/${akcija.id}`
-        return `/akcije/${akcija.id}`
-      }
-
-      if (inviteToken) {
-        setActionShareUrl(`${resolvePublic()}?inviteToken=${encodeURIComponent(inviteToken)}`)
-      } else if (akcija.javna || !canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-      })) {
-        setActionShareUrl(resolvePublic())
-      } else if (!actionShareUrl) {
-        setActionShareLoading(true)
-        try {
-          const res = await regenerateAkcijaInviteLink(id!)
-          const inviteUrl = (res?.inviteUrl || '').trim()
-          setActionShareUrl(inviteUrl || resolvePublic())
-        } catch (err: any) {
-          setActionShareError(err?.response?.data?.error || 'NeuspeÅ¡no kreiranje share linka.')
-          setActionShareUrl(resolvePublic())
-        } finally {
-          setActionShareLoading(false)
-        }
-      }
-
-      navigate(location.pathname, { replace: true })
-    }
-
-    void run()
-  }, [claimRewardRequested, user, akcija, mojaPrijava, summitShareOpen, inviteToken, actionShareUrl, id, navigate, location.pathname])
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -1166,12 +551,6 @@ export default function ActionDetails() {
   const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
   const isFerrataAction = akcija.tipAkcije === 'via_ferrata'
   const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
-  const canManageHost = !!(user && canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-      }))
   const isLimitedView = !!akcija.limited
   /** ÄŒlan domaÄ‡eg kluba sa ulogom `clan` â€” bez klika na kartice i bez modala detalja. */
   const isHostClubPlainMember =
@@ -1184,22 +563,12 @@ export default function ActionDetails() {
   const canOpenMemberModal = !!user && canSeePrijave && !isLimitedView && !isHostClubPlainMember
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
-  const paymentTrackedPrijave = prijave.filter((p) => p.status !== 'otkazano')
-  const unpaidTrackedPrijave = paymentTrackedPrijave.filter((p) => !p.platio)
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
   const climbedByUsername = new Set(prijave.filter((p) => p.status === 'popeo se').map((p) => p.korisnik))
   const membersToAdd = clubMembers.filter((m) => !climbedByUsername.has(m.username))
   const pendingExternalRequestCount = actionParticipationRequests.filter((req) => req.status === 'pending').length
-  const handleExternalCandidatesScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (externalLoading || !externalHasMore) return
-    const el = e.currentTarget
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (distanceFromBottom <= 24) {
-      setExternalOffset((prev) => prev + 5)
-    }
-  }
 
   const handlePrintPrePolaska = () => {
     generateActionPdfPrePolaska({
@@ -1223,162 +592,6 @@ export default function ActionDetails() {
   }
 
   const showSummitImageCard = !!user
-  const canClaimSummitReward =
-    !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
-
-  const guideRatingGuideName = akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'VodiÄ'
-  const canShowGuideRatingPrompt =
-    !!user &&
-    !!akcija?.isCompleted &&
-    mojaPrijava?.status === 'popeo se' &&
-    (akcija.vodicId ?? 0) > 0 &&
-    akcija.vodic?.username !== user.username &&
-    guideRatingChecked &&
-    !guideRatingSubmitted
-
-  const handleGuideRatingSubmit = async (payload: { ocena?: number; komentar?: string }) => {
-    if (!id) return
-    setGuideRatingSaving(true)
-    try {
-      await submitGuideRatingForAction(Number(id), payload)
-      setGuideRatingSubmitted(true)
-      setGuideRatingOpen(false)
-      await showAlert(t('guideRatingThanks'), t('guideRatingTitle'))
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      await showAlert(msg || t('guideRatingError'), t('errorTitle'))
-    } finally {
-      setGuideRatingSaving(false)
-    }
-  }
-
-  const handleGuideRatingSkip = () => {
-    if (id) sessionStorage.setItem(`guide-rating-skip-${id}`, '1')
-    setGuideRatingSkipped(true)
-    setGuideRatingOpen(false)
-  }
-
-  const closeSummitShareModal = () => {
-    setSummitShareOpen(false)
-    setSummitShareStep(0)
-    setSummitPickedAspect(null)
-    setFerrataBadgePreview(null)
-    setActionShareCopied(false)
-    setActionShareError('')
-  }
-
-  const isFerrataReward = akcija.tipAkcije === 'via_ferrata'
-
-  const resolveActionPublicUrl = () => {
-    const base =
-      (typeof window !== 'undefined' && window.location?.origin
-        ? window.location.origin
-        : '').replace(/\/$/, '')
-    if (base) return `${base}/akcije/${akcija.id}`
-    return `/akcije/${akcija.id}`
-  }
-
-  const ensureShareUrl = async () => {
-    setActionShareError('')
-    setActionShareCopied(false)
-
-    if (inviteToken) {
-      setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
-      return
-    }
-    if (akcija.javna) {
-      setActionShareUrl(resolveActionPublicUrl())
-      return
-    }
-    if (!canManageHost) {
-      setActionShareUrl(resolveActionPublicUrl())
-      return
-    }
-    if (actionShareUrl) {
-      return
-    }
-
-    setActionShareLoading(true)
-    try {
-      const res = await regenerateAkcijaInviteLink(id!)
-      const inviteUrl = (res?.inviteUrl || '').trim()
-      setActionShareUrl(inviteUrl || resolveActionPublicUrl())
-    } catch (err: any) {
-      setActionShareError(err?.response?.data?.error || 'NeuspeÅ¡no kreiranje share linka.')
-      setActionShareUrl(resolveActionPublicUrl())
-    } finally {
-      setActionShareLoading(false)
-    }
-  }
-
-  const openSummitShareModal = async () => {
-    setSummitShareStep(0)
-    setSummitPickedAspect(null)
-    setSummitShareOpen(true)
-    await ensureShareUrl()
-  }
-
-  const copyActionShareLink = async () => {
-    if (!actionShareUrl) return
-    try {
-      await navigator.clipboard.writeText(actionShareUrl)
-      setActionShareCopied(true)
-      window.setTimeout(() => setActionShareCopied(false), 1600)
-    } catch {
-      await showAlert('Kopiranje nije uspelo. Link moÅ¾ete ruÄno kopirati.', t('errorTitle'))
-    }
-  }
-
-  const handleFerrataBadgeDownload = async () => {
-    try {
-      await downloadFerrataBadgePng({
-          id: akcija.id,
-          naziv: akcija.naziv,
-          vrh: akcija.vrh,
-          datum: akcija.datum,
-          tezina: akcija.tezina,
-          ferrataSnapshot: akcija.ferrataSnapshot,
-        })
-      closeSummitShareModal()
-    } catch {
-      await showAlert(t('summitPngError'), t('errorTitle'))
-    }
-  }
-
-  const handleSummitPngDownload = async (aspect: SummitAspect, layout: SummitLayout) => {
-    try {
-      await downloadSummitSuccessPng(
-        {
-          id: akcija.id,
-          naziv: akcija.naziv,
-          planina: akcija.planina,
-          vrh: akcija.vrh,
-          datum: akcija.datum,
-          tipAkcije: akcija.tipAkcije,
-          duzinaStazeKm: akcija.duzinaStazeKm,
-          kumulativniUsponM: akcija.kumulativniUsponM,
-          visinaVrhM: akcija.visinaVrhM,
-          zimskiUspon: akcija.zimskiUspon,
-          tezina: akcija.tezina,
-        },
-        aspect,
-        layout,
-        {
-          mountain: t('mountain'),
-          peak: t('peak'),
-          trail: t('summitPngTrail'),
-          ascent: t('summitPngAscent'),
-          date: t('date'),
-          per: t('summitPngPer'),
-          ferrata: t('summitPngFerrata'),
-        },
-        formatDate(akcija.datum)
-      )
-      closeSummitShareModal()
-    } catch {
-      await showAlert(t('summitPngError'), t('errorTitle'))
-    }
-  }
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-16 md:pb-10">

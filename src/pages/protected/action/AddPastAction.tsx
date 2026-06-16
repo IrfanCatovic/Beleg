@@ -6,6 +6,7 @@ import BackButton from '../../../components/buttons/BackButton'
 import Dropdown from '../../../components/Dropdown'
 import { useTranslation } from 'react-i18next'
 import { peakActionPrefillFrom, type PeakDTO } from '../../../components/map/peakActionPrefill'
+import { useExternalUserSearch } from '../../../hooks/action-details/useExternalUserSearch'
 
 interface Korisnik {
   id: number
@@ -56,13 +57,27 @@ export default function AddPastAction() {
   const [clubLoading, setClubLoading] = useState(false)
   const [selectedClubUserIds, setSelectedClubUserIds] = useState<number[]>([])
 
-  const [externalUsers, setExternalUsers] = useState<CandidateUser[]>([])
-  const [externalQuery, setExternalQuery] = useState('')
-  const [externalOffset, setExternalOffset] = useState(0)
-  const [externalHasMore, setExternalHasMore] = useState(true)
-  const [externalLoading, setExternalLoading] = useState(false)
   const [selectedExternalUserIds, setSelectedExternalUserIds] = useState<number[]>([])
   const [sendingAction, setSendingAction] = useState(false)
+
+  const externalUserSearch = useExternalUserSearch({
+    actionId: selectedExistingAction?.id,
+    enabled: showManageModal && manageTab === 'external',
+    autoFetch: false,
+    pageSize: PAGE_SIZE,
+    errorFallback: 'Greška pri učitavanju korisnika van kluba.',
+    onError: (message) => setManageError(message),
+  })
+
+  const {
+    search: externalQuery,
+    setSearch: setExternalQuery,
+    candidates: externalUsers,
+    loading: externalLoading,
+    reset: resetExternalSearch,
+    fetchPage: fetchExternalUsers,
+    handleScroll: onExternalListScroll,
+  } = externalUserSearch
 
   const clubListRef = useRef<HTMLDivElement | null>(null)
   const externalListRef = useRef<HTMLDivElement | null>(null)
@@ -168,26 +183,6 @@ export default function AddPastAction() {
     }
   }
 
-  const fetchExternalUsers = async (replace: boolean, queryOverride?: string) => {
-    if (!selectedExistingAction || externalLoading) return
-    const q = queryOverride ?? externalQuery
-    const nextOffset = replace ? 0 : externalOffset
-    setExternalLoading(true)
-    try {
-      const res = await api.get<{ users: CandidateUser[] }>(`/api/akcije/${selectedExistingAction.id}/eligible-external-users`, {
-        params: { q, limit: PAGE_SIZE, offset: nextOffset },
-      })
-      const users = res.data.users || []
-      setExternalUsers((prev) => (replace ? users : [...prev, ...users]))
-      setExternalOffset(nextOffset + users.length)
-      setExternalHasMore(users.length === PAGE_SIZE)
-    } catch (err: any) {
-      setManageError(err.response?.data?.error || 'Greška pri učitavanju korisnika van kluba.')
-    } finally {
-      setExternalLoading(false)
-    }
-  }
-
   const openManageModal = (akcija: Akcija) => {
     setSelectedExistingAction(akcija)
     setShowManageModal(true)
@@ -198,12 +193,11 @@ export default function AddPastAction() {
     setClubOffset(0)
     setClubHasMore(true)
     setSelectedClubUserIds([])
-    setExternalUsers([])
-    setExternalOffset(0)
-    setExternalHasMore(true)
+    resetExternalSearch()
+    setExternalQuery('')
     setSelectedExternalUserIds([])
     void fetchClubUsers(true, '')
-    void fetchExternalUsers(true, '')
+    void fetchExternalUsers(true, '', akcija.id)
   }
 
   const closeManageModal = () => {
@@ -269,7 +263,7 @@ export default function AddPastAction() {
         setManageSuccess(`Uspešno poslato zahteva: ${successCount}.`)
       }
       setSelectedExternalUserIds([])
-      await fetchExternalUsers(true)
+      await fetchExternalUsers(true, undefined, selectedExistingAction.id)
     } catch (err: any) {
       setManageError(err.response?.data?.error || 'Greška pri slanju zahteva.')
     } finally {
@@ -285,14 +279,6 @@ export default function AddPastAction() {
     }
   }
 
-  const onExternalListScroll = () => {
-    if (!externalListRef.current || externalLoading || !externalHasMore) return
-    const { scrollTop, scrollHeight, clientHeight } = externalListRef.current
-    if (scrollHeight - scrollTop - clientHeight < 24) {
-      void fetchExternalUsers(false)
-    }
-  }
-
   const handleClubSearch = () => {
     setClubOffset(0)
     setClubHasMore(true)
@@ -301,10 +287,10 @@ export default function AddPastAction() {
   }
 
   const handleExternalSearch = () => {
-    setExternalOffset(0)
-    setExternalHasMore(true)
     setSelectedExternalUserIds([])
-    void fetchExternalUsers(true)
+    if (!selectedExistingAction) return
+    resetExternalSearch()
+    void fetchExternalUsers(true, undefined, selectedExistingAction.id)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

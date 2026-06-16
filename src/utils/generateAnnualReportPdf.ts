@@ -1,6 +1,7 @@
 import html2pdf from 'html2pdf.js'
 import type { AnnualReportRow } from './annualReportUtils'
 import i18n from '../i18n'
+import { escapeHtml } from './pdfHtmlHelpers'
 
 const pdfStyles = `
   .ar-pdf { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; color: #000; background: #fff; padding: 5mm 6mm 10mm 6mm; box-sizing: border-box; }
@@ -42,12 +43,6 @@ const pdfStyles = `
 
 /** Broj praznih redova kada se ne prosleđuju podaci (prazan obrazac). */
 const EMPTY_ROW_COUNT = 42
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
 
 function formatDatum(value: string): string {
   if (!value) return ''

@@ -8,7 +8,9 @@ import {
   MagnifyingGlassIcon,
   MapIcon,
 } from '@heroicons/react/24/outline'
-import api from '../../services/api'
+import { fetchPublicFerratas } from '../../services/ferratasPublic'
+import { deleteSuperadminFerrata } from '../../services/superadmin'
+import { getApiErrorMessage } from '../../utils/apiError'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { FerrataCatalogMap, type CatalogMapMarker } from '../../components/ferrate/FerrataCatalogMap'
@@ -80,8 +82,8 @@ export default function FerrataList() {
       const params = new URLSearchParams()
       if (search.trim()) params.set('search', search.trim())
       if (tezina.trim()) params.set('tezina', tezina.trim())
-      const res = await api.get(`/api/ferratas?${params.toString()}`)
-      setRows(res.data?.ferrate ?? [])
+      const { ferrate } = await fetchPublicFerratas(params)
+      setRows(ferrate as FerrataRow[])
     } catch {
       setError('Greška pri učitavanju.')
     } finally {
@@ -141,11 +143,10 @@ export default function FerrataList() {
     setError('')
     setDeleteBusyId(f.id)
     try {
-      await api.delete(`/api/superadmin/ferratas/${f.id}`)
+      await deleteSuperadminFerrata(f.id)
       await fetchRows()
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setError(msg || t('superadminDeleteError'))
+      setError(getApiErrorMessage(e, t('superadminDeleteError')))
     } finally {
       setDeleteBusyId(null)
     }

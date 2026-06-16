@@ -30,44 +30,7 @@ import {
   labelGuideBookingTimeOfDay,
 } from '../../../components/ferrate/guideBookingDisplayLabels'
 import Loader from '../../../components/Loader'
-
-interface Korisnik extends WizardGuide {}
-
-const initialWizardValues = (tip: 'planina' | 'via_ferrata', fromBooking = false): WizardValues => ({
-  naziv: '',
-  actionKind: tip,
-  organizerType: fromBooking ? 'vodic' : 'klub',
-  visibility: fromBooking ? 'klubska' : 'klubska',
-  planina: '',
-  vrh: '',
-  datum: '',
-  vremePolaska: '09:00',
-  ferrataId: '',
-  opis: '',
-  tezina: '',
-  kumulativniUsponM: '',
-  duzinaStazeKm: '',
-  visinaVrhM: '',
-  zimskiUspon: false,
-  vodicId: '',
-  drugiVodicCheck: false,
-  drugiVodicIme: '',
-  trajanjeSati: '',
-  rokPrijava: '',
-  maxLjudi: '',
-  mestoPolaska: '',
-  kontaktTelefon: '',
-  brojDana: '1',
-  cenaClan: '',
-  cenaOstali: '',
-  prikaziListuPrijavljenih: true,
-  omoguciGrupniChat: false,
-  planinaLat: '',
-  planinaLng: '',
-  smestaj: [],
-  oprema: [],
-  prevoz: [],
-})
+import { createEmptyWizardValues } from './wizardDefaults'
 
 export default function AddAction() {
   const { t } = useTranslation('actionForms')
@@ -76,7 +39,7 @@ export default function AddAction() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [vodici, setVodici] = useState<Korisnik[]>([])
+  const [vodici, setVodici] = useState<WizardGuide[]>([])
   const [clubCurrency, setClubCurrency] = useState(() => parseClubCurrency('RSD'))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -103,7 +66,7 @@ export default function AddAction() {
   const [bookingPrefillError, setBookingPrefillError] = useState('')
   const [raceLostActionId, setRaceLostActionId] = useState<number | null>(null)
 
-  const [initial, setInitial] = useState<WizardValues>(() => initialWizardValues(tipAkcije, fromGuideOrganizer))
+  const [initial, setInitial] = useState<WizardValues>(() => createEmptyWizardValues(tipAkcije, fromGuideOrganizer))
   const [myKorisnikId, setMyKorisnikId] = useState<number | null>(null)
 
   const resolveMyKorisnikId = async (): Promise<number | null> => {
@@ -122,7 +85,7 @@ export default function AddAction() {
   useEffect(() => {
     // Ne resetuj formu dok učitavamo zahtev: inače kratko “blinkuje” prazna forma pa prefill.
     if (fromGuideOrganizer) return
-    setInitial(initialWizardValues(tipAkcije, false))
+    setInitial(createEmptyWizardValues(tipAkcije, false))
   }, [tipAkcije, fromGuideOrganizer])
 
   useEffect(() => {

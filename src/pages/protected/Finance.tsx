@@ -1,367 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from '../../context/AuthContext'
-import {
-  createClanarina,
-  createTransakcija,
-  deleteTransakcija,
-  fetchClanarine as fetchClanarineApi,
-  fetchFinansijeDashboard,
-} from '../../services/finansije'
-import { fetchKlub, updateKlub } from '../../services/club'
 import Dropdown from '../../components/Dropdown'
-import CalendarDropdown from '../../components/CalendarDropdown'
 import DatePartsSelect from '../../components/DatePartsSelect'
-import Loader from '../../components/Loader'
-import { formatDateShort, dateToYMD } from '../../utils/dateUtils'
 import { generateFinanceReportPdf } from '../../utils/generateFinanceReportPdf'
 import { PrinterIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
-
-type Tab = 'dashboard' | 'clanarine' | 'transakcije'
-type TransakcijaFilter = 'sve' | 'uplata' | 'isplata'
-type CurrencyCode = 'RSD' | 'BAM' | 'HRK' | 'EUR'
-type DatePickType = 'day' | 'month' | 'year' | 'range'
-
-interface KlubCurrencyResponse {
-  klub?: {
-    valuta?: string
-  }
-}
-
-interface Transakcija {
-  id: number
-  tip: string
-  iznos: number
-  opis?: string
-  datum: string
-  korisnikId: number
-  clanarinaKorisnikId?: number
-  createdAt: string
-  korisnik?: { fullName?: string; username?: string }
-  clanarinaKorisnik?: { fullName?: string; username?: string }
-}
-
-interface DashboardData {
-  saldo: number
-  uplate: number
-  isplate: number
-  transakcije: Transakcija[]
-  from: string
-  to: string
-}
-
-interface ClanarinaRow {
-  id: number
-  fullName: string
-  username: string
-  platio: boolean
-}
+import { useFinanceData } from './finance/useFinanceData'
+import FinanceDashboardTab from './finance/FinanceDashboardTab'
+import FinanceMembershipsTab from './finance/FinanceMembershipsTab'
+import FinanceTransactionsTab from './finance/FinanceTransactionsTab'
+import type { DatePickType, Tab } from './finance/financeTypes'
 
 export default function Finance() {
-  const { user } = useAuth()
   const { t } = useTranslation('finance')
-  const [tab, setTab] = useState<Tab>('dashboard')
-  const [currency, setCurrency] = useState<CurrencyCode>('RSD')
-  const [currencySaving, setCurrencySaving] = useState(false)
+  const finance = useFinanceData()
 
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [dashboardLoading, setDashboardLoading] = useState(false)
-  const now = new Date()
-  const todayYmd = dateToYMD(now)
-  const [currentPage, setCurrentPage] = useState(1)
-  const PAGE_SIZE = 5
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() + 1
-  const currentMonthStart = dateToYMD(new Date(currentYear, currentMonth - 1, 1))
-  const currentMonthEnd = dateToYMD(new Date(currentYear, currentMonth, 0))
-  const [fromDate, setFromDate] = useState(() => currentMonthStart)
-  const [toDate, setToDate] = useState(() => currentMonthEnd)
-  const [dateModalOpen, setDateModalOpen] = useState(false)
-  const [datePickType, setDatePickType] = useState<DatePickType>('month')
-  const [dayValue, setDayValue] = useState(todayYmd)
-  const [monthYear, setMonthYear] = useState<{ year: number; month: number }>({ year: currentYear, month: currentMonth })
-  const [yearValue, setYearValue] = useState(currentYear)
-  const [rangeStart, setRangeStart] = useState(fromDate)
-  const [rangeEnd, setRangeEnd] = useState(toDate)
-  const [transakcijaFilter, setTransakcijaFilter] = useState<TransakcijaFilter>('sve')
-
-  const [clanarine, setClanarine] = useState<ClanarinaRow[]>([])
-  const [clanarineLoading, setClanarineLoading] = useState(false)
-  const [clanarineGodina, setClanarineGodina] = useState(Math.max(2026, new Date().getFullYear()))
-  const [platiLoading, setPlatiLoading] = useState<number | null>(null)
-  const [clanarinaIznos, setClanarinaIznos] = useState(2320)
-  const [clanarinaIznosDraft, setClanarinaIznosDraft] = useState('2320')
-  const [clanarinaSaving, setClanarinaSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  const [transakcijaTip, setTransakcijaTip] = useState<'uplata' | 'isplata'>('uplata')
-  const [transakcijaIznos, setTransakcijaIznos] = useState('')
-  const [transakcijaDatum, setTransakcijaDatum] = useState(() => dateToYMD(new Date()))
-  const [transakcijaUplatilac, setTransakcijaUplatilac] = useState('')
-  const [transakcijaOpis, setTransakcijaOpis] = useState('')
-  const [transakcijaSubmitting, setTransakcijaSubmitting] = useState(false)
-  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
-  const [pendingDeleteTx, setPendingDeleteTx] = useState<Transakcija | null>(null)
-
-  const formatAmount = (value: number) => `${value.toLocaleString('sr-RS')} ${currency}`
-  const formatAbsAmount = (value: number) => `${Math.abs(value).toLocaleString('sr-RS')} ${currency}`
-  const canEditClubCurrency = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
-  const canDeleteTransactions = user?.role === 'superadmin' || user?.role === 'admin'
-  const selectableYears = Array.from({ length: 61 }, (_, i) => currentYear + 5 - i)
-  const monthOptions = [
-    { value: 1, label: 'Januar' },
-    { value: 2, label: 'Februar' },
-    { value: 3, label: 'Mart' },
-    { value: 4, label: 'April' },
-    { value: 5, label: 'Maj' },
-    { value: 6, label: 'Jun' },
-    { value: 7, label: 'Jul' },
-    { value: 8, label: 'Avgust' },
-    { value: 9, label: 'Septembar' },
-    { value: 10, label: 'Oktobar' },
-    { value: 11, label: 'Novembar' },
-    { value: 12, label: 'Decembar' },
-  ]
-
-  const daysInMonth = (year: number, month1to12: number) => new Date(year, month1to12, 0).getDate()
-  const periodLabel = `${formatDateShort(fromDate)} - ${formatDateShort(toDate)}`
-  const activeDateModeLabel =
-    datePickType === 'day'
-      ? 'Dan'
-      : datePickType === 'month'
-        ? 'Mesec'
-        : datePickType === 'year'
-          ? 'Godina'
-          : 'Period'
-  const quickSelectionHint =
-    datePickType === 'day'
-      ? 'Izaberi jedan dan.'
-      : datePickType === 'month'
-        ? 'Izaberi godinu i mesec.'
-        : datePickType === 'year'
-          ? 'Izaberi godinu.'
-          : 'Unesi početni i završni datum.'
-
-  const normalizeCurrency = (raw: unknown): CurrencyCode => {
-    const val = typeof raw === 'string' ? raw.toUpperCase().trim() : ''
-    if (val === 'BAM' || val === 'HRK' || val === 'EUR') return val
-    return 'RSD'
-  }
-
-  const fetchDashboard = async () => {
-    if (!user) return
-    setDashboardLoading(true)
-    setError('')
-    try {
-      const params = new URLSearchParams({ from: fromDate, to: toDate })
-      const data = await fetchFinansijeDashboard(params) as DashboardData
-      setDashboardData({
-        ...data,
-        transakcije: Array.isArray(data?.transakcije) ? data.transakcije : [],
-      })
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.load')
-      setError(msg)
-    } finally {
-      setDashboardLoading(false)
-    }
-  }
-
-  const fetchClanarine = async () => {
-    if (!user) return
-    setClanarineLoading(true)
-    setError('')
-    try {
-      const data = await fetchClanarineApi(clanarineGodina) as { clanarine?: typeof clanarine }
-      setClanarine(data.clanarine || [])
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.load')
-      setError(msg)
-    } finally {
-      setClanarineLoading(false)
-    }
-  }
-
-  const fetchClubCurrency = useCallback(async () => {
-    if (!user) return
-    try {
-      const klubData = await fetchKlub()
-      const nextCurrency = normalizeCurrency(klubData?.valuta)
-      setCurrency(nextCurrency)
-    } catch {
-      setCurrency('RSD')
-    }
-  }, [user])
-
-  useEffect(() => {
-    fetchClubCurrency()
-  }, [fetchClubCurrency])
-
-  useEffect(() => {
-    if (tab === 'dashboard') fetchDashboard()
-    else if (tab === 'clanarine') fetchClanarine()
-  }, [tab, fromDate, toDate, clanarineGodina])
-
-  const handleCurrencyChange = async (nextValue: string) => {
-    const nextCurrency = normalizeCurrency(nextValue)
-    if (nextCurrency === currency) return
-    setCurrency(nextCurrency)
-    if (!canEditClubCurrency) return
-    setCurrencySaving(true)
-    setError('')
-    try {
-      await updateKlub({ valuta: nextCurrency })
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
-      setError(msg)
-      await fetchClubCurrency()
-    } finally {
-      setCurrencySaving(false)
-    }
-  }
-
-  const applyDateSelection = () => {
-    if (datePickType === 'day') {
-      setFromDate(dayValue)
-      setToDate(dayValue)
-      setDateModalOpen(false)
-      return
-    }
-    if (datePickType === 'month') {
-      const start = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-01`
-      const end = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-${String(daysInMonth(monthYear.year, monthYear.month)).padStart(2, '0')}`
-      setFromDate(start)
-      setToDate(end)
-      setDateModalOpen(false)
-      return
-    }
-    if (datePickType === 'year') {
-      setFromDate(`${yearValue}-01-01`)
-      setToDate(`${yearValue}-12-31`)
-      setDateModalOpen(false)
-      return
-    }
-    if (!rangeStart || !rangeEnd) {
-      setError('Izaberi početni i završni datum.')
-      return
-    }
-    if (rangeStart > rangeEnd) {
-      setError('Početni datum mora biti pre završnog.')
-      return
-    }
-    setFromDate(rangeStart)
-    setToDate(rangeEnd)
-    setDateModalOpen(false)
-  }
-
-  const handleNovaTransakcija = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const iznos = Number(transakcijaIznos?.replace(/,/g, '.'))
-    if (!iznos || iznos <= 0) {
-      setError(t('errors.invalidAmount'))
-      return
-    }
-    if (transakcijaDatum > todayYmd) {
-      setError(t('errors.futureDate'))
-      return
-    }
-    const opis = [transakcijaUplatilac.trim(), transakcijaOpis.trim()].filter(Boolean).join(' – ') || undefined
-    setTransakcijaSubmitting(true)
-    setError('')
-    try {
-      await createTransakcija({
-        tip: transakcijaTip,
-        iznos,
-        datum: transakcijaDatum,
-        opis: opis || '',
-      })
-      setTransakcijaIznos('')
-      setTransakcijaOpis('')
-      setTransakcijaUplatilac('')
-      setTransakcijaDatum(dateToYMD(new Date()))
-      await fetchDashboard()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
-      setError(msg)
-    } finally {
-      setTransakcijaSubmitting(false)
-    }
-  }
-
-  const handlePlati = async (korisnikId: number) => {
-    setPlatiLoading(korisnikId)
-    setError('')
-    try {
-      const today = dateToYMD(new Date())
-      await createClanarina({
-        korisnikId,
-        iznos: clanarinaIznos,
-        datum: today,
-      })
-      await fetchClanarine()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.generic')
-      setError(msg)
-    } finally {
-      setPlatiLoading(null)
-    }
-  }
-
-  const handlePromeniClanarinu = () => {
-    const parsed = Number(clanarinaIznosDraft.replace(/,/g, '.'))
-    if (!parsed || parsed <= 0) {
-      setError('Unesite ispravan iznos članarine.')
-      return
-    }
-    setClanarinaSaving(true)
-    setError('')
-    setClanarinaIznos(parsed)
-    setClanarinaIznosDraft(String(parsed))
-    setTimeout(() => setClanarinaSaving(false), 250)
-  }
-
-  const handleDeleteTransakcija = (tx: Transakcija) => {
-    if (!canDeleteTransactions || deleteLoadingId !== null) return
-    setPendingDeleteTx(tx)
-  }
-
-  const confirmDeleteTransakcija = async () => {
-    if (!pendingDeleteTx) return
-    setDeleteLoadingId(pendingDeleteTx.id)
-    setError('')
-    try {
-      await deleteTransakcija(pendingDeleteTx.id)
-      await fetchDashboard()
-      await fetchClanarine()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('errors.save')
-      setError(msg)
-    } finally {
-      setDeleteLoadingId(null)
-      setPendingDeleteTx(null)
-    }
-  }
-
-  if (!user) return null
-
-  const filteredTransakcije = dashboardData?.transakcije.filter((t) => {
-    if (transakcijaFilter === 'sve') return true
-    return t.tip === transakcijaFilter
-  }) ?? []
-  const reportUplate = filteredTransakcije
-    .filter((tx) => tx.tip === 'uplata')
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.iznos) || 0), 0)
-  const reportIsplate = filteredTransakcije
-    .filter((tx) => tx.tip === 'isplata')
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.iznos) || 0), 0)
-  const reportSaldo = reportUplate - reportIsplate
-
-  const totalPages = Math.max(1, Math.ceil(filteredTransakcije.length / PAGE_SIZE))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const paginatedTransakcije = filteredTransakcije.slice(
-    (safeCurrentPage - 1) * PAGE_SIZE,
-    safeCurrentPage * PAGE_SIZE
-  )
+  if (!finance.user) return null
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     {
@@ -397,7 +49,6 @@ export default function Finance() {
     <div className="pb-16 md:pb-10">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8 space-y-6 sm:space-y-8">
 
-        {/* ══════════ PAGE HEADER ══════════ */}
         <div className="flex flex-col gap-4 rounded-[28px] border border-emerald-100/80 bg-gradient-to-br from-white via-white to-emerald-50/60 p-5 shadow-[0_16px_40px_-30px_rgba(16,185,129,0.35)] sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
@@ -409,7 +60,7 @@ export default function Finance() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {canEditClubCurrency ? (
+            {finance.canEditClubCurrency ? (
               <Dropdown
                 aria-label={t('currency.ariaLabel')}
                 options={[
@@ -418,31 +69,31 @@ export default function Finance() {
                   { value: 'HRK', label: 'HRK' },
                   { value: 'EUR', label: 'EUR' },
                 ]}
-                value={currency}
-                onChange={handleCurrencyChange}
+                value={finance.currency}
+                onChange={finance.handleCurrencyChange}
                 minTriggerWidth="110px"
                 className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
               />
             ) : (
               <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-sm min-w-[110px] justify-center">
-                {currency}
+                {finance.currency}
               </div>
             )}
-            {currencySaving && (
+            {finance.currencySaving && (
               <span className="text-[11px] text-gray-500">{t('common.saving')}</span>
             )}
-            {dashboardData && tab === 'dashboard' && (
+            {finance.dashboardData && finance.tab === 'dashboard' && (
               <button
                 type="button"
                 onClick={() =>
                   generateFinanceReportPdf({
-                    from: fromDate,
-                    to: toDate,
-                    transakcije: filteredTransakcije,
-                    uplate: reportUplate,
-                    isplate: reportIsplate,
-                    saldo: reportSaldo,
-                    currency,
+                    from: finance.fromDate,
+                    to: finance.toDate,
+                    transakcije: finance.filteredTransakcije,
+                    uplate: finance.reportUplate,
+                    isplate: finance.reportIsplate,
+                    saldo: finance.reportSaldo,
+                    currency: finance.currency,
                   })
                 }
                 title={t('pdf.printTitle')}
@@ -456,36 +107,35 @@ export default function Finance() {
           </div>
         </div>
 
-        {/* ══════════ TABS ══════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex divide-x divide-gray-100">
-            {tabs.map((t) => (
+            {tabs.map((tabItem) => (
               <button
-                key={t.key}
+                key={tabItem.key}
                 type="button"
-                onClick={() => { setTab(t.key); setCurrentPage(1) }}
+                onClick={() => finance.setTab(tabItem.key)}
                 className={`flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-4 text-xs sm:text-sm font-semibold transition-all ${
-                  tab === t.key
+                  finance.tab === tabItem.key
                     ? 'text-emerald-600 bg-emerald-50/60'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/60'
                 }`}
               >
-                <span className={`${tab === t.key ? 'text-emerald-500' : 'text-gray-400'}`}>{t.icon}</span>
-                <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.label.split(' ')[0]}</span>
+                <span className={`${finance.tab === tabItem.key ? 'text-emerald-500' : 'text-gray-400'}`}>{tabItem.icon}</span>
+                <span className="hidden sm:inline">{tabItem.label}</span>
+                <span className="sm:hidden">{tabItem.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {error && (
+        {finance.error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-start gap-2">
             <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white flex-shrink-0">!</span>
-            <span>{error}</span>
+            <span>{finance.error}</span>
           </div>
         )}
 
-        {dateModalOpen && (
+        {finance.dateModalOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px] p-4">
             <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_32px_100px_-24px_rgba(15,23,42,0.45)]">
               <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
@@ -495,7 +145,7 @@ export default function Finance() {
                     <p className="mt-1 text-sm text-slate-500">Izaberi tip i datum za pregled finansija.</p>
                   </div>
                   <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                    {activeDateModeLabel}
+                    {finance.activeDateModeLabel}
                   </span>
                 </div>
               </div>
@@ -510,32 +160,27 @@ export default function Finance() {
                       { value: 'year', label: 'Godina' },
                       { value: 'range', label: 'Period' },
                     ]}
-                    value={datePickType}
-                    onChange={(v) => setDatePickType(v as DatePickType)}
+                    value={finance.datePickType}
+                    onChange={(v) => finance.setDatePickType(v as DatePickType)}
                     fullWidth
                   />
-                  <p className="mt-2.5 text-xs leading-5 text-gray-500">{quickSelectionHint}</p>
+                  <p className="mt-2.5 text-xs leading-5 text-gray-500">{finance.quickSelectionHint}</p>
                 </div>
 
-                {datePickType === 'day' && (
+                {finance.datePickType === 'day' && (
                   <div className="rounded-2xl border border-gray-100 bg-white p-4">
                     <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Odaberi dan</label>
                     <DatePartsSelect
-                      value={dayValue}
-                      onChange={setDayValue}
+                      value={finance.dayValue}
+                      onChange={finance.setDayValue}
                       placeholderDay="Dan"
                       placeholderMonth="Mesec"
                       placeholderYear="Godina"
-                      maxYear={currentYear + 5}
+                      maxYear={finance.currentYear + 5}
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setDayValue(todayYmd)
-                        setFromDate(todayYmd)
-                        setToDate(todayYmd)
-                        setDateModalOpen(false)
-                      }}
+                      onClick={finance.applyTodayInModal}
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-100"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -546,83 +191,83 @@ export default function Finance() {
                   </div>
                 )}
 
-                {datePickType === 'month' && (
+                {finance.datePickType === 'month' && (
                   <div className="rounded-2xl border border-gray-100 bg-white p-4">
                     <label className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Odaberi mesec</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Godina</label>
-                      <select
-                        className="min-h-[46px] w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                        value={monthYear.year}
-                        onChange={(e) => setMonthYear((p) => ({ ...p, year: Number(e.target.value) }))}
-                      >
-                        {selectableYears.map((y) => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Godina</label>
+                        <select
+                          className="min-h-[46px] w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                          value={finance.monthYear.year}
+                          onChange={(e) => finance.setMonthYear((p) => ({ ...p, year: Number(e.target.value) }))}
+                        >
+                          {finance.selectableYears.map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Mesec</label>
+                        <select
+                          className="min-h-[46px] w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                          value={finance.monthYear.month}
+                          onChange={(e) => finance.setMonthYear((p) => ({ ...p, month: Number(e.target.value) }))}
+                        >
+                          {finance.monthOptions.map((m) => (
+                            <option key={m.value} value={m.value}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Mesec</label>
-                      <select
-                        className="min-h-[46px] w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                        value={monthYear.month}
-                        onChange={(e) => setMonthYear((p) => ({ ...p, month: Number(e.target.value) }))}
-                      >
-                        {monthOptions.map((m) => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
                   </div>
                 )}
 
-                {datePickType === 'year' && (
+                {finance.datePickType === 'year' && (
                   <div className="rounded-2xl border border-gray-100 bg-white p-4">
                     <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Odaberi godinu</label>
                     <select
                       className="min-h-[46px] w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                      value={yearValue}
-                      onChange={(e) => setYearValue(Number(e.target.value))}
+                      value={finance.yearValue}
+                      onChange={(e) => finance.setYearValue(Number(e.target.value))}
                     >
-                      {selectableYears.map((y) => (
+                      {finance.selectableYears.map((y) => (
                         <option key={y} value={y}>{y}</option>
                       ))}
                     </select>
                   </div>
                 )}
 
-                {datePickType === 'range' && (
+                {finance.datePickType === 'range' && (
                   <div className="rounded-2xl border border-gray-100 bg-white p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Odaberi period</label>
                       <span className="text-[11px] font-medium text-gray-400">Od - do</span>
                     </div>
                     <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Početni datum</label>
-                      <DatePartsSelect
-                        value={rangeStart}
-                        onChange={setRangeStart}
-                        placeholderDay="Dan"
-                        placeholderMonth="Mesec"
-                        placeholderYear="Godina"
-                        maxYear={currentYear + 5}
-                      />
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Početni datum</label>
+                        <DatePartsSelect
+                          value={finance.rangeStart}
+                          onChange={finance.setRangeStart}
+                          placeholderDay="Dan"
+                          placeholderMonth="Mesec"
+                          placeholderYear="Godina"
+                          maxYear={finance.currentYear + 5}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Završni datum</label>
+                        <DatePartsSelect
+                          value={finance.rangeEnd}
+                          onChange={finance.setRangeEnd}
+                          placeholderDay="Dan"
+                          placeholderMonth="Mesec"
+                          placeholderYear="Godina"
+                          maxYear={finance.currentYear + 5}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Završni datum</label>
-                      <DatePartsSelect
-                        value={rangeEnd}
-                        onChange={setRangeEnd}
-                        placeholderDay="Dan"
-                        placeholderMonth="Mesec"
-                        placeholderYear="Godina"
-                        maxYear={currentYear + 5}
-                      />
-                    </div>
-                  </div>
                   </div>
                 )}
               </div>
@@ -630,14 +275,14 @@ export default function Finance() {
               <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
                 <button
                   type="button"
-                  onClick={() => setDateModalOpen(false)}
+                  onClick={() => finance.setDateModalOpen(false)}
                   className="px-4 py-2.5 rounded-2xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50"
                 >
                   Otkaži
                 </button>
                 <button
                   type="button"
-                  onClick={applyDateSelection}
+                  onClick={finance.applyDateSelection}
                   className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all bg-gradient-to-r from-emerald-500 via-emerald-500 to-teal-500 hover:from-emerald-400 hover:via-emerald-500 hover:to-teal-400"
                 >
                   Primeni
@@ -647,7 +292,7 @@ export default function Finance() {
           </div>
         )}
 
-        {pendingDeleteTx && (
+        {finance.pendingDeleteTx && (
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px] p-4">
             <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_32px_100px_-24px_rgba(15,23,42,0.45)]">
               <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
@@ -655,7 +300,7 @@ export default function Finance() {
                   Da li želite da izbrišete transakciju?
                 </h3>
                 <p className="mt-2 text-sm text-slate-500">
-                  {pendingDeleteTx.tip === 'uplata' && pendingDeleteTx.clanarinaKorisnikId
+                  {finance.pendingDeleteTx.tip === 'uplata' && finance.pendingDeleteTx.clanarinaKorisnikId
                     ? 'Brisanjem uplate članarine korisnik se vraća na status da nije platio članarinu.'
                     : 'Ova akcija će trajno ukloniti stavku iz istorije.'}
                 </p>
@@ -663,643 +308,83 @@ export default function Finance() {
               <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
                 <button
                   type="button"
-                  onClick={() => setPendingDeleteTx(null)}
-                  disabled={deleteLoadingId === pendingDeleteTx.id}
+                  onClick={() => finance.setPendingDeleteTx(null)}
+                  disabled={finance.deleteLoadingId === finance.pendingDeleteTx.id}
                   className="px-4 py-2.5 rounded-2xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Otkaži
                 </button>
                 <button
                   type="button"
-                  onClick={confirmDeleteTransakcija}
-                  disabled={deleteLoadingId === pendingDeleteTx.id}
+                  onClick={finance.confirmDeleteTransakcija}
+                  disabled={finance.deleteLoadingId === finance.pendingDeleteTx.id}
                   className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition-all bg-gradient-to-r from-rose-500 via-rose-500 to-red-500 hover:from-rose-400 hover:via-rose-500 hover:to-red-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {deleteLoadingId === pendingDeleteTx.id ? 'Brisanje...' : 'Obriši'}
+                  {finance.deleteLoadingId === finance.pendingDeleteTx.id ? 'Brisanje...' : 'Obriši'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ══════════ DASHBOARD TAB ══════════ */}
-        {tab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* Period controls */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">{t('period.title')}</h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{periodLabel}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dropdown
-                    aria-label={t('filters.transactionsAria')}
-                    options={[
-                      { value: 'sve', label: t('filters.allTransactions') },
-                      { value: 'uplata', label: t('filters.onlyIncome') },
-                      { value: 'isplata', label: t('filters.onlyExpense') },
-                    ]}
-                    value={transakcijaFilter}
-                    onChange={(v) => setTransakcijaFilter(v as TransakcijaFilter)}
-                    minTriggerWidth="170px"
-                    className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm [&_button]:hover:bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                  <div className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">
-                      Odaberi period
-                    </span>
-                    <div className="mt-2 text-lg font-bold tracking-tight text-gray-900">{periodLabel}</div>
-                    <div className="mt-2 inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
-                      Tip pregleda: <span className="ml-1 font-semibold text-gray-900">{activeDateModeLabel}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRangeStart(fromDate)
-                      setRangeEnd(toDate)
-                      setDayValue(fromDate)
-                      setDateModalOpen(true)
-                    }}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15">
-                      <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </span>
-                    Odaberi datum
-                  </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {dashboardLoading ? (
-              <Loader />
-            ) : dashboardData ? (
-              <>
-                {/* ── Summary cards ── */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 divide-y divide-gray-100 sm:divide-y-0 sm:divide-x">
-                    <SummaryCell
-                      icon={
-                        <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                        </svg>
-                      }
-                      iconBg="bg-emerald-50"
-                      value={formatAmount(dashboardData.saldo)}
-                      label={t('summary.balance')}
-                      accent={dashboardData.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}
-                    />
-                    <SummaryCell
-                      icon={
-                        <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                      }
-                      iconBg="bg-green-50"
-                      value={formatAmount(dashboardData.uplate)}
-                      label={t('summary.income')}
-                      accent="text-green-600"
-                    />
-                    <SummaryCell
-                      icon={
-                        <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-                        </svg>
-                      }
-                      iconBg="bg-rose-50"
-                      value={formatAmount(dashboardData.isplate)}
-                      label={t('summary.expense')}
-                      accent="text-rose-600"
-                    />
-                  </div>
-                </div>
-
-                {/* ── Transaction list ── */}
-                <section className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100">
-                      <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                      </svg>
-                    </span>
-                    <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">{t('transactions.inPeriod')}</h2>
-                    {filteredTransakcije.length > 0 && (
-                      <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                        {filteredTransakcije.length}
-                      </span>
-                    )}
-                    </div>
-                    <div className="text-xs font-medium text-gray-500">
-                      Filter: <span className="font-semibold text-gray-700">{transakcijaFilter === 'sve' ? t('filters.allTransactions') : transakcijaFilter === 'uplata' ? t('filters.onlyIncome') : t('filters.onlyExpense')}</span>
-                    </div>
-                  </div>
-
-                  {filteredTransakcije.length === 0 ? (
-                    <EmptyState
-                      icon={
-                        <svg className="w-6 h-6 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                        </svg>
-                      }
-                      text={t('transactions.empty')}
-                      sub={t('transactions.emptySub')}
-                    />
-                  ) : (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      {/* Desktop table */}
-                      <div className="hidden sm:block overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                          <thead>
-                            <tr className="bg-gray-50/80">
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.date')}</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.type')}</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.amount')}</th>
-                              <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('transactions.table.description')}</th>
-                              {canDeleteTransactions && (
-                                <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Akcija</th>
-                              )}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {paginatedTransakcije.map((tx) => (
-                              <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-5 py-3.5 text-sm text-gray-600 font-medium">{formatDateShort(tx.datum)}</td>
-                                <td className="px-5 py-3.5">
-                                  <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                      tx.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                                    }`}
-                                  >
-                                    {tx.tip === 'uplata' ? t('transactions.type.income') : t('transactions.type.expense')}
-                                  </span>
-                                  {tx.clanarinaKorisnik && (
-                                    <span className="ml-2 text-xs text-gray-400">
-                                      ({tx.clanarinaKorisnik.fullName || tx.clanarinaKorisnik.username})
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-5 py-3.5 text-sm font-semibold text-gray-900">
-                                  {formatAbsAmount(tx.iznos)}
-                                </td>
-                                <td className="px-5 py-3.5 text-sm text-gray-500 max-w-[12rem] sm:max-w-[16rem]">
-                                  <span className="block truncate" title={tx.opis || undefined}>
-                                    {tx.opis || t('common.emptyValue')}
-                                  </span>
-                                </td>
-                                {canDeleteTransactions && (
-                                  <td className="px-5 py-3.5 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteTransakcija(tx)}
-                                      disabled={deleteLoadingId === tx.id}
-                                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {deleteLoadingId === tx.id ? '...' : 'Obriši'}
-                                    </button>
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Mobile cards */}
-                      <div className="sm:hidden divide-y divide-gray-50">
-                        {paginatedTransakcije.map((tx) => (
-                          <div key={tx.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                            <div className="flex justify-between items-start gap-2">
-                              <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                  tx.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                                }`}
-                              >
-                                {tx.tip === 'uplata' ? t('transactions.type.income') : t('transactions.type.expense')}
-                              </span>
-                              <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                {formatAbsAmount(tx.iznos)}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-gray-400 font-medium mt-1.5">{formatDateShort(tx.datum)}</p>
-                            <p className="text-sm text-gray-600 mt-1 truncate max-w-full" title={tx.opis || undefined}>
-                              {tx.opis || t('common.emptyValue')}
-                            </p>
-                            {tx.clanarinaKorisnik && (
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                ({tx.clanarinaKorisnik.fullName || tx.clanarinaKorisnik.username})
-                              </p>
-                            )}
-                            {canDeleteTransactions && (
-                              <div className="mt-3">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTransakcija(tx)}
-                                  disabled={deleteLoadingId === tx.id}
-                                  className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {deleteLoadingId === tx.id ? '...' : 'Obriši'}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Pagination */}
-                      {totalPages > 1 && (
-                        <Pagination
-                          currentPage={safeCurrentPage}
-                          totalPages={totalPages}
-                          onPageChange={setCurrentPage}
-                          prevLabel={t('pagination.previous')}
-                          nextLabel={t('pagination.next')}
-                          prevAria={t('pagination.previousAria')}
-                          nextAria={t('pagination.nextAria')}
-                          pageAria={t('pagination.pageAria')}
-                          pageOf={t('pagination.pageOf', { currentPage: safeCurrentPage, totalPages })}
-                        />
-                      )}
-                    </div>
-                  )}
-                </section>
-              </>
-            ) : null}
-          </div>
+        {finance.tab === 'dashboard' && (
+          <FinanceDashboardTab
+            dashboardData={finance.dashboardData}
+            dashboardLoading={finance.dashboardLoading}
+            periodLabel={finance.periodLabel}
+            activeDateModeLabel={finance.activeDateModeLabel}
+            transakcijaFilter={finance.transakcijaFilter}
+            setTransakcijaFilter={finance.setTransakcijaFilter}
+            openDateModal={finance.openDateModal}
+            formatAmount={finance.formatAmount}
+            formatAbsAmount={finance.formatAbsAmount}
+            canDeleteTransactions={finance.canDeleteTransactions}
+            filteredTransakcije={finance.filteredTransakcije}
+            paginatedTransakcije={finance.paginatedTransakcije}
+            totalPages={finance.totalPages}
+            safeCurrentPage={finance.safeCurrentPage}
+            setCurrentPage={finance.setCurrentPage}
+            deleteLoadingId={finance.deleteLoadingId}
+            handleDeleteTransakcija={finance.handleDeleteTransakcija}
+          />
         )}
 
-        {/* ══════════ TRANSAKCIJE TAB ══════════ */}
-        {tab === 'transakcije' && (
-            <div className="flex justify-center">
-            <div className="max-w-2xl w-full">
-              <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-visible">
-                <div className="p-5 sm:p-6">
-                  <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
-                    <div className="flex items-center gap-2.5">
-                    <div className="flex-shrink-0 h-9 w-9 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900">{t('newTransaction.title')}</h3>
-                      <p className="text-[11px] text-gray-500">{t('newTransaction.subtitle')}</p>
-                    </div>
-                    </div>
-                    <div className="hidden sm:inline-flex rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-600">
-                      {currency}
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleNovaTransakcija} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.type')}</label>
-                      <Dropdown
-                        options={[
-                          { value: 'uplata', label: t('transactions.type.income') },
-                          { value: 'isplata', label: t('transactions.type.expense') },
-                        ]}
-                        value={transakcijaTip}
-                        onChange={(v) => setTransakcijaTip(v as 'uplata' | 'isplata')}
-                        fullWidth
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                        {transakcijaTip === 'uplata' ? t('newTransaction.payerOptional') : t('newTransaction.payeeOptional')}
-                      </label>
-                      <input
-                        type="text"
-                        value={transakcijaUplatilac}
-                        onChange={(e) => setTransakcijaUplatilac(e.target.value)}
-                        placeholder={transakcijaTip === 'uplata' ? t('newTransaction.payerPlaceholder') : t('newTransaction.payeePlaceholder')}
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.amountRequired', { currency })}</label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={transakcijaIznos}
-                        onChange={(e) => setTransakcijaIznos(e.target.value.replace(/[^0-9,.]/g, ''))}
-                        placeholder={t('newTransaction.amountPlaceholder')}
-                        required
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.dateRequired')}</label>
-                      <CalendarDropdown
-                        value={transakcijaDatum}
-                        onChange={setTransakcijaDatum}
-                        placeholder={t('newTransaction.chooseDate')}
-                        maxDate={todayYmd}
-                        fullWidth
-                        aria-label={t('newTransaction.dateAria')}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t('newTransaction.descriptionOptional')}</label>
-                      <input
-                        type="text"
-                        value={transakcijaOpis}
-                        onChange={(e) => setTransakcijaOpis(e.target.value)}
-                        placeholder={t('newTransaction.descriptionPlaceholder')}
-                        className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                      />
-                    </div>
-                    <div className="sm:col-span-2 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={transakcijaSubmitting}
-                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {transakcijaSubmitting ? t('common.saving') : t('newTransaction.save')}
-                    </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+        {finance.tab === 'transakcije' && (
+          <FinanceTransactionsTab
+            currency={finance.currency}
+            todayYmd={finance.todayYmd}
+            transakcijaTip={finance.transakcijaTip}
+            setTransakcijaTip={finance.setTransakcijaTip}
+            transakcijaIznos={finance.transakcijaIznos}
+            setTransakcijaIznos={finance.setTransakcijaIznos}
+            transakcijaDatum={finance.transakcijaDatum}
+            setTransakcijaDatum={finance.setTransakcijaDatum}
+            transakcijaUplatilac={finance.transakcijaUplatilac}
+            setTransakcijaUplatilac={finance.setTransakcijaUplatilac}
+            transakcijaOpis={finance.transakcijaOpis}
+            setTransakcijaOpis={finance.setTransakcijaOpis}
+            transakcijaSubmitting={finance.transakcijaSubmitting}
+            handleNovaTransakcija={finance.handleNovaTransakcija}
+          />
         )}
 
-        {/* ══════════ ČLANARINE TAB ══════════ */}
-        {tab === 'clanarine' && (
-          <div className="space-y-6">
-            {/* Info banner */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-start gap-3">
-              <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-50 flex-shrink-0">
-                <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                </svg>
-              </span>
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                {t('memberships.info')}
-              </p>
-            </div>
-
-            {/* Controls */}
-            <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-4 sm:p-5">
-              <div className="flex flex-wrap gap-4 sm:gap-6 items-end">
-                <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('memberships.year')}</span>
-                  <Dropdown
-                    aria-label={t('memberships.yearAria')}
-                    options={Array.from({ length: Math.max(0, currentYear - 2026 + 1) }, (_, i) => 2026 + i)
-                      .sort((a, b) => b - a)
-                      .map((y) => ({ value: String(y), label: `${y}.` }))}
-                    value={String(clanarineGodina)}
-                    onChange={(v) => setClanarineGodina(Number(v))}
-                    minTriggerWidth="120px"
-                    className="[&_button]:min-h-[38px] [&_button]:rounded-xl [&_button]:border-gray-200 [&_button]:shadow-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <span className="block text-gray-500 font-semibold text-[11px] uppercase tracking-wider">{t('memberships.amount', { currency })}</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={clanarinaIznosDraft}
-                      onChange={(e) => setClanarinaIznosDraft(e.target.value.replace(/[^0-9,.]/g, ''))}
-                      className="w-24 sm:w-28 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={handlePromeniClanarinu}
-                      disabled={clanarinaSaving}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {clanarinaSaving ? '...' : 'Promeni članarinu'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {clanarineLoading ? (
-              <Loader />
-            ) : clanarine.length === 0 ? (
-              <EmptyState
-                icon={
-                  <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                  </svg>
-                }
-                text={t('memberships.noUsers')}
-                sub={t('memberships.noUsersSub')}
-              />
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {/* Desktop table */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-100">
-                    <thead>
-                      <tr className="bg-gray-50/80">
-                        <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('memberships.table.user')}</th>
-                        <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('memberships.table.status')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {clanarine.map((row) => (
-                        <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-5 py-3.5">
-                            <span className="font-semibold text-gray-900">{row.fullName || row.username}</span>
-                            {row.fullName && <span className="ml-2 text-xs text-gray-400">@{row.username}</span>}
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            {row.platio ? (
-                              <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                {t('memberships.paid')}
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handlePlati(row.id)}
-                                disabled={platiLoading === row.id}
-                                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {platiLoading === row.id ? t('memberships.waiting') : t('memberships.pay')}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile cards */}
-                <div className="sm:hidden divide-y divide-gray-50">
-                  {clanarine.map((row) => (
-                    <div key={row.id} className="p-4 flex justify-between items-center gap-3">
-                      <div className="min-w-0">
-                        <span className="font-semibold text-gray-900 block truncate">{row.fullName || row.username}</span>
-                        {row.fullName && <span className="text-xs text-gray-400">@{row.username}</span>}
-                      </div>
-                      <div className="flex-shrink-0">
-                        {row.platio ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-sm">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                            {t('memberships.paid')}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handlePlati(row.id)}
-                            disabled={platiLoading === row.id}
-                            className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {platiLoading === row.id ? '...' : t('memberships.pay')}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        {finance.tab === 'clanarine' && (
+          <FinanceMembershipsTab
+            currency={finance.currency}
+            currentYear={finance.currentYear}
+            clanarine={finance.clanarine}
+            clanarineLoading={finance.clanarineLoading}
+            clanarineGodina={finance.clanarineGodina}
+            setClanarineGodina={finance.setClanarineGodina}
+            clanarinaIznosDraft={finance.clanarinaIznosDraft}
+            setClanarinaIznosDraft={finance.setClanarinaIznosDraft}
+            clanarinaSaving={finance.clanarinaSaving}
+            handlePromeniClanarinu={finance.handlePromeniClanarinu}
+            platiLoading={finance.platiLoading}
+            handlePlati={finance.handlePlati}
+          />
         )}
       </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Sub-components
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function SummaryCell({ icon, iconBg, value, label, accent }: {
-  icon: React.ReactNode
-  iconBg: string
-  value: string
-  label: string
-  accent: string
-}) {
-  return (
-    <div className="flex items-center justify-between sm:justify-center gap-3 py-4 px-4 sm:px-3">
-      <div className={`flex-shrink-0 h-8 w-8 rounded-xl ${iconBg} flex items-center justify-center`}>
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1 sm:flex-initial">
-        <p className={`text-base sm:text-lg font-extrabold leading-none tracking-tight ${accent} break-words`}>
-          {value}
-        </p>
-        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">{label}</p>
-      </div>
-    </div>
-  )
-}
-
-function Pagination({ currentPage, totalPages, onPageChange, prevLabel, nextLabel, prevAria, nextAria, pageAria, pageOf }: {
-  currentPage: number
-  totalPages: number
-  onPageChange: (page: number) => void
-  prevLabel: string
-  nextLabel: string
-  prevAria: string
-  nextAria: string
-  pageAria: string
-  pageOf: string
-}) {
-  const prevDisabled = currentPage === 1
-  const nextDisabled = currentPage === totalPages
-
-  const getPageNumbers = (): (number | 'ellipsis')[] => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1)
-    const pages: (number | 'ellipsis')[] = [1]
-    const left = Math.max(2, currentPage - 1)
-    const right = Math.min(totalPages - 1, currentPage + 1)
-    if (left > 2) pages.push('ellipsis')
-    for (let p = left; p <= right; p++) if (p !== 1 && p !== totalPages) pages.push(p)
-    if (right < totalPages - 1) pages.push('ellipsis')
-    if (totalPages > 1) pages.push(totalPages)
-    return pages
-  }
-
-  const pageNumbers = getPageNumbers()
-
-  return (
-    <div className="border-t border-gray-100 bg-gray-50/50 px-3 sm:px-4 py-3 sm:py-3.5">
-      <div className="flex items-center justify-center gap-1 sm:gap-2 min-w-0 max-w-full">
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={prevDisabled}
-          aria-label={prevAria}
-          className="shrink-0 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 shadow-sm transition-all disabled:opacity-40 disabled:pointer-events-none hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span className="hidden sm:inline">{prevLabel}</span>
-        </button>
-        <div className="flex items-center justify-center gap-0.5 sm:gap-1 min-w-0 flex-1 max-w-full overflow-hidden">
-          {pageNumbers.map((page, idx) =>
-            page === 'ellipsis' ? (
-              <span key={`e-${idx}`} className="px-1 sm:px-1.5 text-gray-400 select-none text-sm" aria-hidden>
-                …
-              </span>
-            ) : (
-              <button
-                key={page}
-                type="button"
-                onClick={() => onPageChange(page)}
-                aria-label={`${pageAria} ${page}`}
-                aria-current={page === currentPage ? 'page' : undefined}
-                className={`shrink-0 min-w-[2rem] w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-sm font-medium transition-all ${
-                  page === currentPage
-                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-500/30'
-                    : 'bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100'
-                }`}
-              >
-                {page}
-              </button>
-            )
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={nextDisabled}
-          aria-label={nextAria}
-          className="shrink-0 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-200 shadow-sm transition-all disabled:opacity-40 disabled:pointer-events-none hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100"
-        >
-          <span className="hidden sm:inline">{nextLabel}</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-      <p className="text-center text-[11px] text-gray-400 font-medium mt-2 sm:mt-2.5">{pageOf}</p>
-    </div>
-  )
-}
-
-function EmptyState({ icon, text, sub }: { icon: React.ReactNode; text: string; sub?: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-10 sm:p-14 text-center max-w-xl mx-auto">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 mb-3">
-        {icon}
-      </div>
-      <p className="text-sm text-gray-500 font-medium">{text}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
 }
