@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { XMarkIcon, CalendarDaysIcon, PlusIcon, UserGroupIcon, ClockIcon } from '@heroicons/react/24/outline'
@@ -38,12 +39,17 @@ export function PeakCreateActionModal({ open, onClose, peak, canClub, canGuide }
   const optionBtn =
     'flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.99]'
 
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 p-0 pb-20 backdrop-blur-sm md:items-center md:pb-0 md:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="peak-create-action-title"
+    >
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl md:rounded-3xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-base font-extrabold tracking-tight text-emerald-900">
+            <h2 id="peak-create-action-title" className="text-base font-extrabold tracking-tight text-emerald-900">
               {t('peakCreateModal.title')}
             </h2>
             <p className="mt-0.5 truncate text-sm text-gray-500">
@@ -144,6 +150,7 @@ export function PeakCreateActionModal({ open, onClose, peak, canClub, canGuide }
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
