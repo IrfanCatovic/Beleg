@@ -41,15 +41,15 @@ export function PeakCreateActionModal({ open, onClose, peak, canClub, canGuide }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/40 p-0 pb-20 backdrop-blur-sm md:items-center md:pb-0 md:p-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-3 pt-[calc(3.5rem+0.75rem)] pb-[calc(5rem+0.75rem)] backdrop-blur-sm md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="peak-create-action-title"
     >
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl md:rounded-3xl">
-        <div className="flex items-start justify-between gap-3">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-xl ring-1 ring-black/[0.04]">
+        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
           <div className="min-w-0">
-            <h2 id="peak-create-action-title" className="text-base font-extrabold tracking-tight text-emerald-900">
+            <h2 id="peak-create-action-title" className="text-base font-bold text-gray-900">
               {t('peakCreateModal.title')}
             </h2>
             <p className="mt-0.5 truncate text-sm text-gray-500">
@@ -60,14 +60,14 @@ export function PeakCreateActionModal({ open, onClose, peak, canClub, canGuide }
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
             aria-label={t('peakCreateModal.close')}
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mt-4 space-y-2.5">
+        <div className="space-y-2.5 px-4 py-4 sm:px-5">
           {step === 'kind' && (
             <>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
