@@ -6,6 +6,7 @@ import { fetchExploreMapData } from '../../services/catalog'
 import { useAuth } from '../../context/AuthContext'
 import { isApprovedProfiGuide } from '../../services/guideProfiles'
 import { PlaninerMapFrame } from '../../map/components/PlaninerMapFrame'
+import { PlaninerMapOverlay } from '../../map/components/PlaninerMapOverlay'
 import { FerrataMapPopup, HotelMapPopup, PeakMapPopup } from '../../map/components/MapExplorePopups'
 import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { HotelMarkerElement } from '../../map/markers/HotelMarkerElement'
@@ -235,69 +236,6 @@ export default function MapaExplore() {
   return (
     <div className="relative left-1/2 -mt-6 w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden">
       <div className="relative h-[calc(100dvh-3.75rem)] min-h-[460px] w-full bg-slate-100">
-        {/* Header overlay: naslov + layer chips */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 p-3 sm:p-4">
-          <div className="pointer-events-auto mx-auto flex max-w-5xl flex-col gap-2.5 rounded-2xl border border-emerald-100/80 bg-white/90 px-3.5 py-3 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div className="min-w-0">
-              <h1 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-emerald-900 sm:text-lg">
-                <span aria-hidden>⛰️</span>
-                <span className="truncate">{t('mapExplore.title')}</span>
-              </h1>
-              <p className="mt-0.5 hidden text-xs text-gray-500 sm:block">{t('mapExplore.subtitle')}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFerrate((v) => !v)}
-                aria-pressed={showFerrate}
-                className={`${chipBase} ${
-                  showFerrate
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                    : 'border-gray-200 bg-white text-gray-400'
-                }`}
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-700" />
-                {t('mapExplore.layerFerrate')}
-                <span className="rounded-full bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700">
-                  {ferrate.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowHotels((v) => !v)}
-                aria-pressed={showHotels}
-                className={`${chipBase} ${
-                  showHotels
-                    ? 'border-amber-300 bg-amber-50 text-amber-800'
-                    : 'border-gray-200 bg-white text-gray-400'
-                }`}
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-amber-300 to-orange-600" />
-                {t('mapExplore.layerHotels')}
-                <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">
-                  {hotels.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPeaks((v) => !v)}
-                aria-pressed={showPeaks}
-                className={`${chipBase} ${
-                  showPeaks
-                    ? 'border-indigo-300 bg-indigo-50 text-indigo-800'
-                    : 'border-gray-200 bg-white text-gray-400'
-                }`}
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-sky-300 to-indigo-700" />
-                {t('mapExplore.layerPeaks')}
-                <span className="rounded-full bg-indigo-100 px-1.5 text-[10px] font-bold text-indigo-700">
-                  {peaks.length}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Stanja */}
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
@@ -329,6 +267,70 @@ export default function MapaExplore() {
           initialViewState={DEFAULT_CENTER}
           showZoomControls
         >
+          <PlaninerMapOverlay>
+            <div className="p-3 sm:p-4">
+              <div className="mx-auto flex max-w-5xl flex-col gap-2.5 rounded-2xl border border-emerald-100/80 bg-white/90 px-3.5 py-3 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="min-w-0">
+                  <h1 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-emerald-900 sm:text-lg">
+                    <span aria-hidden>⛰️</span>
+                    <span className="truncate">{t('mapExplore.title')}</span>
+                  </h1>
+                  <p className="mt-0.5 hidden text-xs text-gray-500 sm:block">{t('mapExplore.subtitle')}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFerrate((v) => !v)}
+                    aria-pressed={showFerrate}
+                    className={`${chipBase} ${
+                      showFerrate
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                        : 'border-gray-200 bg-white text-gray-400'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-700" />
+                    {t('mapExplore.layerFerrate')}
+                    <span className="rounded-full bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700">
+                      {ferrate.length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHotels((v) => !v)}
+                    aria-pressed={showHotels}
+                    className={`${chipBase} ${
+                      showHotels
+                        ? 'border-amber-300 bg-amber-50 text-amber-800'
+                        : 'border-gray-200 bg-white text-gray-400'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-amber-300 to-orange-600" />
+                    {t('mapExplore.layerHotels')}
+                    <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">
+                      {hotels.length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPeaks((v) => !v)}
+                    aria-pressed={showPeaks}
+                    className={`${chipBase} ${
+                      showPeaks
+                        ? 'border-indigo-300 bg-indigo-50 text-indigo-800'
+                        : 'border-gray-200 bg-white text-gray-400'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-sky-300 to-indigo-700" />
+                    {t('mapExplore.layerPeaks')}
+                    <span className="rounded-full bg-indigo-100 px-1.5 text-[10px] font-bold text-indigo-700">
+                      {peaks.length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </PlaninerMapOverlay>
+
           {visibleFerrate.map((m) => (
             <Marker
               key={`f-${m.id}`}

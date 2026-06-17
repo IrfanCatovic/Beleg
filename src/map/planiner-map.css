@@ -23,6 +23,26 @@
   filter: saturate(1.18) contrast(1.08);
 }
 
+/* Popup-i iznad markera, kontrola i unutrašnjih overlay-a */
+.planiner-map-frame .maplibregl-popup {
+  z-index: 50;
+}
+
+.planiner-map-frame .maplibregl-marker {
+  z-index: 1;
+}
+
+.planiner-map-frame-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.planiner-map-frame-overlay > * {
+  pointer-events: auto;
+}
+
 .planiner-map-frame .maplibregl-popup-content {
   border-radius: 1rem;
   padding: 0;
