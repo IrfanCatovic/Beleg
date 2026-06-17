@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchMeProfile } from '../../services/auth'
@@ -321,14 +322,19 @@ export function FerrataGuideBookingModal(props: {
     { value: 'unsure', label: t('bookGuideEquipmentUnsure') },
   ]
 
-  return (
+  const primaryBtnClass =
+    'w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm'
+  const secondaryBtnClass =
+    'flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[1000] flex justify-center bg-black/50 px-3 pt-[calc(3.5rem+0.75rem)] pb-[calc(5rem+0.75rem)] backdrop-blur-sm md:items-center md:p-6"
       role="dialog"
       aria-modal
       aria-labelledby="ferrata-guide-booking-title"
     >
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-xl ring-1 ring-black/[0.04]">
+      <div className="flex h-full min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-xl ring-1 ring-black/[0.04] md:h-auto md:max-h-[min(85vh,680px)]">
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
           <div>
             <h2 id="ferrata-guide-booking-title" className="text-base font-bold text-gray-900">
@@ -352,7 +358,7 @@ export function FerrataGuideBookingModal(props: {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
           {step === 1 && (
             <form id="ferrata-guide-booking-form" onSubmit={goNextFromForm} className="space-y-5">
               <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1">
@@ -480,6 +486,16 @@ export function FerrataGuideBookingModal(props: {
                   placeholder={t('bookGuideMessagePlaceholder')}
                 />
               </div>
+
+              {localErr && (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+                  {localErr}
+                </p>
+              )}
+
+              <button type="submit" className={`${primaryBtnClass} mt-2`}>
+                {t('bookGuideNext')}
+              </button>
             </form>
           )}
 
@@ -535,6 +551,41 @@ export function FerrataGuideBookingModal(props: {
                   ))}
                 </ul>
               )}
+
+              {localErr && (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+                  {localErr}
+                </p>
+              )}
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => void submitBooking(true)}
+                  disabled={submitting}
+                  className="w-full text-center text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline disabled:opacity-50"
+                >
+                  {t('bookGuideSkipGuides')}
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    disabled={submitting}
+                    className={secondaryBtnClass}
+                  >
+                    {t('bookGuideBack')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void submitBooking(false)}
+                    disabled={submitting || selectedGuideIds.size === 0}
+                    className={`${primaryBtnClass} flex-1 disabled:opacity-60`}
+                  >
+                    {submitting ? '…' : t('bookGuideSubmit')}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -549,64 +600,9 @@ export function FerrataGuideBookingModal(props: {
           {step === 3 && !hasMapCoords && (
             <p className="text-sm text-gray-600">{t('bookGuideDoneNoHotels')}</p>
           )}
-
-          {localErr && (
-            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
-              {localErr}
-            </p>
-          )}
-        </div>
-
-        <div className="shrink-0 border-t border-gray-100 px-4 py-3 sm:px-5 space-y-2">
-          {step === 2 && (
-            <button
-              type="button"
-              onClick={() => void submitBooking(true)}
-              disabled={submitting}
-              className="w-full text-center text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline disabled:opacity-50"
-            >
-              {t('bookGuideSkipGuides')}
-            </button>
-          )}
-
-          <div className="flex gap-2">
-            {step === 3 ? null : (
-              <>
-                {step === 1 && (
-                  <button
-                    type="submit"
-                    form="ferrata-guide-booking-form"
-                    className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
-                  >
-                    {t('bookGuideNext')}
-                  </button>
-                )}
-
-                {step === 2 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      disabled={submitting}
-                      className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      {t('bookGuideBack')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void submitBooking(false)}
-                      disabled={submitting || selectedGuideIds.size === 0}
-                      className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
-                    >
-                      {submitting ? '…' : t('bookGuideSubmit')}
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
