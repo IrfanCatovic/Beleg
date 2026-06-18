@@ -199,7 +199,7 @@ export function ActionDetailsHeader({
                   </div>
                 ) : (
                   <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-4 text-center">
-                    <p className="text-xs text-gray-400 italic">{t('noDescriptionHint', { defaultValue: 'DomaÄ‡in nije dodao opis akcije.' })}</p>
+                    <p className="text-xs text-gray-400 italic">{t('noDescriptionHint', { defaultValue: 'Domaćin nije dodao opis akcije.' })}</p>
                   </div>
                 )}
 
@@ -208,7 +208,7 @@ export function ActionDetailsHeader({
                   {akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 && (
                     <HeroMini
                       color="sky"
-                      label={t('summitPngTrail', { defaultValue: 'DuÅ¾ina' })}
+                      label={t('summitPngTrail', { defaultValue: 'Dužina' })}
                       value={`${akcija.duzinaStazeKm} km`}
                       icon={
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

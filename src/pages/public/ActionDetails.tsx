@@ -253,9 +253,9 @@ export default function ActionDetails() {
     if (!akcija) return ''
     if (akcija.tipAkcije === 'via_ferrata' && akcija.ferrataSnapshot?.lokacija) {
       const s = akcija.ferrataSnapshot
-      return [s.lokacija, s.naziv].filter(Boolean).join(' Â· ')
+      return [s.lokacija, s.naziv].filter(Boolean).join(' · ')
     }
-    return [akcija.planina, akcija.vrh].filter(Boolean).join(' Â· ')
+    return [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
   }, [akcija])
 
   const handleAddTransport = async (data: { tipPrevoza: string; nazivGrupe: string; kapacitet: number; cenaPoOsobi: number; join: boolean }) => {
@@ -281,8 +281,8 @@ export default function ActionDetails() {
         vodicUsername: akcija.vodic?.username,
       })) return
     const ok = await showConfirm(
-      `Da li ste sigurni da Å¾elite da obriÅ¡ete prevoz â€ž${row.nazivGrupe}â€? Svi koji su bili prijavljeni na ovaj prevoz biÄ‡e uklonjeni sa prevoza (neÄ‡e biti automatski prebaÄeni na drugi prevoz).`,
-      { variant: 'danger', confirmLabel: 'ObriÅ¡i', cancelLabel: 'OtkaÅ¾i' }
+      `Da li ste sigurni da želite da obrišete prevoz „${row.nazivGrupe}"? Svi koji su bili prijavljeni na ovaj prevoz biće uklonjeni sa prevoza (neće biti automatski prebačeni na drugi prevoz).`,
+      { variant: 'danger', confirmLabel: 'Obriši', cancelLabel: 'Otkaži' }
     )
     if (!ok) return
     try {
@@ -330,7 +330,7 @@ export default function ActionDetails() {
     try {
       await updatePrijavaStatus(prijavaId, newStatus)
       const list: Prijava[] = await fetchPrijaveZaAkciju(id!)
-      // nije neophodno ponovo povlaÄiti avatare, ali moÅ¾emo zadrÅ¾ati postojeÄ‡e
+      // nije neophodno ponovo povlačiti avatare, ali možemo zadržati postojeće
       setPrijave((prev) => {
         const avatarMap = new Map<number, string | undefined>()
         prev.forEach((p) => avatarMap.set(p.id, p.avatarUrl))
@@ -349,7 +349,7 @@ export default function ActionDetails() {
     const confirmed = await showConfirm(t('removeMemberConfirm', { name: displayName }), {
       title: t('removeMemberTitle'),
       confirmLabel: 'Prihvati',
-      cancelLabel: 'OtkaÅ¾i',
+      cancelLabel: 'Otkaži',
     })
     if (!confirmed) return
     try {
@@ -449,11 +449,11 @@ export default function ActionDetails() {
 
     selSmestaj.forEach((sid) => {
       const s = smestajMap.get(sid)
-      if (s) out.push({ label: s.naziv, amount: s.cenaPoOsobiUkupno, tag: 'SmeÅ¡taj', tagBg: 'bg-amber-100 text-amber-700' })
+      if (s) out.push({ label: s.naziv, amount: s.cenaPoOsobiUkupno, tag: 'Smeštaj', tagBg: 'bg-amber-100 text-amber-700' })
     })
     selPrevoz.forEach((pid) => {
       const p = prevozMap.get(pid)
-      if (p) out.push({ label: `${p.tipPrevoza} Â· ${p.nazivGrupe}`, amount: p.cenaPoOsobi, tag: 'Prevoz', tagBg: 'bg-sky-100 text-sky-700' })
+      if (p) out.push({ label: `${p.tipPrevoza} · ${p.nazivGrupe}`, amount: p.cenaPoOsobi, tag: 'Prevoz', tagBg: 'bg-sky-100 text-sky-700' })
     })
     for (const [rid, qty] of Object.entries(selRent)) {
       const r = rentMap.get(Number(rid))
@@ -552,14 +552,14 @@ export default function ActionDetails() {
   const isFerrataAction = akcija.tipAkcije === 'via_ferrata'
   const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
   const isLimitedView = !!akcija.limited
-  /** ÄŒlan domaÄ‡eg kluba sa ulogom `clan` â€” bez klika na kartice i bez modala detalja. */
+  /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
   const isHostClubPlainMember =
     !!user &&
     user.role === 'clan' &&
     user.klubId != null &&
     akcija.klubId != null &&
     Number(user.klubId) === Number(akcija.klubId)
-  /** Blagajnik, sekretar, menadÅ¾er opreme, itd. mogu da vide modal; admin/vodiÄ i dalje `canManageHost` za tri akcije. */
+  /** Blagajnik, sekretar, menadžer opreme, itd. mogu da vide modal; admin/vodič i dalje `canManageHost` za tri akcije. */
   const canOpenMemberModal = !!user && canSeePrijave && !isLimitedView && !isHostClubPlainMember
   const memberCount =
     user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
@@ -606,7 +606,7 @@ export default function ActionDetails() {
         user={user}
         onBack={() => navigate(-1)}
       />
-      {/* â•â•â•â•â•â•â•â•â•â• MEMBERSHIP / PRICE BANNER â•â•â•â•â•â•â•â•â•â• */}
+      {/* MEMBERSHIP / PRICE BANNER */}
       {user && !isLimitedView && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
@@ -629,14 +629,14 @@ export default function ActionDetails() {
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-bold uppercase tracking-wider ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                    {effectiveIsClanKluba ? 'Tvoj status: Älan kluba' : 'Tvoj status: gost (van kluba)'}
+                    {effectiveIsClanKluba ? 'Tvoj status: član kluba' : 'Tvoj status: gost (van kluba)'}
                   </p>
                   <p className="text-sm text-gray-700 mt-0.5">
                     {effectiveIsClanKluba
-                      ? 'PlaÄ‡aÅ¡ povlaÅ¡Ä‡enu cenu za Älanove kluba.'
+                      ? 'Plaćaš povlašćenu cenu za članove kluba.'
                       : akcija.javna
-                        ? 'PlaÄ‡aÅ¡ cenu za eksterne uÄesnike.'
-                        : 'Akcija je interna â€” primenjuje se cena kao za Älanove.'}
+                        ? 'Plaćaš cenu za eksterne učesnike.'
+                        : 'Akcija je interna — primenjuje se cena kao za članove.'}
                   </p>
                 </div>
               </div>
@@ -652,7 +652,7 @@ export default function ActionDetails() {
         </div>
       )}
 
-      {/* â•â•â•â•â•â•â•â•â•â• STATS BAR â•â•â•â•â•â•â•â•â•â• */}
+      {/* STATS BAR */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
@@ -695,14 +695,14 @@ export default function ActionDetails() {
         </div>
       )}
 
-      {/* â•â•â•â•â•â•â•â•â•â• BODY â•â•â•â•â•â•â•â•â•â• */}
+      {/* BODY */}
       <div className="bg-gray-50/80 min-h-[40vh]">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
 
-          {/* â•â•â•â•â•â•â•â• ROW 1: VodiÄ (lg:8) + Status (lg:4) â•â•â•â•â•â•â•â• */}
+          {/* ROW 1: Vodič (lg:8) + Status (lg:4) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* VodiÄ / Kreator card */}
+            {/* Vodič / Kreator card */}
             <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
                 <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
@@ -798,7 +798,7 @@ export default function ActionDetails() {
                           </svg>
                         }
                         iconBg="bg-violet-50"
-                        label="Maks uÄesnika"
+                        label="Maks učesnika"
                         value={`${akcija.maxLjudi}`}
                       />
                     )}
@@ -879,7 +879,7 @@ export default function ActionDetails() {
                     )}
                     {user && akcija.cenaClan != null && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-amber-50 border border-amber-100">
-                        <span className="text-[11px] text-amber-700 font-medium">Tvoja cena (Älan)</span>
+                        <span className="text-[11px] text-amber-700 font-medium">Tvoja cena (član)</span>
                         <span className="text-sm font-bold text-amber-800 tabular-nums">
                           {akcija.cenaClan.toFixed(2)} {clubCurrency}
                         </span>
@@ -898,7 +898,7 @@ export default function ActionDetails() {
               </div>
             </div>
 
-            {/* â•â•â•â•â•â•â•â• ROW 2: Logistics â•â•â•â•â•â•â•â• */}
+            {/* ROW 2: Logistics */}
             {(akcija.prevoz?.length || akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length) ? (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -932,7 +932,7 @@ export default function ActionDetails() {
                       <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 p-6 text-center">
                         <p className="text-sm text-gray-500">
                           Trenutno nema dostupnih opcija prevoza.
-                          {!!user && !!mojaPrijava && !akcija.isCompleted && ' MoÅ¾ete dodati svoj prevoz dugmetom iznad.'}
+                          {!!user && !!mojaPrijava && !akcija.isCompleted && ' Možete dodati svoj prevoz dugmetom iznad.'}
                         </p>
                       </div>
                     ) : (
@@ -983,7 +983,7 @@ export default function ActionDetails() {
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
                       <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                         <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">SmeÅ¡taj</h2>
+                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Smeštaj</h2>
                       </div>
                       <div className="p-5 sm:p-6 space-y-3">
                         {akcija.smestaj.map((s) => (
@@ -1029,12 +1029,12 @@ export default function ActionDetails() {
               </div>
             ) : null}
 
-            {/* â•â•â•â•â•â•â•â• ROW 3: Confirm / Summary â•â•â•â•â•â•â•â• */}
+            {/* ROW 3: Confirm / Summary */}
             {user && !isLimitedView && !akcija.isCompleted && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
               <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-r from-white via-emerald-50/80 to-white shadow-md">
                 <div className="px-5 sm:px-7 py-4 border-b border-emerald-100/70 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
-                  <h2 className="text-sm sm:text-base font-bold text-emerald-900 tracking-tight">Pregled tvojih izbora i ukupnog zaduÅ¾enja</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-emerald-900 tracking-tight">Pregled tvojih izbora i ukupnog zaduženja</h2>
                 </div>
                 <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -1044,7 +1044,7 @@ export default function ActionDetails() {
                       <span className="text-xs font-semibold text-gray-700">
                         Osnovna cena akcije{' '}
                         <span className={`text-[10px] font-bold uppercase ml-1 ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                          ({effectiveIsClanKluba ? 'Älan kluba' : akcija.javna ? 'gost' : 'klub'})
+                          ({effectiveIsClanKluba ? 'član kluba' : akcija.javna ? 'gost' : 'klub'})
                         </span>
                       </span>
                       <span className="text-sm font-bold text-gray-900 tabular-nums">
@@ -1096,11 +1096,11 @@ export default function ActionDetails() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         {savingSelections
-                          ? 'ÄŒuvamâ€¦'
+                          ? 'Čuvam…'
                           : mojaPrijava
                             ? selectionsDirty
-                              ? 'SaÄuvaj izmene izbora'
-                              : 'Izbori su saÄuvani'
+                              ? 'Sačuvaj izmene izbora'
+                              : 'Izbori su sačuvani'
                             : 'Potvrdi i prijavi se'}
                       </button>
                       {mojaPrijava && mojaPrijava.status === 'prijavljen' && (
@@ -1109,7 +1109,7 @@ export default function ActionDetails() {
                           onClick={handleCancelPrijava}
                           className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-emerald-50 bg-emerald-700/40 hover:bg-emerald-700/55 border border-emerald-300/30 transition-colors"
                         >
-                          OtkaÅ¾i prijavu
+                          Otkaži prijavu
                         </button>
                       )}
                     </div>
@@ -1120,7 +1120,7 @@ export default function ActionDetails() {
 
           
 
-            {/* â•â•â•â•â•â•â•â• ROW 4: Members list (FULL WIDTH) â•â•â•â•â•â•â•â• */}
+            {/* ROW 4: Members list (FULL WIDTH) */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
               <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -1139,7 +1139,7 @@ export default function ActionDetails() {
                           }}
                           className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
                         >
-                          OznaÄi ko je platio
+                          Označi ko je platio
                         </button>
                       ) : (
                         <>
@@ -1148,7 +1148,7 @@ export default function ActionDetails() {
                             onClick={handleToggleSelectAllBulkPayments}
                             className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            OznaÄi sve
+                            Označi sve
                           </button>
                           <button
                             type="button"
@@ -1156,7 +1156,7 @@ export default function ActionDetails() {
                             disabled={bulkPaymentSubmitting}
                             className="inline-flex items-center h-8 px-3 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                           >
-                            {bulkPaymentSubmitting ? 'PlaÄ‡am...' : 'Plati'}
+                            {bulkPaymentSubmitting ? 'Plaćam...' : 'Plati'}
                           </button>
                           <button
                             type="button"
@@ -1175,7 +1175,7 @@ export default function ActionDetails() {
                   )}
                   {canManageHost && canSeePrijave && !isLimitedView && (
                     <span className="inline-flex items-center justify-center h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
-                      PlaÄ‡eno {paidCount}/{paymentTrackedPrijave.length}
+                      Plaćeno {paidCount}/{paymentTrackedPrijave.length}
                     </span>
                   )}
                   <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
@@ -1278,8 +1278,8 @@ export default function ActionDetails() {
                                       ? 'border-emerald-500 bg-emerald-500 text-white'
                                       : 'border-gray-300 bg-white text-gray-500 hover:border-emerald-400'
                                 } disabled:opacity-60 disabled:cursor-not-allowed`}
-                                title={p.platio ? 'VeÄ‡ plaÄ‡eno' : 'OznaÄi Älana kao plaÄ‡eno'}
-                                aria-label={p.platio ? 'VeÄ‡ plaÄ‡eno' : 'OznaÄi Älana kao plaÄ‡eno'}
+                                title={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
+                                aria-label={p.platio ? 'Već plaćeno' : 'Označi člana kao plaćeno'}
                               >
                                 {(p.platio || bulkSelectedPaymentIds.has(p.id)) ? (
                                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1371,16 +1371,16 @@ export default function ActionDetails() {
                       <div>
                         <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Sve uplate</p>
                         <p className="text-sm text-gray-700 mt-0.5">
-                          PlaÄ‡eno Älanova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
+                          Plaćeno članova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
-                        <p className="text-xs font-semibold text-gray-500">Ukupno plaÄ‡eno</p>
+                        <p className="text-xs font-semibold text-gray-500">Ukupno plaćeno</p>
                         <p className="text-lg font-extrabold text-emerald-700 tabular-nums">
                           {paidTotal.toFixed(2)} {clubCurrency}
                         </p>
                         <p className="text-[11px] text-gray-500">
-                          OÄekivano ukupno: <span className="font-semibold text-gray-700">{expectedTotal.toFixed(2)} {clubCurrency}</span>
+                          Očekivano ukupno: <span className="font-semibold text-gray-700">{expectedTotal.toFixed(2)} {clubCurrency}</span>
                         </p>
                       </div>
                     </div>
@@ -1431,10 +1431,10 @@ export default function ActionDetails() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                          Dodaj Älana van kluba
+                          Dodaj člana van kluba
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          PretraÅ¾i korisnike iz drugih klubova ili bez kluba. Akcija Ä‡e im se upisati tek nakon potvrde, bez finansija.
+                          Pretraži korisnike iz drugih klubova ili bez kluba. Akcija će im se upisati tek nakon potvrde, bez finansija.
                         </p>
                       </div>
                       <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-[11px] font-semibold text-amber-800">
@@ -1487,12 +1487,12 @@ export default function ActionDetails() {
                           onScroll={handleExternalCandidatesScroll}
                         >
                           {externalCandidates.length === 0 && externalLoading ? (
-                            <p className="text-xs text-gray-500">PretraÅ¾ujem korisnike...</p>
+                            <p className="text-xs text-gray-500">Pretražujem korisnike...</p>
                           ) : externalCandidates.length === 0 ? (
                             <p className="text-xs text-gray-500">
                               {externalSearch.trim()
                                 ? 'Nema korisnika za ovu pretragu.'
-                                : 'Prikazujemo 5 profila. Skrolom naniÅ¾e uÄitava se sledeÄ‡ih 5.'}
+                                : 'Prikazujemo 5 profila. Skrolom naniže učitava se sledećih 5.'}
                             </p>
                           ) : (
                             <>
@@ -1515,13 +1515,13 @@ export default function ActionDetails() {
                                       disabled={sendingExternalRequestId === candidate.id}
                                       className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {sendingExternalRequestId === candidate.id ? 'Å aljem...' : 'PoÅ¡alji zahtev'}
+                                      {sendingExternalRequestId === candidate.id ? 'Šaljem...' : 'Pošalji zahtev'}
                                     </button>
                                   </div>
                                 )
                               })}
                               {externalLoading && (
-                                <p className="text-xs text-gray-500 text-center py-1">UÄitavam joÅ¡ 5 profila...</p>
+                                <p className="text-xs text-gray-500 text-center py-1">Učitavam još 5 profila...</p>
                               )}
                             </>
                           )}
@@ -1533,14 +1533,14 @@ export default function ActionDetails() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Poslati zahtevi</p>
-                            <p className="text-xs text-gray-500 mt-1">Ovde vidiÅ¡ Å¡ta joÅ¡ Äeka potvrdu i Å¡ta je veÄ‡ obraÄ‘eno.</p>
+                            <p className="text-xs text-gray-500 mt-1">Ovde vidiš šta još čeka potvrdu i šta je već obrađeno.</p>
                           </div>
-                          {requestsLoading && <span className="text-[11px] text-gray-400">UÄitavanje...</span>}
+                          {requestsLoading && <span className="text-[11px] text-gray-400">Učitavanje...</span>}
                         </div>
 
                         <div className="mt-3 space-y-2.5">
                           {actionParticipationRequests.length === 0 ? (
-                            <p className="text-xs text-gray-500">JoÅ¡ nema poslatih zahteva za ovu akciju.</p>
+                            <p className="text-xs text-gray-500">Još nema poslatih zahteva za ovu akciju.</p>
                           ) : (
                             actionParticipationRequests.map((request) => {
                               const targetLabel = request.targetUser.fullName?.trim() || request.targetUser.username
@@ -1555,9 +1555,9 @@ export default function ActionDetails() {
                                       : 'bg-gray-100 text-gray-700 border-gray-200'
                               const statusLabel =
                                 request.status === 'pending'
-                                  ? 'ÄŒeka potvrdu'
+                                  ? 'Čeka potvrdu'
                                   : request.status === 'accepted'
-                                    ? 'PrihvaÄ‡eno'
+                                    ? 'Prihvaćeno'
                                     : request.status === 'rejected'
                                       ? 'Odbijeno'
                                       : 'Otkazano'
@@ -1566,10 +1566,10 @@ export default function ActionDetails() {
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                       <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
-                                      <p className="text-xs text-gray-500 truncate">@{request.targetUser.username} Â· {targetClubLabel}</p>
+                                      <p className="text-xs text-gray-500 truncate">@{request.targetUser.username} · {targetClubLabel}</p>
                                       <p className="text-[11px] text-gray-400 mt-1">
                                         Poslato {formatDate(request.createdAt)}
-                                        {request.respondedAt ? ` Â· obraÄ‘eno ${formatDate(request.respondedAt)}` : ''}
+                                        {request.respondedAt ? ` · obrađeno ${formatDate(request.respondedAt)}` : ''}
                                       </p>
                                     </div>
                                     <span className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusStyle}`}>
@@ -1583,7 +1583,7 @@ export default function ActionDetails() {
                                         onClick={() => void handleCancelExternalRequest(request)}
                                         className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                                       >
-                                        OtkaÅ¾i zahtev
+                                        Otkaži zahtev
                                       </button>
                                     </div>
                                   )}
@@ -1599,7 +1599,7 @@ export default function ActionDetails() {
               </div>
             </div>
 
-            {/* â•â•â•â•â•â•â•â• ROW 5: Summit share + ocena vodiÄa + Admin â•â•â•â•â•â•â•â• */}
+            {/* ROW 5: Summit share + ocena vodiča + Admin */}
             {(showSummitImageCard || canShowGuideRatingPrompt || guideRatingSubmitted || (canManageHost && !isLimitedView)) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {showSummitImageCard && (
@@ -1610,7 +1610,7 @@ export default function ActionDetails() {
                     </div>
                     <div className="p-5 space-y-4">
                       <p className="text-[12px] text-gray-500 leading-relaxed">
-                        Podeli link akcije i pozovi ekipu jednim klikom. Nagradu moÅ¾eÅ¡ preuzeti nakon uspeÅ¡nog uspona.
+                        Podeli link akcije i pozovi ekipu jednim klikom. Nagradu možeš preuzeti nakon uspešnog uspona.
                       </p>
                       <button
                         type="button"
@@ -1844,9 +1844,9 @@ export default function ActionDetails() {
                     </svg>
                     {t('summitBack')}
                   </button>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Via ferrata bedÅ¾</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Via ferrata bedž</p>
                   <p className="text-[11px] text-gray-400 leading-snug">
-                    Preuzmi personalizovani bedÅ¾ sa imenom ferate, datumom i ocenom.
+                    Preuzmi personalizovani bedž sa imenom ferate, datumom i ocenom.
                   </p>
                   <div className="rounded-xl overflow-hidden bg-gradient-to-b from-neutral-100 to-neutral-200 ring-1 ring-gray-200 shadow-inner">
                     {summitPreviewLoading ? (
@@ -1854,13 +1854,13 @@ export default function ActionDetails() {
                     ) : ferrataBadgePreview ? (
                       <img
                         src={ferrataBadgePreview}
-                        alt="Via ferrata bedÅ¾"
+                        alt="Via ferrata bedž"
                         className="w-full h-auto block"
                         draggable={false}
                       />
                     ) : (
                       <div className="w-full aspect-[3/4] min-h-[280px] flex items-center justify-center text-sm text-neutral-500">
-                        â€”
+                        —
                       </div>
                     )}
                   </div>
@@ -1870,7 +1870,7 @@ export default function ActionDetails() {
                     disabled={summitPreviewLoading || !ferrataBadgePreview}
                     className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-400 shadow-md shadow-emerald-200/50 border border-emerald-400/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Preuzmi bedÅ¾
+                    Preuzmi bedž
                   </button>
                 </>
               )}
@@ -1958,7 +1958,7 @@ export default function ActionDetails() {
                             className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
                             style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
                           >
-                            â€”
+                            —
                           </div>
                         )}
                       </div>
@@ -1994,7 +1994,7 @@ export default function ActionDetails() {
                             className="w-full flex items-center justify-center text-[10px] text-neutral-400 p-4"
                             style={{ aspectRatio: summitPickedAspect === '9:16' ? '9 / 16' : '16 / 9' }}
                           >
-                            â€”
+                            —
                           </div>
                         )}
                       </div>
@@ -2025,7 +2025,7 @@ export default function ActionDetails() {
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/90 to-teal-50/50">
               <h2 id="register-options-title" className="text-sm font-bold text-gray-900 tracking-tight">
-                Izaberite naÄin registracije
+                Izaberite način registracije
               </h2>
               <button
                 type="button"
