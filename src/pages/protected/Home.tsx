@@ -5,7 +5,7 @@ import type { TFunction } from 'i18next'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { fetchPosts as loadPosts, createPost, deletePost } from '../../services/posts'
-import { fetchAkcije, fetchMojePopeoSe } from '../../services/actions'
+import { fetchAkcije, fetchMojePopeoSe, type AkcijeListResponse } from '../../services/actions'
 import { fetchKorisnici } from '../../services/users'
 import { fetchUserFollowingList } from '../../services/follows'
 import type { AkcijaListItem as Akcija } from '../../types/akcija'
@@ -188,7 +188,7 @@ export default function Home() {
     if (!isLoggedIn) return
     setLoadingSidebar(true)
     Promise.all([
-      fetchAkcije().catch(() => ({ aktivne: [] })),
+      fetchAkcije().catch((): AkcijeListResponse => ({ aktivne: [], vodeneAktivne: [] })),
       fetchMojePopeoSe().catch(() => ({ statistika: {} })),
     ]).then(([akcijeData, popeoData]) => {
       setAktivneAkcije(
