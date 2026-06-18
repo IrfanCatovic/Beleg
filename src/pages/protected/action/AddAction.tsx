@@ -21,6 +21,11 @@ import {
 } from '../../../components/ferrate/ferrataWizardPrefill'
 import { peakActionPrefillFrom, type PeakDTO } from '../../../components/map/peakActionPrefill'
 import {
+  buildPeakGuideBookingFormContext,
+  buildPeakGuideBookingWizardPrefill,
+  type PeakGuideBookingFormContext,
+} from '../../../components/map/peakGuideBookingActionPrefill'
+import {
   acceptFerrataGuideBooking,
   canGuideCreateActionFromBooking,
   ensureGuideCanAcceptBooking,
@@ -28,6 +33,14 @@ import {
   guideBookingBlockedMessage,
   parseGuideBookingAcceptConflict,
 } from '../../../services/ferrataGuideBookings'
+import {
+  acceptPeakGuideBooking,
+  canGuideCreateActionFromPeakBooking,
+  ensureGuideCanAcceptPeakBooking,
+  getPeakGuideBooking,
+  peakGuideBookingBlockedMessage,
+  parsePeakGuideBookingAcceptConflict,
+} from '../../../services/peakGuideBookings'
 import {
   labelGuideBookingEquipment,
   labelGuideBookingExperience,
@@ -53,7 +66,9 @@ export default function AddAction() {
   const tipAkcije = (searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina') as 'planina' | 'via_ferrata'
   const bookingIdParam = searchParams.get('booking_id')
   const bookingId = bookingIdParam ? Number(bookingIdParam) : 0
-  const fromGuideBooking = tipAkcije === 'via_ferrata' && bookingId > 0
+  const fromFerrataGuideBooking = tipAkcije === 'via_ferrata' && bookingId > 0
+  const fromPeakGuideBooking = tipAkcije === 'planina' && bookingId > 0
+  const fromGuideBooking = fromFerrataGuideBooking || fromPeakGuideBooking
   const fromFerrataProfiGuide =
     tipAkcije === 'via_ferrata' &&
     !fromGuideBooking &&
@@ -65,7 +80,7 @@ export default function AddAction() {
   const fromPeakGuide = fromPeak && searchParams.get('organizator') === 'vodic'
   const fromGuideOrganizer = fromGuideBooking || fromFerrataProfiGuide || fromPeakGuide
 
-  const [bookingContext, setBookingContext] = useState<GuideBookingFormContext | null>(null)
+  const [bookingContext, setBookingContext] = useState<GuideBookingFormContext | PeakGuideBookingFormContext | null>(null)
   const [bookingPrefillLoading, setBookingPrefillLoading] = useState(fromGuideBooking)
   const [bookingPrefillError, setBookingPrefillError] = useState('')
   const [raceLostActionId, setRaceLostActionId] = useState<number | null>(null)
@@ -102,6 +117,50 @@ export default function AddAction() {
       }
 
       try {
+        if (fromPeakGuideBooking) {
+          try {
+            const booking = await getPeakGuideBooking(bookingId)
+            if (cancelled) return
+
+            if (!canGuideCreateActionFromPeakBooking(booking)) {
+              setBookingPrefillError(peakGuideBookingBlockedMessage(booking))
+              setBookingContext(null)
+              return
+            }
+
+            const timeOfDayLabel = labelGuideBookingTimeOfDay(tFr, booking.timeOfDay, booking.exactTime)
+            let peakRow: PeakDTO | undefined
+            try {
+              peakRow = (await fetchPeakById(booking.peakId)) as PeakDTO
+            } catch {
+              peakRow = undefined
+            }
+            const prefill = buildPeakGuideBookingWizardPrefill(booking, peakRow, {
+              experience: labelGuideBookingExperience(tFr, booking.groupExperience),
+              equipment: labelGuideBookingEquipment(tFr, booking.equipmentStatus),
+              timeOfDay: timeOfDayLabel,
+            })
+
+            setBookingContext(buildPeakGuideBookingFormContext(booking, timeOfDayLabel))
+            const selfId = await resolveMyKorisnikId()
+            if (!cancelled && selfId) setMyKorisnikId(selfId)
+            setInitial((prev) => ({
+              ...prev,
+              ...prefill,
+              organizerType: 'vodic',
+              vodicId: selfId ? String(selfId) : prev.vodicId,
+            }))
+          } catch {
+            if (!cancelled) {
+              setBookingPrefillError('Zahtev za vođenje nije učitan. Proverite da li vam je i dalje dostupan.')
+              setBookingContext(null)
+            }
+          } finally {
+            if (!cancelled) setBookingPrefillLoading(false)
+          }
+          return
+        }
+
         const rows = await fetchPublicFerratasCatalog()
         if (cancelled) return
 
@@ -112,7 +171,7 @@ export default function AddAction() {
 
         const fid = searchParams.get('ferrata_id')
 
-        if (fromGuideBooking) {
+        if (fromFerrataGuideBooking) {
           try {
             const booking = await getFerrataGuideBooking(bookingId)
             if (cancelled) return
@@ -184,7 +243,7 @@ export default function AddAction() {
     return () => {
       cancelled = true
     }
-  }, [tipAkcije, searchParams, tFr, fromGuideBooking, fromFerrataProfiGuide, bookingId])
+  }, [tipAkcije, searchParams, tFr, fromGuideBooking, fromFerrataGuideBooking, fromPeakGuideBooking, fromFerrataProfiGuide, bookingId])
 
   useEffect(() => {
     if (!fromGuideBooking || !user?.username) return
@@ -347,7 +406,11 @@ export default function AddAction() {
     try {
       if (fromGuideBooking && bookingId > 0) {
         try {
-          await ensureGuideCanAcceptBooking(bookingId)
+          if (fromPeakGuideBooking) {
+            await ensureGuideCanAcceptPeakBooking(bookingId)
+          } else {
+            await ensureGuideCanAcceptBooking(bookingId)
+          }
         } catch (preCheckErr: unknown) {
           const msg =
             preCheckErr instanceof Error
@@ -442,11 +505,27 @@ export default function AddAction() {
       const res = await createAkcija(formData)
 
       const newActionId = res?.akcija?.id as number | undefined
-      if (values.actionKind === 'via_ferrata' && bookingId > 0 && newActionId) {
+      if (fromFerrataGuideBooking && newActionId) {
         try {
           await acceptFerrataGuideBooking(bookingId, newActionId)
         } catch (acceptErr: unknown) {
           const conflict = parseGuideBookingAcceptConflict(acceptErr)
+          setRaceLostActionId(newActionId)
+          const who = conflict.fulfilledByGuideName?.trim()
+          const lostTo = who ? ` (${who})` : ''
+          setError(
+            conflict.error ||
+              `Drugi vodič${lostTo} je stigao prvi. Akcija #${newActionId} je sačuvana ali nije povezana sa zahtevom. Obrišite je ako vam ne treba.`,
+          )
+          setLoading(false)
+          return
+        }
+      }
+      if (fromPeakGuideBooking && newActionId) {
+        try {
+          await acceptPeakGuideBooking(bookingId, newActionId)
+        } catch (acceptErr: unknown) {
+          const conflict = parsePeakGuideBookingAcceptConflict(acceptErr)
           setRaceLostActionId(newActionId)
           const who = conflict.fulfilledByGuideName?.trim()
           const lostTo = who ? ` (${who})` : ''
@@ -503,7 +582,8 @@ export default function AddAction() {
             <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 sm:px-5 sm:py-5">
               <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Akcija iz zahteva za vođenje</p>
               <p className="mt-1 text-sm font-semibold text-gray-900">
-                {bookingContext.ferrataNaziv} · {bookingContext.requesterName}
+                {'ferrataNaziv' in bookingContext ? bookingContext.ferrataNaziv : bookingContext.peakNaziv} ·{' '}
+                {bookingContext.requesterName}
               </p>
               <p className="mt-2 text-xs text-gray-600 leading-relaxed">
                 Predloženo: {bookingContext.desiredDate} · {bookingContext.suggestedTime}. Datum i tačno vreme polaska
@@ -513,7 +593,15 @@ export default function AddAction() {
           )}
           <ActionWizardForm
             title={fromGuideBooking ? 'Kreiraj akciju iz zahteva' : tipAkcije === 'via_ferrata' ? tFr('wizardAddActionTitle') : t('add.title')}
-            badge={fromGuideBooking ? 'Via ferrata · zahtev' : tipAkcije === 'via_ferrata' ? tFr('wizardAddActionBadge') : t('add.badge')}
+            badge={
+              fromPeakGuideBooking
+                ? 'Planina · zahtev'
+                : fromGuideBooking
+                  ? 'Via ferrata · zahtev'
+                  : tipAkcije === 'via_ferrata'
+                    ? tFr('wizardAddActionBadge')
+                    : t('add.badge')
+            }
             submitText={t('add.submit')}
             submitLoadingText={t('add.adding')}
             guides={guides}

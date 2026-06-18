@@ -12,6 +12,7 @@ import { FerrataMarkerElement } from '../../map/markers/FerrataMarkerElement'
 import { HotelMarkerElement } from '../../map/markers/HotelMarkerElement'
 import { PeakMarkerElement } from '../../map/markers/PeakMarkerElement'
 import { FerrataGuideBookingModal } from '../../components/ferrate/FerrataGuideBookingModal'
+import { PeakGuideBookingModal } from '../../components/map/PeakGuideBookingModal'
 import { PeakCreateActionModal, type PeakActionPeak } from '../../components/map/PeakCreateActionModal'
 
 const DEFAULT_CENTER = { longitude: 21.0059, latitude: 44.0165, zoom: 6.2 }
@@ -73,6 +74,7 @@ export default function MapaExplore() {
   const [showPeaks, setShowPeaks] = useState(true)
   const [activePopup, setActivePopup] = useState<ActivePopup>(null)
   const [bookingFerrata, setBookingFerrata] = useState<FerrataPin | null>(null)
+  const [bookingPeak, setBookingPeak] = useState<PeakPin | null>(null)
   const [canCreateGuideAction, setCanCreateGuideAction] = useState(false)
   const [createActionPeak, setCreateActionPeak] = useState<PeakActionPeak | null>(null)
 
@@ -398,6 +400,7 @@ export default function MapaExplore() {
             <PeakMapPopup
               peak={activePeak}
               onClose={() => setActivePopup(null)}
+              onBook={() => setBookingPeak(activePeak)}
               onCreateAction={() =>
                 setCreateActionPeak({
                   id: activePeak.id,
@@ -422,6 +425,20 @@ export default function MapaExplore() {
           ferrataLocation={bookingFerrata.podrucje}
           ferrataLat={bookingFerrata.lat}
           ferrataLng={bookingFerrata.lng}
+        />
+      )}
+
+      {bookingPeak && (
+        <PeakGuideBookingModal
+          open={bookingPeak != null}
+          onClose={() => setBookingPeak(null)}
+          peakId={bookingPeak.id}
+          peakName={bookingPeak.naziv}
+          peakMountain={bookingPeak.planina}
+          peakLocation={[bookingPeak.grad, bookingPeak.drzava].filter((s) => s?.trim()).join(', ')}
+          peakHeightM={bookingPeak.visinaM > 0 ? bookingPeak.visinaM : undefined}
+          peakLat={bookingPeak.lat}
+          peakLng={bookingPeak.lng}
         />
       )}
 

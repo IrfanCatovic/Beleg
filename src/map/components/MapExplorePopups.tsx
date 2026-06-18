@@ -186,12 +186,13 @@ type PeakPopupProps = {
     lng: number
   }
   onClose: () => void
+  onBook: () => void
   onCreateAction: () => void
   canCreatePeakAction: boolean
   t: (key: string) => string
 }
 
-export function PeakMapPopup({ peak, onClose, onCreateAction, canCreatePeakAction, t }: PeakPopupProps) {
+export function PeakMapPopup({ peak, onClose, onBook, onCreateAction, canCreatePeakAction, t }: PeakPopupProps) {
   const location = [peak.grad, peak.drzava].filter((s) => s?.trim()).join(', ')
 
   return (
@@ -227,18 +228,26 @@ export function PeakMapPopup({ peak, onClose, onCreateAction, canCreatePeakActio
           </dl>
         )}
 
-        {canCreatePeakAction && (
-          <div className="planiner-map-popup-actions">
+        <div className="planiner-map-popup-actions">
+          <button
+            type="button"
+            onClick={onBook}
+            className={`${btnPrimary} planiner-map-popup-stagger planiner-map-popup-stagger-2 bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:from-indigo-400 hover:to-violet-500`}
+          >
+            <CalendarDaysIcon className="h-4 w-4" />
+            {t('mapExplore.popupBookGuide')}
+          </button>
+          {canCreatePeakAction && (
             <button
               type="button"
               onClick={onCreateAction}
-              className={`${btnPrimary} planiner-map-popup-stagger planiner-map-popup-stagger-2 bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:from-indigo-400 hover:to-violet-500`}
+              className={`${btnGhost} planiner-map-popup-stagger planiner-map-popup-stagger-3 border-indigo-200/90 bg-white/80 text-indigo-800 hover:border-indigo-300 hover:bg-indigo-50`}
             >
               <PlusIcon className="h-4 w-4" />
               {t('mapExplore.popupCreateAction')}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </MapPopupShell>
   )

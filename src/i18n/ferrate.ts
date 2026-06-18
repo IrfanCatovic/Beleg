@@ -248,6 +248,7 @@ export const ferrateTranslations = {
     popupFerrataDifficulty: 'Težina',
     popupCreateAction: 'Napravi akciju',
     popupBookAction: 'Zakaži akciju',
+    popupBookGuide: 'Zakaži sa vodičem',
     popupDetails: 'Detaljnije',
     popupHotelPhone: 'Telefon',
     popupBooking: 'Booking',

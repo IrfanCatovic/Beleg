@@ -19,11 +19,19 @@ import {
   type FerrataGuideBookingPublic,
 } from '../../services/ferrataGuideBookings'
 import {
+  canGuideCreateActionFromPeakBooking,
+  getPeakGuideBooking,
+  peakGuideBookingBlockedMessage,
+  rejectPeakGuideBooking,
+  type PeakGuideBookingPublic,
+} from '../../services/peakGuideBookings'
+import {
   labelGuideBookingEquipment,
   labelGuideBookingExperience,
   labelGuideBookingTimeOfDay,
 } from '../../components/ferrate/guideBookingDisplayLabels'
 import { guideBookingCreateActionPath } from '../../components/ferrate/guideBookingActionPrefill'
+import { peakGuideBookingCreateActionPath } from '../../components/map/peakGuideBookingActionPrefill'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { deletePost, fetchPostById } from '../../services/posts'
 import {
@@ -178,7 +186,8 @@ export default function ObavestenjeDetalj() {
   const [task, setTask] = useState<Task | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
   const [actionParticipationRequest, setActionParticipationRequest] = useState<ActionParticipationRequestPayload | null>(null)
-  const [guideBooking, setGuideBooking] = useState<FerrataGuideBookingPublic | null>(null)
+  const [guideBooking, setGuideBooking] = useState<FerrataGuideBookingPublic | PeakGuideBookingPublic | null>(null)
+  const [guideBookingKind, setGuideBookingKind] = useState<'ferrata' | 'peak' | null>(null)
   const [entityError, setEntityError] = useState('')
   const [pageError, setPageError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -404,6 +413,7 @@ export default function ObavestenjeDetalj() {
       setTrans(null)
       setActionParticipationRequest(null)
       setGuideBooking(null)
+      setGuideBookingKind(null)
 
       try {
         const n = await fetchObavestenjeById<ObavestenjeFull>(Number(id))
@@ -448,8 +458,20 @@ export default function ObavestenjeDetalj() {
             const requestData = await fetchParticipationRequestById<ActionParticipationRequestPayload>(actionRequestId)
             if (!cancelled) setActionParticipationRequest(requestData)
           } else if (n.type === 'guide_booking_request' && bookingRequestId != null) {
-            const booking = await getFerrataGuideBooking(bookingRequestId)
-            if (!cancelled) setGuideBooking(booking)
+            const bookingKind = typeof meta.bookingKind === 'string' ? meta.bookingKind : 'ferrata'
+            if (bookingKind === 'peak') {
+              const booking = await getPeakGuideBooking(bookingRequestId)
+              if (!cancelled) {
+                setGuideBookingKind('peak')
+                setGuideBooking(booking)
+              }
+            } else {
+              const booking = await getFerrataGuideBooking(bookingRequestId)
+              if (!cancelled) {
+                setGuideBookingKind('ferrata')
+                setGuideBooking(booking)
+              }
+            }
           }
         } catch (e: unknown) {
           const msg = getApiErrorMessage(e, t('notificationDetails:linkedContentLoadError'))
@@ -593,7 +615,7 @@ export default function ObavestenjeDetalj() {
   const acceptedTargetLabel = (followAcceptedTargetFullName || followAcceptedTargetUsername || t('notificationDetails:follow.defaultUser')).trim()
 
   const handleRejectGuideBooking = async () => {
-    if (!guideBooking || guideBookingBusy) return
+    if (!guideBooking || guideBookingBusy || !guideBookingKind) return
     const ok = await showConfirm('Da li želite da odbijete ovaj zahtev za vođenje?', {
       title: 'Odbij zahtev',
       confirmLabel: 'Odbij',
@@ -603,7 +625,10 @@ export default function ObavestenjeDetalj() {
     if (!ok) return
     setGuideBookingBusy(true)
     try {
-      const res = await rejectFerrataGuideBooking(guideBooking.id)
+      const res =
+        guideBookingKind === 'peak'
+          ? await rejectPeakGuideBooking(guideBooking.id)
+          : await rejectFerrataGuideBooking(guideBooking.id)
       setGuideBooking(res.booking)
       await showAlert(res.message || 'Zahtev je odbijen.', 'Zahtev za vođenje')
     } catch (e: unknown) {
@@ -615,16 +640,31 @@ export default function ObavestenjeDetalj() {
   }
 
   const handleAcceptGuideBooking = async () => {
-    if (!guideBooking || guideBookingBusy) return
+    if (!guideBooking || guideBookingBusy || !guideBookingKind) return
     setGuideBookingBusy(true)
     try {
-      const fresh = await getFerrataGuideBooking(guideBooking.id)
+      const fresh =
+        guideBookingKind === 'peak'
+          ? await getPeakGuideBooking(guideBooking.id)
+          : await getFerrataGuideBooking(guideBooking.id)
       setGuideBooking(fresh)
-      if (!canGuideCreateActionFromBooking(fresh)) {
-        await showAlert(guideBookingBlockedMessage(fresh), 'Zahtev za vođenje')
+      const canRespond =
+        guideBookingKind === 'peak'
+          ? canGuideCreateActionFromPeakBooking(fresh as PeakGuideBookingPublic)
+          : canGuideCreateActionFromBooking(fresh as FerrataGuideBookingPublic)
+      if (!canRespond) {
+        const blocked =
+          guideBookingKind === 'peak'
+            ? peakGuideBookingBlockedMessage(fresh as PeakGuideBookingPublic)
+            : guideBookingBlockedMessage(fresh as FerrataGuideBookingPublic)
+        await showAlert(blocked, 'Zahtev za vođenje')
         return
       }
-      navigate(guideBookingCreateActionPath(fresh))
+      const path =
+        guideBookingKind === 'peak'
+          ? peakGuideBookingCreateActionPath(fresh as PeakGuideBookingPublic)
+          : guideBookingCreateActionPath(fresh as FerrataGuideBookingPublic)
+      navigate(path)
     } catch (e: unknown) {
       const msg = getApiErrorMessage(e, 'Greška pri proveri zahteva.')
       await showAlert(msg, 'Zahtev za vođenje')
@@ -960,12 +1000,16 @@ export default function ObavestenjeDetalj() {
         </div>
       )}
 
-      {!entityLoading && notif.type === 'guide_booking_request' && guideBooking && (
+      {!entityLoading && notif.type === 'guide_booking_request' && guideBooking && guideBookingKind && (
         <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
           <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
           <div className="p-5 sm:p-6 space-y-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Zahtev za vođenje</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">{guideBooking.ferrata.naziv}</h2>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              {guideBookingKind === 'peak'
+                ? (guideBooking as PeakGuideBookingPublic).peak.naziv
+                : (guideBooking as FerrataGuideBookingPublic).ferrata.naziv}
+            </h2>
             <p className="text-sm text-gray-600">
               {guideBooking.requester.fullName?.trim() || guideBooking.requester.username}
               {guideBooking.requester.klubNaziv ? ` · ${guideBooking.requester.klubNaziv}` : ''}
@@ -1010,13 +1054,21 @@ export default function ObavestenjeDetalj() {
                 {guideBooking.additionalMessage.trim()}
               </div>
             )}
-            {guideBooking.ferrata.slug && (
+            {guideBookingKind === 'ferrata' && (guideBooking as FerrataGuideBookingPublic).ferrata.slug && (
               <Link
-                to={`/ferrate/${guideBooking.ferrata.slug}`}
+                to={`/ferrate/${(guideBooking as FerrataGuideBookingPublic).ferrata.slug}`}
                 className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
                 Otvori feratu →
               </Link>
+            )}
+            {guideBookingKind === 'peak' && (
+              <p className="text-sm text-gray-500">
+                {(guideBooking as PeakGuideBookingPublic).peak.planina?.trim() || 'Planinski uspon'}
+                {(guideBooking as PeakGuideBookingPublic).peak.visinaM
+                  ? ` · ${(guideBooking as PeakGuideBookingPublic).peak.visinaM} m`
+                  : ''}
+              </p>
             )}
 
             {guideBooking.guideResponse && (
