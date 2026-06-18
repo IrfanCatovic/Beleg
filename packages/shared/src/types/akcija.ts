@@ -13,6 +13,11 @@ export interface AkcijaFerrataSnapshot {
   naziv?: string
   lokacija?: string
   tezina?: string
+  tezina_opcija?: string
+  duzina_m?: number
+  visinska_razlika_m?: number
+  trajanje_min?: number
+  trajanje_max?: number
   obavezna_oprema?: string[]
   lat?: number
   lng?: number
@@ -70,6 +75,7 @@ export interface AkcijaListItem {
   brojDana?: number
   createdAt?: string
   addedById?: number
+  vodicId?: number
   klubLogoUrl?: string
 }
 

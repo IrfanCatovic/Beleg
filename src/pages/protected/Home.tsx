@@ -15,6 +15,7 @@ import { actionDifficultyBadge } from '../../utils/difficultyI18n'
 import { userHasClubContext } from '../../utils/clubContext'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import FollowControls from '../../components/buttons/FollowControls'
+import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 
 interface Statistika {
   ukupnoKm: number
@@ -27,6 +28,31 @@ interface DiscoverUser extends MentionUser {
 }
 
 const POST_LIMIT = 10
+
+function mergeAkcijeById(...lists: Akcija[][]) {
+  const byId = new Map<number, Akcija>()
+  for (const list of lists) {
+    for (const a of list) byId.set(a.id, a)
+  }
+  return Array.from(byId.values())
+}
+
+function isGuideOrganizedAkcija(a: Akcija) {
+  return (a.organizatorTip ?? 'klub').toLowerCase() === 'vodic'
+}
+
+function resolveActionAuthor(action: Akcija, usersById: Map<number, MentionUser>): MentionUser | undefined {
+  if (isGuideOrganizedAkcija(action) && typeof action.vodicId === 'number' && action.vodicId > 0) {
+    return usersById.get(action.vodicId)
+  }
+  if (typeof action.addedById === 'number' && action.addedById > 0) {
+    return usersById.get(action.addedById)
+  }
+  if (typeof action.vodicId === 'number' && action.vodicId > 0) {
+    return usersById.get(action.vodicId)
+  }
+  return undefined
+}
 
 type FeedItem =
   | { kind: 'post'; createdAtMs: number; post: Post }
@@ -165,7 +191,12 @@ export default function Home() {
       fetchAkcije().catch(() => ({ aktivne: [] })),
       fetchMojePopeoSe().catch(() => ({ statistika: {} })),
     ]).then(([akcijeData, popeoData]) => {
-      setAktivneAkcije((akcijeData.aktivne || []) as Akcija[])
+      setAktivneAkcije(
+        mergeAkcijeById(
+          (akcijeData.aktivne || []) as Akcija[],
+          (akcijeData.vodeneAktivne || []) as Akcija[],
+        ),
+      )
       const s = (popeoData as { statistika?: Partial<Statistika> }).statistika || {}
       setStatistika({ ukupnoKm: s.ukupnoKm || 0, ukupnoMetaraUspona: s.ukupnoMetaraUspona || 0, brojPopeoSe: s.brojPopeoSe || 0 })
     }).finally(() => setLoadingSidebar(false))
@@ -315,7 +346,7 @@ export default function Home() {
           kind: 'action',
           createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : 0,
           action,
-          addedBy: typeof action.addedById === 'number' ? usersById.get(action.addedById) : undefined,
+          addedBy: resolveActionAuthor(action, usersById),
         }
       })
 
@@ -783,12 +814,17 @@ function SuggestedActionCard({
   addedBy?: MentionUser
   t: TFunction
 }) {
-  const posterName = akcija.klubNaziv?.trim() || addedBy?.fullName?.trim() || addedBy?.username || 'Clan kluba'
+  const isGuideAction = isGuideOrganizedAkcija(akcija)
+  const authorName = addedBy?.fullName?.trim() || addedBy?.username
+  const posterName = isGuideAction
+    ? authorName || 'Vodič'
+    : akcija.klubNaziv?.trim() || authorName || 'Član kluba'
   const posterInitial = posterName.charAt(0).toUpperCase()
-  const isKlub = !!akcija.klubNaziv && !akcija.javna
-  const posterAvatar = akcija.klubLogoUrl || addedBy?.avatar_url
+  const isKlub = !isGuideAction && !!akcija.klubNaziv && !akcija.javna
+  const posterAvatar = isGuideAction ? addedBy?.avatar_url : akcija.klubLogoUrl || addedBy?.avatar_url
   const location = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
-  const addedByName = addedBy?.fullName?.trim() || addedBy?.username
+  const addedByName = authorName
+  const badgeLabel = isGuideAction ? 'Vodič' : isKlub ? 'Klub' : 'Javno'
 
   return (
     <article className="bg-white sm:rounded-2xl sm:border sm:border-gray-200/60 sm:shadow-sm overflow-hidden border-b border-gray-100 sm:border-b">
@@ -810,17 +846,31 @@ function SuggestedActionCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <p className="text-sm font-bold text-gray-900 truncate">{posterName}</p>
+            {isGuideAction ? (
+              <UserNameWithProfiBadge
+                name={posterName}
+                isProfiGuide={addedBy?.isProfiGuide}
+                badgeSize={16}
+                className="min-w-0"
+                nameClassName="text-sm font-bold text-gray-900 truncate"
+              />
+            ) : (
+              <p className="text-sm font-bold text-gray-900 truncate">{posterName}</p>
+            )}
             <span
               className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
-                isKlub ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700'
+                isGuideAction ? 'bg-sky-50 text-sky-700' : isKlub ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700'
               }`}
             >
-              {isKlub ? 'Klub' : 'Javno'}
+              {badgeLabel}
             </span>
           </div>
           <p className="text-[11px] text-gray-500 truncate">
-            {addedByName ? <>Dodao/la <span className="text-gray-700 font-medium">{addedByName}</span></> : 'Predlog za tebe'}
+            {isGuideAction
+              ? (akcija.javna ? 'Javna tura vodiča' : 'Privatna tura vodiča')
+              : addedByName
+                ? <>Dodao/la <span className="text-gray-700 font-medium">{addedByName}</span></>
+                : 'Predlog za tebe'}
           </p>
         </div>
         <span

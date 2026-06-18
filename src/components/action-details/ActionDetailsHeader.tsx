@@ -8,6 +8,9 @@ export interface ActionDetailsHeaderProps {
   t: TFunction
   locationSubtitle: string
   showPeakHeight: boolean
+  isFerrataAction: boolean
+  ferrataDifficultyLabel: string
+  ferrataCatalogDuration: string | null
   memberCount: number
   effectiveIsClanKluba: boolean
   mojaPrijava: { status: string } | null | undefined
@@ -20,15 +23,21 @@ export function ActionDetailsHeader({
   t,
   locationSubtitle,
   showPeakHeight,
+  isFerrataAction,
+  ferrataDifficultyLabel,
+  ferrataCatalogDuration,
   memberCount,
   effectiveIsClanKluba,
   mojaPrijava,
   user,
   onBack,
 }: ActionDetailsHeaderProps) {
+  const snap = akcija.ferrataSnapshot
+  const showFerrataDifficulty = isFerrataAction && !!ferrataDifficultyLabel
+
   return (
 <>
-      {/* â•â•â•â•â•â•â•â•â•â• COVER IMAGE (mobile/tablet) â•â•â•â•â•â•â•â•â•â• */}
+      {/* COVER IMAGE (mobile/tablet) */}
       <div className="relative h-64 sm:h-72 md:h-80 lg:hidden overflow-hidden -mt-6 w-screen left-1/2 -translate-x-1/2">
         <AkcijaImageOrFallback
           src={akcija.slikaUrl}
@@ -37,7 +46,6 @@ export function ActionDetailsHeader({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
 
-        {/* Back button */}
         <button
           onClick={onBack}
           className="absolute top-4 left-4 sm:top-5 sm:left-6 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-white bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 transition-all"
@@ -48,11 +56,15 @@ export function ActionDetailsHeader({
           {t('back')}
         </button>
 
-        {/* Cover content */}
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
           <div className="max-w-6xl mx-auto">
-            {(akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
+            {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
               <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                {isFerrataAction && (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-orange-500/85 text-white backdrop-blur-sm border border-orange-400/30">
+                    {t('viaFerrataBadge')}
+                  </span>
+                )}
                 {akcija.zimskiUspon && (
                   <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-500/80 text-white backdrop-blur-sm border border-sky-400/30">
                     {t('winterAscent')}
@@ -79,15 +91,15 @@ export function ActionDetailsHeader({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
               </svg>
               {locationSubtitle}
-              {showPeakHeight && ` Â· ${akcija.visinaVrhM} m`}
+              {showPeakHeight && ` · ${akcija.visinaVrhM} m`}
+              {showFerrataDifficulty && ` · ${ferrataDifficultyLabel}`}
             </p>
           </div>
         </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â• DESKTOP HEADER (HERO) â•â•â•â•â•â•â•â•â•â• */}
+      {/* DESKTOP HEADER (HERO) */}
       <div className="hidden lg:block pt-6 xl:pt-8 relative">
-        {/* Ambient background blobs */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-emerald-200/30 blur-3xl" />
           <div className="absolute -top-10 right-0 w-[360px] h-[360px] rounded-full bg-sky-200/30 blur-3xl" />
@@ -95,16 +107,11 @@ export function ActionDetailsHeader({
 
         <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col xl:flex-row gap-7 items-stretch">
-            {/* LEFT: main card */}
             <div className="w-full xl:max-w-[50rem] xl:shrink-0 relative rounded-[28px] border border-gray-100 bg-white shadow-[0_12px_40px_-12px_rgba(16,185,129,0.18)] overflow-hidden">
-              {/* Accent top bar */}
               <div aria-hidden className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" />
-              {/* Decorative corner icon */}
               <div aria-hidden className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-gradient-to-br from-emerald-100/60 to-teal-50/30 blur-2xl" />
 
               <div className="relative p-7 xl:p-9">
-
-                {/* Breadcrumb / back */}
                 <button
                   onClick={onBack}
                   className="group inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-emerald-700 transition-colors mb-5"
@@ -117,9 +124,16 @@ export function ActionDetailsHeader({
                   {t('back')}
                 </button>
 
-                {/* Badges */}
-                {(akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
+                {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
                   <div className="flex flex-wrap items-center gap-2">
+                    {isFerrataAction && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {t('viaFerrataBadge')}
+                      </span>
+                    )}
                     {akcija.zimskiUspon && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -147,12 +161,10 @@ export function ActionDetailsHeader({
                   </div>
                 )}
 
-                {/* Title */}
                 <h1 className="mt-4 text-4xl xl:text-[2.75rem] font-extrabold tracking-tight leading-[1.08] bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-800 bg-clip-text text-transparent">
                   {akcija.naziv}
                 </h1>
 
-                {/* Subtitle: location pill */}
                 <div className="mt-3.5 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200">
                     <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -169,6 +181,14 @@ export function ActionDetailsHeader({
                       {akcija.visinaVrhM} m
                     </span>
                   )}
+                  {showFerrataDifficulty && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-200">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                      </svg>
+                      {ferrataDifficultyLabel}
+                    </span>
+                  )}
                   {akcija.klubNaziv && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -179,7 +199,6 @@ export function ActionDetailsHeader({
                   )}
                 </div>
 
-                {/* Description block */}
                 {akcija.opis ? (
                   <div className="mt-6 relative rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 shadow-inner overflow-hidden">
                     <div aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-teal-500 to-sky-500" />
@@ -203,43 +222,85 @@ export function ActionDetailsHeader({
                   </div>
                 )}
 
-                {/* Mini stats strip */}
                 <div className="mt-6 grid grid-cols-2 xl:grid-cols-4 gap-2.5">
-                  {akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 && (
-                    <HeroMini
-                      color="sky"
-                      label={t('summitPngTrail', { defaultValue: 'Dužina' })}
-                      value={`${akcija.duzinaStazeKm} km`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
-                        </svg>
-                      }
-                    />
-                  )}
-                  {akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0 && (
-                    <HeroMini
-                      color="amber"
-                      label={t('summitPngAscent', { defaultValue: 'Uspon' })}
-                      value={`${akcija.kumulativniUsponM} m`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
-                        </svg>
-                      }
-                    />
-                  )}
-                  {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
-                    <HeroMini
-                      color="indigo"
-                      label={t('durationHours', { defaultValue: 'Trajanje' })}
-                      value={`${akcija.trajanjeSati} h`}
-                      icon={
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      }
-                    />
+                  {isFerrataAction ? (
+                    <>
+                      {snap?.duzina_m != null && snap.duzina_m > 0 && (
+                        <HeroMini
+                          color="sky"
+                          label={t('ferrataLength')}
+                          value={`${snap.duzina_m} m`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
+                            </svg>
+                          }
+                        />
+                      )}
+                      {snap?.visinska_razlika_m != null && snap.visinska_razlika_m > 0 && (
+                        <HeroMini
+                          color="amber"
+                          label={t('ferrataElevationGain')}
+                          value={`${snap.visinska_razlika_m} m`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
+                            </svg>
+                          }
+                        />
+                      )}
+                      {(ferrataCatalogDuration || (akcija.trajanjeSati != null && akcija.trajanjeSati > 0)) && (
+                        <HeroMini
+                          color="indigo"
+                          label={t('durationHours', { defaultValue: 'Trajanje' })}
+                          value={ferrataCatalogDuration ?? `${akcija.trajanjeSati} h`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          }
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 && (
+                        <HeroMini
+                          color="sky"
+                          label={t('summitPngTrail', { defaultValue: 'Dužina' })}
+                          value={`${akcija.duzinaStazeKm} km`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
+                            </svg>
+                          }
+                        />
+                      )}
+                      {akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0 && (
+                        <HeroMini
+                          color="amber"
+                          label={t('summitPngAscent', { defaultValue: 'Uspon' })}
+                          value={`${akcija.kumulativniUsponM} m`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
+                            </svg>
+                          }
+                        />
+                      )}
+                      {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
+                        <HeroMini
+                          color="indigo"
+                          label={t('durationHours', { defaultValue: 'Trajanje' })}
+                          value={`${akcija.trajanjeSati} h`}
+                          icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          }
+                        />
+                      )}
+                    </>
                   )}
                   {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
                     <HeroMini
@@ -257,7 +318,6 @@ export function ActionDetailsHeader({
               </div>
             </div>
 
-            {/* RIGHT: image card */}
             <div className="w-full xl:flex-1 xl:min-w-0 relative">
               <div className="relative rounded-[28px] overflow-hidden shadow-[0_20px_50px_-15px_rgba(15,118,110,0.35)] ring-1 ring-black/5 bg-gradient-to-br from-emerald-900 via-teal-800 to-sky-900 min-h-[440px] h-full">
                 <AkcijaImageOrFallback
@@ -265,11 +325,9 @@ export function ActionDetailsHeader({
                   alt={akcija.naziv}
                   imgClassName="absolute inset-0 w-full h-full object-cover"
                 />
-                {/* Gradient overlay */}
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/20" />
                 <div aria-hidden className="absolute inset-0 ring-1 ring-inset ring-white/10" />
 
-                {/* Top right overlay chips */}
                 <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
                   {user && (
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md border shadow-sm ${
@@ -288,7 +346,6 @@ export function ActionDetailsHeader({
                   )}
                 </div>
 
-                {/* Top left: peak altitude (planina) */}
                 {showPeakHeight && (
                   <div className="absolute top-4 left-4 px-3 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
                     <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/80">{t('height', { defaultValue: 'Visina' })}</p>
@@ -298,8 +355,15 @@ export function ActionDetailsHeader({
                     </p>
                   </div>
                 )}
+                {showFerrataDifficulty && (
+                  <div className="absolute top-4 left-4 px-3 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/80">{t('difficulty', { defaultValue: 'Težina' })}</p>
+                    <p className="text-xl font-extrabold text-white leading-none mt-0.5">
+                      {ferrataDifficultyLabel}
+                    </p>
+                  </div>
+                )}
 
-                {/* Bottom overlay: counts */}
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <div className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 px-4 py-3 flex items-center justify-between">
                     <div>
@@ -311,11 +375,9 @@ export function ActionDetailsHeader({
                         )}
                       </p>
                     </div>
-                    
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>

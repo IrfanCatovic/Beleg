@@ -19,7 +19,13 @@ import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../ut
 import { formatDate } from '../../utils/dateUtils'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import Dropdown from '../../components/Dropdown'
-import { actionDifficultyBadge, prijavaStatusLabel } from '../../utils/difficultyI18n'
+import { actionDifficultyBadge, ferrataTezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
+import {
+  ferrataActionLocationSubtitle,
+  ferrataActionName,
+  ferrataActionRegion,
+  ferrataCatalogDurationLabel,
+} from '../../utils/actionFerrataDisplay'
 import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
@@ -251,9 +257,8 @@ export default function ActionDetails() {
 
   const locationSubtitle = useMemo(() => {
     if (!akcija) return ''
-    if (akcija.tipAkcije === 'via_ferrata' && akcija.ferrataSnapshot?.lokacija) {
-      const s = akcija.ferrataSnapshot
-      return [s.lokacija, s.naziv].filter(Boolean).join(' · ')
+    if (akcija.tipAkcije === 'via_ferrata') {
+      return ferrataActionLocationSubtitle(akcija)
     }
     return [akcija.planina, akcija.vrh].filter(Boolean).join(' · ')
   }, [akcija])
@@ -550,6 +555,13 @@ export default function ActionDetails() {
   const imenaUspesnoPopeli = uspesnoPopeli.map((p) => (p.fullName?.trim() ? p.fullName : p.korisnik)).join(', ')
   const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije)
   const isFerrataAction = akcija.tipAkcije === 'via_ferrata'
+  const ferrataSnap = akcija.ferrataSnapshot
+  const ferrataName = ferrataActionName(akcija)
+  const ferrataRegion = ferrataActionRegion(akcija)
+  const ferrataCatalogDuration = ferrataCatalogDurationLabel(ferrataSnap)
+  const ferrataDifficultyLabel = isFerrataAction
+    ? ferrataTezinaLabel(ferrataSnap?.tezina || akcija.tezina)
+    : ''
   const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
   const isLimitedView = !!akcija.limited
   /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
@@ -600,6 +612,9 @@ export default function ActionDetails() {
         t={t}
         locationSubtitle={locationSubtitle}
         showPeakHeight={showPeakHeight}
+        isFerrataAction={isFerrataAction}
+        ferrataDifficultyLabel={ferrataDifficultyLabel}
+        ferrataCatalogDuration={ferrataCatalogDuration}
         memberCount={memberCount}
         effectiveIsClanKluba={effectiveIsClanKluba}
         mojaPrijava={mojaPrijava}
@@ -656,25 +671,67 @@ export default function ActionDetails() {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
-            {akcija.planina && (
-              <StatCell
-                icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" /></svg>}
-                value={akcija.planina}
-                label={t('mountain')}
-              />
-            )}
-            <StatCell
-              icon={<svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" /></svg>}
-              value={akcija.vrh}
-              label={t('peak')}
-            />
-            {showPeakHeight && (
-              <StatCell
-                icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
-                value={`${akcija.visinaVrhM}`}
-                unit="m"
-                label={t('height')}
-              />
+            {isFerrataAction ? (
+              <>
+                {ferrataName && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                    value={ferrataName}
+                    label={t('ferrataRoute')}
+                  />
+                )}
+                {ferrataRegion && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>}
+                    value={ferrataRegion}
+                    label={t('ferrataLocation')}
+                  />
+                )}
+                {ferrataSnap?.duzina_m != null && ferrataSnap.duzina_m > 0 ? (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" /></svg>}
+                    value={`${ferrataSnap.duzina_m}`}
+                    unit="m"
+                    label={t('ferrataLength')}
+                  />
+                ) : ferrataSnap?.visinska_razlika_m != null && ferrataSnap.visinska_razlika_m > 0 ? (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
+                    value={`${ferrataSnap.visinska_razlika_m}`}
+                    unit="m"
+                    label={t('ferrataElevationGain')}
+                  />
+                ) : ferrataDifficultyLabel ? (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>}
+                    value={ferrataDifficultyLabel}
+                    label={t('difficulty')}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                {akcija.planina && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" /></svg>}
+                    value={akcija.planina}
+                    label={t('mountain')}
+                  />
+                )}
+                <StatCell
+                  icon={<svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" /></svg>}
+                  value={akcija.vrh}
+                  label={t('peak')}
+                />
+                {showPeakHeight && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
+                    value={`${akcija.visinaVrhM}`}
+                    unit="m"
+                    label={t('height')}
+                  />
+                )}
+              </>
             )}
             <StatCell
               icon={<svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
@@ -710,6 +767,67 @@ export default function ActionDetails() {
                 </div>
                 <div className="p-5 sm:p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {isFerrataAction && ferrataName && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-orange-50"
+                        label={t('ferrataRoute')}
+                        value={ferrataName}
+                      />
+                    )}
+                    {isFerrataAction && ferrataRegion && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-emerald-50"
+                        label={t('ferrataLocation')}
+                        value={ferrataRegion}
+                      />
+                    )}
+                    {isFerrataAction && ferrataSnap?.duzina_m != null && ferrataSnap.duzina_m > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
+                          </svg>
+                        }
+                        iconBg="bg-sky-50"
+                        label={t('ferrataLength')}
+                        value={`${ferrataSnap.duzina_m} m`}
+                      />
+                    )}
+                    {isFerrataAction && ferrataSnap?.visinska_razlika_m != null && ferrataSnap.visinska_razlika_m > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        }
+                        iconBg="bg-amber-50"
+                        label={t('ferrataElevationGain')}
+                        value={`${ferrataSnap.visinska_razlika_m} m`}
+                      />
+                    )}
+                    {isFerrataAction && ferrataSnap?.obavezna_oprema && ferrataSnap.obavezna_oprema.length > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-slate-50"
+                        label={t('ferrataRequiredGear')}
+                        value={ferrataSnap.obavezna_oprema.join(', ')}
+                      />
+                    )}
                     {(akcija.vodic || akcija.drugiVodicIme) && (
                       <InfoRow
                         icon={

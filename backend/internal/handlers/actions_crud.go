@@ -299,7 +299,7 @@ func GetAkcije(c *gin.Context) {
 
 	var aktivne []models.Akcija
 	var zavrsene []models.Akcija
-	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND (klub_id = ? OR javna = ?) AND " + sqlClubOrganizedOnly
+	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND ((klub_id = ? AND " + sqlClubOrganizedOnly + ") OR javna = ?)"
 	if err := gormDb.Preload("Klub").Where(aktivneWhere, false, true, clubID, true).Find(&aktivne).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 		return
