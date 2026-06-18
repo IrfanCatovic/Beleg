@@ -10,9 +10,12 @@
   "dependencies": {
     "@beleg/shared": "file:../../packages/shared",
     "expo": "~52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-constants": "~17.0.8",
+    "expo-font": "~13.0.4",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
-    "react-native": "0.76.3"
+    "react-native": "0.76.9"
   },
   "devDependencies": {
     "@types/react": "~18.3.12",
