@@ -81,7 +81,7 @@ func CreateOrRegenerateActionInviteLink(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invite link je predviđen za klupske akcije"})
 		return
 	}
-	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da menjate invite link za ovu akciju"})
 		return
 	}
@@ -118,7 +118,7 @@ func RevokeActionInviteLink(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
-	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
+	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da ugasite invite link"})
 		return
 	}

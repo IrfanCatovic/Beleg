@@ -207,10 +207,13 @@ export function useActionShare({
     try {
       const res = await regenerateAkcijaInviteLink(id!)
       const inviteUrl = (res?.inviteUrl || '').trim()
-      setActionShareUrl(inviteUrl || resolveActionPublicUrl())
+      if (inviteUrl) {
+        setActionShareUrl(inviteUrl)
+      } else {
+        setActionShareError('Neuspešno kreiranje share linka.')
+      }
     } catch (err: unknown) {
       setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
-      setActionShareUrl(resolveActionPublicUrl())
     } finally {
       setActionShareLoading(false)
     }
@@ -244,10 +247,13 @@ export function useActionShare({
         try {
           const res = await regenerateAkcijaInviteLink(id!)
           const inviteUrl = (res?.inviteUrl || '').trim()
-          setActionShareUrl(inviteUrl || resolveActionPublicUrl())
+          if (inviteUrl) {
+            setActionShareUrl(inviteUrl)
+          } else {
+            setActionShareError('Neuspešno kreiranje share linka.')
+          }
         } catch (err: unknown) {
           setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
-          setActionShareUrl(resolveActionPublicUrl())
         } finally {
           setActionShareLoading(false)
         }
