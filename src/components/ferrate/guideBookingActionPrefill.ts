@@ -43,8 +43,9 @@ export function ferrataAverageDurationHours(row: Pick<WizardFerrataOption, 'traj
   const min = row.trajanjeMin || 0
   const max = row.trajanjeMax || min
   if (min <= 0 && max <= 0) return ''
-  const avg = Math.round((min + max) / 2) || max || min
-  return String(avg)
+  const maxMin = max || min
+  const hours = Math.round((maxMin / 60) * 100) / 100
+  return String(hours)
 }
 
 export function buildGuideBookingActionDescription(

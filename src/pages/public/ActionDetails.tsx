@@ -24,7 +24,7 @@ import {
   ferrataActionLocationSubtitle,
   ferrataActionName,
   ferrataActionRegion,
-  ferrataCatalogDurationLabel,
+  ferrataActionDurationLabel,
 } from '../../utils/actionFerrataDisplay'
 import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
@@ -558,7 +558,9 @@ export default function ActionDetails() {
   const ferrataSnap = akcija.ferrataSnapshot
   const ferrataName = ferrataActionName(akcija)
   const ferrataRegion = ferrataActionRegion(akcija)
-  const ferrataCatalogDuration = ferrataCatalogDurationLabel(ferrataSnap)
+  const ferrataCatalogDuration = isFerrataAction
+    ? ferrataActionDurationLabel(ferrataSnap, akcija.trajanjeSati)
+    : null
   const ferrataDifficultyLabel = isFerrataAction
     ? ferrataTezinaLabel(ferrataSnap?.tezina || akcija.tezina)
     : ''
@@ -884,7 +886,7 @@ export default function ActionDetails() {
                       label={t('difficulty')}
                       value={difficultyBadge.label}
                     />
-                    {akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
+                    {isFerrataAction && ferrataCatalogDuration && (
                       <InfoRow
                         icon={
                           <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -893,7 +895,19 @@ export default function ActionDetails() {
                         }
                         iconBg="bg-indigo-50"
                         label="Trajanje"
-                        value={`${akcija.trajanjeSati}h`}
+                        value={ferrataCatalogDuration}
+                      />
+                    )}
+                    {!isFerrataAction && akcija.trajanjeSati != null && akcija.trajanjeSati > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        }
+                        iconBg="bg-indigo-50"
+                        label="Trajanje"
+                        value={`${akcija.trajanjeSati} h`}
                       />
                     )}
                     {akcija.rokPrijava && (
