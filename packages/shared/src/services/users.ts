@@ -93,3 +93,13 @@ export async function patchKorisnik(
 ): Promise<void> {
   await client.patch(`/api/korisnici/${id}`, body)
 }
+
+export async function addPastActionToUser(
+  client: AxiosInstance,
+  korisnikId: number,
+  formData: FormData,
+): Promise<void> {
+  await client.post(`/api/korisnici/${korisnikId}/dodaj-proslu-akciju`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

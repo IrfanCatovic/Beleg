@@ -95,3 +95,78 @@ export async function fetchMojePopeoSe(client: AxiosInstance): Promise<unknown> 
   const res = await client.get('/api/moje-popeo-se')
   return res.data
 }
+
+export async function createAkcija(
+  client: AxiosInstance,
+  formData: FormData,
+): Promise<{ akcija?: { id: number } }> {
+  const res = await client.post<{ akcija?: { id: number } }>('/api/akcije', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export async function updateAkcija(client: AxiosInstance, id: number | string, formData: FormData): Promise<void> {
+  await client.patch(`/api/akcije/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export async function geocodeQuery(
+  client: AxiosInstance,
+  q: string,
+): Promise<{ lat: number; lng: number }> {
+  const res = await client.get<{ lat: number; lng: number }>('/api/geocode', { params: { q } })
+  return res.data
+}
+
+export interface ExternalUserCandidate {
+  id: number
+  username: string
+  fullName?: string
+  avatarUrl?: string
+  klubId?: number | null
+  klubNaziv?: string
+}
+
+export async function fetchEligibleClubMembers(
+  client: AxiosInstance,
+  akcijaId: number,
+  params: { q?: string; offset?: number; limit?: number },
+): Promise<ExternalUserCandidate[]> {
+  const res = await client.get<{ users: ExternalUserCandidate[] }>(
+    `/api/akcije/${akcijaId}/eligible-club-members`,
+    { params },
+  )
+  return res.data.users ?? []
+}
+
+export async function fetchEligibleExternalUsers(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  params: { scope: string; q?: string; offset?: number; limit?: number },
+): Promise<ExternalUserCandidate[]> {
+  const res = await client.get<{ users: ExternalUserCandidate[] }>(
+    `/api/akcije/${akcijaId}/eligible-external-users`,
+    { params },
+  )
+  return res.data.users ?? []
+}
+
+export async function addClubMembersCompleted(
+  client: AxiosInstance,
+  akcijaId: number,
+  payload: { korisnikIds: number[] },
+): Promise<unknown> {
+  const res = await client.post(`/api/akcije/${akcijaId}/add-club-members-completed`, payload)
+  return res.data
+}
+
+export async function createParticipationRequest(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  targetUserId: number,
+): Promise<unknown> {
+  const res = await client.post(`/api/akcije/${akcijaId}/participation-requests`, { targetUserId })
+  return res.data
+}

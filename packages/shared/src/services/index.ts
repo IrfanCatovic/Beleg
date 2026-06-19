@@ -1,4 +1,5 @@
 export * from './actions'
+export * from './actionFormGuides'
 export * from './posts'
 export * from './users'
 export * from './follows'

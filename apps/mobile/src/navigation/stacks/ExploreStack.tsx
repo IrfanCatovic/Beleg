@@ -14,10 +14,10 @@ export function ExploreStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="FerrataList" component={FerrataListScreen} />
+      <Stack.Screen name="FerrataList" component={FerrataListScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="Guides" component={GuidesScreen} />
-      <Stack.Screen name="Map" component={MapScreen} />
+      <Stack.Screen name="Map" component={MapScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
     </Stack.Navigator>
   )

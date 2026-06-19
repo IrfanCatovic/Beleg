@@ -8,9 +8,15 @@ export interface FerrataRow {
   drzava?: string
   gradOpstina?: string
   lokacija?: string
+  podrucje?: string
   duzinaM?: number
   visinskaRazlikaM?: number
+  trajanjeMin?: number
+  trajanjeMax?: number
+  upcomingActionsCount?: number
   coverImage?: string
+  opis?: string
+  quickTip?: string
   lat?: number
   lng?: number
   [key: string]: unknown

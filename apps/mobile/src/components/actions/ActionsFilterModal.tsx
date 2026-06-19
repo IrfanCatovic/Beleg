@@ -9,6 +9,8 @@ interface ActionsFilterModalProps {
   filters: ActionsFilters
   onChange: (next: ActionsFilters) => void
   onClose: () => void
+  hideSource?: boolean
+  availableMonths?: number[]
 }
 
 function Chip({
@@ -60,8 +62,22 @@ const MONTHS = [
   { v: 12, label: 'Dec' },
 ]
 
-export function ActionsFilterModal({ visible, filters, onChange, onClose }: ActionsFilterModalProps) {
+export function ActionsFilterModal({
+  visible,
+  filters,
+  onChange,
+  onClose,
+  hideSource = false,
+  availableMonths,
+}: ActionsFilterModalProps) {
   const set = (patch: Partial<ActionsFilters>) => onChange({ ...filters, ...patch })
+
+  const monthOptions = [
+    { v: 'all' as const, label: 'Svi meseci' },
+    ...MONTHS.filter(
+      (m) => m.v !== 'all' && (!availableMonths?.length || availableMonths.includes(m.v as number)),
+    ),
+  ]
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -72,11 +88,13 @@ export function ActionsFilterModal({ visible, filters, onChange, onClose }: Acti
           </Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Section title="Tip">
-              <Chip label="Sve" active={filters.source === 'all'} onPress={() => set({ source: 'all' })} />
-              <Chip label="Klupske" active={filters.source === 'club'} onPress={() => set({ source: 'club' })} />
-              <Chip label="Vodičke" active={filters.source === 'guide'} onPress={() => set({ source: 'guide' })} />
-            </Section>
+            {!hideSource ? (
+              <Section title="Tip">
+                <Chip label="Sve" active={filters.source === 'all'} onPress={() => set({ source: 'all' })} />
+                <Chip label="Klupske" active={filters.source === 'club'} onPress={() => set({ source: 'club' })} />
+                <Chip label="Vodičke" active={filters.source === 'guide'} onPress={() => set({ source: 'guide' })} />
+              </Section>
+            ) : null}
 
             <Section title="Vidljivost">
               <Chip
@@ -97,7 +115,7 @@ export function ActionsFilterModal({ visible, filters, onChange, onClose }: Acti
             </Section>
 
             <Section title="Mesec">
-              {MONTHS.map((m) => (
+              {monthOptions.map((m) => (
                 <Chip
                   key={String(m.v)}
                   label={m.label}

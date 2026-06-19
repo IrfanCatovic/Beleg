@@ -91,9 +91,18 @@ export const sr = {
   },
   explore: {
     title: 'Istraži Planiner',
+    subtitle: 'Ferate, vodiči i mapa avantura na jednom mestu.',
     ferratas: 'Ferrate',
+    ferratasHint: 'Pronađi feratu, informiši se i planiraj uspon.',
     guides: 'Vodiči',
-    map: 'Mapa vrhova',
+    guidesHint: 'Pronađi sertifikovane vodiče.',
+    map: 'Mapa avantura',
+    mapHint: 'Pronađi svoju sledeću avanturu.',
+  },
+  wizard: {
+    addActionType: 'Tip akcije',
+    newAction: 'Nova akcija',
+    pastAction: 'Prošla akcija',
   },
   tasks: {
     title: 'Zadaci',

@@ -12,7 +12,14 @@ export type HomeStackParamList = {
 export type ActionsStackParamList = {
   ActionsList: undefined
   ActionDetail: { id: number }
-  ActionWizard: { id?: number } | undefined
+  ActionWizard: {
+    tip: 'planina' | 'via_ferrata'
+    bookingId?: number
+    peakId?: number
+    ferrataId?: number
+    organizator?: string
+  }
+  AddPastAction: { tip: 'planina' | 'via_ferrata' }
   UserProfile: { username?: string; id?: number }
 }
 

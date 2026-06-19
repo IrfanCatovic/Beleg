@@ -6,6 +6,10 @@ export interface HotelRow {
   lat?: number
   lng?: number
   coverImage?: string
+  telefon?: string
+  bookingUrl?: string
+  instagramUrl?: string
+  slike?: string[]
   [key: string]: unknown
 }
 

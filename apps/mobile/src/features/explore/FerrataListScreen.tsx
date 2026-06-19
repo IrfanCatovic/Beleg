@@ -1,66 +1,143 @@
-import { FlatList, Pressable, RefreshControl, StyleSheet } from 'react-native'
+import { useMemo, useState } from 'react'
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { fetchPublicFerratas } from '@beleg/shared/services'
 import { client } from '../../api/client'
-import { Card, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
-import { colors, spacing } from '../../theme'
+import { FerrataCard } from '../../components/explore/FerrataCard'
+import { AppTopBar } from '../../components/ui/AppTopBar'
+import { EmptyState, ErrorView, Input, Loader, Text } from '../../components/ui'
+import { colors, radius, spacing } from '../../theme'
 import type { ExploreStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'FerrataList'>
 
+const TEZINA_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E', 'C/D', 'D/E']
+
+const LEGEND = [
+  { key: 'A', color: '#059669', label: 'A — lako' },
+  { key: 'B', color: '#0284c7', label: 'B' },
+  { key: 'C', color: '#f59e0b', label: 'C' },
+  { key: 'D', color: '#e11d48', label: 'D' },
+  { key: 'E', color: '#18181b', label: 'E — najteže' },
+]
+
 export default function FerrataListScreen({ navigation }: Props) {
+  const [search, setSearch] = useState('')
+  const [tezina, setTezina] = useState('')
+
   const ferratasQuery = useQuery({
-    queryKey: ['ferratas'],
-    queryFn: () => fetchPublicFerratas(client),
+    queryKey: ['ferratas', search, tezina],
+    queryFn: () => fetchPublicFerratas(client, { search, tezina }),
   })
+
+  const items = useMemo(() => {
+    const rows = ferratasQuery.data ?? []
+    return [...rows].sort((a, b) => a.naziv.localeCompare(b.naziv, 'sr', { sensitivity: 'base' }))
+  }, [ferratasQuery.data])
 
   if (ferratasQuery.isLoading) {
     return (
-      <Screen>
+      <View style={styles.root}>
+        <AppTopBar />
         <Loader />
-      </Screen>
+      </View>
     )
   }
 
   if (ferratasQuery.isError) {
     return (
-      <Screen>
+      <View style={styles.root}>
+        <AppTopBar />
         <ErrorView message="Ferrate nisu učitane." onRetry={() => ferratasQuery.refetch()} />
-      </Screen>
+      </View>
     )
   }
 
-  const items = ferratasQuery.data ?? []
-
   return (
-    <Screen padded={false}>
+    <View style={styles.root}>
+      <AppTopBar />
+      <View style={styles.filters}>
+        <Input
+          placeholder="Pretraži ferate..."
+          value={search}
+          onChangeText={setSearch}
+        />
+        <View style={styles.tezinaRow}>
+          {TEZINA_OPTIONS.map((t) => (
+            <Pressable
+              key={t || 'all'}
+              onPress={() => setTezina(t)}
+              style={[styles.tezinaChip, tezina === t && styles.tezinaChipActive]}
+            >
+              <Text variant="small" color={tezina === t ? colors.white : colors.textMuted}>
+                {t || 'Sve'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={ferratasQuery.isRefetching} onRefresh={() => ferratasQuery.refetch()} />}
-        ListEmptyComponent={<EmptyState title="Nema ferrata" />}
+        refreshControl={
+          <RefreshControl refreshing={ferratasQuery.isRefetching} onRefresh={() => ferratasQuery.refetch()} />
+        }
+        ListEmptyComponent={<EmptyState title="Nema ferrata" message="Pokušaj drugačiju pretragu." />}
+        ListFooterComponent={
+          <View style={styles.legend}>
+            <Text variant="label" style={styles.legendTitle}>
+              Legenda težine
+            </Text>
+            {LEGEND.map((l) => (
+              <View key={l.key} style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: l.color }]} />
+                <Text variant="small" color={colors.textMuted}>
+                  {l.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        }
         renderItem={({ item }) => (
-          <Pressable
+          <FerrataCard
+            ferrata={item}
             onPress={() => {
               if (item.slug) navigation.navigate('FerrataDetail', { slug: item.slug })
             }}
-          >
-            <Card style={styles.card}>
-              <Text variant="label">{item.naziv}</Text>
-              <Text variant="small" color={colors.textMuted}>
-                {[item.lokacija, item.tezina].filter(Boolean).join(' · ')}
-              </Text>
-            </Card>
-          </Pressable>
+          />
         )}
       />
-    </Screen>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  list: { padding: spacing.lg },
-  card: { marginBottom: spacing.sm, gap: spacing.xs },
+  root: { flex: 1, backgroundColor: colors.bg },
+  filters: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm },
+  tezinaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  tezinaChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  tezinaChipActive: { backgroundColor: colors.brand, borderColor: colors.brand },
+  list: { padding: spacing.lg, paddingTop: 0 },
+  legend: {
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  legendTitle: { marginBottom: spacing.xs },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  legendDot: { width: 12, height: 12, borderRadius: 6 },
 })
