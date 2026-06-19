@@ -13,12 +13,6 @@ export type FeedItem =
   | { kind: 'action'; createdAtMs: number; action: AkcijaListItem; addedBy?: MentionUser }
   | { kind: 'post'; createdAtMs: number; post: Post }
 
-export interface HomeStatistika {
-  ukupnoKm: number
-  ukupnoMetaraUspona: number
-  brojPopeoSe: number
-}
-
 export function mergeAkcijeById(...lists: AkcijaListItem[][]): AkcijaListItem[] {
   const byId = new Map<number, AkcijaListItem>()
   for (const list of lists) {
@@ -118,15 +112,6 @@ export function pickSledeceAkcije(aktivneAkcije: AkcijaListItem[], limit = 5): A
     .filter((a) => (a.datum ? new Date(a.datum) >= now : true))
     .sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
     .slice(0, limit)
-}
-
-export function parseMojePopeoSe(data: unknown): HomeStatistika {
-  const s = (data as { statistika?: Partial<HomeStatistika> })?.statistika ?? {}
-  return {
-    ukupnoKm: s.ukupnoKm ?? 0,
-    ukupnoMetaraUspona: s.ukupnoMetaraUspona ?? 0,
-    brojPopeoSe: s.brojPopeoSe ?? 0,
-  }
 }
 
 function shuffleAndTake<T>(arr: T[], count: number): T[] {

@@ -10,7 +10,6 @@ import {
   createPost,
   fetchAkcije,
   fetchKorisnici,
-  fetchMojePopeoSe,
   fetchPosts,
   fetchUnreadCount,
   fetchUserFollowingList,
@@ -27,14 +26,12 @@ import type { AppTabsParamList, HomeStackParamList } from '../../navigation/type
 import { FeedActionCard } from './FeedActionCard'
 import { HomeComposer, type HomeComposerHandle } from './HomeComposer'
 import { HomeNextActionsRow } from './HomeNextActionsRow'
-import { HomeStatsRow } from './HomeStatsRow'
 import { HomeSuggestedUsersRow } from './HomeSuggestedUsersRow'
 import {
   buildFeedItems,
   buildUsersById,
   korisniciToMentionUsers,
   mergeAkcijeById,
-  parseMojePopeoSe,
   pickSledeceAkcije,
   pickSuggestedUsers,
   type FeedItem,
@@ -75,11 +72,6 @@ export default function HomeScreen({ navigation }: Props) {
   const akcijeQuery = useQuery({
     queryKey: ['akcije', 'feed'],
     queryFn: () => fetchAkcije(client),
-  })
-
-  const statsQuery = useQuery({
-    queryKey: ['popeo-se', 'moje'],
-    queryFn: () => fetchMojePopeoSe(client),
   })
 
   const discoverQuery = useQuery({
@@ -139,7 +131,6 @@ export default function HomeScreen({ navigation }: Props) {
     () => buildFeedItems(posts, aktivneAkcije, usersById),
     [posts, aktivneAkcije, usersById],
   )
-  const statistika = useMemo(() => parseMojePopeoSe(statsQuery.data), [statsQuery.data])
   const sledeceAkcije = useMemo(() => pickSledeceAkcije(aktivneAkcije), [aktivneAkcije])
   const followingIds = useMemo(
     () =>
@@ -158,16 +149,14 @@ export default function HomeScreen({ navigation }: Props) {
   const isRefetching =
     postsQuery.isRefetching ||
     akcijeQuery.isRefetching ||
-    statsQuery.isRefetching ||
     discoverQuery.isRefetching
 
   const refreshAll = useCallback(() => {
     void postsQuery.refetch()
     void akcijeQuery.refetch()
-    void statsQuery.refetch()
     void discoverQuery.refetch()
     void followingQuery.refetch()
-  }, [postsQuery, akcijeQuery, statsQuery, discoverQuery, followingQuery])
+  }, [postsQuery, akcijeQuery, discoverQuery, followingQuery])
 
   const pickImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -204,10 +193,6 @@ export default function HomeScreen({ navigation }: Props) {
     tabNavigation?.navigate('ActionsTab', { screen: 'ActionsList' })
   }, [tabNavigation])
 
-  const navigateToProfile = useCallback(() => {
-    tabNavigation?.navigate('ProfileTab', { screen: 'MyProfile' })
-  }, [tabNavigation])
-
   const renderFeedItem = useCallback(
     ({ item }: { item: FeedItem }) => {
       if (item.kind === 'action') {
@@ -242,11 +227,6 @@ export default function HomeScreen({ navigation }: Props) {
     () => (
       <View>
         <View style={styles.headerSection}>
-          <HomeStatsRow
-            statistika={statistika}
-            loading={statsQuery.isLoading}
-            onViewProfile={navigateToProfile}
-          />
           <HomeNextActionsRow
             actions={sledeceAkcije}
             loading={akcijeQuery.isLoading}
@@ -270,9 +250,6 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
     ),
     [
-      statistika,
-      statsQuery.isLoading,
-      navigateToProfile,
       sledeceAkcije,
       akcijeQuery.isLoading,
       navigateToAction,
