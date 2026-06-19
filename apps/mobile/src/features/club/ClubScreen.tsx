@@ -10,9 +10,9 @@ import { Avatar, Button, Card, ErrorView, Loader, Screen, Text } from '../../com
 import { hasClubContext } from '../../utils/roles'
 import { colors, spacing } from '../../theme'
 import NoClubJoinView from './NoClubJoinView'
-import type { ProfileStackParamList } from '../../navigation/types'
+import type { ClubStackParamList } from '../../navigation/types'
 
-type Props = NativeStackScreenProps<ProfileStackParamList, 'Club'>
+type Props = NativeStackScreenProps<ClubStackParamList, 'ClubHome'>
 
 export default function ClubScreen(_props: Props) {
   const { user, refreshUser } = useAuth()

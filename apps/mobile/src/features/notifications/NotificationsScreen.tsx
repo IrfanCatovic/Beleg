@@ -16,9 +16,9 @@ import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
 import { Button, Card, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
-import type { NotificationsStackParamList } from '../../navigation/types'
+import type { HomeStackParamList } from '../../navigation/types'
 
-type Props = NativeStackScreenProps<NotificationsStackParamList, 'NotificationsList'>
+type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationsList'>
 
 export default function NotificationsScreen({ navigation }: Props) {
   const queryClient = useQueryClient()

@@ -35,7 +35,7 @@ export const sr = {
     home: 'Početna',
     actions: 'Akcije',
     explore: 'Istraži',
-    notifications: 'Obaveštenja',
+    club: 'Klub',
     profile: 'Profil',
   },
   home: {

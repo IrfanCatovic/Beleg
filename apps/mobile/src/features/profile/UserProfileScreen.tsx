@@ -25,14 +25,12 @@ import { colors, spacing } from '../../theme'
 import type { ProfileStackParamList } from '../../navigation/types'
 import type { HomeStackParamList } from '../../navigation/types'
 import type { ActionsStackParamList } from '../../navigation/types'
-import type { NotificationsStackParamList } from '../../navigation/types'
 import type { ExploreStackParamList } from '../../navigation/types'
 
 type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'UserProfile'>
   | NativeStackScreenProps<HomeStackParamList, 'UserProfile'>
   | NativeStackScreenProps<ActionsStackParamList, 'UserProfile'>
-  | NativeStackScreenProps<NotificationsStackParamList, 'UserProfile'>
   | NativeStackScreenProps<ExploreStackParamList, 'UserProfile'>
 
 export default function UserProfileScreen({ route, navigation }: Props) {

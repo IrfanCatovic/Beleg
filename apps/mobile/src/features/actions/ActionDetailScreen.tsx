@@ -17,13 +17,11 @@ import { Badge, Button, Card, ErrorView, Loader, Screen, Text } from '../../comp
 import { colors, spacing } from '../../theme'
 import type { ActionsStackParamList } from '../../navigation/types'
 import type { HomeStackParamList } from '../../navigation/types'
-import type { NotificationsStackParamList } from '../../navigation/types'
 import type { ProfileStackParamList } from '../../navigation/types'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<HomeStackParamList, 'ActionDetail'>
-  | NativeStackScreenProps<NotificationsStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ProfileStackParamList, 'ActionDetail'>
 
 function SelectionRow({

@@ -5,6 +5,8 @@ export type HomeStackParamList = {
   ActionDetail: { id: number }
   UserProfile: { username?: string; id?: number }
   PostDetail: { id: number }
+  NotificationsList: undefined
+  NotificationDetail: { id: number }
 }
 
 export type ActionsStackParamList = {
@@ -23,17 +25,13 @@ export type ExploreStackParamList = {
   UserProfile: { username?: string; id?: number }
 }
 
-export type NotificationsStackParamList = {
-  NotificationsList: undefined
-  NotificationDetail: { id: number }
-  ActionDetail: { id: number }
-  UserProfile: { username?: string; id?: number }
+export type ClubStackParamList = {
+  ClubHome: undefined
 }
 
 export type ProfileStackParamList = {
   MyProfile: undefined
   ProfileSettings: { id?: number } | undefined
-  Club: undefined
   Finance: undefined
   Tasks: undefined
   UserProfile: { username?: string; id?: number }
@@ -44,7 +42,7 @@ export type AppTabsParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>
   ActionsTab: NavigatorScreenParams<ActionsStackParamList>
   ExploreTab: NavigatorScreenParams<ExploreStackParamList>
-  NotificationsTab: NavigatorScreenParams<NotificationsStackParamList>
+  ClubTab: NavigatorScreenParams<ClubStackParamList>
   ProfileTab: NavigatorScreenParams<ProfileStackParamList>
 }
 

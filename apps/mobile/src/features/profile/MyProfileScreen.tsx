@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { useAuth } from '../../context/AuthContext'
 import { Avatar, Button, Card, Screen, Text } from '../../components/ui'
-import { canManageClub, canSeeFinance, hasClubContext } from '../../utils/roles'
+import { canManageClub, canSeeFinance } from '../../utils/roles'
 import { colors, spacing } from '../../theme'
 import type { ProfileStackParamList } from '../../navigation/types'
 
@@ -26,9 +26,6 @@ export default function MyProfileScreen({ navigation }: Props) {
 
       <View style={styles.menu}>
         <Button title="Podešavanja profila" variant="secondary" onPress={() => navigation.navigate('ProfileSettings')} />
-        {hasClubContext(user) ? (
-          <Button title="Moj klub" variant="secondary" onPress={() => navigation.navigate('Club')} />
-        ) : null}
         {canSeeFinance(user?.role) ? (
           <Button title="Finansije" variant="secondary" onPress={() => navigation.navigate('Finance')} />
         ) : null}

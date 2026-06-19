@@ -5,9 +5,9 @@ import { fetchObavestenjeById } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { spacing } from '../../theme'
-import type { NotificationsStackParamList } from '../../navigation/types'
+import type { HomeStackParamList } from '../../navigation/types'
 
-type Props = NativeStackScreenProps<NotificationsStackParamList, 'NotificationDetail'>
+type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationDetail'>
 
 interface ParsedMeta {
   akcijaId?: number

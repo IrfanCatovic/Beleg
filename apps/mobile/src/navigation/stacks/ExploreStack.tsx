@@ -5,19 +5,20 @@ import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
 import GuidesScreen from '../../features/explore/GuidesScreen'
 import MapScreen from '../../features/explore/MapScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import { rootStackScreenOptions, stackScreenOptions } from '../screenOptions'
 import type { ExploreStackParamList } from '../types'
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>()
 
 export function ExploreStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={{ title: 'Istraži' }} />
-      <Stack.Screen name="FerrataList" component={FerrataListScreen} options={{ title: 'Ferrate' }} />
-      <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} options={{ title: 'Ferrata' }} />
-      <Stack.Screen name="Guides" component={GuidesScreen} options={{ title: 'Vodiči' }} />
-      <Stack.Screen name="Map" component={MapScreen} options={{ title: 'Mapa' }} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Profil' }} />
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={rootStackScreenOptions} />
+      <Stack.Screen name="FerrataList" component={FerrataListScreen} />
+      <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
+      <Stack.Screen name="Guides" component={GuidesScreen} />
+      <Stack.Screen name="Map" component={MapScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
     </Stack.Navigator>
   )
 }

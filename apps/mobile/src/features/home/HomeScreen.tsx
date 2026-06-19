@@ -1,14 +1,15 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { FlatList, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import * as ImagePicker from 'expo-image-picker'
 import { getApiErrorMessage } from '@beleg/shared'
-import { createPost, fetchPosts, togglePostLike } from '@beleg/shared/services'
+import { createPost, fetchPosts, fetchUnreadCount, togglePostLike } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
 import { PostCard } from '../../components/shared/PostCard'
-import { Button, EmptyState, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
+import { AppTopBar } from '../../components/ui/AppTopBar'
+import { Button, EmptyState, ErrorView, Input, Loader, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 
@@ -21,6 +22,14 @@ export default function HomeScreen({ navigation }: Props) {
   const { showAlert } = useModal()
   const [composer, setComposer] = useState('')
   const [imageUri, setImageUri] = useState<string | null>(null)
+  const [showComposer, setShowComposer] = useState(false)
+  const listRef = useRef<FlatList>(null)
+
+  const { data: unread = 0 } = useQuery({
+    queryKey: ['obavestenja', 'unread'],
+    queryFn: () => fetchUnreadCount(client),
+    refetchInterval: 60_000,
+  })
 
   const {
     data,
@@ -64,6 +73,7 @@ export default function HomeScreen({ navigation }: Props) {
     onSuccess: () => {
       setComposer('')
       setImageUri(null)
+      setShowComposer(false)
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Objava nije uspela.')),
@@ -83,64 +93,93 @@ export default function HomeScreen({ navigation }: Props) {
     })
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri)
+      setShowComposer(true)
     }
   }, [showAlert])
 
-  const onRefresh = useCallback(() => {
-    void refetch()
-  }, [refetch])
+  const openComposer = useCallback(() => {
+    setShowComposer(true)
+    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+  }, [])
 
   if (isLoading) {
     return (
-      <Screen>
+      <View style={styles.root}>
+        <AppTopBar
+          leftIcon="add"
+          onLeftPress={openComposer}
+          rightIcon="notifications-outline"
+          onRightPress={() => navigation.navigate('NotificationsList')}
+          rightBadge={unread}
+        />
         <Loader />
-      </Screen>
+      </View>
     )
   }
 
   if (isError) {
     return (
-      <Screen>
+      <View style={styles.root}>
+        <AppTopBar
+          leftIcon="add"
+          onLeftPress={openComposer}
+          rightIcon="notifications-outline"
+          onRightPress={() => navigation.navigate('NotificationsList')}
+          rightBadge={unread}
+        />
         <ErrorView message="Feed nije učitan." onRetry={() => refetch()} />
-      </Screen>
+      </View>
     )
   }
 
   return (
-    <Screen padded={false}>
-      <View style={styles.composer}>
-        <Input
-          placeholder="Šta ima novo?"
-          value={composer}
-          onChangeText={setComposer}
-          multiline
-        />
-        {imageUri ? (
-          <View style={styles.previewRow}>
-            <Image source={{ uri: imageUri }} style={styles.preview} />
-            <Pressable onPress={() => setImageUri(null)}>
-              <Text variant="small" color={colors.danger}>
-                Ukloni sliku
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-        <View style={styles.composerActions}>
-          <Button title="Slika" variant="secondary" onPress={pickImage} />
-          <Button
-            title="Objavi"
-            onPress={() => publishMutation.mutate()}
-            loading={publishMutation.isPending}
-            disabled={!composer.trim() && !imageUri}
+    <View style={styles.root}>
+      <AppTopBar
+        leftIcon="add"
+        onLeftPress={openComposer}
+        rightIcon="notifications-outline"
+        onRightPress={() => navigation.navigate('NotificationsList')}
+        rightBadge={unread}
+      />
+
+      {showComposer ? (
+        <View style={styles.composer}>
+          <Input
+            placeholder="Šta ima novo?"
+            value={composer}
+            onChangeText={setComposer}
+            multiline
+            autoFocus
           />
+          {imageUri ? (
+            <View style={styles.previewRow}>
+              <Image source={{ uri: imageUri }} style={styles.preview} />
+              <Pressable onPress={() => setImageUri(null)}>
+                <Text variant="small" color={colors.danger}>
+                  Ukloni sliku
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <View style={styles.composerActions}>
+            <Button title="Slika" variant="secondary" onPress={pickImage} />
+            <Button title="Otkaži" variant="ghost" onPress={() => setShowComposer(false)} />
+            <Button
+              title="Objavi"
+              onPress={() => publishMutation.mutate()}
+              loading={publishMutation.isPending}
+              disabled={!composer.trim() && !imageUri}
+            />
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <FlatList
+        ref={listRef}
         data={posts}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
         }}
@@ -162,11 +201,12 @@ export default function HomeScreen({ navigation }: Props) {
           />
         )}
       />
-    </Screen>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   composer: {
     padding: spacing.lg,
     gap: spacing.sm,
@@ -174,7 +214,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  composerActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
+  composerActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end', flexWrap: 'wrap' },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   preview: { width: 72, height: 72, borderRadius: 8 },
   list: { padding: spacing.lg, paddingBottom: spacing.xxl },
