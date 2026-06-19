@@ -8,10 +8,19 @@ const rootModules = path.resolve(monorepoRoot, 'node_modules')
 
 const config = getDefaultConfig(projectRoot)
 
-// npm workspaces: CLI/babel hoisted to root, SDK packages in apps/mobile.
 config.watchFolders = [monorepoRoot]
 config.resolver.nodeModulesPaths = [mobileModules, rootModules]
 config.resolver.disableHierarchicalLookup = true
+
+// Pin mobile SDK packages — root workspace also has react-native 0.86 (wrong version).
+config.resolver.extraNodeModules = {
+  react: path.join(mobileModules, 'react'),
+  'react-native': path.join(mobileModules, 'react-native'),
+  expo: path.join(mobileModules, 'expo'),
+  'webidl-conversions': path.join(rootModules, 'webidl-conversions'),
+}
+
+// axios in @beleg/shared must use the React Native build, not Node crypto.
 config.resolver.unstable_enablePackageExports = true
 config.resolver.unstable_conditionNames = [
   'require',
