@@ -34,3 +34,20 @@ export async function acceptFollowRequest(client: AxiosInstance, followId: numbe
 export async function rejectFollowRequest(client: AxiosInstance, followId: number): Promise<void> {
   await client.delete(`/api/follows/requests/${followId}`)
 }
+
+export interface FollowingUserRef {
+  id: number
+  username?: string
+  fullName?: string
+  avatar_url?: string
+}
+
+export async function fetchUserFollowingList(
+  client: AxiosInstance,
+  userIdOrUsername: string | number,
+): Promise<FollowingUserRef[]> {
+  const res = await client.get<{ users?: FollowingUserRef[] }>(
+    `/api/follows/user/${encodeURIComponent(String(userIdOrUsername))}/following`,
+  )
+  return res.data.users ?? []
+}

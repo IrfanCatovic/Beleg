@@ -1,29 +1,60 @@
-import { useCallback, useRef, useState } from 'react'
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
 import * as ImagePicker from 'expo-image-picker'
+import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '@beleg/shared'
-import { createPost, fetchPosts, fetchUnreadCount, togglePostLike } from '@beleg/shared/services'
+import {
+  createPost,
+  fetchAkcije,
+  fetchKorisnici,
+  fetchMojePopeoSe,
+  fetchPosts,
+  fetchUnreadCount,
+  fetchUserFollowingList,
+  togglePostLike,
+} from '@beleg/shared/services'
 import { client } from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { PostCard } from '../../components/shared/PostCard'
 import { AppTopBar } from '../../components/ui/AppTopBar'
-import { Button, EmptyState, ErrorView, Input, Loader, Text } from '../../components/ui'
+import { EmptyState, ErrorView, Loader, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
-import type { HomeStackParamList } from '../../navigation/types'
+import type { AppTabsParamList, HomeStackParamList } from '../../navigation/types'
+import { FeedActionCard } from './FeedActionCard'
+import { HomeComposer, type HomeComposerHandle } from './HomeComposer'
+import { HomeNextActionsRow } from './HomeNextActionsRow'
+import { HomeStatsRow } from './HomeStatsRow'
+import { HomeSuggestedUsersRow } from './HomeSuggestedUsersRow'
+import {
+  buildFeedItems,
+  buildUsersById,
+  korisniciToMentionUsers,
+  mergeAkcijeById,
+  parseMojePopeoSe,
+  pickSledeceAkcije,
+  pickSuggestedUsers,
+  type FeedItem,
+  type MentionUser,
+} from './homeFeedUtils'
 
 const PAGE = 15
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Feed'>
 
 export default function HomeScreen({ navigation }: Props) {
+  const tabNavigation = navigation.getParent<BottomTabNavigationProp<AppTabsParamList>>()
   const queryClient = useQueryClient()
   const { showAlert } = useModal()
+  const { user } = useAuth()
+  const { t } = useTranslation('home')
   const [composer, setComposer] = useState('')
   const [imageUri, setImageUri] = useState<string | null>(null)
-  const [showComposer, setShowComposer] = useState(false)
-  const listRef = useRef<FlatList>(null)
+  const listRef = useRef<FlatList<FeedItem>>(null)
+  const composerRef = useRef<HomeComposerHandle>(null)
 
   const { data: unread = 0 } = useQuery({
     queryKey: ['obavestenja', 'unread'],
@@ -31,16 +62,7 @@ export default function HomeScreen({ navigation }: Props) {
     refetchInterval: 60_000,
   })
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const postsQuery = useInfiniteQuery({
     queryKey: ['posts', 'feed'],
     queryFn: ({ pageParam = 0 }) => fetchPosts(client, PAGE, pageParam),
     initialPageParam: 0,
@@ -48,6 +70,27 @@ export default function HomeScreen({ navigation }: Props) {
       const loaded = pages.reduce((n, p) => n + p.posts.length, 0)
       return loaded < last.total ? loaded : undefined
     },
+  })
+
+  const akcijeQuery = useQuery({
+    queryKey: ['akcije', 'feed'],
+    queryFn: () => fetchAkcije(client),
+  })
+
+  const statsQuery = useQuery({
+    queryKey: ['popeo-se', 'moje'],
+    queryFn: () => fetchMojePopeoSe(client),
+  })
+
+  const discoverQuery = useQuery({
+    queryKey: ['korisnici', 'discover'],
+    queryFn: () => fetchKorisnici(client, { scope: 'global' }),
+  })
+
+  const followingQuery = useQuery({
+    queryKey: ['follows', 'following', user?.username],
+    queryFn: () => fetchUserFollowingList(client, user!.username),
+    enabled: !!user?.username,
   })
 
   const likeMutation = useMutation({
@@ -58,7 +101,7 @@ export default function HomeScreen({ navigation }: Props) {
   const publishMutation = useMutation({
     mutationFn: async () => {
       const content = composer.trim()
-      if (!content && !imageUri) throw new Error('Unesite tekst ili dodajte sliku.')
+      if (!content && !imageUri) throw new Error(t('publishError'))
       if (imageUri) {
         const fd = new FormData()
         fd.append('content', content)
@@ -73,18 +116,63 @@ export default function HomeScreen({ navigation }: Props) {
     onSuccess: () => {
       setComposer('')
       setImageUri(null)
-      setShowComposer(false)
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Objava nije uspela.')),
+    onError: (err) => showAlert(t('publishFailedTitle'), getApiErrorMessage(err, t('publishFailed'))),
   })
 
-  const posts = data?.pages.flatMap((p) => p.posts) ?? []
+  const posts = postsQuery.data?.pages.flatMap((p) => p.posts) ?? []
+  const aktivneAkcije = useMemo(
+    () =>
+      mergeAkcijeById(
+        akcijeQuery.data?.aktivne ?? [],
+        akcijeQuery.data?.vodeneAktivne ?? [],
+      ),
+    [akcijeQuery.data],
+  )
+  const mentionUsers = useMemo(
+    () => korisniciToMentionUsers(discoverQuery.data ?? []),
+    [discoverQuery.data],
+  )
+  const usersById = useMemo(() => buildUsersById(mentionUsers), [mentionUsers])
+  const feedItems = useMemo(
+    () => buildFeedItems(posts, aktivneAkcije, usersById),
+    [posts, aktivneAkcije, usersById],
+  )
+  const statistika = useMemo(() => parseMojePopeoSe(statsQuery.data), [statsQuery.data])
+  const sledeceAkcije = useMemo(() => pickSledeceAkcije(aktivneAkcije), [aktivneAkcije])
+  const followingIds = useMemo(
+    () =>
+      (followingQuery.data ?? [])
+        .map((u) => Number(u.id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    [followingQuery.data],
+  )
+  const suggestedUsers = useMemo(
+    () => pickSuggestedUsers(mentionUsers, followingIds, user?.klubId, 2),
+    [mentionUsers, followingIds, user?.klubId],
+  )
+
+  const isLoading = postsQuery.isLoading
+  const isError = postsQuery.isError
+  const isRefetching =
+    postsQuery.isRefetching ||
+    akcijeQuery.isRefetching ||
+    statsQuery.isRefetching ||
+    discoverQuery.isRefetching
+
+  const refreshAll = useCallback(() => {
+    void postsQuery.refetch()
+    void akcijeQuery.refetch()
+    void statsQuery.refetch()
+    void discoverQuery.refetch()
+    void followingQuery.refetch()
+  }, [postsQuery, akcijeQuery, statsQuery, discoverQuery, followingQuery])
 
   const pickImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      await showAlert('Dozvola', 'Potrebna je dozvola za galeriju.')
+      await showAlert(t('galleryPermissionTitle'), t('galleryPermission'))
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -93,14 +181,111 @@ export default function HomeScreen({ navigation }: Props) {
     })
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri)
-      setShowComposer(true)
+      composerRef.current?.focus()
     }
-  }, [showAlert])
+  }, [showAlert, t])
 
   const openComposer = useCallback(() => {
-    setShowComposer(true)
     listRef.current?.scrollToOffset({ offset: 0, animated: true })
+    composerRef.current?.focus()
   }, [])
+
+  const navigateToAction = useCallback(
+    (id: number) => navigation.navigate('ActionDetail', { id }),
+    [navigation],
+  )
+
+  const navigateToUser = useCallback(
+    (u: MentionUser) => navigation.navigate('UserProfile', { id: u.id, username: u.username }),
+    [navigation],
+  )
+
+  const navigateToAllActions = useCallback(() => {
+    tabNavigation?.navigate('ActionsTab', { screen: 'ActionsList' })
+  }, [tabNavigation])
+
+  const navigateToProfile = useCallback(() => {
+    tabNavigation?.navigate('ProfileTab', { screen: 'MyProfile' })
+  }, [tabNavigation])
+
+  const renderFeedItem = useCallback(
+    ({ item }: { item: FeedItem }) => {
+      if (item.kind === 'action') {
+        return (
+          <FeedActionCard
+            action={item.action}
+            addedBy={item.addedBy}
+            onPress={() => navigateToAction(item.action.id)}
+          />
+        )
+      }
+      const post = item.post
+      return (
+        <PostCard
+          post={post}
+          onPress={() => navigation.navigate('PostDetail', { id: post.id })}
+          onPressAuthor={() =>
+            navigation.navigate('UserProfile', {
+              id: post.author.id,
+              username: post.author.username,
+            })
+          }
+          onLike={() => likeMutation.mutate(post.id)}
+          onComment={() => navigation.navigate('PostDetail', { id: post.id })}
+        />
+      )
+    },
+    [likeMutation, navigateToAction, navigation],
+  )
+
+  const listHeader = useMemo(
+    () => (
+      <View>
+        <View style={styles.headerSection}>
+          <HomeStatsRow
+            statistika={statistika}
+            loading={statsQuery.isLoading}
+            onViewProfile={navigateToProfile}
+          />
+          <HomeNextActionsRow
+            actions={sledeceAkcije}
+            loading={akcijeQuery.isLoading}
+            onPressAction={navigateToAction}
+            onPressAll={navigateToAllActions}
+          />
+        </View>
+        <HomeComposer
+          ref={composerRef}
+          avatarUri={user?.avatarUrl}
+          avatarName={user?.fullName || user?.username}
+          composer={composer}
+          imageUri={imageUri}
+          publishing={publishMutation.isPending}
+          onChangeText={setComposer}
+          onPickImage={() => void pickImage()}
+          onRemoveImage={() => setImageUri(null)}
+          onPublish={() => publishMutation.mutate()}
+        />
+        <HomeSuggestedUsersRow users={suggestedUsers} onPressUser={navigateToUser} />
+      </View>
+    ),
+    [
+      statistika,
+      statsQuery.isLoading,
+      navigateToProfile,
+      sledeceAkcije,
+      akcijeQuery.isLoading,
+      navigateToAction,
+      navigateToAllActions,
+      user,
+      composer,
+      imageUri,
+      publishMutation.isPending,
+      pickImage,
+      suggestedUsers,
+      navigateToUser,
+    ],
+  )
 
   if (isLoading) {
     return (
@@ -127,7 +312,7 @@ export default function HomeScreen({ navigation }: Props) {
           onRightPress={() => navigation.navigate('NotificationsList')}
           rightBadge={unread}
         />
-        <ErrorView message="Feed nije učitan." onRetry={() => refetch()} />
+        <ErrorView message={t('loadError')} onRetry={() => postsQuery.refetch()} />
       </View>
     )
   }
@@ -142,64 +327,30 @@ export default function HomeScreen({ navigation }: Props) {
         rightBadge={unread}
       />
 
-      {showComposer ? (
-        <View style={styles.composer}>
-          <Input
-            placeholder="Šta ima novo?"
-            value={composer}
-            onChangeText={setComposer}
-            multiline
-            autoFocus
-          />
-          {imageUri ? (
-            <View style={styles.previewRow}>
-              <Image source={{ uri: imageUri }} style={styles.preview} />
-              <Pressable onPress={() => setImageUri(null)}>
-                <Text variant="small" color={colors.danger}>
-                  Ukloni sliku
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-          <View style={styles.composerActions}>
-            <Button title="Slika" variant="secondary" onPress={pickImage} />
-            <Button title="Otkaži" variant="ghost" onPress={() => setShowComposer(false)} />
-            <Button
-              title="Objavi"
-              onPress={() => publishMutation.mutate()}
-              loading={publishMutation.isPending}
-              disabled={!composer.trim() && !imageUri}
-            />
-          </View>
-        </View>
-      ) : null}
-
       <FlatList
         ref={listRef}
-        data={posts}
-        keyExtractor={(item) => String(item.id)}
+        data={feedItems}
+        keyExtractor={(item) => (item.kind === 'action' ? `action-${item.action.id}` : `post-${item.post.id}`)}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refreshAll} />}
         onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+          if (postsQuery.hasNextPage && !postsQuery.isFetchingNextPage) void postsQuery.fetchNextPage()
         }}
         onEndReachedThreshold={0.4}
-        ListEmptyComponent={<EmptyState title="Nema objava" message="Budite prvi koji nešto objavi." />}
-        ListFooterComponent={isFetchingNextPage ? <Loader /> : null}
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            onPress={() => navigation.navigate('PostDetail', { id: item.id })}
-            onPressAuthor={() =>
-              navigation.navigate('UserProfile', {
-                id: item.author.id,
-                username: item.author.username,
-              })
-            }
-            onLike={() => likeMutation.mutate(item.id)}
-            onComment={() => navigation.navigate('PostDetail', { id: item.id })}
-          />
-        )}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          <EmptyState title={t('noPostsTitle')} message={t('noPostsDesc')} />
+        }
+        ListFooterComponent={
+          postsQuery.isFetchingNextPage ? (
+            <Loader />
+          ) : posts.length > 0 && !postsQuery.hasNextPage ? (
+            <Text variant="small" color={colors.textSubtle} style={styles.allLoaded}>
+              {t('allLoaded')}
+            </Text>
+          ) : null
+        }
+        renderItem={renderFeedItem}
       />
     </View>
   )
@@ -207,15 +358,7 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  composer: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  composerActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end', flexWrap: 'wrap' },
-  previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  preview: { width: 72, height: 72, borderRadius: 8 },
-  list: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  headerSection: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  allLoaded: { textAlign: 'center', paddingVertical: spacing.lg },
 })
