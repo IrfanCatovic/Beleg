@@ -1,30 +1,26 @@
-import { ActivityIndicator, SafeAreaView, StyleSheet } from 'react-native'
-import { AuthProvider, useAuth } from './src/context/AuthContext'
-import LoginScreen from './src/screens/LoginScreen'
-import HomeScreen from './src/screens/HomeScreen'
-
-function Root() {
-  const { isLoggedIn, authLoading } = useAuth()
-
-  if (authLoading) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
-    )
-  }
-
-  return isLoggedIn ? <HomeScreen /> : <LoginScreen />
-}
+import { StatusBar } from 'expo-status-bar'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { AuthProvider } from './src/context/AuthContext'
+import { ModalProvider } from './src/context/ModalContext'
+import { RootNavigator } from './src/navigation/RootNavigator'
+import { queryClient } from './src/lib/queryClient'
+import './src/i18n'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Root />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ModalProvider>
+              <RootNavigator />
+              <StatusBar style="auto" />
+            </ModalProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }
-
-const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-})

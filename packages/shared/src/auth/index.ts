@@ -1,4 +1,6 @@
 export { loginApi } from './login'
+export { registerOpenApi, requestPasswordResetApi } from './register'
+export type { OpenRegistrationPayload } from './register'
 export {
   computeProfileIncomplete,
   fetchMe,
