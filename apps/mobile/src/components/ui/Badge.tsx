@@ -5,7 +5,7 @@ import { colors, fontSize, fontWeight, radius, spacing } from '../../theme'
 type Tone = 'brand' | 'muted' | 'warning' | 'danger'
 
 const tones: Record<Tone, { bg: string; fg: string }> = {
-  brand: { bg: '#e7f6ea', fg: colors.brandDark },
+  brand: { bg: '#ecfdf5', fg: colors.brandDark }, // emerald-50
   muted: { bg: colors.surfaceAlt, fg: colors.textMuted },
   warning: { bg: colors.warningBg, fg: colors.warning },
   danger: { bg: colors.dangerBg, fg: colors.danger },

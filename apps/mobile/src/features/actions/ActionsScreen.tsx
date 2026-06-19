@@ -1,15 +1,18 @@
+import { SectionList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useMemo } from 'react'
-import { FlatList, RefreshControl, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { AkcijaListItem } from '@beleg/shared'
 import { fetchAkcije, fetchMojePrijave } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { ActionCard } from '../../components/shared/ActionCard'
 import { EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
-import { spacing } from '../../theme'
+import { colors, spacing } from '../../theme'
 import type { ActionsStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ActionsStackParamList, 'ActionsList'>
+
+type Section = { title: string; data: AkcijaListItem[] }
 
 export default function ActionsScreen({ navigation }: Props) {
   const akcijeQuery = useQuery({
@@ -27,9 +30,14 @@ export default function ActionsScreen({ navigation }: Props) {
     [prijaveQuery.data],
   )
 
-  const aktivne = akcijeQuery.data?.aktivne ?? []
-  const zavrsene = akcijeQuery.data?.zavrsene ?? []
-  const items = [...aktivne, ...zavrsene]
+  const sections = useMemo((): Section[] => {
+    const aktivne = akcijeQuery.data?.aktivne ?? []
+    const zavrsene = akcijeQuery.data?.zavrsene ?? []
+    const out: Section[] = []
+    if (aktivne.length) out.push({ title: 'Aktivne akcije', data: aktivne })
+    if (zavrsene.length) out.push({ title: 'Završene akcije', data: zavrsene })
+    return out
+  }, [akcijeQuery.data])
 
   if (akcijeQuery.isLoading) {
     return (
@@ -49,10 +57,11 @@ export default function ActionsScreen({ navigation }: Props) {
 
   return (
     <Screen padded={false}>
-      <FlatList
-        data={items}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
+        stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
             refreshing={akcijeQuery.isRefetching || prijaveQuery.isRefetching}
@@ -62,14 +71,12 @@ export default function ActionsScreen({ navigation }: Props) {
             }}
           />
         }
-        ListHeaderComponent={
-          aktivne.length > 0 ? (
-            <Text variant="heading" style={styles.section}>
-              Aktivne akcije
-            </Text>
-          ) : null
-        }
         ListEmptyComponent={<EmptyState title="Nema akcija" />}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text variant="heading">{section.title}</Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <ActionCard
             action={item}
@@ -84,5 +91,11 @@ export default function ActionsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   list: { padding: spacing.lg },
-  section: { marginBottom: spacing.md },
+  sectionHeader: {
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.sm,
+  },
 })

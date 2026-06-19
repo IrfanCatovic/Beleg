@@ -1,18 +1,19 @@
 /**
- * Paleta usklađena sa web app-om (emerald/teal brend + slate dark chrome).
- * Web koristi Tailwind default + brend zelenu #41ac53 i emerald-600.
+ * Planiner paleta — usklađeno sa web AppLayout:
+ * tamni slate chrome (header/tab bar) + emerald/teal akcenti na akcijama.
  */
 export const colors = {
-  brand: '#41ac53',
-  brandDark: '#2f8f43',
-  emerald600: '#059669',
-  emerald700: '#047857',
-  teal600: '#0d9488',
+  brand: '#059669', // emerald-600 — primarni CTA
+  brandLight: '#10b981', // emerald-500
+  brandDark: '#047857', // emerald-700
+  accent: '#0d9488', // teal-600
+  accentLight: '#14b8a6', // teal-500
 
   navBg: '#0f172a', // slate-900
-  navBgAlt: '#1e293b', // slate-800
+  navBgMid: '#1e293b', // slate-800
+  navBorder: 'rgba(255,255,255,0.06)',
 
-  bg: '#f8fafc', // slate-50
+  bg: '#f9fafb', // gray-50
   surface: '#ffffff',
   surfaceAlt: '#f1f5f9', // slate-100
 
@@ -24,12 +25,14 @@ export const colors = {
   textSubtle: '#94a3b8', // slate-400
   textOnDark: '#ffffff',
   textOnDarkMuted: 'rgba(255,255,255,0.7)',
+  textOnDarkSubtle: 'rgba(255,255,255,0.45)',
 
   danger: '#dc2626',
   dangerBg: '#fef2f2',
   warning: '#d97706',
   warningBg: '#fffbeb',
-  success: '#16a34a',
+  success: '#059669',
+  rose: '#f43f5e', // badge unread
 
   white: '#ffffff',
   black: '#000000',

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { StatusBar } from 'expo-status-bar'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { loginApi, getApiErrorMessage } from '@beleg/shared'
 import { client, setAuthToken } from '../../api/client'
@@ -13,6 +14,7 @@ import type { AuthStackParamList } from '../../navigation/types'
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>
 
 export default function LoginScreen({ navigation }: Props) {
+  const { t } = useTranslation('auth')
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -28,28 +30,30 @@ export default function LoginScreen({ navigation }: Props) {
       login(data)
     } catch (err) {
       if (axios.isAxiosError(err) && !err.response) {
-        setError('Nema konekcije sa serverom. Proverite da li backend radi i EXPO_PUBLIC_API_URL.')
+        setError(t('noConnection'))
       } else if (axios.isAxiosError(err) && err.response?.status === 404) {
-        setError('Server nije pronađen (404). Proverite da port pokazuje na Beleg backend.')
+        setError('Server nije pronađen (404). Proverite EXPO_PUBLIC_API_URL.')
       } else {
-        setError(getApiErrorMessage(err, 'Login nije uspeo.'))
+        setError(getApiErrorMessage(err, t('loginFailed')))
       }
     } finally {
       setLoading(false)
     }
-  }, [username, password, login])
+  }, [username, password, login, t])
 
   return (
     <Screen scroll>
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <Text variant="title" color={colors.brand}>Beleg</Text>
-        <Text variant="muted">Prijavite se na nalog</Text>
+        <Text variant="title" color={colors.text}>
+          {t('loginTitle')}
+        </Text>
+        <Text variant="muted">{t('loginSubtitle')}</Text>
       </View>
 
       <View style={styles.form}>
         <Input
-          label="Korisničko ime"
+          label={t('username')}
           placeholder="korisnicko_ime"
           autoCapitalize="none"
           autoCorrect={false}
@@ -57,24 +61,20 @@ export default function LoginScreen({ navigation }: Props) {
           onChangeText={setUsername}
         />
         <Input
-          label="Lozinka"
+          label={t('password')}
           placeholder="••••••••"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
-        {error ? <Text variant="small" color={colors.danger}>{error}</Text> : null}
-        <Button title="Prijava" loading={loading} onPress={handleLogin} fullWidth />
-        <Button
-          title="Zaboravljena lozinka?"
-          variant="ghost"
-          onPress={() => navigation.navigate('ForgotPassword')}
-        />
-        <Button
-          title="Nemate nalog? Registrujte se"
-          variant="ghost"
-          onPress={() => navigation.navigate('Register')}
-        />
+        {error ? (
+          <Text variant="small" color={colors.danger}>
+            {error}
+          </Text>
+        ) : null}
+        <Button title={t('login')} loading={loading} onPress={handleLogin} fullWidth />
+        <Button title={t('forgotPassword')} variant="ghost" onPress={() => navigation.navigate('ForgotPassword')} />
+        <Button title={t('register')} variant="ghost" onPress={() => navigation.navigate('Register')} />
       </View>
     </Screen>
   )

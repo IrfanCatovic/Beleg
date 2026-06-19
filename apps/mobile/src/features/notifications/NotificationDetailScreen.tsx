@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { fetchObavestenjeById } from '@beleg/shared/services'
@@ -7,16 +7,24 @@ import { Button, Card, ErrorView, Loader, Screen, Text } from '../../components/
 import { spacing } from '../../theme'
 import type { NotificationsStackParamList } from '../../navigation/types'
 
-function tryParseActionId(metadata: string): number | undefined {
-  try {
-    const parsed = JSON.parse(metadata) as { akcijaId?: number; actionId?: number }
-    return parsed.akcijaId ?? parsed.actionId
-  } catch {
-    return undefined
-  }
+type Props = NativeStackScreenProps<NotificationsStackParamList, 'NotificationDetail'>
+
+interface ParsedMeta {
+  akcijaId?: number
+  actionId?: number
+  userId?: number
+  username?: string
+  zadatakId?: number
 }
 
-type Props = NativeStackScreenProps<NotificationsStackParamList, 'NotificationDetail'>
+function parseMetadata(metadata?: string): ParsedMeta {
+  if (!metadata) return {}
+  try {
+    return JSON.parse(metadata) as ParsedMeta
+  } catch {
+    return {}
+  }
+}
 
 export default function NotificationDetailScreen({ route, navigation }: Props) {
   const { id } = route.params
@@ -43,7 +51,9 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   }
 
   const item = detailQuery.data
-  const actionId = (item.metadata && tryParseActionId(item.metadata)) || undefined
+  const meta = parseMetadata(item.metadata)
+  const actionId = meta.akcijaId ?? meta.actionId
+  const userTarget = meta.username || (meta.userId ? String(meta.userId) : undefined)
 
   return (
     <Screen scroll>
@@ -51,23 +61,53 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
         {item.title}
       </Text>
       <Text style={styles.body}>{item.body}</Text>
+      <Text variant="small" style={styles.date}>
+        {new Date(item.createdAt).toLocaleString('sr-RS')}
+      </Text>
 
-      {actionId ? (
-        <Card style={styles.card}>
-          <Text variant="label">Povezana akcija</Text>
-          <Button
-            title="Otvori akciju"
-            variant="secondary"
-            onPress={() => navigation.navigate('ActionDetail', { id: actionId })}
-          />
-        </Card>
-      ) : null}
+      <View style={styles.links}>
+        {actionId ? (
+          <Card style={styles.card}>
+            <Text variant="label">Povezana akcija</Text>
+            <Button
+              title="Otvori akciju"
+              variant="secondary"
+              onPress={() => navigation.navigate('ActionDetail', { id: actionId })}
+            />
+          </Card>
+        ) : null}
+
+        {userTarget ? (
+          <Card style={styles.card}>
+            <Text variant="label">Korisnik</Text>
+            <Button
+              title="Otvori profil"
+              variant="secondary"
+              onPress={() =>
+                navigation.navigate('UserProfile', {
+                  username: meta.username,
+                  id: meta.userId,
+                })
+              }
+            />
+          </Card>
+        ) : null}
+
+        {item.link ? (
+          <Card style={styles.card}>
+            <Text variant="label">Link</Text>
+            <Text variant="small">{item.link}</Text>
+          </Card>
+        ) : null}
+      </View>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
   title: { marginBottom: spacing.md },
-  body: { marginBottom: spacing.lg },
+  body: { marginBottom: spacing.sm },
+  date: { marginBottom: spacing.lg },
+  links: { gap: spacing.md },
   card: { gap: spacing.sm },
 })

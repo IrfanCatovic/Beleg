@@ -5,6 +5,7 @@ import UserProfileScreen from '../../features/profile/UserProfileScreen'
 import ClubScreen from '../../features/club/ClubScreen'
 import FinanceScreen from '../../features/finance/FinanceScreen'
 import TasksScreen from '../../features/tasks/TasksScreen'
+import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
 import type { ProfileStackParamList } from '../types'
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>()
@@ -22,6 +23,7 @@ export function ProfileStack() {
       <Stack.Screen name="Club" component={ClubScreen} options={{ title: 'Moj klub' }} />
       <Stack.Screen name="Finance" component={FinanceScreen} options={{ title: 'Finansije' }} />
       <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Zadaci' }} />
+      <Stack.Screen name="ActionDetail" component={ActionDetailScreen} options={{ title: 'Akcija' }} />
     </Stack.Navigator>
   )
 }

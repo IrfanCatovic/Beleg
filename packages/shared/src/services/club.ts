@@ -57,3 +57,22 @@ export async function searchKlubovi(
 export async function createJoinRequest(client: AxiosInstance, clubId: number): Promise<void> {
   await client.post('/api/club-membership/requests', { clubId })
 }
+
+export interface MyJoinRequestItem {
+  id: number
+  clubId: number
+  clubNaziv?: string
+  status: string
+  createdAt: string
+}
+
+export async function fetchMyJoinRequests(
+  client: AxiosInstance,
+): Promise<{ requests: MyJoinRequestItem[] }> {
+  const res = await client.get<{ requests?: MyJoinRequestItem[] }>('/api/club-membership/requests/mine')
+  return { requests: res.data.requests ?? [] }
+}
+
+export async function cancelJoinRequest(client: AxiosInstance, requestId: number): Promise<void> {
+  await client.delete(`/api/club-membership/requests/${requestId}`)
+}

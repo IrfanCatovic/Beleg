@@ -20,6 +20,7 @@ export type ExploreStackParamList = {
   FerrataDetail: { slug: string }
   Guides: undefined
   Map: undefined
+  UserProfile: { username?: string; id?: number }
 }
 
 export type NotificationsStackParamList = {
@@ -36,6 +37,7 @@ export type ProfileStackParamList = {
   Finance: undefined
   Tasks: undefined
   UserProfile: { username?: string; id?: number }
+  ActionDetail: { id: number }
 }
 
 export type AppTabsParamList = {

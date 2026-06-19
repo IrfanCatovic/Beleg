@@ -5,6 +5,7 @@ import { colors, spacing } from '../../theme'
 
 interface PostCardProps {
   post: Post
+  onPress?: () => void
   onPressAuthor?: () => void
   onLike?: () => void
   onComment?: () => void
@@ -24,41 +25,43 @@ function formatDate(iso?: string) {
   }
 }
 
-export function PostCard({ post, onPressAuthor, onLike, onComment }: PostCardProps) {
+export function PostCard({ post, onPress, onPressAuthor, onLike, onComment }: PostCardProps) {
   const author = post.author
   const imageUrl = post.imageUrl
 
   return (
-    <Card style={styles.card}>
-      <Pressable style={styles.header} onPress={onPressAuthor}>
-        <Avatar uri={author?.avatarUrl} name={author?.fullName || author?.username} />
-        <View style={styles.headerText}>
-          <Text variant="label">{author?.fullName || author?.username || 'Korisnik'}</Text>
-          <Text variant="small" color={colors.textMuted}>
-            {formatDate(post.createdAt)}
-          </Text>
+    <Pressable onPress={onPress}>
+      <Card style={styles.card}>
+        <Pressable style={styles.header} onPress={onPressAuthor}>
+          <Avatar uri={author?.avatarUrl} name={author?.fullName || author?.username} />
+          <View style={styles.headerText}>
+            <Text variant="label">{author?.fullName || author?.username || 'Korisnik'}</Text>
+            <Text variant="small" color={colors.textMuted}>
+              {formatDate(post.createdAt)}
+            </Text>
+          </View>
+        </Pressable>
+
+        {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
+
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+        ) : null}
+
+        <View style={styles.actions}>
+          <Pressable onPress={onLike} style={styles.actionBtn}>
+            <Text variant="small" color={post.likedByMe ? colors.brand : colors.textMuted}>
+              ♥ {post.likeCount ?? 0}
+            </Text>
+          </Pressable>
+          <Pressable onPress={onComment} style={styles.actionBtn}>
+            <Text variant="small" color={colors.textMuted}>
+              💬 {post.commentCount ?? 0}
+            </Text>
+          </Pressable>
         </View>
-      </Pressable>
-
-      {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
-
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-      ) : null}
-
-      <View style={styles.actions}>
-        <Pressable onPress={onLike} style={styles.actionBtn}>
-          <Text variant="small" color={post.likedByMe ? colors.brand : colors.textMuted}>
-            ♥ {post.likeCount ?? 0}
-          </Text>
-        </Pressable>
-        <Pressable onPress={onComment} style={styles.actionBtn}>
-          <Text variant="small" color={colors.textMuted}>
-            💬 {post.commentCount ?? 0}
-          </Text>
-        </Pressable>
-      </View>
-    </Card>
+      </Card>
+    </Pressable>
   )
 }
 

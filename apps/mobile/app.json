@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Beleg",
+    "name": "Planiner",
     "slug": "beleg-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0f172a"
     },
     "ios": {
       "supportsTablet": true

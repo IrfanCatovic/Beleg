@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
 })
 
 const variantStyles = StyleSheet.create({
-  primary: { backgroundColor: colors.brand },
+  primary: { backgroundColor: colors.brand }, // emerald-600 kao web CTA
   secondary: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
   danger: { backgroundColor: colors.danger },
   ghost: { backgroundColor: 'transparent' },

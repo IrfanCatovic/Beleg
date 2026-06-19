@@ -1,12 +1,15 @@
 import { useCallback, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { fetchPosts, togglePostLike } from '@beleg/shared/services'
+import * as ImagePicker from 'expo-image-picker'
+import { getApiErrorMessage } from '@beleg/shared'
+import { createPost, fetchPosts, togglePostLike } from '@beleg/shared/services'
 import { client } from '../../api/client'
+import { useModal } from '../../context/ModalContext'
 import { PostCard } from '../../components/shared/PostCard'
 import { Button, EmptyState, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
-import { spacing } from '../../theme'
+import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 
 const PAGE = 15
@@ -15,7 +18,9 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Feed'>
 
 export default function HomeScreen({ navigation }: Props) {
   const queryClient = useQueryClient()
+  const { showAlert } = useModal()
   const [composer, setComposer] = useState('')
+  const [imageUri, setImageUri] = useState<string | null>(null)
 
   const {
     data,
@@ -41,7 +46,45 @@ export default function HomeScreen({ navigation }: Props) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
   })
 
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      const content = composer.trim()
+      if (!content && !imageUri) throw new Error('Unesite tekst ili dodajte sliku.')
+      if (imageUri) {
+        const fd = new FormData()
+        fd.append('content', content)
+        const filename = imageUri.split('/').pop() || 'photo.jpg'
+        const match = /\.(\w+)$/.exec(filename)
+        const type = match ? `image/${match[1]}` : 'image/jpeg'
+        fd.append('image', { uri: imageUri, name: filename, type } as unknown as Blob)
+        return createPost(client, fd)
+      }
+      return createPost(client, { content })
+    },
+    onSuccess: () => {
+      setComposer('')
+      setImageUri(null)
+      void queryClient.invalidateQueries({ queryKey: ['posts'] })
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Objava nije uspela.')),
+  })
+
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
+
+  const pickImage = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) {
+      await showAlert('Dozvola', 'Potrebna je dozvola za galeriju.')
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+    })
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri)
+    }
+  }, [showAlert])
 
   const onRefresh = useCallback(() => {
     void refetch()
@@ -72,7 +115,25 @@ export default function HomeScreen({ navigation }: Props) {
           onChangeText={setComposer}
           multiline
         />
-        <Text variant="small">Objava sa slikom dolazi u sledećoj fazi.</Text>
+        {imageUri ? (
+          <View style={styles.previewRow}>
+            <Image source={{ uri: imageUri }} style={styles.preview} />
+            <Pressable onPress={() => setImageUri(null)}>
+              <Text variant="small" color={colors.danger}>
+                Ukloni sliku
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+        <View style={styles.composerActions}>
+          <Button title="Slika" variant="secondary" onPress={pickImage} />
+          <Button
+            title="Objavi"
+            onPress={() => publishMutation.mutate()}
+            loading={publishMutation.isPending}
+            disabled={!composer.trim() && !imageUri}
+          />
+        </View>
       </View>
 
       <FlatList
@@ -89,6 +150,7 @@ export default function HomeScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <PostCard
             post={item}
+            onPress={() => navigation.navigate('PostDetail', { id: item.id })}
             onPressAuthor={() =>
               navigation.navigate('UserProfile', {
                 id: item.author.id,
@@ -96,6 +158,7 @@ export default function HomeScreen({ navigation }: Props) {
               })
             }
             onLike={() => likeMutation.mutate(item.id)}
+            onComment={() => navigation.navigate('PostDetail', { id: item.id })}
           />
         )}
       />
@@ -104,6 +167,15 @@ export default function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  composer: { padding: spacing.lg, gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  composer: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  composerActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  preview: { width: 72, height: 72, borderRadius: 8 },
   list: { padding: spacing.lg, paddingBottom: spacing.xxl },
 })

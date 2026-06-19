@@ -1,18 +1,23 @@
 import { StyleSheet, View } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { fetchKlub } from '@beleg/shared/services'
+import { getApiErrorMessage } from '@beleg/shared'
+import { fetchKlub, leaveClub } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
-import { Avatar, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { useModal } from '../../context/ModalContext'
+import { Avatar, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { hasClubContext } from '../../utils/roles'
 import { colors, spacing } from '../../theme'
+import NoClubJoinView from './NoClubJoinView'
 import type { ProfileStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'Club'>
 
 export default function ClubScreen(_props: Props) {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const { showConfirm, showAlert } = useModal()
+  const queryClient = useQueryClient()
 
   const klubQuery = useQuery({
     queryKey: ['klub'],
@@ -20,10 +25,20 @@ export default function ClubScreen(_props: Props) {
     enabled: hasClubContext(user),
   })
 
+  const leaveMutation = useMutation({
+    mutationFn: () => leaveClub(client),
+    onSuccess: async () => {
+      await refreshUser()
+      void queryClient.invalidateQueries({ queryKey: ['klub'] })
+      await showAlert('Uspeh', 'Napustili ste klub.')
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Napuštanje nije uspelo.')),
+  })
+
   if (!hasClubContext(user)) {
     return (
-      <Screen>
-        <Text>Niste član kluba. Pridružite se preko web aplikacije ili kontaktirajte sekretara.</Text>
+      <Screen scroll>
+        <NoClubJoinView />
       </Screen>
     )
   }
@@ -56,18 +71,23 @@ export default function ClubScreen(_props: Props) {
         </View>
       </View>
 
-      {klub.web_sajt ? (
-        <Card>
-          <Text>{klub.web_sajt}</Text>
-        </Card>
-      ) : null}
+      <Card style={styles.meta}>
+        {klub.adresa ? <Text>Adresa: {klub.adresa}</Text> : null}
+        {klub.telefon ? <Text>Telefon: {klub.telefon}</Text> : null}
+        {klub.email ? <Text>Email: {klub.email}</Text> : null}
+        {klub.web_sajt ? <Text>Web: {klub.web_sajt}</Text> : null}
+      </Card>
 
-      {klub.email ? (
-        <Card style={styles.meta}>
-          <Text variant="label">Kontakt</Text>
-          <Text>{klub.email}</Text>
-        </Card>
-      ) : null}
+      <Button
+        title="Napusti klub"
+        variant="danger"
+        onPress={async () => {
+          const ok = await showConfirm('Napusti klub', 'Da li ste sigurni?')
+          if (ok) leaveMutation.mutate()
+        }}
+        loading={leaveMutation.isPending}
+        fullWidth
+      />
     </Screen>
   )
 }
@@ -75,5 +95,5 @@ export default function ClubScreen(_props: Props) {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   headerText: { flex: 1, justifyContent: 'center' },
-  meta: { marginTop: spacing.md, gap: spacing.xs },
+  meta: { gap: spacing.xs, marginBottom: spacing.xl },
 })

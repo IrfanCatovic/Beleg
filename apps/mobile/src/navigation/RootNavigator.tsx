@@ -1,9 +1,21 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { NavigationContainer } from '@react-navigation/native'
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import { AuthStack } from './stacks/AuthStack'
 import { AppTabs } from './AppTabs'
 import { colors } from '../theme'
+
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.brand,
+    background: colors.bg,
+    card: colors.navBgMid,
+    text: colors.textOnDark,
+    border: colors.navBorder,
+  },
+}
 
 export function RootNavigator() {
   const { isLoggedIn, authLoading } = useAuth()
@@ -17,7 +29,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       {isLoggedIn ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   )

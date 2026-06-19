@@ -1,29 +1,44 @@
-import { StyleSheet, View } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Pressable, StyleSheet, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { getApiErrorMessage } from '@beleg/shared'
 import {
+  acceptFollowRequest,
+  blockUser,
+  cancelFollowRequest,
+  fetchBlockStatus,
   fetchFollowCounts,
+  fetchFollowStatus,
   fetchKorisnikByIdOrUsername,
   fetchKorisnikPopeoSe,
   fetchKorisnikStatistika,
+  fetchKorisnikVodio,
+  sendFollowRequest,
+  unfollowUser,
+  unblockUser,
 } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { useModal } from '../../context/ModalContext'
 import { Avatar, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { ProfileStackParamList } from '../../navigation/types'
 import type { HomeStackParamList } from '../../navigation/types'
 import type { ActionsStackParamList } from '../../navigation/types'
 import type { NotificationsStackParamList } from '../../navigation/types'
+import type { ExploreStackParamList } from '../../navigation/types'
 
 type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'UserProfile'>
   | NativeStackScreenProps<HomeStackParamList, 'UserProfile'>
   | NativeStackScreenProps<ActionsStackParamList, 'UserProfile'>
   | NativeStackScreenProps<NotificationsStackParamList, 'UserProfile'>
+  | NativeStackScreenProps<ExploreStackParamList, 'UserProfile'>
 
 export default function UserProfileScreen({ route, navigation }: Props) {
   const { user: me } = useAuth()
+  const { showConfirm, showAlert } = useModal()
+  const queryClient = useQueryClient()
   const idOrUsername = route.params.username || String(route.params.id ?? '')
 
   const profileQuery = useQuery({
@@ -31,6 +46,8 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     queryFn: () => fetchKorisnikByIdOrUsername(client, idOrUsername),
     enabled: !!idOrUsername,
   })
+
+  const targetId = profileQuery.data?.id
 
   const statsQuery = useQuery({
     queryKey: ['korisnik', idOrUsername, 'statistika'],
@@ -44,10 +61,64 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     enabled: !!idOrUsername,
   })
 
+  const vodioQuery = useQuery({
+    queryKey: ['korisnik', idOrUsername, 'vodio'],
+    queryFn: () => fetchKorisnikVodio(client, idOrUsername),
+    enabled: !!idOrUsername,
+  })
+
   const followQuery = useQuery({
-    queryKey: ['follows', profileQuery.data?.id, 'counts'],
-    queryFn: () => fetchFollowCounts(client, profileQuery.data!.id),
-    enabled: !!profileQuery.data?.id,
+    queryKey: ['follows', targetId, 'counts'],
+    queryFn: () => fetchFollowCounts(client, targetId!),
+    enabled: !!targetId,
+  })
+
+  const followStatusQuery = useQuery({
+    queryKey: ['follows', targetId, 'status'],
+    queryFn: () => fetchFollowStatus(client, targetId!),
+    enabled: !!targetId && me?.username !== profileQuery.data?.username,
+  })
+
+  const blockStatusQuery = useQuery({
+    queryKey: ['blocks', targetId, 'status'],
+    queryFn: () => fetchBlockStatus(client, targetId!),
+    enabled: !!targetId && me?.username !== profileQuery.data?.username,
+  })
+
+  const invalidateSocial = () => {
+    void queryClient.invalidateQueries({ queryKey: ['follows', targetId] })
+    void queryClient.invalidateQueries({ queryKey: ['blocks', targetId] })
+  }
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      if (!targetId) return
+      const status = followStatusQuery.data
+      if (status?.outgoing === 'accepted') {
+        await unfollowUser(client, targetId)
+      } else if (status?.outgoing === 'pending') {
+        await cancelFollowRequest(client, targetId)
+      } else if (status?.incoming === 'pending' && status.incomingFollowId) {
+        await acceptFollowRequest(client, status.incomingFollowId)
+      } else {
+        await sendFollowRequest(client, targetId)
+      }
+    },
+    onSuccess: invalidateSocial,
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Akcija nije uspela.')),
+  })
+
+  const blockMutation = useMutation({
+    mutationFn: async () => {
+      if (!targetId) return
+      if (blockStatusQuery.data?.blockedByMe) {
+        await unblockUser(client, targetId)
+      } else {
+        await blockUser(client, targetId)
+      }
+    },
+    onSuccess: invalidateSocial,
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Blokiranje nije uspelo.')),
   })
 
   if (profileQuery.isLoading) {
@@ -68,6 +139,20 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
   const korisnik = profileQuery.data
   const isMe = me?.username === korisnik.username
+  const followStatus = followStatusQuery.data
+  const blockedByTarget = blockStatusQuery.data?.blockedByTarget
+
+  let followLabel = 'Zaprati'
+  if (followStatus?.outgoing === 'accepted') followLabel = 'Otprati'
+  else if (followStatus?.outgoing === 'pending') followLabel = 'Otkaži zahtev'
+  else if (followStatus?.incoming === 'pending') followLabel = 'Prihvati zahtev'
+
+  const goAction = (actionId: number) => {
+    navigation.getParent()?.navigate('ActionsTab', {
+      screen: 'ActionDetail',
+      params: { id: actionId },
+    })
+  }
 
   return (
     <Screen scroll>
@@ -79,30 +164,65 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {isMe ? (
-        <Text variant="small" color={colors.textMuted}>
-          Podešavanja naloga nalaze se u tabu Profil.
-        </Text>
+      {!isMe && !blockedByTarget ? (
+        <View style={styles.socialRow}>
+          <Button
+            title={followLabel}
+            onPress={() => followMutation.mutate()}
+            loading={followMutation.isPending}
+            fullWidth
+          />
+          <Button
+            title={blockStatusQuery.data?.blockedByMe ? 'Odblokiraj' : 'Blokiraj'}
+            variant="secondary"
+            onPress={async () => {
+              if (!blockStatusQuery.data?.blockedByMe) {
+                const ok = await showConfirm('Blokiraj korisnika', 'Da li ste sigurni?')
+                if (!ok) return
+              }
+              blockMutation.mutate()
+            }}
+            loading={blockMutation.isPending}
+            fullWidth
+          />
+        </View>
       ) : null}
 
-      <Card style={styles.stats}>
-        <Text variant="label">Statistika</Text>
-        <Text>Km: {statsQuery.data?.ukupnoKm ?? 0}</Text>
-        <Text>Uspon: {statsQuery.data?.ukupnoMetaraUspona ?? 0} m</Text>
-        <Text>Popeo se: {statsQuery.data?.brojPopeoSe ?? 0}</Text>
-        <Text>
-          Pratioci: {followQuery.data?.followers ?? 0} · Prati: {followQuery.data?.following ?? 0}
-        </Text>
-      </Card>
+      {blockedByTarget ? (
+        <Card>
+          <Text color={colors.textMuted}>Ovaj korisnik vas je blokirao.</Text>
+        </Card>
+      ) : (
+        <>
+          <Card style={styles.stats}>
+            <Text variant="label">Statistika</Text>
+            <Text>Km: {statsQuery.data?.ukupnoKm ?? 0}</Text>
+            <Text>Uspon: {statsQuery.data?.ukupnoMetaraUspona ?? 0} m</Text>
+            <Text>Popeo se: {statsQuery.data?.brojPopeoSe ?? 0}</Text>
+            <Text>
+              Pratioci: {followQuery.data?.followers ?? 0} · Prati: {followQuery.data?.following ?? 0}
+            </Text>
+          </Card>
 
-      <Card style={styles.stats}>
-        <Text variant="label">Popeo se ({popeoQuery.data?.length ?? 0})</Text>
-        {(popeoQuery.data ?? []).slice(0, 5).map((a) => (
-          <Text key={a.id} color={colors.textMuted}>
-            · {a.naziv}
-          </Text>
-        ))}
-      </Card>
+          <Card style={styles.stats}>
+            <Text variant="label">Popeo se ({popeoQuery.data?.length ?? 0})</Text>
+            {(popeoQuery.data ?? []).map((a) => (
+              <Pressable key={a.id} onPress={() => goAction(a.id)}>
+                <Text color={colors.brand}>· {a.naziv}</Text>
+              </Pressable>
+            ))}
+          </Card>
+
+          <Card style={styles.stats}>
+            <Text variant="label">Vodio ({vodioQuery.data?.length ?? 0})</Text>
+            {(vodioQuery.data ?? []).map((a) => (
+              <Pressable key={a.id} onPress={() => goAction(a.id)}>
+                <Text color={colors.brand}>· {a.naziv}</Text>
+              </Pressable>
+            ))}
+          </Card>
+        </>
+      )}
     </Screen>
   )
 }
@@ -110,5 +230,6 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   headerText: { flex: 1, justifyContent: 'center' },
+  socialRow: { gap: spacing.sm, marginBottom: spacing.md },
   stats: { marginTop: spacing.md, gap: spacing.xs },
 })
