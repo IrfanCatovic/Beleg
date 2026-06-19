@@ -57,6 +57,10 @@ export const sr = {
     accommodation: 'Smeštaj',
     transport: 'Prevoz',
     rentGear: 'Iznajmljiva oprema',
+    guideRequiredTitle: 'Dodavanje akcija',
+    guideRequiredMessage: 'Da bi dodao akcije moraš biti vodič.',
+    becomeGuide: 'Postani vodič',
+    guideRequiredClose: 'Zatvori',
   },
   profile: {
     stats: 'Statistika',

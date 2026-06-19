@@ -9,7 +9,6 @@ interface ActionsFilterModalProps {
   filters: ActionsFilters
   onChange: (next: ActionsFilters) => void
   onClose: () => void
-  hideSource?: boolean
   availableMonths?: number[]
 }
 
@@ -67,7 +66,6 @@ export function ActionsFilterModal({
   filters,
   onChange,
   onClose,
-  hideSource = false,
   availableMonths,
 }: ActionsFilterModalProps) {
   const set = (patch: Partial<ActionsFilters>) => onChange({ ...filters, ...patch })
@@ -88,13 +86,11 @@ export function ActionsFilterModal({
           </Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {!hideSource ? (
-              <Section title="Tip">
-                <Chip label="Sve" active={filters.source === 'all'} onPress={() => set({ source: 'all' })} />
-                <Chip label="Klupske" active={filters.source === 'club'} onPress={() => set({ source: 'club' })} />
-                <Chip label="Vodičke" active={filters.source === 'guide'} onPress={() => set({ source: 'guide' })} />
-              </Section>
-            ) : null}
+            <Section title="Tip">
+              <Chip label="Sve" active={filters.source === 'all'} onPress={() => set({ source: 'all' })} />
+              <Chip label="Klupske" active={filters.source === 'club'} onPress={() => set({ source: 'club' })} />
+              <Chip label="Vodičke" active={filters.source === 'guide'} onPress={() => set({ source: 'guide' })} />
+            </Section>
 
             <Section title="Vidljivost">
               <Chip

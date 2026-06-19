@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Pressable, SectionList, RefreshControl, StyleSheet, View } from 'react-native'
+import { useCallback, useMemo, useState } from 'react'
+import { SectionList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AkcijaListItem } from '@beleg/shared'
@@ -11,16 +11,16 @@ import { useModal } from '../../context/ModalContext'
 import { ActionCard } from '../../components/shared/ActionCard'
 import { ActionsFilterModal } from '../../components/actions/ActionsFilterModal'
 import { AddActionChoiceModal } from '../../components/actions/AddActionChoiceModal'
+import { GuideRequiredModal } from '../../components/actions/GuideRequiredModal'
 import { AppTopBar } from '../../components/ui/AppTopBar'
 import { Badge, EmptyState, ErrorView, Loader, Text } from '../../components/ui'
-import { colors, radius, spacing } from '../../theme'
+import { colors, spacing } from '../../theme'
 import {
   EMPTY_ACTIONS_FILTERS,
   countActiveFilters,
   isClubListedAkcija,
   matchesActionFilters,
   mergeAkcijeById,
-  type ActionSourceFilter,
   type ActionsFilters,
 } from '../../utils/actionFilters'
 import { canManageActions } from '../../utils/roles'
@@ -30,12 +30,6 @@ type Props = NativeStackScreenProps<ActionsStackParamList, 'ActionsList'>
 
 type Section = { title: string; data: AkcijaListItem[]; total: number }
 
-const SOURCE_OPTIONS: { value: ActionSourceFilter; label: string }[] = [
-  { value: 'all', label: 'Sve' },
-  { value: 'club', label: 'Klupske' },
-  { value: 'guide', label: 'Vodičke' },
-]
-
 export default function ActionsScreen({ navigation }: Props) {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
@@ -43,6 +37,7 @@ export default function ActionsScreen({ navigation }: Props) {
   const [filters, setFilters] = useState<ActionsFilters>(EMPTY_ACTIONS_FILTERS)
   const [filterOpen, setFilterOpen] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [guideRequiredOpen, setGuideRequiredOpen] = useState(false)
   const [joiningId, setJoiningId] = useState<number | null>(null)
 
   const akcijeQuery = useQuery({
@@ -65,7 +60,6 @@ export default function ActionsScreen({ navigation }: Props) {
   )
 
   const activeFilterCount = countActiveFilters(filters)
-  const canAdd = canManageActions(user?.role)
 
   const { combinedAktivne, combinedZavrsene } = useMemo(() => {
     const data = akcijeQuery.data
@@ -157,12 +151,25 @@ export default function ActionsScreen({ navigation }: Props) {
     if (ok) cancelMutation.mutate(action.id)
   }
 
+  const handlePlusPress = useCallback(() => {
+    if (canManageActions(user?.role)) {
+      setAddModalOpen(true)
+    } else {
+      setGuideRequiredOpen(true)
+    }
+  }, [user?.role])
+
+  const handleBecomeGuide = useCallback(() => {
+    setGuideRequiredOpen(false)
+    navigation.getParent()?.navigate('ProfileTab', { screen: 'MyProfile' })
+  }, [navigation])
+
   const topBar = (
     <AppTopBar
       leftIcon="options-outline"
       onLeftPress={() => setFilterOpen(true)}
-      rightIcon={canAdd ? 'add' : undefined}
-      onRightPress={canAdd ? () => setAddModalOpen(true) : undefined}
+      rightIcon="add"
+      onRightPress={handlePlusPress}
       center={
         activeFilterCount > 0 ? (
           <Badge label={`${activeFilterCount} filtera`} tone="brand" />
@@ -200,32 +207,19 @@ export default function ActionsScreen({ navigation }: Props) {
         onPickProsla={(tip) => navigation.navigate('AddPastAction', { tip })}
       />
 
+      <GuideRequiredModal
+        visible={guideRequiredOpen}
+        onClose={() => setGuideRequiredOpen(false)}
+        onBecomeGuide={handleBecomeGuide}
+      />
+
       <ActionsFilterModal
         visible={filterOpen}
         filters={filters}
         onChange={setFilters}
         onClose={() => setFilterOpen(false)}
-        hideSource
         availableMonths={availableMonths}
       />
-
-      <View style={styles.sourceRow}>
-        {SOURCE_OPTIONS.map((opt) => (
-          <Pressable
-            key={opt.value}
-            onPress={() => setFilters((f) => ({ ...f, source: opt.value }))}
-            style={[styles.sourcePill, filters.source === opt.value && styles.sourcePillActive]}
-          >
-            <Text
-              variant="small"
-              color={filters.source === opt.value ? colors.white : colors.textMuted}
-              style={styles.sourcePillText}
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
 
       <SectionList
         sections={sections}
@@ -270,23 +264,7 @@ export default function ActionsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  sourceRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  sourcePill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sourcePillActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  sourcePillText: { fontWeight: '600' },
-  list: { padding: spacing.lg, paddingTop: 0 },
+  list: { padding: spacing.lg, paddingTop: spacing.sm },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
