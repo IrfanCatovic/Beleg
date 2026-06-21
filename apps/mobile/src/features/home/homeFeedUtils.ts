@@ -1,4 +1,4 @@
-import type { AkcijaListItem, Korisnik, Post } from '@beleg/shared'
+import type { AkcijaListItem, FerrataRow, Korisnik, Post } from '@beleg/shared'
 
 export interface MentionUser {
   id: number
@@ -12,6 +12,11 @@ export interface MentionUser {
 export type FeedItem =
   | { kind: 'action'; createdAtMs: number; action: AkcijaListItem; addedBy?: MentionUser }
   | { kind: 'post'; createdAtMs: number; post: Post }
+
+export type HomeListItem =
+  | FeedItem
+  | { kind: 'suggested'; users: MentionUser[] }
+  | { kind: 'ferrata'; ferrata: FerrataRow }
 
 export function mergeAkcijeById(...lists: AkcijaListItem[][]): AkcijaListItem[] {
   const byId = new Map<number, AkcijaListItem>()
@@ -89,6 +94,54 @@ export function buildFeedItems(
   return [...actionItems, ...postItems].sort((a, b) => b.createdAtMs - a.createdAtMs)
 }
 
+function sortPostsByDateDesc(posts: Post[]): Post[] {
+  return [...posts].sort((a, b) => {
+    const aMs = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const bMs = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return bMs - aMs
+  })
+}
+
+export function buildHomeListItems(
+  posts: Post[],
+  aktivneAkcije: AkcijaListItem[],
+  usersById: Map<number, MentionUser>,
+  suggestedUsers: MentionUser[],
+  randomFerrata: FerrataRow | null,
+): HomeListItem[] {
+  const sortedPosts = sortPostsByDateDesc(posts)
+  const items: HomeListItem[] = []
+
+  const [firstPost, ...remainingPosts] = sortedPosts
+  if (firstPost) {
+    const createdAtMs = firstPost.createdAt ? new Date(firstPost.createdAt).getTime() : 0
+    items.push({
+      kind: 'post',
+      createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : 0,
+      post: firstPost,
+    })
+  }
+
+  if (suggestedUsers.length > 0) {
+    items.push({ kind: 'suggested', users: suggestedUsers })
+  }
+
+  if (randomFerrata) {
+    items.push({ kind: 'ferrata', ferrata: randomFerrata })
+  }
+
+  const rest = buildFeedItems(remainingPosts, aktivneAkcije, usersById)
+  items.push(...rest)
+
+  return items
+}
+
+export function pickRandomFerrata(ferrate: FerrataRow[]): FerrataRow | null {
+  if (!ferrate.length) return null
+  const index = Math.floor(Math.random() * ferrate.length)
+  return ferrate[index] ?? null
+}
+
 export function pickSuggestedUsers(
   discoverUsers: MentionUser[],
   followingUserIds: number[],
@@ -104,14 +157,6 @@ export function pickSuggestedUsers(
     return true
   })
   return shuffleAndTake(pool, count)
-}
-
-export function pickSledeceAkcije(aktivneAkcije: AkcijaListItem[], limit = 5): AkcijaListItem[] {
-  const now = new Date()
-  return [...aktivneAkcije]
-    .filter((a) => (a.datum ? new Date(a.datum) >= now : true))
-    .sort((a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime())
-    .slice(0, limit)
 }
 
 function shuffleAndTake<T>(arr: T[], count: number): T[] {

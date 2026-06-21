@@ -9,10 +9,11 @@ import { difficultyBadgeStyle, formatDateShort, isGuideOrganizedAkcija } from '.
 interface FeedActionCardProps {
   action: AkcijaListItem
   addedBy?: MentionUser
+  variant?: 'card' | 'feed'
   onPress?: () => void
 }
 
-export function FeedActionCard({ action, addedBy, onPress }: FeedActionCardProps) {
+export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: FeedActionCardProps) {
   const { t } = useTranslation('home')
   const isGuideAction = isGuideOrganizedAkcija(action)
   const authorName = addedBy?.fullName?.trim() || addedBy?.username
@@ -24,99 +25,115 @@ export function FeedActionCard({ action, addedBy, onPress }: FeedActionCardProps
   const location = [action.planina, action.vrh].filter(Boolean).join(' · ')
   const badgeLabel = isGuideAction ? t('badgeGuide') : isKlub ? t('badgeClub') : t('badgePublic')
   const diff = action.tezina ? difficultyBadgeStyle(action.tezina, action.tipAkcije) : null
+  const isFeed = variant === 'feed'
+
+  const content = (
+    <>
+      <View style={[styles.header, isFeed && styles.feedPadded]}>
+        <Avatar uri={posterAvatar} name={posterName} size={40} />
+        <View style={styles.headerText}>
+          <View style={styles.nameRow}>
+            <Text variant="label" numberOfLines={1} style={styles.posterName}>
+              {posterName}
+            </Text>
+            <View
+              style={[
+                styles.roleBadge,
+                isGuideAction ? styles.badgeGuide : isKlub ? styles.badgeClub : styles.badgePublic,
+              ]}
+            >
+              <Text style={styles.roleBadgeText}>{badgeLabel}</Text>
+            </View>
+          </View>
+          <Text variant="small" color={colors.textMuted} numberOfLines={1}>
+            {isGuideAction
+              ? action.javna
+                ? t('publicGuideTour')
+                : t('privateGuideTour')
+              : authorName
+                ? t('addedBy', { name: authorName })
+                : t('suggestionForYou')}
+          </Text>
+        </View>
+        <View style={styles.kindBadge}>
+          <Text style={styles.kindBadgeText}>{t('actionLabel')}</Text>
+        </View>
+      </View>
+
+      {action.slikaUrl ? (
+        <View style={styles.heroWrap}>
+          <Image source={{ uri: action.slikaUrl }} style={styles.heroImage} resizeMode="cover" />
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroTitle}>{action.naziv}</Text>
+            {location ? (
+              <Text style={styles.heroLocation} numberOfLines={1}>
+                {location}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.heroWrap, styles.heroFallback]}>
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroTitle}>{action.naziv}</Text>
+            {location ? (
+              <Text style={styles.heroLocation} numberOfLines={1}>
+                {location}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.body, isFeed && styles.feedPadded]}>
+        <View style={styles.metaRow}>
+          <View style={styles.metaChip}>
+            <Text variant="small" color={colors.text}>
+              {formatDateShort(action.datum)}
+            </Text>
+          </View>
+          {diff?.label ? (
+            <View style={[styles.metaChip, { backgroundColor: diff.bg }]}>
+              <Text variant="small" style={{ color: diff.text, fontWeight: '600' }}>
+                {diff.label}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {action.opis?.trim() ? (
+          <Text variant="body" numberOfLines={3} style={styles.opis}>
+            {action.opis.trim()}
+          </Text>
+        ) : null}
+      </View>
+    </>
+  )
+
+  if (isFeed) {
+    return (
+      <Pressable onPress={onPress} style={styles.feedWrap}>
+        {content}
+      </Pressable>
+    )
+  }
 
   return (
     <Pressable onPress={onPress}>
-      <Card style={styles.card}>
-        <View style={styles.header}>
-          <Avatar uri={posterAvatar} name={posterName} size={40} />
-          <View style={styles.headerText}>
-            <View style={styles.nameRow}>
-              <Text variant="label" numberOfLines={1} style={styles.posterName}>
-                {posterName}
-              </Text>
-              <View
-                style={[
-                  styles.roleBadge,
-                  isGuideAction ? styles.badgeGuide : isKlub ? styles.badgeClub : styles.badgePublic,
-                ]}
-              >
-                <Text style={styles.roleBadgeText}>{badgeLabel}</Text>
-              </View>
-            </View>
-            <Text variant="small" color={colors.textMuted} numberOfLines={1}>
-              {isGuideAction
-                ? action.javna
-                  ? t('publicGuideTour')
-                  : t('privateGuideTour')
-                : authorName
-                  ? t('addedBy', { name: authorName })
-                  : t('suggestionForYou')}
-            </Text>
-          </View>
-          <View style={styles.kindBadge}>
-            <Text style={styles.kindBadgeText}>{t('actionLabel')}</Text>
-          </View>
-        </View>
-
-        {action.slikaUrl ? (
-          <View style={styles.heroWrap}>
-            <Image source={{ uri: action.slikaUrl }} style={styles.heroImage} resizeMode="cover" />
-            <View style={styles.heroOverlay}>
-              <Text style={styles.heroTitle}>{action.naziv}</Text>
-              {location ? (
-                <Text style={styles.heroLocation} numberOfLines={1}>
-                  {location}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.heroWrap, styles.heroFallback]}>
-            <View style={styles.heroOverlay}>
-              <Text style={styles.heroTitle}>{action.naziv}</Text>
-              {location ? (
-                <Text style={styles.heroLocation} numberOfLines={1}>
-                  {location}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-        )}
-
-        <View style={styles.body}>
-          <View style={styles.metaRow}>
-            <View style={styles.metaChip}>
-              <Text variant="small" color={colors.text}>
-                {formatDateShort(action.datum)}
-              </Text>
-            </View>
-            {diff?.label ? (
-              <View style={[styles.metaChip, { backgroundColor: diff.bg }]}>
-                <Text variant="small" style={{ color: diff.text, fontWeight: '600' }}>
-                  {diff.label}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {action.opis?.trim() ? (
-            <Text variant="body" numberOfLines={3} style={styles.opis}>
-              {action.opis.trim()}
-            </Text>
-          ) : null}
-
-          <Text variant="small" color={colors.brand} style={styles.link}>
-            {t('viewAction')} →
-          </Text>
-        </View>
-      </Card>
+      <Card style={styles.card}>{content}</Card>
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md, padding: 0, overflow: 'hidden' },
+  feedWrap: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    overflow: 'hidden',
+  },
+  feedPadded: { paddingHorizontal: spacing.lg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -159,5 +176,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   opis: { color: colors.text },
-  link: { fontWeight: '700' },
 })

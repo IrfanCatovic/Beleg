@@ -11,6 +11,7 @@ import {
   fetchAkcije,
   fetchKorisnici,
   fetchPosts,
+  fetchPublicFerratas,
   fetchUnreadCount,
   fetchUserFollowingList,
   togglePostLike,
@@ -25,22 +26,30 @@ import { colors, spacing } from '../../theme'
 import type { AppTabsParamList, HomeStackParamList } from '../../navigation/types'
 import { FeedActionCard } from './FeedActionCard'
 import { HomeComposer, type HomeComposerHandle } from './HomeComposer'
-import { HomeNextActionsRow } from './HomeNextActionsRow'
+import { HomeFeedFerrataCard } from './HomeFeedFerrataCard'
 import { HomeSuggestedUsersRow } from './HomeSuggestedUsersRow'
 import {
-  buildFeedItems,
+  buildHomeListItems,
   buildUsersById,
   korisniciToMentionUsers,
   mergeAkcijeById,
-  pickSledeceAkcije,
+  pickRandomFerrata,
   pickSuggestedUsers,
-  type FeedItem,
+  type HomeListItem,
   type MentionUser,
 } from './homeFeedUtils'
 
 const PAGE = 15
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Feed'>
+
+function homeListKey(item: HomeListItem, index: number): string {
+  if (item.kind === 'post') return `post-${item.post.id}`
+  if (item.kind === 'action') return `action-${item.action.id}`
+  if (item.kind === 'suggested') return 'suggested-users'
+  if (item.kind === 'ferrata') return `ferrata-${item.ferrata.id}-${index}`
+  return `item-${index}`
+}
 
 export default function HomeScreen({ navigation }: Props) {
   const tabNavigation = navigation.getParent<BottomTabNavigationProp<AppTabsParamList>>()
@@ -50,7 +59,7 @@ export default function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation('home')
   const [composer, setComposer] = useState('')
   const [imageUri, setImageUri] = useState<string | null>(null)
-  const listRef = useRef<FlatList<FeedItem>>(null)
+  const listRef = useRef<FlatList<HomeListItem>>(null)
   const composerRef = useRef<HomeComposerHandle>(null)
 
   const { data: unread = 0 } = useQuery({
@@ -72,6 +81,11 @@ export default function HomeScreen({ navigation }: Props) {
   const akcijeQuery = useQuery({
     queryKey: ['akcije', 'feed'],
     queryFn: () => fetchAkcije(client),
+  })
+
+  const ferratasQuery = useQuery({
+    queryKey: ['ferratas', 'home-spotlight'],
+    queryFn: () => fetchPublicFerratas(client),
   })
 
   const discoverQuery = useQuery({
@@ -127,11 +141,6 @@ export default function HomeScreen({ navigation }: Props) {
     [discoverQuery.data],
   )
   const usersById = useMemo(() => buildUsersById(mentionUsers), [mentionUsers])
-  const feedItems = useMemo(
-    () => buildFeedItems(posts, aktivneAkcije, usersById),
-    [posts, aktivneAkcije, usersById],
-  )
-  const sledeceAkcije = useMemo(() => pickSledeceAkcije(aktivneAkcije), [aktivneAkcije])
   const followingIds = useMemo(
     () =>
       (followingQuery.data ?? [])
@@ -143,20 +152,30 @@ export default function HomeScreen({ navigation }: Props) {
     () => pickSuggestedUsers(mentionUsers, followingIds, user?.klubId, 2),
     [mentionUsers, followingIds, user?.klubId],
   )
+  const randomFerrata = useMemo(
+    () => pickRandomFerrata(ferratasQuery.data ?? []),
+    [ferratasQuery.data, ferratasQuery.dataUpdatedAt],
+  )
+  const homeListItems = useMemo(
+    () => buildHomeListItems(posts, aktivneAkcije, usersById, suggestedUsers, randomFerrata),
+    [posts, aktivneAkcije, usersById, suggestedUsers, randomFerrata],
+  )
 
   const isLoading = postsQuery.isLoading
   const isError = postsQuery.isError
   const isRefetching =
     postsQuery.isRefetching ||
     akcijeQuery.isRefetching ||
+    ferratasQuery.isRefetching ||
     discoverQuery.isRefetching
 
   const refreshAll = useCallback(() => {
     void postsQuery.refetch()
     void akcijeQuery.refetch()
+    void ferratasQuery.refetch()
     void discoverQuery.refetch()
     void followingQuery.refetch()
-  }, [postsQuery, akcijeQuery, discoverQuery, followingQuery])
+  }, [postsQuery, akcijeQuery, ferratasQuery, discoverQuery, followingQuery])
 
   const pickImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -189,15 +208,34 @@ export default function HomeScreen({ navigation }: Props) {
     [navigation],
   )
 
-  const navigateToAllActions = useCallback(() => {
-    tabNavigation?.navigate('ActionsTab', { screen: 'ActionsList' })
-  }, [tabNavigation])
+  const navigateToFerrata = useCallback(
+    (slug: string) => {
+      tabNavigation?.navigate('ExploreTab', {
+        screen: 'FerrataDetail',
+        params: { slug },
+      })
+    },
+    [tabNavigation],
+  )
 
-  const renderFeedItem = useCallback(
-    ({ item }: { item: FeedItem }) => {
+  const renderListItem = useCallback(
+    ({ item, index }: { item: HomeListItem; index: number }) => {
+      if (item.kind === 'suggested') {
+        return <HomeSuggestedUsersRow users={item.users} onPressUser={navigateToUser} />
+      }
+      if (item.kind === 'ferrata') {
+        const slug = item.ferrata.slug || String(item.ferrata.id)
+        return (
+          <HomeFeedFerrataCard
+            ferrata={item.ferrata}
+            onPress={() => navigateToFerrata(slug)}
+          />
+        )
+      }
       if (item.kind === 'action') {
         return (
           <FeedActionCard
+            variant="feed"
             action={item.action}
             addedBy={item.addedBy}
             onPress={() => navigateToAction(item.action.id)}
@@ -207,6 +245,7 @@ export default function HomeScreen({ navigation }: Props) {
       const post = item.post
       return (
         <PostCard
+          variant="feed"
           post={post}
           onPress={() => navigation.navigate('PostDetail', { id: post.id })}
           onPressAuthor={() =>
@@ -220,48 +259,25 @@ export default function HomeScreen({ navigation }: Props) {
         />
       )
     },
-    [likeMutation, navigateToAction, navigation],
+    [likeMutation, navigateToAction, navigateToFerrata, navigateToUser, navigation],
   )
 
   const listHeader = useMemo(
     () => (
-      <View>
-        <View style={styles.headerSection}>
-          <HomeNextActionsRow
-            actions={sledeceAkcije}
-            loading={akcijeQuery.isLoading}
-            onPressAction={navigateToAction}
-            onPressAll={navigateToAllActions}
-          />
-        </View>
-        <HomeComposer
-          ref={composerRef}
-          avatarUri={user?.avatarUrl}
-          avatarName={user?.fullName || user?.username}
-          composer={composer}
-          imageUri={imageUri}
-          publishing={publishMutation.isPending}
-          onChangeText={setComposer}
-          onPickImage={() => void pickImage()}
-          onRemoveImage={() => setImageUri(null)}
-          onPublish={() => publishMutation.mutate()}
-        />
-        <HomeSuggestedUsersRow users={suggestedUsers} onPressUser={navigateToUser} />
-      </View>
+      <HomeComposer
+        ref={composerRef}
+        avatarUri={user?.avatarUrl}
+        avatarName={user?.fullName || user?.username}
+        composer={composer}
+        imageUri={imageUri}
+        publishing={publishMutation.isPending}
+        onChangeText={setComposer}
+        onPickImage={() => void pickImage()}
+        onRemoveImage={() => setImageUri(null)}
+        onPublish={() => publishMutation.mutate()}
+      />
     ),
-    [
-      sledeceAkcije,
-      akcijeQuery.isLoading,
-      navigateToAction,
-      navigateToAllActions,
-      user,
-      composer,
-      imageUri,
-      publishMutation.isPending,
-      pickImage,
-      suggestedUsers,
-      navigateToUser,
-    ],
+    [user, composer, imageUri, publishMutation.isPending, pickImage],
   )
 
   if (isLoading) {
@@ -306,8 +322,8 @@ export default function HomeScreen({ navigation }: Props) {
 
       <FlatList
         ref={listRef}
-        data={feedItems}
-        keyExtractor={(item) => (item.kind === 'action' ? `action-${item.action.id}` : `post-${item.post.id}`)}
+        data={homeListItems}
+        keyExtractor={(item, index) => homeListKey(item, index)}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refreshAll} />}
         onEndReached={() => {
@@ -327,7 +343,7 @@ export default function HomeScreen({ navigation }: Props) {
             </Text>
           ) : null
         }
-        renderItem={renderFeedItem}
+        renderItem={renderListItem}
       />
     </View>
   )
@@ -335,7 +351,6 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  headerSection: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  list: { paddingBottom: spacing.xxl },
   allLoaded: { textAlign: 'center', paddingVertical: spacing.lg },
 })
