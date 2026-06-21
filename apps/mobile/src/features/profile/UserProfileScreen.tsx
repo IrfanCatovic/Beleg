@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
+import { useFocusEffect } from '@react-navigation/native'
 import { getApiErrorMessage } from '@beleg/shared'
+import type { Korisnik } from '@beleg/shared/types'
 import {
   acceptFollowRequest,
   blockUser,
@@ -78,6 +80,10 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const [coverFocus, setCoverFocus] = useState(false)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [coverModalOpen, setCoverModalOpen] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+  const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null)
 
   const routeNames = (navigation.getState()?.routeNames ?? []) as string[]
   const inProfileStack = routeNames.includes('ProfileSettings')
@@ -167,6 +173,20 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     void refreshUser()
   }, [queryClient, idOrUsername, refreshUser])
 
+  const patchProfileCache = useCallback(
+    (patch: Partial<Korisnik>) => {
+      queryClient.setQueryData<Korisnik>(['korisnik', idOrUsername], (old) =>
+        old ? { ...old, ...patch } : old,
+      )
+    },
+    [queryClient, idOrUsername],
+  )
+
+  const dismissImageFocus = useCallback(() => {
+    setAvatarFocus(false)
+    setCoverFocus(false)
+  }, [])
+
   const pickFromGallery = useCallback(async (aspect?: [number, number]) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
@@ -183,55 +203,105 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     return result.assets[0]
   }, [showAlert])
 
-  const avatarMutation = useMutation({
-    mutationFn: async (action: 'pick' | 'remove') => {
-      const fd = new FormData()
-      if (action === 'remove') {
-        fd.append('removeAvatar', '1')
-        return updateMyAvatar(client, fd)
-      }
-      const asset = await pickFromGallery([1, 1])
-      if (!asset) return null
-      const file = await prepareImagePickerAssetForUpload(asset, 'avatar', { maxWidth: 1024 })
-      appendImageToFormData(fd, 'avatar', file)
-      return updateMyAvatar(client, fd)
-    },
-    onSuccess: async (res) => {
-      if (res === null) return
+  const handleAvatarImageAction = useCallback(
+    async (action: 'pick' | 'remove') => {
       setAvatarModalOpen(false)
-      setAvatarFocus(false)
-      invalidateProfile()
-      await showAlert('Sačuvano', 'Profilna slika je ažurirana.')
-    },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Profilna slika nije sačuvana.')),
-  })
+      dismissImageFocus()
 
-  const coverMutation = useMutation({
-    mutationFn: async (action: 'pick' | 'remove') => {
-      const fd = new FormData()
       if (action === 'remove') {
-        fd.append('removeCover', '1')
-        return updateMyCover(client, fd)
+        setAvatarUploading(true)
+        try {
+          const fd = new FormData()
+          fd.append('removeAvatar', '1')
+          await updateMyAvatar(client, fd)
+          setLocalAvatarUrl(null)
+          patchProfileCache({ avatar_url: '' })
+          invalidateProfile()
+        } catch (err) {
+          showAlert('Greška', getApiErrorMessage(err, 'Profilna slika nije uklonjena.'))
+        } finally {
+          setAvatarUploading(false)
+        }
+        return
       }
-      const asset = await pickFromGallery([16, 9])
-      if (!asset) return null
-      const file = await prepareImagePickerAssetForUpload(asset, 'cover', { maxWidth: 1920 })
-      appendImageToFormData(fd, 'coverImage', file)
-      return updateMyCover(client, fd)
+
+      const asset = await pickFromGallery([1, 1])
+      if (!asset) return
+
+      const file = await prepareImagePickerAssetForUpload(asset, 'avatar', { maxWidth: 1024 })
+      setLocalAvatarUrl(file.uri)
+      setAvatarUploading(true)
+      try {
+        const fd = new FormData()
+        appendImageToFormData(fd, 'avatar', file)
+        const res = await updateMyAvatar(client, fd)
+        const url = res.avatar_url ?? file.uri
+        setLocalAvatarUrl(url)
+        patchProfileCache({ avatar_url: url })
+        invalidateProfile()
+      } catch (err) {
+        setLocalAvatarUrl(null)
+        showAlert('Greška', getApiErrorMessage(err, 'Profilna slika nije sačuvana.'))
+      } finally {
+        setAvatarUploading(false)
+      }
     },
-    onSuccess: async (res) => {
-      if (res === null) return
+    [dismissImageFocus, invalidateProfile, patchProfileCache, pickFromGallery, showAlert],
+  )
+
+  const handleCoverImageAction = useCallback(
+    async (action: 'pick' | 'remove') => {
       setCoverModalOpen(false)
-      setCoverFocus(false)
-      invalidateProfile()
-      await showAlert('Sačuvano', 'Cover slika je ažurirana.')
+      dismissImageFocus()
+
+      if (action === 'remove') {
+        setCoverUploading(true)
+        try {
+          const fd = new FormData()
+          fd.append('removeCover', '1')
+          await updateMyCover(client, fd)
+          setLocalCoverUrl(null)
+          patchProfileCache({ cover_image_url: '' })
+          invalidateProfile()
+        } catch (err) {
+          showAlert('Greška', getApiErrorMessage(err, 'Cover slika nije uklonjena.'))
+        } finally {
+          setCoverUploading(false)
+        }
+        return
+      }
+
+      const asset = await pickFromGallery([16, 9])
+      if (!asset) return
+
+      const file = await prepareImagePickerAssetForUpload(asset, 'cover', { maxWidth: 1920 })
+      setLocalCoverUrl(file.uri)
+      setCoverUploading(true)
+      try {
+        const fd = new FormData()
+        appendImageToFormData(fd, 'coverImage', file)
+        const res = await updateMyCover(client, fd)
+        const url = res.cover_image_url ?? file.uri
+        setLocalCoverUrl(url)
+        patchProfileCache({ cover_image_url: url })
+        invalidateProfile()
+      } catch (err) {
+        setLocalCoverUrl(null)
+        showAlert('Greška', getApiErrorMessage(err, 'Cover slika nije sačuvana.'))
+      } finally {
+        setCoverUploading(false)
+      }
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Cover slika nije sačuvana.')),
-  })
+    [dismissImageFocus, invalidateProfile, patchProfileCache, pickFromGallery, showAlert],
+  )
 
   useEffect(() => {
     if (!profileQuery.data?.isProfiGuide) setActionsTab('climbed')
   }, [profileQuery.data?.isProfiGuide, idOrUsername])
+
+  useFocusEffect(
+    useCallback(() => () => dismissImageFocus(), [dismissImageFocus]),
+  )
 
   const rank = useMemo(() => {
     return computeProfileRank(popeoQuery.data ?? [], statsQuery.data ?? {}, profileQuery.data?.createdAt)
@@ -311,6 +381,8 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   else if (followStatus?.incoming === 'pending') followLabel = 'Prihvati zahtev'
 
   const rankTextColor = rank.boja === '#000000' ? '#FFD700' : '#ffffff'
+  const displayCoverUrl = localCoverUrl ?? korisnik.cover_image_url
+  const displayAvatarUrl = localAvatarUrl ?? korisnik.avatar_url
 
   const handleAvatarPress = () => {
     if (!isMe) return
@@ -336,28 +408,33 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     <Screen padded={false} edges={inProfileStack ? [] : ['top', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
-        onScrollBeginDrag={() => {
-          setAvatarFocus(false)
-          setCoverFocus(false)
-        }}
+        onScrollBeginDrag={dismissImageFocus}
       >
-        <Pressable style={styles.coverWrap} onPress={handleCoverPress} disabled={!isMe}>
-          {korisnik.cover_image_url ? (
-            <Image source={{ uri: korisnik.cover_image_url }} style={styles.cover} resizeMode="cover" />
+        <Pressable style={styles.coverWrap} onPress={handleCoverPress} disabled={!isMe || coverUploading}>
+          {displayCoverUrl ? (
+            <Image source={{ uri: displayCoverUrl }} style={styles.cover} resizeMode="cover" />
           ) : (
             <View style={[styles.cover, styles.coverFallback]} />
           )}
           <View style={styles.coverGradient} />
-          {isMe && coverFocus ? (
+          {isMe && coverFocus && !coverUploading ? (
             <View style={styles.imageEditOverlay}>
               <Ionicons name="create-outline" size={28} color={colors.white} />
+            </View>
+          ) : null}
+          {coverUploading ? (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator size="large" color={colors.white} />
             </View>
           ) : null}
 
           {showSettings ? (
             <Pressable
               style={[styles.settingsBtn, { top: insets.top + spacing.sm }]}
-              onPress={() => profileNavigation.navigate('ProfileSettings')}
+              onPress={() => {
+                dismissImageFocus()
+                profileNavigation.navigate('ProfileSettings')
+              }}
               hitSlop={8}
             >
               <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
@@ -367,16 +444,21 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
         <View style={styles.headerCard}>
           <View style={styles.identityRow}>
-            <Pressable onPress={handleAvatarPress} disabled={!isMe} style={styles.avatarWrap}>
-              <Avatar uri={korisnik.avatar_url} name={korisnik.fullName || korisnik.username} size={80} />
-              {isMe && avatarFocus ? (
+            <Pressable onPress={handleAvatarPress} disabled={!isMe || avatarUploading} style={styles.avatarWrap}>
+              <Avatar uri={displayAvatarUrl} name={korisnik.fullName || korisnik.username} size={80} />
+              {isMe && avatarFocus && !avatarUploading ? (
                 <View style={styles.avatarEditOverlay}>
                   <Ionicons name="create-outline" size={22} color={colors.white} />
                 </View>
               ) : null}
+              {avatarUploading ? (
+                <View style={styles.avatarUploadOverlay}>
+                  <ActivityIndicator size="small" color={colors.white} />
+                </View>
+              ) : null}
             </Pressable>
 
-            <View style={styles.identityText}>
+            <Pressable style={styles.identityText} onPress={dismissImageFocus}>
               <View style={styles.nameRow}>
                 <Text variant="title" style={styles.name}>
                   {korisnik.fullName || korisnik.username}
@@ -392,19 +474,22 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   Član od {formatMemberSince(korisnik.createdAt)}
                 </Text>
               </View>
-            </View>
+            </Pressable>
 
             {roleVisible ? (
-              <View style={[styles.roleBadge, { backgroundColor: getRoleColor(korisnik.role) }]}>
+              <Pressable
+                style={[styles.roleBadge, { backgroundColor: getRoleColor(korisnik.role) }]}
+                onPress={dismissImageFocus}
+              >
                 <Text variant="small" color={colors.white} style={styles.roleText}>
                   {getRoleLabel(korisnik.role).toUpperCase()}
                 </Text>
-              </View>
+              </Pressable>
             ) : null}
           </View>
 
           {korisnik.klubNaziv ? (
-            <View style={styles.clubRow}>
+            <Pressable style={styles.clubRow} onPress={dismissImageFocus}>
               <View style={styles.clubBadge}>
                 {korisnik.klubLogoUrl ? (
                   <Image source={{ uri: korisnik.klubLogoUrl }} style={styles.clubLogo} />
@@ -415,7 +500,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   {korisnik.klubNaziv}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ) : null}
 
           {!isMe && !blockedByTarget ? (
@@ -444,11 +529,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         </View>
 
         {blockedByTarget ? (
-          <View style={styles.blocked}>
-            <Text color={colors.textMuted}>Ovaj korisnik vas je blokirao.</Text>
-          </View>
+          <Pressable onPress={dismissImageFocus}>
+            <View style={styles.blocked}>
+              <Text color={colors.textMuted}>Ovaj korisnik vas je blokirao.</Text>
+            </View>
+          </Pressable>
         ) : (
-          <>
+          <Pressable onPress={dismissImageFocus}>
             <View style={styles.statsSection}>
               <View style={styles.rankCard}>
                 <View style={[styles.rankBadge, { backgroundColor: rank.boja }]}>
@@ -515,7 +602,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
               <ProfileActionGrid actions={displayedActions} onPressAction={goAction} fullWidth />
             </View>
-          </>
+          </Pressable>
         )}
       </ScrollView>
 
@@ -535,18 +622,18 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             title="Promena profilne slike"
             subtitle="Izaberite šta želite da uradite."
             onClose={() => setAvatarModalOpen(false)}
-            onPickGallery={() => avatarMutation.mutate('pick')}
-            onRemove={() => avatarMutation.mutate('remove')}
-            canRemove={!!korisnik.avatar_url}
+            onPickGallery={() => void handleAvatarImageAction('pick')}
+            onRemove={() => void handleAvatarImageAction('remove')}
+            canRemove={!!displayAvatarUrl}
           />
           <ProfileImageActionModal
             visible={coverModalOpen}
             title="Promena cover slike"
             subtitle="Izaberite šta želite da uradite."
             onClose={() => setCoverModalOpen(false)}
-            onPickGallery={() => coverMutation.mutate('pick')}
-            onRemove={() => coverMutation.mutate('remove')}
-            canRemove={!!korisnik.cover_image_url}
+            onPickGallery={() => void handleCoverImageAction('pick')}
+            onRemove={() => void handleCoverImageAction('remove')}
+            canRemove={!!displayCoverUrl}
           />
         </>
       ) : null}
@@ -591,10 +678,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarEditOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarUploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },

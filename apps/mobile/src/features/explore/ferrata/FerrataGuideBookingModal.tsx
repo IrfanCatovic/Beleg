@@ -100,7 +100,7 @@ export function FerrataGuideBookingModal({
       const list = await listGuidesNearby(client, {
         lat: ferrataLat,
         lng: ferrataLng,
-        tourType: 'ferrata',
+        tourType: 'via_ferrata',
       })
       setGuides(list)
     } catch {

@@ -71,9 +71,17 @@ export function createApiClient(config: ApiClientConfig): ApiClientBundle {
       }
     }
     if (reqConfig.data instanceof FormData) {
-      // RN Android: delete nije dovoljan — axios inače šalje application/x-www-form-urlencoded
-      // za PATCH/POST sa FormData i OkHttp baca Network Error pre nego što zahtev stigne do servera.
-      reqConfig.headers.set('Content-Type', false as unknown as string)
+      // RN Android: axios mora poslati multipart bez Content-Type headera (boundary dodaje runtime).
+      const headers = reqConfig.headers
+      if (headers) {
+        if (typeof headers.delete === 'function') {
+          headers.delete('Content-Type')
+          headers.delete('content-type')
+        } else {
+          delete (headers as Record<string, unknown>)['Content-Type']
+          delete (headers as Record<string, unknown>)['content-type']
+        }
+      }
     }
     return reqConfig
   }, (error) => Promise.reject(error))

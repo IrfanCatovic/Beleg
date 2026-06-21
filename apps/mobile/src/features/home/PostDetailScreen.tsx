@@ -111,7 +111,9 @@ export default function PostDetailScreen({ route, navigation }: Props) {
   }
 
   const post = postQuery.data
-  const isOwner = user?.username === post.author.username
+  const author = post.author
+  const authorName = author?.fullName || author?.username || 'Korisnik'
+  const isOwner = !!author?.username && user?.username === author.username
   const comments = commentsQuery.data?.comments ?? []
 
   return (
@@ -129,16 +131,17 @@ export default function PostDetailScreen({ route, navigation }: Props) {
             <View style={styles.postBlock}>
               <Pressable
                 style={styles.authorRow}
-                onPress={() =>
+                onPress={() => {
+                  if (!author?.username) return
                   navigation.navigate('UserProfile', {
-                    id: post.author.id,
-                    username: post.author.username,
+                    id: author.id,
+                    username: author.username,
                   })
-                }
+                }}
               >
-                <Avatar uri={post.author.avatarUrl} name={post.author.fullName || post.author.username} />
+                <Avatar uri={author?.avatarUrl} name={authorName} />
                 <View style={styles.authorText}>
-                  <Text variant="label">{post.author.fullName || post.author.username}</Text>
+                  <Text variant="label">{authorName}</Text>
                   <Text variant="small" color={colors.textMuted}>
                     {new Date(post.createdAt).toLocaleString('sr-RS')}
                   </Text>

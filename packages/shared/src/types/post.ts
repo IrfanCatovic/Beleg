@@ -1,4 +1,7 @@
-/** Post feed — usklađeno sa backend/internal/models/post.go */
+/**
+ * Post feed — normalizovani tip za klijente.
+ * Backend JSON koristi `user` i `myLiked`; servis mapira u `author` i `likedByMe`.
+ */
 
 export interface PostCommentUser {
   id: number

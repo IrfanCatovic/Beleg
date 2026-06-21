@@ -241,12 +241,14 @@ export default function HomeScreen({ navigation }: Props) {
           variant="feed"
           post={post}
           onPress={() => navigation.navigate('PostDetail', { id: post.id })}
-          onPressAuthor={() =>
+          onPressAuthor={() => {
+            const author = post.author
+            if (!author?.username) return
             navigation.navigate('UserProfile', {
-              id: post.author.id,
-              username: post.author.username,
+              id: author.id,
+              username: author.username,
             })
-          }
+          }}
           onLike={() => likeMutation.mutate(post.id)}
           onComment={() => navigation.navigate('PostDetail', { id: post.id })}
         />

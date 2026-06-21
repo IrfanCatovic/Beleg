@@ -1,9 +1,36 @@
 import type { AxiosInstance } from 'axios'
-import type { Post, PostComment, PostLikeUser } from '../types/post'
+import type { Post, PostComment, PostLikeUser, PostUser } from '../types/post'
 
 export interface PostsPage {
   posts: Post[]
   total: number
+}
+
+/** Raw backend shape from posts_feed.go (user + myLiked). */
+export type PostApiRaw = {
+  id: number
+  content: string
+  createdAt: string
+  imageUrl?: string
+  likeCount?: number
+  commentCount?: number
+  user?: PostUser
+  author?: PostUser
+  myLiked?: boolean
+  likedByMe?: boolean
+}
+
+export function normalizePost(raw: PostApiRaw): Post {
+  return {
+    id: raw.id,
+    content: raw.content,
+    createdAt: raw.createdAt,
+    imageUrl: raw.imageUrl,
+    likeCount: raw.likeCount,
+    commentCount: raw.commentCount,
+    author: raw.user ?? raw.author ?? { id: 0, username: '' },
+    likedByMe: raw.myLiked ?? raw.likedByMe ?? false,
+  }
 }
 
 export async function fetchPosts(
@@ -11,15 +38,16 @@ export async function fetchPosts(
   limit: number,
   offset: number,
 ): Promise<PostsPage> {
-  const res = await client.get<{ posts?: Post[]; total?: number }>('/api/posts', {
+  const res = await client.get<{ posts?: PostApiRaw[]; total?: number }>('/api/posts', {
     params: { limit, offset },
   })
-  return { posts: res.data.posts ?? [], total: res.data.total ?? 0 }
+  const posts = (res.data.posts ?? []).map(normalizePost)
+  return { posts, total: res.data.total ?? 0 }
 }
 
 export async function fetchPostById(client: AxiosInstance, postId: number): Promise<Post> {
-  const res = await client.get<{ post: Post }>(`/api/posts/${postId}`)
-  return res.data.post
+  const res = await client.get<{ post: PostApiRaw }>(`/api/posts/${postId}`)
+  return normalizePost(res.data.post)
 }
 
 export async function createPost(

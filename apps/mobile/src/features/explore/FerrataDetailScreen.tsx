@@ -49,7 +49,7 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
       listGuidesNearby(client, {
         lat: lat!,
         lng: lng!,
-        tourType: 'ferrata',
+        tourType: 'via_ferrata',
       }),
     enabled: lat != null && lng != null,
   })
