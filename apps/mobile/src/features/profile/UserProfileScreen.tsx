@@ -26,6 +26,7 @@ import {
   updateMyCover,
 } from '@beleg/shared/services'
 import { client } from '../../api/client'
+import { appendImageToFormData, prepareImagePickerAssetForUpload } from '../../lib/imageUpload'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { Avatar, Button, ErrorView, Loader, Screen, Text } from '../../components/ui'
@@ -179,7 +180,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       quality: 0.85,
     })
     if (result.canceled || !result.assets[0]) return null
-    return result.assets[0].uri
+    return result.assets[0]
   }, [showAlert])
 
   const avatarMutation = useMutation({
@@ -189,12 +190,10 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         fd.append('removeAvatar', '1')
         return updateMyAvatar(client, fd)
       }
-      const uri = await pickFromGallery([1, 1])
-      if (!uri) return null
-      const filename = uri.split('/').pop() || 'avatar.jpg'
-      const match = /\.(\w+)$/.exec(filename)
-      const type = match ? `image/${match[1]}` : 'image/jpeg'
-      fd.append('avatar', { uri, name: filename, type } as unknown as Blob)
+      const asset = await pickFromGallery([1, 1])
+      if (!asset) return null
+      const file = await prepareImagePickerAssetForUpload(asset, 'avatar', { maxWidth: 1024 })
+      appendImageToFormData(fd, 'avatar', file)
       return updateMyAvatar(client, fd)
     },
     onSuccess: async (res) => {
@@ -214,12 +213,10 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         fd.append('removeCover', '1')
         return updateMyCover(client, fd)
       }
-      const uri = await pickFromGallery([16, 9])
-      if (!uri) return null
-      const filename = uri.split('/').pop() || 'cover.jpg'
-      const match = /\.(\w+)$/.exec(filename)
-      const type = match ? `image/${match[1]}` : 'image/jpeg'
-      fd.append('coverImage', { uri, name: filename, type } as unknown as Blob)
+      const asset = await pickFromGallery([16, 9])
+      if (!asset) return null
+      const file = await prepareImagePickerAssetForUpload(asset, 'cover', { maxWidth: 1920 })
+      appendImageToFormData(fd, 'coverImage', file)
       return updateMyCover(client, fd)
     },
     onSuccess: async (res) => {
