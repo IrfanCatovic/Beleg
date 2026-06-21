@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -9,6 +9,7 @@ import {
   createPost,
   fetchAkcije,
   fetchKorisnici,
+  fetchPostLikes,
   fetchPosts,
   fetchPublicFerratas,
   fetchUnreadCount,
@@ -19,12 +20,13 @@ import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { PostCard } from '../../components/shared/PostCard'
+import { PostLikesModal } from '../../components/shared/PostLikesModal'
 import { AppTopBar } from '../../components/ui/AppTopBar'
 import { EmptyState, ErrorView, Loader, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 import { FeedActionCard } from './FeedActionCard'
-import { HomeComposer, type HomeComposerHandle } from './HomeComposer'
+import { HomeComposerModal } from './HomeComposerModal'
 import { HomeFeedFerrataCard } from './HomeFeedFerrataCard'
 import { HomeSuggestedUsersRow } from './HomeSuggestedUsersRow'
 import {
@@ -55,10 +57,12 @@ export default function HomeScreen({ navigation }: Props) {
   const { showAlert } = useModal()
   const { user } = useAuth()
   const { t } = useTranslation('home')
+  const [composerOpen, setComposerOpen] = useState(false)
   const [composer, setComposer] = useState('')
   const [imageUri, setImageUri] = useState<string | null>(null)
-  const listRef = useRef<FlatList<HomeListItem>>(null)
-  const composerRef = useRef<HomeComposerHandle>(null)
+  const [likesPostId, setLikesPostId] = useState<number | null>(null)
+  const [likesLoading, setLikesLoading] = useState(false)
+  const [likes, setLikes] = useState<Awaited<ReturnType<typeof fetchPostLikes>>['likes']>([])
 
   const { data: unread = 0 } = useQuery({
     queryKey: ['obavestenja', 'unread'],
@@ -120,6 +124,7 @@ export default function HomeScreen({ navigation }: Props) {
     onSuccess: () => {
       setComposer('')
       setImageUri(null)
+      setComposerOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
     onError: (err) => showAlert(t('publishFailedTitle'), getApiErrorMessage(err, t('publishFailed'))),
@@ -187,14 +192,34 @@ export default function HomeScreen({ navigation }: Props) {
     })
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri)
-      composerRef.current?.focus()
     }
   }, [showAlert, t])
 
   const openComposer = useCallback(() => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true })
-    composerRef.current?.focus()
+    setComposerOpen(true)
   }, [])
+
+  const closeComposer = useCallback(() => {
+    setComposerOpen(false)
+  }, [])
+
+  const openLikes = useCallback(
+    async (postId: number) => {
+      setLikesPostId(postId)
+      setLikesLoading(true)
+      setLikes([])
+      try {
+        const data = await fetchPostLikes(client, postId)
+        setLikes(data.likes)
+      } catch (err) {
+        setLikesPostId(null)
+        await showAlert('Greška', getApiErrorMessage(err, 'Lajkovi nisu učitani.'))
+      } finally {
+        setLikesLoading(false)
+      }
+    },
+    [showAlert],
+  )
 
   const navigateToAction = useCallback(
     (id: number) => navigation.navigate('ActionDetail', { id }),
@@ -250,41 +275,28 @@ export default function HomeScreen({ navigation }: Props) {
             })
           }}
           onLike={() => likeMutation.mutate(post.id)}
-          onComment={() => navigation.navigate('PostDetail', { id: post.id })}
+          onPressLikeCount={() => void openLikes(post.id)}
+          onComment={() => navigation.navigate('PostDetail', { id: post.id, focusComment: true })}
         />
       )
     },
-    [likeMutation, navigateToAction, navigateToFerrata, navigateToUser, navigation],
+    [likeMutation, navigateToAction, navigateToFerrata, navigateToUser, navigation, openLikes],
   )
 
-  const listHeader = useMemo(
-    () => (
-      <HomeComposer
-        ref={composerRef}
-        avatarUri={user?.avatarUrl}
-        avatarName={user?.fullName || user?.username}
-        composer={composer}
-        imageUri={imageUri}
-        publishing={publishMutation.isPending}
-        onChangeText={setComposer}
-        onPickImage={() => void pickImage()}
-        onRemoveImage={() => setImageUri(null)}
-        onPublish={() => publishMutation.mutate()}
-      />
-    ),
-    [user, composer, imageUri, publishMutation.isPending, pickImage],
+  const topBar = (
+    <AppTopBar
+      leftIcon="add"
+      onLeftPress={openComposer}
+      rightIcon="notifications-outline"
+      onRightPress={() => navigation.navigate('NotificationsList')}
+      rightBadge={unread}
+    />
   )
 
   if (isLoading) {
     return (
       <View style={styles.root}>
-        <AppTopBar
-          leftIcon="add"
-          onLeftPress={openComposer}
-          rightIcon="notifications-outline"
-          onRightPress={() => navigation.navigate('NotificationsList')}
-          rightBadge={unread}
-        />
+        {topBar}
         <Loader />
       </View>
     )
@@ -293,13 +305,7 @@ export default function HomeScreen({ navigation }: Props) {
   if (isError) {
     return (
       <View style={styles.root}>
-        <AppTopBar
-          leftIcon="add"
-          onLeftPress={openComposer}
-          rightIcon="notifications-outline"
-          onRightPress={() => navigation.navigate('NotificationsList')}
-          rightBadge={unread}
-        />
+        {topBar}
         <ErrorView message={t('loadError')} onRetry={() => postsQuery.refetch()} />
       </View>
     )
@@ -307,16 +313,9 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <AppTopBar
-        leftIcon="add"
-        onLeftPress={openComposer}
-        rightIcon="notifications-outline"
-        onRightPress={() => navigation.navigate('NotificationsList')}
-        rightBadge={unread}
-      />
+      {topBar}
 
       <FlatList
-        ref={listRef}
         data={homeListItems}
         keyExtractor={(item, index) => homeListKey(item, index)}
         contentContainerStyle={styles.list}
@@ -325,7 +324,6 @@ export default function HomeScreen({ navigation }: Props) {
           if (postsQuery.hasNextPage && !postsQuery.isFetchingNextPage) void postsQuery.fetchNextPage()
         }}
         onEndReachedThreshold={0.4}
-        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           <EmptyState title={t('noPostsTitle')} message={t('noPostsDesc')} />
         }
@@ -339,6 +337,32 @@ export default function HomeScreen({ navigation }: Props) {
           ) : null
         }
         renderItem={renderListItem}
+      />
+
+      <HomeComposerModal
+        visible={composerOpen}
+        avatarUri={user?.avatarUrl}
+        avatarName={user?.fullName || user?.username}
+        composer={composer}
+        imageUri={imageUri}
+        publishing={publishMutation.isPending}
+        onChangeText={setComposer}
+        onPickImage={() => void pickImage()}
+        onRemoveImage={() => setImageUri(null)}
+        onPublish={() => publishMutation.mutate()}
+        onClose={closeComposer}
+      />
+
+      <PostLikesModal
+        visible={likesPostId != null}
+        title={t('likesTitle')}
+        likes={likes}
+        loading={likesLoading}
+        onClose={() => setLikesPostId(null)}
+        onSelectUser={(username) => {
+          setLikesPostId(null)
+          navigation.navigate('UserProfile', { username })
+        }}
       />
     </View>
   )

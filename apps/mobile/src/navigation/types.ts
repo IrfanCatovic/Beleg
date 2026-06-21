@@ -5,7 +5,7 @@ export type HomeStackParamList = {
   ActionDetail: { id: number }
   FerrataDetail: { slug: string }
   UserProfile: { username?: string; id?: number }
-  PostDetail: { id: number }
+  PostDetail: { id: number; focusComment?: boolean }
   NotificationsList: undefined
   NotificationDetail: { id: number }
 }

@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { Post } from '@beleg/shared'
 import { Avatar, Card, Text } from '../ui'
+import { PostLikeBar } from './PostLikeBar'
 import { colors, spacing } from '../../theme'
 
 interface PostCardProps {
@@ -9,6 +10,7 @@ interface PostCardProps {
   onPress?: () => void
   onPressAuthor?: () => void
   onLike?: () => void
+  onPressLikeCount?: () => void
   onComment?: () => void
 }
 
@@ -32,6 +34,7 @@ export function PostCard({
   onPress,
   onPressAuthor,
   onLike,
+  onPressLikeCount,
   onComment,
 }: PostCardProps) {
   const author = post.author
@@ -62,18 +65,15 @@ export function PostCard({
         />
       ) : null}
 
-      <View style={[styles.actions, isFeed && styles.feedPadded]}>
-        <Pressable onPress={onLike} style={styles.actionBtn}>
-          <Text variant="small" color={post.likedByMe ? colors.brand : colors.textMuted}>
-            ♥ {post.likeCount ?? 0}
-          </Text>
-        </Pressable>
-        <Pressable onPress={onComment} style={styles.actionBtn}>
-          <Text variant="small" color={colors.textMuted}>
-            💬 {post.commentCount ?? 0}
-          </Text>
-        </Pressable>
-      </View>
+      <PostLikeBar
+        likedByMe={post.likedByMe}
+        likeCount={post.likeCount}
+        commentCount={post.commentCount}
+        onLike={onLike}
+        onPressLikeCount={onPressLikeCount}
+        onComment={onComment}
+        padded={isFeed}
+      />
     </>
   )
 
@@ -106,6 +106,4 @@ const styles = StyleSheet.create({
   content: { marginBottom: spacing.sm },
   image: { width: '100%', height: 200, borderRadius: 8, marginBottom: spacing.sm },
   feedImage: { borderRadius: 0, marginBottom: spacing.sm },
-  actions: { flexDirection: 'row', gap: spacing.lg },
-  actionBtn: { paddingVertical: spacing.xs },
 })

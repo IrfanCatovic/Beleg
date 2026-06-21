@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getApiErrorMessage } from '@beleg/shared'
 import {
   createPostComment,
@@ -17,26 +21,34 @@ import {
   deletePostComment,
   fetchPostById,
   fetchPostComments,
+  fetchPostLikes,
   togglePostLike,
   updatePostContent,
 } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
+import { PostLikeBar } from '../../components/shared/PostLikeBar'
+import { PostLikesModal } from '../../components/shared/PostLikesModal'
 import { Avatar, Button, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
-import { colors, spacing } from '../../theme'
+import { colors, fontSize, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'PostDetail'>
 
 export default function PostDetailScreen({ route, navigation }: Props) {
-  const { id } = route.params
+  const { id, focusComment } = route.params
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
   const queryClient = useQueryClient()
+  const insets = useSafeAreaInsets()
+  const commentInputRef = useRef<TextInput>(null)
   const [comment, setComment] = useState('')
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [likesOpen, setLikesOpen] = useState(false)
+  const [likesLoading, setLikesLoading] = useState(false)
+  const [likes, setLikes] = useState<Awaited<ReturnType<typeof fetchPostLikes>>['likes']>([])
 
   const postQuery = useQuery({
     queryKey: ['post', id],
@@ -47,6 +59,12 @@ export default function PostDetailScreen({ route, navigation }: Props) {
     queryKey: ['post', id, 'comments'],
     queryFn: () => fetchPostComments(client, id, 50, 0),
   })
+
+  useEffect(() => {
+    if (!focusComment) return
+    const t = setTimeout(() => commentInputRef.current?.focus(), 350)
+    return () => clearTimeout(t)
+  }, [focusComment])
 
   const likeMutation = useMutation({
     mutationFn: () => togglePostLike(client, id),
@@ -94,6 +112,28 @@ export default function PostDetailScreen({ route, navigation }: Props) {
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Brisanje nije uspelo.')),
   })
 
+  const openLikes = async () => {
+    const count = postQuery.data?.likeCount ?? 0
+    if (count <= 0) return
+    setLikesOpen(true)
+    setLikesLoading(true)
+    setLikes([])
+    try {
+      const data = await fetchPostLikes(client, id)
+      setLikes(data.likes)
+    } catch (err) {
+      setLikesOpen(false)
+      await showAlert('Greška', getApiErrorMessage(err, 'Lajkovi nisu učitani.'))
+    } finally {
+      setLikesLoading(false)
+    }
+  }
+
+  const submitComment = () => {
+    const trimmed = comment.trim()
+    if (trimmed) commentMutation.mutate(trimmed)
+  }
+
   if (postQuery.isLoading) {
     return (
       <Screen>
@@ -115,18 +155,21 @@ export default function PostDetailScreen({ route, navigation }: Props) {
   const authorName = author?.fullName || author?.username || 'Korisnik'
   const isOwner = !!author?.username && user?.username === author.username
   const comments = commentsQuery.data?.comments ?? []
+  const canSend = comment.trim().length > 0 && !commentMutation.isPending
 
   return (
     <Screen padded={false}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={88}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}
       >
         <FlatList
           data={comments}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           ListHeaderComponent={
             <View style={styles.postBlock}>
               <Pressable
@@ -164,16 +207,14 @@ export default function PostDetailScreen({ route, navigation }: Props) {
                 <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
               ) : null}
 
-              <View style={styles.actions}>
-                <Pressable onPress={() => likeMutation.mutate()}>
-                  <Text variant="small" color={post.likedByMe ? colors.brand : colors.textMuted}>
-                    ♥ {post.likeCount ?? 0}
-                  </Text>
-                </Pressable>
-                <Text variant="small" color={colors.textMuted}>
-                  💬 {post.commentCount ?? comments.length}
-                </Text>
-              </View>
+              <PostLikeBar
+                likedByMe={post.likedByMe}
+                likeCount={post.likeCount}
+                commentCount={post.commentCount ?? comments.length}
+                onLike={() => likeMutation.mutate()}
+                onPressLikeCount={() => void openLikes()}
+                onComment={() => commentInputRef.current?.focus()}
+              />
 
               {isOwner ? (
                 <View style={styles.ownerActions}>
@@ -232,24 +273,44 @@ export default function PostDetailScreen({ route, navigation }: Props) {
           }}
         />
 
-        <View style={styles.composer}>
-          <Input
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          <TextInput
+            ref={commentInputRef}
             placeholder="Napiši komentar..."
+            placeholderTextColor={colors.textSubtle}
             value={comment}
             onChangeText={setComment}
+            multiline
             style={styles.commentInput}
+            textAlignVertical="top"
           />
-          <Button
-            title="Pošalji"
-            onPress={() => {
-              const trimmed = comment.trim()
-              if (trimmed) commentMutation.mutate(trimmed)
-            }}
-            loading={commentMutation.isPending}
-            disabled={!comment.trim()}
-          />
+          <Pressable
+            onPress={submitComment}
+            disabled={!canSend}
+            style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Pošalji komentar"
+          >
+            {commentMutation.isPending ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Ionicons name="chatbubble" size={22} color={colors.white} />
+            )}
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <PostLikesModal
+        visible={likesOpen}
+        title="Lajkovi"
+        likes={likes}
+        loading={likesLoading}
+        onClose={() => setLikesOpen(false)}
+        onSelectUser={(username) => {
+          setLikesOpen(false)
+          navigation.navigate('UserProfile', { username })
+        }}
+      />
     </Screen>
   )
 }
@@ -262,7 +323,6 @@ const styles = StyleSheet.create({
   authorText: { flex: 1 },
   content: { marginTop: spacing.xs },
   image: { width: '100%', height: 220, borderRadius: 12, marginTop: spacing.sm },
-  actions: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   ownerActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   row: { flexDirection: 'row', gap: spacing.sm },
   editBlock: { gap: spacing.sm },
@@ -274,10 +334,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: spacing.sm,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
-  commentInput: { flex: 1 },
+  commentInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.text,
+    backgroundColor: colors.surfaceAlt,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnDisabled: {
+    opacity: 0.45,
+  },
 })
