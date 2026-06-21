@@ -20,9 +20,11 @@ export interface HotelNearbyPublic {
   lng?: number
   distanceKm?: number
   coverImage?: string
+  slike?: string[]
   telefon?: string
   bookingUrl?: string
   instagram?: string
+  instagramUrl?: string
   opis?: string
   [key: string]: unknown
 }

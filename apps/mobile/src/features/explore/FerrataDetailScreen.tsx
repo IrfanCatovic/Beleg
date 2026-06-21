@@ -16,6 +16,7 @@ import type { ExploreStackParamList, HomeStackParamList } from '../../navigation
 import { FerrataGuideBookingModal } from './ferrata/FerrataGuideBookingModal'
 import { FerrataGuidesSection } from './ferrata/FerrataGuidesSection'
 import { FerrataHotelsSection } from './ferrata/FerrataHotelsSection'
+import { FerrataDetailMapSection } from './ferrata/FerrataDetailMapSection'
 import { FerrataUpcomingActions } from './ferrata/FerrataUpcomingActions'
 
 type Props =
@@ -87,6 +88,8 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
   const highlights = (f as { highlights?: string[] }).highlights ?? []
   const opis = (f.opis as string | undefined) || (f.quickTip as string | undefined)
   const region = f.podrucje || f.lokacija || f.drzava
+  const mapNote = (f as { mapNote?: string }).mapNote
+  const locationSubtitle = [f.drzava, f.gradOpstina].filter(Boolean).join(' · ')
   const trajanje =
     f.trajanjeMin && f.trajanjeMax
       ? `${Math.round(f.trajanjeMin)}–${Math.round(f.trajanjeMax)} min`
@@ -159,23 +162,13 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
           <FerrataHotelsSection hotels={hotelsQuery.data ?? []} loading={hotelsQuery.isLoading} />
 
           {lat != null && lng != null ? (
-            <Card style={styles.card}>
-              <Text variant="label">Lokacija</Text>
-              <Text variant="small" color={colors.textMuted}>
-                {f.drzava}
-                {f.gradOpstina ? ` · ${f.gradOpstina}` : ''}
-              </Text>
-              <Text variant="small" color={colors.textMuted}>
-                {lat.toFixed(4)}, {lng.toFixed(4)}
-              </Text>
-              <Button
-                title="Pogledaj na mapi"
-                variant="secondary"
-                onPress={() =>
-                  navigation.getParent()?.navigate('ExploreTab', { screen: 'Map' })
-                }
-              />
-            </Card>
+            <FerrataDetailMapSection
+              lat={lat}
+              lng={lng}
+              naziv={f.naziv}
+              subtitle={locationSubtitle || undefined}
+              routeNote={mapNote}
+            />
           ) : null}
 
           {gallery.length > 0 ? (
