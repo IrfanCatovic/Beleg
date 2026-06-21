@@ -3,6 +3,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native'
 export type HomeStackParamList = {
   Feed: undefined
   ActionDetail: { id: number }
+  FerrataDetail: { slug: string }
   UserProfile: { username?: string; id?: number }
   PostDetail: { id: number }
   NotificationsList: undefined
@@ -27,6 +28,7 @@ export type ExploreStackParamList = {
   ExploreHome: undefined
   FerrataList: undefined
   FerrataDetail: { slug: string }
+  ActionDetail: { id: number }
   Guides: undefined
   Map: undefined
   UserProfile: { username?: string; id?: number }

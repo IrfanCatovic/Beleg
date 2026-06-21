@@ -1,6 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import type { FerrataRow } from '../types/ferrata'
-import type { HotelRow } from '../types/hotel'
+import type { HotelNearbyPublic, HotelRow } from '../types/hotel'
 import type { PeakRow } from '../types/peak'
 
 export interface FetchFerratasParams {
@@ -43,8 +43,93 @@ export async function fetchPublicFerratasCatalog(client: AxiosInstance): Promise
 }
 
 export async function fetchFerrataBySlug(client: AxiosInstance, slug: string): Promise<FerrataRow> {
-  const res = await client.get<FerrataRow>(`/api/ferratas/slug/${encodeURIComponent(slug)}`)
-  return res.data
+  const res = await client.get<{ ferrata?: FerrataRow } | FerrataRow>(
+    `/api/ferratas/slug/${encodeURIComponent(slug)}`,
+  )
+  const data = res.data
+  if (data && typeof data === 'object' && 'ferrata' in data) {
+    const wrapped = data as { ferrata?: FerrataRow }
+    if (wrapped.ferrata) return wrapped.ferrata
+  }
+  return data as FerrataRow
+}
+
+export interface FerrataUpcomingAction {
+  id: number
+  naziv: string
+  startAt?: string
+  datum?: string
+  klubNaziv?: string
+  maxLjudi?: number
+  prijavljeno?: number
+}
+
+export async function fetchFerrataUpcomingActions(
+  client: AxiosInstance,
+  ferrataId: number,
+): Promise<FerrataUpcomingAction[]> {
+  const res = await client.get<{ akcije?: FerrataUpcomingAction[] }>(
+    `/api/ferratas/${ferrataId}/upcoming-actions`,
+  )
+  return res.data.akcije ?? []
+}
+
+export async function fetchHotelsNearby(
+  client: AxiosInstance,
+  params: { lat: number; lng: number; radiusKm?: number; limit?: number },
+): Promise<HotelNearbyPublic[]> {
+  const res = await client.get<{ hotels?: HotelNearbyPublic[] }>('/api/hotels/nearby', {
+    params: {
+      lat: params.lat,
+      lng: params.lng,
+      radius_km: params.radiusKm ?? 50,
+      limit: params.limit ?? 20,
+    },
+  })
+  return res.data.hotels ?? []
+}
+
+export interface GuideNearbyPublic {
+  id: number
+  naslov?: string
+  opis?: string
+  grad?: string
+  region?: string
+  drzava?: string
+  baseLat?: number
+  baseLng?: number
+  distanceKm?: number
+  prosecnaOcena?: number
+  brojOcena?: number
+  user?: {
+    id: number
+    username: string
+    fullName?: string
+    avatarUrl?: string
+    telefon?: string
+  }
+}
+
+export async function listGuidesNearby(
+  client: AxiosInstance,
+  params: {
+    lat: number
+    lng: number
+    radiusKm?: number
+    limit?: number
+    tourType?: string
+  },
+): Promise<GuideNearbyPublic[]> {
+  const res = await client.get<{ guides?: GuideNearbyPublic[] }>('/api/guides/nearby', {
+    params: {
+      lat: params.lat,
+      lng: params.lng,
+      radius_km: params.radiusKm ?? 100,
+      limit: params.limit ?? 30,
+      ...(params.tourType ? { tour_type: params.tourType } : {}),
+    },
+  })
+  return res.data.guides ?? []
 }
 
 export async function fetchPeakById(client: AxiosInstance, peakId: number | string): Promise<PeakRow> {

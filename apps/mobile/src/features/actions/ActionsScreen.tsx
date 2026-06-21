@@ -248,6 +248,7 @@ export default function ActionsScreen({ navigation }: Props) {
         )}
         renderItem={({ item }) => (
           <ActionCard
+            variant="feed"
             action={item}
             signedUp={signedUp.has(item.id)}
             cancellable={cancellable.has(item.id)}
@@ -264,15 +265,16 @@ export default function ActionsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: spacing.lg, paddingTop: spacing.sm },
+  list: { paddingBottom: spacing.xxl },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     marginTop: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.bg,
   },
 })

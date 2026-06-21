@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import {
   fetchAkcijaById,
   fetchMojaPrijavaZaAkciju,
   fetchMojePrijave,
+  fetchPrijaveZaAkciju,
   otkaziPrijavu,
   prijaviNaAkciju,
   updateMojaPrijava,
@@ -13,37 +14,28 @@ import {
 import { getApiErrorMessage } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
-import { Badge, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
-import type { ActionsStackParamList } from '../../navigation/types'
-import type { HomeStackParamList } from '../../navigation/types'
-import type { ProfileStackParamList } from '../../navigation/types'
+import type {
+  ActionsStackParamList,
+  ExploreStackParamList,
+  HomeStackParamList,
+  ProfileStackParamList,
+} from '../../navigation/types'
+import { ActionDetailHeader } from './detail/ActionDetailHeader'
+import { ActionDetailStats } from './detail/ActionDetailStats'
+import { ActionDetailInfo } from './detail/ActionDetailInfo'
+import { ActionDetailLogistics } from './detail/ActionDetailLogistics'
+import { ActionDetailPriceSummary } from './detail/ActionDetailPriceSummary'
+import { ActionDetailMembers } from './detail/ActionDetailMembers'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<HomeStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ProfileStackParamList, 'ActionDetail'>
+  | NativeStackScreenProps<ExploreStackParamList, 'ActionDetail'>
 
-function SelectionRow({
-  label,
-  sub,
-  selected,
-  onPress,
-}: {
-  label: string
-  sub?: string
-  selected: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.option, selected && styles.optionSelected]}>
-      <Text variant="label">{label}</Text>
-      {sub ? <Text variant="small" color={colors.textMuted}>{sub}</Text> : null}
-    </Pressable>
-  )
-}
-
-export default function ActionDetailScreen({ route }: Props) {
+export default function ActionDetailScreen({ route, navigation }: Props) {
   const { id } = route.params
   const queryClient = useQueryClient()
   const { showConfirm, showAlert } = useModal()
@@ -65,6 +57,11 @@ export default function ActionDetailScreen({ route }: Props) {
   const mojaPrijavaQuery = useQuery({
     queryKey: ['moja-prijava', id],
     queryFn: () => fetchMojaPrijavaZaAkciju(client, id),
+  })
+
+  const membersQuery = useQuery({
+    queryKey: ['akcija', id, 'prijave'],
+    queryFn: () => fetchPrijaveZaAkciju(client, id),
   })
 
   const akcija = detailQuery.data
@@ -95,16 +92,33 @@ export default function ActionDetailScreen({ route }: Props) {
     return { selectedSmestajIds, selectedPrevozIds, selectedRentItems }
   }, [selSmestaj, selPrevoz, selRent])
 
+  const priceTotals = useMemo(() => {
+    if (!akcija) return { smestaj: 0, prevoz: 0, rent: 0 }
+    let smestaj = 0
+    for (const s of akcija.smestaj ?? []) {
+      if (selSmestaj.has(s.id)) smestaj += s.cenaPoOsobiUkupno
+    }
+    let prevoz = 0
+    for (const p of akcija.prevoz ?? []) {
+      if (selPrevoz.has(p.id)) prevoz += p.cenaPoOsobi
+    }
+    let rent = 0
+    for (const r of akcija.opremaRent ?? []) {
+      const qty = selRent[r.id] ?? 0
+      if (qty > 0) rent += r.cenaPoSetu * qty
+    }
+    return { smestaj, prevoz, rent }
+  }, [akcija, selSmestaj, selPrevoz, selRent])
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (signedUp) {
-        return updateMojaPrijava(client, id, payload)
-      }
+      if (signedUp) return updateMojaPrijava(client, id, payload)
       return prijaviNaAkciju(client, id, payload)
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
       await queryClient.invalidateQueries({ queryKey: ['moja-prijava', id] })
+      await queryClient.invalidateQueries({ queryKey: ['akcija', id, 'prijave'] })
       await showAlert('Uspeh', signedUp ? 'Prijava je ažurirana.' : 'Uspešno ste se prijavili.')
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Čuvanje nije uspelo.')),
@@ -136,147 +150,93 @@ export default function ActionDetailScreen({ route }: Props) {
     )
   }
 
-  const smestaj = akcija.smestaj ?? []
-  const prevoz = akcija.prevoz ?? []
-  const rent = akcija.opremaRent ?? []
+  const locationSubtitle = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') || akcija.ferrataSnapshot?.lokacija || '—'
+  const memberCount = membersQuery.data?.length ?? akcija.prijaveCount ?? 0
 
   return (
-    <Screen scroll>
-      <View style={styles.header}>
-        <Text variant="title">{akcija.naziv}</Text>
-        {akcija.isCompleted ? <Badge label="Završena" /> : <Badge label="Aktivna" tone="brand" />}
-      </View>
+    <Screen padded={false}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <ActionDetailHeader
+          akcija={akcija}
+          locationSubtitle={locationSubtitle}
+          onBack={() => navigation.goBack()}
+        />
 
-      {akcija.planina ? (
-        <Text color={colors.textMuted}>
-          {akcija.planina}
-          {akcija.vrh ? ` · ${akcija.vrh}` : ''}
-        </Text>
-      ) : null}
+        <View style={styles.body}>
+          <ActionDetailStats akcija={akcija} memberCount={memberCount} />
+          <ActionDetailInfo akcija={akcija} />
 
-      <Text color={colors.brand}>
-        {new Date(akcija.datum).toLocaleDateString('sr-RS', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })}
-      </Text>
-
-      {akcija.opis ? (
-        <Card style={styles.block}>
-          <Text>{akcija.opis}</Text>
-        </Card>
-      ) : null}
-
-      {smestaj.length > 0 ? (
-        <Card style={styles.block}>
-          <Text variant="label">Smeštaj</Text>
-          {smestaj.map((s) => (
-            <SelectionRow
-              key={s.id}
-              label={s.naziv}
-              sub={`${s.cenaPoOsobiUkupno} RSD`}
-              selected={selSmestaj.has(s.id)}
-              onPress={() => {
-                setSelSmestaj((prev) => {
-                  const next = new Set(prev)
-                  if (next.has(s.id)) next.delete(s.id)
-                  else next.add(s.id)
-                  return next
-                })
-              }}
-            />
-          ))}
-        </Card>
-      ) : null}
-
-      {prevoz.length > 0 ? (
-        <Card style={styles.block}>
-          <Text variant="label">Prevoz</Text>
-          {prevoz.map((p) => (
-            <SelectionRow
-              key={p.id}
-              label={`${p.nazivGrupe} (${p.tipPrevoza})`}
-              sub={`${p.cenaPoOsobi} RSD · mesta ${p.kapacitet}`}
-              selected={selPrevoz.has(p.id)}
-              onPress={() => setSelPrevoz(new Set([p.id]))}
-            />
-          ))}
-        </Card>
-      ) : null}
-
-      {rent.length > 0 ? (
-        <Card style={styles.block}>
-          <Text variant="label">Iznajmljiva oprema</Text>
-          {rent.map((r) => (
-            <View key={r.id} style={styles.rentRow}>
-              <Text>{r.nazivOpreme}</Text>
-              <View style={styles.rentQty}>
-                <Pressable onPress={() => setSelRent((prev) => ({ ...prev, [r.id]: Math.max(0, (prev[r.id] ?? 0) - 1) }))}>
-                  <Text variant="label">−</Text>
-                </Pressable>
-                <Text>{selRent[r.id] ?? 0}</Text>
-                <Pressable
-                  onPress={() =>
-                    setSelRent((prev) => ({
-                      ...prev,
-                      [r.id]: Math.min(r.dostupnaKolicina, (prev[r.id] ?? 0) + 1),
-                    }))
-                  }
-                >
-                  <Text variant="label">+</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </Card>
-      ) : null}
-
-      {signedUp ? (
-        <Card style={styles.block}>
-          <Text variant="label">Vaša prijava</Text>
-          <Text color={colors.textMuted}>Status: {prijava?.status || 'prijavljen'}</Text>
-        </Card>
-      ) : null}
-
-      <View style={styles.actions}>
-        {!akcija.isCompleted ? (
-          <Button
-            title={signedUp ? 'Sačuvaj izbore' : 'Prijavi se'}
-            loading={saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-            fullWidth
-          />
-        ) : null}
-        {signedUp && canCancel ? (
-          <Button
-            title="Otkaži prijavu"
-            variant="secondary"
-            loading={otkaziMutation.isPending}
-            onPress={async () => {
-              const ok = await showConfirm('Otkaži prijavu', 'Da li ste sigurni?')
-              if (ok) otkaziMutation.mutate()
+          <ActionDetailLogistics
+            akcija={akcija}
+            selSmestaj={selSmestaj}
+            selPrevoz={selPrevoz}
+            selRent={selRent}
+            onToggleSmestaj={(sid) => {
+              setSelSmestaj((prev) => {
+                const next = new Set(prev)
+                if (next.has(sid)) next.delete(sid)
+                else next.add(sid)
+                return next
+              })
             }}
-            fullWidth
+            onSelectPrevoz={(pid) => setSelPrevoz(new Set([pid]))}
+            onChangeRent={(rid, delta, max) => {
+              setSelRent((prev) => ({
+                ...prev,
+                [rid]: Math.max(0, Math.min(max, (prev[rid] ?? 0) + delta)),
+              }))
+            }}
           />
-        ) : null}
-      </View>
+
+          <ActionDetailPriceSummary
+            akcija={akcija}
+            smestajTotal={priceTotals.smestaj}
+            prevozTotal={priceTotals.prevoz}
+            rentTotal={priceTotals.rent}
+          />
+
+          {akcija.prikaziListuPrijavljenih !== false ? (
+            <ActionDetailMembers prijave={membersQuery.data ?? []} />
+          ) : null}
+
+          {signedUp ? (
+            <Card style={styles.block}>
+              <Text variant="label">Vaša prijava</Text>
+              <Text color={colors.textMuted}>Status: {prijava?.status || 'prijavljen'}</Text>
+            </Card>
+          ) : null}
+
+          <View style={styles.actions}>
+            {!akcija.isCompleted ? (
+              <Button
+                title={signedUp ? 'Sačuvaj izbore' : 'Prijavi se'}
+                loading={saveMutation.isPending}
+                onPress={() => saveMutation.mutate()}
+                fullWidth
+              />
+            ) : null}
+            {signedUp && canCancel ? (
+              <Button
+                title="Otkaži prijavu"
+                variant="secondary"
+                loading={otkaziMutation.isPending}
+                onPress={async () => {
+                  const ok = await showConfirm('Otkaži prijavu', 'Da li ste sigurni?')
+                  if (ok) otkaziMutation.mutate()
+                }}
+                fullWidth
+              />
+            ) : null}
+          </View>
+        </View>
+      </ScrollView>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  block: { marginTop: spacing.md, gap: spacing.sm },
-  option: {
-    padding: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  optionSelected: { borderColor: colors.brand, backgroundColor: '#ecfdf5' },
-  rentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rentQty: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  actions: { marginTop: spacing.xl, gap: spacing.sm, marginBottom: spacing.xl },
+  scroll: { paddingBottom: spacing.xxl },
+  body: { padding: spacing.lg },
+  block: { marginBottom: spacing.md, gap: spacing.sm },
+  actions: { marginTop: spacing.md, gap: spacing.sm },
 })

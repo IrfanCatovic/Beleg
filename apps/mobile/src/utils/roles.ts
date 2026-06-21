@@ -8,8 +8,11 @@ export function canManageActions(role?: string): boolean {
   return role === 'superadmin' || role === 'admin' || role === 'vodic'
 }
 
-export function canManageClub(role?: string): boolean {
-  return role === 'superadmin' || role === 'admin' || role === 'sekretar'
+export function canManageClub(user: SessionUser | null, clubId: number | undefined): boolean {
+  if (!user || clubId == null) return false
+  if (user.role === 'superadmin') return true
+  if (user.klubId !== clubId) return false
+  return user.role === 'admin' || user.role === 'sekretar'
 }
 
 export function hasClubContext(user: SessionUser | null): boolean {

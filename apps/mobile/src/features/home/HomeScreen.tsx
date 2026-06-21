@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
 import * as ImagePicker from 'expo-image-picker'
 import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '@beleg/shared'
@@ -23,7 +22,7 @@ import { PostCard } from '../../components/shared/PostCard'
 import { AppTopBar } from '../../components/ui/AppTopBar'
 import { EmptyState, ErrorView, Loader, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
-import type { AppTabsParamList, HomeStackParamList } from '../../navigation/types'
+import type { HomeStackParamList } from '../../navigation/types'
 import { FeedActionCard } from './FeedActionCard'
 import { HomeComposer, type HomeComposerHandle } from './HomeComposer'
 import { HomeFeedFerrataCard } from './HomeFeedFerrataCard'
@@ -52,7 +51,6 @@ function homeListKey(item: HomeListItem, index: number): string {
 }
 
 export default function HomeScreen({ navigation }: Props) {
-  const tabNavigation = navigation.getParent<BottomTabNavigationProp<AppTabsParamList>>()
   const queryClient = useQueryClient()
   const { showAlert } = useModal()
   const { user } = useAuth()
@@ -209,13 +207,8 @@ export default function HomeScreen({ navigation }: Props) {
   )
 
   const navigateToFerrata = useCallback(
-    (slug: string) => {
-      tabNavigation?.navigate('ExploreTab', {
-        screen: 'FerrataDetail',
-        params: { slug },
-      })
-    },
-    [tabNavigation],
+    (slug: string) => navigation.navigate('FerrataDetail', { slug }),
+    [navigation],
   )
 
   const renderListItem = useCallback(

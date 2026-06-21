@@ -51,3 +51,13 @@ export async function fetchUserFollowingList(
   )
   return res.data.users ?? []
 }
+
+export async function fetchUserFollowersList(
+  client: AxiosInstance,
+  userIdOrUsername: string | number,
+): Promise<FollowingUserRef[]> {
+  const res = await client.get<{ users?: FollowingUserRef[] }>(
+    `/api/follows/user/${encodeURIComponent(String(userIdOrUsername))}/followers`,
+  )
+  return res.data.users ?? []
+}
