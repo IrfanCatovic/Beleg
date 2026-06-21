@@ -32,6 +32,7 @@ export async function fetchKorisnikStatistika(
     ukupnoKm: s?.ukupnoKm ?? 0,
     ukupnoMetaraUspona: s?.ukupnoMetaraUspona ?? 0,
     brojPopeoSe: s?.brojPopeoSe ?? 0,
+    ukupnoKoraka: s?.ukupnoKoraka ?? 0,
   }
 }
 
@@ -63,6 +64,14 @@ export async function fetchFollowCounts(
     `/api/follows/user/${userId}/counts`,
   )
   return { following: res.data.following ?? 0, followers: res.data.followers ?? 0 }
+}
+
+export async function fetchMeProfile(client: AxiosInstance): Promise<Korisnik | null> {
+  const res = await client.get<Korisnik>('/api/me', {
+    validateStatus: (s) => s === 200 || s === 401,
+  })
+  if (res.status === 401) return null
+  return res.data
 }
 
 export async function updateMyAvatar(

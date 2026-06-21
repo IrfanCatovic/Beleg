@@ -22,4 +22,6 @@ export interface KorisnikStatistika {
   ukupnoKm: number
   ukupnoMetaraUspona: number
   brojPopeoSe: number
+  /** Uskoro — broj koraka iz health/trackera */
+  ukupnoKoraka?: number
 }
