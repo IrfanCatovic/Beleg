@@ -27,6 +27,7 @@ import {
 } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { appendImageToFormData, prepareImagePickerAssetForUpload } from '../../lib/imageUpload'
+import { debugLog, serializeUploadError } from '../../lib/debugLog'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { Avatar, Button, ErrorView, Loader, Screen, Text } from '../../components/ui'
@@ -179,6 +180,22 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       aspect,
       quality: 0.85,
     })
+    // #region agent log
+    debugLog(
+      'UserProfileScreen.tsx:pickFromGallery',
+      'ImagePicker result',
+      {
+        canceled: result.canceled,
+        assetCount: result.assets?.length ?? 0,
+        uri: result.assets?.[0]?.uri?.slice(0, 80),
+        mimeType: result.assets?.[0]?.mimeType,
+        fileName: result.assets?.[0]?.fileName,
+        width: result.assets?.[0]?.width,
+        height: result.assets?.[0]?.height,
+      },
+      'H5',
+    )
+    // #endregion
     if (result.canceled || !result.assets[0]) return null
     return result.assets[0]
   }, [showAlert])
@@ -208,25 +225,73 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
   const coverMutation = useMutation({
     mutationFn: async (action: 'pick' | 'remove') => {
+      // #region agent log
+      debugLog('UserProfileScreen.tsx:coverMutation', 'mutation start', { action }, 'H5')
+      // #endregion
       const fd = new FormData()
       if (action === 'remove') {
         fd.append('removeCover', '1')
         return updateMyCover(client, fd)
       }
       const asset = await pickFromGallery([16, 9])
-      if (!asset) return null
-      const file = await prepareImagePickerAssetForUpload(asset, 'cover', { maxWidth: 1920 })
+      if (!asset) {
+        // #region agent log
+        debugLog('UserProfileScreen.tsx:coverMutation', 'picker returned null', {}, 'H5')
+        // #endregion
+        return null
+      }
+      let file
+      try {
+        file = await prepareImagePickerAssetForUpload(asset, 'cover', { maxWidth: 1920 })
+        // #region agent log
+        debugLog(
+          'UserProfileScreen.tsx:coverMutation',
+          'file prepared',
+          { uri: file.uri.slice(0, 80), name: file.name, type: file.type },
+          'H1',
+        )
+        // #endregion
+      } catch (prepErr) {
+        // #region agent log
+        debugLog(
+          'UserProfileScreen.tsx:coverMutation',
+          'prepareImage failed',
+          serializeUploadError(prepErr),
+          'H1',
+        )
+        // #endregion
+        throw prepErr
+      }
       appendImageToFormData(fd, 'coverImage', file)
+      // #region agent log
+      debugLog(
+        'UserProfileScreen.tsx:coverMutation',
+        'calling updateMyCover',
+        { apiBase: process.env.EXPO_PUBLIC_API_URL },
+        'H2',
+      )
+      // #endregion
       return updateMyCover(client, fd)
     },
     onSuccess: async (res) => {
       if (res === null) return
+      // #region agent log
+      debugLog('UserProfileScreen.tsx:coverMutation', 'upload success', { hasRes: !!res }, 'H2')
+      // #endregion
       setCoverModalOpen(false)
       setCoverFocus(false)
       invalidateProfile()
       await showAlert('Sačuvano', 'Cover slika je ažurirana.')
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Cover slika nije sačuvana.')),
+    onError: (err) => {
+      const details = serializeUploadError(err)
+      // #region agent log
+      debugLog('UserProfileScreen.tsx:coverMutation', 'upload error', details, 'H2')
+      // #endregion
+      const msg = getApiErrorMessage(err, 'Cover slika nije sačuvana.')
+      const debugHint = details.serverError || details.message || details.code
+      showAlert('Greška', debugHint ? `${msg}\n\n(${String(debugHint)})` : msg)
+    },
   })
 
   useEffect(() => {

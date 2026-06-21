@@ -1,5 +1,6 @@
 import * as ImageManipulator from 'expo-image-manipulator'
 import type { ImagePickerAsset } from 'expo-image-picker'
+import { debugLog, serializeUploadError } from './debugLog'
 
 export type FormDataFilePart = {
   uri: string
@@ -27,10 +28,41 @@ export async function prepareImagePickerAssetForUpload(
     actions.push({ resize: { width: options.maxWidth } })
   }
 
-  const result = await ImageManipulator.manipulateAsync(asset.uri, actions, {
-    compress: options?.compress ?? 0.85,
-    format: ImageManipulator.SaveFormat.JPEG,
-  })
+  // #region agent log
+  debugLog(
+    'imageUpload.ts:prepareImagePickerAssetForUpload',
+    'before manipulateAsync',
+    { baseName, inputUri: asset.uri.slice(0, 80), width: asset.width, height: asset.height },
+    'H1',
+  )
+  // #endregion
+
+  let result
+  try {
+    result = await ImageManipulator.manipulateAsync(asset.uri, actions, {
+      compress: options?.compress ?? 0.85,
+      format: ImageManipulator.SaveFormat.JPEG,
+    })
+  } catch (err) {
+    // #region agent log
+    debugLog(
+      'imageUpload.ts:prepareImagePickerAssetForUpload',
+      'manipulateAsync threw',
+      serializeUploadError(err),
+      'H1',
+    )
+    // #endregion
+    throw err
+  }
+
+  // #region agent log
+  debugLog(
+    'imageUpload.ts:prepareImagePickerAssetForUpload',
+    'after manipulateAsync',
+    { outputUri: result.uri.slice(0, 80), w: result.width, h: result.height },
+    'H1',
+  )
+  // #endregion
 
   return {
     uri: result.uri,
