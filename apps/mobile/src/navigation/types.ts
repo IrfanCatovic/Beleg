@@ -37,6 +37,7 @@ export type ExploreStackParamList = {
 
 export type ClubStackParamList = {
   ClubHome: undefined
+  SuperadminKlubovi: undefined
   ClubMembers: undefined
   Tasks: undefined
   Finance: undefined

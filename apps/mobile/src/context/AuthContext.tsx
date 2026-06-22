@@ -16,6 +16,7 @@ import {
   type SessionUser,
 } from '@beleg/shared'
 import { client, setAuthToken, setUnauthorizedHandler } from '../api/client'
+import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
 import { mobileStorage } from '../storage/mobileStorage'
 
 const REMEMBER_ME_KEY = 'remember_me'
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await mobileStorage.removeItem(USER_STORAGE_KEY)
     await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
     await mobileStorage.removeItem(REMEMBER_ME_KEY)
+    await clearSuperadminClubStorage()
     await setAuthToken(null)
   }, [])
 

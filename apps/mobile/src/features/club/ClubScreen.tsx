@@ -22,7 +22,9 @@ import { Avatar, Button, Card, ErrorView, Input, Loader, Text } from '../../comp
 import { canManageClub, canSeeFinance, hasClubContext } from '../../utils/roles'
 import { colors, radius, spacing } from '../../theme'
 import NoClubJoinView from './NoClubJoinView'
+import SuperadminKluboviScreen from '../superadmin/SuperadminKluboviScreen'
 import { GlobalSearchModal } from './GlobalSearchModal'
+import { useSuperadminClub } from '../../hooks/useSuperadminClub'
 import type { ClubStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'ClubHome'>
@@ -43,6 +45,8 @@ interface ClubForm {
 export default function ClubScreen({ navigation }: Props) {
   const { t } = useTranslation('club')
   const { user, refreshUser } = useAuth()
+  const { clubId: superadminClubId, clubName: superadminClubName, leaveClubContext, loading: superadminClubLoading } =
+    useSuperadminClub()
   const { showConfirm, showAlert } = useModal()
   const queryClient = useQueryClient()
   const scrollRef = useRef<ScrollView>(null)
@@ -66,7 +70,7 @@ export default function ClubScreen({ navigation }: Props) {
   const klubQuery = useQuery({
     queryKey: ['klub'],
     queryFn: () => fetchKlub(client),
-    enabled: hasClubContext(user),
+    enabled: hasClubContext(user, superadminClubId),
   })
 
   const klub = klubQuery.data
@@ -159,7 +163,21 @@ export default function ClubScreen({ navigation }: Props) {
     navigation.navigate('Finance')
   }
 
-  if (!hasClubContext(user)) {
+  if (user?.role === 'superadmin') {
+    if (superadminClubLoading) {
+      return (
+        <View style={styles.root}>
+          <AppTopBar title={t('title')} />
+          <Loader />
+        </View>
+      )
+    }
+    if (!superadminClubId) {
+      return <SuperadminKluboviScreen />
+    }
+  }
+
+  if (!hasClubContext(user, superadminClubId)) {
     return (
       <View style={styles.root}>
         <AppTopBar title={t('title')} onSearchPress={() => setSearchOpen(true)} />
@@ -216,6 +234,21 @@ export default function ClubScreen({ navigation }: Props) {
       <AppTopBar title={t('title')} onSearchPress={() => setSearchOpen(true)} />
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {user?.role === 'superadmin' ? (
+          <Card style={styles.superadminBanner}>
+            <Text variant="small" color={colors.textMuted}>
+              Ušli ste u klub:{' '}
+              <Text variant="label">{superadminClubName || klub.naziv}</Text>
+            </Text>
+            <Button
+              title="Promeni klub"
+              variant="secondary"
+              onPress={() => void leaveClubContext()}
+              fullWidth
+            />
+          </Card>
+        ) : null}
+
         <View style={styles.hubHeader}>
           <Avatar uri={klub.logoUrl} name={klub.naziv} size={88} />
           <Text variant="title" style={styles.clubName}>
@@ -275,18 +308,20 @@ export default function ClubScreen({ navigation }: Props) {
           />
         ) : null}
 
-        <View style={styles.leaveWrap}>
-          <Button
-            title="Napusti klub"
-            variant="danger"
-            onPress={async () => {
-              const ok = await showConfirm('Napusti klub', 'Da li ste sigurni?')
-              if (ok) leaveMutation.mutate()
-            }}
-            loading={leaveMutation.isPending}
-            fullWidth
-          />
-        </View>
+        {user?.role !== 'superadmin' ? (
+          <View style={styles.leaveWrap}>
+            <Button
+              title="Napusti klub"
+              variant="danger"
+              onPress={async () => {
+                const ok = await showConfirm('Napusti klub', 'Da li ste sigurni?')
+                if (ok) leaveMutation.mutate()
+              }}
+              loading={leaveMutation.isPending}
+              fullWidth
+            />
+          </View>
+        ) : null}
       </ScrollView>
 
       <GlobalSearchModal
@@ -500,6 +535,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  superadminBanner: { gap: spacing.sm, marginBottom: spacing.lg },
   noClub: { padding: spacing.lg },
   hubHeader: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xl },
   clubName: { textAlign: 'center' },

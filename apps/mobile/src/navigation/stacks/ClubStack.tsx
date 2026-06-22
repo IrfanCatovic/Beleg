@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import ClubScreen from '../../features/club/ClubScreen'
+import SuperadminKluboviScreen from '../../features/superadmin/SuperadminKluboviScreen'
 import ClubMembersScreen from '../../features/club/ClubMembersScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
@@ -14,6 +15,11 @@ export function ClubStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ClubHome" component={ClubScreen} options={rootStackScreenOptions} />
+      <Stack.Screen
+        name="SuperadminKlubovi"
+        component={SuperadminKluboviScreen}
+        options={{ title: 'Superadmin' }}
+      />
       <Stack.Screen name="ClubMembers" component={ClubMembersScreen} options={{ title: 'Članovi' }} />
       <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Zadaci' }} />
       <Stack.Screen name="Finance" component={FinanceScreen} options={{ title: 'Finansije' }} />

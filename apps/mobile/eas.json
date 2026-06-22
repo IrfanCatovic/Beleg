@@ -10,7 +10,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com",
+        "GOOGLE_MAPS_API_KEY": ""
       }
     },
     "production": {
@@ -19,7 +20,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com",
+        "GOOGLE_MAPS_API_KEY": ""
       }
     }
   }

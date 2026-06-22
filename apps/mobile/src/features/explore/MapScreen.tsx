@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Linking, Modal, Pressable, StyleSheet, View } from 'react-native'
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
+import { Linking, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { FerrataRow, HotelRow, PeakRow } from '@beleg/shared'
+import { getApiErrorMessage } from '@beleg/shared'
 import { fetchExploreMapData } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { AdventureMapOverlay, MapMarkerPin } from '../../components/map/AdventureMapParts'
-import { Button, Loader, Text } from '../../components/ui'
+import { Button, ErrorView, Loader, Text } from '../../components/ui'
 import { colors, radius, spacing } from '../../theme'
 import { canManageActions } from '../../utils/roles'
 import type { ExploreStackParamList } from '../../navigation/types'
@@ -61,10 +62,23 @@ export default function MapScreen({ navigation }: Props) {
 
   const canCreateFromPeak = canManageActions(user?.role)
 
+  const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
+
   if (mapQuery.isLoading) {
     return (
       <View style={styles.root}>
         <Loader />
+      </View>
+    )
+  }
+
+  if (mapQuery.isError) {
+    return (
+      <View style={styles.root}>
+        <ErrorView
+          message={getApiErrorMessage(mapQuery.error, 'Mapa nije učitana.')}
+          onRetry={() => mapQuery.refetch()}
+        />
       </View>
     )
   }
@@ -83,13 +97,14 @@ export default function MapScreen({ navigation }: Props) {
         onTogglePeaks={() => setShowPeaks((v) => !v)}
       />
 
-      <MapView style={styles.map} initialRegion={DEFAULT_REGION} provider={PROVIDER_DEFAULT}>
+      <MapView style={styles.map} initialRegion={DEFAULT_REGION} provider={mapProvider}>
         {showFerrate
           ? ferrate.map((f) => (
               <Marker
                 key={`f-${f.id}`}
                 coordinate={{ latitude: f.lat!, longitude: f.lng! }}
                 onPress={() => setActive({ kind: 'ferrata', data: f })}
+                tracksViewChanges={false}
               >
                 <MapMarkerPin variant="ferrata" active={active?.kind === 'ferrata' && active.data.id === f.id} />
               </Marker>
@@ -101,6 +116,7 @@ export default function MapScreen({ navigation }: Props) {
                 key={`h-${h.id}`}
                 coordinate={{ latitude: h.lat!, longitude: h.lng! }}
                 onPress={() => setActive({ kind: 'hotel', data: h })}
+                tracksViewChanges={false}
               >
                 <MapMarkerPin variant="hotel" active={active?.kind === 'hotel' && active.data.id === h.id} />
               </Marker>
@@ -112,6 +128,7 @@ export default function MapScreen({ navigation }: Props) {
                 key={`p-${p.id}`}
                 coordinate={{ latitude: p.lat!, longitude: p.lng! }}
                 onPress={() => setActive({ kind: 'peak', data: p })}
+                tracksViewChanges={false}
               >
                 <MapMarkerPin variant="peak" active={active?.kind === 'peak' && active.data.id === p.id} />
               </Marker>

@@ -7,13 +7,14 @@ import { getApiErrorMessage } from '@beleg/shared'
 import { fetchAkcije, fetchMojePrijave, otkaziPrijavu, prijaviNaAkciju } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import { useSuperadminClub } from '../../hooks/useSuperadminClub'
 import { useModal } from '../../context/ModalContext'
 import { ActionCard } from '../../components/shared/ActionCard'
 import { ActionsFilterModal } from '../../components/actions/ActionsFilterModal'
 import { AddActionChoiceModal } from '../../components/actions/AddActionChoiceModal'
 import { GuideRequiredModal } from '../../components/actions/GuideRequiredModal'
 import { AppTopBar } from '../../components/ui/AppTopBar'
-import { Badge, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
+import { Badge, Button, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import {
   EMPTY_ACTIONS_FILTERS,
@@ -32,6 +33,8 @@ type ViewMode = 'active' | 'completed'
 
 export default function ActionsScreen({ navigation }: Props) {
   const { user } = useAuth()
+  const { hasSelectedClub, loading: superadminClubLoading } = useSuperadminClub()
+  const isSuperadminNoClub = user?.role === 'superadmin' && !hasSelectedClub
   const { showAlert, showConfirm } = useModal()
   const queryClient = useQueryClient()
   const [viewMode, setViewMode] = useState<ViewMode>('active')
@@ -44,6 +47,7 @@ export default function ActionsScreen({ navigation }: Props) {
   const akcijeQuery = useQuery({
     queryKey: ['akcije'],
     queryFn: () => fetchAkcije(client),
+    enabled: !isSuperadminNoClub,
   })
 
   const prijaveQuery = useQuery({
@@ -158,6 +162,10 @@ export default function ActionsScreen({ navigation }: Props) {
     navigation.getParent()?.navigate('ProfileTab', { screen: 'MyProfile' })
   }, [navigation])
 
+  const goToClubPicker = useCallback(() => {
+    navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
+  }, [navigation])
+
   const topBar = (
     <AppTopBar
       leftIcon="options-outline"
@@ -172,7 +180,24 @@ export default function ActionsScreen({ navigation }: Props) {
     />
   )
 
-  if (akcijeQuery.isLoading) {
+  if (isSuperadminNoClub) {
+    return (
+      <View style={styles.root}>
+        {topBar}
+        <View style={styles.pickClub}>
+          <Text variant="heading" style={styles.pickClubTitle}>
+            Izaberite klub
+          </Text>
+          <Text color={colors.textMuted} style={styles.pickClubMessage}>
+            Da biste videli akcije kluba, prvo uđite u klub na tabu Moj klub.
+          </Text>
+          <Button title="Idi na Moj klub" onPress={goToClubPicker} fullWidth />
+        </View>
+      </View>
+    )
+  }
+
+  if (akcijeQuery.isLoading || superadminClubLoading) {
     return (
       <View style={styles.root}>
         {topBar}
@@ -182,10 +207,16 @@ export default function ActionsScreen({ navigation }: Props) {
   }
 
   if (akcijeQuery.isError) {
+    const message = getApiErrorMessage(akcijeQuery.error, 'Akcije nisu učitane.')
     return (
       <View style={styles.root}>
         {topBar}
-        <ErrorView message="Akcije nisu učitane." onRetry={() => akcijeQuery.refetch()} />
+        <ErrorView message={message} onRetry={() => akcijeQuery.refetch()} />
+        {user?.role === 'superadmin' ? (
+          <View style={styles.pickClub}>
+            <Button title="Izaberi klub" variant="secondary" onPress={goToClubPicker} fullWidth />
+          </View>
+        ) : null}
       </View>
     )
   }
@@ -268,4 +299,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   list: { paddingBottom: spacing.xxl, paddingHorizontal: spacing.lg },
   countRow: { paddingVertical: spacing.xs, marginBottom: spacing.xs },
+  pickClub: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  pickClubTitle: { textAlign: 'center' },
+  pickClubMessage: { textAlign: 'center' },
 })

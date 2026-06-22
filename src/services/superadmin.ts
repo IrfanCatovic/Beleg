@@ -1,84 +1,51 @@
 import api from './api'
+import {
+  createSuperadminKlub as createSuperadminKlubShared,
+  deleteSuperadminKlub as deleteSuperadminKlubShared,
+  deleteUserById as deleteUserByIdShared,
+  fetchSuperadminAppStats as fetchSuperadminAppStatsShared,
+  fetchSuperadminKlubovi as fetchSuperadminKluboviShared,
+  fetchSuperadminUsersWithoutClub as fetchSuperadminUsersWithoutClubShared,
+  updateSuperadminKlub as updateSuperadminKlubShared,
+  uploadSuperadminKlubLogo as uploadSuperadminKlubLogoShared,
+  type NoClubUserRow,
+  type SuperadminAppStatClub,
+  type SuperadminKlub,
+  type SuperadminKlubStats,
+} from '@beleg/shared/services'
 
-export interface SuperadminKlub {
-  id: number
-  naziv: string
-  adresa?: string
-  telefon?: string
-  email?: string
-  maticni_broj?: string
-  pib?: string
-  ziro_racun?: string
-  sediste?: string
-  web_sajt?: string
-  logo_url?: string
-  valuta?: string
-  createdAt?: string
-}
-
-export interface SuperadminKlubStats {
-  totalUsers: number
-  totalClubMembers: number
-  totalActions: number
-}
-
-export interface NoClubUserRow {
-  id: number
-  username: string
-  fullName?: string
-  email?: string
-  createdAt?: string
-}
-
-export interface SuperadminAppStatClub {
-  klubId: number
-  naziv: string
-  memberCount: number
-  actionCount: number
-}
+export type { NoClubUserRow, SuperadminAppStatClub, SuperadminKlub, SuperadminKlubStats }
 
 export async function fetchSuperadminAppStats() {
-  const res = await api.get<{
-    clubs: SuperadminAppStatClub[]
-    totalUsers?: number
-    totalClubMembers?: number
-    totalMembers: number
-    totalActions: number
-  }>('/api/superadmin/app-stats')
-  return res.data
+  return fetchSuperadminAppStatsShared(api)
 }
 
 export async function fetchSuperadminKlubovi() {
-  const res = await api.get<{ klubovi: SuperadminKlub[] }>('/api/superadmin/klubovi')
-  return res.data.klubovi ?? []
+  return fetchSuperadminKluboviShared(api)
 }
 
 export async function fetchSuperadminUsersWithoutClub(q?: string) {
-  const res = await api.get<{ korisnici: NoClubUserRow[] }>('/api/superadmin/korisnici/bez-kluba', {
-    params: q ? { q } : {},
-  })
-  return res.data.korisnici ?? []
+  return fetchSuperadminUsersWithoutClubShared(api, q)
 }
 
 export async function deleteSuperadminKlub(id: number) {
-  await api.delete(`/api/superadmin/klubovi/${id}`)
+  return deleteSuperadminKlubShared(api, id)
 }
 
 export async function deleteUserById(id: number) {
-  await api.delete(`/api/korisnici/${id}`)
+  return deleteUserByIdShared(api, id)
 }
 
 export async function createSuperadminKlub(payload: Record<string, unknown>) {
-  const res = await api.post<{ klub: { id: number } }>('/api/superadmin/klubovi', payload)
-  return res.data.klub
+  return createSuperadminKlubShared(api, payload)
 }
 
 export async function updateSuperadminKlub(id: number, payload: Record<string, unknown>) {
-  await api.patch(`/api/superadmin/klubovi/${id}`, payload)
+  return updateSuperadminKlubShared(api, id, payload)
 }
 
 export async function uploadSuperadminKlubLogo(id: number, formData: FormData) {
-  await api.patch(`/api/superadmin/klubovi/${id}/logo`, formData)
+  return uploadSuperadminKlubLogoShared(api, id, formData)
 }
 
 export async function deleteSuperadminFerrata(id: number) {

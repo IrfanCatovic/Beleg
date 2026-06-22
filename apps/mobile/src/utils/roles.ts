@@ -9,12 +9,18 @@ export function canManageActions(role?: string): boolean {
 }
 
 export function canManageClub(user: SessionUser | null, clubId: number | undefined): boolean {
-  if (!user || clubId == null) return false
+  if (!user) return false
   if (user.role === 'superadmin') return true
+  if (clubId == null) return false
   if (user.klubId !== clubId) return false
   return user.role === 'admin' || user.role === 'sekretar'
 }
 
-export function hasClubContext(user: SessionUser | null): boolean {
-  return !!user && (user.role === 'superadmin' || typeof user.klubId === 'number')
+export function hasClubContext(
+  user: SessionUser | null,
+  superadminClubId?: string | null,
+): boolean {
+  if (!user) return false
+  if (user.role === 'superadmin') return !!superadminClubId
+  return typeof user.klubId === 'number'
 }
