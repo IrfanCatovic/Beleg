@@ -1,12 +1,18 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { useQuery } from '@tanstack/react-query'
+import { useFocusEffect } from '@react-navigation/native'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { fetchActiveActivity } from '@beleg/shared/services'
+import { client } from '../../api/client'
 import { AppTopBar, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { ExploreStackParamList } from '../../navigation/types'
 import { StepsSummaryCard } from '../activity/components/StepsSummaryCard'
 import { useDailySteps } from '../activity/hooks/useDailySteps'
 import { ExploreMenuCard } from './ExploreMenuCard'
+import { StartAdventureCard } from './StartAdventureCard'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'ExploreHome'>
 
@@ -19,6 +25,19 @@ const MENU = [
 export default function ExploreHomeScreen({ navigation }: Props) {
   const { t } = useTranslation('explore')
   const dailySteps = useDailySteps()
+
+  const activeActivityQuery = useQuery({
+    queryKey: ['activities', 'active'],
+    queryFn: () => fetchActiveActivity(client),
+  })
+
+  const hasActiveSession = !!activeActivityQuery.data?.id
+
+  useFocusEffect(
+    useCallback(() => {
+      void activeActivityQuery.refetch()
+    }, [activeActivityQuery]),
+  )
 
   return (
     <View style={styles.root}>
@@ -39,6 +58,11 @@ export default function ExploreHomeScreen({ navigation }: Props) {
             accessDebug={dailySteps.accessDebug}
             onRequestAccess={() => void dailySteps.requestAccess()}
             onPress={() => navigation.navigate('Steps')}
+          />
+
+          <StartAdventureCard
+            hasActiveSession={hasActiveSession}
+            onPress={() => navigation.navigate('Adventure')}
           />
 
           {MENU.map((item) => (

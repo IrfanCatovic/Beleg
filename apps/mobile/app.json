@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "rs.planiner.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.jpg",
         "backgroundColor": "#1a6b52"
@@ -68,6 +68,13 @@
         {
           "icon": "./assets/icon.jpg",
           "color": "#1a6b52"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Planiner čuva stiker avanture u galeriju kada to odaberete.",
+          "savePhotosPermission": "Planiner čuva stiker avanture u galeriju kada to odaberete."
         }
       ]
     ],

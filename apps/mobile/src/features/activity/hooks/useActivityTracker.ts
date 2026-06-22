@@ -9,6 +9,7 @@ import {
 } from '@beleg/shared'
 import type { GPSPoint, TrackedActivity } from '@beleg/shared'
 import { client } from '../../../api/client'
+import { requestActivityPermissions } from '../services/activityPermissions'
 import { getStoredActiveActivityId, setStoredActiveActivityId } from '../services/activityLocalStore'
 import {
   computeElevationGainM,
@@ -144,6 +145,11 @@ export function useActivityTracker(): ActivityTrackerState {
     setError(null)
     setLoading(true)
     try {
+      const perms = await requestActivityPermissions()
+      if (!perms.ok) {
+        setError(perms.message)
+        return
+      }
       const res = await startActivity(client)
       setActivityId(res.id)
       setStartedAt(res.startedAt)

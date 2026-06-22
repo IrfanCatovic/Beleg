@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import ExploreHomeScreen from '../../features/explore/ExploreHomeScreen'
 import StepsScreen from '../../features/activity/screens/StepsScreen'
+import AdventureScreen from '../../features/activity/screens/AdventureScreen'
 import FerrataListScreen from '../../features/explore/FerrataListScreen'
 import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
@@ -17,6 +18,7 @@ export function ExploreStack() {
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="Steps" component={StepsScreen} options={rootStackScreenOptions} />
+      <Stack.Screen name="Adventure" component={AdventureScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataList" component={FerrataListScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />

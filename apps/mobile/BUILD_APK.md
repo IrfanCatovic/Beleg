@@ -28,7 +28,13 @@ npm run build:apk
 
 Build traje ~10–20 min na Expo serverima. Na kraju dobiješ **link za preuzimanje .apk** fajla.
 
-**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 6+).
+**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 7+).
+
+## Započni avanturu (GPS + stiker)
+
+Na tabu **Istraži** kartica **Započni avanturu** pokreće praćenje koraka, km, vremena i uspona. Ruta se crta na kraju; automatski se otvara **PLANINER stiker** za deljenje.
+
+Za **čuvanje stikera u galeriju** i PNG export potreban je APK sa `react-native-view-shot` i `expo-media-library` (versionCode 7+). Samo praćenje i prikaz stikera na ekranu mogu raditi i preko OTA ako je native deo već u APK-u.
 
 ## Push obaveštenja (expo-notifications)
 
@@ -92,6 +98,7 @@ Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** ap
 |----------|--------------|------------------|
 | Koraci | Kartica Dnevni koraci | Dozvole → Fizička aktivnost |
 | Obaveštenja | Prvi login / push | Dozvole → Obaveštenja |
+| Avantura / GPS | Započni avanturu | Dozvole → Lokacija + Fizička aktivnost |
 | GPS ruta | Započni akciju | Dozvole → Lokacija |
 | Mapa avantura | Istraži → Mapa | `EXPO_PUBLIC_MAPTILER_API_KEY` u `.env` (isti kao web) |
 | Slike | Avatar, cover, akcije | Dozvole → Slike |

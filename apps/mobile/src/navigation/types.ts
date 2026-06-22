@@ -27,6 +27,7 @@ export type ActionsStackParamList = {
 export type ExploreStackParamList = {
   ExploreHome: undefined
   Steps: undefined
+  Adventure: undefined
   FerrataList: undefined
   FerrataDetail: { slug: string }
   ActionDetail: { id: number }
