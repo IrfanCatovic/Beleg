@@ -11,21 +11,25 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "rs.planiner.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost.",
-        "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti."
+        "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti.",
+        "NSPhotoLibraryUsageDescription": "Planiner koristi pristup slikama da postavite profilnu i naslovnu fotografiju i fotografije akcija."
       }
     },
     "android": {
+      "package": "rs.planiner.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACTIVITY_RECOGNITION",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -38,7 +42,19 @@
         {
           "locationWhenInUsePermission": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Planiner koristi pristup slikama da postavite profilnu i naslovnu fotografiju i fotografije akcija."
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c10dd732-8c2e-4f81-b8dc-f81d74e5933e"
+      }
+    },
+    "owner": "catko"
   }
 }
