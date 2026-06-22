@@ -18,7 +18,7 @@ export function HomeStack() {
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="NotificationsList" component={NotificationsScreen} />
       <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
     </Stack.Navigator>

@@ -16,7 +16,7 @@ export function ActionsStack() {
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
       <Stack.Screen name="ActionWizard" component={ActionWizardScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="AddPastAction" component={AddPastActionScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   )
 }

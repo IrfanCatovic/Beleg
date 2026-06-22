@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
@@ -89,10 +89,6 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const routeNames = (navigation.getState()?.routeNames ?? []) as string[]
   const inProfileStack = routeNames.includes('ProfileSettings')
   const profileNavigation = navigation as NativeStackNavigationProp<ProfileStackParamList, 'UserProfile'>
-
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: !inProfileStack })
-  }, [inProfileStack, navigation])
 
   const profileQuery = useQuery({
     queryKey: ['korisnik', idOrUsername],
@@ -406,7 +402,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   }
 
   return (
-    <Screen padded={false} edges={inProfileStack ? [] : ['top', 'left', 'right']}>
+    <Screen padded={false} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         onScrollBeginDrag={dismissImageFocus}
@@ -418,6 +414,15 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             <View style={[styles.cover, styles.coverFallback]} />
           )}
           <View style={styles.coverGradient} />
+          {navigation.canGoBack() ? (
+            <Pressable
+              style={[styles.backBtn, { top: insets.top + spacing.sm }]}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.white} />
+            </Pressable>
+          ) : null}
           {isMe && coverFocus && !coverUploading ? (
             <View style={styles.imageEditOverlay}>
               <Ionicons name="create-outline" size={28} color={colors.white} />
@@ -742,6 +747,16 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuOverlay: {
     flex: 1,

@@ -22,7 +22,7 @@ export function ExploreStack() {
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
       <Stack.Screen name="Guides" component={GuidesScreen} />
       <Stack.Screen name="Map" component={MapScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   )
 }
