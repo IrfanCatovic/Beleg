@@ -54,9 +54,9 @@ export function FerrataDetailMapSection({
         </Text>
       ) : null}
 
-      <Pressable onPress={openDirections} style={styles.mapWrap}>
+      <Pressable onPress={openDirections} style={[styles.mapWrap, embed && styles.mapWrapEmbed]}>
         <MapView
-          style={styles.map}
+          style={[styles.map, embed && styles.mapEmbed]}
           provider={PROVIDER_DEFAULT}
           initialRegion={region}
           scrollEnabled={false}
@@ -70,7 +70,7 @@ export function FerrataDetailMapSection({
         <View style={styles.mapOverlay} pointerEvents="none" />
       </Pressable>
 
-      {route ? (
+      {!embed && route ? (
         <View style={styles.routeBox}>
           <Text variant="small" color={colors.brandDark}>
             Kako stići
@@ -81,12 +81,14 @@ export function FerrataDetailMapSection({
         </View>
       ) : null}
 
-      <Pressable style={styles.routeBtn} onPress={openDirections}>
-        <Ionicons name="navigate-outline" size={18} color={colors.brandDark} />
-        <Text variant="label" color={colors.brandDark}>
-          Putanja
-        </Text>
-      </Pressable>
+      {!embed ? (
+        <Pressable style={styles.routeBtn} onPress={openDirections}>
+          <Ionicons name="navigate-outline" size={18} color={colors.brandDark} />
+          <Text variant="label" color={colors.brandDark}>
+            Putanja
+          </Text>
+        </Pressable>
+      ) : null}
     </>
   )
 
@@ -108,7 +110,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surfaceAlt,
   },
+  mapWrapEmbed: { marginTop: spacing.xs },
   map: { width: '100%', height: 200 },
+  mapEmbed: { height: 160 },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
@@ -66,7 +66,7 @@ function showRoleBadge(role?: string, klubNaziv?: string): boolean {
 }
 
 export default function UserProfileScreen({ route, navigation }: Props) {
-  const { user: me, refreshUser } = useAuth()
+  const { user: me, refreshUser, logout } = useAuth()
   const { showConfirm, showAlert } = useModal()
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
@@ -82,6 +82,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const [coverModalOpen, setCoverModalOpen] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null)
 
@@ -372,7 +373,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const followStatus = followStatusQuery.data
   const blockedByTarget = blockStatusQuery.data?.blockedByTarget
   const stats = statsQuery.data
-  const showSettings = isMe && inProfileStack
+  const showMenu = isMe && inProfileStack
   const roleVisible = showRoleBadge(korisnik.role, korisnik.klubNaziv)
 
   let followLabel = 'Zaprati'
@@ -428,16 +429,16 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </View>
           ) : null}
 
-          {showSettings ? (
+          {showMenu ? (
             <Pressable
               style={[styles.settingsBtn, { top: insets.top + spacing.sm }]}
               onPress={() => {
                 dismissImageFocus()
-                profileNavigation.navigate('ProfileSettings')
+                setMenuOpen(true)
               }}
               hitSlop={8}
             >
-              <Ionicons name="settings-outline" size={22} color={colors.textMuted} />
+              <Ionicons name="menu-outline" size={22} color={colors.textMuted} />
             </Pressable>
           ) : null}
         </Pressable>
@@ -617,6 +618,35 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
       {isMe ? (
         <>
+          <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+            <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)}>
+              <Pressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setMenuOpen(false)
+                    profileNavigation.navigate('ProfileSettings')
+                  }}
+                >
+                  <Ionicons name="settings-outline" size={20} color={colors.text} />
+                  <Text variant="body">Podešavanja</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={async () => {
+                    setMenuOpen(false)
+                    const ok = await showConfirm('Odjava', 'Da li želite da se odjavite?')
+                    if (ok) await logout()
+                  }}
+                >
+                  <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+                  <Text variant="body" color={colors.danger}>
+                    Odjavi me
+                  </Text>
+                </Pressable>
+              </Pressable>
+            </Pressable>
+          </Modal>
           <ProfileImageActionModal
             visible={avatarModalOpen}
             title="Promena profilne slike"
@@ -712,6 +742,27 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  menuSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.xs,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerCard: {
     backgroundColor: colors.surface,

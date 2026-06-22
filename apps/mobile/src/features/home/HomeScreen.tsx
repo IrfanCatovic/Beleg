@@ -285,6 +285,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   const topBar = (
     <AppTopBar
+      title="PLANINER"
       leftIcon="add"
       onLeftPress={openComposer}
       rightIcon="notifications-outline"
@@ -370,6 +371,6 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  list: { paddingBottom: spacing.xxl },
+  list: { paddingTop: spacing.md, paddingBottom: spacing.xxl },
   allLoaded: { textAlign: 'center', paddingVertical: spacing.lg },
 })

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { FlatList, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApiErrorMessage } from '@beleg/shared'
@@ -11,17 +11,20 @@ import {
 import type { KlubData } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
-import { Avatar, Button, Card, EmptyState, ErrorView, Input, Loader, Text } from '../../components/ui'
+import { Avatar, Button, Card, EmptyState, ErrorView, Loader, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 
-export default function NoClubJoinView() {
+interface NoClubJoinViewProps {
+  highlightClubId?: number | null
+}
+
+export default function NoClubJoinView({ highlightClubId }: NoClubJoinViewProps) {
   const { showAlert } = useModal()
   const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
 
   const clubsQuery = useQuery({
-    queryKey: ['klubovi', 'search', search],
-    queryFn: () => searchKlubovi(client, search.trim() || undefined),
+    queryKey: ['klubovi', 'browse'],
+    queryFn: () => searchKlubovi(client),
   })
 
   const requestsQuery = useQuery({
@@ -53,10 +56,6 @@ export default function NoClubJoinView() {
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
   })
 
-  const onSearch = useCallback(() => {
-    void clubsQuery.refetch()
-  }, [clubsQuery])
-
   const clubs = clubsQuery.data?.klubovi ?? []
 
   if (clubsQuery.isLoading && requestsQuery.isLoading) {
@@ -71,32 +70,28 @@ export default function NoClubJoinView() {
     <View style={styles.wrap}>
       <Text variant="heading">Pridruži se klubu</Text>
       <Text variant="muted" style={styles.sub}>
-        Trenutno nisi član nijednog kluba. Pretraži klubove i pošalji zahtev za prijem.
+        Trenutno nisi član nijednog kluba. Koristi lupu gore desno da pronađeš klub, akciju ili korisnika.
       </Text>
-
-      <View style={styles.searchRow}>
-        <Input
-          placeholder="Pretraži klub po nazivu..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchInput}
-        />
-        <Button title="Traži" variant="secondary" onPress={onSearch} />
-      </View>
 
       <FlatList
         data={clubs}
         keyExtractor={(item) => String(item.id)}
-        ListEmptyComponent={<EmptyState title="Nema klubova" message="Pokušaj drugu pretragu." />}
+        scrollEnabled={false}
+        ListEmptyComponent={<EmptyState title="Nema klubova" message="Pretraži klubove pomoću lupice." />}
         renderItem={({ item }: { item: KlubData }) => {
           const pending = pendingByClubId.get(item.id)
+          const highlighted = highlightClubId === item.id
           return (
-            <Card style={styles.card}>
+            <Card style={highlighted ? [styles.card, styles.cardHighlight] : styles.card}>
               <View style={styles.clubRow}>
                 <Avatar uri={item.logoUrl} name={item.naziv} size={48} />
                 <View style={styles.clubText}>
                   <Text variant="label">{item.naziv}</Text>
-                  {item.sediste ? <Text variant="small" color={colors.textMuted}>{item.sediste}</Text> : null}
+                  {item.sediste ? (
+                    <Text variant="small" color={colors.textMuted}>
+                      {item.sediste}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
               {pending ? (
@@ -124,9 +119,8 @@ export default function NoClubJoinView() {
 const styles = StyleSheet.create({
   wrap: { flex: 1, gap: spacing.md },
   sub: { marginBottom: spacing.sm },
-  searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' },
-  searchInput: { flex: 1 },
   card: { marginBottom: spacing.sm, gap: spacing.sm },
+  cardHighlight: { borderColor: colors.brand, borderWidth: 2 },
   clubRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   clubText: { flex: 1 },
 })

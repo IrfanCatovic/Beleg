@@ -18,13 +18,15 @@ import {
 import { client, setAuthToken, setUnauthorizedHandler } from '../api/client'
 import { mobileStorage } from '../storage/mobileStorage'
 
+const REMEMBER_ME_KEY = 'remember_me'
+
 export type User = SessionUser
 
 interface AuthContextType {
   isLoggedIn: boolean
   user: User | null
   authLoading: boolean
-  login: (data: LoginResponse) => void
+  login: (data: LoginResponse, rememberMe?: boolean) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<boolean>
 }
@@ -41,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     await mobileStorage.removeItem(USER_STORAGE_KEY)
     await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
+    await mobileStorage.removeItem(REMEMBER_ME_KEY)
     await setAuthToken(null)
   }, [])
 
@@ -62,35 +65,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback((data: LoginResponse) => {
+  const login = useCallback((data: LoginResponse, rememberMe = true) => {
     if (data.token && data.token.length > 10) {
       void setAuthToken(data.token)
     }
-    setUser((prev) => {
-      const next: User = {
-        username: data.user.username,
-        fullName: data.user.fullName,
-        role: data.role as User['role'],
-        avatarUrl: data.user.avatar_url ?? prev?.avatarUrl,
-        klubId:
-          typeof data.user.klubId === 'number' && !Number.isNaN(data.user.klubId)
-            ? data.user.klubId
-            : prev?.klubId,
-        profileIncomplete: data.profileIncomplete ?? prev?.profileIncomplete ?? false,
-      }
-      void mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
+    const next: User = {
+      username: data.user.username,
+      fullName: data.user.fullName,
+      role: data.role as User['role'],
+      avatarUrl: data.user.avatar_url,
+      klubId:
+        typeof data.user.klubId === 'number' && !Number.isNaN(data.user.klubId) ? data.user.klubId : undefined,
+      profileIncomplete: data.profileIncomplete ?? false,
+    }
+    setUser(next)
     setIsLoggedIn(true)
-    void mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+    void mobileStorage.setItem(REMEMBER_ME_KEY, rememberMe ? 'true' : 'false')
+    if (rememberMe) {
+      void mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next))
+      void mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+    } else {
+      void mobileStorage.removeItem(USER_STORAGE_KEY)
+      void mobileStorage.removeItem(IS_LOGGED_IN_KEY)
+    }
   }, [])
 
   useEffect(() => {
     let cancelled = false
 
     async function restoreSession() {
-      const cachedUser = await mobileStorage.getItem(USER_STORAGE_KEY)
-      const cachedLoggedIn = (await mobileStorage.getItem(IS_LOGGED_IN_KEY)) === 'true'
+      const rememberMe = (await mobileStorage.getItem(REMEMBER_ME_KEY)) !== 'false'
+      const cachedUser = rememberMe ? await mobileStorage.getItem(USER_STORAGE_KEY) : null
+      const cachedLoggedIn = rememberMe && (await mobileStorage.getItem(IS_LOGGED_IN_KEY)) === 'true'
 
       if (cachedUser && cachedLoggedIn) {
         try {
@@ -116,8 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = meResponseToSessionUser(data)
           setUser(userData)
           setIsLoggedIn(true)
-          await mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData))
-          await mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+          if (rememberMe) {
+            await mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData))
+            await mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+          }
         }
       } catch {
         // keep cached session if offline

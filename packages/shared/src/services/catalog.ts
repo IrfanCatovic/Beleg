@@ -171,10 +171,12 @@ export async function fetchExploreMapData(client: AxiosInstance): Promise<Explor
 export async function listGuidesCatalog(
   client: AxiosInstance,
   params?: { category?: string; limit?: number },
-): Promise<Array<{ user?: { id: number; username: string; fullName?: string } }>> {
-  const res = await client.get<{ guides?: Array<{ user?: { id: number; username: string; fullName?: string } }> }>(
-    '/api/guides',
-    { params },
-  )
+): Promise<GuideNearbyPublic[]> {
+  const res = await client.get<{ guides?: GuideNearbyPublic[] }>('/api/guides', {
+    params: {
+      category: params?.category ?? 'all',
+      limit: params?.limit ?? 100,
+    },
+  })
   return res.data.guides ?? []
 }

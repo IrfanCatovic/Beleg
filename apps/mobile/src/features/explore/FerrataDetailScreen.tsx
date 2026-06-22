@@ -66,7 +66,7 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
 
   if (detailQuery.isLoading) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <Loader />
       </Screen>
     )
@@ -74,7 +74,7 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
 
   if (detailQuery.isError || !f) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <ErrorView message="Ferrata nije učitana." onRetry={() => detailQuery.refetch()} />
       </Screen>
     )
@@ -104,8 +104,12 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
   }
 
   return (
-    <Screen padded={false}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <Screen padded={false} edges={['left', 'right']}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+      >
         {f.coverImage ? (
           <Image source={{ uri: f.coverImage }} style={styles.hero} resizeMode="cover" />
         ) : (

@@ -72,7 +72,7 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   if (listQuery.isLoading) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <Loader />
       </Screen>
     )
@@ -80,7 +80,7 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   if (listQuery.isError) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <ErrorView message="Obaveštenja nisu učitana." onRetry={refreshAll} />
       </Screen>
     )
@@ -92,7 +92,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   const hasPending = followReqs.length > 0 || partReqs.length > 0
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} edges={['left', 'right']}>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}

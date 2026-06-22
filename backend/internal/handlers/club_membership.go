@@ -121,14 +121,18 @@ func CreateClubJoinRequest(c *gin.Context) {
 		Where("klub_id = ? AND role IN ? AND role != ?", body.ClubID, []string{"admin", "sekretar"}, "deleted").
 		Pluck("id", &adminIDs).Error
 	if len(adminIDs) > 0 {
+		displayName := strings.TrimSpace(user.FullName)
+		if displayName == "" {
+			displayName = user.Username
+		}
 		notifications.NotifyUsers(
 			db,
 			adminIDs,
 			models.ObavestenjeTipBroadcast,
 			"Novi zahtev za prijem u klub",
-			fmt.Sprintf("%s je poslao/la zahtev za prijem u klub.", strings.TrimSpace(user.FullName)),
+			fmt.Sprintf("%s je poslao/la zahtev za prijem u klub.", displayName),
 			"/klub",
-			fmt.Sprintf(`{"clubJoinRequestId":%d}`, req.ID),
+			fmt.Sprintf(`{"clubJoinRequestId":%d,"requesterUsername":%q,"requesterFullName":%q}`, req.ID, user.Username, strings.TrimSpace(user.FullName)),
 		)
 	}
 

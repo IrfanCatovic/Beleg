@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, Switch, View } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { StatusBar } from 'expo-status-bar'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,7 @@ export default function LoginScreen({ navigation }: Props) {
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -27,7 +28,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       const data = await loginApi(client, username, password)
       if (data.token) await setAuthToken(data.token)
-      login(data)
+      login(data, rememberMe)
     } catch (err) {
       if (axios.isAxiosError(err) && !err.response) {
         setError(t('noConnection'))
@@ -39,7 +40,7 @@ export default function LoginScreen({ navigation }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [username, password, login, t])
+  }, [username, password, login, rememberMe, t])
 
   return (
     <Screen scroll>
@@ -64,9 +65,15 @@ export default function LoginScreen({ navigation }: Props) {
           label={t('password')}
           placeholder="••••••••"
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           value={password}
           onChangeText={setPassword}
         />
+        <View style={styles.rememberRow}>
+          <Text variant="body">Zapamti me</Text>
+          <Switch value={rememberMe} onValueChange={setRememberMe} trackColor={{ true: colors.brand }} />
+        </View>
         {error ? (
           <Text variant="small" color={colors.danger}>
             {error}
@@ -83,4 +90,5 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   header: { marginTop: spacing.xxl, marginBottom: spacing.xl, gap: spacing.xs },
   form: { gap: spacing.md },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 })

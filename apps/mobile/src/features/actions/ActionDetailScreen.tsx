@@ -136,7 +136,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
 
   if (detailQuery.isLoading) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <Loader />
       </Screen>
     )
@@ -144,7 +144,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
 
   if (detailQuery.isError || !akcija) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <ErrorView message="Akcija nije učitana." onRetry={() => detailQuery.refetch()} />
       </Screen>
     )
@@ -154,13 +154,9 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   const memberCount = membersQuery.data?.length ?? akcija.prijaveCount ?? 0
 
   return (
-    <Screen padded={false}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <ActionDetailHeader
-          akcija={akcija}
-          locationSubtitle={locationSubtitle}
-          onBack={() => navigation.goBack()}
-        />
+    <Screen padded={false} edges={['left', 'right']}>
+      <ScrollView contentContainerStyle={styles.scroll} nestedScrollEnabled>
+        <ActionDetailHeader akcija={akcija} locationSubtitle={locationSubtitle} />
 
         <View style={styles.body}>
           <ActionDetailStats akcija={akcija} memberCount={memberCount} />

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { SectionList, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AkcijaListItem } from '@beleg/shared'
@@ -13,7 +13,7 @@ import { ActionsFilterModal } from '../../components/actions/ActionsFilterModal'
 import { AddActionChoiceModal } from '../../components/actions/AddActionChoiceModal'
 import { GuideRequiredModal } from '../../components/actions/GuideRequiredModal'
 import { AppTopBar } from '../../components/ui/AppTopBar'
-import { Badge, EmptyState, ErrorView, Loader, Text } from '../../components/ui'
+import { Badge, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import {
   EMPTY_ACTIONS_FILTERS,
@@ -28,12 +28,13 @@ import type { ActionsStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ActionsStackParamList, 'ActionsList'>
 
-type Section = { title: string; data: AkcijaListItem[]; total: number }
+type ViewMode = 'active' | 'completed'
 
 export default function ActionsScreen({ navigation }: Props) {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
   const queryClient = useQueryClient()
+  const [viewMode, setViewMode] = useState<ViewMode>('active')
   const [filters, setFilters] = useState<ActionsFilters>(EMPTY_ACTIONS_FILTERS)
   const [filterOpen, setFilterOpen] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -98,16 +99,9 @@ export default function ActionsScreen({ navigation }: Props) {
     }
   }, [combinedAktivne, combinedZavrsene, filters])
 
-  const sections = useMemo((): Section[] => {
-    const out: Section[] = []
-    if (aktivne.length || combinedAktivne.length) {
-      out.push({ title: 'Aktivne akcije', data: aktivne, total: combinedAktivne.length })
-    }
-    if (zavrsene.length || combinedZavrsene.length) {
-      out.push({ title: 'Završene akcije', data: zavrsene, total: combinedZavrsene.length })
-    }
-    return out
-  }, [aktivne, zavrsene, combinedAktivne.length, combinedZavrsene.length])
+
+  const listData = viewMode === 'active' ? aktivne : zavrsene
+  const listTotal = viewMode === 'active' ? combinedAktivne.length : combinedZavrsene.length
 
   const availableMonths = useMemo(() => {
     const months = new Set<number>()
@@ -221,11 +215,19 @@ export default function ActionsScreen({ navigation }: Props) {
         availableMonths={availableMonths}
       />
 
-      <SectionList
-        sections={sections}
+      <SegmentedToggle
+        value={viewMode}
+        options={[
+          { value: 'active', label: 'Aktivne' },
+          { value: 'completed', label: 'Završene' },
+        ]}
+        onChange={setViewMode}
+      />
+
+      <FlatList
+        data={listData}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
-        stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
             refreshing={akcijeQuery.isRefetching || prijaveQuery.isRefetching}
@@ -235,17 +237,16 @@ export default function ActionsScreen({ navigation }: Props) {
             }}
           />
         }
-        ListEmptyComponent={<EmptyState title="Nema akcija" message="Pokušaj drugačije filtere." />}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <Text variant="heading">{section.title}</Text>
-            {activeFilterCount > 0 || filters.source !== 'all' ? (
+        ListHeaderComponent={
+          activeFilterCount > 0 || filters.source !== 'all' ? (
+            <View style={styles.countRow}>
               <Text variant="small" color={colors.textMuted}>
-                {section.data.length}/{section.total}
+                {listData.length}/{listTotal} prikazano
               </Text>
-            ) : null}
-          </View>
-        )}
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={<EmptyState title="Nema akcija" message="Pokušaj drugačije filtere." />}
         renderItem={({ item }) => (
           <ActionCard
             variant="feed"
@@ -265,16 +266,6 @@ export default function ActionsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  list: { paddingBottom: spacing.xxl },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.bg,
-  },
+  list: { paddingBottom: spacing.xxl, paddingHorizontal: spacing.lg },
+  countRow: { paddingVertical: spacing.xs, marginBottom: spacing.xs },
 })

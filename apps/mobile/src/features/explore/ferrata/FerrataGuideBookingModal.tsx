@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,11 +10,18 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { useMutation } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { getApiErrorMessage } from '@beleg/shared'
+import type {
+  GuideBookingEquipmentStatus,
+  GuideBookingGroupExperience,
+  GuideBookingTimeOfDay,
+} from '@beleg/shared/types'
 import {
   createFerrataGuideBooking,
+  listGuidesCatalog,
   listGuidesNearby,
   type GuideNearbyPublic,
 } from '@beleg/shared/services'
@@ -32,6 +40,46 @@ interface FerrataGuideBookingModalProps {
   ferrataLng?: number
 }
 
+const TIME_OPTIONS: { value: GuideBookingTimeOfDay; label: string }[] = [
+  { value: 'morning', label: 'Jutro' },
+  { value: 'afternoon', label: 'Popodne' },
+  { value: 'any', label: 'Bilo kada' },
+  { value: 'exact', label: 'Tačno vreme' },
+]
+
+const EXPERIENCE_OPTIONS: { value: GuideBookingGroupExperience; label: string }[] = [
+  { value: 'beginners', label: 'Početnici' },
+  { value: 'recreational', label: 'Rekreativci' },
+  { value: 'experienced', label: 'Iskusni' },
+  { value: 'mixed', label: 'Mešovita grupa' },
+]
+
+const EQUIPMENT_OPTIONS: { value: GuideBookingEquipmentStatus; label: string }[] = [
+  { value: 'complete', label: 'Imamo kompletnu opremu' },
+  { value: 'none', label: 'Nemamo opremu' },
+  { value: 'partial', label: 'Delimična oprema' },
+  { value: 'unsure', label: 'Nismo sigurni' },
+]
+
+function guideName(g: GuideNearbyPublic): string {
+  return g.user?.fullName || g.user?.username || g.naslov || 'Vodič'
+}
+
+function normalizeDesiredDate(input: string): string | null {
+  const trimmed = input.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  const dot = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(trimmed)
+  if (dot) {
+    const [, d, m, y] = dot
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+  return null
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export function FerrataGuideBookingModal({
   visible,
   onClose,
@@ -44,65 +92,133 @@ export function FerrataGuideBookingModal({
   const { showAlert } = useModal()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [desiredDate, setDesiredDate] = useState('')
-  const [timeOfDay, setTimeOfDay] = useState('jutro')
+  const [dateInput, setDateInput] = useState('')
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [pickerDate, setPickerDate] = useState(new Date())
+  const [timeOfDay, setTimeOfDay] = useState<GuideBookingTimeOfDay>('any')
   const [exactTime, setExactTime] = useState('')
   const [dateFlexible, setDateFlexible] = useState(false)
   const [numberOfPeople, setNumberOfPeople] = useState('2')
-  const [groupExperience, setGroupExperience] = useState('srednje')
-  const [equipmentStatus, setEquipmentStatus] = useState('imam')
+  const [groupExperience, setGroupExperience] = useState<GuideBookingGroupExperience | ''>('')
+  const [equipmentStatus, setEquipmentStatus] = useState<GuideBookingEquipmentStatus | ''>('')
   const [contactPhone, setContactPhone] = useState('')
   const [additionalMessage, setAdditionalMessage] = useState('')
   const [guides, setGuides] = useState<GuideNearbyPublic[]>([])
   const [guidesLoading, setGuidesLoading] = useState(false)
+  const [showAllGuides, setShowAllGuides] = useState(false)
   const [selectedGuideIds, setSelectedGuideIds] = useState<Set<number>>(new Set())
-  const [skipGuides, setSkipGuides] = useState(false)
+
+  const hasCoords = ferrataLat != null && ferrataLng != null
+
+  useEffect(() => {
+    if (!visible) return
+    setStep(1)
+    setDesiredDate('')
+    setDateInput('')
+    setTimeOfDay('any')
+    setExactTime('')
+    setDateFlexible(false)
+    setNumberOfPeople('2')
+    setGroupExperience('')
+    setEquipmentStatus('')
+    setContactPhone('')
+    setAdditionalMessage('')
+    setGuides([])
+    setShowAllGuides(false)
+    setSelectedGuideIds(new Set())
+  }, [visible])
 
   const submitMutation = useMutation({
-    mutationFn: () =>
-      createFerrataGuideBooking(client, {
+    mutationFn: () => {
+      const normalized = normalizeDesiredDate(desiredDate || dateInput)
+      if (!normalized) throw new Error('Neispravan datum.')
+      return createFerrataGuideBooking(client, {
         ferrataId,
         guideProfileIds: Array.from(selectedGuideIds),
-        skipGuides,
-        desiredDate,
+        skipGuides: false,
+        desiredDate: normalized,
         timeOfDay,
-        exactTime,
+        exactTime: timeOfDay === 'exact' ? exactTime : '',
         dateFlexible,
         numberOfPeople: Math.max(1, Number(numberOfPeople) || 1),
-        groupExperience,
-        equipmentStatus,
+        groupExperience: groupExperience || 'mixed',
+        equipmentStatus: equipmentStatus || 'unsure',
         contactPhone: contactPhone.trim(),
         additionalMessage: additionalMessage.trim(),
-      }),
+      })
+    },
     onSuccess: async (data) => {
       await showAlert(
         'Zahtev poslat',
         `Obavešteno je ${data.notifiedCount} vodiča. Očekujte odgovor uskoro.`,
       )
       onClose()
-      resetForm()
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Slanje zahteva nije uspelo.')),
   })
 
-  const resetForm = () => {
-    setStep(1)
-    setSelectedGuideIds(new Set())
-    setSkipGuides(false)
+  const validateStep1 = async (): Promise<boolean> => {
+    const normalized = normalizeDesiredDate(desiredDate || dateInput)
+    if (!normalized) {
+      await showAlert('Datum', 'Unesite datum u formatu YYYY-MM-DD ili DD.MM.YYYY.')
+      return false
+    }
+    if (normalized < todayIso()) {
+      await showAlert('Datum', 'Datum ne može biti u prošlosti.')
+      return false
+    }
+    setDesiredDate(normalized)
+    if (timeOfDay === 'exact' && !exactTime.trim()) {
+      await showAlert('Vreme', 'Unesite tačno vreme polaska.')
+      return false
+    }
+    const n = Number(numberOfPeople)
+    if (!Number.isFinite(n) || n < 1) {
+      await showAlert('Broj osoba', 'Unesite validan broj osoba.')
+      return false
+    }
+    if (!groupExperience) {
+      await showAlert('Iskustvo', 'Izaberite iskustvo grupe.')
+      return false
+    }
+    if (!equipmentStatus) {
+      await showAlert('Oprema', 'Izaberite status opreme.')
+      return false
+    }
+    if (!contactPhone.trim()) {
+      await showAlert('Telefon', 'Unesite kontakt telefon.')
+      return false
+    }
+    return true
   }
 
-  const loadGuides = async () => {
-    if (ferrataLat == null || ferrataLng == null) {
+  const loadNearbyGuides = async () => {
+    if (!hasCoords) {
       setGuides([])
       return
     }
     setGuidesLoading(true)
     try {
       const list = await listGuidesNearby(client, {
-        lat: ferrataLat,
-        lng: ferrataLng,
+        lat: ferrataLat!,
+        lng: ferrataLng!,
         tourType: 'via_ferrata',
       })
       setGuides(list)
+      setShowAllGuides(false)
+    } catch {
+      setGuides([])
+    } finally {
+      setGuidesLoading(false)
+    }
+  }
+
+  const loadAllGuides = async () => {
+    setGuidesLoading(true)
+    try {
+      const list = await listGuidesCatalog(client, { category: 'ferrata', limit: 100 })
+      setGuides(list)
+      setShowAllGuides(true)
     } catch {
       setGuides([])
     } finally {
@@ -111,21 +227,14 @@ export function FerrataGuideBookingModal({
   }
 
   const goStep2 = async () => {
-    if (!desiredDate.trim()) {
-      await showAlert('Datum', 'Unesite željeni datum.')
-      return
-    }
-    if (!contactPhone.trim()) {
-      await showAlert('Telefon', 'Unesite kontakt telefon.')
-      return
-    }
-    await loadGuides()
+    if (!(await validateStep1())) return
+    await loadNearbyGuides()
     setStep(2)
   }
 
-  const goStep3 = () => {
-    if (!skipGuides && selectedGuideIds.size === 0) {
-      void showAlert('Vodič', 'Izaberite bar jednog vodiča ili uključite „Bez vodiča”.')
+  const goStep3 = async () => {
+    if (selectedGuideIds.size === 0) {
+      await showAlert('Vodič', 'Izaberite bar jednog vodiča.')
       return
     }
     setStep(3)
@@ -140,6 +249,20 @@ export function FerrataGuideBookingModal({
     })
   }
 
+  const onDatePicked = (_: unknown, selected?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false)
+    if (!selected) return
+    setPickerDate(selected)
+    const iso = selected.toISOString().slice(0, 10)
+    setDesiredDate(iso)
+    setDateInput(iso)
+  }
+
+  const reviewDate = useMemo(() => {
+    const normalized = normalizeDesiredDate(desiredDate || dateInput)
+    return normalized ?? (desiredDate || dateInput)
+  }, [desiredDate, dateInput])
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -153,22 +276,75 @@ export function FerrataGuideBookingModal({
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.body}>
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text variant="small" color={colors.textMuted} style={styles.ferrataName}>
             {ferrataName}
           </Text>
 
           {step === 1 ? (
             <View style={styles.gap}>
-              <Field label="Željeni datum (YYYY-MM-DD)">
+              <Field label="Željeni datum">
+                <Pressable style={styles.dateRow} onPress={() => setShowDatePicker(true)}>
+                  <TextInput
+                    style={[styles.input, styles.dateInput]}
+                    value={dateInput || desiredDate}
+                    onChangeText={(v) => {
+                      setDateInput(v)
+                      setDesiredDate('')
+                    }}
+                    placeholder="YYYY-MM-DD ili DD.MM.YYYY"
+                    placeholderTextColor={colors.textSubtle}
+                  />
+                  <Ionicons name="calendar-outline" size={22} color={colors.brand} />
+                </Pressable>
+                {showDatePicker ? (
+                  <DateTimePicker
+                    value={pickerDate}
+                    mode="date"
+                    minimumDate={new Date()}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDatePicked}
+                  />
+                ) : null}
+              </Field>
+
+              <ChipField label="Vreme dana" options={TIME_OPTIONS} value={timeOfDay} onChange={setTimeOfDay} />
+              {timeOfDay === 'exact' ? (
+                <Field label="Tačno vreme">
+                  <TextInput
+                    style={styles.input}
+                    value={exactTime}
+                    onChangeText={setExactTime}
+                    placeholder="08:30"
+                    placeholderTextColor={colors.textSubtle}
+                  />
+                </Field>
+              ) : null}
+
+              <Field label="Broj osoba">
                 <TextInput
                   style={styles.input}
-                  value={desiredDate}
-                  onChangeText={setDesiredDate}
-                  placeholder="2026-07-15"
-                  placeholderTextColor={colors.textSubtle}
+                  value={numberOfPeople}
+                  onChangeText={setNumberOfPeople}
+                  keyboardType="number-pad"
                 />
               </Field>
+
+              <ChipField
+                label="Iskustvo grupe"
+                options={EXPERIENCE_OPTIONS}
+                value={groupExperience}
+                onChange={(v) => setGroupExperience(v as GuideBookingGroupExperience)}
+              />
+
+              <ChipField
+                label="Oprema"
+                options={EQUIPMENT_OPTIONS}
+                value={equipmentStatus}
+                onChange={(v) => setEquipmentStatus(v as GuideBookingEquipmentStatus)}
+                vertical
+              />
+
               <Field label="Kontakt telefon">
                 <TextInput
                   style={styles.input}
@@ -179,14 +355,7 @@ export function FerrataGuideBookingModal({
                   placeholderTextColor={colors.textSubtle}
                 />
               </Field>
-              <Field label="Broj osoba">
-                <TextInput
-                  style={styles.input}
-                  value={numberOfPeople}
-                  onChangeText={setNumberOfPeople}
-                  keyboardType="number-pad"
-                />
-              </Field>
+
               <Field label="Dodatna poruka">
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -196,6 +365,7 @@ export function FerrataGuideBookingModal({
                   placeholderTextColor={colors.textSubtle}
                 />
               </Field>
+
               <View style={styles.switchRow}>
                 <Text variant="body">Fleksibilan datum</Text>
                 <Switch value={dateFlexible} onValueChange={setDateFlexible} trackColor={{ true: colors.brand }} />
@@ -205,39 +375,51 @@ export function FerrataGuideBookingModal({
 
           {step === 2 ? (
             <View style={styles.gap}>
-              <View style={styles.switchRow}>
-                <Text variant="body">Preskoči izbor vodiča</Text>
-                <Switch value={skipGuides} onValueChange={setSkipGuides} trackColor={{ true: colors.brand }} />
-              </View>
               {guidesLoading ? (
                 <ActivityIndicator color={colors.brand} />
-              ) : guides.length === 0 ? (
-                <Text variant="body" color={colors.textMuted}>
-                  Nema vodiča u blizini. Možete nastaviti bez vodiča.
-                </Text>
+              ) : guides.length === 0 && !showAllGuides ? (
+                <View style={styles.emptyGuides}>
+                  <Text variant="body" color={colors.textMuted}>
+                    Nema vodiča u blizini.
+                  </Text>
+                  <Button title="Prikaži sve vodiče" variant="secondary" onPress={() => void loadAllGuides()} />
+                </View>
               ) : (
-                guides.map((g) => {
-                  const name = g.user?.fullName || g.user?.username || g.naslov || 'Vodič'
-                  const selected = selectedGuideIds.has(g.id)
-                  return (
-                    <Pressable
-                      key={g.id}
-                      style={[styles.guideRow, selected && styles.guideRowSelected]}
-                      onPress={() => toggleGuide(g.id)}
-                    >
-                      <Avatar uri={g.user?.avatarUrl} name={name} size={44} />
-                      <View style={styles.guideInfo}>
-                        <Text variant="label">{name}</Text>
-                        {g.distanceKm != null ? (
+                <>
+                  {showAllGuides ? (
+                    <Text variant="small" color={colors.textMuted}>
+                      Prikazani su svi vodiči za ferate.
+                    </Text>
+                  ) : (
+                    <Text variant="small" color={colors.textMuted}>
+                      Vodiči u blizini ferate — izaberite jednog ili više.
+                    </Text>
+                  )}
+                  {guides.map((g) => {
+                    const name = guideName(g)
+                    const selected = selectedGuideIds.has(g.id)
+                    return (
+                      <Pressable
+                        key={g.id}
+                        style={[styles.guideRow, selected && styles.guideRowSelected]}
+                        onPress={() => toggleGuide(g.id)}
+                      >
+                        <Avatar uri={g.user?.avatarUrl} name={name} size={48} />
+                        <View style={styles.guideInfo}>
+                          <Text variant="label">{name}</Text>
                           <Text variant="small" color={colors.textMuted}>
-                            {g.distanceKm.toFixed(0)} km
+                            {[g.grad, g.region].filter(Boolean).join(' · ')}
+                            {g.distanceKm != null ? ` · ${g.distanceKm.toFixed(0)} km` : ''}
                           </Text>
-                        ) : null}
-                      </View>
-                      {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.brand} /> : null}
-                    </Pressable>
-                  )
-                })
+                        </View>
+                        {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.brand} /> : null}
+                      </Pressable>
+                    )
+                  })}
+                  {!showAllGuides && guides.length > 0 ? (
+                    <Button title="Prikaži sve vodiče" variant="ghost" onPress={() => void loadAllGuides()} />
+                  ) : null}
+                </>
               )}
             </View>
           ) : null}
@@ -246,26 +428,33 @@ export function FerrataGuideBookingModal({
             <View style={styles.gap}>
               <Text variant="body">Pregled zahteva</Text>
               <Text variant="small" color={colors.textMuted}>
-                Datum: {desiredDate}
+                Datum: {reviewDate}
+                {dateFlexible ? ' (fleksibilan)' : ''}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                Vreme: {TIME_OPTIONS.find((o) => o.value === timeOfDay)?.label}
+                {timeOfDay === 'exact' && exactTime ? ` — ${exactTime}` : ''}
               </Text>
               <Text variant="small" color={colors.textMuted}>
                 Osoba: {numberOfPeople}
               </Text>
               <Text variant="small" color={colors.textMuted}>
+                Iskustvo: {EXPERIENCE_OPTIONS.find((o) => o.value === groupExperience)?.label}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                Oprema: {EQUIPMENT_OPTIONS.find((o) => o.value === equipmentStatus)?.label}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
                 Telefon: {contactPhone}
               </Text>
-              {!skipGuides ? (
-                <Text variant="small" color={colors.textMuted}>
-                  Vodiči: {selectedGuideIds.size}
-                </Text>
-              ) : (
-                <Text variant="small" color={colors.textMuted}>
-                  Bez vodiča — samo obaveštenje
-                </Text>
-              )}
               <Text variant="small" color={colors.textMuted}>
-                Nakon slanja, vodiči će biti obavešteni. Preporučujemo i pregled hotela u blizini ferate.
+                Vodiči: {selectedGuideIds.size}
               </Text>
+              {additionalMessage.trim() ? (
+                <Text variant="small" color={colors.textMuted}>
+                  Poruka: {additionalMessage.trim()}
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </ScrollView>
@@ -277,7 +466,7 @@ export function FerrataGuideBookingModal({
           {step === 1 ? (
             <Button title="Dalje" onPress={() => void goStep2()} />
           ) : step === 2 ? (
-            <Button title="Dalje" onPress={goStep3} />
+            <Button title="Dalje" onPress={() => void goStep3()} disabled={selectedGuideIds.size === 0} />
           ) : (
             <Button
               title="Pošalji zahtev"
@@ -299,6 +488,41 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       </Text>
       {children}
     </View>
+  )
+}
+
+function ChipField<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  vertical,
+}: {
+  label: string
+  options: { value: T; label: string }[]
+  value: T | ''
+  onChange: (v: T) => void
+  vertical?: boolean
+}) {
+  return (
+    <Field label={label}>
+      <View style={[styles.chips, vertical && styles.chipsVertical]}>
+        {options.map((opt) => {
+          const active = value === opt.value
+          return (
+            <Pressable
+              key={opt.value}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => onChange(opt.value)}
+            >
+              <Text variant="small" color={active ? colors.brandDark : colors.text}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+    </Field>
   )
 }
 
@@ -326,8 +550,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     color: colors.text,
   },
+  dateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  dateInput: { flex: 1 },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chipsVertical: { flexDirection: 'column' },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActive: { borderColor: colors.brand, backgroundColor: '#ecfdf5' },
   guideRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -340,6 +577,7 @@ const styles = StyleSheet.create({
   },
   guideRowSelected: { borderColor: colors.brand, backgroundColor: '#ecfdf5' },
   guideInfo: { flex: 1 },
+  emptyGuides: { gap: spacing.md, alignItems: 'flex-start' },
   footer: {
     flexDirection: 'row',
     gap: spacing.sm,

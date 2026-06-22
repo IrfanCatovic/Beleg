@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Text } from './Text'
-import { colors, spacing } from '../../theme'
+import { colors, fontSize, fontWeight, spacing } from '../../theme'
 
 type IoniconName = keyof typeof Ionicons.glyphMap
 
@@ -13,6 +13,8 @@ interface AppTopBarProps {
   rightIcon?: IoniconName
   onRightPress?: () => void
   rightBadge?: number
+  onSearchPress?: () => void
+  title?: string
   center?: ReactNode
 }
 
@@ -22,9 +24,19 @@ export function AppTopBar({
   rightIcon,
   onRightPress,
   rightBadge = 0,
+  onSearchPress,
+  title,
   center,
 }: AppTopBarProps) {
   const insets = useSafeAreaInsets()
+
+  const centerContent =
+    center ??
+    (title ? (
+      <Text style={styles.title} numberOfLines={1}>
+        {title}
+      </Text>
+    ) : null)
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + spacing.xs }]}>
@@ -38,21 +50,28 @@ export function AppTopBar({
         )}
       </View>
 
-      <View style={styles.center}>{center}</View>
+      <View style={styles.center}>{centerContent}</View>
 
       <View style={[styles.side, styles.sideRight]}>
-        {rightIcon && onRightPress ? (
-          <Pressable onPress={onRightPress} style={styles.iconBtn} hitSlop={8}>
-            <Ionicons name={rightIcon} size={24} color={colors.textOnDark} />
-            {rightBadge > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{rightBadge > 99 ? '99+' : rightBadge}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ) : (
-          <View style={styles.iconPlaceholder} />
-        )}
+        <View style={styles.rightCluster}>
+          {onSearchPress ? (
+            <Pressable onPress={onSearchPress} style={styles.iconBtn} hitSlop={8}>
+              <Ionicons name="search-outline" size={22} color={colors.textOnDark} />
+            </Pressable>
+          ) : null}
+          {rightIcon && onRightPress ? (
+            <Pressable onPress={onRightPress} style={styles.iconBtn} hitSlop={8}>
+              <Ionicons name={rightIcon} size={24} color={colors.textOnDark} />
+              {rightBadge > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{rightBadge > 99 ? '99+' : rightBadge}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : !onSearchPress ? (
+            <View style={styles.iconPlaceholder} />
+          ) : null}
+        </View>
       </View>
     </View>
   )
@@ -68,9 +87,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.navBorder,
   },
-  side: { width: 48, alignItems: 'flex-start' },
+  side: { width: 88, alignItems: 'flex-start' },
   sideRight: { alignItems: 'flex-end' },
-  center: { flex: 1, alignItems: 'center' },
+  rightCluster: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  title: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnDarkMuted,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
   iconBtn: {
     width: 40,
     height: 40,

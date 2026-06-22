@@ -136,7 +136,7 @@ export default function PostDetailScreen({ route, navigation }: Props) {
 
   if (postQuery.isLoading) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <Loader />
       </Screen>
     )
@@ -144,7 +144,7 @@ export default function PostDetailScreen({ route, navigation }: Props) {
 
   if (postQuery.isError || !postQuery.data) {
     return (
-      <Screen>
+      <Screen edges={['left', 'right']}>
         <ErrorView message="Objava nije učitana." onRetry={() => postQuery.refetch()} />
       </Screen>
     )
@@ -158,7 +158,7 @@ export default function PostDetailScreen({ route, navigation }: Props) {
   const canSend = comment.trim().length > 0 && !commentMutation.isPending
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} edges={['left', 'right']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

@@ -36,6 +36,11 @@ export type ExploreStackParamList = {
 
 export type ClubStackParamList = {
   ClubHome: undefined
+  ClubMembers: undefined
+  Tasks: undefined
+  Finance: undefined
+  UserProfile: { username?: string; id?: number }
+  ActionDetail: { id: number }
 }
 
 export type ProfileStackParamList = {

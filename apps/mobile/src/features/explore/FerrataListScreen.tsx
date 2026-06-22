@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { useTranslation } from 'react-i18next'
 import { fetchPublicFerratas } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { FerrataCard } from '../../components/explore/FerrataCard'
@@ -14,17 +15,28 @@ type Props = NativeStackScreenProps<ExploreStackParamList, 'FerrataList'>
 
 const TEZINA_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E', 'C/D', 'D/E']
 
-const LEGEND = [
-  { key: 'A', color: '#059669', label: 'A — lako' },
-  { key: 'B', color: '#0284c7', label: 'B' },
-  { key: 'C', color: '#f59e0b', label: 'C' },
-  { key: 'D', color: '#e11d48', label: 'D' },
-  { key: 'E', color: '#18181b', label: 'E — najteže' },
-]
+const LEGEND_COLORS: Record<string, string> = {
+  A: '#059669',
+  B: '#0284c7',
+  C: '#f59e0b',
+  D: '#e11d48',
+  E: '#18181b',
+}
 
 export default function FerrataListScreen({ navigation }: Props) {
+  const { t } = useTranslation('explore')
   const [search, setSearch] = useState('')
   const [tezina, setTezina] = useState('')
+
+  const legend = useMemo(
+    () =>
+      (['A', 'B', 'C', 'D', 'E'] as const).map((key) => ({
+        key,
+        color: LEGEND_COLORS[key],
+        label: t(`legend${key}`),
+      })),
+    [t],
+  )
 
   const ferratasQuery = useQuery({
     queryKey: ['ferratas', search, tezina],
@@ -91,10 +103,10 @@ export default function FerrataListScreen({ navigation }: Props) {
             <Text variant="label" style={styles.legendTitle}>
               Legenda težine
             </Text>
-            {LEGEND.map((l) => (
+            {legend.map((l) => (
               <View key={l.key} style={styles.legendRow}>
                 <View style={[styles.legendDot, { backgroundColor: l.color }]} />
-                <Text variant="small" color={colors.textMuted}>
+                <Text variant="small" color={colors.textMuted} style={styles.legendText}>
                   {l.label}
                 </Text>
               </View>
@@ -138,6 +150,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   legendTitle: { marginBottom: spacing.xs },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  legendRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  legendDot: { width: 12, height: 12, borderRadius: 6, marginTop: 3 },
+  legendText: { flex: 1 },
 })

@@ -28,6 +28,20 @@ export async function zavrsiZadatak(client: AxiosInstance, taskId: number): Prom
   return unwrapTask(res.data)
 }
 
+export async function napustiZadatak(client: AxiosInstance, taskId: number): Promise<Task> {
+  const res = await client.post(`/api/zadaci/${taskId}/napusti`)
+  return unwrapTask(res.data)
+}
+
+export async function updateZadatak(
+  client: AxiosInstance,
+  taskId: number,
+  body: Partial<TaskFormData>,
+): Promise<Task> {
+  const res = await client.patch(`/api/zadaci/${taskId}`, body)
+  return unwrapTask(res.data)
+}
+
 export async function deleteZadatak(client: AxiosInstance, taskId: number): Promise<void> {
   await client.delete(`/api/zadaci/${taskId}`)
 }

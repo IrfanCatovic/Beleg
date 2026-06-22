@@ -68,7 +68,12 @@ export function FerrataHotelsSection({ hotels, loading }: FerrataHotelsSectionPr
         <Pressable style={styles.overlay} onPress={() => setSelected(null)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             {selected ? (
-              <ScrollView contentContainerStyle={styles.sheetContent}>
+              <ScrollView
+                contentContainerStyle={styles.sheetContent}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator
+              >
                 <View style={styles.sheetHeader}>
                   <Text variant="heading">{selected.naziv || 'Hotel'}</Text>
                   <Pressable onPress={() => setSelected(null)} hitSlop={8}>
