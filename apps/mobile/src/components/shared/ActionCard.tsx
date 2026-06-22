@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { AkcijaListItem } from '@beleg/shared'
-import { computePERForAkcija } from '@beleg/shared'
+import { computePERForAkcija, formatActionDateShort } from '@beleg/shared'
 import { Badge, Button, Card, Text } from '../ui'
 import { colors, radius, spacing } from '../../theme'
 
@@ -16,8 +16,7 @@ interface ActionCardProps {
 }
 
 function formatDate(datum?: string) {
-  if (!datum) return ''
-  return new Date(datum).toLocaleDateString('sr-RS', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatActionDateShort(datum)
 }
 
 function difficultyStyle(tezina?: string, tip?: string) {

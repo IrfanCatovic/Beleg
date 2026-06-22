@@ -20,10 +20,10 @@ export function formatDate(
   fallback = '—'
 ): string {
   if (value == null) return fallback
-  const d = value instanceof Date ? value : new Date(value)
-  return isNaN(d.getTime())
-    ? fallback
-    : d.toLocaleDateString(DATE_LOCALE_LATN, { day: 'numeric', month: 'long', year: 'numeric' })
+  const d = parseLocalDate(value)
+  return d
+    ? d.toLocaleDateString(DATE_LOCALE_LATN, { day: 'numeric', month: 'long', year: 'numeric' })
+    : fallback
 }
 
 /**
@@ -34,8 +34,8 @@ export function formatDateShort(
   fallback = '—'
 ): string {
   if (value == null) return fallback
-  const d = value instanceof Date ? value : new Date(value)
-  return isNaN(d.getTime()) ? fallback : d.toLocaleDateString(DATE_LOCALE_LATN)
+  const d = parseLocalDate(value)
+  return d ? d.toLocaleDateString(DATE_LOCALE_LATN) : fallback
 }
 
 /**
@@ -55,17 +55,17 @@ export function formatBadgeDate(
 }
 
 function parseLocalDate(value: string | number | Date): Date | null {
-  if (value instanceof Date) return isNaN(value.getTime()) ? null : value
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
   if (typeof value === 'string') {
     const ymd = value.trim().slice(0, 10)
     if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
       const [y, m, day] = ymd.split('-').map(Number)
       const d = new Date(y, m - 1, day)
-      return isNaN(d.getTime()) ? null : d
+      return Number.isNaN(d.getTime()) ? null : d
     }
   }
   const d = new Date(value)
-  return isNaN(d.getTime()) ? null : d
+  return Number.isNaN(d.getTime()) ? null : d
 }
 
 /**

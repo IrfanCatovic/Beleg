@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { AkcijaDetail } from '@beleg/shared'
+import { formatActionDate } from '@beleg/shared'
 import { Card, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
@@ -34,26 +35,20 @@ function InfoRow({
 }
 
 export function ActionDetailInfo({ akcija }: ActionDetailInfoProps) {
-  const dateStr = akcija.datum
-    ? new Date(akcija.datum).toLocaleDateString('sr-RS', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    : '—'
+  const dateStr = formatActionDate(akcija.datum)
+  const rokStr = formatActionDate(akcija.rokPrijava, '')
 
   const guideName = akcija.vodic?.fullName || akcija.vodic?.username || akcija.drugiVodicIme
 
   return (
     <Card style={styles.card}>
       <Text variant="label">Detalji akcije</Text>
-      <InfoRow icon="calendar-outline" label="Datum" value={dateStr} />
+      <InfoRow icon="calendar-outline" label="Datum akcije" value={dateStr} />
       <InfoRow icon="person-outline" label="Vodič" value={guideName || ''} />
       <InfoRow icon="business-outline" label="Klub" value={akcija.klubNaziv || ''} />
       <InfoRow icon="fitness-outline" label="Težina" value={akcija.tezina || ''} />
       <InfoRow icon="navigate-outline" label="Polazak" value={akcija.mestoPolaska || ''} />
-      <InfoRow icon="time-outline" label="Rok prijave" value={akcija.rokPrijava || ''} />
+      <InfoRow icon="time-outline" label="Rok za prijavu" value={rokStr} />
       {akcija.opis ? (
         <View style={styles.desc}>
           <Text variant="small" color={colors.textMuted}>

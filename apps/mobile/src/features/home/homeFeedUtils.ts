@@ -1,4 +1,5 @@
 import type { AkcijaListItem, FerrataRow, Korisnik, Post } from '@beleg/shared'
+import { formatActionDateShort as formatSharedActionDateShort } from '@beleg/shared'
 
 export interface MentionUser {
   id: number
@@ -170,16 +171,7 @@ function shuffleAndTake<T>(arr: T[], count: number): T[] {
 }
 
 export function formatDateShort(datum?: string): string {
-  if (!datum) return ''
-  try {
-    return new Date(datum).toLocaleDateString('sr-RS', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  } catch {
-    return datum
-  }
+  return formatSharedActionDateShort(datum)
 }
 
 export function difficultyBadgeStyle(tezina?: string, tipAkcije?: string): { bg: string; text: string; label: string } {
