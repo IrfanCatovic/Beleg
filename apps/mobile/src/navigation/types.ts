@@ -26,7 +26,7 @@ export type ActionsStackParamList = {
 
 export type ExploreStackParamList = {
   ExploreHome: undefined
-  DailySteps: undefined
+  Steps: undefined
   ActiveTracking: undefined
   ActivitySummary: { activityId: number }
   StepsLeaderboard: undefined

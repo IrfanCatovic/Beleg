@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import ExploreHomeScreen from '../../features/explore/ExploreHomeScreen'
-import DailyStepsScreen from '../../features/activity/screens/DailyStepsScreen'
+import StepsScreen from '../../features/activity/screens/StepsScreen'
 import ActiveTrackingScreen from '../../features/activity/screens/ActiveTrackingScreen'
 import ActivitySummaryScreen from '../../features/activity/screens/ActivitySummaryScreen'
 import StepsLeaderboardScreen from '../../features/activity/screens/StepsLeaderboardScreen'
@@ -19,7 +19,7 @@ export function ExploreStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="DailySteps" component={DailyStepsScreen} />
+      <Stack.Screen name="Steps" component={StepsScreen} />
       <Stack.Screen name="ActiveTracking" component={ActiveTrackingScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="ActivitySummary" component={ActivitySummaryScreen} />
       <Stack.Screen name="StepsLeaderboard" component={StepsLeaderboardScreen} />

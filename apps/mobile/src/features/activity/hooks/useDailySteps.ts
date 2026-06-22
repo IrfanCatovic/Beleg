@@ -1,115 +1,107 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AppState } from 'react-native'
 import { Pedometer } from 'expo-sensors'
-import { fetchTodaySteps, syncDailySteps, updateStepGoal } from '@beleg/shared'
-import { client } from '../../../api/client'
 import {
-  SYNC_INTERVAL_MS,
-  getStepsBaseline,
-  setStepsBaseline,
+  DEFAULT_DAILY_STEP_GOAL,
+  getDailyStepGoal,
+  setDailyStepGoal,
   todayKey,
-} from '../services/activityLocalStore'
+} from '../services/stepsLocalStore'
+
+const REFRESH_INTERVAL_MS = 30_000
 
 export interface DailyStepsState {
   todaySteps: number
   goal: number
   progressPercent: number
+  stepsRemaining: number
   date: string
   available: boolean
+  permissionGranted: boolean
   loading: boolean
-  syncing: boolean
   error: string | null
   refresh: () => Promise<void>
   setGoal: (goal: number) => Promise<void>
-  syncNow: () => Promise<void>
+}
+
+function startOfToday(): Date {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function calcProgress(steps: number, goal: number) {
+  const progressPercent = goal > 0 ? Math.min(100, Math.round((steps / goal) * 100)) : 0
+  const stepsRemaining = Math.max(0, goal - steps)
+  return { progressPercent, stepsRemaining }
 }
 
 export function useDailySteps(): DailyStepsState {
   const [todaySteps, setTodaySteps] = useState(0)
-  const [goal, setGoalState] = useState(10000)
+  const [goal, setGoalState] = useState(DEFAULT_DAILY_STEP_GOAL)
   const [progressPercent, setProgressPercent] = useState(0)
+  const [stepsRemaining, setStepsRemaining] = useState(DEFAULT_DAILY_STEP_GOAL)
   const [date, setDate] = useState(todayKey())
   const [available, setAvailable] = useState(false)
+  const [permissionGranted, setPermissionGranted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const rawCountRef = useRef(0)
-  const baselineRef = useRef<number | null>(null)
 
-  const applyCount = useCallback((raw: number) => {
-    rawCountRef.current = raw
-    const baseline = baselineRef.current ?? raw
-    const steps = Math.max(0, raw - baseline)
+  const applySteps = useCallback((steps: number, currentGoal: number) => {
     setTodaySteps(steps)
-    setProgressPercent(goal > 0 ? Math.min(100, Math.round((steps / goal) * 100)) : 0)
-  }, [goal])
-
-  const ensureBaseline = useCallback(async (raw: number) => {
-    const day = todayKey()
-    setDate(day)
-    let baseline = await getStepsBaseline(day)
-    if (baseline == null) {
-      baseline = raw
-      await setStepsBaseline(day, raw)
-    }
-    baselineRef.current = baseline
-    applyCount(raw)
-  }, [applyCount])
-
-  const loadFromServer = useCallback(async () => {
-    try {
-      const data = await fetchTodaySteps(client)
-      setGoalState(data.goal)
-      setDate(data.date)
-      setProgressPercent(data.progressPercent)
-      setTodaySteps((prev) => (data.steps > prev ? data.steps : prev))
-      setError(null)
-    } catch {
-      setError('Koraci nisu učitani sa servera.')
-    }
+    const { progressPercent: pct, stepsRemaining: remaining } = calcProgress(steps, currentGoal)
+    setProgressPercent(pct)
+    setStepsRemaining(remaining)
   }, [])
 
-  const syncNow = useCallback(async () => {
-    setSyncing(true)
-    try {
-      await syncDailySteps(client, { date: todayKey(), steps: todaySteps })
-      await loadFromServer()
-    } catch {
-      setError('Sinhronizacija nije uspela.')
-    } finally {
-      setSyncing(false)
-    }
-  }, [todaySteps, loadFromServer])
+  const readSteps = useCallback(async (currentGoal: number) => {
+    const end = new Date()
+    const result = await Pedometer.getStepCountAsync(startOfToday(), end)
+    setDate(todayKey())
+    applySteps(result.steps, currentGoal)
+    setError(null)
+  }, [applySteps])
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
+      const storedGoal = await getDailyStepGoal()
+      setGoalState(storedGoal)
+
       const isAvailable = await Pedometer.isAvailableAsync()
       setAvailable(isAvailable)
-      if (isAvailable) {
-        const { status } = await Pedometer.requestPermissionsAsync()
-        if (status === 'granted') {
-          const end = new Date()
-          const start = new Date()
-          start.setHours(0, 0, 0, 0)
-          const result = await Pedometer.getStepCountAsync(start, end)
-          await ensureBaseline(result.steps)
-        }
+
+      if (!isAvailable) {
+        applySteps(0, storedGoal)
+        setPermissionGranted(false)
+        setError(null)
+        return
       }
-      await loadFromServer()
+
+      const { status } = await Pedometer.requestPermissionsAsync()
+      const granted = status === 'granted'
+      setPermissionGranted(granted)
+
+      if (!granted) {
+        applySteps(0, storedGoal)
+        setError('Dozvola za brojač koraka nije odobrena.')
+        return
+      }
+
+      await readSteps(storedGoal)
     } catch {
-      setError('Brojač koraka nije dostupan.')
+      setError('Brojač koraka trenutno nije dostupan.')
     } finally {
       setLoading(false)
     }
-  }, [ensureBaseline, loadFromServer])
+  }, [applySteps, readSteps])
 
   const setGoal = useCallback(async (newGoal: number) => {
-    const res = await updateStepGoal(client, newGoal)
-    setGoalState(res.dailyStepGoal)
-    setProgressPercent(
-      res.dailyStepGoal > 0 ? Math.min(100, Math.round((todaySteps / res.dailyStepGoal) * 100)) : 0,
-    )
+    await setDailyStepGoal(newGoal)
+    setGoalState(newGoal)
+    const { progressPercent: pct, stepsRemaining: remaining } = calcProgress(todaySteps, newGoal)
+    setProgressPercent(pct)
+    setStepsRemaining(remaining)
   }, [todaySteps])
 
   useEffect(() => {
@@ -117,41 +109,33 @@ export function useDailySteps(): DailyStepsState {
   }, [refresh])
 
   useEffect(() => {
-    let sub: { remove: () => void } | null = null
-    void (async () => {
-      if (!available) return
-      sub = Pedometer.watchStepCount((ev) => {
-        void ensureBaseline(ev.steps)
-      })
-    })()
-    return () => sub?.remove()
-  }, [available, ensureBaseline])
-
-  useEffect(() => {
+    if (!available || !permissionGranted) return
     const id = setInterval(() => {
-      if (todaySteps > 0) void syncNow()
-    }, SYNC_INTERVAL_MS)
+      void readSteps(goal)
+    }, REFRESH_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [todaySteps, syncNow])
+  }, [available, permissionGranted, goal, readSteps])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refresh()
+      if (state === 'active' && available && permissionGranted) {
+        void readSteps(goal)
+      }
     })
     return () => sub.remove()
-  }, [refresh])
+  }, [available, permissionGranted, goal, readSteps])
 
   return {
     todaySteps,
     goal,
     progressPercent,
+    stepsRemaining,
     date,
     available,
+    permissionGranted,
     loading,
-    syncing,
     error,
     refresh,
     setGoal,
-    syncNow,
   }
 }

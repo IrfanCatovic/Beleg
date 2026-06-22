@@ -16,7 +16,7 @@ export function DailyStepsProgressRing({ steps, goal, progressPercent }: Props) 
         {formatSteps(steps)}
       </Text>
       <Text variant="small" color={colors.textMuted}>
-        cilj {formatSteps(goal)}
+        od {formatSteps(goal)} cilja
       </Text>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${Math.min(100, progressPercent)}%` }]} />
