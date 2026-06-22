@@ -3,6 +3,7 @@ export * from './auth'
 export * from './services'
 export * from './utils'
 export * from './types'
+export * from './map'
 export {
   AUTH_TOKEN_KEY,
   IS_LOGGED_IN_KEY,

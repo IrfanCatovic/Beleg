@@ -25,7 +25,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@beleg/shared": ["./packages/shared/src/index.ts"]
+      "@beleg/shared": ["./packages/shared/src/index.ts"],
+      "@beleg/shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": ["src"]

@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   resolve: {
     alias: {
-      '@beleg/shared': path.resolve(__dirname, 'packages/shared/src/index.ts'),
+      '@beleg/shared': path.resolve(__dirname, 'packages/shared/src'),
     },
   },
   server: {

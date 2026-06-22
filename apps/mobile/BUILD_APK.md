@@ -28,25 +28,25 @@ npm run build:apk
 
 Build traje ~10–20 min na Expo serverima. Na kraju dobiješ **link za preuzimanje .apk** fajla.
 
-**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 4+).
+**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 5+).
 
-## Google Maps (Mapa avantura)
+## Mapa avantura (MapLibre + MapTiler — isto kao web)
 
-Mapa avantura na Androidu koristi Google Maps SDK. Bez API ključa aplikacija može da se zatvori pri otvaranju mape.
+Mobilna **Mapa avantura** koristi **MapLibre** i **MapTiler** stil — isti izgled kao na [planiner.com/mapa](https://planiner.com/mapa). **Ne treba Google Maps ključ.**
 
 ### Jednokratna priprema
 
-1. U [Google Cloud Console](https://console.cloud.google.com/) kreiraj projekat (ili koristi postojeći).
-2. Uključi **Maps SDK for Android**.
-3. Kreiraj API ključ i ograniči ga na Android aplikaciju sa package name `rs.planiner.app`.
-4. U [expo.dev](https://expo.dev) → tvoj projekat → **Environment variables** (ili lokalno u `eas.json`) postavi:
-   - `GOOGLE_MAPS_API_KEY` = tvoj ključ
+1. Ako web mapa već radi, imaš `VITE_MAPTILER_API_KEY` u root `.env` (ili `VITE_MAP_STYLE_URL`).
+2. U `apps/mobile/.env` dodaj **isti** ključ:
+   ```
+   EXPO_PUBLIC_MAPTILER_API_KEY=tvoj_maptiler_kljuc
+   ```
+   Opciono: `EXPO_PUBLIC_MAPTILER_MAP_ID=outdoor` (ili `streets-v4` kao na webu).
+3. Besplatan nalog: [maptiler.com](https://www.maptiler.com/)
 
-Ključ se ubacuje u native build preko `app.config.ts` → `android.config.googleMaps.apiKey`.
+Za EAS cloud build, isti ključ možeš dodati u Expo → Environment variables kao `EXPO_PUBLIC_MAPTILER_API_KEY`.
 
-**Važno:** Promena Maps ključa zahteva **novi APK build** (`npm run build:apk`). OTA update ne menja native konfiguraciju.
-
-Posle builda, testiraj: Istraži → Mapa avantura — mapa se otvara bez izbacivanja iz aplikacije.
+**Novi native modul (MapLibre)** zahteva **novi APK build** (`npm run build:apk`). Posle toga, izmene samo u JS mogu preko OTA.
 
 ## OTA update (bez novog APK-a)
 
@@ -80,7 +80,7 @@ Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** ap
 |----------|--------------|------------------|
 | Koraci | Kartica Dnevni koraci | Dozvole → Fizička aktivnost |
 | GPS ruta | Započni akciju | Dozvole → Lokacija |
-| Mapa avantura | Istraži → Mapa | Google Maps API ključ u EAS buildu |
+| Mapa avantura | Istraži → Mapa | `EXPO_PUBLIC_MAPTILER_API_KEY` u `.env` (isti kao web) |
 | Slike | Avatar, cover, akcije | Dozvole → Slike |
 
 ## Dijeljenje test korisnicima

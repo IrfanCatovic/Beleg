@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "rs.planiner.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.jpg",
         "backgroundColor": "#1a6b52"

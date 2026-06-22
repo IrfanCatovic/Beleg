@@ -2,16 +2,12 @@ import type { ExpoConfig, ConfigContext } from 'expo/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const base = config as ExpoConfig
+  const plugins = [...(base.plugins ?? [])]
+  if (!plugins.some((p) => p === '@maplibre/maplibre-react-native' || (Array.isArray(p) && p[0] === '@maplibre/maplibre-react-native'))) {
+    plugins.push('@maplibre/maplibre-react-native')
+  }
   return {
     ...base,
-    android: {
-      ...base.android,
-      config: {
-        ...base.android?.config,
-        googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
-        },
-      },
-    },
+    plugins,
   }
 }
