@@ -6,9 +6,12 @@ import { AuthProvider } from './src/context/AuthContext'
 import { ModalProvider } from './src/context/ModalContext'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { queryClient } from './src/lib/queryClient'
+import { useAppUpdates } from './src/hooks/useAppUpdates'
 import './src/i18n'
 
 export default function App() {
+  useAppUpdates()
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

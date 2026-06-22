@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState, Platform } from 'react-native'
 import { Pedometer } from 'expo-sensors'
-import { syncDailySteps } from '@beleg/shared'
+import { fetchTodaySteps, syncDailySteps } from '@beleg/shared'
 import { client } from '../../../api/client'
 import { useAuth } from '../../../context/AuthContext'
 import {
   DEFAULT_DAILY_STEP_GOAL,
+  getCachedDailySteps,
   getDailyStepGoal,
+  setCachedDailySteps,
   setDailyStepGoal,
   todayKey,
 } from '../services/stepsLocalStore'
-import { getStepsBaseline, setStepsBaseline } from '../services/activityLocalStore'
 import {
   type StepsAccessDebug,
   type StepsAccessStatus,
@@ -35,7 +36,7 @@ function logDebug(hypothesisId: string, location: string, message: string, data:
       message,
       data,
       timestamp: Date.now(),
-      runId: 'pre-fix',
+      runId: 'post-fix',
     }),
   }).catch(() => {})
   // #endregion
@@ -89,6 +90,11 @@ export function useDailySteps(): DailyStepsState {
   const requestingRef = useRef(false)
   const goalRef = useRef(DEFAULT_DAILY_STEP_GOAL)
   const androidWatchRef = useRef<{ remove: () => void } | null>(null)
+  // Koraci već evidentirani danas (cache/server) prije trenutne watch sesije.
+  const todayStepsBaseRef = useRef(0)
+  // Prvi cumulative očitanje u ovoj watch sesiji (Android resetuje brojač po subscribe).
+  const sessionBaselineRef = useRef<number | null>(null)
+  const activeDayRef = useRef(todayKey())
 
   const available = accessStatus !== 'loading' && accessStatus !== 'device_unavailable'
   const permissionGranted = accessStatus === 'ready'
@@ -102,14 +108,63 @@ export function useDailySteps(): DailyStepsState {
     setActiveMinutes(deriveActiveMinutes(steps))
   }, [])
 
+  const persistSteps = useCallback(async (steps: number, day: string) => {
+    await setCachedDailySteps(day, steps)
+  }, [])
+
   const syncToServer = useCallback(async (steps: number, day: string) => {
     if (!isLoggedIn || steps <= 0) return
     try {
-      await syncDailySteps(client, { date: day, steps })
-    } catch {
-      // sync is best-effort; local display still works
+      const res = await syncDailySteps(client, { date: day, steps })
+      await setCachedDailySteps(day, res.steps)
+      logDebug('H5', 'useDailySteps.ts:syncToServer', 'synced', { sent: steps, stored: res.steps, day })
+    } catch (e) {
+      logDebug('H5', 'useDailySteps.ts:syncToServer', 'sync failed', {
+        error: e instanceof Error ? e.message : String(e),
+      })
     }
   }, [isLoggedIn])
+
+  const hydrateTodayFromStores = useCallback(async (): Promise<{ steps: number; goal: number }> => {
+    const day = todayKey()
+    activeDayRef.current = day
+    sessionBaselineRef.current = null
+
+    let resolvedGoal = await getDailyStepGoal()
+    let resolvedSteps = await getCachedDailySteps(day)
+
+    if (isLoggedIn) {
+      try {
+        const remote = await fetchTodaySteps(client)
+        if (remote.goal >= 1000) {
+          resolvedGoal = remote.goal
+          await setDailyStepGoal(remote.goal)
+        }
+        if (remote.date === day) {
+          resolvedSteps = Math.max(resolvedSteps, remote.steps)
+        }
+        logDebug('H2', 'useDailySteps.ts:hydrate', 'server hydrate', {
+          remoteSteps: remote.steps,
+          remoteGoal: remote.goal,
+          cachedSteps: resolvedSteps,
+        })
+      } catch (e) {
+        logDebug('H2', 'useDailySteps.ts:hydrate', 'server hydrate failed', {
+          error: e instanceof Error ? e.message : String(e),
+          cachedSteps: resolvedSteps,
+        })
+      }
+    }
+
+    goalRef.current = resolvedGoal
+    setGoalState(resolvedGoal)
+    todayStepsBaseRef.current = resolvedSteps
+    setDate(day)
+    applySteps(resolvedSteps, resolvedGoal)
+    await persistSteps(resolvedSteps, day)
+
+    return { steps: resolvedSteps, goal: resolvedGoal }
+  }, [applySteps, isLoggedIn, persistSteps])
 
   const readStepsIos = useCallback(async (currentGoal: number) => {
     const end = new Date()
@@ -118,71 +173,91 @@ export function useDailySteps(): DailyStepsState {
     setDate(day)
     applySteps(result.steps, currentGoal)
     setError(null)
+    await persistSteps(result.steps, day)
     await syncToServer(result.steps, day)
     logDebug('H5', 'useDailySteps.ts:readStepsIos', 'getStepCountAsync ok', { steps: result.steps })
-  }, [applySteps, syncToServer])
+  }, [applySteps, persistSteps, syncToServer])
 
   const applyAndroidStepEvent = useCallback(
     async (cumulativeSteps: number) => {
       const day = todayKey()
+
+      if (day !== activeDayRef.current) {
+        activeDayRef.current = day
+        sessionBaselineRef.current = null
+        todayStepsBaseRef.current = 0
+        logDebug('H4', 'useDailySteps.ts:androidWatch', 'day rollover', { day })
+      }
+
       setDate(day)
-      let baseline = await getStepsBaseline(day)
-      if (baseline == null) {
-        await setStepsBaseline(day, cumulativeSteps)
-        baseline = cumulativeSteps
-        applySteps(0, goalRef.current)
-        logDebug('H4', 'useDailySteps.ts:androidWatch', 'baseline set', { baseline: cumulativeSteps })
+
+      if (sessionBaselineRef.current === null) {
+        sessionBaselineRef.current = cumulativeSteps
+        logDebug('H1', 'useDailySteps.ts:androidWatch', 'session baseline set', {
+          cumulativeSteps,
+          todayStepsBase: todayStepsBaseRef.current,
+        })
         return
       }
-      const steps = Math.max(0, cumulativeSteps - baseline)
+
+      const delta = Math.max(0, cumulativeSteps - sessionBaselineRef.current)
+      const steps = todayStepsBaseRef.current + delta
       applySteps(steps, goalRef.current)
       setError(null)
+      await persistSteps(steps, day)
       await syncToServer(steps, day)
-      logDebug('H4', 'useDailySteps.ts:androidWatch', 'steps updated', {
+      logDebug('H1', 'useDailySteps.ts:androidWatch', 'steps updated', {
         cumulativeSteps,
-        baseline,
+        sessionBaseline: sessionBaselineRef.current,
+        todayStepsBase: todayStepsBaseRef.current,
+        delta,
         steps,
       })
     },
-    [applySteps, syncToServer],
+    [applySteps, persistSteps, syncToServer],
   )
 
   const startAndroidWatch = useCallback(() => {
     androidWatchRef.current?.remove()
+    sessionBaselineRef.current = null
     androidWatchRef.current = Pedometer.watchStepCount((ev) => {
       void applyAndroidStepEvent(ev.steps)
     })
-    logDebug('H4', 'useDailySteps.ts:startAndroidWatch', 'watchStepCount subscribed', {})
+    logDebug('H1', 'useDailySteps.ts:startAndroidWatch', 'watchStepCount subscribed', {
+      todayStepsBase: todayStepsBaseRef.current,
+    })
   }, [applyAndroidStepEvent])
 
-  const readSteps = useCallback(async (currentGoal: number) => {
+  const readSteps = useCallback(async () => {
     if (Platform.OS === 'android') {
       startAndroidWatch()
       return
     }
-    await readStepsIos(currentGoal)
+    await readStepsIos(goalRef.current)
   }, [readStepsIos, startAndroidWatch])
 
   const checkAccess = useCallback(async () => {
     try {
-      const storedGoal = await getDailyStepGoal()
-      goalRef.current = storedGoal
-      setGoalState(storedGoal)
+      await hydrateTodayFromStores()
 
       const { status, debug } = await resolveStepsAccess(false)
       setAccessStatus(status)
       setAccessDebug(debug)
 
-      logDebug('H1', 'useDailySteps.ts:checkAccess', 'access resolved', { status, debug })
+      logDebug('H1', 'useDailySteps.ts:checkAccess', 'access resolved', {
+        status,
+        todayStepsBase: todayStepsBaseRef.current,
+        goal: goalRef.current,
+      })
 
       if (status === 'ready') {
-        await readSteps(storedGoal)
+        await readSteps()
       } else {
         androidWatchRef.current?.remove()
         androidWatchRef.current = null
-        applySteps(0, storedGoal)
-        setError(null)
+        sessionBaselineRef.current = null
       }
+      setError(null)
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
       logDebug('H5', 'useDailySteps.ts:checkAccess', 'catch', { error: errMsg })
@@ -200,7 +275,7 @@ export function useDailySteps(): DailyStepsState {
     } finally {
       setLoading(false)
     }
-  }, [applySteps, readSteps])
+  }, [hydrateTodayFromStores, readSteps])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -212,8 +287,7 @@ export function useDailySteps(): DailyStepsState {
     requestingRef.current = true
     setLoading(true)
     try {
-      const storedGoal = await getDailyStepGoal()
-      goalRef.current = storedGoal
+      await hydrateTodayFromStores()
       const { status, debug } = await requestStepsAccess()
       setAccessStatus(status)
       setAccessDebug(debug)
@@ -221,14 +295,14 @@ export function useDailySteps(): DailyStepsState {
       logDebug('H3', 'useDailySteps.ts:requestAccess', 'access requested', { status, debug })
 
       if (status === 'ready') {
-        await readSteps(storedGoal)
+        await readSteps()
         setError(null)
         return
       }
 
       androidWatchRef.current?.remove()
       androidWatchRef.current = null
-      applySteps(0, storedGoal)
+      sessionBaselineRef.current = null
       setError(null)
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
@@ -238,7 +312,7 @@ export function useDailySteps(): DailyStepsState {
       requestingRef.current = false
       setLoading(false)
     }
-  }, [applySteps, readSteps])
+  }, [hydrateTodayFromStores, readSteps])
 
   const setGoal = useCallback(async (newGoal: number) => {
     await setDailyStepGoal(newGoal)

@@ -3,6 +3,14 @@
     "name": "Planiner",
     "slug": "beleg-mobile",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c10dd732-8c2e-4f81-b8dc-f81d74e5933e",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.jpg",
@@ -22,7 +30,7 @@
     },
     "android": {
       "package": "rs.planiner.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.jpg",
         "backgroundColor": "#1a6b52"
@@ -37,6 +45,7 @@
       ]
     },
     "plugins": [
+      "expo-updates",
       "expo-asset",
       "expo-font",
       "expo-secure-store",

@@ -9,7 +9,9 @@
     "eas:login": "eas login",
     "eas:init": "eas init",
     "build:apk": "eas build -p android --profile preview",
-    "build:apk:non-interactive": "eas build -p android --profile preview --non-interactive"
+    "build:apk:non-interactive": "eas build -p android --profile preview --non-interactive",
+    "update:apk": "eas update --channel preview",
+    "update:production": "eas update --channel production"
   },
   "dependencies": {
     "@beleg/shared": "file:../../packages/shared",
@@ -30,6 +32,7 @@
     "expo-secure-store": "~15.0.8",
     "expo-sensors": "~15.0.8",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.18",
     "i18next": "^26.3.1",
     "react": "19.1.0",
     "react-hook-form": "^7.79.0",

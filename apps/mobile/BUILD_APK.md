@@ -18,13 +18,33 @@ npm run eas:init
 - **eas:login** — prijavi se na [expo.dev](https://expo.dev) (besplatan nalog).
 - **eas:init** — povezuje projekat i upisuje `projectId` u `app.json`.
 
-## Napravi APK
+## Napravi APK (samo kad menjaš native deo)
+
+Potreban je **jednom** (i posle svake promene native modula / `app.json` dozvola / `version` u `app.json`).
 
 ```powershell
 npm run build:apk
 ```
 
 Build traje ~10–20 min na Expo serverima. Na kraju dobiješ **link za preuzimanje .apk** fajla.
+
+**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 3+).
+
+## OTA update (bez novog APK-a)
+
+Za izmene samo u JS/TS kodu (ekrani, logika, stilovi):
+
+```powershell
+npm run update:apk -- --message "kratak opis izmene"
+```
+
+Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** aplikacije (automatska provera na startu).
+
+| Šta menjaš | Komanda |
+|------------|---------|
+| JS/TS, UI, API pozivi | `npm run update:apk` |
+| Nova native biblioteka, dozvole, ikona | `npm run build:apk` + nova instalacija |
+| `version` u `app.json` (npr. 1.0.0 → 1.1.0) | Novi APK build (menja se `runtimeVersion`) |
 
 ## Instalacija na Samsung
 

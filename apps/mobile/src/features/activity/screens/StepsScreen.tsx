@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -69,6 +70,7 @@ function ClubLbRow({ item, highlight }: { item: ClubStepsLeaderboardEntry; highl
 export default function StepsScreen({ navigation }: Props) {
   const { t } = useTranslation('explore')
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const daily = useDailySteps()
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [clubsModalOpen, setClubsModalOpen] = useState(false)
@@ -89,6 +91,15 @@ export default function StepsScreen({ navigation }: Props) {
     queryFn: () => fetchClubsStepsLeaderboard(client, { period: 'month' }),
     enabled: clubsModalOpen || !!user?.klubId,
   })
+
+  useFocusEffect(
+    useCallback(() => {
+      void daily.refresh()
+      void queryClient.invalidateQueries({ queryKey: ['steps-history'] })
+      void queryClient.invalidateQueries({ queryKey: ['steps-lb-global-month'] })
+      void queryClient.invalidateQueries({ queryKey: ['steps-lb-clubs-month'] })
+    }, [daily.refresh, queryClient]),
+  )
 
   const days = useMemo(() => {
     const fromHistory = historyQuery.data?.days ?? []
