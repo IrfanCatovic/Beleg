@@ -1,20 +1,26 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { Task } from '@beleg/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { getApiErrorMessage } from '@beleg/shared'
 import {
   fetchClubJoinRequests,
   fetchObavestenjeById,
+  fetchZadatakById,
   markObavestenjeRead,
   respondClubJoinRequest,
 } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
+import { TaskCard } from '../../components/tasks/TaskCard'
+import { TaskFormModal } from '../../components/tasks/TaskFormModal'
 import { Avatar, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { canManageClub } from '../../utils/roles'
+import { canSeeTask } from '../../utils/taskPermissions'
+import { useTaskActions } from '../tasks/useTaskActions'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 
@@ -56,6 +62,17 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
   const queryClient = useQueryClient()
+  const [editTask, setEditTask] = useState<Task | null>(null)
+
+  const {
+    handleTake,
+    handleLeave,
+    handleFinish,
+    handleDelete,
+    handleUpdate,
+    isLoading,
+    isFormSubmitting,
+  } = useTaskActions()
 
   const detailQuery = useQuery({
     queryKey: ['obavestenje', id],
@@ -63,7 +80,17 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   })
 
   const meta = useMemo(() => parseMetadata(detailQuery.data?.metadata), [detailQuery.data?.metadata])
+  const zadatakId = meta.zadatakId
   const clubJoinRequestId = meta.clubJoinRequestId
+
+  const taskQuery = useQuery({
+    queryKey: ['zadatak', zadatakId],
+    queryFn: () => fetchZadatakById(client, zadatakId!),
+    enabled: zadatakId != null,
+  })
+
+  const task = taskQuery.data
+  const canSeeLinkedTask = task ? canSeeTask(task, user?.role) : false
 
   const joinRequestsQuery = useQuery({
     queryKey: ['klub', 'join-requests', 'notification'],
@@ -127,6 +154,10 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
     canManageClub(user, user?.klubId ?? undefined)
   const joinHandled = clubJoinRequestId != null && !joinRequest && !joinRequestsQuery.isLoading
 
+  const openAllTasks = () => {
+    navigation.getParent()?.navigate('ClubTab', { screen: 'Tasks' })
+  }
+
   return (
     <Screen scroll edges={['left', 'right']}>
       <Text variant="title" style={styles.title}>
@@ -186,6 +217,41 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
         </Card>
       ) : null}
 
+      {zadatakId != null ? (
+        <View style={styles.links}>
+          {taskQuery.isLoading ? <Loader /> : null}
+          {taskQuery.isError ? (
+            <Card style={styles.card}>
+              <Text color={colors.textMuted}>
+                {getApiErrorMessage(taskQuery.error, 'Zadatak nije učitan.')}
+              </Text>
+              <Button title="Pokušaj ponovo" variant="secondary" onPress={() => taskQuery.refetch()} />
+            </Card>
+          ) : null}
+          {task && canSeeLinkedTask ? (
+            <>
+              <TaskCard
+                task={task}
+                username={user?.username}
+                userRole={user?.role}
+                onTake={handleTake}
+                onLeave={handleLeave}
+                onFinish={handleFinish}
+                onEdit={setEditTask}
+                onDelete={handleDelete}
+                isLoading={isLoading}
+              />
+              <Button title="Otvori sve zadatke" variant="secondary" onPress={openAllTasks} />
+            </>
+          ) : null}
+          {task && !canSeeLinkedTask ? (
+            <Card style={styles.card}>
+              <Text color={colors.textMuted}>Nemaš dozvolu da vidiš ovaj zadatak.</Text>
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.links}>
         {actionId ? (
           <Card style={styles.card}>
@@ -232,6 +298,15 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
           </Card>
         ) : null}
       </View>
+
+      <TaskFormModal
+        mode="edit"
+        visible={editTask != null}
+        task={editTask}
+        onClose={() => setEditTask(null)}
+        onSubmit={handleUpdate}
+        submitting={isFormSubmitting}
+      />
     </Screen>
   )
 }

@@ -13,6 +13,11 @@ export async function fetchZadaci(client: AxiosInstance): Promise<Task[]> {
   return list as Task[]
 }
 
+export async function fetchZadatakById(client: AxiosInstance, taskId: number): Promise<Task> {
+  const res = await client.get(`/api/zadaci/${taskId}`)
+  return unwrapTask(res.data)
+}
+
 export async function createZadatak(client: AxiosInstance, body: TaskFormData): Promise<Task> {
   const res = await client.post('/api/zadaci', body)
   return unwrapTask(res.data)

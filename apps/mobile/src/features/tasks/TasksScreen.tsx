@@ -1,20 +1,20 @@
-import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { Task } from '@beleg/shared'
 import { getApiErrorMessage } from '@beleg/shared'
-import {
-  fetchZadaci,
-  napustiZadatak,
-  preuzmiZadatak,
-  zavrsiZadatak,
-} from '@beleg/shared/services'
+import { fetchZadaci } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
-import { useModal } from '../../context/ModalContext'
-import { Badge, Button, Card, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { useSuperadminClub } from '../../hooks/useSuperadminClub'
+import { TaskCard } from '../../components/tasks/TaskCard'
+import { TaskFormModal } from '../../components/tasks/TaskFormModal'
+import { Button, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { canManageTasks, canSeeTask } from '../../utils/taskPermissions'
 import { colors, spacing } from '../../theme'
+import { useTaskActions } from './useTaskActions'
 import type { ClubStackParamList, ProfileStackParamList } from '../../navigation/types'
 
 type Props =
@@ -22,9 +22,9 @@ type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'Tasks'>
 
 const STATUS_LABELS: Record<string, string> = {
-  aktivni: 'Aktivni',
-  u_toku: 'U toku',
-  zavrsen: 'Završeni',
+  aktivni: 'Aktivni zadaci',
+  u_toku: 'Izvršavaju se',
+  zavrsen: 'Završeni zadaci',
 }
 
 function sortTasks(list: Task[]): Task[] {
@@ -37,42 +37,50 @@ function sortTasks(list: Task[]): Task[] {
   })
 }
 
-export default function TasksScreen(_props: Props) {
+export default function TasksScreen({ navigation }: Props) {
   const { user } = useAuth()
-  const queryClient = useQueryClient()
-  const { showAlert } = useModal()
+  const { hasSelectedClub, loading: superadminClubLoading } = useSuperadminClub()
+  const isSuperadminNoClub = user?.role === 'superadmin' && !hasSelectedClub
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editTask, setEditTask] = useState<Task | null>(null)
+
+  const {
+    handleTake,
+    handleLeave,
+    handleFinish,
+    handleDelete,
+    handleCreate,
+    handleUpdate,
+    isLoading,
+    isFormSubmitting,
+  } = useTaskActions()
+
+  const canManage = canManageTasks(user?.role)
+
+  useLayoutEffect(() => {
+    if (!canManage) {
+      navigation.setOptions({ headerRight: undefined })
+      return
+    }
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => setCreateOpen(true)} hitSlop={8} style={styles.headerBtn}>
+          <Ionicons name="add-circle-outline" size={24} color="#fff" />
+        </Pressable>
+      ),
+    })
+  }, [navigation, canManage])
 
   const tasksQuery = useQuery({
     queryKey: ['zadaci'],
     queryFn: () => fetchZadaci(client),
-  })
-
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['zadaci'] })
-
-  const preuzmiMutation = useMutation({
-    mutationFn: (id: number) => preuzmiZadatak(client, id),
-    onSuccess: invalidate,
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Preuzimanje nije uspelo.')),
-  })
-
-  const zavrsiMutation = useMutation({
-    mutationFn: (id: number) => zavrsiZadatak(client, id),
-    onSuccess: invalidate,
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Završetak nije uspeo.')),
-  })
-
-  const napustiMutation = useMutation({
-    mutationFn: (id: number) => napustiZadatak(client, id),
-    onSuccess: invalidate,
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Napuštanje nije uspelo.')),
+    enabled: !isSuperadminNoClub,
   })
 
   const grouped = useMemo(() => {
     const tasks = tasksQuery.data ?? []
-    const visible = tasks.filter((t) => {
-      if (user?.role === 'clan') return t.allowAll
-      return true
-    })
+    const visible = tasks.filter((t) => canSeeTask(t, user?.role))
     return {
       aktivni: sortTasks(visible.filter((t) => t.status === 'aktivni')),
       u_toku: sortTasks(visible.filter((t) => t.status === 'u_toku')),
@@ -80,16 +88,27 @@ export default function TasksScreen(_props: Props) {
     }
   }, [tasksQuery.data, user?.role])
 
-  const hasTaken = (task: Task) =>
-    !!user && (task.assignees ?? []).some((a) => a.username === user.username)
+  const goToClubPicker = useCallback(() => {
+    navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
+  }, [navigation])
 
-  const canTake = (task: Task) => {
-    if (!user) return false
-    if (task.allowAll) return true
-    return task.allowedRoles?.includes(user.role as Task['allowedRoles'][number])
+  if (isSuperadminNoClub) {
+    return (
+      <Screen edges={['left', 'right']}>
+        <View style={styles.pickClub}>
+          <Text variant="heading" style={styles.pickClubTitle}>
+            Izaberite klub
+          </Text>
+          <Text color={colors.textMuted} style={styles.pickClubMessage}>
+            Da biste videli zadatke kluba, prvo uđite u klub na tabu Moj klub.
+          </Text>
+          <Button title="Idi na Moj klub" onPress={goToClubPicker} fullWidth />
+        </View>
+      </Screen>
+    )
   }
 
-  if (tasksQuery.isLoading) {
+  if (tasksQuery.isLoading || superadminClubLoading) {
     return (
       <Screen edges={['left', 'right']}>
         <Loader />
@@ -100,7 +119,10 @@ export default function TasksScreen(_props: Props) {
   if (tasksQuery.isError) {
     return (
       <Screen edges={['left', 'right']}>
-        <ErrorView message="Zadaci nisu učitani." onRetry={() => tasksQuery.refetch()} />
+        <ErrorView
+          message={getApiErrorMessage(tasksQuery.error, 'Zadaci nisu učitani.')}
+          onRetry={() => tasksQuery.refetch()}
+        />
       </Screen>
     )
   }
@@ -109,8 +131,13 @@ export default function TasksScreen(_props: Props) {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {total === 0 ? <EmptyState title="Nema zadataka" /> : null}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={tasksQuery.isRefetching} onRefresh={() => tasksQuery.refetch()} />
+        }
+      >
+        {total === 0 ? <EmptyState title="Nema zadataka" message="Nema zadataka za prikaz." /> : null}
 
         {(['aktivni', 'u_toku', 'zavrsen'] as const).map((status) => {
           const section = grouped[status]
@@ -118,76 +145,58 @@ export default function TasksScreen(_props: Props) {
           return (
             <View key={status} style={styles.section}>
               <Text variant="label" style={styles.sectionTitle}>
-                {STATUS_LABELS[status]}
+                {STATUS_LABELS[status]} ({section.length})
               </Text>
-              {section.map((task) => {
-                const taken = hasTaken(task)
-                const takeAllowed = canTake(task)
-                return (
-                  <Card key={task.id} style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <Text variant="label" style={styles.cardTitle}>
-                        {task.naziv}
-                      </Text>
-                      {task.hitno ? <Badge label="Hitno" tone="danger" /> : null}
-                    </View>
-                    {task.opis ? (
-                      <Text variant="small" color={colors.textMuted}>
-                        {task.opis}
-                      </Text>
-                    ) : null}
-                    {task.deadline ? (
-                      <Text variant="small" color={colors.textMuted}>
-                        Rok: {new Date(task.deadline).toLocaleDateString('sr-Latn-RS')}
-                      </Text>
-                    ) : null}
-                    {(task.assignees ?? []).length > 0 ? (
-                      <Text variant="small" color={colors.textMuted}>
-                        Preuzeli: {task.assignees!.map((a) => a.fullName || a.username).join(', ')}
-                      </Text>
-                    ) : null}
-                    <View style={styles.actions}>
-                      {status === 'aktivni' && takeAllowed && !taken ? (
-                        <Button
-                          title="Preuzmi"
-                          variant="secondary"
-                          onPress={() => preuzmiMutation.mutate(task.id)}
-                          loading={preuzmiMutation.isPending}
-                        />
-                      ) : null}
-                      {status === 'u_toku' && taken ? (
-                        <>
-                          <Button
-                            title="Završi"
-                            onPress={() => zavrsiMutation.mutate(task.id)}
-                            loading={zavrsiMutation.isPending}
-                          />
-                          <Button
-                            title="Napusti"
-                            variant="ghost"
-                            onPress={() => napustiMutation.mutate(task.id)}
-                            loading={napustiMutation.isPending}
-                          />
-                        </>
-                      ) : null}
-                    </View>
-                  </Card>
-                )
-              })}
+              {section.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  username={user?.username}
+                  userRole={user?.role}
+                  onTake={handleTake}
+                  onLeave={handleLeave}
+                  onFinish={handleFinish}
+                  onEdit={setEditTask}
+                  onDelete={handleDelete}
+                  isLoading={isLoading}
+                />
+              ))}
             </View>
           )
         })}
       </ScrollView>
+
+      <TaskFormModal
+        mode="create"
+        visible={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreate}
+        submitting={isFormSubmitting}
+      />
+
+      <TaskFormModal
+        mode="edit"
+        visible={editTask != null}
+        task={editTask}
+        onClose={() => setEditTask(null)}
+        onSubmit={handleUpdate}
+        submitting={isFormSubmitting}
+      />
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
+  headerBtn: { marginRight: spacing.sm, padding: spacing.xs },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   section: { marginBottom: spacing.lg, gap: spacing.sm },
   sectionTitle: { marginBottom: spacing.xs },
-  card: { gap: spacing.sm, marginBottom: spacing.sm },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  cardTitle: { flex: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+  pickClub: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  pickClubTitle: { textAlign: 'center' },
+  pickClubMessage: { textAlign: 'center' },
 })
