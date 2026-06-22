@@ -9,7 +9,12 @@ import {
   getDailyStepGoal,
   setDailyStepGoal,
   todayKey,
-} from '../../activity/services/stepsLocalStore'
+} from '../services/stepsLocalStore'
+import {
+  type StepsAccessStatus,
+  requestStepsAccess,
+  resolveStepsAccess,
+} from '../services/stepsAccess'
 import { deriveActiveMinutes, deriveDistanceKm } from '../../steps/services/stepsDerived'
 
 const REFRESH_INTERVAL_MS = 30_000
@@ -24,9 +29,11 @@ export interface DailyStepsState {
   date: string
   available: boolean
   permissionGranted: boolean
+  accessStatus: StepsAccessStatus | 'loading'
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
+  requestAccess: () => Promise<void>
   setGoal: (goal: number) => Promise<void>
 }
 
@@ -51,10 +58,12 @@ export function useDailySteps(): DailyStepsState {
   const [distanceKm, setDistanceKm] = useState(0)
   const [activeMinutes, setActiveMinutes] = useState(0)
   const [date, setDate] = useState(todayKey())
-  const [available, setAvailable] = useState(false)
-  const [permissionGranted, setPermissionGranted] = useState(false)
+  const [accessStatus, setAccessStatus] = useState<StepsAccessStatus | 'loading'>('loading')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const available = accessStatus !== 'loading' && accessStatus !== 'device_unavailable'
+  const permissionGranted = accessStatus === 'ready'
 
   const applySteps = useCallback((steps: number, currentGoal: number) => {
     setTodaySteps(steps)
@@ -90,27 +99,51 @@ export function useDailySteps(): DailyStepsState {
       const storedGoal = await getDailyStepGoal()
       setGoalState(storedGoal)
 
-      const isAvailable = await Pedometer.isAvailableAsync()
-      setAvailable(isAvailable)
+      const status = await resolveStepsAccess(true)
+      setAccessStatus(status)
 
-      if (!isAvailable) {
+      if (status === 'device_unavailable') {
         applySteps(0, storedGoal)
-        setPermissionGranted(false)
         setError(null)
         return
       }
 
-      const { status } = await Pedometer.requestPermissionsAsync()
-      const granted = status === 'granted'
-      setPermissionGranted(granted)
-
-      if (!granted) {
+      if (status === 'permission_needed') {
         applySteps(0, storedGoal)
-        setError('Dozvola za brojač koraka nije odobrena.')
+        setError(null)
+        return
+      }
+
+      if (status === 'permission_denied') {
+        applySteps(0, storedGoal)
+        setError(null)
         return
       }
 
       await readSteps(storedGoal)
+    } catch {
+      setAccessStatus('device_unavailable')
+      setError('Brojač koraka trenutno nije dostupan.')
+    } finally {
+      setLoading(false)
+    }
+  }, [applySteps, readSteps])
+
+  const requestAccess = useCallback(async () => {
+    setLoading(true)
+    try {
+      const storedGoal = await getDailyStepGoal()
+      const status = await requestStepsAccess()
+      setAccessStatus(status)
+
+      if (status === 'ready') {
+        await readSteps(storedGoal)
+        setError(null)
+        return
+      }
+
+      applySteps(0, storedGoal)
+      setError(null)
     } catch {
       setError('Brojač koraka trenutno nije dostupan.')
     } finally {
@@ -131,21 +164,21 @@ export function useDailySteps(): DailyStepsState {
   }, [refresh])
 
   useEffect(() => {
-    if (!available || !permissionGranted) return
+    if (!permissionGranted) return
     const id = setInterval(() => {
       void readSteps(goal)
     }, REFRESH_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [available, permissionGranted, goal, readSteps])
+  }, [permissionGranted, goal, readSteps])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && available && permissionGranted) {
-        void readSteps(goal)
+      if (state === 'active') {
+        void refresh()
       }
     })
     return () => sub.remove()
-  }, [available, permissionGranted, goal, readSteps])
+  }, [refresh])
 
   return {
     todaySteps,
@@ -157,9 +190,11 @@ export function useDailySteps(): DailyStepsState {
     date,
     available,
     permissionGranted,
+    accessStatus,
     loading,
     error,
     refresh,
+    requestAccess,
     setGoal,
   }
 }

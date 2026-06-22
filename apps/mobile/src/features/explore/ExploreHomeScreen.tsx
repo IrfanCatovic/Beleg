@@ -35,7 +35,8 @@ export default function ExploreHomeScreen({ navigation }: Props) {
             distanceKm={dailySteps.distanceKm}
             activeMinutes={dailySteps.activeMinutes}
             loading={dailySteps.loading}
-            unavailable={!dailySteps.available || !dailySteps.permissionGranted}
+            accessStatus={dailySteps.accessStatus}
+            onRequestAccess={() => void dailySteps.requestAccess()}
             onPress={() => navigation.navigate('Steps')}
           />
 

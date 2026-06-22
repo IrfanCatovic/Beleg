@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { ClubStepsLeaderboardEntry, StepsLeaderboardEntry } from '@beleg/shared'
 import {
@@ -66,6 +67,7 @@ function ClubLbRow({ item, highlight }: { item: ClubStepsLeaderboardEntry; highl
 }
 
 export default function StepsScreen({ navigation }: Props) {
+  const { t } = useTranslation('explore')
   const { user } = useAuth()
   const daily = useDailySteps()
   const [selectedDate, setSelectedDate] = useState(todayKey())
@@ -131,6 +133,9 @@ export default function StepsScreen({ navigation }: Props) {
   const progressPct =
     daily.goal > 0 ? Math.min(100, Math.round((selectedSteps / daily.goal) * 100)) : 0
 
+  const needsStepsAccess =
+    daily.accessStatus === 'permission_needed' || daily.accessStatus === 'permission_denied'
+
   const goToClub = () => {
     navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
   }
@@ -148,6 +153,33 @@ export default function StepsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <AppTopBar title="Dnevni koraci" />
       <ScrollView contentContainerStyle={styles.scroll}>
+        {needsStepsAccess ? (
+          <Card style={styles.accessCard}>
+            <Text variant="small" color={colors.textMuted}>
+              {daily.accessStatus === 'permission_denied'
+                ? t('dailyStepsPermissionDenied')
+                : t('dailyStepsPermissionNeeded')}
+            </Text>
+            <Button
+              title={
+                daily.accessStatus === 'permission_denied'
+                  ? t('dailyStepsOpenSettings')
+                  : t('dailyStepsEnable')
+              }
+              variant="secondary"
+              onPress={() => void daily.requestAccess()}
+            />
+          </Card>
+        ) : null}
+
+        {daily.accessStatus === 'device_unavailable' ? (
+          <Card style={styles.accessCard}>
+            <Text variant="small" color={colors.textMuted}>
+              {t('dailyStepsUnavailable')}
+            </Text>
+          </Card>
+        ) : null}
+
         <Text variant="small" color={colors.textMuted}>
           {monthLabel}
         </Text>
@@ -297,6 +329,7 @@ export default function StepsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  accessCard: { gap: spacing.sm },
   dayPicker: { gap: spacing.sm, paddingVertical: spacing.xs },
   dayPill: {
     minWidth: 56,

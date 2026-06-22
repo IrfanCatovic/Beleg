@@ -146,6 +146,16 @@ export const sr = {
     subtitle: 'Ferate, vodiči i mapa avantura na jednom mestu.',
     dailySteps: 'Dnevni koraci',
     dailyStepsHint: 'Prati dnevni broj koraka i cilj.',
+    dailyStepsLoading: 'Učitavanje koraka...',
+    dailyStepsUnavailable: 'Brojač koraka nije dostupan na ovom uređaju.',
+    dailyStepsExpoGoHint:
+      'Brojač koraka u Expo Go aplikaciji često ne radi. Instaliraj dev build Planinera na telefon za pravo brojanje.',
+    dailyStepsPermissionNeeded:
+      'Planiner treba dozvolu za kretanje i korake (Motion / Aktivnost) da prikaže dnevni broj.',
+    dailyStepsPermissionDenied:
+      'Dozvola za korake je isključena. Uključi je u postavkama telefona.',
+    dailyStepsEnable: 'Omogući brojač koraka',
+    dailyStepsOpenSettings: 'Otvori postavke',
     startActivity: 'Započni akciju',
     startActivityHint: 'GPS praćenje rute, udaljenosti i uspona.',
     activeSessionTitle: 'Aktivna sesija',

@@ -1,7 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native'
+import Constants from 'expo-constants'
 import { Ionicons } from '@expo/vector-icons'
-import { Text } from '../../../components/ui'
+import { useTranslation } from 'react-i18next'
+import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
+import type { StepsAccessStatus } from '../services/stepsAccess'
 import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
 
 interface Props {
@@ -11,7 +14,8 @@ interface Props {
   distanceKm: number
   activeMinutes: number
   loading?: boolean
-  unavailable?: boolean
+  accessStatus?: StepsAccessStatus | 'loading'
+  onRequestAccess?: () => void
   onPress: () => void
 }
 
@@ -22,10 +26,15 @@ export function StepsSummaryCard({
   distanceKm,
   activeMinutes,
   loading = false,
-  unavailable = false,
+  accessStatus = 'ready',
+  onRequestAccess,
   onPress,
 }: Props) {
+  const { t } = useTranslation('explore')
   const pct = Math.min(100, progressPercent)
+  const isExpoGo = Constants.appOwnership === 'expo'
+  const needsAccess =
+    accessStatus === 'permission_needed' || accessStatus === 'permission_denied'
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
@@ -44,14 +53,38 @@ export function StepsSummaryCard({
         {loading ? (
           <View style={styles.loadingBody}>
             <Text variant="small" color={colors.textMuted}>
-              Učitavanje koraka...
+              {t('dailyStepsLoading')}
             </Text>
             <View style={styles.skeletonTrack} />
           </View>
-        ) : unavailable ? (
-          <Text variant="small" color={colors.textMuted}>
-            Brojač nije dostupan na uređaju
-          </Text>
+        ) : accessStatus === 'device_unavailable' ? (
+          <View style={styles.accessBody}>
+            <Text variant="small" color={colors.textMuted}>
+              {isExpoGo ? t('dailyStepsExpoGoHint') : t('dailyStepsUnavailable')}
+            </Text>
+          </View>
+        ) : needsAccess ? (
+          <View style={styles.accessBody}>
+            <Text variant="small" color={colors.textMuted}>
+              {accessStatus === 'permission_denied'
+                ? t('dailyStepsPermissionDenied')
+                : t('dailyStepsPermissionNeeded')}
+            </Text>
+            {onRequestAccess ? (
+              <Button
+                title={
+                  accessStatus === 'permission_denied'
+                    ? t('dailyStepsOpenSettings')
+                    : t('dailyStepsEnable')
+                }
+                variant="secondary"
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onRequestAccess()
+                }}
+              />
+            ) : null}
+          </View>
         ) : (
           <>
             <View style={styles.countRow}>
@@ -121,6 +154,7 @@ const styles = StyleSheet.create({
     color: colors.navBgMid,
   },
   loadingBody: { gap: spacing.sm },
+  accessBody: { gap: spacing.sm },
   skeletonTrack: {
     height: 8,
     borderRadius: radius.full,
