@@ -27,7 +27,7 @@ import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { AppTopBar } from '../../components/ui/AppTopBar'
-import { Button, Card, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
+import { Button, Card, DatePickerField, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
 import { colors, radius, spacing } from '../../theme'
 import { canManageActions } from '../../utils/roles'
 import type { ActionsStackParamList } from '../../navigation/types'
@@ -365,8 +365,8 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
       setError('Izaberi bar jednog korisnika.')
       return
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) {
-      setError('Datum mora biti u formatu YYYY-MM-DD.')
+    if (!datum.trim()) {
+      setError('Izaberite datum akcije.')
       return
     }
     if (!tezina.trim()) {
@@ -551,12 +551,11 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
             <Input label="Naziv akcije" value={naziv} onChangeText={setNaziv} placeholder="Naziv" />
             <Input label="Planina" value={planina} onChangeText={setPlanina} placeholder="Planina" />
             <Input label="Vrh" value={vrh} onChangeText={setVrh} placeholder="Vrh" />
-            <Input
-              label="Datum (YYYY-MM-DD)"
-              value={datum}
-              onChangeText={setDatum}
-              placeholder="2024-06-15"
-              autoCapitalize="none"
+            <DatePickerField
+              label="Datum akcije"
+              value={datum || null}
+              onChange={(ymd) => setDatum(ymd ?? '')}
+              preset="past"
             />
 
             <Text variant="label">Težina</Text>

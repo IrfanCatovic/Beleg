@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,10 +9,9 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { useMutation } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { getApiErrorMessage } from '@beleg/shared'
+import { formatActionDate, getApiErrorMessage } from '@beleg/shared'
 import type {
   GuideBookingEquipmentStatus,
   GuideBookingGroupExperience,
@@ -28,7 +26,7 @@ import {
 import { client } from '../../../api/client'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
-import { Avatar, Button, Text } from '../../../components/ui'
+import { Avatar, Button, DatePickerField, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 
 interface FerrataGuideBookingModalProps {
@@ -65,21 +63,6 @@ function guideName(g: GuideNearbyPublic): string {
   return g.user?.fullName || g.user?.username || g.naslov || 'Vodič'
 }
 
-function normalizeDesiredDate(input: string): string | null {
-  const trimmed = input.trim()
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
-  const dot = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(trimmed)
-  if (dot) {
-    const [, d, m, y] = dot
-    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
-  }
-  return null
-}
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 export function FerrataGuideBookingModal({
   visible,
   onClose,
@@ -92,9 +75,6 @@ export function FerrataGuideBookingModal({
   const { showAlert } = useModal()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [desiredDate, setDesiredDate] = useState('')
-  const [dateInput, setDateInput] = useState('')
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [pickerDate, setPickerDate] = useState(new Date())
   const [timeOfDay, setTimeOfDay] = useState<GuideBookingTimeOfDay>('any')
   const [exactTime, setExactTime] = useState('')
   const [dateFlexible, setDateFlexible] = useState(false)
@@ -114,7 +94,6 @@ export function FerrataGuideBookingModal({
     if (!visible) return
     setStep(1)
     setDesiredDate('')
-    setDateInput('')
     setTimeOfDay('any')
     setExactTime('')
     setDateFlexible(false)
@@ -130,13 +109,12 @@ export function FerrataGuideBookingModal({
 
   const submitMutation = useMutation({
     mutationFn: () => {
-      const normalized = normalizeDesiredDate(desiredDate || dateInput)
-      if (!normalized) throw new Error('Neispravan datum.')
+      if (!desiredDate.trim()) throw new Error('Izaberite datum.')
       return createFerrataGuideBooking(client, {
         ferrataId,
         guideProfileIds: Array.from(selectedGuideIds),
         skipGuides: false,
-        desiredDate: normalized,
+        desiredDate: desiredDate.trim(),
         timeOfDay,
         exactTime: timeOfDay === 'exact' ? exactTime : '',
         dateFlexible,
@@ -158,16 +136,10 @@ export function FerrataGuideBookingModal({
   })
 
   const validateStep1 = async (): Promise<boolean> => {
-    const normalized = normalizeDesiredDate(desiredDate || dateInput)
-    if (!normalized) {
-      await showAlert('Datum', 'Unesite datum u formatu YYYY-MM-DD ili DD.MM.YYYY.')
+    if (!desiredDate.trim()) {
+      await showAlert('Datum', 'Izaberite željeni datum.')
       return false
     }
-    if (normalized < todayIso()) {
-      await showAlert('Datum', 'Datum ne može biti u prošlosti.')
-      return false
-    }
-    setDesiredDate(normalized)
     if (timeOfDay === 'exact' && !exactTime.trim()) {
       await showAlert('Vreme', 'Unesite tačno vreme polaska.')
       return false
@@ -249,19 +221,7 @@ export function FerrataGuideBookingModal({
     })
   }
 
-  const onDatePicked = (_: unknown, selected?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false)
-    if (!selected) return
-    setPickerDate(selected)
-    const iso = selected.toISOString().slice(0, 10)
-    setDesiredDate(iso)
-    setDateInput(iso)
-  }
-
-  const reviewDate = useMemo(() => {
-    const normalized = normalizeDesiredDate(desiredDate || dateInput)
-    return normalized ?? (desiredDate || dateInput)
-  }, [desiredDate, dateInput])
+  const reviewDate = desiredDate ? formatActionDate(desiredDate) : '—'
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -283,30 +243,12 @@ export function FerrataGuideBookingModal({
 
           {step === 1 ? (
             <View style={styles.gap}>
-              <Field label="Željeni datum">
-                <Pressable style={styles.dateRow} onPress={() => setShowDatePicker(true)}>
-                  <TextInput
-                    style={[styles.input, styles.dateInput]}
-                    value={dateInput || desiredDate}
-                    onChangeText={(v) => {
-                      setDateInput(v)
-                      setDesiredDate('')
-                    }}
-                    placeholder="YYYY-MM-DD ili DD.MM.YYYY"
-                    placeholderTextColor={colors.textSubtle}
-                  />
-                  <Ionicons name="calendar-outline" size={22} color={colors.brand} />
-                </Pressable>
-                {showDatePicker ? (
-                  <DateTimePicker
-                    value={pickerDate}
-                    mode="date"
-                    minimumDate={new Date()}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onDatePicked}
-                  />
-                ) : null}
-              </Field>
+              <DatePickerField
+                label="Željeni datum"
+                value={desiredDate || null}
+                onChange={(ymd) => setDesiredDate(ymd ?? '')}
+                preset="future"
+              />
 
               <ChipField label="Vreme dana" options={TIME_OPTIONS} value={timeOfDay} onChange={setTimeOfDay} />
               {timeOfDay === 'exact' ? (
@@ -550,8 +492,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     color: colors.text,
   },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  dateInput: { flex: 1 },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

@@ -158,8 +158,8 @@ export default function ActionWizardScreen({ navigation, route }: Props) {
 
     const minDate = todayYmd()
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.datum)) {
-      setError('Datum mora biti u formatu YYYY-MM-DD.')
+    if (!values.datum.trim()) {
+      setError('Izaberite datum akcije.')
       setSubmitLoading(false)
       return
     }

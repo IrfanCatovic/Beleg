@@ -18,7 +18,7 @@ import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { AppTopBar } from '../../components/ui/AppTopBar'
-import { Avatar, Button, Card, ErrorView, Input, Loader, Text } from '../../components/ui'
+import { Avatar, Button, Card, DatePickerField, ErrorView, Input, Loader, Text } from '../../components/ui'
 import { canManageClub, canSeeFinance, hasClubContext } from '../../utils/roles'
 import { colors, radius, spacing } from '../../theme'
 import NoClubJoinView from './NoClubJoinView'
@@ -462,11 +462,11 @@ function AdminTab({
             <Input label="PIB" value={form.pib} onChangeText={(v) => onFormChange({ pib: v })} />
             <Input label="Žiro račun" value={form.ziro_racun} onChangeText={(v) => onFormChange({ ziro_racun: v })} />
             <Input label="Web sajt" value={form.web_sajt} onChangeText={(v) => onFormChange({ web_sajt: v })} autoCapitalize="none" />
-            <Input
+            <DatePickerField
               label="Datum osnivanja"
-              value={form.datum_osnivanja}
-              onChangeText={(v) => onFormChange({ datum_osnivanja: v })}
-              placeholder="YYYY-MM-DD"
+              value={form.datum_osnivanja || null}
+              onChange={(ymd) => onFormChange({ datum_osnivanja: ymd ?? '' })}
+              preset="past"
             />
             <View style={styles.editActions}>
               <Button title="Sačuvaj" onPress={onSave} loading={saving} />

@@ -12,9 +12,10 @@ import type {
 import {
   buildWizardPatchFromFerrataRow,
   filterFerrataCatalog,
+  parseLocalDate,
 } from '@beleg/shared'
 import { ChipRow } from '../../../components/ui/ChipRow'
-import { Button, Card, Input, Text } from '../../../components/ui'
+import { Button, Card, DatePickerField, Input, Text } from '../../../components/ui'
 import { colors, fontSize, radius, spacing } from '../../../theme'
 
 export interface ActionWizardFormProps {
@@ -204,6 +205,11 @@ export function ActionWizardForm({
   const selectedFerrata = useMemo(
     () => ferrataCatalog.find((x) => String(x.id) === values.ferrataId.trim()),
     [ferrataCatalog, values.ferrataId],
+  )
+
+  const rokMaxDate = useMemo(
+    () => parseLocalDate(values.datum) ?? undefined,
+    [values.datum],
   )
 
   const selectedGuide = guides.find((g) => String(g.id) === values.vodicId)
@@ -498,12 +504,11 @@ export function ActionWizardForm({
               </>
             )}
 
-            <Input
+            <DatePickerField
               label="Datum akcije"
-              value={values.datum}
-              onChangeText={(t) => patch({ datum: t })}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
+              value={values.datum || null}
+              onChange={(ymd) => patch({ datum: ymd ?? '' })}
+              preset="future"
             />
 
             {isVia ? (
@@ -544,12 +549,14 @@ export function ActionWizardForm({
               />
             ) : null}
 
-            <Input
+            <DatePickerField
               label="Rok za prijavu"
-              value={values.rokPrijava}
-              onChangeText={(t) => patch({ rokPrijava: t })}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
+              value={values.rokPrijava || null}
+              onChange={(ymd) => patch({ rokPrijava: ymd ?? '' })}
+              preset="future"
+              maximumDate={rokMaxDate}
+              optional
+              placeholder="Izaberi rok (opciono)"
             />
 
             <Input

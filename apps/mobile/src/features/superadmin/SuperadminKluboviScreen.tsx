@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigation } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { getApiErrorMessage } from '@beleg/shared'
+import { getApiErrorMessage, parseLocalDate } from '@beleg/shared'
 import type { NoClubUserRow, SuperadminAppStatClub, SuperadminKlub } from '@beleg/shared/services'
 import {
   createSuperadminKlub,
@@ -32,6 +32,7 @@ import {
   Avatar,
   Button,
   Card,
+  DatePickerField,
   EmptyState,
   ErrorView,
   Input,
@@ -519,17 +520,18 @@ export default function SuperadminKluboviScreen({ navigation: navigationProp }: 
               onChangeText={(v) => setForm((f) => ({ ...f, max_storage_gb: v }))}
               keyboardType="number-pad"
             />
-            <Input
-              label="Pretplata od (YYYY-MM-DD)"
-              value={form.subscribedAt}
-              onChangeText={(v) => setForm((f) => ({ ...f, subscribedAt: v }))}
-              placeholder="2025-01-01"
+            <DatePickerField
+              label="Pretplata od"
+              value={form.subscribedAt || null}
+              onChange={(ymd) => setForm((f) => ({ ...f, subscribedAt: ymd ?? '' }))}
+              preset="subscription"
             />
-            <Input
-              label="Pretplata do (YYYY-MM-DD)"
-              value={form.subscriptionEndsAt}
-              onChangeText={(v) => setForm((f) => ({ ...f, subscriptionEndsAt: v }))}
-              placeholder="2026-01-01"
+            <DatePickerField
+              label="Pretplata do"
+              value={form.subscriptionEndsAt || null}
+              onChange={(ymd) => setForm((f) => ({ ...f, subscriptionEndsAt: ymd ?? '' }))}
+              preset="subscription"
+              minimumDate={parseLocalDate(form.subscribedAt) ?? undefined}
             />
             <View style={styles.switchRow}>
               <Text variant="label">Na čekanju (on hold)</Text>

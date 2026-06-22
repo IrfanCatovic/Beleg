@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react'
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   View,
 } from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import type { Task, TaskFormData, ZadatakRole } from '@beleg/shared'
-import { Button, Input, Text } from '../ui'
+import { Button, DatePickerField, Input, Text } from '../ui'
 import { getRoleLabel } from '../../utils/profileRank'
-import { colors, radius, spacing } from '../../theme'
+import { colors, spacing } from '../../theme'
 
 const ROLE_OPTIONS: ZadatakRole[] = ['admin', 'sekretar', 'vodic', 'blagajnik', 'menadzer-opreme']
 
@@ -43,13 +41,6 @@ type TaskFormModalProps =
       submitting?: boolean
     }
 
-function toYMD(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
 export function TaskFormModal(props: TaskFormModalProps) {
   const isCreate = props.mode === 'create'
   const task = props.mode === 'edit' ? props.task : null
@@ -62,7 +53,6 @@ export function TaskFormModal(props: TaskFormModalProps) {
   const [allowedRoles, setAllowedRoles] = useState<ZadatakRole[]>([])
   const [allowAll, setAllowAll] = useState(false)
   const [error, setError] = useState('')
-  const [showDatePicker, setShowDatePicker] = useState(false)
 
   useEffect(() => {
     if (!visible) return
@@ -123,8 +113,6 @@ export function TaskFormModal(props: TaskFormModalProps) {
     }
   }
 
-  const pickerDate = deadline ? new Date(deadline) : new Date()
-
   return (
     <Modal visible animationType="slide" onRequestClose={props.onClose}>
       <View style={styles.root}>
@@ -152,27 +140,14 @@ export function TaskFormModal(props: TaskFormModalProps) {
             style={styles.textArea}
           />
 
-          <Text variant="label">Rok</Text>
-          <Pressable style={styles.dateRow} onPress={() => setShowDatePicker(true)}>
-            <Text color={deadline ? colors.text : colors.textMuted}>
-              {deadline ? new Date(deadline).toLocaleDateString('sr-Latn-RS') : 'Izaberi datum (opciono)'}
-            </Text>
-            <Ionicons name="calendar-outline" size={22} color={colors.brand} />
-          </Pressable>
-          {deadline ? (
-            <Button title="Ukloni rok" variant="ghost" onPress={() => setDeadline(null)} />
-          ) : null}
-          {showDatePicker ? (
-            <DateTimePicker
-              value={pickerDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(_e, date) => {
-                setShowDatePicker(Platform.OS === 'ios')
-                if (date) setDeadline(toYMD(date))
-              }}
-            />
-          ) : null}
+          <DatePickerField
+            label="Rok"
+            value={deadline}
+            onChange={setDeadline}
+            preset="future"
+            optional
+            placeholder="Izaberi datum (opciono)"
+          />
 
           <View style={styles.switchRow}>
             <Text variant="label">Hitno</Text>
@@ -218,16 +193,6 @@ const styles = StyleSheet.create({
   },
   body: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

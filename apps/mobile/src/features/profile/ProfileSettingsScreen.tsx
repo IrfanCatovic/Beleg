@@ -7,7 +7,7 @@ import { fetchMeProfile, updateMe } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import { Button, ChipRow, Input, Loader, Screen, Text } from '../../components/ui'
+import { Button, ChipRow, DatePickerField, Input, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { ProfileStackParamList } from '../../navigation/types'
 import { SettingsSection } from './SettingsSection'
@@ -150,11 +150,11 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
             { value: 'Ž', label: 'Ženski' },
           ]}
         />
-        <Input
+        <DatePickerField
           label="Datum rođenja"
-          value={datumRodjenja}
-          onChangeText={setDatumRodjenja}
-          placeholder="YYYY-MM-DD"
+          value={datumRodjenja || null}
+          onChange={(ymd) => setDatumRodjenja(ymd ?? '')}
+          preset="birth"
         />
         <Input label="Državljanstvo" value={drzavljanstvo} onChangeText={setDrzavljanstvo} />
       </SettingsSection>
@@ -187,11 +187,11 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
           value={brojPlaninarskeMarkice}
           onChangeText={setBrojPlaninarskeMarkice}
         />
-        <Input
+        <DatePickerField
           label="Datum učlanjenja"
-          value={datumUclanjenja}
-          onChangeText={setDatumUclanjenja}
-          placeholder="YYYY-MM-DD"
+          value={datumUclanjenja || null}
+          onChange={(ymd) => setDatumUclanjenja(ymd ?? '')}
+          preset="past"
         />
       </SettingsSection>
 

@@ -15,7 +15,8 @@ import {
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import { Button, Card, EmptyState, ErrorView, Input, Loader, Screen, SegmentedToggle, Text } from '../../components/ui'
+import { Button, Card, DatePickerField, EmptyState, ErrorView, Input, Loader, Screen, SegmentedToggle, Text } from '../../components/ui'
+import { toLocalYMD, todayAtMidnight } from '../../utils/datePickerBounds'
 import { canSeeFinance } from '../../utils/roles'
 import { colors, spacing } from '../../theme'
 import type { ClubStackParamList, ProfileStackParamList } from '../../navigation/types'
@@ -55,6 +56,7 @@ export default function FinanceScreen(_props: Props) {
   const [txIznos, setTxIznos] = useState('')
   const [txOpis, setTxOpis] = useState('')
   const [txUplatilac, setTxUplatilac] = useState('')
+  const [txDatum, setTxDatum] = useState(() => toLocalYMD(todayAtMidnight()))
 
   const canManage = canSeeFinance(user?.role)
   const canDelete = user?.role === 'superadmin' || user?.role === 'admin'
@@ -83,7 +85,7 @@ export default function FinanceScreen(_props: Props) {
       createTransakcija(client, {
         tip: txTip,
         iznos: Number(txIznos),
-        datum: new Date().toISOString().slice(0, 10),
+        datum: txDatum,
         opis: txOpis.trim(),
         uplatilac: txUplatilac.trim(),
       }),
@@ -269,6 +271,12 @@ export default function FinanceScreen(_props: Props) {
               ]}
               value={txTip}
               onChange={setTxTip}
+            />
+            <DatePickerField
+              label="Datum"
+              value={txDatum}
+              onChange={(ymd) => setTxDatum(ymd ?? toLocalYMD(todayAtMidnight()))}
+              preset="past"
             />
             <Input label="Iznos" value={txIznos} onChangeText={setTxIznos} keyboardType="decimal-pad" />
             <Input label="Uplatilac / primalac" value={txUplatilac} onChangeText={setTxUplatilac} />

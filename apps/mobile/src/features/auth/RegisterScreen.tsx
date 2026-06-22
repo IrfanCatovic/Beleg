@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { registerOpenApi, getApiErrorMessage } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
-import { Button, Input, Screen, Text } from '../../components/ui'
+import { Button, DatePickerField, Input, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { AuthStackParamList } from '../../navigation/types'
 
@@ -32,7 +32,7 @@ export default function RegisterScreen({ navigation }: Props) {
     if (password !== confirm) return 'Lozinke se ne poklapaju.'
     if (!email.trim()) return 'Email je obavezan.'
     if (!pol.trim()) return 'Pol je obavezan (npr. muski/zenski).'
-    if (!datumRodjenja.trim()) return 'Datum rođenja je obavezan (YYYY-MM-DD).'
+    if (!datumRodjenja.trim()) return 'Datum rođenja je obavezan.'
     return null
   }, [username, password, confirm, email, pol, datumRodjenja])
 
@@ -67,7 +67,12 @@ export default function RegisterScreen({ navigation }: Props) {
         <Input label="Ime i prezime" value={fullName} onChangeText={setFullName} />
         <Input label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
         <Input label="Pol" placeholder="muski / zenski" autoCapitalize="none" value={pol} onChangeText={setPol} />
-        <Input label="Datum rođenja" placeholder="YYYY-MM-DD" autoCapitalize="none" value={datumRodjenja} onChangeText={setDatumRodjenja} />
+        <DatePickerField
+          label="Datum rođenja"
+          value={datumRodjenja || null}
+          onChange={(ymd) => setDatumRodjenja(ymd ?? '')}
+          preset="birth"
+        />
         <Input label="Lozinka" secureTextEntry value={password} onChangeText={setPassword} />
         <Input label="Potvrdi lozinku" secureTextEntry value={confirm} onChangeText={setConfirm} />
         {error ? <Text variant="small" color={colors.danger}>{error}</Text> : null}
