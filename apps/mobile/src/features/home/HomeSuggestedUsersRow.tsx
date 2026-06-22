@@ -28,6 +28,6 @@ export function HomeSuggestedUsersRow({ users, onPressUser }: HomeSuggestedUsers
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginVertical: spacing.md },
-  scroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xs },
+  wrap: { marginBottom: spacing.sm },
+  scroll: { paddingBottom: spacing.xs },
 })

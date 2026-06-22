@@ -1,7 +1,9 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { AkcijaListItem } from '@beleg/shared'
 import { Avatar, Card, Text } from '../../components/ui'
+import { FeedAspectImage } from '../../components/shared/FeedAspectImage'
+import { feedBlockStyle } from '../../components/shared/feedStyles'
 import { colors, radius, spacing } from '../../theme'
 import type { MentionUser } from './homeFeedUtils'
 import { difficultyBadgeStyle, formatDateShort, isGuideOrganizedAkcija } from './homeFeedUtils'
@@ -61,8 +63,7 @@ export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: F
       </View>
 
       {action.slikaUrl ? (
-        <View style={styles.heroWrap}>
-          <Image source={{ uri: action.slikaUrl }} style={styles.heroImage} resizeMode="cover" />
+        <FeedAspectImage uri={action.slikaUrl} maxHeight={420}>
           <View style={styles.heroOverlay}>
             <Text style={styles.heroTitle}>{action.naziv}</Text>
             {location ? (
@@ -71,7 +72,7 @@ export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: F
               </Text>
             ) : null}
           </View>
-        </View>
+        </FeedAspectImage>
       ) : (
         <View style={[styles.heroWrap, styles.heroFallback]}>
           <View style={styles.heroOverlay}>
@@ -128,10 +129,7 @@ export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: F
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md, padding: 0, overflow: 'hidden' },
   feedWrap: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    overflow: 'hidden',
+    ...feedBlockStyle,
   },
   feedPadded: { paddingHorizontal: spacing.lg },
   header: {
@@ -156,8 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   kindBadgeText: { fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' },
-  heroWrap: { aspectRatio: 16 / 9, backgroundColor: colors.surfaceAlt },
-  heroImage: { width: '100%', height: '100%' },
+  heroWrap: { minHeight: 160, backgroundColor: colors.surfaceAlt },
   heroFallback: { backgroundColor: colors.brand },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,

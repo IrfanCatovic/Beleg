@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { AkcijaListItem } from '@beleg/shared'
 import { computePERForAkcija, formatActionDateShort } from '@beleg/shared'
 import { Badge, Button, Card, Text } from '../ui'
+import { feedBlockStyle } from './feedStyles'
 import { colors, radius, spacing } from '../../theme'
 
 interface ActionCardProps {
@@ -153,10 +154,7 @@ export function ActionCard({
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md, padding: 0, overflow: 'hidden', borderWidth: 1 },
   feedWrap: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    overflow: 'hidden',
+    ...feedBlockStyle,
   },
   feedPadded: { paddingHorizontal: spacing.lg },
   imageWrap: { height: 180, backgroundColor: colors.surfaceAlt },

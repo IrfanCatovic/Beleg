@@ -371,6 +371,6 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  list: { paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  list: { paddingTop: spacing.md, paddingBottom: spacing.xxl, paddingHorizontal: spacing.md },
   allLoaded: { textAlign: 'center', paddingVertical: spacing.lg },
 })

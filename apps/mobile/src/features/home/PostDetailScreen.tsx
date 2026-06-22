@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -30,6 +29,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { PostLikeBar } from '../../components/shared/PostLikeBar'
 import { PostLikesModal } from '../../components/shared/PostLikesModal'
+import { FeedAspectImage } from '../../components/shared/FeedAspectImage'
 import { Avatar, Button, ErrorView, Input, Loader, Screen, Text } from '../../components/ui'
 import { colors, fontSize, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
@@ -204,7 +204,7 @@ export default function PostDetailScreen({ route, navigation }: Props) {
               )}
 
               {post.imageUrl ? (
-                <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+                <FeedAspectImage uri={post.imageUrl} maxHeight={560} borderRadius={12} style={styles.image} />
               ) : null}
 
               <PostLikeBar
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   authorText: { flex: 1 },
   content: { marginTop: spacing.xs },
-  image: { width: '100%', height: 220, borderRadius: 12, marginTop: spacing.sm },
+  image: { marginTop: spacing.sm },
   ownerActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   row: { flexDirection: 'row', gap: spacing.sm },
   editBlock: { gap: spacing.sm },

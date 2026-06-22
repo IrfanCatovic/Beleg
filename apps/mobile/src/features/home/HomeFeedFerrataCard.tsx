@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { FerrataRow } from '@beleg/shared'
 import { Text } from '../../components/ui'
+import { feedBlockStyle } from '../../components/shared/feedStyles'
 import { colors, radius, spacing } from '../../theme'
 
 interface HomeFeedFerrataCardProps {
@@ -62,9 +63,7 @@ export function HomeFeedFerrataCard({ ferrata, onPress }: HomeFeedFerrataCardPro
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    ...feedBlockStyle,
   },
   heroWrap: { height: 200, backgroundColor: colors.surfaceAlt },
   heroImage: { width: '100%', height: '100%' },

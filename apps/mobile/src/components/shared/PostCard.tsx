@@ -1,7 +1,9 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import type { Post } from '@beleg/shared'
 import { Avatar, Card, Text } from '../ui'
+import { FeedAspectImage } from './FeedAspectImage'
 import { PostLikeBar } from './PostLikeBar'
+import { feedBlockStyle } from './feedStyles'
 import { colors, spacing } from '../../theme'
 
 interface PostCardProps {
@@ -58,10 +60,10 @@ export function PostCard({
       ) : null}
 
       {imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={[styles.image, isFeed && styles.feedImage]}
-          resizeMode="cover"
+        <FeedAspectImage
+          uri={imageUrl}
+          borderRadius={isFeed ? 0 : 8}
+          style={styles.image}
         />
       ) : null}
 
@@ -95,15 +97,12 @@ export function PostCard({
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },
   feedWrap: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    ...feedBlockStyle,
     paddingBottom: spacing.md,
   },
   feedPadded: { paddingHorizontal: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   headerText: { flex: 1 },
   content: { marginBottom: spacing.sm },
-  image: { width: '100%', height: 200, borderRadius: 8, marginBottom: spacing.sm },
-  feedImage: { borderRadius: 0, marginBottom: spacing.sm },
+  image: { marginBottom: spacing.sm },
 })
