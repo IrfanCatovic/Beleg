@@ -61,6 +61,8 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 
 		RegisterProfileRoutes(protected, jwtSecret)
 
+		RegisterActivityRoutes(protected)
+
 		RegisterUsersAdminRoutes(protected)
 	}
 

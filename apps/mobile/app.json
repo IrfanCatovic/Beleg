@@ -10,19 +10,34 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost.",
+        "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACTIVITY_RECOGNITION"
+      ]
     },
     "plugins": [
       "expo-asset",
       "expo-font",
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost."
+        }
+      ]
     ]
   }
 }

@@ -122,6 +122,7 @@ func GetPublicKorisnikStatistika(c *gin.Context) {
 			"ukupnoKm":           ukupnoKm,
 			"ukupnoMetaraUspona": ukupnoMetaraUspona,
 			"brojPopeoSe":        brojPopeoSe,
+			"ukupnoKoraka":       sumUserTotalSteps(db, korisnik.ID),
 		},
 	})
 }

@@ -26,6 +26,10 @@ export type ActionsStackParamList = {
 
 export type ExploreStackParamList = {
   ExploreHome: undefined
+  DailySteps: undefined
+  ActiveTracking: undefined
+  ActivitySummary: { activityId: number }
+  StepsLeaderboard: undefined
   FerrataList: undefined
   FerrataDetail: { slug: string }
   ActionDetail: { id: number }

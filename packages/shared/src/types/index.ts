@@ -13,3 +13,15 @@ export type { PeakRow } from './peak'
 export type { BlockStatus, BlockedUser } from './block'
 export type { GuideBookingTimeOfDay, GuideBookingGroupExperience, GuideBookingEquipmentStatus } from './guideBooking'
 export type { WizardGuide, WizardValues, WizardFerrataOption, ActionKind, OrganizerKind, VisibilityKind, WizardImagePayload } from './actionWizard'
+export type {
+  TrackedActivity,
+  TrackedActivityStatus,
+  GPSPoint,
+  DailyStepsToday,
+  ActivityStats,
+  FinishActivityPayload,
+  StepsLeaderboardEntry,
+  StepsLeaderboardResponse,
+  LeaderboardScope,
+  LeaderboardPeriod,
+} from './activity'
