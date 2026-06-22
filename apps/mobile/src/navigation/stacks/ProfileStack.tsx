@@ -16,7 +16,7 @@ export function ProfileStack() {
       <Stack.Screen name="MyProfile" component={MyProfileScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Finance" component={FinanceScreen} />
+      <Stack.Screen name="Finance" component={FinanceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Tasks" component={TasksScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
     </Stack.Navigator>

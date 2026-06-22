@@ -22,7 +22,7 @@ export function ClubStack() {
       />
       <Stack.Screen name="ClubMembers" component={ClubMembersScreen} options={{ title: 'Članovi' }} />
       <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Zadaci' }} />
-      <Stack.Screen name="Finance" component={FinanceScreen} options={{ title: 'Finansije' }} />
+      <Stack.Screen name="Finance" component={FinanceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} options={{ title: 'Akcija' }} />
     </Stack.Navigator>
