@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState } from 'react-native'
 import { Pedometer } from 'expo-sensors'
 import { syncDailySteps } from '@beleg/shared'
@@ -62,6 +62,10 @@ export function useDailySteps(): DailyStepsState {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Spriječava paralelne/ponovljene zahtjeve za dozvolu (uzrok petlje).
+  const requestingRef = useRef(false)
+  const goalRef = useRef(DEFAULT_DAILY_STEP_GOAL)
+
   const available = accessStatus !== 'loading' && accessStatus !== 'device_unavailable'
   const permissionGranted = accessStatus === 'ready'
 
@@ -93,34 +97,23 @@ export function useDailySteps(): DailyStepsState {
     await syncToServer(result.steps, day)
   }, [applySteps, syncToServer])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  // SAMO provjerava status dozvole - nikad ne otvara sistemski dijalog.
+  // Time se uklanja petlja kod ulaska na ekran i kod AppState 'active'.
+  const checkAccess = useCallback(async () => {
     try {
       const storedGoal = await getDailyStepGoal()
+      goalRef.current = storedGoal
       setGoalState(storedGoal)
 
-      const status = await resolveStepsAccess(true)
+      const status = await resolveStepsAccess(false)
       setAccessStatus(status)
 
-      if (status === 'device_unavailable') {
+      if (status === 'ready') {
+        await readSteps(storedGoal)
+      } else {
         applySteps(0, storedGoal)
         setError(null)
-        return
       }
-
-      if (status === 'permission_needed') {
-        applySteps(0, storedGoal)
-        setError(null)
-        return
-      }
-
-      if (status === 'permission_denied') {
-        applySteps(0, storedGoal)
-        setError(null)
-        return
-      }
-
-      await readSteps(storedGoal)
     } catch {
       setAccessStatus('device_unavailable')
       setError('Brojač koraka trenutno nije dostupan.')
@@ -129,10 +122,19 @@ export function useDailySteps(): DailyStepsState {
     }
   }, [applySteps, readSteps])
 
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    await checkAccess()
+  }, [checkAccess])
+
+  // Jedino mjesto koje traži dozvolu - okida se isključivo na tap korisnika.
   const requestAccess = useCallback(async () => {
+    if (requestingRef.current) return
+    requestingRef.current = true
     setLoading(true)
     try {
       const storedGoal = await getDailyStepGoal()
+      goalRef.current = storedGoal
       const status = await requestStepsAccess()
       setAccessStatus(status)
 
@@ -147,12 +149,14 @@ export function useDailySteps(): DailyStepsState {
     } catch {
       setError('Brojač koraka trenutno nije dostupan.')
     } finally {
+      requestingRef.current = false
       setLoading(false)
     }
   }, [applySteps, readSteps])
 
   const setGoal = useCallback(async (newGoal: number) => {
     await setDailyStepGoal(newGoal)
+    goalRef.current = newGoal
     setGoalState(newGoal)
     const { progressPercent: pct, stepsRemaining: remaining } = calcProgress(todaySteps, newGoal)
     setProgressPercent(pct)
@@ -160,25 +164,27 @@ export function useDailySteps(): DailyStepsState {
   }, [todaySteps])
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void checkAccess()
+  }, [checkAccess])
 
   useEffect(() => {
     if (!permissionGranted) return
     const id = setInterval(() => {
-      void readSteps(goal)
+      void readSteps(goalRef.current)
     }, REFRESH_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [permissionGranted, goal, readSteps])
+  }, [permissionGranted, readSteps])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        void refresh()
+      // Pri povratku u app SAMO ponovo provjeri status (npr. ako je korisnik
+      // uključio dozvolu u postavkama). Nikad ne traži dozvolu ovdje.
+      if (state === 'active' && !requestingRef.current) {
+        void checkAccess()
       }
     })
     return () => sub.remove()
-  }, [refresh])
+  }, [checkAccess])
 
   return {
     todaySteps,

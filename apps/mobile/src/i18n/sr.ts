@@ -151,11 +151,13 @@ export const sr = {
     dailyStepsExpoGoHint:
       'Brojač koraka u Expo Go aplikaciji često ne radi. Instaliraj dev build Planinera na telefon za pravo brojanje.',
     dailyStepsPermissionNeeded:
-      'Planiner treba dozvolu za kretanje i korake (Motion / Aktivnost) da prikaže dnevni broj.',
-    dailyStepsPermissionDenied:
-      'Dozvola za korake je isključena. Uključi je u postavkama telefona.',
+      'Planiner treba dozvolu za korake i kretanje. Pritisni dugme i u sistemskom prozoru izaberi „Dozvoli“.',
+    dailyStepsPermissionDeniedIos:
+      'Dozvola za korake je isključena. Otvori Postavke → Planiner → „Kretanje i fitnes“ (Motion & Fitness) i uključi ga, pa se vrati u app.',
+    dailyStepsPermissionDeniedAndroid:
+      'Dozvola za korake je isključena. Otvori Postavke → Dozvole → „Fizička aktivnost“ i izaberi „Dozvoli“, pa se vrati u app.',
     dailyStepsEnable: 'Omogući brojač koraka',
-    dailyStepsOpenSettings: 'Otvori postavke',
+    dailyStepsOpenSettings: 'Otvori postavke aplikacije',
     startActivity: 'Započni akciju',
     startActivityHint: 'GPS praćenje rute, udaljenosti i uspona.',
     activeSessionTitle: 'Aktivna sesija',

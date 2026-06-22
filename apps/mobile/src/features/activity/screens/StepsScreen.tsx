@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -157,7 +157,9 @@ export default function StepsScreen({ navigation }: Props) {
           <Card style={styles.accessCard}>
             <Text variant="small" color={colors.textMuted}>
               {daily.accessStatus === 'permission_denied'
-                ? t('dailyStepsPermissionDenied')
+                ? Platform.OS === 'ios'
+                  ? t('dailyStepsPermissionDeniedIos')
+                  : t('dailyStepsPermissionDeniedAndroid')
                 : t('dailyStepsPermissionNeeded')}
             </Text>
             <Button

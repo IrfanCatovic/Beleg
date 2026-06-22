@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, View } from 'react-native'
 import Constants from 'expo-constants'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -35,6 +35,10 @@ export function StepsSummaryCard({
   const isExpoGo = Constants.appOwnership === 'expo'
   const needsAccess =
     accessStatus === 'permission_needed' || accessStatus === 'permission_denied'
+  const deniedText =
+    Platform.OS === 'ios'
+      ? t('dailyStepsPermissionDeniedIos')
+      : t('dailyStepsPermissionDeniedAndroid')
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
@@ -67,7 +71,7 @@ export function StepsSummaryCard({
           <View style={styles.accessBody}>
             <Text variant="small" color={colors.textMuted}>
               {accessStatus === 'permission_denied'
-                ? t('dailyStepsPermissionDenied')
+                ? deniedText
                 : t('dailyStepsPermissionNeeded')}
             </Text>
             {onRequestAccess ? (
