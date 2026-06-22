@@ -120,6 +120,7 @@ func migrateAndSeed(db *gorm.DB) {
 		&models.UserDailySteps{},
 		&models.TrackedActivity{},
 		&models.TrackedActivityPoint{},
+		&models.PushToken{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)

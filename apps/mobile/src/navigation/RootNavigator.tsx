@@ -1,8 +1,10 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { AuthStack } from './stacks/AuthStack'
 import { AppTabs } from './AppTabs'
+import { navigationRef } from './navigationRef'
 import { colors } from '../theme'
 
 const navTheme = {
@@ -19,6 +21,7 @@ const navTheme = {
 
 export function RootNavigator() {
   const { isLoggedIn, authLoading } = useAuth()
+  usePushNotifications(isLoggedIn)
 
   if (authLoading) {
     return (
@@ -29,7 +32,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       {isLoggedIn ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   )

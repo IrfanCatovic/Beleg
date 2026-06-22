@@ -28,7 +28,19 @@ npm run build:apk
 
 Build traje ~10–20 min na Expo serverima. Na kraju dobiješ **link za preuzimanje .apk** fajla.
 
-**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 5+).
+**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 6+).
+
+## Push obaveštenja (expo-notifications)
+
+Poslovna obaveštenja (zadaci, akcije, klub, follow, finansije…) stižu kao **push na telefon**, ne kao email. Email ostaje samo za verifikaciju registracije i reset lozinke.
+
+### Jednokratna priprema
+
+1. Novi APK sa `expo-notifications` (versionCode 6+).
+2. Pri prvom logovanju aplikacija traži dozvolu za **obaveštenja** — izaberi **Dozvoli**.
+3. Za produkcioni Android push, u Expo nalogu proveri FCM credentials: `eas credentials` (EAS automatski koristi `projectId` iz `app.json`).
+
+**Novi native modul (expo-notifications)** zahteva **novi APK build** (`npm run build:apk`). Posle toga, izmene samo u JS mogu preko OTA.
 
 ## Mapa avantura (MapLibre + MapTiler — isto kao web)
 
@@ -79,6 +91,7 @@ Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** ap
 | Funkcija | Kada se pita | Android postavka |
 |----------|--------------|------------------|
 | Koraci | Kartica Dnevni koraci | Dozvole → Fizička aktivnost |
+| Obaveštenja | Prvi login / push | Dozvole → Obaveštenja |
 | GPS ruta | Započni akciju | Dozvole → Lokacija |
 | Mapa avantura | Istraži → Mapa | `EXPO_PUBLIC_MAPTILER_API_KEY` u `.env` (isti kao web) |
 | Slike | Avatar, cover, akcije | Dozvole → Slike |
