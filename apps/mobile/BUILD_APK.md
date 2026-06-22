@@ -2,6 +2,8 @@
 
 Konfiguracija je spremna. Backend: `https://planiner-api.onrender.com`
 
+Aplikacija se na telefonu zove **Planiner**, sa ikonom iz `public/LogoP.jpg` (`apps/mobile/assets/icon.jpg`).
+
 ## Jednokratna priprema (tvoj Expo nalog)
 
 U terminalu, iz foldera `apps/mobile`:

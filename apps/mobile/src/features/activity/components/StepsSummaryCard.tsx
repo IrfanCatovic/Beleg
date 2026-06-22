@@ -15,6 +15,7 @@ interface Props {
   activeMinutes: number
   loading?: boolean
   accessStatus?: StepsAccessStatus | 'loading'
+  accessDebug?: import('../services/stepsAccess').StepsAccessDebug | null
   onRequestAccess?: () => void
   onPress: () => void
 }
@@ -27,6 +28,7 @@ export function StepsSummaryCard({
   activeMinutes,
   loading = false,
   accessStatus = 'ready',
+  accessDebug = null,
   onRequestAccess,
   onPress,
 }: Props) {
@@ -66,6 +68,13 @@ export function StepsSummaryCard({
             <Text variant="small" color={colors.textMuted}>
               {isExpoGo ? t('dailyStepsExpoGoHint') : t('dailyStepsUnavailable')}
             </Text>
+            {accessDebug ? (
+              <Text variant="small" color={colors.textSubtle} style={styles.debugText}>
+                Diag: {accessDebug.path} · avail={String(accessDebug.isAvailable)} · perm=
+                {accessDebug.permStatus}
+                {accessDebug.error ? ` · err=${accessDebug.error}` : ''}
+              </Text>
+            ) : null}
           </View>
         ) : needsAccess ? (
           <View style={styles.accessBody}>
@@ -159,6 +168,7 @@ const styles = StyleSheet.create({
   },
   loadingBody: { gap: spacing.sm },
   accessBody: { gap: spacing.sm },
+  debugText: { fontSize: 10, lineHeight: 14 },
   skeletonTrack: {
     height: 8,
     borderRadius: radius.full,
