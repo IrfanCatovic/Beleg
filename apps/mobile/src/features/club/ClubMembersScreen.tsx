@@ -3,13 +3,14 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-nat
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import type { Korisnik } from '@beleg/shared'
-import { fetchKorisnici, fetchKorisnikStatistika } from '@beleg/shared/services'
+import type { Korisnik, StepsLeaderboardEntry } from '@beleg/shared'
+import { fetchKorisnici, fetchStepsLeaderboard } from '@beleg/shared'
 import { client } from '../../api/client'
 import { Avatar, Card, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
 import { GlobalSearchModal } from './GlobalSearchModal'
 import { computeProfileRank } from '../../utils/profileRank'
 import { colors, radius, spacing } from '../../theme'
+import { formatSteps } from '../steps/services/stepsFormat'
 import type { ClubStackParamList } from '../../navigation/types'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'ClubMembers'>
@@ -19,11 +20,17 @@ interface MemberRow extends Korisnik {
   per: number
   rankLabel: string
   steps: number
+  stepsRank: number
 }
 
 export default function ClubMembersScreen({ navigation }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>('per')
   const [searchOpen, setSearchOpen] = useState(false)
+
+  const monthLabel = useMemo(() => {
+    const d = new Date()
+    return d.toLocaleDateString('sr-RS', { month: 'long', year: 'numeric' })
+  }, [])
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -40,46 +47,45 @@ export default function ClubMembersScreen({ navigation }: Props) {
     queryFn: () => fetchKorisnici(client, { scope: 'club' }),
   })
 
-  const statsQuery = useQuery({
-    queryKey: ['korisnici', 'club', 'stats'],
-    queryFn: async () => {
-      const members = await fetchKorisnici(client, { scope: 'club' })
-      const stats = await Promise.all(
-        members.map(async (m) => {
-          try {
-            const s = await fetchKorisnikStatistika(client, String(m.id))
-            return { id: m.id, steps: s.ukupnoKoraka ?? 0 }
-          } catch {
-            return { id: m.id, steps: 0 }
-          }
-        }),
-      )
-      return Object.fromEntries(stats.map((s) => [s.id, s.steps]))
-    },
-    enabled: !!membersQuery.data?.length,
+  const stepsLbQuery = useQuery({
+    queryKey: ['steps-lb-club-month'],
+    queryFn: () => fetchStepsLeaderboard(client, { scope: 'club', period: 'month', limit: 100 }),
+    enabled: sortMode === 'steps',
   })
+
+  const stepMap = useMemo(() => {
+    const map = new Map<number, StepsLeaderboardEntry>()
+    for (const e of stepsLbQuery.data?.entries ?? []) {
+      map.set(e.userId, e)
+    }
+    if (stepsLbQuery.data?.me) {
+      map.set(stepsLbQuery.data.me.userId, stepsLbQuery.data.me)
+    }
+    return map
+  }, [stepsLbQuery.data])
 
   const rows = useMemo((): MemberRow[] => {
     const members = membersQuery.data ?? []
-    const stepMap = statsQuery.data ?? {}
     return members.map((m) => {
       const rank = computeProfileRank([], {
         ukupnoKm: m.ukupnoKm,
         ukupnoMetaraUspona: m.ukupnoMetaraUspona,
       }, m.createdAt)
+      const stepEntry = stepMap.get(m.id)
       return {
         ...m,
         per: rank.per,
         rankLabel: rank.naziv,
-        steps: stepMap[m.id] ?? 0,
+        steps: stepEntry?.steps ?? 0,
+        stepsRank: stepEntry?.rank ?? 999,
       }
     })
-  }, [membersQuery.data, statsQuery.data])
+  }, [membersQuery.data, stepMap])
 
   const sorted = useMemo(() => {
     const list = [...rows]
     if (sortMode === 'per') list.sort((a, b) => b.per - a.per)
-    else list.sort((a, b) => b.steps - a.steps)
+    else list.sort((a, b) => b.steps - a.steps || a.stepsRank - b.stepsRank)
     return list
   }, [rows, sortMode])
 
@@ -110,56 +116,68 @@ export default function ClubMembersScreen({ navigation }: Props) {
           value={sortMode}
           onChange={setSortMode}
         />
+        {sortMode === 'steps' ? (
+          <Text variant="small" color={colors.textMuted} style={styles.monthHint}>
+            Koraci u {monthLabel}
+          </Text>
+        ) : null}
       </View>
 
-      <FlatList
-        data={sorted}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={membersQuery.isRefetching || statsQuery.isRefetching}
-            onRefresh={() => {
-              void membersQuery.refetch()
-              void statsQuery.refetch()
-            }}
-          />
-        }
-        ListEmptyComponent={<EmptyState title="Nema članova" />}
-        renderItem={({ item, index }) => {
-          const position = index + 1
-          const metric = sortMode === 'per' ? `${item.per} PER` : `${item.steps.toLocaleString('sr-RS')} koraka`
-          return (
-            <Pressable
-              onPress={() =>
-                navigation.navigate('UserProfile', {
-                  id: item.id,
-                  username: item.username,
-                })
-              }
-            >
-              <Card style={position <= 3 ? [styles.card, styles.podiumCard] : styles.card}>
-                <View style={styles.row}>
-                  <View style={[styles.position, position <= 3 && styles.positionTop]}>
-                    <Text variant="label">{position}.</Text>
-                  </View>
-                  <Avatar uri={item.avatar_url} name={item.fullName || item.username} size={48} />
-                  <View style={styles.info}>
-                    <Text variant="label">{item.fullName || item.username}</Text>
-                    <Text variant="small" color={colors.textMuted}>
-                      @{item.username}
-                      {sortMode === 'per' ? ` · ${item.rankLabel}` : ''}
+      {sortMode === 'steps' && stepsLbQuery.isLoading ? (
+        <Loader />
+      ) : (
+        <FlatList
+          data={sorted}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={membersQuery.isRefetching || stepsLbQuery.isRefetching}
+              onRefresh={() => {
+                void membersQuery.refetch()
+                if (sortMode === 'steps') void stepsLbQuery.refetch()
+              }}
+            />
+          }
+          ListEmptyComponent={<EmptyState title="Nema članova" />}
+          renderItem={({ item, index }) => {
+            const position = sortMode === 'steps' && item.stepsRank < 999 ? item.stepsRank : index + 1
+            const metric =
+              sortMode === 'per'
+                ? `${item.per} PER`
+                : `${formatSteps(item.steps)} koraka`
+            return (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('UserProfile', {
+                    id: item.id,
+                    username: item.username,
+                  })
+                }
+              >
+                <Card style={position <= 3 ? [styles.card, styles.podiumCard] : styles.card}>
+                  <View style={styles.row}>
+                    <View style={[styles.position, position <= 3 && styles.positionTop]}>
+                      <Text variant="label">{position}.</Text>
+                    </View>
+                    <Avatar uri={item.avatar_url} name={item.fullName || item.username} size={48} />
+                    <View style={styles.info}>
+                      <Text variant="label">{item.fullName || item.username}</Text>
+                      <Text variant="small" color={colors.textMuted}>
+                        @{item.username}
+                        {sortMode === 'per' ? ` · ${item.rankLabel}` : ''}
+                      </Text>
+                    </View>
+                    <Text variant="label" color={colors.brand}>
+                      {metric}
                     </Text>
                   </View>
-                  <Text variant="label" color={colors.brand}>
-                    {metric}
-                  </Text>
-                </View>
-              </Card>
-            </Pressable>
-          )
-        }}
-      />
+                </Card>
+              </Pressable>
+            )
+          }}
+        />
+      )}
 
       <GlobalSearchModal
         visible={searchOpen}
@@ -179,6 +197,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   headerBtn: { marginRight: spacing.sm, padding: spacing.xs },
   toggleWrap: { paddingTop: spacing.sm },
+  monthHint: { textAlign: 'center', marginBottom: spacing.sm },
   list: { padding: spacing.lg, paddingTop: 0 },
   card: { marginBottom: spacing.sm },
   podiumCard: { borderColor: colors.brand, backgroundColor: colors.surfaceAlt },

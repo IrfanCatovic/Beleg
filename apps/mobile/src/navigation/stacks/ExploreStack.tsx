@@ -1,9 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import ExploreHomeScreen from '../../features/explore/ExploreHomeScreen'
 import StepsScreen from '../../features/activity/screens/StepsScreen'
-import ActiveTrackingScreen from '../../features/activity/screens/ActiveTrackingScreen'
-import ActivitySummaryScreen from '../../features/activity/screens/ActivitySummaryScreen'
-import StepsLeaderboardScreen from '../../features/activity/screens/StepsLeaderboardScreen'
 import FerrataListScreen from '../../features/explore/FerrataListScreen'
 import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
@@ -19,10 +16,7 @@ export function ExploreStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ExploreHome" component={ExploreHomeScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="Steps" component={StepsScreen} />
-      <Stack.Screen name="ActiveTracking" component={ActiveTrackingScreen} options={rootStackScreenOptions} />
-      <Stack.Screen name="ActivitySummary" component={ActivitySummaryScreen} />
-      <Stack.Screen name="StepsLeaderboard" component={StepsLeaderboardScreen} />
+      <Stack.Screen name="Steps" component={StepsScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataList" component={FerrataListScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />

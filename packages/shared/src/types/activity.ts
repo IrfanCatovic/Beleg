@@ -65,6 +65,30 @@ export interface StepsLeaderboardEntry {
 
 export interface StepsLeaderboardResponse {
   entries: StepsLeaderboardEntry[]
+  me?: StepsLeaderboardEntry
   scope: LeaderboardScope
+  period: LeaderboardPeriod
+}
+
+export interface StepsHistoryDay {
+  date: string
+  steps: number
+}
+
+export interface StepsHistoryResponse {
+  days: StepsHistoryDay[]
+}
+
+export interface ClubStepsLeaderboardEntry {
+  klubId: number
+  naziv: string
+  logoUrl?: string
+  totalSteps: number
+  rank: number
+}
+
+export interface ClubsStepsLeaderboardResponse {
+  entries: ClubStepsLeaderboardEntry[]
+  myClub: ClubStepsLeaderboardEntry | null
   period: LeaderboardPeriod
 }

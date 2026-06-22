@@ -2,12 +2,14 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
-import { formatSteps } from '../services/activityMetrics'
+import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
 
 interface Props {
   steps: number
   goal: number
   progressPercent: number
+  distanceKm: number
+  activeMinutes: number
   loading?: boolean
   unavailable?: boolean
   onPress: () => void
@@ -17,60 +19,127 @@ export function StepsSummaryCard({
   steps,
   goal,
   progressPercent,
+  distanceKm,
+  activeMinutes,
   loading = false,
   unavailable = false,
   onPress,
 }: Props) {
-  const subtitle = loading
-    ? 'Učitavanje koraka...'
-    : unavailable
-      ? 'Brojač nije dostupan na uređaju'
-      : `${formatSteps(steps)} / ${formatSteps(goal)}`
+  const pct = Math.min(100, progressPercent)
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="footsteps-outline" size={24} color={colors.brand} />
-      </View>
-      <View style={styles.body}>
-        <Text variant="label">Dnevni koraci</Text>
-        <Text variant="small" color={colors.textMuted}>
-          {subtitle}
-        </Text>
-        {!loading && !unavailable ? (
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${Math.min(100, progressPercent)}%` }]} />
+      <View style={styles.accent} />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.iconWrap}>
+            <Ionicons name="footsteps-outline" size={22} color={colors.brand} />
           </View>
-        ) : null}
+          <Text variant="label" style={styles.title}>
+            DNEVNI KORACI
+          </Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingBody}>
+            <Text variant="small" color={colors.textMuted}>
+              Učitavanje koraka...
+            </Text>
+            <View style={styles.skeletonTrack} />
+          </View>
+        ) : unavailable ? (
+          <Text variant="small" color={colors.textMuted}>
+            Brojač nije dostupan na uređaju
+          </Text>
+        ) : (
+          <>
+            <View style={styles.countRow}>
+              <Text variant="label" style={styles.count}>
+                {formatSteps(steps)}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                / {formatSteps(goal)}
+              </Text>
+            </View>
+            <View style={styles.barRow}>
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${pct}%` }]} />
+              </View>
+              <Text variant="small" color={colors.brand} style={styles.pct}>
+                {pct}%
+              </Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text variant="small" color={colors.textMuted}>
+                ≈ {formatDistanceKm(distanceKm)}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                ≈ {activeMinutes} min aktivno
+              </Text>
+            </View>
+          </>
+        )}
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  accent: {
+    height: 4,
+    backgroundColor: colors.navBgMid,
+  },
+  content: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.lg,
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceAlt,
   },
-  body: { flex: 1, gap: 2 },
+  title: {
+    flex: 1,
+    letterSpacing: 0.5,
+    fontSize: 12,
+    color: colors.navBgMid,
+  },
+  loadingBody: { gap: spacing.sm },
+  skeletonTrack: {
+    height: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+  },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.xs,
+  },
+  count: { fontSize: 22, fontWeight: '700' },
+  barRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   track: {
-    marginTop: spacing.xs,
-    height: 4,
+    flex: 1,
+    height: 8,
     borderRadius: radius.full,
     backgroundColor: colors.border,
     overflow: 'hidden',
@@ -79,5 +148,11 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: colors.brand,
     borderRadius: radius.full,
+  },
+  pct: { minWidth: 36, textAlign: 'right', fontWeight: '600' },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
 })

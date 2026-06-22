@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AppState } from 'react-native'
 import { Pedometer } from 'expo-sensors'
+import { syncDailySteps } from '@beleg/shared'
+import { client } from '../../../api/client'
+import { useAuth } from '../../../context/AuthContext'
 import {
   DEFAULT_DAILY_STEP_GOAL,
   getDailyStepGoal,
   setDailyStepGoal,
   todayKey,
-} from '../services/stepsLocalStore'
+} from '../../activity/services/stepsLocalStore'
+import { deriveActiveMinutes, deriveDistanceKm } from '../../steps/services/stepsDerived'
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -15,6 +19,8 @@ export interface DailyStepsState {
   goal: number
   progressPercent: number
   stepsRemaining: number
+  distanceKm: number
+  activeMinutes: number
   date: string
   available: boolean
   permissionGranted: boolean
@@ -37,10 +43,13 @@ function calcProgress(steps: number, goal: number) {
 }
 
 export function useDailySteps(): DailyStepsState {
+  const { isLoggedIn } = useAuth()
   const [todaySteps, setTodaySteps] = useState(0)
   const [goal, setGoalState] = useState(DEFAULT_DAILY_STEP_GOAL)
   const [progressPercent, setProgressPercent] = useState(0)
   const [stepsRemaining, setStepsRemaining] = useState(DEFAULT_DAILY_STEP_GOAL)
+  const [distanceKm, setDistanceKm] = useState(0)
+  const [activeMinutes, setActiveMinutes] = useState(0)
   const [date, setDate] = useState(todayKey())
   const [available, setAvailable] = useState(false)
   const [permissionGranted, setPermissionGranted] = useState(false)
@@ -52,15 +61,28 @@ export function useDailySteps(): DailyStepsState {
     const { progressPercent: pct, stepsRemaining: remaining } = calcProgress(steps, currentGoal)
     setProgressPercent(pct)
     setStepsRemaining(remaining)
+    setDistanceKm(deriveDistanceKm(steps))
+    setActiveMinutes(deriveActiveMinutes(steps))
   }, [])
+
+  const syncToServer = useCallback(async (steps: number, day: string) => {
+    if (!isLoggedIn || steps <= 0) return
+    try {
+      await syncDailySteps(client, { date: day, steps })
+    } catch {
+      // sync is best-effort; local display still works
+    }
+  }, [isLoggedIn])
 
   const readSteps = useCallback(async (currentGoal: number) => {
     const end = new Date()
     const result = await Pedometer.getStepCountAsync(startOfToday(), end)
-    setDate(todayKey())
+    const day = todayKey()
+    setDate(day)
     applySteps(result.steps, currentGoal)
     setError(null)
-  }, [applySteps])
+    await syncToServer(result.steps, day)
+  }, [applySteps, syncToServer])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -130,6 +152,8 @@ export function useDailySteps(): DailyStepsState {
     goal,
     progressPercent,
     stepsRemaining,
+    distanceKm,
+    activeMinutes,
     date,
     available,
     permissionGranted,

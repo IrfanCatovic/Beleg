@@ -3,6 +3,7 @@ package handlers
 import (
 	"beleg-app/backend/internal/models"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,66 @@ func parseDateYMD(s string) (time.Time, bool) {
 func todayDateUTC() time.Time {
 	now := time.Now().UTC()
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func stepsPeriodRange(period string) (fromDate, toDate time.Time, normalized string) {
+	toDate = todayDateUTC()
+	switch period {
+	case "week":
+		return toDate.AddDate(0, 0, -6), toDate, "week"
+	case "month":
+		from := time.Date(toDate.Year(), toDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+		return from, toDate, "month"
+	default:
+		return toDate, toDate, "day"
+	}
+}
+
+func userStepsInPeriod(db *gorm.DB, userID uint, from, to time.Time) int {
+	var total int
+	_ = db.Model(&models.UserDailySteps{}).
+		Where("user_id = ? AND date >= ? AND date <= ?", userID, from, to).
+		Select("COALESCE(SUM(steps), 0)").Scan(&total)
+	return total
+}
+
+func userStepsRank(db *gorm.DB, userID uint, mySteps int, from, to time.Time, scope string, klubID *uint) int {
+	if mySteps <= 0 {
+		var withSteps int64
+		q := db.Model(&models.UserDailySteps{}).
+			Where("date >= ? AND date <= ?", from, to).
+			Group("user_id").
+			Having("SUM(steps) > 0")
+		if scope == "club" && klubID != nil {
+			q = q.Where("user_id IN (?)", db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", *klubID))
+		}
+		_ = db.Table("(?) as ranked", q.Select("user_id")).Count(&withSteps)
+		return int(withSteps) + 1
+	}
+	sub := db.Model(&models.UserDailySteps{}).
+		Select("user_id").
+		Where("date >= ? AND date <= ?", from, to).
+		Group("user_id").
+		Having("SUM(steps) > ?", mySteps)
+	if scope == "club" && klubID != nil {
+		sub = sub.Where("user_id IN (?)", db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", *klubID))
+	}
+	var better int64
+	_ = db.Table("(?) as better_users", sub).Count(&better)
+	return int(better) + 1
+}
+
+func buildLeaderboardMe(db *gorm.DB, user *models.Korisnik, from, to time.Time, scope string) leaderboardEntry {
+	mySteps := userStepsInPeriod(db, user.ID, from, to)
+	rank := userStepsRank(db, user.ID, mySteps, from, to, scope, user.KlubID)
+	return leaderboardEntry{
+		UserID:    user.ID,
+		Username:  user.Username,
+		FullName:  user.FullName,
+		AvatarURL: user.AvatarURL,
+		Steps:     mySteps,
+		Rank:      rank,
+	}
 }
 
 func getOrCreateActivitySettings(db *gorm.DB, userID uint) (models.UserActivitySettings, error) {
@@ -165,6 +226,48 @@ func SyncDailySteps(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"steps": existing.Steps, "date": date.Format("2006-01-02")})
 }
 
+type stepsHistoryDay struct {
+	Date  string `json:"date"`
+	Steps int    `json:"steps"`
+}
+
+// GetStepsHistory returns daily step counts for a date range (max one calendar month).
+func GetStepsHistory(c *gin.Context) {
+	db := DB(c)
+	user, ok := currentUser(c, db)
+	if !ok {
+		return
+	}
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+	from, okFrom := parseDateYMD(fromStr)
+	to, okTo := parseDateYMD(toStr)
+	if !okFrom || !okTo || to.Before(from) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravan raspon datuma"})
+		return
+	}
+	if from.Year() != to.Year() || from.Month() != to.Month() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Raspon mora biti unutar jednog kalendarskog meseca"})
+		return
+	}
+	var rows []models.UserDailySteps
+	if err := db.Where("user_id = ? AND date >= ? AND date <= ?", user.ID, from, to).
+		Order("date ASC").Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju istorije"})
+		return
+	}
+	stepMap := make(map[string]int, len(rows))
+	for _, r := range rows {
+		stepMap[r.Date.Format("2006-01-02")] = r.Steps
+	}
+	days := make([]stepsHistoryDay, 0)
+	for d := from; !d.After(to); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+		days = append(days, stepsHistoryDay{Date: key, Steps: stepMap[key]})
+	}
+	c.JSON(http.StatusOK, gin.H{"days": days})
+}
+
 type leaderboardEntry struct {
 	UserID    uint   `json:"userId"`
 	Username  string `json:"username"`
@@ -184,17 +287,18 @@ func GetStepsLeaderboard(c *gin.Context) {
 	scope := c.DefaultQuery("scope", "global")
 	period := c.DefaultQuery("period", "day")
 	limit := 50
+	if l := c.Query("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
+	}
 
-	var fromDate time.Time
-	now := todayDateUTC()
-	switch period {
-	case "week":
-		fromDate = now.AddDate(0, 0, -6)
-	case "month":
-		fromDate = now.AddDate(0, 0, -29)
-	default:
-		fromDate = now
-		period = "day"
+	fromDate, toDate, period := stepsPeriodRange(period)
+
+	if scope == "club" && user.KlubID == nil {
+		me := buildLeaderboardMe(db, user, fromDate, toDate, scope)
+		c.JSON(http.StatusOK, gin.H{"entries": []leaderboardEntry{}, "me": me, "scope": scope, "period": period})
+		return
 	}
 
 	type aggRow struct {
@@ -204,16 +308,12 @@ func GetStepsLeaderboard(c *gin.Context) {
 	var rows []aggRow
 	q := db.Model(&models.UserDailySteps{}).
 		Select("user_id, SUM(steps) as steps").
-		Where("date >= ? AND date <= ?", fromDate, now).
+		Where("date >= ? AND date <= ?", fromDate, toDate).
 		Group("user_id").
 		Order("steps DESC").
 		Limit(limit)
 
 	if scope == "club" {
-		if user.KlubID == nil {
-			c.JSON(http.StatusOK, gin.H{"entries": []leaderboardEntry{}, "scope": scope, "period": period})
-			return
-		}
 		q = q.Where("user_id IN (?)", db.Model(&models.Korisnik{}).Select("id").Where("klub_id = ?", *user.KlubID))
 	}
 
@@ -235,7 +335,8 @@ func GetStepsLeaderboard(c *gin.Context) {
 			Rank:      i + 1,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"entries": entries, "scope": scope, "period": period})
+	me := buildLeaderboardMe(db, user, fromDate, toDate, scope)
+	c.JSON(http.StatusOK, gin.H{"entries": entries, "me": me, "scope": scope, "period": period})
 }
 
 // GetMyActivityStats returns lifetime step total and activity counts.

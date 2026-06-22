@@ -11,6 +11,7 @@ func RegisterActivityRoutes(protected *gin.RouterGroup) {
 	protected.GET("/me/steps/today", handlers.GetTodaySteps)
 	protected.PUT("/me/steps/goal", handlers.UpdateStepGoal)
 	protected.POST("/me/steps/sync", handlers.SyncDailySteps)
+	protected.GET("/me/steps/history", handlers.GetStepsHistory)
 	protected.GET("/me/activity-stats", handlers.GetMyActivityStats)
 
 	// Tracked activities (GPS sessions)
@@ -24,4 +25,5 @@ func RegisterActivityRoutes(protected *gin.RouterGroup) {
 
 	// Leaderboards
 	protected.GET("/leaderboards/steps", handlers.GetStepsLeaderboard)
+	protected.GET("/leaderboards/clubs/steps", handlers.GetClubsStepsLeaderboard)
 }

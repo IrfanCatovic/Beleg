@@ -22,6 +22,10 @@ export type {
   FinishActivityPayload,
   StepsLeaderboardEntry,
   StepsLeaderboardResponse,
+  StepsHistoryDay,
+  StepsHistoryResponse,
+  ClubStepsLeaderboardEntry,
+  ClubsStepsLeaderboardResponse,
   LeaderboardScope,
   LeaderboardPeriod,
 } from './activity'

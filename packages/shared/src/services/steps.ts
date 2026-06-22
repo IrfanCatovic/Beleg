@@ -1,5 +1,12 @@
 import type { AxiosInstance } from 'axios'
-import type { DailyStepsToday } from '../types/activity'
+import type {
+  ClubsStepsLeaderboardResponse,
+  DailyStepsToday,
+  LeaderboardPeriod,
+  LeaderboardScope,
+  StepsHistoryResponse,
+  StepsLeaderboardResponse,
+} from '../types/activity'
 
 export async function fetchTodaySteps(client: AxiosInstance): Promise<DailyStepsToday> {
   const res = await client.get('/api/me/steps/today')
@@ -17,6 +24,30 @@ export async function syncDailySteps(
 ): Promise<{ steps: number; date: string }> {
   const res = await client.post('/api/me/steps/sync', payload)
   return res.data as { steps: number; date: string }
+}
+
+export async function fetchStepsHistory(
+  client: AxiosInstance,
+  params: { from: string; to: string },
+): Promise<StepsHistoryResponse> {
+  const res = await client.get('/api/me/steps/history', { params })
+  return res.data as StepsHistoryResponse
+}
+
+export async function fetchStepsLeaderboard(
+  client: AxiosInstance,
+  params: { scope?: LeaderboardScope; period?: LeaderboardPeriod; limit?: number },
+): Promise<StepsLeaderboardResponse> {
+  const res = await client.get('/api/leaderboards/steps', { params })
+  return res.data as StepsLeaderboardResponse
+}
+
+export async function fetchClubsStepsLeaderboard(
+  client: AxiosInstance,
+  params?: { period?: LeaderboardPeriod },
+): Promise<ClubsStepsLeaderboardResponse> {
+  const res = await client.get('/api/leaderboards/clubs/steps', { params })
+  return res.data as ClubsStepsLeaderboardResponse
 }
 
 export async function fetchMyActivityStats(client: AxiosInstance): Promise<{

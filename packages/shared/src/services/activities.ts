@@ -2,9 +2,6 @@ import type { AxiosInstance } from 'axios'
 import type {
   FinishActivityPayload,
   GPSPoint,
-  LeaderboardPeriod,
-  LeaderboardScope,
-  StepsLeaderboardResponse,
   TrackedActivity,
 } from '../types/activity'
 
@@ -51,12 +48,4 @@ export async function fetchMyActivities(client: AxiosInstance, limit = 20): Prom
   const res = await client.get('/api/me/activities', { params: { limit } })
   const data = res.data as { activities: TrackedActivity[] }
   return data.activities ?? []
-}
-
-export async function fetchStepsLeaderboard(
-  client: AxiosInstance,
-  params: { scope?: LeaderboardScope; period?: LeaderboardPeriod; limit?: number },
-): Promise<StepsLeaderboardResponse> {
-  const res = await client.get('/api/leaderboards/steps', { params })
-  return res.data as StepsLeaderboardResponse
 }
