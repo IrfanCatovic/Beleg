@@ -13,6 +13,10 @@
     },
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/icon.jpg"
+    },
     "icon": "./assets/icon.jpg",
     "splash": {
       "image": "./assets/icon.jpg",

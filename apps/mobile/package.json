@@ -4,6 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "web": "expo start --web",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "eas:login": "eas login",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@beleg/shared": "file:../../packages/shared",
+    "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.1.1",
     "@maplibre/maplibre-react-native": "^11.3.4",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -40,6 +42,7 @@
     "expo-updates": "~29.0.18",
     "i18next": "^26.3.1",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-hook-form": "^7.79.0",
     "react-i18next": "^17.0.8",
     "react-native": "0.81.5",
@@ -48,12 +51,14 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-view-shot": "4.0.3",
+    "react-native-web": "^0.21.0",
     "webidl-conversions": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.10",
     "eas-cli": "^16.0.0",
+    "http-proxy-middleware": "^3.0.7",
     "typescript": "~5.9.2"
   },
   "private": true

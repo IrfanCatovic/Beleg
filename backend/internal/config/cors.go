@@ -9,6 +9,8 @@ import (
 var defaultOrigins = []string{
 	"http://localhost:5173",
 	"http://127.0.0.1:5173",
+	"http://localhost:8081",
+	"http://127.0.0.1:8081",
 	"https://planiner.com",
 	"https://www.planiner.com",
 }

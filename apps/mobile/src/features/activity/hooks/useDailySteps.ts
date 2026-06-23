@@ -21,26 +21,6 @@ import {
 import { deriveActiveMinutes, deriveDistanceKm } from '../../steps/services/stepsDerived'
 
 const REFRESH_INTERVAL_MS = 30_000
-const DEBUG_ENDPOINT = 'http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb'
-const DEBUG_SESSION = '9034d5'
-
-function logDebug(hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': DEBUG_SESSION },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION,
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-      runId: 'post-fix',
-    }),
-  }).catch(() => {})
-  // #endregion
-}
 
 export interface DailyStepsState {
   todaySteps: number
@@ -117,11 +97,8 @@ export function useDailySteps(): DailyStepsState {
     try {
       const res = await syncDailySteps(client, { date: day, steps })
       await setCachedDailySteps(day, res.steps)
-      logDebug('H5', 'useDailySteps.ts:syncToServer', 'synced', { sent: steps, stored: res.steps, day })
-    } catch (e) {
-      logDebug('H5', 'useDailySteps.ts:syncToServer', 'sync failed', {
-        error: e instanceof Error ? e.message : String(e),
-      })
+    } catch {
+      // offline or server unavailable — keep local cache
     }
   }, [isLoggedIn])
 
@@ -143,16 +120,8 @@ export function useDailySteps(): DailyStepsState {
         if (remote.date === day) {
           resolvedSteps = Math.max(resolvedSteps, remote.steps)
         }
-        logDebug('H2', 'useDailySteps.ts:hydrate', 'server hydrate', {
-          remoteSteps: remote.steps,
-          remoteGoal: remote.goal,
-          cachedSteps: resolvedSteps,
-        })
-      } catch (e) {
-        logDebug('H2', 'useDailySteps.ts:hydrate', 'server hydrate failed', {
-          error: e instanceof Error ? e.message : String(e),
-          cachedSteps: resolvedSteps,
-        })
+      } catch {
+        // use cached steps when server unavailable
       }
     }
 
@@ -175,7 +144,6 @@ export function useDailySteps(): DailyStepsState {
     setError(null)
     await persistSteps(result.steps, day)
     await syncToServer(result.steps, day)
-    logDebug('H5', 'useDailySteps.ts:readStepsIos', 'getStepCountAsync ok', { steps: result.steps })
   }, [applySteps, persistSteps, syncToServer])
 
   const applyAndroidStepEvent = useCallback(
@@ -186,17 +154,12 @@ export function useDailySteps(): DailyStepsState {
         activeDayRef.current = day
         sessionBaselineRef.current = null
         todayStepsBaseRef.current = 0
-        logDebug('H4', 'useDailySteps.ts:androidWatch', 'day rollover', { day })
       }
 
       setDate(day)
 
       if (sessionBaselineRef.current === null) {
         sessionBaselineRef.current = cumulativeSteps
-        logDebug('H1', 'useDailySteps.ts:androidWatch', 'session baseline set', {
-          cumulativeSteps,
-          todayStepsBase: todayStepsBaseRef.current,
-        })
         return
       }
 
@@ -206,13 +169,6 @@ export function useDailySteps(): DailyStepsState {
       setError(null)
       await persistSteps(steps, day)
       await syncToServer(steps, day)
-      logDebug('H1', 'useDailySteps.ts:androidWatch', 'steps updated', {
-        cumulativeSteps,
-        sessionBaseline: sessionBaselineRef.current,
-        todayStepsBase: todayStepsBaseRef.current,
-        delta,
-        steps,
-      })
     },
     [applySteps, persistSteps, syncToServer],
   )
@@ -222,9 +178,6 @@ export function useDailySteps(): DailyStepsState {
     sessionBaselineRef.current = null
     androidWatchRef.current = Pedometer.watchStepCount((ev) => {
       void applyAndroidStepEvent(ev.steps)
-    })
-    logDebug('H1', 'useDailySteps.ts:startAndroidWatch', 'watchStepCount subscribed', {
-      todayStepsBase: todayStepsBaseRef.current,
     })
   }, [applyAndroidStepEvent])
 
@@ -244,12 +197,6 @@ export function useDailySteps(): DailyStepsState {
       setAccessStatus(status)
       setAccessDebug(debug)
 
-      logDebug('H1', 'useDailySteps.ts:checkAccess', 'access resolved', {
-        status,
-        todayStepsBase: todayStepsBaseRef.current,
-        goal: goalRef.current,
-      })
-
       if (status === 'ready') {
         await readSteps()
       } else {
@@ -260,7 +207,6 @@ export function useDailySteps(): DailyStepsState {
       setError(null)
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
-      logDebug('H5', 'useDailySteps.ts:checkAccess', 'catch', { error: errMsg })
       setAccessStatus('device_unavailable')
       setAccessDebug({
         platform: Platform.OS,
@@ -292,8 +238,6 @@ export function useDailySteps(): DailyStepsState {
       setAccessStatus(status)
       setAccessDebug(debug)
 
-      logDebug('H3', 'useDailySteps.ts:requestAccess', 'access requested', { status, debug })
-
       if (status === 'ready') {
         await readSteps()
         setError(null)
@@ -304,9 +248,7 @@ export function useDailySteps(): DailyStepsState {
       androidWatchRef.current = null
       sessionBaselineRef.current = null
       setError(null)
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e)
-      logDebug('H5', 'useDailySteps.ts:requestAccess', 'catch', { error: errMsg })
+    } catch {
       setError('Brojač koraka trenutno nije dostupan.')
     } finally {
       requestingRef.current = false

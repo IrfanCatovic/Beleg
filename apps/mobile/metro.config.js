@@ -15,7 +15,10 @@ config.resolver.disableHierarchicalLookup = true
 // Pin mobile SDK packages — root workspace also has react-native 0.86 (wrong version).
 config.resolver.extraNodeModules = {
   react: path.join(mobileModules, 'react'),
+  'react-dom': path.join(mobileModules, 'react-dom'),
   'react-native': path.join(mobileModules, 'react-native'),
+  'react-native-web': path.join(mobileModules, 'react-native-web'),
+  '@expo/metro-runtime': path.join(mobileModules, '@expo/metro-runtime'),
   expo: path.join(mobileModules, 'expo'),
   'webidl-conversions': path.join(rootModules, 'webidl-conversions'),
 }
@@ -29,5 +32,28 @@ config.resolver.unstable_conditionNames = [
   'browser',
   'default',
 ]
+
+// Web dev: proxy API kroz Metro da izbegnemo CORS (browser → localhost:8081/api-proxy → Render).
+if (process.env.EXPO_PUBLIC_API_URL) {
+  const { createProxyMiddleware } = require('http-proxy-middleware')
+  const apiTarget = process.env.EXPO_PUBLIC_API_URL
+
+  config.server = {
+    enhanceMiddleware: (middleware) => {
+      const apiProxy = createProxyMiddleware({
+        target: apiTarget,
+        changeOrigin: true,
+        pathRewrite: { '^/api-proxy': '' },
+      })
+
+      return (req, res, next) => {
+        if (req.url?.startsWith('/api-proxy')) {
+          return apiProxy(req, res, next)
+        }
+        return middleware(req, res, next)
+      }
+    },
+  }
+}
 
 module.exports = config

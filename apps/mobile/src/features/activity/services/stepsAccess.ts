@@ -19,27 +19,6 @@ export interface StepsAccessDebug {
 
 type PedometerPermission = Awaited<ReturnType<typeof Pedometer.getPermissionsAsync>>
 
-const DEBUG_ENDPOINT = 'http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb'
-const DEBUG_SESSION = '9034d5'
-
-function logDebug(hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': DEBUG_SESSION },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION,
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-      runId: 'pre-fix',
-    }),
-  }).catch(() => {})
-  // #endregion
-}
-
 export function accessStatusFromPermission(perm: PedometerPermission): StepsAccessStatus {
   if (perm.status === 'granted') return 'ready'
   return perm.canAskAgain === false ? 'permission_denied' : 'permission_needed'
@@ -52,21 +31,13 @@ async function resolveAndroidStepsAccess(requestIfNeeded: boolean): Promise<{
   let isAvailable: boolean | null = null
   try {
     isAvailable = await Pedometer.isAvailableAsync()
-  } catch (e) {
-    logDebug('H1', 'stepsAccess.ts:android', 'isAvailableAsync threw', {
-      error: e instanceof Error ? e.message : String(e),
-    })
+  } catch {
+    // Samsung devices may throw; permission check below is authoritative.
   }
 
   const hasPerm = await PermissionsAndroid.check(
     PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
   )
-
-  logDebug('H3', 'stepsAccess.ts:android', 'android permission check', {
-    isAvailable,
-    hasPerm,
-    requestIfNeeded,
-  })
 
   if (!hasPerm) {
     if (!requestIfNeeded) {
@@ -93,8 +64,6 @@ async function resolveAndroidStepsAccess(requestIfNeeded: boolean): Promise<{
         buttonNegative: 'Odbij',
       },
     )
-
-    logDebug('H3', 'stepsAccess.ts:android', 'PermissionsAndroid.request result', { result })
 
     if (result === PermissionsAndroid.RESULTS.GRANTED) {
       return {
@@ -162,9 +131,6 @@ export async function resolveStepsAccess(
   try {
     isAvailable = await Pedometer.isAvailableAsync()
   } catch (e) {
-    logDebug('H1', 'stepsAccess.ts:ios', 'isAvailableAsync threw', {
-      error: e instanceof Error ? e.message : String(e),
-    })
     return {
       status: 'device_unavailable',
       debug: {
@@ -178,8 +144,6 @@ export async function resolveStepsAccess(
       },
     }
   }
-
-  logDebug('H1', 'stepsAccess.ts:ios', 'isAvailable result', { isAvailable, requestIfNeeded })
 
   if (!isAvailable) {
     return {
@@ -199,11 +163,6 @@ export async function resolveStepsAccess(
   if (perm.status !== 'granted' && requestIfNeeded) {
     perm = await Pedometer.requestPermissionsAsync()
   }
-
-  logDebug('H2', 'stepsAccess.ts:ios', 'permission result', {
-    status: perm.status,
-    canAskAgain: perm.canAskAgain,
-  })
 
   return {
     status: accessStatusFromPermission(perm),

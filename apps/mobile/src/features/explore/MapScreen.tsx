@@ -121,7 +121,6 @@ export default function MapScreen({ navigation }: Props) {
       </View>
     )
   }
-
   return (
     <View style={styles.root}>
       <Map
@@ -334,3 +333,4 @@ const styles = StyleSheet.create({
   heroKicker: { fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7 },
   heroTitle: { color: colors.text },
 })
+
