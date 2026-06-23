@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { GuideApplyPayload, GuideProfile } from '@beleg/shared/services'
@@ -96,6 +97,7 @@ function formToPayload(form: WizardForm, telefonFallback: string): GuideApplyPay
 }
 
 export default function BecomeGuideScreen({ navigation }: Props) {
+  const { t } = useTranslation('becomeGuide')
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<WizardForm>(emptyForm)
   const [error, setError] = useState('')
@@ -163,12 +165,12 @@ export default function BecomeGuideScreen({ navigation }: Props) {
 
   const submit = useCallback(async () => {
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
-      setError('Popunite sva obavezna polja.')
+      setError(t('fillRequired'))
       return
     }
     const payload = formToPayload(form, telefonForSubmit)
     if (!payload) {
-      setError('Proverite koordinate i obavezna polja.')
+      setError(t('checkCoords'))
       return
     }
     setError('')
@@ -181,11 +183,11 @@ export default function BecomeGuideScreen({ navigation }: Props) {
       }
       navigation.goBack()
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Slanje zahteva nije uspelo.'))
+      setError(getApiErrorMessage(err, t('submitError')))
     } finally {
       setSubmitting(false)
     }
-  }, [form, telefonForSubmit, profile?.status, validateStep, navigation])
+  }, [form, telefonForSubmit, profile?.status, validateStep, navigation, t])
 
   if (profileQuery.isLoading) {
     return (
@@ -198,23 +200,23 @@ export default function BecomeGuideScreen({ navigation }: Props) {
   if (profile && profile.status !== 'rejected' && !canEdit) {
     const statusLabel =
       profile.status === 'pending'
-        ? 'Na čekanju'
+        ? t('statusPending')
         : profile.status === 'approved'
-          ? 'Odobren'
-          : 'Suspendovan'
+          ? t('statusApproved')
+          : t('statusSuspended')
     return (
       <Screen scroll>
         <View style={styles.header}>
-          <Text variant="title">Profil vodiča</Text>
+          <Text variant="title">{t('profileTitle')}</Text>
           <Card>
             <Text variant="heading">Status: {statusLabel}</Text>
             {profile.status === 'approved' ? (
-              <Text color={colors.textMuted}>Vaš profi vodič profil je aktivan.</Text>
+              <Text color={colors.textMuted}>{t('approvedMessage')}</Text>
             ) : (
-              <Text color={colors.textMuted}>Zahtev je u obradi. Bićete obavešteni kada bude rešen.</Text>
+              <Text color={colors.textMuted}>{t('pendingMessage')}</Text>
             )}
           </Card>
-          <Button title="Nazad" variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title={t('back')} variant="ghost" onPress={() => navigation.goBack()} />
         </View>
       </Screen>
     )
@@ -223,7 +225,7 @@ export default function BecomeGuideScreen({ navigation }: Props) {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <Text variant="title" color={colors.brand}>Postani vodič</Text>
+        <Text variant="title" color={colors.brand}>{t('title')}</Text>
         <View style={styles.steps}>
           {[1, 2, 3].map((n) => (
             <View key={n} style={[styles.stepDot, step === n && styles.stepDotActive]}>
@@ -238,28 +240,28 @@ export default function BecomeGuideScreen({ navigation }: Props) {
       {step === 1 ? (
         <View style={styles.form}>
           <Input
-            label="O tebi *"
+            label={t('aboutLabel')}
             multiline
             value={form.opis}
             onChangeText={(v) => patch({ opis: v })}
-            placeholder="Minimum 30 karaktera — iskustvo, stil vođenja…"
+            placeholder={t('aboutPlaceholder')}
           />
           <Input
-            label="Jezici *"
+            label={t('languagesLabel')}
             value={form.jezici}
             onChangeText={(v) => patch({ jezici: v })}
-            placeholder="srpski, engleski…"
+            placeholder={t('languagesPlaceholder')}
           />
           {needsTelefon ? (
             <Input
-              label="Telefon *"
+              label={t('phoneLabel')}
               keyboardType="phone-pad"
               value={form.telefon}
               onChangeText={(v) => patch({ telefon: v })}
             />
           ) : null}
           <Input
-            label="Sertifikati (opciono)"
+            label={t('certificatesLabel')}
             multiline
             value={form.sertifikatiOpis}
             onChangeText={(v) => patch({ sertifikatiOpis: v })}
@@ -269,20 +271,20 @@ export default function BecomeGuideScreen({ navigation }: Props) {
 
       {step === 2 ? (
         <View style={styles.form}>
-          <Input label="Država" value={form.drzava} onChangeText={(v) => patch({ drzava: v })} />
-          <Input label="Region *" value={form.region} onChangeText={(v) => patch({ region: v })} />
-          <Input label="Grad *" value={form.grad} onChangeText={(v) => patch({ grad: v })} />
-          <Input label="Geografska širina (lat) *" value={form.baseLat} onChangeText={(v) => patch({ baseLat: v })} placeholder="44.1234" />
-          <Input label="Geografska dužina (lng) *" value={form.baseLng} onChangeText={(v) => patch({ baseLng: v })} placeholder="20.5678" />
+          <Input label={t('countryLabel')} value={form.drzava} onChangeText={(v) => patch({ drzava: v })} />
+          <Input label={t('regionLabel')} value={form.region} onChangeText={(v) => patch({ region: v })} />
+          <Input label={t('cityLabel')} value={form.grad} onChangeText={(v) => patch({ grad: v })} />
+          <Input label={t('latLabel')} value={form.baseLat} onChangeText={(v) => patch({ baseLat: v })} placeholder={t('latPlaceholder')} />
+          <Input label={t('lngLabel')} value={form.baseLng} onChangeText={(v) => patch({ baseLng: v })} placeholder={t('lngPlaceholder')} />
           <Text variant="small" color={colors.textMuted}>
-            Unesite koordinate baze (možete kopirati sa Google Maps).
+            {t('coordsHint')}
           </Text>
         </View>
       ) : null}
 
       {step === 3 ? (
         <View style={styles.form}>
-          <Text variant="label">Tipovi tura *</Text>
+          <Text variant="label">{t('tourTypesLabel')}</Text>
           <View style={styles.chips}>
             {GUIDE_TOUR_TYPE_KEYS.map((key) => {
               const selected = form.tourTypes.includes(key)
@@ -304,16 +306,16 @@ export default function BecomeGuideScreen({ navigation }: Props) {
 
       <View style={styles.nav}>
         {step > 1 ? (
-          <Button title="Nazad" variant="ghost" onPress={() => setStep((s) => s - 1)} />
+          <Button title={t('back')} variant="ghost" onPress={() => setStep((s) => s - 1)} />
         ) : (
-          <Button title="Otkaži" variant="ghost" onPress={() => navigation.goBack()} />
+          <Button title={t('cancel')} variant="ghost" onPress={() => navigation.goBack()} />
         )}
         {step < 3 ? (
           <Button
-            title="Dalje"
+            title={t('next')}
             onPress={() => {
               if (!validateStep(step)) {
-                setError('Popunite obavezna polja pre nego nastavite.')
+                setError(t('fillStepRequired'))
                 return
               }
               setError('')
@@ -321,7 +323,7 @@ export default function BecomeGuideScreen({ navigation }: Props) {
             }}
           />
         ) : (
-          <Button title={profile?.status === 'rejected' ? 'Pošalji ponovo' : 'Pošalji zahtev'} loading={submitting} onPress={submit} />
+          <Button title={profile?.status === 'rejected' ? t('resubmit') : t('submit')} loading={submitting} onPress={submit} />
         )}
       </View>
     </Screen>

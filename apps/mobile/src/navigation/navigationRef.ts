@@ -20,6 +20,29 @@ export function navigateToActionDetail(id: number, inviteToken?: string) {
   })
 }
 
+export function navigateToActionEdit(id: number) {
+  if (!navigationRef.isReady()) return
+  navigationRef.navigate('ActionsTab', {
+    screen: 'ActionEdit',
+    params: { id },
+  })
+}
+
+export function navigateToBecomeGuide() {
+  if (!navigationRef.isReady()) return
+  navigationRef.navigate('ProfileTab', {
+    screen: 'BecomeGuide',
+  })
+}
+
+export function navigateToActionDetailFromExplore(id: number) {
+  if (!navigationRef.isReady()) return
+  navigationRef.navigate('ExploreTab', {
+    screen: 'ActionDetail',
+    params: { id },
+  })
+}
+
 export function navigateFromDeepLinkUrl(url: string): boolean {
   const parsed = parseActionDeepLink(url)
   if (!parsed) return false

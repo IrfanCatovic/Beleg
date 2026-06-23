@@ -46,12 +46,23 @@ export async function fetchParticipationRequests(
   return res.data.requests ?? []
 }
 
+export async function fetchParticipationRequestById(
+  client: AxiosInstance,
+  id: number,
+): Promise<ParticipationRequestItem> {
+  const res = await client.get<ParticipationRequestItem>(`/api/moja-ucesca-zahtevi/${id}`)
+  return res.data
+}
+
 export async function respondParticipationRequest(
   client: AxiosInstance,
   requestId: number,
   decision: 'accept' | 'reject',
-): Promise<unknown> {
-  const res = await client.post(`/api/moja-ucesca-zahtevi/${requestId}/respond`, { decision })
+): Promise<{ request: ParticipationRequestItem; message?: string }> {
+  const res = await client.post<{ request: ParticipationRequestItem; message?: string }>(
+    `/api/moja-ucesca-zahtevi/${requestId}/respond`,
+    { decision },
+  )
   return res.data
 }
 

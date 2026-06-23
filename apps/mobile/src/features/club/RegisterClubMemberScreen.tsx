@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { getApiErrorMessage } from '@beleg/shared'
 import { registerClubMember } from '@beleg/shared/services'
@@ -15,6 +17,7 @@ import {
   emptyMemberForm,
   validateMemberForm,
 } from '../auth/memberRegistrationForm'
+import { clubMemberKeys } from './queryKeys'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'RegisterClubMember'>
 
@@ -22,8 +25,10 @@ const ROLE_OPTIONS =
   ['clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme', 'admin'] as const
 
 export default function RegisterClubMemberScreen({ navigation }: Props) {
+  const { t } = useTranslation('clubAdmin')
   const { user } = useAuth()
   const { showAlert } = useModal()
+  const queryClient = useQueryClient()
   const [form, setForm] = useState({ ...emptyMemberForm(), role: 'clan' })
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -44,7 +49,7 @@ export default function RegisterClubMemberScreen({ navigation }: Props) {
       return
     }
     if (!form.role?.trim()) {
-      setError('Izaberite ulogu.')
+      setError(t('selectRole'))
       return
     }
     setError('')
@@ -52,24 +57,25 @@ export default function RegisterClubMemberScreen({ navigation }: Props) {
     try {
       const fd = buildMemberFormData(form, { role: form.role })
       await registerClubMember(client, fd)
-      await showAlert('Uspeh', 'Član je registrovan.')
+      await queryClient.invalidateQueries({ queryKey: clubMemberKeys.all })
+      await showAlert(t('success'), t('registerSuccess'))
       navigation.goBack()
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Registracija nije uspela.'))
+      setError(getApiErrorMessage(err, t('registerError')))
     } finally {
       setLoading(false)
     }
-  }, [form, confirm, navigation, showAlert])
+  }, [form, confirm, navigation, showAlert, queryClient, t])
 
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <Text variant="title" color={colors.brand}>Dodaj člana</Text>
-        <Text variant="muted">Registracija novog člana kluba od strane admina/sekretara.</Text>
+        <Text variant="title" color={colors.brand}>{t('addMemberTitle')}</Text>
+        <Text variant="muted">{t('addMemberSubtitle')}</Text>
       </View>
       <View style={styles.form}>
         <ChipRow
-          label="Uloga *"
+          label={t('roleLabel')}
           options={roleOptions.map((r) => ({ value: r, label: getRoleLabel(r) }))}
           value={form.role ?? 'clan'}
           onChange={(v) => patch('role', v)}
@@ -88,7 +94,7 @@ export default function RegisterClubMemberScreen({ navigation }: Props) {
         />
         <Input label="Telefon" value={form.telefon} onChangeText={(v) => patch('telefon', v)} />
         {error ? <Text variant="small" color={colors.danger}>{error}</Text> : null}
-        <Button title="Registruj člana" loading={loading} onPress={submit} fullWidth />
+        <Button title={t('registerMember')} loading={loading} onPress={submit} fullWidth />
       </View>
     </Screen>
   )

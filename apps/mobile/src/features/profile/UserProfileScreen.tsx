@@ -40,6 +40,7 @@ import type {
   HomeStackParamList,
   ProfileStackParamList,
 } from '../../navigation/types'
+import { navigateToBecomeGuide } from '../../navigation/navigationRef'
 import { FollowListModal } from './FollowListModal'
 import { ProfileActionGrid } from './ProfileActionGrid'
 import { ProfileActionsToggle } from './ProfileActionsToggle'
@@ -514,7 +515,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
               <Button
                 title="Postani vodič"
                 variant="secondary"
-                onPress={() => profileNavigation.navigate('BecomeGuide')}
+                onPress={() => navigateToBecomeGuide()}
                 fullWidth
               />
             </View>

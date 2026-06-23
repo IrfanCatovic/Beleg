@@ -3,12 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button, Card, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import { openWhatsAppWithMessage } from '../../utils/openWhatsApp'
-
-function getRegisterUrl(): string {
-  const web = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_URL ?? ''
-  const base = web.replace(/\/$/, '')
-  return base ? `${base}/registracija` : '/registracija'
-}
+import { getRegisterUrl } from '../../utils/webBaseUrl'
 
 export function InviteFriendsCard() {
   const { t } = useTranslation('home')

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
@@ -21,6 +22,7 @@ export function GuideRatingModal({
   onSkip,
   onSubmit,
 }: GuideRatingModalProps) {
+  const { t } = useTranslation('guideRating')
   const [stars, setStars] = useState<number | null>(null)
   const [komentar, setKomentar] = useState('')
 
@@ -30,9 +32,9 @@ export function GuideRatingModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text variant="heading">Oceni vodiča</Text>
+          <Text variant="heading">{t('title')}</Text>
           <Text color={colors.textMuted} style={styles.sub}>
-            Kako je {guideName} vodio/la akciju?
+            {t('subtitle', { name: guideName })}
           </Text>
 
           <View style={styles.stars}>
@@ -49,7 +51,7 @@ export function GuideRatingModal({
 
           <TextInput
             style={styles.input}
-            placeholder="Komentar (opciono)"
+            placeholder={t('commentPlaceholder')}
             placeholderTextColor={colors.textMuted}
             multiline
             value={komentar}
@@ -58,9 +60,9 @@ export function GuideRatingModal({
           />
 
           <View style={styles.actions}>
-            <Button title="Preskoči" variant="ghost" onPress={onSkip} disabled={saving} />
+            <Button title={t('skip')} variant="ghost" onPress={onSkip} disabled={saving} />
             <Button
-              title="Pošalji"
+              title={t('submit')}
               onPress={() => void onSubmit({ ocena: stars ?? undefined, komentar: komentar.trim() || undefined })}
               loading={saving}
               disabled={!canSubmit}

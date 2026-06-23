@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { Ionicons } from '@expo/vector-icons'
 import {
   fetchFerrataBySlug,
@@ -13,6 +13,7 @@ import { client } from '../../api/client'
 import { Badge, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { ExploreStackParamList, HomeStackParamList } from '../../navigation/types'
+import { navigateToActionDetailFromExplore } from '../../navigation/navigationRef'
 import { FerrataGuideBookingModal } from './ferrata/FerrataGuideBookingModal'
 import { FerrataGuidesSection } from './ferrata/FerrataGuidesSection'
 import { FerrataHotelsSection } from './ferrata/FerrataHotelsSection'
@@ -95,12 +96,8 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
       ? `${Math.round(f.trajanjeMin)}–${Math.round(f.trajanjeMax)} min`
       : null
 
-  type FerrataNav = NativeStackNavigationProp<
-    ExploreStackParamList & HomeStackParamList,
-    'FerrataDetail'
-  >
   const navigateToAction = (id: number) => {
-    ;(navigation as FerrataNav).navigate('ActionDetail', { id })
+    navigateToActionDetailFromExplore(id)
   }
 
   return (

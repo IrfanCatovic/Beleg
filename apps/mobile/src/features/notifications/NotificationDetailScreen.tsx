@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { Task } from '@beleg/shared'
@@ -12,9 +13,11 @@ import {
 import {
   fetchClubJoinRequests,
   fetchObavestenjeById,
+  fetchParticipationRequestById,
   fetchZadatakById,
   markObavestenjeRead,
   respondClubJoinRequest,
+  respondParticipationRequest,
 } from '@beleg/shared/services'
 import {
   ferrataGuideBookingToWizardParams,
@@ -82,6 +85,7 @@ function friendlyLinkLabel(link?: string): string | null {
 }
 
 export default function NotificationDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation('notifications')
   const { id } = route.params
   const { user } = useAuth()
   const { showAlert, showConfirm } = useModal()
@@ -109,7 +113,9 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   const signupRequestId = meta.requestId
   const signupAkcijaId = meta.akcijaId ?? meta.actionId
   const isSignupNotification = detailQuery.data?.type === 'action_signup_request'
+  const isParticipationNotification = detailQuery.data?.type === 'action_participation_request'
   const isGuideBookingNotification = detailQuery.data?.type === 'guide_booking_request'
+  const participationRequestId = isParticipationNotification ? meta.requestId : undefined
   const bookingRequestId = meta.bookingRequestId
   const bookingKind = meta.bookingKind === 'peak' ? 'peak' : 'ferrata'
 
@@ -158,6 +164,28 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
       await showAlert('Gotovo', action === 'accept' ? 'Prijava je odobrena.' : 'Zahtev je odbijen.')
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Obrada nije uspela.')),
+  })
+
+  const participationRequestQuery = useQuery({
+    queryKey: ['participation-request', participationRequestId],
+    queryFn: () => fetchParticipationRequestById(client, participationRequestId!),
+    enabled: isParticipationNotification && participationRequestId != null,
+  })
+
+  const respondParticipationMutation = useMutation({
+    mutationFn: (decision: 'accept' | 'reject') =>
+      respondParticipationRequest(client, participationRequestId!, decision),
+    onSuccess: async (data, decision) => {
+      await markObavestenjeRead(client, id)
+      void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
+      void participationRequestQuery.refetch()
+      await showAlert(
+        t('participationSuccessTitle'),
+        data.message ||
+          (decision === 'accept' ? t('participationAccepted') : t('participationRejected')),
+      )
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, t('participationError'))),
   })
 
   const taskQuery = useQuery({
@@ -210,7 +238,7 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   if (detailQuery.isError || !detailQuery.data) {
     return (
       <Screen edges={['left', 'right']}>
-        <ErrorView message="Obaveštenje nije učitano." onRetry={() => detailQuery.refetch()} />
+        <ErrorView message={t('loadError')} onRetry={() => detailQuery.refetch()} />
       </Screen>
     )
   }
@@ -312,6 +340,75 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
               title="Pogledaj akciju"
               variant="secondary"
               onPress={() => navigation.navigate('ActionDetail', { id: signupAkcijaId })}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+
+      {isParticipationNotification ? (
+        <Card style={styles.participationCard}>
+          <Text variant="label">{t('participationTitle')}</Text>
+          {participationRequestQuery.isLoading ? <Loader /> : null}
+          {participationRequestQuery.data ? (
+            <>
+              <Text variant="heading">{participationRequestQuery.data.action.naziv}</Text>
+              <Text color={colors.textMuted}>
+                {participationRequestQuery.data.requestedBy.fullName?.trim() ||
+                  participationRequestQuery.data.requestedBy.username}
+                {participationRequestQuery.data.requestedBy.klubNaziv
+                  ? ` · ${participationRequestQuery.data.requestedBy.klubNaziv}`
+                  : ''}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                {t('participationActionDate', {
+                  date: new Date(participationRequestQuery.data.action.datum).toLocaleDateString('sr-RS'),
+                })}
+                {participationRequestQuery.data.action.klubNaziv
+                  ? t('participationHomeClub', { name: participationRequestQuery.data.action.klubNaziv })
+                  : ''}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                {t('statusLabel', {
+                  status:
+                    participationRequestQuery.data.status === 'pending'
+                      ? t('participationStatusPending')
+                      : participationRequestQuery.data.status === 'accepted'
+                        ? t('participationStatusAccepted')
+                        : participationRequestQuery.data.status === 'rejected'
+                          ? t('participationStatusRejected')
+                          : t('participationStatusCancelled'),
+                })}
+              </Text>
+              <Text variant="small" style={styles.participationInfo}>
+                {t('participationInfo')}
+              </Text>
+              {participationRequestQuery.data.status === 'pending' ? (
+                <View style={styles.joinActions}>
+                  <Button
+                    title={t('participationConfirm')}
+                    onPress={() => respondParticipationMutation.mutate('accept')}
+                    loading={respondParticipationMutation.isPending}
+                  />
+                  <Button
+                    title={t('reject')}
+                    variant="secondary"
+                    onPress={async () => {
+                      const ok = await showConfirm(t('participationRejectTitle'), t('participationRejectMessage'))
+                      if (ok) respondParticipationMutation.mutate('reject')
+                    }}
+                    loading={respondParticipationMutation.isPending}
+                  />
+                </View>
+              ) : null}
+            </>
+          ) : null}
+          {participationRequestQuery.data?.action.id ? (
+            <Button
+              title={t('viewAction')}
+              variant="secondary"
+              onPress={() =>
+                navigation.navigate('ActionDetail', { id: participationRequestQuery.data!.action.id })
+              }
             />
           ) : null}
         </Card>
@@ -523,6 +620,14 @@ const styles = StyleSheet.create({
   links: { gap: spacing.md },
   card: { gap: spacing.sm },
   signupCard: { gap: spacing.sm, marginBottom: spacing.md, borderColor: '#fcd34d', backgroundColor: '#fffbeb' },
+  participationCard: { gap: spacing.sm, marginBottom: spacing.md, borderColor: '#fcd34d', backgroundColor: '#fffbeb' },
+  participationInfo: {
+    marginTop: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: 8,
+    backgroundColor: '#fef3c7',
+    color: colors.text,
+  },
   userRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   userInfo: { flex: 1, gap: 2 },
   joinActions: { gap: spacing.sm, marginTop: spacing.sm },

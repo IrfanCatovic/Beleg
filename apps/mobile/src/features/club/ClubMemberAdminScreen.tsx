@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { getApiErrorMessage } from '@beleg/shared'
@@ -16,12 +17,14 @@ import { canManageClub } from '../../utils/roles'
 import { getRoleLabel } from '../../utils/profileRank'
 import { colors, spacing } from '../../theme'
 import type { ClubStackParamList } from '../../navigation/types'
+import { clubMemberKeys } from './queryKeys'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'ClubMemberAdmin'>
 
 const EDITABLE_ROLES = ['clan', 'vodic', 'blagajnik', 'sekretar', 'menadzer-opreme', 'admin'] as const
 
 export default function ClubMemberAdminScreen({ route, navigation }: Props) {
+  const { t } = useTranslation('clubAdmin')
   const { id } = route.params
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
@@ -45,34 +48,34 @@ export default function ClubMemberAdminScreen({ route, navigation }: Props) {
   const saveRoleMutation = useMutation({
     mutationFn: () => patchKorisnik(client, id, { role }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['korisnici'] })
-      await showAlert('Uspeh', 'Uloga je sačuvana.')
+      await queryClient.invalidateQueries({ queryKey: clubMemberKeys.all })
+      await showAlert(t('success'), t('saveRoleSuccess'))
       navigation.goBack()
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Čuvanje nije uspelo.')),
+    onError: (err) => showAlert(t('error'), getApiErrorMessage(err, t('saveRoleError'))),
   })
 
   const kickMutation = useMutation({
     mutationFn: () => removeClubMember(client, id, ''),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['korisnici'] })
-      await showAlert('Gotovo', 'Član je uklonjen iz kluba.')
+      await queryClient.invalidateQueries({ queryKey: clubMemberKeys.all })
+      await showAlert(t('done'), t('kickSuccess'))
       navigation.goBack()
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Uklanjanje nije uspelo.')),
+    onError: (err) => showAlert(t('error'), getApiErrorMessage(err, t('kickError'))),
   })
 
   if (!canManage) {
     return (
       <Screen>
-        <Text color={colors.textMuted}>Nemate dozvolu.</Text>
+        <Text color={colors.textMuted}>{t('adminNoPermission')}</Text>
       </Screen>
     )
   }
 
   if (memberQuery.isLoading) return <Screen><Loader /></Screen>
   if (memberQuery.isError || !korisnik) {
-    return <Screen><ErrorView message="Korisnik nije učitan." onRetry={() => memberQuery.refetch()} /></Screen>
+    return <Screen><ErrorView message={t('memberLoadError')} onRetry={() => memberQuery.refetch()} /></Screen>
   }
 
   const isSelf = user?.username === korisnik.username
@@ -88,7 +91,7 @@ export default function ClubMemberAdminScreen({ route, navigation }: Props) {
 
       <View style={styles.section}>
         <ChipRow
-          label="Uloga"
+          label={t('roleField')}
           options={EDITABLE_ROLES.map((r) => ({ value: r, label: getRoleLabel(r) }))}
           value={role}
           onChange={setRole}
@@ -96,24 +99,24 @@ export default function ClubMemberAdminScreen({ route, navigation }: Props) {
         />
         {!isSelf ? (
           <Button
-            title="Sačuvaj ulogu"
+            title={t('saveRole')}
             onPress={() => saveRoleMutation.mutate()}
             loading={saveRoleMutation.isPending}
             fullWidth
           />
         ) : (
-          <Text variant="small" color={colors.textMuted}>Sopstvenu ulogu ne možete menjati ovde.</Text>
+          <Text variant="small" color={colors.textMuted}>{t('ownRoleHint')}</Text>
         )}
       </View>
 
       {!isSelf ? (
         <Button
-          title="Izbaci iz kluba"
+          title={t('kickMember')}
           variant="secondary"
           onPress={async () => {
             const ok = await showConfirm(
-              'Izbaci člana',
-              `Da li želite da uklonite ${korisnik.fullName || korisnik.username} iz kluba?`,
+              t('kickTitle'),
+              t('kickMessage', { name: korisnik.fullName || korisnik.username }),
             )
             if (ok) kickMutation.mutate()
           }}

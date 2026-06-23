@@ -11,11 +11,7 @@ import { client } from '../../../api/client'
 import { Button } from '../../../components/ui'
 import { spacing } from '../../../theme'
 import { openWhatsAppWithMessage } from '../../../utils/openWhatsApp'
-
-function getWebBaseUrl(): string {
-  const web = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_URL ?? ''
-  return web.replace(/\/$/, '')
-}
+import { getWebBaseUrl } from '../../../utils/webBaseUrl'
 
 interface ActionDetailShareRowProps {
   akcija: AkcijaDetail

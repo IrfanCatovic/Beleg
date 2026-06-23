@@ -73,7 +73,7 @@ export default function LoginScreen({ navigation }: Props) {
           onChangeText={setPassword}
         />
         <View style={styles.rememberRow}>
-          <Text variant="body">Zapamti me</Text>
+          <Text variant="body">{t('rememberMe')}</Text>
           <Switch value={rememberMe} onValueChange={setRememberMe} trackColor={{ true: colors.brand }} />
         </View>
         {error ? (
@@ -84,7 +84,7 @@ export default function LoginScreen({ navigation }: Props) {
         <Button title={t('login')} loading={loading} onPress={handleLogin} fullWidth />
         <Button title={t('forgotPassword')} variant="ghost" onPress={() => navigation.navigate('ForgotPassword')} />
         <Button title={t('register')} variant="ghost" onPress={() => navigation.navigate('Register')} />
-        <Button title="Imam kod kluba" variant="ghost" onPress={() => navigation.navigate('EnterClubInviteCode')} />
+        <Button title={t('clubCodeLink')} variant="ghost" onPress={() => navigation.navigate('EnterClubInviteCode')} />
       </View>
     </Screen>
   )

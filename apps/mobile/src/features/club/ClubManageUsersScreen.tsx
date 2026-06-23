@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -12,12 +13,14 @@ import { canManageClub } from '../../utils/roles'
 import { getRoleLabel, getRoleColor } from '../../utils/profileRank'
 import { colors, spacing } from '../../theme'
 import type { ClubStackParamList } from '../../navigation/types'
+import { clubMemberKeys } from './queryKeys'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'ClubManageUsers'>
 
 const ROLE_FILTERS = ['', 'clan', 'vodic', 'admin', 'sekretar', 'blagajnik', 'menadzer-opreme']
 
 export default function ClubManageUsersScreen({ navigation }: Props) {
+  const { t } = useTranslation('clubAdmin')
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
@@ -40,7 +43,7 @@ export default function ClubManageUsersScreen({ navigation }: Props) {
   }, [navigation, canManage])
 
   const membersQuery = useQuery({
-    queryKey: ['korisnici', 'club-manage'],
+    queryKey: clubMemberKeys.manage,
     queryFn: () => fetchKorisnici(client, { scope: 'club' }),
     enabled: canManage,
   })
@@ -62,20 +65,20 @@ export default function ClubManageUsersScreen({ navigation }: Props) {
   if (!canManage) {
     return (
       <View style={styles.centered}>
-        <Text color={colors.textMuted}>Nemate dozvolu za upravljanje članovima.</Text>
+        <Text color={colors.textMuted}>{t('noPermission')}</Text>
       </View>
     )
   }
 
   if (membersQuery.isLoading) return <Loader />
   if (membersQuery.isError) {
-    return <ErrorView message="Članovi nisu učitani." onRetry={() => membersQuery.refetch()} />
+    return <ErrorView message={t('loadError')} onRetry={() => membersQuery.refetch()} />
   }
 
   return (
     <View style={styles.root}>
       <View style={styles.filters}>
-        <Input placeholder="Pretraži…" value={search} onChangeText={setSearch} autoCapitalize="none" />
+        <Input placeholder={t('searchPlaceholder')} value={search} onChangeText={setSearch} autoCapitalize="none" />
         <FlatList
           horizontal
           data={ROLE_FILTERS}
@@ -88,7 +91,7 @@ export default function ClubManageUsersScreen({ navigation }: Props) {
               style={[styles.roleChip, roleFilter === item && styles.roleChipActive]}
             >
               <Text variant="small" color={roleFilter === item ? '#fff' : colors.text}>
-                {item ? getRoleLabel(item) : 'Sve uloge'}
+                {item ? getRoleLabel(item) : t('allRoles')}
               </Text>
             </Pressable>
           )}
@@ -100,7 +103,7 @@ export default function ClubManageUsersScreen({ navigation }: Props) {
         keyExtractor={(item) => String(item.id)}
         refreshControl={<RefreshControl refreshing={membersQuery.isFetching} onRefresh={() => membersQuery.refetch()} />}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState title="Nema članova" />}
+        ListEmptyComponent={<EmptyState title={t('emptyMembers')} />}
         renderItem={({ item }) => (
           <MemberRow korisnik={item} onPress={() => navigation.navigate('ClubMemberAdmin', { id: item.id })} />
         )}

@@ -59,17 +59,14 @@ import { useActionDetailPayments } from './hooks/useActionDetailPayments'
 import { useExternalInvite } from './hooks/useExternalInvite'
 import { useGuideRatings } from './hooks/useGuideRatings'
 import { invalidateActionQueries } from './hooks/invalidateActionQueries'
+import { getWebBaseUrl } from '../../utils/webBaseUrl'
+import { navigateToActionEdit } from '../../navigation/navigationRef'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<HomeStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ProfileStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ExploreStackParamList, 'ActionDetail'>
-
-function getWebBaseUrl(): string {
-  const web = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_URL ?? ''
-  return web.replace(/\/$/, '')
-}
 
 export default function ActionDetailScreen({ route, navigation }: Props) {
   const { id, inviteToken } = route.params
@@ -461,14 +458,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             akcija={akcija}
             canManageHost={canManageHost}
             onFinish={() => void openFinish()}
-            onEdit={() => {
-              if ('navigate' in navigation) {
-                ;(navigation as { navigate: (name: string, params: { id: number }) => void }).navigate(
-                  'ActionEdit',
-                  { id },
-                )
-              }
-            }}
+            onEdit={() => navigateToActionEdit(id)}
             onDelete={() => void handleDelete()}
             onPdfPrePolaska={() => void handlePdfPrePolaska()}
             onPdfZavrsena={() => void handlePdfZavrsena()}
