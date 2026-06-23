@@ -1,5 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import type { AkcijaDetail, AkcijaListItem } from '../types/akcija'
+import type { ActionSignupRequest, MojaSignupRequestPayload } from '../types/actionSignupRequest'
 import type { Prijava } from '../types/prijava'
 
 export interface AkcijeListResponse {
@@ -14,6 +15,7 @@ export interface AkcijeListResponse {
 export interface MojePrijaveResponse {
   prijavljeneAkcije?: number[]
   otkaziveAkcije?: number[]
+  pendingSignupAkcije?: number[]
 }
 
 export interface MojaPrijavaPayload {
@@ -25,6 +27,7 @@ export interface MojaPrijavaPayload {
 
 export interface MojaPrijavaResponse {
   prijava: MojaPrijavaPayload | null
+  signupRequest?: MojaSignupRequestPayload | null
 }
 
 export async function fetchAkcije(
@@ -89,6 +92,53 @@ export async function updateMojaPrijava(
 
 export async function otkaziPrijavu(client: AxiosInstance, id: number | string): Promise<void> {
   await client.delete(`/api/akcije/${id}/prijavi`)
+}
+
+export async function cancelSignupRequest(client: AxiosInstance, akcijaId: number | string): Promise<void> {
+  await client.delete(`/api/akcije/${akcijaId}/signup-requests/moj`)
+}
+
+export async function fetchActionSignupRequests(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  status = 'pending',
+): Promise<ActionSignupRequest[]> {
+  const res = await client.get<{ requests?: ActionSignupRequest[] }>(
+    `/api/akcije/${akcijaId}/signup-requests`,
+    { params: { status } },
+  )
+  return res.data.requests ?? []
+}
+
+export async function fetchActionSignupRequestById(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  requestId: number | string,
+): Promise<ActionSignupRequest> {
+  const res = await client.get<{ request: ActionSignupRequest }>(
+    `/api/akcije/${akcijaId}/signup-requests/${requestId}`,
+  )
+  return res.data.request
+}
+
+export async function respondToActionSignupRequest(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  requestId: number | string,
+  action: 'accept' | 'reject',
+): Promise<unknown> {
+  const res = await client.post(`/api/akcije/${akcijaId}/signup-requests/${requestId}/respond`, { action })
+  return res.data
+}
+
+export async function fetchMojiSignupRequests(
+  client: AxiosInstance,
+  status = 'pending',
+): Promise<ActionSignupRequest[]> {
+  const res = await client.get<{ requests?: ActionSignupRequest[] }>('/api/moji-signup-requests', {
+    params: { status },
+  })
+  return res.data.requests ?? []
 }
 
 export async function fetchMojePopeoSe(client: AxiosInstance): Promise<unknown> {

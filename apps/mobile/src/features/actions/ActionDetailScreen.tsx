@@ -3,19 +3,24 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import {
+  cancelSignupRequest,
+  fetchActionSignupRequests,
   fetchAkcijaById,
   fetchMojaPrijavaZaAkciju,
   fetchMojePrijave,
   fetchPrijaveZaAkciju,
   otkaziPrijavu,
   prijaviNaAkciju,
+  respondToActionSignupRequest,
   updateMojaPrijava,
 } from '@beleg/shared/services'
 import { getApiErrorMessage } from '@beleg/shared'
 import { client } from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
+import { buildPrevozOccupancy, countActivePrijave } from '../../utils/actionDetails'
 import type {
   ActionsStackParamList,
   ExploreStackParamList,
@@ -35,9 +40,18 @@ type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ExploreStackParamList, 'ActionDetail'>
 
-export default function ActionDetailScreen({ route, navigation }: Props) {
+function registrationErrorMessage(err: unknown): string {
+  const msg = getApiErrorMessage(err, 'Čuvanje nije uspelo.')
+  if (/popunjen|maksimalan|pun/i.test(msg)) {
+    return 'Sva mesta su popunjena. Pokušajte kasnije ili izaberite drugu opciju.'
+  }
+  return msg
+}
+
+export default function ActionDetailScreen({ route }: Props) {
   const { id } = route.params
   const queryClient = useQueryClient()
+  const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
 
   const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
@@ -64,23 +78,40 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     queryFn: () => fetchPrijaveZaAkciju(client, id),
   })
 
+  const canTryHost =
+    !!user && ['admin', 'sekretar', 'vodic', 'superadmin'].includes(user.role ?? '')
+
+  const signupRequestsQuery = useQuery({
+    queryKey: ['signup-requests', id],
+    queryFn: () => fetchActionSignupRequests(client, id, 'pending'),
+    enabled: canTryHost && !detailQuery.data?.isCompleted,
+    retry: false,
+  })
+
   const akcija = detailQuery.data
   const prijava = mojaPrijavaQuery.data?.prijava
+  const pendingSignup = mojaPrijavaQuery.data?.signupRequest
+  const isPendingSignup = pendingSignup?.status === 'pending'
+  const isRegistered = prijava?.status === 'prijavljen'
+  const logisticsDisabled =
+    !!akcija?.isCompleted || isPendingSignup || (isRegistered && prijava?.status !== 'prijavljen')
 
   useEffect(() => {
-    if (!prijava) return
-    setSelSmestaj(new Set(prijava.selectedSmestajIds ?? []))
-    const prev = prijava.selectedPrevozIds ?? []
+    const source = prijava ?? (isPendingSignup ? pendingSignup : null)
+    if (!source) return
+    setSelSmestaj(new Set(source.selectedSmestajIds ?? []))
+    const prev = source.selectedPrevozIds ?? []
     setSelPrevoz(prev.length ? new Set([prev[prev.length - 1]]) : new Set())
     const rent: Record<number, number> = {}
-    for (const it of prijava.selectedRentItems ?? []) {
+    for (const it of source.selectedRentItems ?? []) {
       if (it.rentId && it.kolicina > 0) rent[it.rentId] = it.kolicina
     }
     setSelRent(rent)
-  }, [prijava])
+  }, [prijava, pendingSignup, isPendingSignup])
 
   const signedUp = (prijaveQuery.data?.prijavljeneAkcije ?? []).includes(id)
   const canCancel = (prijaveQuery.data?.otkaziveAkcije ?? []).includes(id)
+  const pendingOnList = (prijaveQuery.data?.pendingSignupAkcije ?? []).includes(id)
 
   const payload = useMemo(() => {
     const selectedSmestajIds = Array.from(selSmestaj)
@@ -91,6 +122,11 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
       .filter((x) => x.kolicina > 0)
     return { selectedSmestajIds, selectedPrevozIds, selectedRentItems }
   }, [selSmestaj, selPrevoz, selRent])
+
+  const prevozOccupied = useMemo(
+    () => buildPrevozOccupancy(membersQuery.data ?? []),
+    [membersQuery.data],
+  )
 
   const priceTotals = useMemo(() => {
     if (!akcija) return { smestaj: 0, prevoz: 0, rent: 0 }
@@ -110,28 +146,54 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     return { smestaj, prevoz, rent }
   }, [akcija, selSmestaj, selPrevoz, selRent])
 
+  const invalidateRegistration = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
+    await queryClient.invalidateQueries({ queryKey: ['moja-prijava', id] })
+    await queryClient.invalidateQueries({ queryKey: ['akcija', id] })
+    await queryClient.invalidateQueries({ queryKey: ['akcija', id, 'prijave'] })
+    await queryClient.invalidateQueries({ queryKey: ['signup-requests', id] })
+  }
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (signedUp) return updateMojaPrijava(client, id, payload)
+      if (isRegistered) return updateMojaPrijava(client, id, payload)
       return prijaviNaAkciju(client, id, payload)
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
-      await queryClient.invalidateQueries({ queryKey: ['moja-prijava', id] })
-      await queryClient.invalidateQueries({ queryKey: ['akcija', id, 'prijave'] })
-      await showAlert('Uspeh', signedUp ? 'Prijava je ažurirana.' : 'Uspešno ste se prijavili.')
+      await invalidateRegistration()
+      await showAlert(
+        'Uspeh',
+        isRegistered ? 'Prijava je ažurirana.' : 'Zahtev za prijavu je poslat na odobrenje.',
+      )
     },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Čuvanje nije uspelo.')),
+    onError: (err) => showAlert('Greška', registrationErrorMessage(err)),
   })
 
   const otkaziMutation = useMutation({
     mutationFn: () => otkaziPrijavu(client, id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
-      await queryClient.invalidateQueries({ queryKey: ['moja-prijava', id] })
+      await invalidateRegistration()
       await showAlert('Uspeh', 'Prijava je otkazana.')
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
+  })
+
+  const cancelSignupMutation = useMutation({
+    mutationFn: () => cancelSignupRequest(client, id),
+    onSuccess: async () => {
+      await invalidateRegistration()
+      await showAlert('Uspeh', 'Zahtev za prijavu je otkazan.')
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
+  })
+
+  const respondSignupMutation = useMutation({
+    mutationFn: ({ requestId, action }: { requestId: number; action: 'accept' | 'reject' }) =>
+      respondToActionSignupRequest(client, id, requestId, action),
+    onSuccess: async () => {
+      await invalidateRegistration()
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Obrada zahteva nije uspela.')),
   })
 
   if (detailQuery.isLoading) {
@@ -151,7 +213,8 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   }
 
   const locationSubtitle = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') || akcija.ferrataSnapshot?.lokacija || '—'
-  const memberCount = membersQuery.data?.length ?? akcija.prijaveCount ?? 0
+  const memberCount = countActivePrijave(membersQuery.data ?? [])
+  const hostRequests = signupRequestsQuery.data ?? []
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
@@ -167,7 +230,10 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             selSmestaj={selSmestaj}
             selPrevoz={selPrevoz}
             selRent={selRent}
+            prevozOccupied={prevozOccupied}
+            disabled={logisticsDisabled}
             onToggleSmestaj={(sid) => {
+              if (logisticsDisabled) return
               setSelSmestaj((prev) => {
                 const next = new Set(prev)
                 if (next.has(sid)) next.delete(sid)
@@ -175,8 +241,12 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
                 return next
               })
             }}
-            onSelectPrevoz={(pid) => setSelPrevoz(new Set([pid]))}
+            onSelectPrevoz={(pid) => {
+              if (logisticsDisabled) return
+              setSelPrevoz(new Set([pid]))
+            }}
             onChangeRent={(rid, delta, max) => {
+              if (logisticsDisabled) return
               setSelRent((prev) => ({
                 ...prev,
                 [rid]: Math.max(0, Math.min(max, (prev[rid] ?? 0) + delta)),
@@ -191,33 +261,93 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             rentTotal={priceTotals.rent}
           />
 
+          {hostRequests.length > 0 ? (
+            <Card style={styles.hostCard}>
+              <Text variant="heading">Zahtevi za prijavu</Text>
+              {hostRequests.map((req) => {
+                const name = req.requester.fullName?.trim() || req.requester.username
+                return (
+                  <View key={req.id} style={styles.hostRow}>
+                    <View style={styles.hostRowText}>
+                      <Text variant="label">{name}</Text>
+                      <Text variant="small" color={colors.textMuted}>@{req.requester.username}</Text>
+                    </View>
+                    <View style={styles.hostActions}>
+                      <Button
+                        title="Odbij"
+                        variant="ghost"
+                        loading={respondSignupMutation.isPending}
+                        onPress={() => respondSignupMutation.mutate({ requestId: req.id, action: 'reject' })}
+                      />
+                      <Button
+                        title="Prihvati"
+                        loading={respondSignupMutation.isPending}
+                        onPress={() => respondSignupMutation.mutate({ requestId: req.id, action: 'accept' })}
+                      />
+                    </View>
+                  </View>
+                )
+              })}
+            </Card>
+          ) : null}
+
           {akcija.prikaziListuPrijavljenih !== false ? (
             <ActionDetailMembers prijave={membersQuery.data ?? []} />
           ) : null}
 
-          {signedUp ? (
+          {isPendingSignup || isRegistered ? (
             <Card style={styles.block}>
               <Text variant="label">Vaša prijava</Text>
-              <Text color={colors.textMuted}>Status: {prijava?.status || 'prijavljen'}</Text>
+              <Text color={colors.textMuted}>
+                Status: {isPendingSignup ? 'Na čekanju odobrenja' : prijava?.status || 'prijavljen'}
+              </Text>
             </Card>
           ) : null}
 
           <View style={styles.actions}>
-            {!akcija.isCompleted ? (
+            {!akcija.isCompleted && !isRegistered && !isPendingSignup ? (
               <Button
-                title={signedUp ? 'Sačuvaj izbore' : 'Prijavi se'}
+                title="Pošalji zahtev za prijavu"
                 loading={saveMutation.isPending}
                 onPress={() => saveMutation.mutate()}
                 fullWidth
               />
             ) : null}
-            {signedUp && canCancel ? (
+            {!akcija.isCompleted && isRegistered ? (
+              <Button
+                title="Sačuvaj izbore"
+                loading={saveMutation.isPending}
+                onPress={() => saveMutation.mutate()}
+                fullWidth
+              />
+            ) : null}
+            {isPendingSignup ? (
+              <Button
+                title="Otkaži zahtev"
+                variant="secondary"
+                loading={cancelSignupMutation.isPending}
+                onPress={async () => {
+                  const ok = await showConfirm(
+                    'Otkaži zahtev',
+                    `Otkazati zahtev za prijavu na „${akcija.naziv}"?`,
+                    { variant: 'danger', confirmLabel: 'Otkaži' },
+                  )
+                  if (ok) cancelSignupMutation.mutate()
+                }}
+                fullWidth
+              />
+            ) : null}
+            {isRegistered && canCancel ? (
               <Button
                 title="Otkaži prijavu"
                 variant="secondary"
                 loading={otkaziMutation.isPending}
                 onPress={async () => {
-                  const ok = await showConfirm('Otkaži prijavu', 'Da li ste sigurni?')
+                  const ok = await showConfirm(
+                    'Otkaži prijavu',
+                    `Da li ste sigurni da želite da otkažete prijavu na „${akcija.naziv}"?`,
+                    { variant: 'danger', confirmLabel: 'Otkaži' },
+                  )
                   if (ok) otkaziMutation.mutate()
                 }}
                 fullWidth
@@ -234,5 +364,9 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl },
   body: { padding: spacing.lg },
   block: { marginBottom: spacing.md, gap: spacing.sm },
+  hostCard: { marginBottom: spacing.md, gap: spacing.md, borderColor: '#fcd34d', backgroundColor: '#fffbeb' },
+  hostRow: { gap: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  hostRowText: { gap: 2 },
+  hostActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
   actions: { marginTop: spacing.md, gap: spacing.sm },
 })

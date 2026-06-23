@@ -10,6 +10,7 @@ interface ActionCardProps {
   variant?: 'card' | 'feed'
   onPress?: () => void
   signedUp?: boolean
+  pendingSignup?: boolean
   cancellable?: boolean
   onJoin?: () => void
   onCancel?: () => void
@@ -42,6 +43,7 @@ export function ActionCard({
   variant = 'card',
   onPress,
   signedUp,
+  pendingSignup,
   cancellable,
   onJoin,
   onCancel,
@@ -115,14 +117,17 @@ export function ActionCard({
           <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
             <Text style={[styles.diffText, { color: diff.text }]}>{action.tezina || '—'}</Text>
           </View>
-          {signedUp ? <Badge label="Prijavljen" tone="brand" /> : null}
+          {pendingSignup ? <Badge label="Na čekanju" tone="warning" /> : null}
+          {signedUp && !pendingSignup ? <Badge label="Prijavljen" tone="brand" /> : null}
           {isPast ? <Badge label="Završena" tone="muted" /> : null}
         </View>
       </View>
 
       {!isPast && (onJoin || onCancel) ? (
         <View style={[styles.actionRow, isFeed && styles.feedPadded]}>
-          {cancellable && onCancel ? (
+          {pendingSignup && onCancel ? (
+            <Button title="Otkaži zahtev" variant="ghost" onPress={onCancel} fullWidth />
+          ) : cancellable && onCancel ? (
             <Button title="Otkaži prijavu" variant="ghost" onPress={onCancel} fullWidth />
           ) : signedUp ? (
             <Text variant="small" color={colors.brand} style={styles.signedText}>

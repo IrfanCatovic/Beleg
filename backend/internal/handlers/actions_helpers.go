@@ -105,6 +105,65 @@ func loadReservedRentByAction(db *gorm.DB, akcijaID uint, excludePrijavaID *uint
 	return reserved, nil
 }
 
+func loadPrevozOccupancyByAction(db *gorm.DB, akcijaID uint, excludePrijavaID *uint) (map[uint]int, error) {
+	type prevozRawRow struct {
+		SelectedPrevozIDs string `gorm:"column:selected_prevoz_ids"`
+	}
+	q := db.Table("prijava_izbori").
+		Select("prijava_izbori.selected_prevoz_ids").
+		Joins("JOIN prijave ON prijave.id = prijava_izbori.prijava_id").
+		Where("prijave.akcija_id = ? AND prijave.status = ?", akcijaID, "prijavljen")
+	if excludePrijavaID != nil {
+		q = q.Where("prijava_izbori.prijava_id <> ?", *excludePrijavaID)
+	}
+	var rows []prevozRawRow
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	occupied := map[uint]int{}
+	for _, row := range rows {
+		if strings.TrimSpace(row.SelectedPrevozIDs) == "" || row.SelectedPrevozIDs == "null" {
+			continue
+		}
+		var ids []uint
+		if err := json.Unmarshal([]byte(row.SelectedPrevozIDs), &ids); err != nil {
+			continue
+		}
+		for _, pid := range ids {
+			if pid > 0 {
+				occupied[pid]++
+			}
+		}
+	}
+	return occupied, nil
+}
+
+func validatePrevozCapacity(db *gorm.DB, akcijaID uint, prevozIDs []uint, excludePrijavaID *uint) error {
+	if len(prevozIDs) == 0 {
+		return nil
+	}
+	occupied, err := loadPrevozOccupancyByAction(db, akcijaID, excludePrijavaID)
+	if err != nil {
+		return err
+	}
+	for _, pid := range prevozIDs {
+		if pid == 0 {
+			continue
+		}
+		var row models.AkcijaPrevoz
+		if err := db.Where("akcija_id = ? AND id = ?", akcijaID, pid).First(&row).Error; err != nil {
+			return errors.New("Nevažeći prevoz")
+		}
+		if row.Kapacitet <= 0 {
+			continue
+		}
+		if occupied[pid] >= row.Kapacitet {
+			return errors.New("Prevoz '" + row.NazivGrupe + "' je pun")
+		}
+	}
+	return nil
+}
+
 func validateRentAvailability(db *gorm.DB, akcijaID uint, requested []prijavaRentItem, excludePrijavaID *uint) error {
 	requested = normalizeRentItems(requested)
 	if len(requested) == 0 {

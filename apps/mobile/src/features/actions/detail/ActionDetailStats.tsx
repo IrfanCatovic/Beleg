@@ -12,12 +12,16 @@ interface ActionDetailStatsProps {
 export function ActionDetailStats({ akcija, memberCount }: ActionDetailStatsProps) {
   const isFerrata = akcija.tipAkcije === 'via_ferrata'
   const snap = akcija.ferrataSnapshot
+  const memberCountLabel =
+    akcija.maxLjudi && akcija.maxLjudi > 0
+      ? `${memberCount} / ${akcija.maxLjudi}`
+      : String(memberCount)
 
   const cells = isFerrata
     ? [
         { icon: 'trail-sign-outline' as const, label: 'Ferata', value: snap?.naziv || akcija.naziv },
         { icon: 'map-outline' as const, label: 'Region', value: snap?.lokacija || akcija.planina || '—' },
-        { icon: 'people-outline' as const, label: 'Prijavljeno', value: String(memberCount) },
+        { icon: 'people-outline' as const, label: 'Prijavljeno', value: memberCountLabel },
         { icon: 'fitness-outline' as const, label: 'Težina', value: akcija.tezina || snap?.tezina || '—' },
       ]
     : [
@@ -28,7 +32,7 @@ export function ActionDetailStats({ akcija, memberCount }: ActionDetailStatsProp
           label: 'Visina',
           value: akcija.visinaVrhM != null ? `${akcija.visinaVrhM} m` : '—',
         },
-        { icon: 'people-outline' as const, label: 'Prijavljeno', value: String(memberCount) },
+        { icon: 'people-outline' as const, label: 'Prijavljeno', value: memberCountLabel },
       ]
 
   return (

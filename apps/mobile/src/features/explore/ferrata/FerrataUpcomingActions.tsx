@@ -24,6 +24,9 @@ export function FerrataUpcomingActions({ actions, onPressAction }: FerrataUpcomi
             <Text variant="label">{a.naziv}</Text>
             <Text variant="small" color={colors.textMuted}>
               {[a.klubNaziv, a.startAt || a.datum].filter(Boolean).join(' · ')}
+              {a.maxLjudi != null && a.maxLjudi > 0
+                ? ` · ${Math.max(0, a.maxLjudi - (a.prijavljeno ?? 0))} slobodnih mesta`
+                : ''}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

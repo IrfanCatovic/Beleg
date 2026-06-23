@@ -6,6 +6,10 @@ import type { Task } from '@beleg/shared'
 import { Ionicons } from '@expo/vector-icons'
 import { getApiErrorMessage } from '@beleg/shared'
 import {
+  fetchActionSignupRequestById,
+  respondToActionSignupRequest,
+} from '@beleg/shared/services'
+import {
   fetchClubJoinRequests,
   fetchObavestenjeById,
   fetchZadatakById,
@@ -29,6 +33,7 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationDetail'>
 interface ParsedMeta {
   akcijaId?: number
   actionId?: number
+  requestId?: number
   userId?: number
   username?: string
   zadatakId?: number
@@ -82,6 +87,27 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   const meta = useMemo(() => parseMetadata(detailQuery.data?.metadata), [detailQuery.data?.metadata])
   const zadatakId = meta.zadatakId
   const clubJoinRequestId = meta.clubJoinRequestId
+  const signupRequestId = meta.requestId
+  const signupAkcijaId = meta.akcijaId ?? meta.actionId
+  const isSignupNotification = detailQuery.data?.type === 'action_signup_request'
+
+  const signupRequestQuery = useQuery({
+    queryKey: ['signup-request', signupAkcijaId, signupRequestId],
+    queryFn: () => fetchActionSignupRequestById(client, signupAkcijaId!, signupRequestId!),
+    enabled: isSignupNotification && signupAkcijaId != null && signupRequestId != null,
+  })
+
+  const respondSignupMutation = useMutation({
+    mutationFn: (action: 'accept' | 'reject') =>
+      respondToActionSignupRequest(client, signupAkcijaId!, signupRequestId!, action),
+    onSuccess: async (_data, action) => {
+      await markObavestenjeRead(client, id)
+      void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
+      void signupRequestQuery.refetch()
+      await showAlert('Gotovo', action === 'accept' ? 'Prijava je odobrena.' : 'Zahtev je odbijen.')
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Obrada nije uspela.')),
+  })
 
   const taskQuery = useQuery({
     queryKey: ['zadatak', zadatakId],
@@ -167,6 +193,53 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
       <Text variant="small" style={styles.date}>
         {new Date(item.createdAt).toLocaleString('sr-RS')}
       </Text>
+
+      {isSignupNotification ? (
+        <Card style={styles.signupCard}>
+          <Text variant="label">Zahtev za prijavu na akciju</Text>
+          {signupRequestQuery.isLoading ? <Loader /> : null}
+          {signupRequestQuery.data ? (
+            <>
+              <Text variant="label">
+                {signupRequestQuery.data.requester.fullName?.trim() ||
+                  signupRequestQuery.data.requester.username}
+              </Text>
+              <Text variant="small" color={colors.textMuted}>
+                @{signupRequestQuery.data.requester.username}
+              </Text>
+              {signupRequestQuery.data.status === 'pending' ? (
+                <View style={styles.joinActions}>
+                  <Button
+                    title="Prihvati prijavu"
+                    onPress={() => respondSignupMutation.mutate('accept')}
+                    loading={respondSignupMutation.isPending}
+                  />
+                  <Button
+                    title="Odbij"
+                    variant="secondary"
+                    onPress={async () => {
+                      const ok = await showConfirm('Odbij zahtev', 'Odbiti zahtev za prijavu?')
+                      if (ok) respondSignupMutation.mutate('reject')
+                    }}
+                    loading={respondSignupMutation.isPending}
+                  />
+                </View>
+              ) : (
+                <Text variant="small" color={colors.textMuted}>
+                  Status: {signupRequestQuery.data.status}
+                </Text>
+              )}
+            </>
+          ) : null}
+          {signupAkcijaId ? (
+            <Button
+              title="Pogledaj akciju"
+              variant="secondary"
+              onPress={() => navigation.navigate('ActionDetail', { id: signupAkcijaId })}
+            />
+          ) : null}
+        </Card>
+      ) : null}
 
       {clubJoinRequestId ? (
         <Card style={styles.card}>
@@ -317,6 +390,7 @@ const styles = StyleSheet.create({
   date: { marginBottom: spacing.lg, color: colors.textMuted },
   links: { gap: spacing.md },
   card: { gap: spacing.sm },
+  signupCard: { gap: spacing.sm, marginBottom: spacing.md, borderColor: '#fcd34d', backgroundColor: '#fffbeb' },
   userRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   userInfo: { flex: 1, gap: 2 },
   joinActions: { gap: spacing.sm, marginTop: spacing.sm },

@@ -34,10 +34,10 @@ export default function LoginScreen({ navigation }: Props) {
         setError(t('noConnection'))
       } else if (axios.isAxiosError(err) && err.response?.status === 404) {
         setError('Server nije pronađen (404). Proverite EXPO_PUBLIC_API_URL.')
-      } else if (axios.isAxiosError(err) && err.response?.status === 403) {
-        setError('Server je odbio zahtev (CORS). Restartujte Expo (npm run web).')
       } else {
-        setError(getApiErrorMessage(err, t('loginFailed')))
+        const msg = getApiErrorMessage(err, t('loginFailed'))
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined
+        setError(status ? `${msg} (${status})` : msg)
       }
     } finally {
       setLoading(false)

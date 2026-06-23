@@ -1,6 +1,12 @@
 export type { Akcija, AkcijaDetail, AkcijaListItem, TipAkcije, OrganizatorTip } from './akcija'
 export type { Korisnik, KorisnikRef, UserRole } from './korisnik'
-export type { Prijava, PrijavaStatus } from './prijava'
+export type { Prijava, PrijavaStatus, PrijavaRentItem } from './prijava'
+export type {
+  ActionSignupRequest,
+  ActionSignupRequestStatus,
+  ActionSignupRequestUser,
+  MojaSignupRequestPayload,
+} from './actionSignupRequest'
 export type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } from './obavestenje'
 export type { KlubData, ClubAdminStats, ClubJoinRequestItem } from './klub'
 export type { UspesnaAkcija, KorisnikStatistika } from './uspesnaAkcija'

@@ -14,6 +14,7 @@ const (
 	ObavestenjeTipActionParticipationRequest = "action_participation_request"
 	ObavestenjeTipSummitReward               = "summit_reward" // čestitka + preuzimanje nagrade za uspešan uspon
 	ObavestenjeTipGuideBookingRequest        = "guide_booking_request" // zahtev za vođenje na ferati → odabrani vodiči
+	ObavestenjeTipActionSignupRequest        = "action_signup_request" // zahtev za prijavu na akciju → vodič ili admin kluba
 )
 
 // Obavestenje je jedno obaveštenje za jednog korisnika (recipient).

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  cancelSignupRequest,
   fetchMojaPrijavaZaAkciju,
   otkaziPrijavu,
   prijaviNaAkciju,
@@ -18,6 +19,14 @@ export type MojaPrijava = {
   selectedRentItems?: Array<{ rentId: number; kolicina: number }>
 } | null
 
+export type PendingSignupRequest = {
+  id: number
+  status: string
+  selectedSmestajIds?: number[]
+  selectedPrevozIds?: number[]
+  selectedRentItems?: Array<{ rentId: number; kolicina: number }>
+} | null
+
 export interface UseActionRegistrationParams {
   id: string | undefined
   user: User | null
@@ -28,6 +37,25 @@ export interface UseActionRegistrationParams {
   showAlert: (message: string, title?: string) => Promise<void>
   showConfirm: (message: string, options?: Partial<ConfirmOptions>) => Promise<boolean>
   t: (key: string, options?: Record<string, unknown>) => string
+}
+
+function applyChoicesToState(
+  p: {
+    selectedSmestajIds?: number[]
+    selectedPrevozIds?: number[]
+    selectedRentItems?: Array<{ rentId: number; kolicina: number }>
+  },
+  setSelSmestaj: (v: Set<number>) => void,
+  setSelPrevoz: (v: Set<number>) => void,
+  setSelRent: (v: Record<number, number>) => void,
+) {
+  setSelSmestaj(new Set(p.selectedSmestajIds || []))
+  setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
+  const rentMap: Record<number, number> = {}
+  for (const it of p.selectedRentItems || []) {
+    if (it.rentId && it.kolicina > 0) rentMap[it.rentId] = it.kolicina
+  }
+  setSelRent(rentMap)
 }
 
 export function useActionRegistration({
@@ -42,6 +70,7 @@ export function useActionRegistration({
   t,
 }: UseActionRegistrationParams) {
   const [mojaPrijava, setMojaPrijava] = useState<MojaPrijava | undefined>(undefined)
+  const [pendingSignup, setPendingSignup] = useState<PendingSignupRequest | undefined>(undefined)
   const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
   const [selPrevoz, setSelPrevoz] = useState<Set<number>>(new Set())
   const [selRent, setSelRent] = useState<Record<number, number>>({})
@@ -49,37 +78,42 @@ export function useActionRegistration({
   const [savingSelections, setSavingSelections] = useState(false)
   const [registerOptionsOpen, setRegisterOptionsOpen] = useState(false)
 
+  const loadRegistrationState = async () => {
+    if (!id || !user) return
+    const res = await fetchMojaPrijavaZaAkciju(id)
+    const p = res.prijava ?? null
+    const signup = res.signupRequest ?? null
+    setMojaPrijava(p)
+    setPendingSignup(signup?.status === 'pending' ? signup : null)
+    const source = p ?? (signup?.status === 'pending' ? signup : null)
+    if (source) {
+      applyChoicesToState(source, setSelSmestaj, setSelPrevoz, setSelRent)
+      setSelectionsDirty(false)
+    }
+  }
+
   useEffect(() => {
     if (!user || !id) {
       setMojaPrijava(undefined)
+      setPendingSignup(undefined)
       return
     }
     let cancelled = false
     const run = async () => {
       try {
-        const res = await fetchMojaPrijavaZaAkciju(id!)
-        if (!cancelled) {
-          const p = res.prijava ?? null
-          setMojaPrijava(p)
-          if (p) {
-            setSelSmestaj(new Set(p.selectedSmestajIds || []))
-            setSelPrevoz(singlePrevozIdSet(p.selectedPrevozIds))
-            const rentMap: Record<number, number> = {}
-            for (const it of p.selectedRentItems || []) {
-              if (it.rentId && it.kolicina > 0) rentMap[it.rentId] = it.kolicina
-            }
-            setSelRent(rentMap)
-            setSelectionsDirty(false)
-          }
-        }
+        await loadRegistrationState()
       } catch {
-        if (!cancelled) setMojaPrijava(null)
+        if (!cancelled) {
+          setMojaPrijava(null)
+          setPendingSignup(null)
+        }
       }
     }
     void run()
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user])
 
   useEffect(() => {
@@ -138,7 +172,10 @@ export function useActionRegistration({
         const rentId = Number(rentIdRaw)
         const available = validRent.get(rentId)
         if (!available) return null
-        const kolicina = Math.max(0, Math.min(Number(kolicinaRaw) || 0, available))
+        const currentHeld = pendingSignup?.selectedRentItems?.find((r) => r.rentId === rentId)?.kolicina ?? 0
+        const held = mojaPrijava?.selectedRentItems?.find((r) => r.rentId === rentId)?.kolicina ?? currentHeld
+        const maxQty = available + held
+        const kolicina = Math.max(0, Math.min(Number(kolicinaRaw) || 0, maxQty))
         if (kolicina <= 0) return null
         return { rentId, kolicina }
       })
@@ -161,21 +198,27 @@ export function useActionRegistration({
       await showAlert('Ne možete menjati izbore nakon što je status prijave promenjen.', t('errorTitle'))
       return
     }
+    if (pendingSignup && !selectionsDirty) {
+      await showAlert(t('signupPendingMessage', { defaultValue: 'Zahtev za prijavu je na čekanju odobrenja.' }))
+      return
+    }
     setSavingSelections(true)
     try {
       const payload = buildChoicesPayload()
       const inviteParams = inviteToken ? { params: { inviteToken } } : undefined
       if (!mojaPrijava) {
         await prijaviNaAkciju(id!, payload, inviteParams)
-        await showAlert('Uspešno ste se prijavili!')
+        await showAlert(t('signupRequestSent', { defaultValue: 'Zahtev za prijavu je poslat na odobrenje.' }))
       } else {
         try {
           await updateMojaPrijava(id!, payload, inviteParams)
+          await showAlert('Izbori su sačuvani.')
         } catch (err: unknown) {
           const status = (err as { response?: { status?: number } })?.response?.status
           if (status === 404) {
             await otkaziPrijavu(id!)
             await prijaviNaAkciju(id!, payload, inviteParams)
+            await showAlert(t('signupRequestSent', { defaultValue: 'Zahtev za prijavu je poslat na odobrenje.' }))
           } else {
             throw err
           }
@@ -184,8 +227,7 @@ export function useActionRegistration({
       setSelectionsDirty(false)
       await reloadAkcija()
       await refreshPrijave()
-      const mp = await fetchMojaPrijavaZaAkciju(id!)
-      setMojaPrijava(mp.prijava ?? null)
+      await loadRegistrationState()
     } catch (err: unknown) {
       const apiError = getApiErrorMessage(err, '')
       const friendly =
@@ -200,8 +242,37 @@ export function useActionRegistration({
   }
 
   const handleCancelPrijava = async () => {
-    if (!id || !mojaPrijava) return
-    const ok = await showConfirm(t('confirmCancelJoin', { defaultValue: 'Da li želite da otkažete prijavu?' }))
+    if (!id) return
+    if (pendingSignup) {
+      const ok = await showConfirm(
+        t('confirmCancelSignupRequest', {
+          defaultValue: 'Da li želite da otkažete zahtev za prijavu?',
+        }),
+        { variant: 'danger', confirmLabel: t('cancelJoin', { defaultValue: 'Otkaži' }) },
+      )
+      if (!ok) return
+      try {
+        await cancelSignupRequest(id)
+        setPendingSignup(null)
+        setSelSmestaj(new Set())
+        setSelPrevoz(new Set())
+        setSelRent({})
+        setSelectionsDirty(false)
+        await reloadAkcija()
+        await refreshPrijave()
+      } catch (err: unknown) {
+        await showAlert(getApiErrorMessage(err, t('cancelJoinError', { defaultValue: 'Greška' })), t('errorTitle'))
+      }
+      return
+    }
+    if (!mojaPrijava) return
+    const ok = await showConfirm(
+      t('confirmCancelJoin', {
+        name: akcija?.naziv ?? '',
+        defaultValue: 'Da li želite da otkažete prijavu?',
+      }),
+      { variant: 'danger', confirmLabel: t('cancelJoin', { defaultValue: 'Otkaži' }) },
+    )
     if (!ok) return
     try {
       await otkaziPrijavu(id!)
@@ -217,9 +288,22 @@ export function useActionRegistration({
     }
   }
 
+  const isPendingSignup = !!pendingSignup
+  const isRegistered = !!mojaPrijava && mojaPrijava.status === 'prijavljen'
+  const canEditLogistics =
+    !!user &&
+    !akcija?.isCompleted &&
+    (!mojaPrijava || mojaPrijava.status === 'prijavljen') &&
+    !isPendingSignup
+
   return {
     mojaPrijava,
+    pendingSignup,
+    isPendingSignup,
+    isRegistered,
+    canEditLogistics,
     setMojaPrijava,
+    setPendingSignup,
     selSmestaj,
     setSelSmestaj,
     selPrevoz,
@@ -235,5 +319,6 @@ export function useActionRegistration({
     setRentQty,
     handleSavePrijavaOrUpdate,
     handleCancelPrijava,
+    refreshRegistrationState: loadRegistrationState,
   }
 }

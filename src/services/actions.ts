@@ -15,6 +15,7 @@ export interface AkcijeListResponse {
 export interface MojePrijaveResponse {
   prijavljeneAkcije?: number[]
   otkaziveAkcije?: number[]
+  pendingSignupAkcije?: number[]
 }
 
 export interface MojaPrijavaPayload {
@@ -24,8 +25,36 @@ export interface MojaPrijavaPayload {
   selectedRentItems?: Array<{ rentId: number; kolicina: number }>
 }
 
+export interface MojaSignupRequestPayload {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt?: string
+  selectedSmestajIds?: number[]
+  selectedPrevozIds?: number[]
+  selectedRentItems?: Array<{ rentId: number; kolicina: number }>
+}
+
 export interface MojaPrijavaResponse {
   prijava: MojaPrijavaPayload | null
+  signupRequest?: MojaSignupRequestPayload | null
+}
+
+export interface ActionSignupRequest {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  respondedAt?: string
+  selectedSmestajIds?: number[]
+  selectedPrevozIds?: number[]
+  selectedRentItems?: Array<{ rentId: number; kolicina: number }>
+  requester: KorisnikRef & { avatarUrl?: string; isProfiGuide?: boolean }
+  action?: {
+    id: number
+    naziv?: string
+    datum?: string
+    planina?: string
+    vrh?: string
+  }
 }
 
 export interface ActionParticipationRequest {
@@ -107,6 +136,33 @@ export async function updateMojaPrijava(
 
 export async function otkaziPrijavu(id: number | string) {
   await api.delete(`/api/akcije/${id}/prijavi`)
+}
+
+export async function cancelSignupRequest(akcijaId: number | string) {
+  await api.delete(`/api/akcije/${akcijaId}/signup-requests/moj`)
+}
+
+export async function fetchActionSignupRequests(akcijaId: number | string, status = 'pending') {
+  const res = await api.get<{ requests?: ActionSignupRequest[] }>(`/api/akcije/${akcijaId}/signup-requests`, {
+    params: { status },
+  })
+  return res.data.requests ?? []
+}
+
+export async function fetchActionSignupRequestById(akcijaId: number | string, requestId: number | string) {
+  const res = await api.get<{ request: ActionSignupRequest }>(
+    `/api/akcije/${akcijaId}/signup-requests/${requestId}`,
+  )
+  return res.data.request
+}
+
+export async function respondToActionSignupRequest(
+  akcijaId: number | string,
+  requestId: number | string,
+  action: 'accept' | 'reject',
+) {
+  const res = await api.post(`/api/akcije/${akcijaId}/signup-requests/${requestId}/respond`, { action })
+  return res.data
 }
 
 export async function deleteAkcija(id: number | string) {

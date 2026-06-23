@@ -26,6 +26,11 @@ func RegisterActionRoutes(r *gin.Engine, protected *gin.RouterGroup, jwtSecret [
 	protected.POST("/akcije/:id/guide-rating", handlers.SubmitGuideRatingForAkcija)
 	protected.DELETE("/akcije/:id", handlers.DeleteAkcija)
 	protected.DELETE("/akcije/:id/prijavi", handlers.OtkaziPrijavuNaAkciju)
+	protected.GET("/akcije/:id/signup-requests", handlers.GetActionSignupRequests)
+	protected.GET("/akcije/:id/signup-requests/:requestId", handlers.GetActionSignupRequestByID)
+	protected.POST("/akcije/:id/signup-requests/:requestId/respond", handlers.RespondToActionSignupRequest)
+	protected.DELETE("/akcije/:id/signup-requests/moj", handlers.CancelMojActionSignupRequest)
+	protected.GET("/moji-signup-requests", handlers.GetMojiActionSignupRequests)
 	protected.POST("/akcije/:id/invite-link/regenerate", handlers.CreateOrRegenerateActionInviteLink)
 	protected.POST("/akcije/:id/invite-link/revoke", handlers.RevokeActionInviteLink)
 

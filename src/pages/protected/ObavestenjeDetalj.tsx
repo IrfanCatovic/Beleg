@@ -51,6 +51,11 @@ import {
   respondParticipationRequest,
 } from '../../services/obavestenja'
 import {
+  fetchActionSignupRequestById,
+  respondToActionSignupRequest,
+  type ActionSignupRequest,
+} from '../../services/actions'
+import {
   acceptFollowRequest,
   fetchFollowStatus,
   rejectFollowRequest,
@@ -186,6 +191,7 @@ export default function ObavestenjeDetalj() {
   const [task, setTask] = useState<Task | null>(null)
   const [trans, setTrans] = useState<TransPayload | null>(null)
   const [actionParticipationRequest, setActionParticipationRequest] = useState<ActionParticipationRequestPayload | null>(null)
+  const [actionSignupRequest, setActionSignupRequest] = useState<ActionSignupRequest | null>(null)
   const [guideBooking, setGuideBooking] = useState<FerrataGuideBookingPublic | PeakGuideBookingPublic | null>(null)
   const [guideBookingKind, setGuideBookingKind] = useState<'ferrata' | 'peak' | null>(null)
   const [entityError, setEntityError] = useState('')
@@ -194,6 +200,7 @@ export default function ObavestenjeDetalj() {
   const [entityLoading, setEntityLoading] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
   const [actionRequestBusy, setActionRequestBusy] = useState(false)
+  const [signupRequestBusy, setSignupRequestBusy] = useState(false)
   const [guideBookingBusy, setGuideBookingBusy] = useState(false)
   const [followStatusChecked, setFollowStatusChecked] = useState(false)
   const [incomingFollowState, setIncomingFollowState] = useState<'pending' | 'accepted' | 'gone'>('pending')
@@ -457,6 +464,12 @@ export default function ObavestenjeDetalj() {
           } else if (n.type === 'action_participation_request' && actionRequestId != null) {
             const requestData = await fetchParticipationRequestById<ActionParticipationRequestPayload>(actionRequestId)
             if (!cancelled) setActionParticipationRequest(requestData)
+          } else if (n.type === 'action_signup_request' && numFromMeta(meta.requestId) != null && numFromMeta(meta.akcijaId) != null) {
+            const requestData = await fetchActionSignupRequestById(
+              numFromMeta(meta.akcijaId)!,
+              numFromMeta(meta.requestId)!,
+            )
+            if (!cancelled) setActionSignupRequest(requestData)
           } else if (n.type === 'guide_booking_request' && bookingRequestId != null) {
             const bookingKind = typeof meta.bookingKind === 'string' ? meta.bookingKind : 'ferrata'
             if (bookingKind === 'peak') {
@@ -571,6 +584,7 @@ export default function ObavestenjeDetalj() {
   }
 
   const meta = parseMetadata(notif.metadata)
+  const akcijaIdFromMeta = numFromMeta(meta.akcijaId)
   const followMeta: FollowMeta = {
     followId: numFromMeta(meta.followId) ?? undefined,
     requesterId: numFromMeta(meta.requesterId) ?? undefined,
@@ -591,12 +605,14 @@ export default function ObavestenjeDetalj() {
     numFromMeta(meta.transakcijaId) != null ||
     numFromMeta(meta.followId) != null ||
     (notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null) ||
+    (notif.type === 'action_signup_request' && numFromMeta(meta.requestId) != null) ||
     (notif.type === 'guide_booking_request' && numFromMeta(meta.bookingRequestId) != null)
   const expectingPost = numFromMeta(meta.postId) != null
   const expectingTask = numFromMeta(meta.zadatakId) != null
   const expectingTrans = numFromMeta(meta.transakcijaId) != null
   const expectingFollow = numFromMeta(meta.followId) != null
   const expectingActionParticipationRequest = notif.type === 'action_participation_request' && numFromMeta(meta.requestId) != null
+  const expectingActionSignupRequest = notif.type === 'action_signup_request' && numFromMeta(meta.requestId) != null
   const expectingGuideBooking = notif.type === 'guide_booking_request' && numFromMeta(meta.bookingRequestId) != null
   // Bez duplog naslova obaveštenja iznad feed / zadatak / transakcija kartice
   const showNotifSummary =
@@ -604,8 +620,10 @@ export default function ObavestenjeDetalj() {
     !task &&
     !trans &&
     !guideBooking &&
+    !actionSignupRequest &&
     !(expectingFollow && followBusy) &&
     !(expectingActionParticipationRequest && entityLoading) &&
+    !(expectingActionSignupRequest && entityLoading) &&
     !(expectingGuideBooking && entityLoading) &&
     !(expectingPost && entityLoading) &&
     !(expectingTask && entityLoading) &&
@@ -670,6 +688,35 @@ export default function ObavestenjeDetalj() {
       await showAlert(msg, 'Zahtev za vođenje')
     } finally {
       setGuideBookingBusy(false)
+    }
+  }
+
+  const handleRespondActionSignupRequest = async (decision: 'accept' | 'reject') => {
+    if (!actionSignupRequest || signupRequestBusy) return
+    const akcijaId = numFromMeta(meta.akcijaId) ?? actionSignupRequest.action?.id
+    if (!akcijaId) return
+    if (decision === 'reject') {
+      const ok = await showConfirm('Da li želite da odbijete ovaj zahtev za prijavu?', {
+        title: 'Odbij prijavu',
+        confirmLabel: 'Odbij',
+        cancelLabel: t('home:cancel'),
+        variant: 'danger',
+      })
+      if (!ok) return
+    }
+    setSignupRequestBusy(true)
+    try {
+      await respondToActionSignupRequest(akcijaId, actionSignupRequest.id, decision)
+      const refreshed = await fetchActionSignupRequestById(akcijaId, actionSignupRequest.id)
+      setActionSignupRequest(refreshed)
+      await showAlert(
+        decision === 'accept' ? 'Prijava je odobrena.' : 'Zahtev za prijavu je odbijen.',
+        'Zahtev za prijavu',
+      )
+    } catch (e: unknown) {
+      await showAlert(getApiErrorMessage(e, 'Greška pri obradi zahteva.'), 'Zahtev za prijavu')
+    } finally {
+      setSignupRequestBusy(false)
     }
   }
 
@@ -1145,6 +1192,84 @@ export default function ObavestenjeDetalj() {
                 className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
               >
                 Otvori akciju
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!entityLoading && notif.type === 'action_signup_request' && actionSignupRequest && (
+        <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50/80 to-orange-50/50 shadow-md overflow-hidden mb-6">
+          <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
+          <div className="p-5 sm:p-6 space-y-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Novi zahtev za prijavu</p>
+            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
+              {typeof meta.akcijaNaziv === 'string' && meta.akcijaNaziv.trim()
+                ? meta.akcijaNaziv
+                : actionSignupRequest.action?.naziv || 'Akcija'}
+            </h2>
+            <p className="text-sm text-gray-700">
+              <span className="font-bold">
+                {actionSignupRequest.requester.fullName?.trim() || actionSignupRequest.requester.username}
+              </span>
+              {' '}želi da se prijavi na akciju.
+            </p>
+            {(actionSignupRequest.selectedPrevozIds?.length || actionSignupRequest.selectedRentItems?.length) ? (
+              <div className="rounded-xl border border-amber-100 bg-white/70 px-4 py-3 text-sm text-gray-700">
+                {actionSignupRequest.selectedPrevozIds?.length ? (
+                  <p>Prevoz izabran</p>
+                ) : null}
+                {actionSignupRequest.selectedRentItems?.length ? (
+                  <p className="mt-1">
+                    Oprema:{' '}
+                    {actionSignupRequest.selectedRentItems
+                      .map((r) => `×${r.kolicina}`)
+                      .join(', ')}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div
+              className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                actionSignupRequest.status === 'pending'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : actionSignupRequest.status === 'accepted'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-rose-200 bg-rose-50 text-rose-800'
+              }`}
+            >
+              {actionSignupRequest.status === 'pending'
+                ? 'Čeka odobrenje'
+                : actionSignupRequest.status === 'accepted'
+                  ? 'Prihvaćeno'
+                  : 'Odbijeno'}
+            </div>
+            {actionSignupRequest.status === 'pending' && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => void handleRespondActionSignupRequest('reject')}
+                  disabled={signupRequestBusy}
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60"
+                >
+                  {signupRequestBusy ? '...' : 'Odbij'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleRespondActionSignupRequest('accept')}
+                  disabled={signupRequestBusy}
+                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60"
+                >
+                  {signupRequestBusy ? '...' : 'Prihvati prijavu'}
+                </button>
+              </div>
+            )}
+            {akcijaIdFromMeta != null && (
+              <Link
+                to={`/akcije/${akcijaIdFromMeta}`}
+                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+              >
+                Otvori akciju →
               </Link>
             )}
           </div>

@@ -17,7 +17,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/generateActionPdf'
 import { formatDate } from '../../utils/dateUtils'
-import { canManageHostAkcija } from '../../utils/canManageAkcija'
+import { canManageHostAkcija, canApproveSignupRequest } from '../../utils/canManageAkcija'
 import Dropdown from '../../components/Dropdown'
 import { actionDifficultyBadge, ferrataTezinaLabel, prijavaStatusLabel } from '../../utils/difficultyI18n'
 import {
@@ -42,6 +42,7 @@ import { useActionDetailsData } from '../../hooks/action-details/useActionDetail
 import { useActionRegistration } from '../../hooks/action-details/useActionRegistration'
 import { useExternalUserSearch } from '../../hooks/action-details/useExternalUserSearch'
 import { useParticipationRequests } from '../../hooks/action-details/useParticipationRequests'
+import { useActionSignupRequests } from '../../hooks/action-details/useActionSignupRequests'
 import { useActionPayments } from '../../hooks/action-details/useActionPayments'
 import { useActionShare } from '../../hooks/action-details/useActionShare'
 import { useGuideRatings } from '../../hooks/action-details/useGuideRatings'
@@ -73,6 +74,9 @@ export default function ActionDetails() {
 
   const {
     mojaPrijava,
+    pendingSignup,
+    isPendingSignup,
+    canEditLogistics,
     setMojaPrijava,
     selSmestaj,
     selPrevoz,
@@ -87,6 +91,7 @@ export default function ActionDetails() {
     setRentQty,
     handleSavePrijavaOrUpdate,
     handleCancelPrijava,
+    refreshRegistrationState,
   } = useActionRegistration({
     id,
     user,
@@ -179,6 +184,34 @@ export default function ActionDetails() {
       vodicUsername: akcija.vodic?.username,
     })
   )
+
+  const canApproveSignup = !!(
+    user &&
+    akcija &&
+    !akcija.isCompleted &&
+    canApproveSignupRequest(user, {
+      klubId: akcija.klubId,
+      organizatorTip: akcija.organizatorTip,
+      vodicId: akcija.vodicId,
+      vodicUsername: akcija.vodic?.username,
+    })
+  )
+
+  const {
+    signupRequests,
+    signupRequestsLoading,
+    respondingSignupId,
+    respondToSignupRequest,
+  } = useActionSignupRequests({
+    actionId: id,
+    enabled: canApproveSignup,
+    showAlert,
+    onChanged: async () => {
+      await refreshPrijave()
+      await reloadAkcija()
+      await refreshRegistrationState()
+    },
+  })
 
   const {
     bulkPaymentMode,
@@ -1001,6 +1034,14 @@ export default function ActionDetails() {
                         <span className="text-sm font-bold text-emerald-700">{uspesnoPopeli.length}</span>
                       </div>
                     )}
+                    {isPendingSignup && (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <span className="text-[11px] text-amber-800 font-bold">{t('signupPendingLabel')}</span>
+                        <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+                          {t('signupPendingStatus')}
+                        </span>
+                      </div>
+                    )}
                     {mojaPrijava && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-100">
                         <span className="text-[11px] text-emerald-700 font-bold">Tvoja prijava</span>
@@ -1081,7 +1122,7 @@ export default function ActionDetails() {
                             participants={prevozPrijave[p.id] || []}
                             myUsername={user?.username}
                             selected={selPrevoz.has(p.id)}
-                            disabled={!user || akcija.isCompleted || (mojaPrijava != null && mojaPrijava.status !== 'prijavljen')}
+                            disabled={!canEditLogistics}
                             onToggle={() => togglePrevoz(p.id)}
                             canDelete={!!user && canManageHostAkcija(user, {
         klubId: akcija.klubId,
@@ -1127,7 +1168,7 @@ export default function ActionDetails() {
                             cenaPoOsobiUkupno={s.cenaPoOsobiUkupno}
                             currency={clubCurrency}
                             selected={selSmestaj.has(s.id)}
-                            disabled={!user || akcija.isCompleted || (mojaPrijava != null && mojaPrijava.status !== 'prijavljen')}
+                            disabled={!canEditLogistics}
                             onToggle={() => toggleSmestaj(s.id)}
                           />
                         ))}
@@ -1150,7 +1191,7 @@ export default function ActionDetails() {
                             rent={it.rent}
                             currency={clubCurrency}
                             selectedKolicina={it.rent ? selRent[it.rent.rentId] || 0 : 0}
-                            disabled={!user || akcija.isCompleted || (mojaPrijava != null && mojaPrijava.status !== 'prijavljen')}
+                            disabled={!canEditLogistics}
                             onChange={(qty) => it.rent && setRentQty(it.rent.rentId, qty)}
                           />
                         ))}
@@ -1221,7 +1262,7 @@ export default function ActionDetails() {
                       <button
                         type="button"
                         onClick={handleSavePrijavaOrUpdate}
-                        disabled={savingSelections || (mojaPrijava != null && !selectionsDirty)}
+                        disabled={savingSelections || (mojaPrijava != null && !selectionsDirty && !isPendingSignup) || isPendingSignup}
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-extrabold bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1229,13 +1270,15 @@ export default function ActionDetails() {
                         </svg>
                         {savingSelections
                           ? 'Čuvam…'
-                          : mojaPrijava
-                            ? selectionsDirty
-                              ? 'Sačuvaj izmene izbora'
-                              : 'Izbori su sačuvani'
-                            : 'Potvrdi i prijavi se'}
+                          : isPendingSignup
+                            ? t('signupPendingStatus')
+                            : mojaPrijava
+                              ? selectionsDirty
+                                ? 'Sačuvaj izmene izbora'
+                                : 'Izbori su sačuvani'
+                              : t('sendSignupRequest')}
                       </button>
-                      {mojaPrijava && mojaPrijava.status === 'prijavljen' && (
+                      {(isPendingSignup || (mojaPrijava && mojaPrijava.status === 'prijavljen')) && (
                         <button
                           type="button"
                           onClick={handleCancelPrijava}
@@ -1251,6 +1294,77 @@ export default function ActionDetails() {
             )}
 
           
+
+            {/* Pending signup requests (host) */}
+            {canApproveSignup && (signupRequestsLoading || signupRequests.length > 0) && (
+              <div className="bg-white rounded-3xl border border-amber-200 shadow-sm overflow-hidden">
+                <div className="px-5 sm:px-6 py-4 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+                    <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('signupRequestsTitle')}</h2>
+                    {signupRequests.length > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        {signupRequests.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="p-4 sm:p-5 space-y-3">
+                  {signupRequestsLoading && signupRequests.length === 0 ? (
+                    <p className="text-sm text-gray-500">{t('loading')}</p>
+                  ) : signupRequests.length === 0 ? (
+                    <p className="text-sm text-gray-500">{t('signupRequestsEmpty')}</p>
+                  ) : (
+                    signupRequests.map((req) => {
+                      const name = req.requester.fullName?.trim() || req.requester.username
+                      const prevozLabels = (req.selectedPrevozIds ?? [])
+                        .map((pid) => akcija.prevoz?.find((p) => p.id === pid)?.nazivGrupe)
+                        .filter(Boolean)
+                      const rentLabels = (req.selectedRentItems ?? [])
+                        .map((r) => {
+                          const row = akcija.opremaRent?.find((x) => x.id === r.rentId)
+                          return row ? `${row.nazivOpreme} ×${r.kolicina}` : null
+                        })
+                        .filter(Boolean)
+                      return (
+                        <div
+                          key={req.id}
+                          className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-gray-900">{name}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">@{req.requester.username}</p>
+                            {(prevozLabels.length > 0 || rentLabels.length > 0) && (
+                              <p className="text-[11px] text-gray-600 mt-2">
+                                {[...prevozLabels, ...rentLabels].join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              disabled={respondingSignupId === req.id}
+                              onClick={() => void respondToSignupRequest(req.id, 'reject')}
+                              className="px-3 py-2 rounded-xl text-[11px] font-bold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                            >
+                              {t('signupReject')}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={respondingSignupId === req.id}
+                              onClick={() => void respondToSignupRequest(req.id, 'accept')}
+                              className="px-3 py-2 rounded-xl text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60"
+                            >
+                              {respondingSignupId === req.id ? '…' : t('signupAccept')}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ROW 4: Members list (FULL WIDTH) */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">

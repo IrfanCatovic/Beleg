@@ -33,27 +33,4 @@ config.resolver.unstable_conditionNames = [
   'default',
 ]
 
-// Web dev: proxy API kroz Metro da izbegnemo CORS (browser → localhost:8081/api-proxy → Render).
-if (process.env.EXPO_PUBLIC_API_URL) {
-  const { createProxyMiddleware } = require('http-proxy-middleware')
-  const apiTarget = process.env.EXPO_PUBLIC_API_URL
-
-  config.server = {
-    enhanceMiddleware: (middleware) => {
-      const apiProxy = createProxyMiddleware({
-        target: apiTarget,
-        changeOrigin: true,
-        pathRewrite: { '^/api-proxy': '' },
-      })
-
-      return (req, res, next) => {
-        if (req.url?.startsWith('/api-proxy')) {
-          return apiProxy(req, res, next)
-        }
-        return middleware(req, res, next)
-      }
-    },
-  }
-}
-
 module.exports = config

@@ -902,6 +902,10 @@ func GetMojePrijave(c *gin.Context) {
 
 	var prijavljene []uint
 	db.Model(&models.Prijava{}).Where("korisnik_id = ?", korisnik.ID).Pluck("akcija_id", &prijavljene)
+	var pendingSignup []uint
+	db.Model(&models.ActionSignupRequest{}).
+		Where("requester_id = ? AND status = ?", korisnik.ID, models.ActionSignupRequestPending).
+		Pluck("akcija_id", &pendingSignup)
 	var otkazive []uint
 	db.Table("prijave AS p").
 		Joins("JOIN akcije AS a ON a.id = p.akcija_id").
@@ -917,7 +921,8 @@ func GetMojePrijave(c *gin.Context) {
 		Pluck("p.akcija_id", &otkazive)
 
 	c.JSON(http.StatusOK, gin.H{
-		"prijavljeneAkcije": prijavljene,
-		"otkaziveAkcije":    otkazive,
+		"prijavljeneAkcije":    prijavljene,
+		"otkaziveAkcije":       otkazive,
+		"pendingSignupAkcije":  pendingSignup,
 	})
 }

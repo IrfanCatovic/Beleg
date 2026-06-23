@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AkcijaListItem } from '@beleg/shared'
 import { getApiErrorMessage } from '@beleg/shared'
-import { fetchAkcije, fetchMojePrijave, otkaziPrijavu, prijaviNaAkciju } from '@beleg/shared/services'
+import { fetchAkcije, fetchMojePrijave, cancelSignupRequest, otkaziPrijavu, prijaviNaAkciju } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useSuperadminClub } from '../../hooks/useSuperadminClub'
@@ -57,6 +57,10 @@ export default function ActionsScreen({ navigation }: Props) {
 
   const signedUp = useMemo(
     () => new Set(prijaveQuery.data?.prijavljeneAkcije ?? []),
+    [prijaveQuery.data],
+  )
+  const pendingSignup = useMemo(
+    () => new Set(prijaveQuery.data?.pendingSignupAkcije ?? []),
     [prijaveQuery.data],
   )
   const cancellable = useMemo(
@@ -119,7 +123,8 @@ export default function ActionsScreen({ navigation }: Props) {
 
   const joinMutation = useMutation({
     mutationFn: (id: number) => prijaviNaAkciju(client, id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await showAlert('Uspeh', 'Zahtev za prijavu je poslat na odobrenje.')
       void queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
       void queryClient.invalidateQueries({ queryKey: ['akcije'] })
     },
@@ -128,7 +133,13 @@ export default function ActionsScreen({ navigation }: Props) {
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (id: number) => otkaziPrijavu(client, id),
+    mutationFn: async (action: AkcijaListItem) => {
+      if (pendingSignup.has(action.id)) {
+        await cancelSignupRequest(client, action.id)
+        return
+      }
+      await otkaziPrijavu(client, action.id)
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
       void queryClient.invalidateQueries({ queryKey: ['akcije'] })
@@ -142,11 +153,15 @@ export default function ActionsScreen({ navigation }: Props) {
   }
 
   const handleCancel = async (action: AkcijaListItem) => {
-    const ok = await showConfirm('Otkaži prijavu', `Otkazati prijavu na „${action.naziv}"?`, {
-      variant: 'danger',
-      confirmLabel: 'Otkaži',
-    })
-    if (ok) cancelMutation.mutate(action.id)
+    const isPending = pendingSignup.has(action.id)
+    const ok = await showConfirm(
+      isPending ? 'Otkaži zahtev' : 'Otkaži prijavu',
+      isPending
+        ? `Otkazati zahtev za prijavu na „${action.naziv}"?`
+        : `Otkazati prijavu na „${action.naziv}"?`,
+      { variant: 'danger', confirmLabel: 'Otkaži' },
+    )
+    if (ok) cancelMutation.mutate(action)
   }
 
   const handlePlusPress = useCallback(() => {
@@ -283,11 +298,20 @@ export default function ActionsScreen({ navigation }: Props) {
             variant="feed"
             action={item}
             signedUp={signedUp.has(item.id)}
-            cancellable={cancellable.has(item.id)}
+            pendingSignup={pendingSignup.has(item.id)}
+            cancellable={cancellable.has(item.id) || pendingSignup.has(item.id)}
             joinLoading={joiningId === item.id}
             onPress={() => navigation.navigate('ActionDetail', { id: item.id })}
-            onJoin={!item.isCompleted && !signedUp.has(item.id) ? () => void handleJoin(item) : undefined}
-            onCancel={cancellable.has(item.id) ? () => void handleCancel(item) : undefined}
+            onJoin={
+              !item.isCompleted && !signedUp.has(item.id) && !pendingSignup.has(item.id)
+                ? () => void handleJoin(item)
+                : undefined
+            }
+            onCancel={
+              cancellable.has(item.id) || pendingSignup.has(item.id)
+                ? () => void handleCancel(item)
+                : undefined
+            }
           />
         )}
       />

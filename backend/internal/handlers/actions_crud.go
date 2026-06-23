@@ -170,7 +170,7 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 			}
 		}
 		var prijaveCount int64
-		db.Model(&models.Prijava{}).Where("akcija_id = ?", id).Count(&prijaveCount)
+		db.Model(&models.Prijava{}).Where("akcija_id = ? AND status = ?", id, "prijavljen").Count(&prijaveCount)
 		resp["prijaveCount"] = prijaveCount
 
 		var smestaj []models.AkcijaSmestaj

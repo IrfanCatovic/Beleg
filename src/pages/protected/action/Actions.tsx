@@ -7,6 +7,7 @@ import {
   fetchAkcije,
   fetchMojePrijave,
   fetchPrijaveZaAkciju,
+  cancelSignupRequest,
   otkaziPrijavu,
   prijaviNaAkciju,
 } from '../../../services/actions'
@@ -52,6 +53,7 @@ export default function Actions() {
   const [mojePrivatneAktivne, setMojePrivatneAktivne] = useState<Akcija[]>([])
   const [mojePrivatneZavrsene, setMojePrivatneZavrsene] = useState<Akcija[]>([])
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
+  const [pendingSignupAkcije, setPendingSignupAkcije] = useState<Set<number>>(new Set())
   const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -204,7 +206,9 @@ export default function Actions() {
         const mojeData = await fetchMojePrijave()
         const ids = mojeData.prijavljeneAkcije || []
         const otkaziveIds = mojeData.otkaziveAkcije || []
+        const pendingIds = mojeData.pendingSignupAkcije || []
         setPrijavljeneAkcije(new Set(ids))
+        setPendingSignupAkcije(new Set(pendingIds))
         setOtkaziveAkcije(new Set(otkaziveIds))
       } catch (err: any) {
         setError(err.response?.data?.error || t('loadError'))
@@ -365,7 +369,7 @@ export default function Actions() {
       await showAlert(response.message)
 
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
-      setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
+      setPendingSignupAkcije(prev => new Set([...prev, akcijaId]))
     } catch (err: any) {
       const errMsg = err.response?.data?.error
       const status = err?.response?.status
@@ -380,14 +384,26 @@ export default function Actions() {
   }
 
   const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
-    const confirmed = await showConfirm(t('confirmCancelJoin', { name: naziv }))
+    const isPending = pendingSignupAkcije.has(akcijaId)
+    const confirmed = await showConfirm(
+      isPending ? t('confirmCancelSignupRequest', { defaultValue: 'Otkazati zahtev za prijavu?' }) : t('confirmCancelJoin', { name: naziv }),
+    )
     if (!confirmed) return
 
     try {
-      await otkaziPrijavu(akcijaId)
+      if (isPending) {
+        await cancelSignupRequest(akcijaId)
+      } else {
+        await otkaziPrijavu(akcijaId)
+      }
       await showAlert(t('cancelJoinSuccess'))
 
       setPrijavljeneAkcije(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(akcijaId)
+        return newSet
+      })
+      setPendingSignupAkcije(prev => {
         const newSet = new Set(prev)
         newSet.delete(akcijaId)
         return newSet
@@ -702,12 +718,12 @@ export default function Actions() {
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">
                           {t('actionCompleted')}
                         </div>
-                      ) : otkaziveAkcije.has(akcija.id) ? (
+                      ) : pendingSignupAkcije.has(akcija.id) || otkaziveAkcije.has(akcija.id) ? (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv) }}
                           className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 transition-colors"
                         >
-                          {t('cancelJoin')}
+                          {pendingSignupAkcije.has(akcija.id) ? t('cancelSignupRequest', { defaultValue: 'Otkaži zahtev' }) : t('cancelJoin')}
                         </button>
                       ) : prijavljeneAkcije.has(akcija.id) ? (
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-emerald-600 bg-emerald-50 flex items-center justify-center gap-1">

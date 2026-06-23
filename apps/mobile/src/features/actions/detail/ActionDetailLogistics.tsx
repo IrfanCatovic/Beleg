@@ -9,16 +9,26 @@ function OptionCard({
   sub,
   price,
   selected,
+  disabled,
   onPress,
 }: {
   label: string
   sub?: string
   price?: string
   selected: boolean
+  disabled?: boolean
   onPress: () => void
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.optionCard, selected && styles.optionCardSelected]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.optionCard,
+        selected && styles.optionCardSelected,
+        disabled && styles.optionCardDisabled,
+      ]}
+    >
       <View style={styles.optionLeft}>
         <View style={[styles.radio, selected && styles.radioSelected]}>
           {selected ? <View style={styles.radioDot} /> : null}
@@ -46,6 +56,8 @@ interface ActionDetailLogisticsProps {
   selSmestaj: Set<number>
   selPrevoz: Set<number>
   selRent: Record<number, number>
+  prevozOccupied?: Map<number, number>
+  disabled?: boolean
   onToggleSmestaj: (id: number) => void
   onSelectPrevoz: (id: number) => void
   onChangeRent: (id: number, delta: number, max: number) => void
@@ -56,6 +68,8 @@ export function ActionDetailLogistics({
   selSmestaj,
   selPrevoz,
   selRent,
+  prevozOccupied,
+  disabled,
   onToggleSmestaj,
   onSelectPrevoz,
   onChangeRent,
@@ -76,7 +90,9 @@ export function ActionDetailLogistics({
         <Text variant="heading">Logistika</Text>
       </View>
       <Text variant="small" color={colors.textMuted}>
-        Izaberite smeštaj, prevoz i opremu za vašu prijavu.
+        {disabled
+          ? 'Izbori su zaključani dok čekate odobrenje ili nakon promene statusa.'
+          : 'Izaberite smeštaj, prevoz i opremu za vašu prijavu.'}
       </Text>
 
       {smestaj.length > 0 ? (
@@ -91,6 +107,7 @@ export function ActionDetailLogistics({
               label={s.naziv}
               price={`${s.cenaPoOsobiUkupno} RSD`}
               selected={selSmestaj.has(s.id)}
+              disabled={disabled}
               onPress={() => onToggleSmestaj(s.id)}
             />
           ))}
@@ -103,16 +120,25 @@ export function ActionDetailLogistics({
             <Ionicons name="car-outline" size={18} color={colors.textMuted} />
             <Text variant="label">Prevoz</Text>
           </View>
-          {prevoz.map((p) => (
-            <OptionCard
-              key={p.id}
-              label={`${p.nazivGrupe} (${p.tipPrevoza})`}
-              sub={`${p.kapacitet} mesta`}
-              price={`${p.cenaPoOsobi} RSD`}
-              selected={selPrevoz.has(p.id)}
-              onPress={() => onSelectPrevoz(p.id)}
-            />
-          ))}
+          {prevoz.map((p) => {
+            const occupied = prevozOccupied?.get(p.id) ?? 0
+            const isFull = p.kapacitet > 0 && occupied >= p.kapacitet && !selPrevoz.has(p.id)
+            return (
+              <OptionCard
+                key={p.id}
+                label={`${p.nazivGrupe} (${p.tipPrevoza})`}
+                sub={
+                  p.kapacitet > 0
+                    ? `${occupied}/${p.kapacitet} mesta${isFull ? ' · popunjeno' : ''}`
+                    : `${p.kapacitet} mesta`
+                }
+                price={`${p.cenaPoOsobi} RSD`}
+                selected={selPrevoz.has(p.id)}
+                disabled={disabled || isFull}
+                onPress={() => onSelectPrevoz(p.id)}
+              />
+            )
+          })}
         </View>
       ) : null}
 
@@ -122,33 +148,39 @@ export function ActionDetailLogistics({
             <Ionicons name="construct-outline" size={18} color={colors.textMuted} />
             <Text variant="label">Iznajmljiva oprema</Text>
           </View>
-          {rent.map((r) => (
-            <View key={r.id} style={styles.rentRow}>
-              <View style={styles.rentInfo}>
-                <Text variant="label">{r.nazivOpreme}</Text>
-                <Text variant="small" color={colors.textMuted}>
-                  {r.cenaPoSetu} RSD / set
-                </Text>
+          {rent.map((r) => {
+            const held = selRent[r.id] ?? 0
+            const maxQty = r.dostupnaKolicina + held
+            return (
+              <View key={r.id} style={styles.rentRow}>
+                <View style={styles.rentInfo}>
+                  <Text variant="label">{r.nazivOpreme}</Text>
+                  <Text variant="small" color={colors.textMuted}>
+                    {r.cenaPoSetu} RSD / set · dostupno {maxQty}
+                  </Text>
+                </View>
+                <View style={styles.stepper}>
+                  <Pressable
+                    onPress={() => onChangeRent(r.id, -1, maxQty)}
+                    disabled={disabled}
+                    style={styles.stepBtn}
+                  >
+                    <Ionicons name="remove" size={18} color={colors.text} />
+                  </Pressable>
+                  <Text variant="label" style={styles.stepValue}>
+                    {selRent[r.id] ?? 0}
+                  </Text>
+                  <Pressable
+                    onPress={() => onChangeRent(r.id, 1, maxQty)}
+                    disabled={disabled || (selRent[r.id] ?? 0) >= maxQty}
+                    style={styles.stepBtn}
+                  >
+                    <Ionicons name="add" size={18} color={colors.text} />
+                  </Pressable>
+                </View>
               </View>
-              <View style={styles.stepper}>
-                <Pressable
-                  onPress={() => onChangeRent(r.id, -1, r.dostupnaKolicina)}
-                  style={styles.stepBtn}
-                >
-                  <Ionicons name="remove" size={18} color={colors.text} />
-                </Pressable>
-                <Text variant="label" style={styles.stepValue}>
-                  {selRent[r.id] ?? 0}
-                </Text>
-                <Pressable
-                  onPress={() => onChangeRent(r.id, 1, r.dostupnaKolicina)}
-                  style={styles.stepBtn}
-                >
-                  <Ionicons name="add" size={18} color={colors.text} />
-                </Pressable>
-              </View>
-            </View>
-          ))}
+            )
+          })}
         </View>
       ) : null}
 
@@ -193,6 +225,7 @@ const styles = StyleSheet.create({
     borderColor: colors.brand,
     backgroundColor: '#ecfdf5',
   },
+  optionCardDisabled: { opacity: 0.55 },
   optionLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   optionText: { flex: 1, gap: 2 },
   radio: {
