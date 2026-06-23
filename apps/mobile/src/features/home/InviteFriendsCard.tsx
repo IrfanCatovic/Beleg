@@ -1,7 +1,8 @@
-import { Linking, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Text } from '../../components/ui'
-import { colors, radius, spacing } from '../../theme'
+import { colors, spacing } from '../../theme'
+import { openWhatsAppWithMessage } from '../../utils/openWhatsApp'
 
 function getRegisterUrl(): string {
   const web = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_URL ?? ''
@@ -16,21 +17,8 @@ export function InviteFriendsCard() {
     const registerUrl = getRegisterUrl()
     const message =
       `Hej! Ja koristim Planiner.\n` +
-      `Pridruži se akciji: registruj se ovde ${registerUrl}`
-    const encoded = encodeURIComponent(message)
-    const appUrl = `whatsapp://send?text=${encoded}`
-    const webUrl = `https://wa.me/?text=${encoded}`
-
-    try {
-      const canOpen = await Linking.canOpenURL(appUrl)
-      if (canOpen) {
-        await Linking.openURL(appUrl)
-      } else {
-        await Linking.openURL(webUrl)
-      }
-    } catch {
-      await Linking.openURL(webUrl)
-    }
+      `Pridruži se: registruj se ovde ${registerUrl}`
+    await openWhatsAppWithMessage(message)
   }
 
   return (

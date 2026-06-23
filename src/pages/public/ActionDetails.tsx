@@ -46,6 +46,7 @@ import { useActionSignupRequests } from '../../hooks/action-details/useActionSig
 import { useActionPayments } from '../../hooks/action-details/useActionPayments'
 import { useActionShare } from '../../hooks/action-details/useActionShare'
 import { useGuideRatings } from '../../hooks/action-details/useGuideRatings'
+import { ActionInviteShareCard } from '../../components/action-details/ActionInviteShareCard'
 
 export default function ActionDetails() {
   const { t, i18n } = useTranslation('actionDetails')
@@ -74,7 +75,6 @@ export default function ActionDetails() {
 
   const {
     mojaPrijava,
-    pendingSignup,
     isPendingSignup,
     canEditLogistics,
     setMojaPrijava,
@@ -254,6 +254,8 @@ export default function ActionDetails() {
     closeSummitShareModal,
     openSummitShareModal,
     copyActionShareLink,
+    shareActionViaWhatsApp,
+    canShareActionInvite,
     handleFerrataBadgeDownload,
     handleSummitPngDownload,
   } = useActionShare({
@@ -656,6 +658,14 @@ export default function ActionDetails() {
         user={user}
         onBack={() => navigate(-1)}
       />
+      {canShareActionInvite && !isLimitedView && (
+        <ActionInviteShareCard
+          akcija={akcija}
+          loading={actionShareLoading}
+          onShareWhatsApp={shareActionViaWhatsApp}
+          t={t}
+        />
+      )}
       {/* MEMBERSHIP / PRICE BANNER */}
       {user && !isLimitedView && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
         <div className="bg-white border-b border-gray-100">
@@ -2046,14 +2056,24 @@ export default function ActionDetails() {
                         {actionShareLoading ? 'Kreiram link...' : actionShareUrl || resolveActionPublicUrl()}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => void copyActionShareLink()}
-                      disabled={actionShareLoading || !actionShareUrl}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      Kopiraj
-                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void copyActionShareLink()}
+                        disabled={actionShareLoading}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        Kopiraj
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void shareActionViaWhatsApp()}
+                        disabled={actionShareLoading}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
                     {actionShareCopied && (
                       <p className="text-xs text-emerald-700 text-center">Link je kopiran.</p>
                     )}

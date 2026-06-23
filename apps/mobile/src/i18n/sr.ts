@@ -96,6 +96,12 @@ export const sr = {
     guideRequiredMessage: 'Da bi dodao akcije moraš biti vodič.',
     becomeGuide: 'Postani vodič',
     guideRequiredClose: 'Zatvori',
+    inviteTitle: 'Pozovi ekipu',
+    inviteDescPublic: 'Pošalji link javne akcije preko WhatsApp-a.',
+    inviteDescPrivate: 'Pošalji invite link sa tokenom za privatnu akciju.',
+    inviteWhatsApp: 'Podeli na WhatsApp',
+    inviteShareError: 'Deljenje linka nije uspelo.',
+    invitePrivateOnlyHost: 'Samo organizator može da podeli privatnu akciju.',
   },
   profile: {
     stats: 'Statistika',

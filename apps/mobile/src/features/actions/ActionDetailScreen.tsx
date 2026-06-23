@@ -32,7 +32,9 @@ import { ActionDetailStats } from './detail/ActionDetailStats'
 import { ActionDetailInfo } from './detail/ActionDetailInfo'
 import { ActionDetailLogistics } from './detail/ActionDetailLogistics'
 import { ActionDetailPriceSummary } from './detail/ActionDetailPriceSummary'
+import { ActionDetailInviteShareCard } from './detail/ActionDetailInviteShareCard'
 import { ActionDetailMembers } from './detail/ActionDetailMembers'
+import { canManageHostAkcija } from '../../utils/canManageAkcija'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
@@ -49,7 +51,7 @@ function registrationErrorMessage(err: unknown): string {
 }
 
 export default function ActionDetailScreen({ route }: Props) {
-  const { id } = route.params
+  const { id, inviteToken } = route.params
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
@@ -59,8 +61,8 @@ export default function ActionDetailScreen({ route }: Props) {
   const [selRent, setSelRent] = useState<Record<number, number>>({})
 
   const detailQuery = useQuery({
-    queryKey: ['akcija', id],
-    queryFn: () => fetchAkcijaById(client, id),
+    queryKey: ['akcija', id, inviteToken ?? ''],
+    queryFn: () => fetchAkcijaById(client, id, inviteToken),
   })
 
   const prijaveQuery = useQuery({
@@ -156,8 +158,9 @@ export default function ActionDetailScreen({ route }: Props) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (isRegistered) return updateMojaPrijava(client, id, payload)
-      return prijaviNaAkciju(client, id, payload)
+      const opts = inviteToken ? { inviteToken } : undefined
+      if (isRegistered) return updateMojaPrijava(client, id, payload, opts)
+      return prijaviNaAkciju(client, id, payload, opts)
     },
     onSuccess: async () => {
       await invalidateRegistration()
@@ -215,6 +218,12 @@ export default function ActionDetailScreen({ route }: Props) {
   const locationSubtitle = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') || akcija.ferrataSnapshot?.lokacija || '—'
   const memberCount = countActivePrijave(membersQuery.data ?? [])
   const hostRequests = signupRequestsQuery.data ?? []
+  const canManageHost = canManageHostAkcija(user, {
+    klubId: akcija.klubId,
+    organizatorTip: akcija.organizatorTip,
+    vodicId: akcija.vodicId,
+    vodicUsername: akcija.vodic?.username,
+  })
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
@@ -224,6 +233,13 @@ export default function ActionDetailScreen({ route }: Props) {
         <View style={styles.body}>
           <ActionDetailStats akcija={akcija} memberCount={memberCount} />
           <ActionDetailInfo akcija={akcija} />
+
+          <ActionDetailInviteShareCard
+            akcija={akcija}
+            canManageHost={canManageHost}
+            inviteToken={inviteToken}
+            onError={(message) => void showAlert('Greška', message)}
+          />
 
           <ActionDetailLogistics
             akcija={akcija}

@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { regenerateAkcijaInviteLink } from '../../services/actions'
+import {
+  buildActionInviteWhatsAppMessage,
+  buildActionShareUrl,
+  encodeWhatsAppShareMessage,
+  resolveActionInviteShareUrl,
+} from '@beleg/shared'
+import api from '../../services/api'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import type { User } from '../../context/AuthContext'
@@ -178,44 +184,53 @@ export function useActionShare({
       (typeof window !== 'undefined' && window.location?.origin
         ? window.location.origin
         : '').replace(/\/$/, '')
-    if (base) return `${base}/akcije/${akcija.id}`
-    return `/akcije/${akcija.id}`
+    return buildActionShareUrl(base || '', akcija.id)
   }
 
-  const ensureShareUrl = async () => {
-    if (!akcija) return
+  const ensureShareUrl = async (): Promise<string> => {
+    if (!akcija) return ''
     setActionShareError('')
     setActionShareCopied(false)
 
-    if (inviteToken) {
-      setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
-      return
-    }
-    if (akcija.javna) {
-      setActionShareUrl(resolveActionPublicUrl())
-      return
-    }
-    if (!canManageHost) {
-      setActionShareUrl(resolveActionPublicUrl())
-      return
-    }
-    if (actionShareUrl) {
-      return
+    const webBase =
+      (typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : '').replace(/\/$/, '')
+
+    const needsFetch =
+      !inviteToken &&
+      !akcija.javna &&
+      canManageHost &&
+      !actionShareUrl
+
+    if (needsFetch) {
+      setActionShareLoading(true)
     }
 
-    setActionShareLoading(true)
     try {
-      const res = await regenerateAkcijaInviteLink(id!)
-      const inviteUrl = (res?.inviteUrl || '').trim()
-      if (inviteUrl) {
-        setActionShareUrl(inviteUrl)
-      } else {
-        setActionShareError('Neuspešno kreiranje share linka.')
-      }
+      const url = await resolveActionInviteShareUrl(api, {
+        actionId: akcija.id,
+        isPublic: !!akcija.javna,
+        webBaseUrl: webBase,
+        inviteToken,
+        canManageHost,
+        cachedUrl: actionShareUrl,
+      })
+      setActionShareUrl(url)
+      return url
     } catch (err: unknown) {
-      setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
+      if (err instanceof Error && err.message === 'PRIVATE_SHARE_FORBIDDEN') {
+        const fallback = resolveActionPublicUrl()
+        setActionShareUrl(fallback)
+        return fallback
+      }
+      const message = getApiErrorMessage(err, 'Neuspešno kreiranje share linka.')
+      setActionShareError(message)
+      return ''
     } finally {
-      setActionShareLoading(false)
+      if (needsFetch) {
+        setActionShareLoading(false)
+      }
     }
   }
 
@@ -234,7 +249,11 @@ export function useActionShare({
       setActionShareCopied(false)
 
       if (inviteToken) {
-        setActionShareUrl(`${resolveActionPublicUrl()}?inviteToken=${encodeURIComponent(inviteToken)}`)
+        setActionShareUrl(buildActionShareUrl(
+          (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '').replace(/\/$/, ''),
+          akcija.id,
+          inviteToken,
+        ))
       } else if (akcija.javna || !canManageHostAkcija(user, {
         klubId: akcija.klubId,
         organizatorTip: akcija.organizatorTip,
@@ -245,13 +264,13 @@ export function useActionShare({
       } else if (!actionShareUrl) {
         setActionShareLoading(true)
         try {
-          const res = await regenerateAkcijaInviteLink(id!)
-          const inviteUrl = (res?.inviteUrl || '').trim()
-          if (inviteUrl) {
-            setActionShareUrl(inviteUrl)
-          } else {
-            setActionShareError('Neuspešno kreiranje share linka.')
-          }
+          const url = await resolveActionInviteShareUrl(api, {
+            actionId: akcija.id,
+            isPublic: false,
+            webBaseUrl: (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '').replace(/\/$/, ''),
+            canManageHost: true,
+          })
+          setActionShareUrl(url)
         } catch (err: unknown) {
           setActionShareError(getApiErrorMessage(err, 'Neuspešno kreiranje share linka.'))
         } finally {
@@ -282,15 +301,35 @@ export function useActionShare({
   }
 
   const copyActionShareLink = async () => {
-    if (!actionShareUrl) return
+    const url = actionShareUrl || (await ensureShareUrl())
+    if (!url) return
     try {
-      await navigator.clipboard.writeText(actionShareUrl)
+      await navigator.clipboard.writeText(url)
       setActionShareCopied(true)
       window.setTimeout(() => setActionShareCopied(false), 1600)
     } catch {
       await showAlert('Kopiranje nije uspelo. Link možete ručno kopirati.', t('errorTitle'))
     }
   }
+
+  const shareActionViaWhatsApp = async () => {
+    if (!akcija) return
+    const url = await ensureShareUrl()
+    if (!url) {
+      if (actionShareError) {
+        await showAlert(actionShareError, t('errorTitle'))
+      }
+      return
+    }
+    const message = buildActionInviteWhatsAppMessage(akcija.naziv, url)
+    const { webUrl } = encodeWhatsAppShareMessage(message)
+    window.open(webUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const canShareActionInvite =
+    !!akcija &&
+    !akcija.isCompleted &&
+    (!!akcija.javna || canManageHost || !!inviteToken)
 
   const handleFerrataBadgeDownload = async () => {
     if (!akcija) return
@@ -370,6 +409,8 @@ export function useActionShare({
     closeSummitShareModal,
     openSummitShareModal,
     copyActionShareLink,
+    shareActionViaWhatsApp,
+    canShareActionInvite,
     handleFerrataBadgeDownload,
     handleSummitPngDownload,
     ensureShareUrl,

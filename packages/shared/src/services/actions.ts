@@ -76,8 +76,11 @@ export async function prijaviNaAkciju(
   client: AxiosInstance,
   id: number | string,
   payload?: Record<string, unknown>,
+  options?: { inviteToken?: string },
 ): Promise<unknown> {
-  const res = await client.post(`/api/akcije/${id}/prijavi`, payload ?? {})
+  const res = await client.post(`/api/akcije/${id}/prijavi`, payload ?? {}, {
+    params: options?.inviteToken ? { inviteToken: options.inviteToken } : undefined,
+  })
   return res.data
 }
 
@@ -85,8 +88,21 @@ export async function updateMojaPrijava(
   client: AxiosInstance,
   id: number | string,
   payload: Record<string, unknown>,
+  options?: { inviteToken?: string },
 ): Promise<unknown> {
-  const res = await client.patch(`/api/akcije/${id}/moja-prijava`, payload)
+  const res = await client.patch(`/api/akcije/${id}/moja-prijava`, payload, {
+    params: options?.inviteToken ? { inviteToken: options.inviteToken } : undefined,
+  })
+  return res.data
+}
+
+export async function regenerateAkcijaInviteLink(
+  client: AxiosInstance,
+  akcijaId: number | string,
+): Promise<{ inviteUrl?: string; inviteToken?: string }> {
+  const res = await client.post<{ inviteUrl?: string; inviteToken?: string }>(
+    `/api/akcije/${akcijaId}/invite-link/regenerate`,
+  )
   return res.data
 }
 

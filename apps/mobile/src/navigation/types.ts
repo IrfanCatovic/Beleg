@@ -2,7 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native'
 
 export type HomeStackParamList = {
   Feed: undefined
-  ActionDetail: { id: number }
+  ActionDetail: { id: number; inviteToken?: string }
   FerrataDetail: { slug: string }
   UserProfile: { username?: string; id?: number }
   PostDetail: { id: number; focusComment?: boolean }
@@ -12,7 +12,7 @@ export type HomeStackParamList = {
 
 export type ActionsStackParamList = {
   ActionsList: undefined
-  ActionDetail: { id: number }
+  ActionDetail: { id: number; inviteToken?: string }
   ActionWizard: {
     tip: 'planina' | 'via_ferrata'
     bookingId?: number
@@ -30,7 +30,7 @@ export type ExploreStackParamList = {
   Adventure: undefined
   FerrataList: undefined
   FerrataDetail: { slug: string }
-  ActionDetail: { id: number }
+  ActionDetail: { id: number; inviteToken?: string }
   Guides: undefined
   Map: undefined
   UserProfile: { username?: string; id?: number }
@@ -43,7 +43,7 @@ export type ClubStackParamList = {
   Tasks: undefined
   Finance: undefined
   UserProfile: { username?: string; id?: number }
-  ActionDetail: { id: number }
+  ActionDetail: { id: number; inviteToken?: string }
 }
 
 export type ProfileStackParamList = {
@@ -52,7 +52,7 @@ export type ProfileStackParamList = {
   Finance: undefined
   Tasks: undefined
   UserProfile: { username?: string; id?: number }
-  ActionDetail: { id: number }
+  ActionDetail: { id: number; inviteToken?: string }
 }
 
 export type AppTabsParamList = {
