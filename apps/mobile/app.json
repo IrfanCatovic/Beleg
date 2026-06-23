@@ -2,6 +2,7 @@
   "expo": {
     "name": "Planiner",
     "slug": "beleg-mobile",
+    "scheme": "planiner",
     "version": "1.0.0",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -26,6 +27,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "rs.planiner.app",
+      "associatedDomains": ["applinks:www.planiner.com"],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost.",
         "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti.",
@@ -35,6 +37,20 @@
     "android": {
       "package": "rs.planiner.app",
       "versionCode": 7,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.planiner.com",
+              "pathPrefix": "/akcije"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.jpg",
         "backgroundColor": "#1a6b52"

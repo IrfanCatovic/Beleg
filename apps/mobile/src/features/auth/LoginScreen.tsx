@@ -84,6 +84,7 @@ export default function LoginScreen({ navigation }: Props) {
         <Button title={t('login')} loading={loading} onPress={handleLogin} fullWidth />
         <Button title={t('forgotPassword')} variant="ghost" onPress={() => navigation.navigate('ForgotPassword')} />
         <Button title={t('register')} variant="ghost" onPress={() => navigation.navigate('Register')} />
+        <Button title="Imam kod kluba" variant="ghost" onPress={() => navigation.navigate('EnterClubInviteCode')} />
       </View>
     </Screen>
   )

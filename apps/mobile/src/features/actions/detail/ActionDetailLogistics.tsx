@@ -58,6 +58,8 @@ interface ActionDetailLogisticsProps {
   selRent: Record<number, number>
   prevozOccupied?: Map<number, number>
   disabled?: boolean
+  showAddTransport?: boolean
+  onAddTransport?: () => void
   onToggleSmestaj: (id: number) => void
   onSelectPrevoz: (id: number) => void
   onChangeRent: (id: number, delta: number, max: number) => void
@@ -70,6 +72,8 @@ export function ActionDetailLogistics({
   selRent,
   prevozOccupied,
   disabled,
+  showAddTransport,
+  onAddTransport,
   onToggleSmestaj,
   onSelectPrevoz,
   onChangeRent,
@@ -79,7 +83,7 @@ export function ActionDetailLogistics({
   const rent = akcija.opremaRent ?? []
   const oprema = akcija.oprema ?? []
 
-  if (smestaj.length === 0 && prevoz.length === 0 && rent.length === 0 && oprema.length === 0) {
+  if (smestaj.length === 0 && prevoz.length === 0 && rent.length === 0 && oprema.length === 0 && !showAddTransport) {
     return null
   }
 
@@ -114,12 +118,23 @@ export function ActionDetailLogistics({
         </View>
       ) : null}
 
-      {prevoz.length > 0 ? (
+      {prevoz.length > 0 || showAddTransport ? (
         <View style={styles.section}>
-          <View style={styles.sectionTitle}>
-            <Ionicons name="car-outline" size={18} color={colors.textMuted} />
-            <Text variant="label">Prevoz</Text>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionTitle}>
+              <Ionicons name="car-outline" size={18} color={colors.textMuted} />
+              <Text variant="label">Prevoz</Text>
+            </View>
+            {showAddTransport && onAddTransport ? (
+              <Pressable onPress={onAddTransport} style={styles.addBtn}>
+                <Ionicons name="add" size={16} color="#fff" />
+                <Text variant="small" color="#fff">Dodaj</Text>
+              </Pressable>
+            ) : null}
           </View>
+          {prevoz.length === 0 && showAddTransport ? (
+            <Text variant="small" color={colors.textMuted}>Nema opcija prevoza. Dodajte svoj prevoz.</Text>
+          ) : null}
           {prevoz.map((p) => {
             const occupied = prevozOccupied?.get(p.id) ?? 0
             const isFull = p.kapacitet > 0 && occupied >= p.kapacitet && !selPrevoz.has(p.id)
@@ -211,6 +226,16 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   section: { gap: spacing.sm, marginTop: spacing.sm },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.brand,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.md,
+  },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',

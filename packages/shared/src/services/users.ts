@@ -112,3 +112,20 @@ export async function addPastActionToUser(
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+export async function removeClubMember(
+  client: AxiosInstance,
+  userId: number,
+  reason = '',
+): Promise<void> {
+  await client.post('/api/club-membership/remove', { userId, reason })
+}
+
+export async function registerClubMember(
+  client: AxiosInstance,
+  formData: FormData,
+): Promise<void> {
+  await client.post('/api/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

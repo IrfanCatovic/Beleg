@@ -1,40 +1,64 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import {
-  cancelSignupRequest,
+  buildActionInviteWhatsAppMessage,
+  countActivePrijave,
+  getApiErrorMessage,
+  resolveActionInviteShareUrl,
+} from '@beleg/shared'
+import {
+  deleteAkcija,
   fetchActionSignupRequests,
   fetchAkcijaById,
+  fetchKlub,
   fetchMojaPrijavaZaAkciju,
   fetchMojePrijave,
   fetchPrijaveZaAkciju,
-  otkaziPrijavu,
-  prijaviNaAkciju,
   respondToActionSignupRequest,
-  updateMojaPrijava,
+  zavrsiAkciju,
+  dodajPrevoz,
 } from '@beleg/shared/services'
-import { getApiErrorMessage } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import { Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { Button, ErrorView, Loader, Screen } from '../../components/ui'
 import { colors, spacing } from '../../theme'
-import { buildPrevozOccupancy, countActivePrijave } from '../../utils/actionDetails'
+import { buildPrevozOccupancy } from '../../utils/actionDetails'
+import { canApproveSignupRequest, canManageHostAkcija } from '../../utils/canManageAkcija'
+import { openWhatsAppWithMessage } from '../../utils/openWhatsApp'
+import { generateActionPdfPrePolaska, generateActionPdfZavrsena } from '../../utils/actionPdf'
 import type {
   ActionsStackParamList,
   ExploreStackParamList,
   HomeStackParamList,
   ProfileStackParamList,
 } from '../../navigation/types'
-import { ActionDetailHeader } from './detail/ActionDetailHeader'
-import { ActionDetailStats } from './detail/ActionDetailStats'
-import { ActionDetailInfo } from './detail/ActionDetailInfo'
+import { ActionDetailHero } from './detail/ActionDetailHero'
+import { ActionDetailStatsBar } from './detail/ActionDetailStatsBar'
+import { ActionDetailMembershipBanner } from './detail/ActionDetailMembershipBanner'
+import { ActionDetailDescription } from './detail/ActionDetailDescription'
+import { ActionDetailAddTransportSheet } from './detail/ActionDetailAddTransportSheet'
+import { ActionDetailExternalInvite } from './detail/ActionDetailExternalInvite'
 import { ActionDetailLogistics } from './detail/ActionDetailLogistics'
 import { ActionDetailPriceSummary } from './detail/ActionDetailPriceSummary'
-import { ActionDetailInviteShareCard } from './detail/ActionDetailInviteShareCard'
-import { ActionDetailMembers } from './detail/ActionDetailMembers'
-import { canManageHostAkcija } from '../../utils/canManageAkcija'
+import { ActionDetailShareRow } from './detail/ActionDetailShareRow'
+import { ActionDetailMembersList } from './detail/ActionDetailMembersList'
+import { ActionDetailMemberSheet } from './detail/ActionDetailMemberSheet'
+import { ActionDetailSignupRequests } from './detail/ActionDetailSignupRequests'
+import { ActionDetailPaymentSummary } from './detail/ActionDetailPaymentSummary'
+import { ActionDetailHostPanel } from './detail/ActionDetailHostPanel'
+import { ActionDetailBottomBar } from './detail/ActionDetailBottomBar'
+import { ActionDetailFinishModal } from './detail/ActionDetailFinishModal'
+import { GuideRatingModal } from './detail/GuideRatingModal'
+import { ActionDetailInfo } from './detail/ActionDetailInfo'
+import { useActionDetailRegistration } from './hooks/useActionDetailRegistration'
+import { useActionDetailPayments } from './hooks/useActionDetailPayments'
+import { useExternalInvite } from './hooks/useExternalInvite'
+import { useGuideRatings } from './hooks/useGuideRatings'
+import { invalidateActionQueries } from './hooks/invalidateActionQueries'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
@@ -42,27 +66,32 @@ type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'ActionDetail'>
   | NativeStackScreenProps<ExploreStackParamList, 'ActionDetail'>
 
-function registrationErrorMessage(err: unknown): string {
-  const msg = getApiErrorMessage(err, 'Čuvanje nije uspelo.')
-  if (/popunjen|maksimalan|pun/i.test(msg)) {
-    return 'Sva mesta su popunjena. Pokušajte kasnije ili izaberite drugu opciju.'
-  }
-  return msg
+function getWebBaseUrl(): string {
+  const web = process.env.EXPO_PUBLIC_WEB_URL ?? process.env.EXPO_PUBLIC_API_URL ?? ''
+  return web.replace(/\/$/, '')
 }
 
-export default function ActionDetailScreen({ route }: Props) {
+export default function ActionDetailScreen({ route, navigation }: Props) {
   const { id, inviteToken } = route.params
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
 
-  const [selSmestaj, setSelSmestaj] = useState<Set<number>>(new Set())
-  const [selPrevoz, setSelPrevoz] = useState<Set<number>>(new Set())
-  const [selRent, setSelRent] = useState<Record<number, number>>({})
+  const [finishOpen, setFinishOpen] = useState(false)
+  const [finishError, setFinishError] = useState('')
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareCachedUrl, setShareCachedUrl] = useState('')
+  const [addTransportOpen, setAddTransportOpen] = useState(false)
 
   const detailQuery = useQuery({
     queryKey: ['akcija', id, inviteToken ?? ''],
     queryFn: () => fetchAkcijaById(client, id, inviteToken),
+  })
+
+  const klubQuery = useQuery({
+    queryKey: ['klub'],
+    queryFn: () => fetchKlub(client),
+    enabled: !!user,
   })
 
   const prijaveQuery = useQuery({
@@ -73,131 +102,216 @@ export default function ActionDetailScreen({ route }: Props) {
   const mojaPrijavaQuery = useQuery({
     queryKey: ['moja-prijava', id],
     queryFn: () => fetchMojaPrijavaZaAkciju(client, id),
+    enabled: !!user,
   })
 
   const membersQuery = useQuery({
     queryKey: ['akcija', id, 'prijave'],
     queryFn: () => fetchPrijaveZaAkciju(client, id),
+    enabled: !!user,
   })
 
-  const canTryHost =
-    !!user && ['admin', 'sekretar', 'vodic', 'superadmin'].includes(user.role ?? '')
+  const akcija = detailQuery.data
+  const currency = klubQuery.data?.valuta || 'RSD'
+
+  const manageCtx = akcija
+    ? {
+        klubId: akcija.klubId,
+        organizatorTip: akcija.organizatorTip,
+        vodicId: akcija.vodicId,
+        vodicUsername: akcija.vodic?.username,
+      }
+    : {}
+
+  const canManageHost = canManageHostAkcija(user, manageCtx)
+  const canApprove = canApproveSignupRequest(user, manageCtx)
 
   const signupRequestsQuery = useQuery({
     queryKey: ['signup-requests', id],
     queryFn: () => fetchActionSignupRequests(client, id, 'pending'),
-    enabled: canTryHost && !detailQuery.data?.isCompleted,
+    enabled: canApprove && !akcija?.isCompleted,
     retry: false,
   })
 
-  const akcija = detailQuery.data
-  const prijava = mojaPrijavaQuery.data?.prijava
-  const pendingSignup = mojaPrijavaQuery.data?.signupRequest
-  const isPendingSignup = pendingSignup?.status === 'pending'
-  const isRegistered = prijava?.status === 'prijavljen'
-  const logisticsDisabled =
-    !!akcija?.isCompleted || isPendingSignup || (isRegistered && prijava?.status !== 'prijavljen')
-
-  useEffect(() => {
-    const source = prijava ?? (isPendingSignup ? pendingSignup : null)
-    if (!source) return
-    setSelSmestaj(new Set(source.selectedSmestajIds ?? []))
-    const prev = source.selectedPrevozIds ?? []
-    setSelPrevoz(prev.length ? new Set([prev[prev.length - 1]]) : new Set())
-    const rent: Record<number, number> = {}
-    for (const it of source.selectedRentItems ?? []) {
-      if (it.rentId && it.kolicina > 0) rent[it.rentId] = it.kolicina
-    }
-    setSelRent(rent)
-  }, [prijava, pendingSignup, isPendingSignup])
-
-  const signedUp = (prijaveQuery.data?.prijavljeneAkcije ?? []).includes(id)
   const canCancel = (prijaveQuery.data?.otkaziveAkcije ?? []).includes(id)
-  const pendingOnList = (prijaveQuery.data?.pendingSignupAkcije ?? []).includes(id)
 
-  const payload = useMemo(() => {
-    const selectedSmestajIds = Array.from(selSmestaj)
-    const prevArr = Array.from(selPrevoz)
-    const selectedPrevozIds = prevArr.length <= 1 ? prevArr : [prevArr[prevArr.length - 1]]
-    const selectedRentItems = Object.entries(selRent)
-      .map(([rentId, kolicina]) => ({ rentId: Number(rentId), kolicina }))
-      .filter((x) => x.kolicina > 0)
-    return { selectedSmestajIds, selectedPrevozIds, selectedRentItems }
-  }, [selSmestaj, selPrevoz, selRent])
+  const registration = useActionDetailRegistration({
+    actionId: id,
+    akcija,
+    user,
+    inviteToken,
+    mojaPrijavaData: mojaPrijavaQuery.data,
+    canCancel,
+    showAlert,
+    showConfirm,
+  })
 
-  const prevozOccupied = useMemo(
-    () => buildPrevozOccupancy(membersQuery.data ?? []),
-    [membersQuery.data],
+  const payments = useActionDetailPayments({
+    actionId: id,
+    akcija,
+    prijave: membersQuery.data ?? [],
+    canManageHost,
+    inviteToken,
+    showAlert,
+    showConfirm,
+  })
+
+  const guideRatings = useGuideRatings({
+    actionId: id,
+    user,
+    akcija,
+    mojaPrijava: mojaPrijavaQuery.data?.prijava ?? undefined,
+    showAlert,
+  })
+
+  const externalInvite = useExternalInvite(id, !!(canManageHost && akcija?.isCompleted))
+
+  const addTransportMutation = useMutation({
+    mutationFn: (data: Parameters<typeof dodajPrevoz>[2]) => dodajPrevoz(client, id, data),
+    onSuccess: async () => {
+      setAddTransportOpen(false)
+      await invalidateActionQueries(queryClient, id, inviteToken)
+      await showAlert('Uspeh', 'Prevoz je dodat.')
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Dodavanje prevoza nije uspelo.')),
+  })
+
+  const canAddTransport = !!user && registration.isRegistered && !akcija?.isCompleted
+
+  useFocusEffect(
+    useCallback(() => {
+      void detailQuery.refetch()
+      if (user) {
+        void membersQuery.refetch()
+        void mojaPrijavaQuery.refetch()
+      }
+    }, [user]),
   )
-
-  const priceTotals = useMemo(() => {
-    if (!akcija) return { smestaj: 0, prevoz: 0, rent: 0 }
-    let smestaj = 0
-    for (const s of akcija.smestaj ?? []) {
-      if (selSmestaj.has(s.id)) smestaj += s.cenaPoOsobiUkupno
-    }
-    let prevoz = 0
-    for (const p of akcija.prevoz ?? []) {
-      if (selPrevoz.has(p.id)) prevoz += p.cenaPoOsobi
-    }
-    let rent = 0
-    for (const r of akcija.opremaRent ?? []) {
-      const qty = selRent[r.id] ?? 0
-      if (qty > 0) rent += r.cenaPoSetu * qty
-    }
-    return { smestaj, prevoz, rent }
-  }, [akcija, selSmestaj, selPrevoz, selRent])
-
-  const invalidateRegistration = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
-    await queryClient.invalidateQueries({ queryKey: ['moja-prijava', id] })
-    await queryClient.invalidateQueries({ queryKey: ['akcija', id] })
-    await queryClient.invalidateQueries({ queryKey: ['akcija', id, 'prijave'] })
-    await queryClient.invalidateQueries({ queryKey: ['signup-requests', id] })
-  }
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const opts = inviteToken ? { inviteToken } : undefined
-      if (isRegistered) return updateMojaPrijava(client, id, payload, opts)
-      return prijaviNaAkciju(client, id, payload, opts)
-    },
-    onSuccess: async () => {
-      await invalidateRegistration()
-      await showAlert(
-        'Uspeh',
-        isRegistered ? 'Prijava je ažurirana.' : 'Zahtev za prijavu je poslat na odobrenje.',
-      )
-    },
-    onError: (err) => showAlert('Greška', registrationErrorMessage(err)),
-  })
-
-  const otkaziMutation = useMutation({
-    mutationFn: () => otkaziPrijavu(client, id),
-    onSuccess: async () => {
-      await invalidateRegistration()
-      await showAlert('Uspeh', 'Prijava je otkazana.')
-    },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
-  })
-
-  const cancelSignupMutation = useMutation({
-    mutationFn: () => cancelSignupRequest(client, id),
-    onSuccess: async () => {
-      await invalidateRegistration()
-      await showAlert('Uspeh', 'Zahtev za prijavu je otkazan.')
-    },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
-  })
 
   const respondSignupMutation = useMutation({
     mutationFn: ({ requestId, action }: { requestId: number; action: 'accept' | 'reject' }) =>
       respondToActionSignupRequest(client, id, requestId, action),
     onSuccess: async () => {
-      await invalidateRegistration()
+      await invalidateActionQueries(queryClient, id, inviteToken)
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Obrada zahteva nije uspela.')),
   })
+
+  const finishMutation = useMutation({
+    mutationFn: (rashod: number) => zavrsiAkciju(client, id, rashod),
+    onSuccess: async (res) => {
+      setFinishOpen(false)
+      await invalidateActionQueries(queryClient, id, inviteToken)
+      const tip = res.finansijeTip
+      const neto = res.netoFinansije
+      if (tip === 'uplata') {
+        await showAlert('Uspeh', `Akcija završena. Uplata u klub: ${neto?.toLocaleString('sr-RS')} ${currency}`)
+      } else if (tip === 'isplata') {
+        await showAlert('Uspeh', `Akcija završena. Isplata iz kluba: ${Math.abs(neto ?? 0).toLocaleString('sr-RS')} ${currency}`)
+      } else {
+        await showAlert('Uspeh', 'Akcija je završena.')
+      }
+    },
+    onError: (err) => setFinishError(getApiErrorMessage(err, 'Završetak nije uspeo.')),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAkcija(client, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['akcije'] })
+      navigation.goBack()
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Brisanje nije uspelo.')),
+  })
+
+  const handleShare = async () => {
+    if (!akcija) return
+    const webBaseUrl = getWebBaseUrl()
+    if (!webBaseUrl) {
+      await showAlert('Greška', 'Link za deljenje nije dostupan.')
+      return
+    }
+    setShareLoading(true)
+    try {
+      const url = await resolveActionInviteShareUrl(client, {
+        actionId: akcija.id,
+        isPublic: !!akcija.javna,
+        webBaseUrl,
+        inviteToken,
+        canManageHost,
+        cachedUrl: shareCachedUrl,
+      })
+      setShareCachedUrl(url)
+      await openWhatsAppWithMessage(buildActionInviteWhatsAppMessage(akcija.naziv, url))
+    } catch (err) {
+      await showAlert('Greška', getApiErrorMessage(err, 'Deljenje nije uspelo.'))
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const openFinish = async () => {
+    const neoznaceni = (membersQuery.data ?? []).filter((p) => p.status === 'prijavljen')
+    if (neoznaceni.length > 0) {
+      await showAlert('Nedostaju statusi', 'Označite sve članove kao popeo se ili nije uspeo pre završetka.')
+      return
+    }
+    setFinishError('')
+    setFinishOpen(true)
+  }
+
+  const handleDelete = async () => {
+    const ok = await showConfirm('Obriši akciju', 'Da li ste sigurni?', { variant: 'danger', confirmLabel: 'Obriši' })
+    if (ok) deleteMutation.mutate()
+  }
+
+  const handlePdfPrePolaska = async () => {
+    if (!akcija) return
+    try {
+      const names = (membersQuery.data ?? [])
+        .filter((p) => p.status !== 'otkazano')
+        .map((p) => p.fullName || p.korisnik)
+        .join(', ')
+      await generateActionPdfPrePolaska({
+        clubName: akcija.klubNaziv || '',
+        naziv: akcija.naziv,
+        planina: akcija.planina || '',
+        vrh: akcija.vrh,
+        datum: akcija.datum,
+        opis: akcija.opis || '',
+        tezina: akcija.tezina || '',
+        vodicIme: akcija.vodic?.fullName || akcija.vodic?.username || '',
+        addedBy: akcija.addedBy?.fullName || '',
+        brojPolaznika: countActivePrijave(membersQuery.data ?? []),
+        imenaPolaznika: names,
+      })
+    } catch {
+      await showAlert('Greška', 'Generisanje PDF-a nije uspelo.')
+    }
+  }
+
+  const handlePdfZavrsena = async () => {
+    if (!akcija) return
+    try {
+      const active = (membersQuery.data ?? []).filter((p) => p.status === 'popeo se')
+      await generateActionPdfZavrsena({
+        clubName: akcija.klubNaziv || '',
+        naziv: akcija.naziv,
+        planina: akcija.planina || '',
+        vrh: akcija.vrh,
+        datum: akcija.datum,
+        opis: akcija.opis || '',
+        tezina: akcija.tezina || '',
+        vodicIme: akcija.vodic?.fullName || akcija.vodic?.username || '',
+        addedBy: akcija.addedBy?.fullName || '',
+        brojPrijavljenih: membersQuery.data?.length ?? 0,
+        brojUspesnoPopeli: active.length,
+        imenaUspesnoPopeli: active.map((p) => p.fullName || p.korisnik).join(', '),
+      })
+    } catch {
+      await showAlert('Greška', 'Generisanje PDF-a nije uspelo.')
+    }
+  }
 
   if (detailQuery.isLoading) {
     return (
@@ -215,174 +329,240 @@ export default function ActionDetailScreen({ route }: Props) {
     )
   }
 
-  const locationSubtitle = [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') || akcija.ferrataSnapshot?.lokacija || '—'
+  const locationSubtitle =
+    [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') ||
+    akcija.ferrataSnapshot?.lokacija ||
+    '—'
   const memberCount = countActivePrijave(membersQuery.data ?? [])
-  const hostRequests = signupRequestsQuery.data ?? []
-  const canManageHost = canManageHostAkcija(user, {
-    klubId: akcija.klubId,
-    organizatorTip: akcija.organizatorTip,
-    vodicId: akcija.vodicId,
-    vodicUsername: akcija.vodic?.username,
-  })
+  const prevozOccupied = buildPrevozOccupancy(membersQuery.data ?? [])
+  const showPriceBanner =
+    !!user && (akcija.cenaClan != null || akcija.cenaOstali != null)
+  const showMembers = akcija.prikaziListuPrijavljenih !== false && !!user
+  const bottomPad = spacing.xxl + 100
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <ScrollView contentContainerStyle={styles.scroll} nestedScrollEnabled>
-        <ActionDetailHeader akcija={akcija} locationSubtitle={locationSubtitle} />
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]} nestedScrollEnabled>
+        <ActionDetailHero
+          akcija={akcija}
+          locationSubtitle={locationSubtitle}
+          onBack={() => navigation.goBack()}
+        />
+
+        <ActionDetailStatsBar akcija={akcija} memberCount={memberCount} />
 
         <View style={styles.body}>
-          <ActionDetailStats akcija={akcija} memberCount={memberCount} />
+          <ActionDetailMembershipBanner
+            isClan={registration.isClan}
+            baseCena={registration.baseCena}
+            currency={currency}
+            visible={showPriceBanner}
+          />
+
+          <ActionDetailDescription opis={akcija.opis} />
           <ActionDetailInfo akcija={akcija} />
 
-          <ActionDetailInviteShareCard
+          {user && !akcija.isCompleted ? (
+            <ActionDetailLogistics
+              akcija={akcija}
+              selSmestaj={registration.selSmestaj}
+              selPrevoz={registration.selPrevoz}
+              selRent={registration.selRent}
+              prevozOccupied={prevozOccupied}
+              disabled={registration.logisticsDisabled}
+              showAddTransport={canAddTransport}
+              onAddTransport={() => setAddTransportOpen(true)}
+              onToggleSmestaj={(sid) => {
+                if (registration.logisticsDisabled) return
+                registration.markDirty()
+                registration.setSelSmestaj((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(sid)) next.delete(sid)
+                  else next.add(sid)
+                  return next
+                })
+              }}
+              onSelectPrevoz={(pid) => {
+                if (registration.logisticsDisabled) return
+                registration.markDirty()
+                registration.setSelPrevoz(new Set([pid]))
+              }}
+              onChangeRent={(rid, delta, max) => {
+                if (registration.logisticsDisabled) return
+                registration.markDirty()
+                registration.setSelRent((prev) => ({
+                  ...prev,
+                  [rid]: Math.max(0, Math.min(max, (prev[rid] ?? 0) + delta)),
+                }))
+              }}
+            />
+          ) : null}
+
+          {user ? (
+            <ActionDetailPriceSummary
+              baseCena={registration.baseCena}
+              smestajTotal={registration.priceTotals.smestaj}
+              prevozTotal={registration.priceTotals.prevoz}
+              rentTotal={registration.priceTotals.rent}
+              total={registration.totalPrice}
+              currency={currency}
+              serverSaldo={akcija.mojSaldo}
+            />
+          ) : null}
+
+          <ActionDetailShareRow
             akcija={akcija}
             canManageHost={canManageHost}
             inviteToken={inviteToken}
-            onError={(message) => void showAlert('Greška', message)}
+            onError={(msg) => void showAlert('Greška', msg)}
           />
 
-          <ActionDetailLogistics
+          {showMembers ? (
+            <ActionDetailMembersList
+              prijave={membersQuery.data ?? []}
+              akcija={akcija}
+              currency={currency}
+              canManageHost={canManageHost}
+              onPressMember={payments.setSelectedMember}
+            />
+          ) : null}
+
+          {canManageHost && akcija.isCompleted ? (
+            <ActionDetailExternalInvite
+              state={externalInvite}
+              onCancelRequest={(requestId) => {
+                const req = externalInvite.requests.find((r: { id: number }) => r.id === requestId)
+                if (req) void externalInvite.cancelRequest(req)
+              }}
+            />
+          ) : null}
+
+          {canApprove ? (
+            <ActionDetailSignupRequests
+              requests={signupRequestsQuery.data ?? []}
+              akcija={akcija}
+              loading={respondSignupMutation.isPending}
+              onRespond={(requestId, action) => respondSignupMutation.mutate({ requestId, action })}
+            />
+          ) : null}
+
+          {canManageHost && !akcija.isCompleted ? (
+            <ActionDetailPaymentSummary
+              paidCount={payments.paidCount}
+              totalCount={payments.tracked.length}
+              paidTotal={payments.paidTotal}
+              expectedTotal={payments.expectedTotal}
+              currency={currency}
+              onBulkMarkPaid={() => void payments.bulkMarkPaid()}
+            />
+          ) : null}
+
+          <ActionDetailHostPanel
             akcija={akcija}
-            selSmestaj={selSmestaj}
-            selPrevoz={selPrevoz}
-            selRent={selRent}
-            prevozOccupied={prevozOccupied}
-            disabled={logisticsDisabled}
-            onToggleSmestaj={(sid) => {
-              if (logisticsDisabled) return
-              setSelSmestaj((prev) => {
-                const next = new Set(prev)
-                if (next.has(sid)) next.delete(sid)
-                else next.add(sid)
-                return next
-              })
-            }}
-            onSelectPrevoz={(pid) => {
-              if (logisticsDisabled) return
-              setSelPrevoz(new Set([pid]))
-            }}
-            onChangeRent={(rid, delta, max) => {
-              if (logisticsDisabled) return
-              setSelRent((prev) => ({
-                ...prev,
-                [rid]: Math.max(0, Math.min(max, (prev[rid] ?? 0) + delta)),
-              }))
-            }}
-          />
-
-          <ActionDetailPriceSummary
-            akcija={akcija}
-            smestajTotal={priceTotals.smestaj}
-            prevozTotal={priceTotals.prevoz}
-            rentTotal={priceTotals.rent}
-          />
-
-          {hostRequests.length > 0 ? (
-            <Card style={styles.hostCard}>
-              <Text variant="heading">Zahtevi za prijavu</Text>
-              {hostRequests.map((req) => {
-                const name = req.requester.fullName?.trim() || req.requester.username
-                return (
-                  <View key={req.id} style={styles.hostRow}>
-                    <View style={styles.hostRowText}>
-                      <Text variant="label">{name}</Text>
-                      <Text variant="small" color={colors.textMuted}>@{req.requester.username}</Text>
-                    </View>
-                    <View style={styles.hostActions}>
-                      <Button
-                        title="Odbij"
-                        variant="ghost"
-                        loading={respondSignupMutation.isPending}
-                        onPress={() => respondSignupMutation.mutate({ requestId: req.id, action: 'reject' })}
-                      />
-                      <Button
-                        title="Prihvati"
-                        loading={respondSignupMutation.isPending}
-                        onPress={() => respondSignupMutation.mutate({ requestId: req.id, action: 'accept' })}
-                      />
-                    </View>
-                  </View>
+            canManageHost={canManageHost}
+            onFinish={() => void openFinish()}
+            onEdit={() => {
+              if ('navigate' in navigation) {
+                ;(navigation as { navigate: (name: string, params: { id: number }) => void }).navigate(
+                  'ActionEdit',
+                  { id },
                 )
-              })}
-            </Card>
-          ) : null}
+              }
+            }}
+            onDelete={() => void handleDelete()}
+            onPdfPrePolaska={() => void handlePdfPrePolaska()}
+            onPdfZavrsena={() => void handlePdfZavrsena()}
+            onShare={() => void handleShare()}
+            loading={deleteMutation.isPending || shareLoading}
+          />
 
-          {akcija.prikaziListuPrijavljenih !== false ? (
-            <ActionDetailMembers prijave={membersQuery.data ?? []} />
+          {guideRatings.canShowGuideRatingPrompt ? (
+            <Button
+              title={`Oceni vodiča (${guideRatings.guideRatingGuideName})`}
+              variant="secondary"
+              onPress={() => guideRatings.setGuideRatingOpen(true)}
+              fullWidth
+            />
           ) : null}
-
-          {isPendingSignup || isRegistered ? (
-            <Card style={styles.block}>
-              <Text variant="label">Vaša prijava</Text>
-              <Text color={colors.textMuted}>
-                Status: {isPendingSignup ? 'Na čekanju odobrenja' : prijava?.status || 'prijavljen'}
-              </Text>
-            </Card>
+          {guideRatings.guideRatingSubmitted ? (
+            <Button title="Hvala na oceni vodiča" variant="ghost" disabled fullWidth />
           ) : null}
-
-          <View style={styles.actions}>
-            {!akcija.isCompleted && !isRegistered && !isPendingSignup ? (
-              <Button
-                title="Pošalji zahtev za prijavu"
-                loading={saveMutation.isPending}
-                onPress={() => saveMutation.mutate()}
-                fullWidth
-              />
-            ) : null}
-            {!akcija.isCompleted && isRegistered ? (
-              <Button
-                title="Sačuvaj izbore"
-                loading={saveMutation.isPending}
-                onPress={() => saveMutation.mutate()}
-                fullWidth
-              />
-            ) : null}
-            {isPendingSignup ? (
-              <Button
-                title="Otkaži zahtev"
-                variant="secondary"
-                loading={cancelSignupMutation.isPending}
-                onPress={async () => {
-                  const ok = await showConfirm(
-                    'Otkaži zahtev',
-                    `Otkazati zahtev za prijavu na „${akcija.naziv}"?`,
-                    { variant: 'danger', confirmLabel: 'Otkaži' },
-                  )
-                  if (ok) cancelSignupMutation.mutate()
-                }}
-                fullWidth
-              />
-            ) : null}
-            {isRegistered && canCancel ? (
-              <Button
-                title="Otkaži prijavu"
-                variant="secondary"
-                loading={otkaziMutation.isPending}
-                onPress={async () => {
-                  const ok = await showConfirm(
-                    'Otkaži prijavu',
-                    `Da li ste sigurni da želite da otkažete prijavu na „${akcija.naziv}"?`,
-                    { variant: 'danger', confirmLabel: 'Otkaži' },
-                  )
-                  if (ok) otkaziMutation.mutate()
-                }}
-                fullWidth
-              />
-            ) : null}
-          </View>
         </View>
       </ScrollView>
+
+      <ActionDetailBottomBar
+        visible={!!user}
+        isPendingSignup={registration.isPendingSignup}
+        isRegistered={registration.isRegistered}
+        isCompleted={!!akcija.isCompleted}
+        canCancel={canCancel}
+        saving={registration.saveMutation.isPending}
+        onSave={() => registration.saveMutation.mutate()}
+        onCancelSignup={() => void registration.handleCancelSignup()}
+        onCancelPrijava={() => void registration.handleCancelPrijava()}
+      />
+
+      <ActionDetailMemberSheet
+        visible={payments.selectedMember != null}
+        member={payments.selectedMember}
+        akcija={akcija}
+        currency={currency}
+        canManageHost={canManageHost}
+        showPaymentControls={canManageHost && !akcija.isCompleted}
+        loading={
+          payments.togglePlatioMutation.isPending ||
+          payments.statusMutation.isPending ||
+          payments.deleteMutation.isPending
+        }
+        onClose={() => payments.setSelectedMember(null)}
+        onTogglePayment={(platio) => {
+          if (!payments.selectedMember) return
+          payments.togglePlatioMutation.mutate({
+            prijavaId: payments.selectedMember.id,
+            platio,
+          })
+        }}
+        onStatusChange={(status) => {
+          if (!payments.selectedMember) return
+          payments.statusMutation.mutate({ prijavaId: payments.selectedMember.id, status })
+        }}
+        onRemove={() => {
+          if (payments.selectedMember) void payments.handleRemoveMember(payments.selectedMember)
+        }}
+      />
+
+      <ActionDetailFinishModal
+        visible={finishOpen}
+        currency={currency}
+        prihodUkupan={payments.paidTotal}
+        skipClubFinances={akcija.organizatorTip === 'vodic'}
+        loading={finishMutation.isPending}
+        error={finishError}
+        onClose={() => setFinishOpen(false)}
+        onConfirm={(rashod) => finishMutation.mutate(rashod)}
+      />
+
+      <GuideRatingModal
+        visible={guideRatings.guideRatingOpen && guideRatings.canShowGuideRatingPrompt}
+        guideName={guideRatings.guideRatingGuideName}
+        saving={guideRatings.guideRatingSaving}
+        onClose={() => guideRatings.setGuideRatingOpen(false)}
+        onSkip={() => void guideRatings.handleGuideRatingSkip()}
+        onSubmit={(payload) => void guideRatings.handleGuideRatingSubmit(payload)}
+      />
+
+      <ActionDetailAddTransportSheet
+        visible={addTransportOpen}
+        currency={currency}
+        loading={addTransportMutation.isPending}
+        onClose={() => setAddTransportOpen(false)}
+        onSubmit={(data) => addTransportMutation.mutate(data)}
+      />
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: spacing.xxl },
+  scroll: {},
   body: { padding: spacing.lg },
-  block: { marginBottom: spacing.md, gap: spacing.sm },
-  hostCard: { marginBottom: spacing.md, gap: spacing.md, borderColor: '#fcd34d', backgroundColor: '#fffbeb' },
-  hostRow: { gap: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  hostRowText: { gap: 2 },
-  hostActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
-  actions: { marginTop: spacing.md, gap: spacing.sm },
 })

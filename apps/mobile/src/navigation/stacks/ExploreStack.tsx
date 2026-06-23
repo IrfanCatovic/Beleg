@@ -5,6 +5,7 @@ import AdventureScreen from '../../features/activity/screens/AdventureScreen'
 import FerrataListScreen from '../../features/explore/FerrataListScreen'
 import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
+import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import GuidesScreen from '../../features/explore/GuidesScreen'
 import MapScreen from '../../features/explore/MapScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
@@ -22,6 +23,7 @@ export function ExploreStack() {
       <Stack.Screen name="FerrataList" component={FerrataListScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
+      <Stack.Screen name="ActionEdit" component={ActionEditScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="Guides" component={GuidesScreen} />
       <Stack.Screen name="Map" component={MapScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />

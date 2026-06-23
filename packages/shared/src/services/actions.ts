@@ -228,11 +228,115 @@ export async function addClubMembersCompleted(
   return res.data
 }
 
+export interface ActionParticipationRequest {
+  id: number
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  respondedAt?: string | null
+  action: {
+    id: number
+    naziv: string
+    datum: string
+    planina?: string
+    vrh?: string
+    klubId?: number | null
+    klubNaziv?: string
+    isCompleted?: boolean
+  }
+  targetUser: ExternalUserCandidate
+  requestedBy: ExternalUserCandidate
+}
+
+export async function fetchActionParticipationRequests(
+  client: AxiosInstance,
+  akcijaId: number | string,
+): Promise<ActionParticipationRequest[]> {
+  const res = await client.get<{ requests: ActionParticipationRequest[] }>(
+    `/api/akcije/${akcijaId}/participation-requests`,
+  )
+  return res.data.requests ?? []
+}
+
 export async function createParticipationRequest(
   client: AxiosInstance,
   akcijaId: number | string,
   targetUserId: number,
+): Promise<ActionParticipationRequest> {
+  const res = await client.post<{ request: ActionParticipationRequest }>(
+    `/api/akcije/${akcijaId}/participation-requests`,
+    { targetUserId },
+  )
+  return res.data.request
+}
+
+export async function cancelParticipationRequest(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  requestId: number,
+): Promise<void> {
+  await client.patch(`/api/akcije/${akcijaId}/participation-requests/${requestId}/cancel`)
+}
+
+export async function dodajPrevoz(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  data: {
+    tipPrevoza: string
+    nazivGrupe: string
+    kapacitet: number
+    cenaPoOsobi: number
+    join?: boolean
+  },
 ): Promise<unknown> {
-  const res = await client.post(`/api/akcije/${akcijaId}/participation-requests`, { targetUserId })
+  const res = await client.post(`/api/akcije/${akcijaId}/prevoz`, data)
+  return res.data
+}
+
+export async function updatePrijavaPlatio(
+  client: AxiosInstance,
+  prijavaId: number,
+  platio: boolean,
+): Promise<void> {
+  await client.patch(`/api/prijave/${prijavaId}/platio`, { platio })
+}
+
+export async function updatePrijavaStatus(
+  client: AxiosInstance,
+  prijavaId: number,
+  status: string,
+): Promise<void> {
+  await client.post(`/api/prijave/${prijavaId}/status`, { status })
+}
+
+export async function deletePrijava(client: AxiosInstance, prijavaId: number): Promise<void> {
+  await client.delete(`/api/prijave/${prijavaId}`)
+}
+
+export async function deleteAkcija(client: AxiosInstance, id: number | string): Promise<void> {
+  await client.delete(`/api/akcije/${id}`)
+}
+
+export async function dodajClanaPopeoSe(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  korisnikId: number,
+): Promise<unknown> {
+  const res = await client.post(`/api/akcije/${akcijaId}/dodaj-clana-popeo-se`, { korisnikId })
+  return res.data
+}
+
+export interface ZavrsiAkcijaResponse {
+  akcija?: AkcijaDetail
+  finansijeTip?: 'nista' | 'uplata' | 'isplata'
+  netoFinansije?: number
+}
+
+export async function zavrsiAkciju(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  rashodNaAkciji: number,
+): Promise<ZavrsiAkcijaResponse> {
+  const res = await client.post<ZavrsiAkcijaResponse>(`/api/akcije/${akcijaId}/zavrsi`, { rashodNaAkciji })
   return res.data
 }

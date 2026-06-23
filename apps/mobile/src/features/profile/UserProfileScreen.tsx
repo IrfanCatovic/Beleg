@@ -509,6 +509,17 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </Pressable>
           ) : null}
 
+          {isMe && !isProfiGuide && inProfileStack ? (
+            <View style={styles.becomeGuideRow}>
+              <Button
+                title="Postani vodič"
+                variant="secondary"
+                onPress={() => profileNavigation.navigate('BecomeGuide')}
+                fullWidth
+              />
+            </View>
+          ) : null}
+
           {!isMe && !blockedByTarget ? (
             <View style={styles.socialRow}>
               <Button
@@ -827,6 +838,7 @@ const styles = StyleSheet.create({
   clubLogo: { width: 14, height: 14, borderRadius: 2 },
   clubText: { color: '#6d28d9', fontWeight: '800', fontSize: 10 },
   socialRow: { gap: spacing.sm, marginTop: spacing.md },
+  becomeGuideRow: { marginTop: spacing.md },
   blocked: { padding: spacing.xl, alignItems: 'center' },
   statsSection: {
     backgroundColor: colors.surface,

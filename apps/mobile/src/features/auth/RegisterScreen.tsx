@@ -77,6 +77,7 @@ export default function RegisterScreen({ navigation }: Props) {
         <Input label="Potvrdi lozinku" secureTextEntry value={confirm} onChangeText={setConfirm} />
         {error ? <Text variant="small" color={colors.danger}>{error}</Text> : null}
         <Button title="Registruj se" loading={loading} onPress={submit} fullWidth />
+        <Button title="Imam kod kluba" variant="ghost" onPress={() => navigation.navigate('EnterClubInviteCode')} />
         <Button title="Nazad na prijavu" variant="ghost" onPress={() => navigation.navigate('Login')} />
       </View>
     </Screen>

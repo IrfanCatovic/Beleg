@@ -1,14 +1,16 @@
 import { useCallback, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AkcijaListItem } from '@beleg/shared'
 import { getApiErrorMessage } from '@beleg/shared'
-import { fetchAkcije, fetchMojePrijave, cancelSignupRequest, otkaziPrijavu, prijaviNaAkciju } from '@beleg/shared/services'
+import { fetchAkcije, fetchMojePrijave, cancelSignupRequest, otkaziPrijavu } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useSuperadminClub } from '../../hooks/useSuperadminClub'
 import { useModal } from '../../context/ModalContext'
+import { ActionJoinSheet } from '../../components/actions/ActionJoinSheet'
 import { ActionCard } from '../../components/shared/ActionCard'
 import { ActionsFilterModal } from '../../components/actions/ActionsFilterModal'
 import { AddActionChoiceModal } from '../../components/actions/AddActionChoiceModal'
@@ -42,7 +44,7 @@ export default function ActionsScreen({ navigation }: Props) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [guideRequiredOpen, setGuideRequiredOpen] = useState(false)
-  const [joiningId, setJoiningId] = useState<number | null>(null)
+  const [joinAction, setJoinAction] = useState<AkcijaListItem | null>(null)
 
   const akcijeQuery = useQuery({
     queryKey: ['akcije'],
@@ -54,6 +56,13 @@ export default function ActionsScreen({ navigation }: Props) {
     queryKey: ['moje-prijave'],
     queryFn: () => fetchMojePrijave(client),
   })
+
+  useFocusEffect(
+    useCallback(() => {
+      void akcijeQuery.refetch()
+      void prijaveQuery.refetch()
+    }, []),
+  )
 
   const signedUp = useMemo(
     () => new Set(prijaveQuery.data?.prijavljeneAkcije ?? []),
@@ -121,17 +130,6 @@ export default function ActionsScreen({ navigation }: Props) {
     return Array.from(months).sort((a, b) => a - b)
   }, [combinedAktivne, combinedZavrsene])
 
-  const joinMutation = useMutation({
-    mutationFn: (id: number) => prijaviNaAkciju(client, id),
-    onSuccess: async () => {
-      await showAlert('Uspeh', 'Zahtev za prijavu je poslat na odobrenje.')
-      void queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
-      void queryClient.invalidateQueries({ queryKey: ['akcije'] })
-    },
-    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Prijava nije uspela.')),
-    onSettled: () => setJoiningId(null),
-  })
-
   const cancelMutation = useMutation({
     mutationFn: async (action: AkcijaListItem) => {
       if (pendingSignup.has(action.id)) {
@@ -147,9 +145,8 @@ export default function ActionsScreen({ navigation }: Props) {
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
   })
 
-  const handleJoin = async (action: AkcijaListItem) => {
-    setJoiningId(action.id)
-    joinMutation.mutate(action.id)
+  const handleJoin = (action: AkcijaListItem) => {
+    setJoinAction(action)
   }
 
   const handleCancel = async (action: AkcijaListItem) => {
@@ -174,7 +171,7 @@ export default function ActionsScreen({ navigation }: Props) {
 
   const handleBecomeGuide = useCallback(() => {
     setGuideRequiredOpen(false)
-    navigation.getParent()?.navigate('ProfileTab', { screen: 'MyProfile' })
+    navigation.getParent()?.navigate('ProfileTab', { screen: 'BecomeGuide' })
   }, [navigation])
 
   const goToClubPicker = useCallback(() => {
@@ -253,6 +250,14 @@ export default function ActionsScreen({ navigation }: Props) {
         onBecomeGuide={handleBecomeGuide}
       />
 
+      <ActionJoinSheet
+        action={joinAction}
+        visible={joinAction != null}
+        onClose={() => setJoinAction(null)}
+        onSuccess={() => void showAlert('Uspeh', 'Zahtev za prijavu je poslat na odobrenje.')}
+        onError={(msg) => void showAlert('Greška', msg)}
+      />
+
       <ActionsFilterModal
         visible={filterOpen}
         filters={filters}
@@ -300,7 +305,7 @@ export default function ActionsScreen({ navigation }: Props) {
             signedUp={signedUp.has(item.id)}
             pendingSignup={pendingSignup.has(item.id)}
             cancellable={cancellable.has(item.id) || pendingSignup.has(item.id)}
-            joinLoading={joiningId === item.id}
+            joinLoading={joinAction?.id === item.id}
             onPress={() => navigation.navigate('ActionDetail', { id: item.id })}
             onJoin={
               !item.isCompleted && !signedUp.has(item.id) && !pendingSignup.has(item.id)

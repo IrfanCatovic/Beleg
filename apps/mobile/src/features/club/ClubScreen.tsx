@@ -226,6 +226,14 @@ export default function ClubScreen({ navigation }: Props) {
       icon: 'people-outline' as const,
       onPress: () => navigation.navigate('ClubMembers'),
     },
+    ...(canManage
+      ? [{
+          key: 'manage-users',
+          label: 'Upravljanje',
+          icon: 'shield-outline' as const,
+          onPress: () => navigation.navigate('ClubManageUsers'),
+        }]
+      : []),
     { key: 'about', label: t('aboutClub'), icon: 'information-circle-outline' as const, onPress: scrollToAbout },
   ]
 

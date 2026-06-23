@@ -16,6 +16,21 @@ import {
   markObavestenjeRead,
   respondClubJoinRequest,
 } from '@beleg/shared/services'
+import {
+  ferrataGuideBookingToWizardParams,
+  peakGuideBookingToWizardParams,
+} from '@beleg/shared'
+import {
+  canGuideCreateActionFromBooking,
+  canGuideCreateActionFromPeakBooking,
+  getFerrataGuideBooking,
+  getPeakGuideBooking,
+  guideBookingBlockedMessage,
+  peakGuideBookingBlockedMessage,
+  rejectFerrataGuideBooking,
+  rejectPeakGuideBooking,
+} from '@beleg/shared/services'
+import type { FerrataGuideBookingPublic, PeakGuideBookingPublic } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
@@ -23,8 +38,10 @@ import { TaskCard } from '../../components/tasks/TaskCard'
 import { TaskFormModal } from '../../components/tasks/TaskFormModal'
 import { Avatar, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { canManageClub } from '../../utils/roles'
+import { invalidateActionQueries } from '../actions/hooks/invalidateActionQueries'
 import { canSeeTask } from '../../utils/taskPermissions'
 import { useTaskActions } from '../tasks/useTaskActions'
+import { guideBookingLabels } from '../../utils/guideBookingLabels'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 
@@ -40,6 +57,8 @@ interface ParsedMeta {
   clubJoinRequestId?: number
   requesterUsername?: string
   requesterFullName?: string
+  bookingRequestId?: number
+  bookingKind?: string
 }
 
 function parseMetadata(metadata?: string): ParsedMeta {
@@ -90,6 +109,35 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
   const signupRequestId = meta.requestId
   const signupAkcijaId = meta.akcijaId ?? meta.actionId
   const isSignupNotification = detailQuery.data?.type === 'action_signup_request'
+  const isGuideBookingNotification = detailQuery.data?.type === 'guide_booking_request'
+  const bookingRequestId = meta.bookingRequestId
+  const bookingKind = meta.bookingKind === 'peak' ? 'peak' : 'ferrata'
+
+  const guideBookingQuery = useQuery({
+    queryKey: ['guide-booking', bookingKind, bookingRequestId],
+    queryFn: async () => {
+      if (bookingKind === 'peak') {
+        return { kind: 'peak' as const, booking: await getPeakGuideBooking(client, bookingRequestId!) }
+      }
+      return { kind: 'ferrata' as const, booking: await getFerrataGuideBooking(client, bookingRequestId!) }
+    },
+    enabled: isGuideBookingNotification && bookingRequestId != null,
+  })
+
+  const rejectGuideBookingMutation = useMutation({
+    mutationFn: async () => {
+      if (!bookingRequestId) throw new Error('missing')
+      if (bookingKind === 'peak') return rejectPeakGuideBooking(client, bookingRequestId)
+      return rejectFerrataGuideBooking(client, bookingRequestId)
+    },
+    onSuccess: async () => {
+      await markObavestenjeRead(client, id)
+      void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
+      void guideBookingQuery.refetch()
+      await showAlert('Gotovo', 'Zahtev je odbijen.')
+    },
+    onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Odbijanje nije uspelo.')),
+  })
 
   const signupRequestQuery = useQuery({
     queryKey: ['signup-request', signupAkcijaId, signupRequestId],
@@ -103,6 +151,9 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
     onSuccess: async (_data, action) => {
       await markObavestenjeRead(client, id)
       void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
+      if (signupAkcijaId != null) {
+        await invalidateActionQueries(queryClient, signupAkcijaId)
+      }
       void signupRequestQuery.refetch()
       await showAlert('Gotovo', action === 'accept' ? 'Prijava je odobrena.' : 'Zahtev je odbijen.')
     },
@@ -184,6 +235,31 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
     navigation.getParent()?.navigate('ClubTab', { screen: 'Tasks' })
   }
 
+  const handleAcceptGuideBooking = async () => {
+    const data = guideBookingQuery.data
+    if (!data) return
+    const canRespond =
+      data.kind === 'peak'
+        ? canGuideCreateActionFromPeakBooking(data.booking as PeakGuideBookingPublic)
+        : canGuideCreateActionFromBooking(data.booking as FerrataGuideBookingPublic)
+    if (!canRespond) {
+      const msg =
+        data.kind === 'peak'
+          ? peakGuideBookingBlockedMessage(data.booking as PeakGuideBookingPublic)
+          : guideBookingBlockedMessage(data.booking as FerrataGuideBookingPublic)
+      await showAlert('Zahtev za vođenje', msg)
+      return
+    }
+    const params =
+      data.kind === 'peak'
+        ? peakGuideBookingToWizardParams(data.booking as PeakGuideBookingPublic)
+        : ferrataGuideBookingToWizardParams(data.booking as FerrataGuideBookingPublic)
+    navigation.getParent()?.navigate('ActionsTab', { screen: 'ActionWizard', params })
+  }
+
+  const guideBooking = guideBookingQuery.data?.booking
+  const guideBookingKind = guideBookingQuery.data?.kind
+
   return (
     <Screen scroll edges={['left', 'right']}>
       <Text variant="title" style={styles.title}>
@@ -236,6 +312,62 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
               title="Pogledaj akciju"
               variant="secondary"
               onPress={() => navigation.navigate('ActionDetail', { id: signupAkcijaId })}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+
+      {isGuideBookingNotification && guideBooking ? (
+        <Card style={styles.signupCard}>
+          <Text variant="label">Zahtev za vođenje</Text>
+          <Text variant="heading">
+            {guideBookingKind === 'peak'
+              ? (guideBooking as PeakGuideBookingPublic).peak.naziv
+              : (guideBooking as FerrataGuideBookingPublic).ferrata.naziv}
+          </Text>
+          <Text color={colors.textMuted}>
+            {guideBooking.requester.fullName?.trim() || guideBooking.requester.username}
+            {guideBooking.requester.klubNaziv ? ` · ${guideBooking.requester.klubNaziv}` : ''}
+          </Text>
+          <Text variant="small">Datum: {guideBooking.desiredDate}{guideBooking.dateFlexible ? ' (fleksibilan)' : ''}</Text>
+          <Text variant="small">Vreme: {guideBookingLabels(guideBooking).timeOfDay}</Text>
+          <Text variant="small">Broj osoba: {guideBooking.numberOfPeople}</Text>
+          <Text variant="small">Telefon: {guideBooking.contactPhone}</Text>
+          {guideBooking.additionalMessage?.trim() ? (
+            <Text variant="small" color={colors.textMuted}>{guideBooking.additionalMessage.trim()}</Text>
+          ) : null}
+          {guideBooking.guideResponse?.status ? (
+            <Text variant="small" color={colors.textMuted}>
+              Status: {guideBooking.guideResponse.status}
+            </Text>
+          ) : null}
+          {guideBooking.guideResponse?.canRespond ? (
+            <View style={styles.joinActions}>
+              <Button
+                title="Prihvati"
+                onPress={() => void handleAcceptGuideBooking()}
+              />
+              <Button
+                title="Odbij"
+                variant="secondary"
+                onPress={async () => {
+                  const ok = await showConfirm('Odbij zahtev', 'Da li želite da odbijete ovaj zahtev?')
+                  if (ok) rejectGuideBookingMutation.mutate()
+                }}
+                loading={rejectGuideBookingMutation.isPending}
+              />
+            </View>
+          ) : null}
+          {guideBooking.guideResponse?.status === 'accepted' && guideBooking.guideResponse.actionId ? (
+            <Button
+              title="Otvori akciju"
+              variant="secondary"
+              onPress={() =>
+                navigation.getParent()?.navigate('ActionsTab', {
+                  screen: 'ActionDetail',
+                  params: { id: guideBooking.guideResponse!.actionId! },
+                })
+              }
             />
           ) : null}
         </Card>

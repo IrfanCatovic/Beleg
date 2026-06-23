@@ -9,15 +9,22 @@ import {
   createEmptyWizardValues,
   ferrataCatalogFromApiRow,
   getApiErrorMessage,
+  buildGuideBookingWizardPrefill,
+  buildPeakGuideBookingWizardPrefill,
 } from '@beleg/shared'
 import {
+  acceptFerrataGuideBooking,
+  acceptPeakGuideBooking,
   createAkcija,
   fetchKlub,
   fetchPeakById,
   fetchPublicFerratasCatalog,
   geocodeQuery,
+  getFerrataGuideBooking,
+  getPeakGuideBooking,
   loadActionFormGuides,
 } from '@beleg/shared/services'
+import { guideBookingLabels } from '../../utils/guideBookingLabels'
 import { client } from '../../api/client'
 import { AppTopBar, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
@@ -52,7 +59,7 @@ function peakPrefillFrom(peak: PeakRow): Partial<WizardValues> {
 }
 
 export default function ActionWizardScreen({ navigation, route }: Props) {
-  const { tip, peakId, ferrataId, organizator } = route.params
+  const { tip, peakId, ferrataId, organizator, bookingId } = route.params
   const queryClient = useQueryClient()
 
   const fromGuideOrganizer = organizator === 'vodic'
@@ -126,6 +133,63 @@ export default function ActionWizardScreen({ navigation, route }: Props) {
           }
         }
 
+        if (bookingId) {
+          try {
+            if (tip === 'via_ferrata') {
+              const booking = await getFerrataGuideBooking(client, bookingId)
+              const row = catalog.find((x) => x.id === booking.ferrataId)
+              const labels = guideBookingLabels(booking)
+              const prefill = buildGuideBookingWizardPrefill(booking, row, labels)
+              next = {
+                ...next,
+                actionKind: 'via_ferrata',
+                ferrataId: prefill.ferrataId,
+                naziv: prefill.naziv || next.naziv,
+                datum: prefill.datum,
+                vremePolaska: prefill.vremePolaska,
+                maxLjudi: prefill.maxLjudi,
+                kontaktTelefon: prefill.kontaktTelefon,
+                opis: prefill.opis,
+                trajanjeSati: prefill.trajanjeSati,
+                planina: prefill.planina,
+                vrh: prefill.vrh,
+                tezina: prefill.tezina,
+                kumulativniUsponM: prefill.kumulativniUsponM,
+                duzinaStazeKm: prefill.duzinaStazeKm,
+                organizerType: 'vodic',
+              }
+            } else if (tip === 'planina') {
+              const booking = await getPeakGuideBooking(client, bookingId)
+              let peakData: PeakRow | undefined
+              try {
+                peakData = await fetchPeakById(client, booking.peakId)
+              } catch {
+                peakData = undefined
+              }
+              const labels = guideBookingLabels(booking)
+              const prefill = buildPeakGuideBookingWizardPrefill(booking, peakData, labels)
+              next = {
+                ...next,
+                actionKind: 'planina',
+                naziv: prefill.naziv,
+                datum: prefill.datum,
+                vremePolaska: prefill.vremePolaska,
+                maxLjudi: prefill.maxLjudi,
+                kontaktTelefon: prefill.kontaktTelefon,
+                opis: prefill.opis,
+                planina: prefill.planina,
+                vrh: prefill.vrh,
+                visinaVrhM: prefill.visinaVrhM,
+                planinaLat: prefill.planinaLat,
+                planinaLng: prefill.planinaLng,
+                organizerType: 'vodic',
+              }
+            }
+          } catch {
+            /* booking prefill nije kritičan */
+          }
+        }
+
         if (!cancelled) setInitialValues(next)
       } catch {
         if (!cancelled) {
@@ -142,7 +206,7 @@ export default function ActionWizardScreen({ navigation, route }: Props) {
     return () => {
       cancelled = true
     }
-  }, [tip, peakId, ferrataId, fromGuideOrganizer])
+  }, [tip, peakId, ferrataId, fromGuideOrganizer, bookingId])
 
   const title = useMemo(
     () => (tip === 'via_ferrata' ? 'Nova via ferrata akcija' : 'Nova planinarska akcija'),
@@ -204,8 +268,15 @@ export default function ActionWizardScreen({ navigation, route }: Props) {
     try {
       const formData = buildActionWizardFormData(values, image)
       const res = await createAkcija(client, formData)
-      await queryClient.invalidateQueries({ queryKey: ['akcije'] })
       const newId = res.akcija?.id
+      if (bookingId && newId) {
+        if (tip === 'via_ferrata') {
+          await acceptFerrataGuideBooking(client, bookingId, newId)
+        } else if (tip === 'planina') {
+          await acceptPeakGuideBooking(client, bookingId, newId)
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ['akcije'] })
       if (newId) {
         navigation.replace('ActionDetail', { id: newId })
       } else {

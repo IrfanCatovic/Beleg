@@ -3,6 +3,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native'
 export type HomeStackParamList = {
   Feed: undefined
   ActionDetail: { id: number; inviteToken?: string }
+  ActionEdit: { id: number }
   FerrataDetail: { slug: string }
   UserProfile: { username?: string; id?: number }
   PostDetail: { id: number; focusComment?: boolean }
@@ -13,6 +14,7 @@ export type HomeStackParamList = {
 export type ActionsStackParamList = {
   ActionsList: undefined
   ActionDetail: { id: number; inviteToken?: string }
+  ActionEdit: { id: number }
   ActionWizard: {
     tip: 'planina' | 'via_ferrata'
     bookingId?: number
@@ -31,6 +33,7 @@ export type ExploreStackParamList = {
   FerrataList: undefined
   FerrataDetail: { slug: string }
   ActionDetail: { id: number; inviteToken?: string }
+  ActionEdit: { id: number }
   Guides: undefined
   Map: undefined
   UserProfile: { username?: string; id?: number }
@@ -40,19 +43,25 @@ export type ClubStackParamList = {
   ClubHome: undefined
   SuperadminKlubovi: undefined
   ClubMembers: undefined
+  ClubManageUsers: undefined
+  RegisterClubMember: undefined
+  ClubMemberAdmin: { id: number }
   Tasks: undefined
   Finance: undefined
   UserProfile: { username?: string; id?: number }
   ActionDetail: { id: number; inviteToken?: string }
+  ActionEdit: { id: number }
 }
 
 export type ProfileStackParamList = {
   MyProfile: undefined
   ProfileSettings: { id?: number } | undefined
+  BecomeGuide: undefined
   Finance: undefined
   Tasks: undefined
   UserProfile: { username?: string; id?: number }
   ActionDetail: { id: number; inviteToken?: string }
+  ActionEdit: { id: number }
 }
 
 export type AppTabsParamList = {
@@ -67,4 +76,7 @@ export type AuthStackParamList = {
   Login: undefined
   Register: undefined
   ForgotPassword: undefined
+  EnterClubInviteCode: undefined
+  RegisterMember: { klubId: number; klubNaziv?: string; inviteCode: string }
+  RegisterSuccess: { email?: string } | undefined
 }
