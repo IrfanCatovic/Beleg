@@ -19,6 +19,13 @@ export async function updateKlub(
   return res.data.klub
 }
 
+export async function updateKlubLogo(client: AxiosInstance, formData: FormData): Promise<KlubData> {
+  const res = await client.patch<{ klub: KlubData }>('/api/klub/logo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data.klub
+}
+
 export async function fetchKlubAdminStats(client: AxiosInstance): Promise<ClubAdminStats> {
   const res = await client.get<ClubAdminStats>('/api/klub/admin-stats')
   return res.data

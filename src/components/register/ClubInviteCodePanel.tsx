@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ClubInviteCodeForAdmin } from '../../domain/invite'
+import type { ClubInviteCodeForAdmin } from '@beleg/shared/services'
 import {
   fetchClubInviteCodeForAdmin,
   getRegenerateCooldownMs,

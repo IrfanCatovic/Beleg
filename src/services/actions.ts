@@ -2,6 +2,43 @@ import api from './api'
 import type { AkcijaDetail, AkcijaListItem } from '../types/akcija'
 import type { Prijava } from '../types/prijava'
 import type { KorisnikRef } from '../types/korisnik'
+import {
+  addClubMembersCompleted as addClubMembersCompletedShared,
+  cancelParticipationRequest as cancelParticipationRequestShared,
+  cancelSignupRequest as cancelSignupRequestShared,
+  createAkcija as createAkcijaShared,
+  createParticipationRequest as createParticipationRequestShared,
+  deleteAkcija as deleteAkcijaShared,
+  deletePrijava as deletePrijavaShared,
+  dodajClanaPopeoSe as dodajClanaPopeoSeShared,
+  dodajPrevoz as dodajPrevozShared,
+  fetchActionParticipationRequests as fetchActionParticipationRequestsShared,
+  fetchActionSignupRequestById as fetchActionSignupRequestByIdShared,
+  fetchActionSignupRequests as fetchActionSignupRequestsShared,
+  fetchAkcijaById as fetchAkcijaByIdShared,
+  fetchAkcije as fetchAkcijeShared,
+  fetchEligibleClubMembers as fetchEligibleClubMembersShared,
+  fetchEligibleExternalUsers as fetchEligibleExternalUsersShared,
+  fetchMojaPrijavaZaAkciju as fetchMojaPrijavaZaAkcijuShared,
+  fetchMojePopeoSe as fetchMojePopeoSeShared,
+  fetchMojePrijave as fetchMojePrijaveShared,
+  fetchPrijaveZaAkciju as fetchPrijaveZaAkcijuShared,
+  geocodeQuery as geocodeQueryShared,
+  markPrijavePlatio as markPrijavePlatioShared,
+  obrisiPrevoz as obrisiPrevozShared,
+  otkaziPrijavu as otkaziPrijavuShared,
+  prijaviNaAkciju as prijaviNaAkcijuShared,
+  regenerateAkcijaInviteLink as regenerateAkcijaInviteLinkShared,
+  respondToActionSignupRequest as respondToActionSignupRequestShared,
+  updateAkcija as updateAkcijaShared,
+  updateMojaPrijava as updateMojaPrijavaShared,
+  updatePrijavaPlatio as updatePrijavaPlatioShared,
+  updatePrijavaStatus as updatePrijavaStatusShared,
+  zavrsiAkciju as zavrsiAkcijuShared,
+  type ActionParticipationRequest as SharedActionParticipationRequest,
+  type ExternalUserCandidate as SharedExternalUserCandidate,
+  type ZavrsiAkcijaResponse as SharedZavrsiAkcijaResponse,
+} from '@beleg/shared/services'
 
 export interface AkcijeListResponse {
   aktivne?: AkcijaListItem[]
@@ -57,63 +94,33 @@ export interface ActionSignupRequest {
   }
 }
 
-export interface ActionParticipationRequest {
-  id: number
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
-  createdAt: string
-  updatedAt: string
-  respondedAt?: string | null
-  action: {
-    id: number
-    naziv: string
-    datum: string
-    planina?: string
-    vrh?: string
-    klubId?: number | null
-    klubNaziv?: string
-    isCompleted?: boolean
-  }
-  targetUser: KorisnikRef & { avatarUrl?: string; klubId?: number | null; klubNaziv?: string }
-  requestedBy: KorisnikRef & { avatarUrl?: string; klubId?: number | null; klubNaziv?: string }
-}
+export type ActionParticipationRequest = SharedActionParticipationRequest
+export type ExternalUserCandidate = SharedExternalUserCandidate
+export type ZavrsiAkcijaResponse = SharedZavrsiAkcijaResponse
 
-export interface ExternalUserCandidate extends KorisnikRef {
-  avatarUrl?: string
-  klubId?: number | null
-  klubNaziv?: string
-}
-
-export interface ZavrsiAkcijaResponse {
-  akcija?: AkcijaDetail
-  finansijeTip?: 'nista' | 'uplata' | 'isplata'
-  netoFinansije?: number
+function inviteOptions(config?: { params?: Record<string, string> }) {
+  const inviteToken = config?.params?.inviteToken
+  return inviteToken ? { inviteToken } : undefined
 }
 
 export async function fetchAkcije(options?: { scope?: string }) {
-  const res = await api.get<AkcijeListResponse>('/api/akcije', {
-    params: options?.scope ? { scope: options.scope } : undefined,
-  })
-  return res.data
+  return fetchAkcijeShared(api, options)
 }
 
 export async function fetchMojePrijave() {
-  const res = await api.get<MojePrijaveResponse>('/api/moje-prijave')
-  return res.data
+  return fetchMojePrijaveShared(api)
 }
 
 export async function fetchAkcijaById(id: number | string, inviteToken?: string) {
-  const res = await api.get<AkcijaDetail>(`/api/akcije/${id}`, inviteToken ? { params: { inviteToken } } : undefined)
-  return res.data
+  return fetchAkcijaByIdShared(api, id, inviteToken)
 }
 
 export async function fetchPrijaveZaAkciju(id: number | string) {
-  const res = await api.get<{ prijave?: Prijava[] }>(`/api/akcije/${id}/prijave`)
-  return res.data.prijave ?? []
+  return fetchPrijaveZaAkcijuShared(api, id)
 }
 
 export async function fetchMojaPrijavaZaAkciju(id: number | string) {
-  const res = await api.get<MojaPrijavaResponse>(`/api/akcije/${id}/moja-prijava`)
-  return res.data
+  return fetchMojaPrijavaZaAkcijuShared(api, id)
 }
 
 export async function prijaviNaAkciju(
@@ -121,8 +128,7 @@ export async function prijaviNaAkciju(
   payload?: Record<string, unknown>,
   config?: { params?: Record<string, string> },
 ) {
-  const res = await api.post(`/api/akcije/${id}/prijavi`, payload ?? {}, config)
-  return res.data
+  return prijaviNaAkcijuShared(api, id, payload, inviteOptions(config))
 }
 
 export async function updateMojaPrijava(
@@ -130,30 +136,23 @@ export async function updateMojaPrijava(
   payload: Record<string, unknown>,
   config?: { params?: Record<string, string> },
 ) {
-  const res = await api.patch(`/api/akcije/${id}/moja-prijava`, payload, config)
-  return res.data
+  return updateMojaPrijavaShared(api, id, payload, inviteOptions(config))
 }
 
 export async function otkaziPrijavu(id: number | string) {
-  await api.delete(`/api/akcije/${id}/prijavi`)
+  return otkaziPrijavuShared(api, id)
 }
 
 export async function cancelSignupRequest(akcijaId: number | string) {
-  await api.delete(`/api/akcije/${akcijaId}/signup-requests/moj`)
+  return cancelSignupRequestShared(api, akcijaId)
 }
 
 export async function fetchActionSignupRequests(akcijaId: number | string, status = 'pending') {
-  const res = await api.get<{ requests?: ActionSignupRequest[] }>(`/api/akcije/${akcijaId}/signup-requests`, {
-    params: { status },
-  })
-  return res.data.requests ?? []
+  return fetchActionSignupRequestsShared(api, akcijaId, status)
 }
 
 export async function fetchActionSignupRequestById(akcijaId: number | string, requestId: number | string) {
-  const res = await api.get<{ request: ActionSignupRequest }>(
-    `/api/akcije/${akcijaId}/signup-requests/${requestId}`,
-  )
-  return res.data.request
+  return fetchActionSignupRequestByIdShared(api, akcijaId, requestId)
 }
 
 export async function respondToActionSignupRequest(
@@ -161,116 +160,91 @@ export async function respondToActionSignupRequest(
   requestId: number | string,
   action: 'accept' | 'reject',
 ) {
-  const res = await api.post(`/api/akcije/${akcijaId}/signup-requests/${requestId}/respond`, { action })
-  return res.data
+  return respondToActionSignupRequestShared(api, akcijaId, requestId, action)
 }
 
 export async function deleteAkcija(id: number | string) {
-  await api.delete(`/api/akcije/${id}`)
+  return deleteAkcijaShared(api, id)
 }
 
 export async function dodajPrevoz(id: number | string, data: Record<string, unknown>) {
-  await api.post(`/api/akcije/${id}/prevoz`, data)
+  return dodajPrevozShared(api, id, data as Parameters<typeof dodajPrevozShared>[2])
 }
 
 export async function obrisiPrevoz(akcijaId: number | string, prevozId: number) {
-  await api.delete(`/api/akcije/${akcijaId}/prevoz/${prevozId}`)
+  return obrisiPrevozShared(api, akcijaId, prevozId)
 }
 
 export async function updatePrijavaStatus(prijavaId: number, status: string) {
-  await api.post(`/api/prijave/${prijavaId}/status`, { status })
+  return updatePrijavaStatusShared(api, prijavaId, status)
 }
 
 export async function updatePrijavaPlatio(prijavaId: number, platio: boolean) {
-  await api.patch(`/api/prijave/${prijavaId}/platio`, { platio })
+  return updatePrijavaPlatioShared(api, prijavaId, platio)
 }
 
 export async function markPrijavePlatio(prijavaIds: number[]) {
-  return Promise.allSettled(prijavaIds.map((pid) => updatePrijavaPlatio(pid, true)))
+  return markPrijavePlatioShared(api, prijavaIds)
 }
 
 export async function deletePrijava(prijavaId: number) {
-  await api.delete(`/api/prijave/${prijavaId}`)
+  return deletePrijavaShared(api, prijavaId)
 }
 
 export async function dodajClanaPopeoSe(akcijaId: number | string, korisnikId: number) {
-  await api.post(`/api/akcije/${akcijaId}/dodaj-clana-popeo-se`, { korisnikId })
+  return dodajClanaPopeoSeShared(api, akcijaId, korisnikId)
 }
 
 export async function cancelParticipationRequest(akcijaId: number | string, requestId: number) {
-  await api.patch(`/api/akcije/${akcijaId}/participation-requests/${requestId}/cancel`)
+  return cancelParticipationRequestShared(api, akcijaId, requestId)
 }
 
 export async function fetchParticipationRequests(akcijaId: number | string) {
-  const res = await api.get<{ requests: ActionParticipationRequest[] }>(`/api/akcije/${akcijaId}/participation-requests`)
-  return res.data.requests ?? []
+  return fetchActionParticipationRequestsShared(api, akcijaId)
 }
 
 export async function createParticipationRequest(akcijaId: number | string, targetUserId: number) {
-  const res = await api.post<{ request: ActionParticipationRequest }>(`/api/akcije/${akcijaId}/participation-requests`, {
-    targetUserId,
-  })
-  return res.data.request
+  return createParticipationRequestShared(api, akcijaId, targetUserId)
 }
 
 export async function fetchEligibleExternalUsers(
   akcijaId: number | string,
   params: { scope: string; q?: string; offset?: number; limit?: number },
 ) {
-  const res = await api.get<{ users: ExternalUserCandidate[] }>(`/api/akcije/${akcijaId}/eligible-external-users`, {
-    params,
-  })
-  return res.data.users ?? []
+  return fetchEligibleExternalUsersShared(api, akcijaId, params)
 }
 
 export async function zavrsiAkciju(akcijaId: number | string, rashodNaAkciji: number) {
-  const res = await api.post<ZavrsiAkcijaResponse>(`/api/akcije/${akcijaId}/zavrsi`, { rashodNaAkciji })
-  return res.data
+  return zavrsiAkcijuShared(api, akcijaId, rashodNaAkciji)
 }
 
 export async function regenerateAkcijaInviteLink(akcijaId: number | string) {
-  const res = await api.post<{ inviteUrl?: string }>(`/api/akcije/${akcijaId}/invite-link/regenerate`)
-  return res.data
+  return regenerateAkcijaInviteLinkShared(api, akcijaId)
 }
 
 export async function createAkcija(formData: FormData) {
-  const res = await api.post('/api/akcije', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return res.data
+  return createAkcijaShared(api, formData)
 }
 
 export async function updateAkcija(id: number | string, formData: FormData) {
-  await api.patch(`/api/akcije/${id}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  return updateAkcijaShared(api, id, formData)
 }
 
 export async function geocodeQuery(q: string) {
-  const res = await api.get<{ lat: number; lng: number }>('/api/geocode', { params: { q } })
-  return res.data
+  return geocodeQueryShared(api, q)
 }
 
 export async function fetchEligibleClubMembers(
   akcijaId: number,
   params: { q?: string; offset?: number; limit?: number },
 ) {
-  const res = await api.get<{ users: ExternalUserCandidate[] }>(
-    `/api/akcije/${akcijaId}/eligible-club-members`,
-    { params },
-  )
-  return res.data.users ?? []
+  return fetchEligibleClubMembersShared(api, akcijaId, params)
 }
 
-export async function addClubMembersCompleted(
-  akcijaId: number,
-  payload: { korisnikIds: number[] },
-) {
-  const res = await api.post(`/api/akcije/${akcijaId}/add-club-members-completed`, payload)
-  return res.data
+export async function addClubMembersCompleted(akcijaId: number, payload: { korisnikIds: number[] }) {
+  return addClubMembersCompletedShared(api, akcijaId, payload)
 }
 
 export async function fetchMojePopeoSe() {
-  const res = await api.get('/api/moje-popeo-se')
-  return res.data
+  return fetchMojePopeoSeShared(api)
 }

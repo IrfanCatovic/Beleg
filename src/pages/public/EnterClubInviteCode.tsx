@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../../components/LanguageSwitcher'
-import { normalizeInviteCodeInput } from '../../domain/invite'
+import { normalizeInviteCodeInput } from '@beleg/shared/services'
 import { validateInviteCodePublic } from '../../services/invite'
 
 /**

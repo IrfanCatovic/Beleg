@@ -293,12 +293,27 @@ export async function dodajPrevoz(
   return res.data
 }
 
+export async function obrisiPrevoz(
+  client: AxiosInstance,
+  akcijaId: number | string,
+  prevozId: number,
+): Promise<void> {
+  await client.delete(`/api/akcije/${akcijaId}/prevoz/${prevozId}`)
+}
+
 export async function updatePrijavaPlatio(
   client: AxiosInstance,
   prijavaId: number,
   platio: boolean,
 ): Promise<void> {
   await client.patch(`/api/prijave/${prijavaId}/platio`, { platio })
+}
+
+export async function markPrijavePlatio(
+  client: AxiosInstance,
+  prijavaIds: number[],
+): Promise<PromiseSettledResult<void>[]> {
+  return Promise.allSettled(prijavaIds.map((pid) => updatePrijavaPlatio(client, pid, true)))
 }
 
 export async function updatePrijavaStatus(

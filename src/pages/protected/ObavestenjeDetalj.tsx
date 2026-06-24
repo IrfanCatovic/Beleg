@@ -3,13 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
 import Loader from '../../components/Loader'
-import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
-import TaskCard, { TaskCardFooter, type Task } from '../../components/TaskCard'
+import { type MentionUser } from '../../components/PostCard'
+import { type Task } from '../../components/TaskCard'
 import EditTaskModal, { type TaskForEdit } from '../../components/EditTaskModal'
 import type { Role } from '../../components/NewTaskModal'
-import { formatDate, formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
-import { userHasClubContext } from '../../utils/clubContext'
-import { TrashIcon } from '@heroicons/react/24/outline'
+import { formatDateTime, formatRelativeTime } from '../../utils/dateUtils'
 import { useTranslation } from 'react-i18next'
 import {
   canGuideCreateActionFromBooking,
@@ -25,35 +23,22 @@ import {
   rejectPeakGuideBooking,
   type PeakGuideBookingPublic,
 } from '../../services/peakGuideBookings'
-import {
-  labelGuideBookingEquipment,
-  labelGuideBookingExperience,
-  labelGuideBookingTimeOfDay,
-} from '../../components/ferrate/guideBookingDisplayLabels'
 import { guideBookingCreateActionPath } from '../../components/ferrate/guideBookingActionPrefill'
 import { peakGuideBookingCreateActionPath } from '../../components/map/peakGuideBookingActionPrefill'
 import { getApiErrorMessage } from '../../utils/apiError'
-import { deletePost, fetchPostById } from '../../services/posts'
+import { deletePost } from '../../services/posts'
 import {
   deleteZadatak,
-  fetchZadatakById,
   napustiZadatak,
   preuzmiZadatak,
   updateZadatak,
   zavrsiZadatak,
 } from '../../services/zadaci'
-import { deleteTransakcija, fetchTransakcijaById } from '../../services/finansije'
-import {
-  deleteObavestenje,
-  fetchObavestenjeById,
-  fetchParticipationRequestById,
-  markObavestenjeRead,
-  respondParticipationRequest,
-} from '../../services/obavestenja'
+import { deleteTransakcija } from '../../services/finansije'
+import { deleteObavestenje, respondParticipationRequest } from '../../services/obavestenja'
 import {
   fetchActionSignupRequestById,
   respondToActionSignupRequest,
-  type ActionSignupRequest,
 } from '../../services/actions'
 import {
   acceptFollowRequest,
@@ -63,120 +48,21 @@ import {
   unfollowUser,
 } from '../../services/follows'
 import { fetchKorisnici } from '../../services/users'
-
-interface ObavestenjeFull {
-  id: number
-  userId: number
-  type: string
-  title: string
-  body?: string
-  link?: string
-  metadata?: string
-  readAt?: string | null
-  createdAt: string
-}
-
-interface FollowMeta {
-  followId?: number
-  requesterId?: number
-  requesterUsername?: string
-  requesterFullName?: string
-}
-
-interface ActionParticipationRequestPayload {
-  id: number
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
-  createdAt: string
-  updatedAt: string
-  respondedAt?: string | null
-  action: {
-    id: number
-    naziv: string
-    datum: string
-    planina?: string
-    vrh?: string
-    klubNaziv?: string
-  }
-  targetUser: {
-    id: number
-    username: string
-    fullName?: string
-    klubNaziv?: string
-  }
-  requestedBy: {
-    id: number
-    username: string
-    fullName?: string
-    klubNaziv?: string
-  }
-}
-
-interface TaskPayload {
-  id: number
-  naziv: string
-  opis: string
-  allowedRoles: string[]
-  allowAll: boolean
-  deadline: string | null
-  hitno: boolean
-  status: string
-  createdAt: string
-  assignees?: { username: string; fullName?: string; role: string }[]
-}
-
-function normalizeApiTask(raw: TaskPayload): Task {
-  const st = raw.status
-  const status: Task['status'] =
-    st === 'aktivni' || st === 'u_toku' || st === 'zavrsen' ? st : 'aktivni'
-  return {
-    id: raw.id,
-    naziv: raw.naziv,
-    opis: raw.opis ?? '',
-    allowedRoles: (raw.allowedRoles || []) as Role[],
-    allowAll: raw.allowAll,
-    deadline: raw.deadline ?? null,
-    hitno: raw.hitno,
-    status,
-    createdAt: raw.createdAt,
-    assignees: raw.assignees,
-  }
-}
-
-interface TransPayload {
-  id: number
-  tip: string
-  iznos: number
-  opis?: string
-  datum: string
-  korisnikId: number
-  korisnik?: { fullName?: string; username?: string }
-  clanarinaKorisnik?: { fullName?: string; username?: string }
-  createdAt?: string
-}
-
-function transakcijaTipLabel(tip: string): string {
-  if (tip === 'uplata') return 'uplata'
-  if (tip === 'isplata') return 'isplata'
-  return tip
-}
-
-function parseMetadata(raw?: string): Record<string, unknown> {
-  if (!raw?.trim()) return {}
-  try {
-    return JSON.parse(raw) as Record<string, unknown>
-  } catch {
-    return {}
-  }
-}
-
-function numFromMeta(v: unknown): number | null {
-  if (typeof v === 'number' && Number.isFinite(v)) return v
-  if (typeof v === 'string' && v.trim() !== '') {
-    const n = parseInt(v, 10)
-    return Number.isNaN(n) ? null : n
-  }
-  return null
-}
+import { ActionSignupNotificationCard } from '../../components/notifications/detail/ActionSignupNotificationCard'
+import { FollowNotificationSection } from '../../components/notifications/detail/FollowNotificationSection'
+import { GuideBookingNotificationCard } from '../../components/notifications/detail/GuideBookingNotificationCard'
+import { LinkedPostSection } from '../../components/notifications/detail/LinkedPostSection'
+import { LinkedTaskSection } from '../../components/notifications/detail/LinkedTaskSection'
+import { LinkedTransactionSection } from '../../components/notifications/detail/LinkedTransactionSection'
+import { ParticipationRequestCard } from '../../components/notifications/detail/ParticipationRequestCard'
+import {
+  normalizeApiTask,
+  transakcijaTipLabel,
+  type TaskPayload,
+  type TransPayload,
+} from '../../components/notifications/detail/notificationDetailTypes'
+import { buildFollowMeta, numFromMeta, parseMetadata } from '../../components/notifications/detail/parseObavestenjeMetadata'
+import { useObavestenjeDetaljData } from '../../components/notifications/detail/useObavestenjeDetaljData'
 
 export default function ObavestenjeDetalj() {
   const { t } = useTranslation(['notificationDetails', 'tasks', 'home', 'finance', 'notifications'])
@@ -186,18 +72,38 @@ export default function ObavestenjeDetalj() {
   const { isLoggedIn, user } = useAuth()
   const { showConfirm, showAlert } = useModal()
 
-  const [notif, setNotif] = useState<ObavestenjeFull | null>(null)
-  const [post, setPost] = useState<Post | null>(null)
-  const [task, setTask] = useState<Task | null>(null)
-  const [trans, setTrans] = useState<TransPayload | null>(null)
-  const [actionParticipationRequest, setActionParticipationRequest] = useState<ActionParticipationRequestPayload | null>(null)
-  const [actionSignupRequest, setActionSignupRequest] = useState<ActionSignupRequest | null>(null)
-  const [guideBooking, setGuideBooking] = useState<FerrataGuideBookingPublic | PeakGuideBookingPublic | null>(null)
-  const [guideBookingKind, setGuideBookingKind] = useState<'ferrata' | 'peak' | null>(null)
-  const [entityError, setEntityError] = useState('')
-  const [pageError, setPageError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [entityLoading, setEntityLoading] = useState(false)
+  const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
+  const isAdminOrSekretar =
+    user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
+  const canDeleteTransakcija = user?.role === 'superadmin' || user?.role === 'admin'
+
+  const {
+    notif,
+    setNotif,
+    post,
+    setPost,
+    task,
+    setTask,
+    trans,
+    setTrans,
+    actionParticipationRequest,
+    setActionParticipationRequest,
+    actionSignupRequest,
+    setActionSignupRequest,
+    guideBooking,
+    setGuideBooking,
+    guideBookingKind,
+    entityError,
+    pageError,
+    loading,
+    entityLoading,
+  } = useObavestenjeDetaljData({
+    id,
+    isLoggedIn: !!isLoggedIn,
+    canSeeFinance,
+    t,
+  })
+
   const [followBusy, setFollowBusy] = useState(false)
   const [actionRequestBusy, setActionRequestBusy] = useState(false)
   const [signupRequestBusy, setSignupRequestBusy] = useState(false)
@@ -212,11 +118,6 @@ export default function ObavestenjeDetalj() {
   navigateRef.current = navigate
   const notifRef = useRef(notif)
   notifRef.current = notif
-
-  const canSeeFinance = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'blagajnik'
-  const isAdminOrSekretar =
-    user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'sekretar'
-  const canDeleteTransakcija = user?.role === 'superadmin' || user?.role === 'admin'
 
   const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([])
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
@@ -398,114 +299,13 @@ export default function ObavestenjeDetalj() {
     [canDeleteTransakcija, showConfirm, showAlert, navigate]
   )
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      navigate('/', { replace: true })
-      return
-    }
-    if (!id) {
-      setPageError(t('notificationDetails:invalidId'))
-      setLoading(false)
-      return
-    }
-
-    let cancelled = false
-
-    const run = async () => {
-      setLoading(true)
-      setPageError('')
-      setEntityError('')
-      setPost(null)
-      setTask(null)
-      setTrans(null)
-      setActionParticipationRequest(null)
-      setGuideBooking(null)
-      setGuideBookingKind(null)
-
-      try {
-        const n = await fetchObavestenjeById<ObavestenjeFull>(Number(id))
-        if (cancelled) return
-        setNotif(n)
-        setFollowStatusChecked(false)
-        setIncomingFollowState('pending')
-        setFollowBackStatus('none')
-
-        if (!n.readAt) {
-          await markObavestenjeRead(Number(id)).catch(() => {})
-        }
-
-        if (n.type === 'akcija' && n.link?.trim()) {
-          navigate(n.link.trim(), { replace: true })
-          return
-        }
-
-        const meta = parseMetadata(n.metadata)
-        const postId = numFromMeta(meta.postId)
-        const zadatakId = numFromMeta(meta.zadatakId)
-        const transakcijaId = numFromMeta(meta.transakcijaId)
-        const actionRequestId = numFromMeta(meta.requestId)
-        const bookingRequestId = numFromMeta(meta.bookingRequestId)
-
-        setEntityLoading(true)
-        try {
-          if (postId != null) {
-            const postData = await fetchPostById(postId)
-            if (!cancelled) setPost(postData as unknown as Post)
-          } else if (zadatakId != null) {
-            const raw = await fetchZadatakById(zadatakId)
-            if (!cancelled) setTask(normalizeApiTask(raw as unknown as TaskPayload))
-          } else if (transakcijaId != null) {
-            if (!canSeeFinance) {
-              if (!cancelled) setEntityError(t('notificationDetails:noFinanceAccess'))
-            } else {
-              const transData = await fetchTransakcijaById<TransPayload>(transakcijaId)
-              if (!cancelled) setTrans(transData)
-            }
-          } else if (n.type === 'action_participation_request' && actionRequestId != null) {
-            const requestData = await fetchParticipationRequestById<ActionParticipationRequestPayload>(actionRequestId)
-            if (!cancelled) setActionParticipationRequest(requestData)
-          } else if (n.type === 'action_signup_request' && numFromMeta(meta.requestId) != null && numFromMeta(meta.akcijaId) != null) {
-            const requestData = await fetchActionSignupRequestById(
-              numFromMeta(meta.akcijaId)!,
-              numFromMeta(meta.requestId)!,
-            )
-            if (!cancelled) setActionSignupRequest(requestData)
-          } else if (n.type === 'guide_booking_request' && bookingRequestId != null) {
-            const bookingKind = typeof meta.bookingKind === 'string' ? meta.bookingKind : 'ferrata'
-            if (bookingKind === 'peak') {
-              const booking = await getPeakGuideBooking(bookingRequestId)
-              if (!cancelled) {
-                setGuideBookingKind('peak')
-                setGuideBooking(booking)
-              }
-            } else {
-              const booking = await getFerrataGuideBooking(bookingRequestId)
-              if (!cancelled) {
-                setGuideBookingKind('ferrata')
-                setGuideBooking(booking)
-              }
-            }
-          }
-        } catch (e: unknown) {
-          const msg = getApiErrorMessage(e, t('notificationDetails:linkedContentLoadError'))
-          if (!cancelled) setEntityError(msg)
-        } finally {
-          if (!cancelled) setEntityLoading(false)
-        }
-      } catch {
-        if (!cancelled) setPageError(t('notificationDetails:notFoundOrNoAccess'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-    }
-  }, [id, isLoggedIn, navigate, canSeeFinance])
-
   const notifId = notif?.id
+  useEffect(() => {
+    setFollowStatusChecked(false)
+    setIncomingFollowState('pending')
+    setFollowBackStatus('none')
+  }, [notifId])
+
   useEffect(() => {
     const n = notifRef.current
     if (!n || n.type !== 'follow') return
@@ -585,12 +385,7 @@ export default function ObavestenjeDetalj() {
 
   const meta = parseMetadata(notif.metadata)
   const akcijaIdFromMeta = numFromMeta(meta.akcijaId)
-  const followMeta: FollowMeta = {
-    followId: numFromMeta(meta.followId) ?? undefined,
-    requesterId: numFromMeta(meta.requesterId) ?? undefined,
-    requesterUsername: typeof meta.requesterUsername === 'string' ? meta.requesterUsername : undefined,
-    requesterFullName: typeof meta.requesterFullName === 'string' ? meta.requesterFullName : undefined,
-  }
+  const followMeta = buildFollowMeta(meta)
   const followAcceptedTargetId = numFromMeta(meta.targetId) ?? undefined
   const followAcceptedTargetUsername = typeof meta.targetUsername === 'string' ? meta.targetUsername : undefined
   const followAcceptedTargetFullName = typeof meta.targetFullName === 'string' ? meta.targetFullName : undefined
@@ -938,558 +733,88 @@ export default function ObavestenjeDetalj() {
         </div>
       )}
 
-      {!entityLoading && notif.type === 'follow' && followMeta.followId && followKind === 'incoming_request' && (
-        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
-          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
-          <div className="p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:follow.request')}</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {incomingFollowState === 'accepted'
-                ? t('notificationDetails:follow.nowFollowing', { name: requesterLabel })
-                : incomingFollowState === 'gone'
-                  ? t('notificationDetails:follow.requestExpired')
-                  : t('notificationDetails:follow.wantsToFollow', { name: requesterLabel })}
-            </h2>
-
-            {followMeta.requesterUsername && (
-              <div className="mt-3">
-                <Link
-                  to={`/korisnik/${followMeta.requesterUsername}`}
-                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-                >
-                  @{followMeta.requesterUsername}
-                </Link>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
-              {!followStatusChecked ? (
-                <span className="text-xs text-gray-400 animate-pulse">{t('notificationDetails:loading')}</span>
-              ) : incomingFollowState === 'pending' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void handleRejectFollow()}
-                    disabled={followBusy}
-                    className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {followBusy ? '...' : t('notificationDetails:follow.reject')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAcceptFollow()}
-                    disabled={followBusy}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {followBusy ? '...' : t('notificationDetails:follow.accept')}
-                  </button>
-                </>
-              ) : incomingFollowState === 'accepted' ? (
-                <>
-                  {followBackStatus === 'outgoing_accepted' ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleUnfollowBack()}
-                      disabled={followBusy}
-                      className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {followBusy ? '...' : t('notificationDetails:follow.unfollow')}
-                    </button>
-                  ) : followBackStatus === 'outgoing_pending' ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleCancelFollowBackRequest()}
-                      disabled={followBusy}
-                      className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {followBusy ? '...' : t('notificationDetails:follow.cancelRequest')}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void handleFollowBack()}
-                      disabled={followBusy}
-                      className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {followBusy ? '...' : t('notificationDetails:follow.followBack')}
-                    </button>
-                  )}
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!entityLoading && notif.type === 'follow' && followMeta.followId && followKind === 'accepted_info' && (
-        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
-          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
-          <div className="p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:follow.title')}</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {followAcceptedTargetUsername ? (
-                <>
-                  <Link
-                    to={`/korisnik/${followAcceptedTargetUsername}`}
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline"
-                  >
-                    @{followAcceptedTargetUsername}
-                  </Link>{' '}
-                  je prihvatio/la tvoj zahtev
-                </>
-              ) : (
-                <>
-                  {acceptedTargetLabel} je prihvatio/la tvoj zahtev
-                </>
-              )}
-            </h2>
-          </div>
-        </div>
+      {!entityLoading && notif.type === 'follow' && (
+        <FollowNotificationSection
+          followMeta={followMeta}
+          followKind={followKind}
+          requesterLabel={requesterLabel}
+          acceptedTargetLabel={acceptedTargetLabel}
+          followAcceptedTargetUsername={followAcceptedTargetUsername}
+          incomingFollowState={incomingFollowState}
+          followStatusChecked={followStatusChecked}
+          followBackStatus={followBackStatus}
+          followBusy={followBusy}
+          t={t}
+          onAccept={() => void handleAcceptFollow()}
+          onReject={() => void handleRejectFollow()}
+          onFollowBack={() => void handleFollowBack()}
+          onUnfollowBack={() => void handleUnfollowBack()}
+          onCancelFollowBackRequest={() => void handleCancelFollowBackRequest()}
+        />
       )}
 
       {!entityLoading && notif.type === 'guide_booking_request' && guideBooking && guideBookingKind && (
-        <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden mb-6">
-          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
-          <div className="p-5 sm:p-6 space-y-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Zahtev za vođenje</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {guideBookingKind === 'peak'
-                ? (guideBooking as PeakGuideBookingPublic).peak.naziv
-                : (guideBooking as FerrataGuideBookingPublic).ferrata.naziv}
-            </h2>
-            <p className="text-sm text-gray-600">
-              {guideBooking.requester.fullName?.trim() || guideBooking.requester.username}
-              {guideBooking.requester.klubNaziv ? ` · ${guideBooking.requester.klubNaziv}` : ''}
-            </p>
-            <dl className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Datum</dt>
-                <dd>
-                  {formatDate(guideBooking.desiredDate)}
-                  {guideBooking.dateFlexible ? ' (fleksibilan)' : ''}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Vreme</dt>
-                <dd>
-                  {labelGuideBookingTimeOfDay(tFerrate, guideBooking.timeOfDay, guideBooking.exactTime)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Broj osoba</dt>
-                <dd>{guideBooking.numberOfPeople}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Iskustvo grupe</dt>
-                <dd>{labelGuideBookingExperience(tFerrate, guideBooking.groupExperience)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Oprema</dt>
-                <dd>{labelGuideBookingEquipment(tFerrate, guideBooking.equipmentStatus)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400">Telefon</dt>
-                <dd>
-                  <a href={`tel:${guideBooking.contactPhone}`} className="font-semibold text-emerald-700 hover:underline">
-                    {guideBooking.contactPhone}
-                  </a>
-                </dd>
-              </div>
-            </dl>
-            {guideBooking.additionalMessage?.trim() && (
-              <div className="rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3 text-sm text-gray-700 whitespace-pre-line">
-                {guideBooking.additionalMessage.trim()}
-              </div>
-            )}
-            {guideBookingKind === 'ferrata' && (guideBooking as FerrataGuideBookingPublic).ferrata.slug && (
-              <Link
-                to={`/ferrate/${(guideBooking as FerrataGuideBookingPublic).ferrata.slug}`}
-                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              >
-                Otvori feratu →
-              </Link>
-            )}
-            {guideBookingKind === 'peak' && (
-              <p className="text-sm text-gray-500">
-                {(guideBooking as PeakGuideBookingPublic).peak.planina?.trim() || 'Planinski uspon'}
-                {(guideBooking as PeakGuideBookingPublic).peak.visinaM
-                  ? ` · ${(guideBooking as PeakGuideBookingPublic).peak.visinaM} m`
-                  : ''}
-              </p>
-            )}
-
-            {guideBooking.guideResponse && (
-              <div
-                className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  guideBooking.guideResponse.status === 'pending'
-                    ? 'border-amber-200 bg-amber-50 text-amber-800'
-                    : guideBooking.guideResponse.status === 'accepted'
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : guideBooking.guideResponse.status === 'closed'
-                        ? 'border-gray-200 bg-gray-50 text-gray-700'
-                        : 'border-rose-200 bg-rose-50 text-rose-800'
-                }`}
-              >
-                {guideBooking.guideResponse.status === 'pending'
-                  ? 'Na čekanju'
-                  : guideBooking.guideResponse.status === 'accepted'
-                    ? 'Akcija kreirana'
-                    : guideBooking.guideResponse.status === 'closed'
-                      ? 'Rešio drugi vodič'
-                      : 'Odbijeno'}
-              </div>
-            )}
-
-            {guideBooking.guideResponse?.status === 'closed' && guideBooking.requestFulfilled && (
-              <p className="text-sm text-gray-600">
-                {guideBooking.fulfilledByGuideName
-                  ? `${guideBooking.fulfilledByGuideName} je već kreirao akciju za ovaj zahtev.`
-                  : 'Drugi vodič je već kreirao akciju za ovaj zahtev.'}
-                {guideBooking.fulfilledActionId ? (
-                  <>
-                    {' '}
-                    <Link
-                      to={`/akcije/${guideBooking.fulfilledActionId}`}
-                      className="font-semibold text-emerald-600 hover:text-emerald-700"
-                    >
-                      Pogledaj akciju
-                    </Link>
-                  </>
-                ) : null}
-              </p>
-            )}
-
-            {guideBooking.guideResponse?.canRespond && (
-              <div className="space-y-2 pt-2">
-                <p className="text-xs text-gray-500">
-                  Prihvatanje otvara formu za akciju sa podacima iz zahteva. Možete izmeniti datum i vreme pre
-                  kreiranja. Zahtev ostaje otvoren za ostale vodiče dok ne sačuvate akciju.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleRejectGuideBooking()}
-                    disabled={guideBookingBusy}
-                    className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {guideBookingBusy ? '...' : 'Odbij'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAcceptGuideBooking()}
-                    disabled={guideBookingBusy}
-                    className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {guideBookingBusy ? '...' : 'Prihvati'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {guideBooking.guideResponse?.status === 'accepted' && guideBooking.guideResponse.actionId && (
-              <Link
-                to={`/akcije/${guideBooking.guideResponse.actionId}`}
-                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              >
-                Otvori akciju
-              </Link>
-            )}
-          </div>
-        </div>
+        <GuideBookingNotificationCard
+          booking={guideBooking}
+          kind={guideBookingKind}
+          busy={guideBookingBusy}
+          tFerrate={tFerrate}
+          onAccept={() => void handleAcceptGuideBooking()}
+          onReject={() => void handleRejectGuideBooking()}
+        />
       )}
 
       {!entityLoading && notif.type === 'action_signup_request' && actionSignupRequest && (
-        <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50/80 to-orange-50/50 shadow-md overflow-hidden mb-6">
-          <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
-          <div className="p-5 sm:p-6 space-y-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Novi zahtev za prijavu</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {typeof meta.akcijaNaziv === 'string' && meta.akcijaNaziv.trim()
-                ? meta.akcijaNaziv
-                : actionSignupRequest.action?.naziv || 'Akcija'}
-            </h2>
-            <p className="text-sm text-gray-700">
-              <span className="font-bold">
-                {actionSignupRequest.requester.fullName?.trim() || actionSignupRequest.requester.username}
-              </span>
-              {' '}želi da se prijavi na akciju.
-            </p>
-            {(actionSignupRequest.selectedPrevozIds?.length || actionSignupRequest.selectedRentItems?.length) ? (
-              <div className="rounded-xl border border-amber-100 bg-white/70 px-4 py-3 text-sm text-gray-700">
-                {actionSignupRequest.selectedPrevozIds?.length ? (
-                  <p>Prevoz izabran</p>
-                ) : null}
-                {actionSignupRequest.selectedRentItems?.length ? (
-                  <p className="mt-1">
-                    Oprema:{' '}
-                    {actionSignupRequest.selectedRentItems
-                      .map((r) => `×${r.kolicina}`)
-                      .join(', ')}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div
-              className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                actionSignupRequest.status === 'pending'
-                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                  : actionSignupRequest.status === 'accepted'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border-rose-200 bg-rose-50 text-rose-800'
-              }`}
-            >
-              {actionSignupRequest.status === 'pending'
-                ? 'Čeka odobrenje'
-                : actionSignupRequest.status === 'accepted'
-                  ? 'Prihvaćeno'
-                  : 'Odbijeno'}
-            </div>
-            {actionSignupRequest.status === 'pending' && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => void handleRespondActionSignupRequest('reject')}
-                  disabled={signupRequestBusy}
-                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60"
-                >
-                  {signupRequestBusy ? '...' : 'Odbij'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleRespondActionSignupRequest('accept')}
-                  disabled={signupRequestBusy}
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60"
-                >
-                  {signupRequestBusy ? '...' : 'Prihvati prijavu'}
-                </button>
-              </div>
-            )}
-            {akcijaIdFromMeta != null && (
-              <Link
-                to={`/akcije/${akcijaIdFromMeta}`}
-                className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              >
-                Otvori akciju →
-              </Link>
-            )}
-          </div>
-        </div>
+        <ActionSignupNotificationCard
+          request={actionSignupRequest}
+          akcijaNaziv={typeof meta.akcijaNaziv === 'string' ? meta.akcijaNaziv : undefined}
+          akcijaId={akcijaIdFromMeta}
+          busy={signupRequestBusy}
+          onRespond={(decision) => void handleRespondActionSignupRequest(decision)}
+        />
       )}
 
       {!entityLoading && notif.type === 'action_participation_request' && actionParticipationRequest && (
-        <div className="rounded-2xl border border-amber-100 bg-white shadow-sm overflow-hidden mb-6">
-          <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400" />
-          <div className="p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Potvrda učešća</p>
-            <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
-              {actionParticipationRequest.action.naziv}
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              {actionParticipationRequest.requestedBy.fullName?.trim() || actionParticipationRequest.requestedBy.username}
-              {actionParticipationRequest.requestedBy.klubNaziv ? ` · ${actionParticipationRequest.requestedBy.klubNaziv}` : ''}
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Datum akcije: {formatDate(actionParticipationRequest.action.datum)}
-              {actionParticipationRequest.action.klubNaziv ? ` · domaći klub: ${actionParticipationRequest.action.klubNaziv}` : ''}
-            </p>
-
-            <div
-              className={`mt-4 inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                actionParticipationRequest.status === 'pending'
-                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                  : actionParticipationRequest.status === 'accepted'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : actionParticipationRequest.status === 'rejected'
-                      ? 'border-rose-200 bg-rose-50 text-rose-800'
-                      : 'border-gray-200 bg-gray-100 text-gray-700'
-              }`}
-            >
-              {actionParticipationRequest.status === 'pending'
-                ? 'Čeka tvoj odgovor'
-                : actionParticipationRequest.status === 'accepted'
-                  ? 'Prihvaćeno'
-                  : actionParticipationRequest.status === 'rejected'
-                    ? 'Odbijeno'
-                    : 'Otkazano'}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm text-gray-700">
-              Prihvatanjem će akcija biti upisana na tvoj profil kao istorijska stavka bez finansijskog efekta.
-            </div>
-
-            {actionParticipationRequest.status === 'pending' && (
-              <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => void handleRespondActionParticipationRequest('reject')}
-                  disabled={actionRequestBusy}
-                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {actionRequestBusy ? '...' : 'Odbij'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleRespondActionParticipationRequest('accept')}
-                  disabled={actionRequestBusy}
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {actionRequestBusy ? '...' : 'Potvrdi'}
-                </button>
-              </div>
-            )}
-
-            {actionParticipationRequest.status === 'accepted' && (
-              <div className="mt-4">
-                <Link
-                  to={`/akcije/${actionParticipationRequest.action.id}`}
-                  className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-                >
-                  Otvori akciju
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
+        <ParticipationRequestCard
+          request={actionParticipationRequest}
+          busy={actionRequestBusy}
+          onRespond={(decision) => void handleRespondActionParticipationRequest(decision)}
+        />
       )}
 
       {!entityLoading && post && (
-        <div className="sm:mt-0">
-          <PostCard
-            post={post}
-            currentUsername={user?.username}
-            currentRole={user?.role}
-            onDelete={handleDeletePost}
-            onUpdate={(p) => setPost(p)}
-            onOpenImage={openLightbox}
-            mentionUsers={mentionUsers}
-          />
-          <div className="mt-3 text-center">
-            <Link to="/home" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-              {t('notificationDetails:openFullFeed')}
-            </Link>
-          </div>
-        </div>
+        <LinkedPostSection
+          post={post}
+          currentUsername={user?.username}
+          currentRole={user?.role}
+          mentionUsers={mentionUsers}
+          t={t}
+          onDelete={handleDeletePost}
+          onUpdate={(p) => setPost(p)}
+          onOpenImage={openLightbox}
+        />
       )}
 
       {!entityLoading && task && user && (
-        <div className="sm:mt-0 w-full">
-          <TaskCard
-            task={task}
-            footer={
-              <TaskCardFooter
-                task={task}
-                username={user.username}
-                userRole={user.role}
-                onTake={handleTakeTask}
-                onLeave={handleLeaveTask}
-                onZavrsi={handleZavrsiTask}
-                onEdit={(t) => setEditTask(t)}
-                onDelete={handleDeleteTask}
-              />
-            }
-          />
-          {userHasClubContext(user) && (
-            <div className="mt-3 text-center">
-              <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-                {t('notificationDetails:allTasks')}
-              </Link>
-            </div>
-          )}
-        </div>
+        <LinkedTaskSection
+          task={task}
+          user={user}
+          t={t}
+          onTake={handleTakeTask}
+          onLeave={handleLeaveTask}
+          onZavrsi={handleZavrsiTask}
+          onEdit={(taskItem) => setEditTask(taskItem)}
+          onDelete={handleDeleteTask}
+        />
       )}
 
       {!entityLoading && trans && (
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400" />
-          <div className="p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125H18.75v-.75m0 0h.375a1.125 1.125 0 001.125-1.125v-9.75c0-.621-.504-1.125-1.125-1.125h-.375m0 12.75h-9.281c-.53 0-1.04-.21-1.414-.586l-6.102-6.102a1.125 1.125 0 010-1.591l6.102-6.102A2.25 2.25 0 0112.562 3h9.281a1.125 1.125 0 011.125 1.125v9.281c0 .53-.21 1.04-.586 1.414l-6.102 6.102a1.125 1.125 0 01-1.591 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('notificationDetails:cashTransaction')}</p>
-                  <p className="text-sm font-semibold text-gray-900 truncate">{t(`notificationDetails:transactionType.${transakcijaTipLabel(trans.tip)}`)}</p>
-                </div>
-              </div>
-              <span
-                className={`flex-shrink-0 inline-flex text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${
-                  trans.tip === 'uplata' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-100'
-                }`}
-              >
-                {trans.tip === 'uplata' ? t('notificationDetails:income') : t('notificationDetails:expense')}
-              </span>
-            </div>
-
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight tabular-nums">
-              {trans.tip === 'isplata' ? '−' : '+'}
-              {Math.abs(trans.iznos).toLocaleString('sr-RS')}{' '}
-              <span className="text-lg font-bold text-gray-500">{t('notificationDetails:currencyRsd')}</span>
-            </p>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 text-sm">
-              <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-3.5 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{t('notificationDetails:date')}</p>
-                <p className="font-medium text-gray-900">{formatDate(trans.datum)}</p>
-              </div>
-              {(trans.korisnik?.fullName || trans.korisnik?.username) && (
-                <div className="rounded-xl bg-gray-50/80 border border-gray-100 px-3.5 py-2.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">{t('notificationDetails:recordedBy')}</p>
-                  <p className="font-medium text-gray-900 truncate">
-                    {trans.korisnik?.fullName || trans.korisnik?.username}
-                  </p>
-                </div>
-              )}
-              {trans.clanarinaKorisnik && (
-                <div className="rounded-xl bg-emerald-50/50 border border-emerald-100/80 px-3.5 py-2.5 sm:col-span-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/80 mb-0.5">{t('notificationDetails:membershipMember')}</p>
-                  <p className="font-medium text-gray-900">
-                    {trans.clanarinaKorisnik.fullName || trans.clanarinaKorisnik.username}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-gray-100 bg-white px-3.5 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">{t('notificationDetails:descriptionNote')}</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{trans.opis?.trim() ? trans.opis : t('notificationDetails:empty')}</p>
-            </div>
-
-            {trans.createdAt && (
-              <p className="mt-3 text-xs text-gray-400">
-                {t('notificationDetails:recordedAt')}: {formatDateTime(trans.createdAt)}
-              </p>
-            )}
-
-            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100">
-              <Link
-                to="/finansije"
-                className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              >
-                {t('notificationDetails:openFinances')}
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </Link>
-              {canDeleteTransakcija && (
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteTransakcija(trans)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
-                >
-                  <TrashIcon className="h-4 w-4" aria-hidden />
-                  {t('notificationDetails:deleteTransaction')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <LinkedTransactionSection
+          trans={trans}
+          canDelete={canDeleteTransakcija}
+          t={t}
+          onDelete={(tx) => void handleDeleteTransakcija(tx)}
+        />
       )}
 
       {editTask && (

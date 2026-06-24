@@ -3,6 +3,7 @@ import { isValidInviteCodeFormat, normalizeInviteCodeInput } from '../domain/inv
 import type { ClubInviteCodeForAdmin, InviteCodeValidationResult } from '../domain/invite/types'
 
 export { normalizeInviteCodeInput, isValidInviteCodeFormat } from '../domain/invite/inviteCodeFormat'
+export type { ClubInviteCodeForAdmin, InviteCodeValidationResult } from '../domain/invite/types'
 
 export async function validateInviteCode(
   client: AxiosInstance,
@@ -40,6 +41,21 @@ export async function fetchClubInviteCodeForAdmin(
     regenAvailableInMs?: number
     expiresAt?: string | null
   }>('/api/klub/invite-code')
+  return {
+    inviteCode: res.data.inviteCode ?? '',
+    regenAvailableInMs: res.data.regenAvailableInMs,
+    expiresAt: res.data.expiresAt,
+  }
+}
+
+export async function regenerateClubInviteCode(
+  client: AxiosInstance,
+): Promise<ClubInviteCodeForAdmin> {
+  const res = await client.post<{
+    inviteCode?: string
+    regenAvailableInMs?: number
+    expiresAt?: string | null
+  }>('/api/klub/invite-code/regenerate')
   return {
     inviteCode: res.data.inviteCode ?? '',
     regenAvailableInMs: res.data.regenAvailableInMs,

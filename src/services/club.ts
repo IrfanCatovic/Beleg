@@ -1,5 +1,19 @@
 import api from './api'
 import type { KlubData, ClubAdminStats, ClubJoinRequestItem } from '../types/klub'
+import {
+  cancelJoinRequest as cancelJoinRequestShared,
+  createJoinRequest as createJoinRequestShared,
+  fetchClubJoinRequests as fetchClubJoinRequestsShared,
+  fetchKlub as fetchKlubShared,
+  fetchKlubAdminStats as fetchKlubAdminStatsShared,
+  fetchKlubByNaziv as fetchKlubByNazivShared,
+  fetchMyJoinRequests as fetchMyJoinRequestsShared,
+  leaveClub as leaveClubShared,
+  respondClubJoinRequest as respondClubJoinRequestShared,
+  searchKlubovi as searchKluboviShared,
+  updateKlub as updateKlubShared,
+  updateKlubLogo as updateKlubLogoShared,
+} from '@beleg/shared/services'
 
 export type { KlubData, ClubAdminStats, ClubJoinRequestItem }
 
@@ -12,61 +26,49 @@ export interface KlubInfo {
 }
 
 export async function fetchKlub() {
-  const res = await api.get<{ klub: KlubData }>('/api/klub')
-  return res.data.klub
+  return fetchKlubShared(api)
 }
 
 export async function fetchKlubByNaziv(naziv: string) {
-  const res = await api.get<{ klub: KlubData }>(`/api/klubovi/${encodeURIComponent(naziv)}`)
-  return res.data.klub
+  return fetchKlubByNazivShared(api, naziv)
 }
 
 export async function updateKlub(payload: Record<string, unknown>) {
-  const res = await api.patch<{ klub: KlubData }>('/api/klub', payload)
-  return res.data.klub
+  return updateKlubShared(api, payload)
 }
 
 export async function updateKlubLogo(formData: FormData) {
-  const res = await api.patch<{ klub: KlubData }>('/api/klub/logo', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return res.data.klub
+  return updateKlubLogoShared(api, formData)
 }
 
 export async function fetchKlubAdminStats() {
-  const res = await api.get<ClubAdminStats>('/api/klub/admin-stats')
-  return res.data
+  return fetchKlubAdminStatsShared(api)
 }
 
 export async function fetchClubJoinRequests(status = 'pending') {
-  const res = await api.get<{ requests: ClubJoinRequestItem[] }>('/api/club-membership/requests', {
-    params: { status },
-  })
-  return res.data.requests ?? []
+  return fetchClubJoinRequestsShared(api, status)
 }
 
 export async function respondClubJoinRequest(requestId: number, action: 'accept' | 'reject' | 'block') {
-  await api.post(`/api/club-membership/requests/${requestId}/${action}`)
+  return respondClubJoinRequestShared(api, requestId, action)
 }
 
 export async function leaveClub() {
-  await api.post('/api/club-membership/leave')
+  return leaveClubShared(api)
 }
 
 export async function searchKlubovi(search?: string) {
-  const res = await api.get('/api/klubovi', { params: search ? { search } : undefined })
-  return res.data
+  return searchKluboviShared(api, search)
 }
 
 export async function fetchMyJoinRequests() {
-  const res = await api.get('/api/club-membership/requests/mine')
-  return res.data
+  return fetchMyJoinRequestsShared(api)
 }
 
 export async function createJoinRequest(clubId: number) {
-  await api.post('/api/club-membership/requests', { clubId })
+  return createJoinRequestShared(api, clubId)
 }
 
 export async function cancelJoinRequest(requestId: number) {
-  await api.delete(`/api/club-membership/requests/${requestId}`)
+  return cancelJoinRequestShared(api, requestId)
 }

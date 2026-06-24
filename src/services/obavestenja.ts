@@ -1,72 +1,73 @@
 import api from './api'
-import type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } from '../types/obavestenje'
+import {
+  broadcastObavestenje as broadcastObavestenjeShared,
+  deleteObavestenje as deleteObavestenjeShared,
+  fetchFollowRequestsPending as fetchFollowRequestsPendingShared,
+  fetchObavestenja as fetchObavestenjaShared,
+  fetchObavestenjeById as fetchObavestenjeByIdShared,
+  fetchParticipationRequestById as fetchParticipationRequestByIdShared,
+  fetchParticipationRequests as fetchParticipationRequestsShared,
+  fetchUnreadCount as fetchUnreadCountShared,
+  markAllObavestenjaRead as markAllObavestenjaReadShared,
+  markObavestenjeRead as markObavestenjeReadShared,
+  respondParticipationRequest as respondParticipationRequestShared,
+} from '@beleg/shared/services'
+import type { ParticipationRequestItem } from '../types/obavestenje'
 
-export async function fetchUnreadCount() {
-  const res = await api.get<{ unreadCount?: number }>('/api/obavestenja/unread-count')
-  return res.data.unreadCount ?? 0
-}
-
-export async function markAllObavestenjaRead() {
-  await api.patch('/api/obavestenja/read-all')
-}
-
-export async function fetchObavestenja(limit = 20) {
-  const res = await api.get<{ obavestenja?: ObavestenjeItem[] }>('/api/obavestenja', { params: { limit } })
-  return res.data.obavestenja ?? []
-}
-
-export async function markObavestenjeRead(id: number) {
-  await api.patch(`/api/obavestenja/${id}/read`)
-}
+export type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } from '../types/obavestenje'
 
 export interface PendingParticipationRequest {
   id: number
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
 }
 
+export async function fetchUnreadCount() {
+  return fetchUnreadCountShared(api)
+}
+
+export async function markAllObavestenjaRead() {
+  return markAllObavestenjaReadShared(api)
+}
+
+export async function fetchObavestenja(limit = 20) {
+  return fetchObavestenjaShared(api, limit)
+}
+
+export async function markObavestenjeRead(id: number) {
+  return markObavestenjeReadShared(api, id)
+}
+
 export async function fetchPendingParticipationRequests() {
-  const res = await api.get<{ requests: PendingParticipationRequest[] }>('/api/moja-ucesca-zahtevi', {
-    params: { status: 'pending' },
-  })
-  return res.data.requests ?? []
+  const requests = await fetchParticipationRequestsShared(api, 'pending')
+  return requests as PendingParticipationRequest[]
 }
 
 export async function fetchParticipationRequests(status: 'pending' | 'all' = 'pending') {
-  const res = await api.get<{ requests: ParticipationRequestItem[] }>('/api/moja-ucesca-zahtevi', {
-    params: { status },
-  })
-  return res.data.requests ?? []
+  return fetchParticipationRequestsShared(api, status)
 }
 
 export async function fetchFollowRequestsPending() {
-  const res = await api.get<{ requests: FollowRequestItem[] }>('/api/follows/requests/pending')
-  return res.data.requests ?? []
+  return fetchFollowRequestsPendingShared(api)
 }
 
 export async function deleteObavestenje(id: number) {
-  await api.delete(`/api/obavestenja/${id}`)
+  return deleteObavestenjeShared(api, id)
 }
 
 export async function respondParticipationRequest(requestId: number, decision: 'accept' | 'reject') {
-  const res = await api.post<{ request: ParticipationRequestItem; message?: string }>(
-    `/api/moja-ucesca-zahtevi/${requestId}/respond`,
-    { decision },
-  )
-  return res.data
+  return respondParticipationRequestShared(api, requestId, decision)
 }
 
 export async function fetchParticipationRequestById<T = ParticipationRequestItem>(id: number) {
-  const res = await api.get<T>(`/api/moja-ucesca-zahtevi/${id}`)
-  return res.data
+  return fetchParticipationRequestByIdShared(api, id) as Promise<T>
 }
 
 export { acceptFollowRequest, rejectFollowRequest } from './follows'
 
 export async function broadcastObavestenje(title: string, body: string) {
-  await api.post('/api/obavestenja/broadcast', { title, body })
+  return broadcastObavestenjeShared(api, title, body)
 }
 
-export async function fetchObavestenjeById<T = ObavestenjeItem>(id: number) {
-  const res = await api.get<T>(`/api/obavestenja/${id}`)
-  return res.data
+export async function fetchObavestenjeById<T = import('../types/obavestenje').ObavestenjeItem>(id: number) {
+  return fetchObavestenjeByIdShared(api, id) as Promise<T>
 }
