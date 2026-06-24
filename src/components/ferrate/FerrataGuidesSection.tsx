@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { listGuidesNearby, type GuideNearbyPublic } from '../../services/guidesPublic'
 import { PlaninerIcon } from '../ui/PlaninerIcon'
 import { ferrataDetailCardClass } from './ferrataDetailCardStyles'
+import { FerrataGuidesAllModal } from './FerrataGuidesAllModal'
 import { GuideNearbyCard, guideDisplayName } from './GuideNearbyCard'
 
 export function FerrataGuidesSection(props: {
@@ -14,7 +15,7 @@ export function FerrataGuidesSection(props: {
   const { t: tGuide } = useTranslation('guideProfiles')
   const [rows, setRows] = useState<GuideNearbyPublic[]>([])
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -42,7 +43,7 @@ export function FerrataGuidesSection(props: {
   }, [props.ferrataLat, props.ferrataLng, props.tourType])
 
   useEffect(() => {
-    setExpanded(false)
+    setModalOpen(false)
   }, [props.ferrataLat, props.ferrataLng, props.tourType])
 
   const list = useMemo(
@@ -54,10 +55,11 @@ export function FerrataGuidesSection(props: {
     [rows],
   )
 
-  const visibleList = expanded ? list : list.slice(0, 2)
+  const previewList = list.slice(0, 2)
 
   return (
-    <article className={`min-w-0 max-w-full ${ferrataDetailCardClass}`}>
+    <>
+      <article className={`min-w-0 max-w-full ${ferrataDetailCardClass}`}>
       <div className="mb-4 flex items-center gap-3">
         <PlaninerIcon name="guide" variant="solid" />
         <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-700">{t('detailLocalGuidesTitle')}</h2>
@@ -67,21 +69,29 @@ export function FerrataGuidesSection(props: {
       {!loading && list.length > 0 && (
         <>
           <ul className="grid min-w-0 gap-3">
-            {visibleList.map((g) => (
+            {previewList.map((g) => (
               <GuideNearbyCard key={g.id} guide={g} t={t} tGuide={tGuide} />
             ))}
           </ul>
           {list.length > 2 && (
             <button
               type="button"
-              onClick={() => setExpanded((e) => !e)}
+              onClick={() => setModalOpen(true)}
               className="mt-3 w-full rounded-xl border border-emerald-200 bg-emerald-50/80 py-2.5 text-xs font-bold text-emerald-900 transition hover:bg-emerald-100/90"
             >
-              {expanded ? t('detailGuidesShowLess') : t('detailGuidesShowAll')}
+              {t('detailGuidesShowAllCount', { count: list.length })}
             </button>
           )}
         </>
       )}
-    </article>
+      </article>
+      <FerrataGuidesAllModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        guides={list}
+        t={t}
+        tGuide={tGuide}
+      />
+    </>
   )
 }
