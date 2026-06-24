@@ -3,6 +3,7 @@ package notifications
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"beleg-app/backend/internal/models"
@@ -29,6 +30,7 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 			Metadata: metadata,
 		}
 		if err := db.Create(&n).Error; err != nil {
+			log.Printf("notifications: create failed userId=%d type=%s: %v", uid, notifType, err)
 			continue // best-effort: ne prekidamo glavni tok
 		}
 

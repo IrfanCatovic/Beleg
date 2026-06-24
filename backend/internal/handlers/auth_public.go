@@ -112,8 +112,8 @@ func Login(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			korisnik.Role = ""
 		}
 		if korisnik.Role != "superadmin" && korisnik.KlubID != nil {
-			_, onHold := helpers.EnsureClubHoldState(db, *korisnik.KlubID)
-			if onHold {
+			onHold, err := helpers.IsClubOnHold(db, *korisnik.KlubID)
+			if err == nil && onHold {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Klub je privremeno suspendovan (hold). Kontaktirajte superadmina za aktivaciju."})
 				return
 			}

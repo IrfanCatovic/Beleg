@@ -138,18 +138,6 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 	)
 }
 
-func getCurrentKorisnik(c *gin.Context, db *gorm.DB) (*models.Korisnik, error) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
-		return nil, gorm.ErrRecordNotFound
-	}
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(usernameVal)).First(&korisnik).Error; err != nil {
-		return nil, err
-	}
-	return &korisnik, nil
-}
-
 func loadActionParticipationRequestWithRelations(db *gorm.DB, requestID uint) (*models.ActionParticipationRequest, error) {
 	var req models.ActionParticipationRequest
 	if err := db.
@@ -391,7 +379,7 @@ func ListActionParticipationRequests(c *gin.Context) {
 
 func CancelActionParticipationRequest(c *gin.Context) {
 	db := DB(c)
-	currentUser, err := getCurrentKorisnik(c, db)
+	currentUser, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
@@ -454,7 +442,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		return
 	}
 
-	currentUser, err := getCurrentKorisnik(c, db)
+	currentUser, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
@@ -544,7 +532,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 
 func ListMyActionParticipationRequests(c *gin.Context) {
 	db := DB(c)
-	currentUser, err := getCurrentKorisnik(c, db)
+	currentUser, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
@@ -588,7 +576,7 @@ func ListMyActionParticipationRequests(c *gin.Context) {
 
 func GetMyActionParticipationRequest(c *gin.Context) {
 	db := DB(c)
-	currentUser, err := getCurrentKorisnik(c, db)
+	currentUser, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
@@ -612,7 +600,7 @@ func GetMyActionParticipationRequest(c *gin.Context) {
 
 func RespondToActionParticipationRequest(c *gin.Context) {
 	db := DB(c)
-	currentUser, err := getCurrentKorisnik(c, db)
+	currentUser, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return

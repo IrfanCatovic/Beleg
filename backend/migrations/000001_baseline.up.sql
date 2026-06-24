@@ -1,0 +1,2 @@
+-- Baseline: šema je usklađena pre uvođenja golang-migrate.
+-- Nove izmene šeme dodavati kao 000002_*.up.sql

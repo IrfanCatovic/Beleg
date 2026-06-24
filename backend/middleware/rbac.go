@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"beleg-app/backend/internal/apperror"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +16,7 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 		roleVal, _ := c.Get("role")
 		role, _ := roleVal.(string)
 		if _, ok := allowed[role]; !ok {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Nedovoljne privilegije", "code": "FORBIDDEN"})
+			apperror.Abort(c, apperror.ErrForbidden)
 			return
 		}
 		c.Next()

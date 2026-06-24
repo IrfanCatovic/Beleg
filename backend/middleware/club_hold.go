@@ -1,21 +1,32 @@
 package middleware
 
 import (
+	"beleg-app/backend/internal/apperror"
 	"beleg-app/backend/internal/helpers"
-	"beleg-app/backend/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// ClubHoldMiddleware blokira pristup ako je klub korisnika na hold-u (14+ dana posle isteka subskripcije).
-// Superadmin preskače proveru. Zahtev da AuthMiddleware i db budu već u kontekstu.
+// ClubHoldMiddleware blokira pristup ako je klub korisnika na hold-u.
+// Superadmin preskače proveru. Zahteva LoadUserMiddleware (klubId u contextu).
 func ClubHoldMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, _ := c.Get("role")
 		role, _ := roleVal.(string)
 		if role == "superadmin" {
+			c.Next()
+			return
+		}
+
+		klubIDVal, exists := c.Get(ContextKeyKlubID)
+		if !exists {
+			c.Next()
+			return
+		}
+		klubID, ok := klubIDVal.(uint)
+		if !ok || klubID == 0 {
 			c.Next()
 			return
 		}
@@ -27,30 +38,9 @@ func ClubHoldMiddleware() gin.HandlerFunc {
 		}
 		db := dbAny.(*gorm.DB)
 
-		usernameVal, _ := c.Get("username")
-		username, _ := usernameVal.(string)
-		if username == "" {
-			c.Next()
-			return
-		}
-
-		var korisnik models.Korisnik
-		if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-			c.Next()
-			return
-		}
-		if korisnik.Role == "deleted" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Nalog je deaktiviran."})
-			return
-		}
-		if korisnik.KlubID == nil {
-			c.Next()
-			return
-		}
-
-		_, onHold := helpers.EnsureClubHoldState(db, *korisnik.KlubID)
-		if onHold {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Klub je privremeno suspendovan (hold). Kontaktirajte superadmina za aktivaciju."})
+		onHold, err := helpers.IsClubOnHold(db, klubID)
+		if err == nil && onHold {
+			apperror.Abort(c, apperror.New("CLUB_ON_HOLD", "Klub je privremeno suspendovan (hold). Kontaktirajte superadmina za aktivaciju.", http.StatusForbidden))
 			return
 		}
 

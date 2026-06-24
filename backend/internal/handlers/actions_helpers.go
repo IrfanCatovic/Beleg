@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"encoding/json"
 	"errors"
@@ -411,18 +412,12 @@ func syncActionNestedData(db *gorm.DB, akcijaID uint, c *gin.Context) error {
 }
 
 func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) float64 {
-	if akcija.KlubID != nil && korisnik.KlubID != nil && *akcija.KlubID == *korisnik.KlubID {
-		return akcija.CenaClan
-	}
-	if akcija.Javna {
-		return akcija.CenaOstali
-	}
-	return akcija.CenaClan
+	return helpers.ComputeBaseCenaForUser(akcija, korisnik)
 }
 
 // akcijaSkipsClubFinances: privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.
 func akcijaSkipsClubFinances(akcija models.Akcija) bool {
-	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
+	return helpers.AkcijaSkipsClubFinances(akcija)
 }
 
 func viewerIsRegisteredOnAkcija(db *gorm.DB, akcijaID uint, viewerID uint) bool {

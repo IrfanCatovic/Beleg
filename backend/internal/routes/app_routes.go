@@ -37,6 +37,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware(jwtSecret))
+	protected.Use(middleware.LoadUserMiddleware())
 	protected.Use(middleware.ClubHoldMiddleware())
 	{
 		RegisterClubMembershipRoutes(r, protected, db)

@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"beleg-app/backend/internal/apperror"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
+	"beleg-app/backend/internal/services/guidebooking"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -34,20 +36,14 @@ type createFerrataGuideBookingBody struct {
 }
 
 var (
-	allowedBookingTimeOfDay = map[string]bool{
-		"morning": true, "afternoon": true, "any": true, "exact": true,
-	}
-	allowedBookingExperience = map[string]bool{
-		"beginners": true, "recreational": true, "experienced": true, "mixed": true,
-	}
-	allowedBookingEquipment = map[string]bool{
-		"complete": true, "none": true, "partial": true, "unsure": true,
-	}
+	allowedBookingTimeOfDay = guidebooking.AllowedTimeOfDay
+	allowedBookingExperience = guidebooking.AllowedExperience
+	allowedBookingEquipment = guidebooking.AllowedEquipment
 )
 
 func CreateFerrataGuideBooking(c *gin.Context) {
 	db := DB(c)
-	requester, err := getCurrentKorisnik(c, db)
+	requester, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
 		return
@@ -62,174 +58,57 @@ func CreateFerrataGuideBooking(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ferata je obavezna."})
 		return
 	}
-	desiredDate, err := time.Parse("2006-01-02", strings.TrimSpace(body.DesiredDate))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravan datum."})
-		return
-	}
-	timeOfDay := strings.TrimSpace(body.TimeOfDay)
-	if !allowedBookingTimeOfDay[timeOfDay] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravno vreme / deo dana."})
-		return
-	}
-	if timeOfDay == "exact" && strings.TrimSpace(body.ExactTime) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite tačno vreme."})
-		return
-	}
-	if body.NumberOfPeople < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Broj osoba mora biti najmanje 1."})
-		return
-	}
-	groupExp := strings.TrimSpace(body.GroupExperience)
-	if !allowedBookingExperience[groupExp] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite iskustvo grupe."})
-		return
-	}
-	equip := strings.TrimSpace(body.EquipmentStatus)
-	if !allowedBookingEquipment[equip] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite status opreme."})
-		return
-	}
-	phone := strings.TrimSpace(body.ContactPhone)
-	if phone == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Kontakt telefon je obavezan."})
-		return
-	}
-
-	var ferrata models.Ferrata
-	if err := db.First(&ferrata, body.FerrataID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Ferata nije pronađena."})
+	desiredDate, timeOfDay, groupExp, equip, phone, errMsg := guidebooking.ValidateCreateBooking(guidebooking.CreateBookingInput{
+		DesiredDate:     body.DesiredDate,
+		TimeOfDay:       body.TimeOfDay,
+		ExactTime:       body.ExactTime,
+		NumberOfPeople:  body.NumberOfPeople,
+		GroupExperience: body.GroupExperience,
+		EquipmentStatus: body.EquipmentStatus,
+		ContactPhone:    body.ContactPhone,
+	})
+	if errMsg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
 	}
 
 	skipGuides := body.SkipGuides
-	guideIDs := uniqueUints(body.GuideProfileIDs)
-	if !skipGuides {
-		if len(guideIDs) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite bar jednog vodiča ili označite da vam vodič nije potreban."})
-			return
-		}
+	guideIDs := guidebooking.UniqueUints(body.GuideProfileIDs)
+	if msg := guidebooking.ValidateGuideTargets(skipGuides, guideIDs); msg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
 	}
 
-	var targets []models.FerrataGuideBookingTarget
-	if !skipGuides {
-		var profiles []models.GuideProfile
-		if err := db.Where("id IN ? AND status = ?", guideIDs, models.GuideStatusApproved).Find(&profiles).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri vodiča."})
-			return
-		}
-		if len(profiles) != len(guideIDs) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Jedan ili više vodiča nije dostupan."})
-			return
-		}
-		for _, p := range profiles {
-			targets = append(targets, models.FerrataGuideBookingTarget{
-				GuideProfileID: p.ID,
-				GuideUserID:    p.KorisnikID,
-				Status:         models.GuideBookingTargetStatusPending,
-			})
-		}
-	}
-
-	req := models.FerrataGuideBookingRequest{
-		FerrataID:         ferrata.ID,
-		RequesterID:       requester.ID,
+	result, svcErr := guidebooking.CreateFerrata(db, guidebooking.CreateFerrataInput{
+		FerrataID:         body.FerrataID,
+		Requester:         requester,
 		DesiredDate:       desiredDate,
 		TimeOfDay:         timeOfDay,
-		ExactTime:         strings.TrimSpace(body.ExactTime),
+		ExactTime:         body.ExactTime,
 		DateFlexible:      body.DateFlexible,
 		NumberOfPeople:    body.NumberOfPeople,
 		GroupExperience:   groupExp,
 		EquipmentStatus:   equip,
 		ContactPhone:      phone,
-		AdditionalMessage: strings.TrimSpace(body.AdditionalMessage),
+		AdditionalMessage: body.AdditionalMessage,
 		SkipGuides:        skipGuides,
-	}
-
-	err = db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&req).Error; err != nil {
-			return err
-		}
-		for i := range targets {
-			targets[i].BookingRequestID = req.ID
-		}
-		if len(targets) > 0 {
-			if err := tx.Create(&targets).Error; err != nil {
-				return err
-			}
-		}
-		return nil
+		GuideProfileIDs:   body.GuideProfileIDs,
 	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Čuvanje zahteva nije uspelo."})
+	if svcErr != nil {
+		apperror.Write(c, svcErr)
 		return
 	}
 
-	if len(targets) > 0 {
-		req.Requester = requester
-		req.Ferrata = &ferrata
-		notifyGuideBookingTargets(db, req, targets)
-	}
-
 	c.JSON(http.StatusCreated, gin.H{
-		"bookingRequestId": req.ID,
+		"bookingRequestId": result.Request.ID,
 		"skipGuides":       skipGuides,
-		"notifiedCount":    len(targets),
+		"notifiedCount":    result.NotifiedCount,
 	})
-}
-
-func notifyGuideBookingTargets(db *gorm.DB, req models.FerrataGuideBookingRequest, targets []models.FerrataGuideBookingTarget) {
-	requesterName := strings.TrimSpace(req.Requester.FullName)
-	if requesterName == "" {
-		requesterName = strings.TrimSpace(req.Requester.Username)
-	}
-	if requesterName == "" {
-		requesterName = "Korisnik"
-	}
-	ferrataName := strings.TrimSpace(req.Ferrata.Naziv)
-	if ferrataName == "" {
-		ferrataName = "feratu"
-	}
-	dateStr := req.DesiredDate.Format("02.01.2006")
-	title := "Imate novi zahtev za akciju"
-	body := requesterName + " traži vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
-
-	metaBase := map[string]any{
-		"bookingKind":       "ferrata",
-		"bookingRequestId": req.ID,
-		"ferrataId":        req.FerrataID,
-		"ferrataNaziv":     ferrataName,
-		"requesterId":      req.RequesterID,
-		"requesterUsername": req.Requester.Username,
-		"requesterFullName": req.Requester.FullName,
-		"desiredDate":      req.DesiredDate.Format("2006-01-02"),
-		"numberOfPeople":   req.NumberOfPeople,
-	}
-
-	seen := map[uint]bool{}
-	for _, t := range targets {
-		if t.GuideUserID == 0 || seen[t.GuideUserID] {
-			continue
-		}
-		seen[t.GuideUserID] = true
-		meta := metaBase
-		meta["guideProfileId"] = t.GuideProfileID
-		metaBytes, _ := json.Marshal(meta)
-		notifications.NotifyUsers(
-			db,
-			[]uint{t.GuideUserID},
-			models.ObavestenjeTipGuideBookingRequest,
-			title,
-			body,
-			"",
-			string(metaBytes),
-		)
-	}
 }
 
 func GetFerrataGuideBooking(c *gin.Context) {
 	db := DB(c)
-	viewer, err := getCurrentKorisnik(c, db)
+	viewer, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
 		return
@@ -275,7 +154,7 @@ func GetFerrataGuideBooking(c *gin.Context) {
 
 func RejectFerrataGuideBooking(c *gin.Context) {
 	db := DB(c)
-	viewer, err := getCurrentKorisnik(c, db)
+	viewer, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
 		return
@@ -315,7 +194,7 @@ type acceptFerrataGuideBookingBody struct {
 
 func AcceptFerrataGuideBooking(c *gin.Context) {
 	db := DB(c)
-	viewer, err := getCurrentKorisnik(c, db)
+	viewer, err := AuthUserPtr(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Morate biti ulogovani."})
 		return
@@ -694,17 +573,4 @@ func buildFerrataGuideBookingDTO(db *gorm.DB, req models.FerrataGuideBookingRequ
 	}
 
 	return payload
-}
-
-func uniqueUints(in []uint) []uint {
-	seen := map[uint]bool{}
-	var out []uint
-	for _, id := range in {
-		if id == 0 || seen[id] {
-			continue
-		}
-		seen[id] = true
-		out = append(out, id)
-	}
-	return out
 }

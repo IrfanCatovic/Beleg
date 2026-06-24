@@ -1,0 +1,1 @@
+-- Baseline rollback: nema automatskog drop-a cele šeme.

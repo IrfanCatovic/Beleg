@@ -2,13 +2,18 @@ package app
 
 import (
 	"beleg-app/backend/internal/config"
+	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/jobs"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -22,8 +27,11 @@ type RouteRegistrar func(r *gin.Engine, db *gorm.DB, jwtSecret []byte)
 // Run starts the HTTP app with production-style bootstrapping.
 func Run(registerRoutes RouteRegistrar) {
 	loadEnv()
+	configureGinMode()
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
 	configureHTTPMiddleware(router)
 
 	jwtSecret := mustJWTSecret()
@@ -31,11 +39,21 @@ func Run(registerRoutes RouteRegistrar) {
 	migrateAndSeed(db)
 	injectDatabase(router, db)
 
+	router.GET("/health", handlers.Health)
+	router.GET("/ready", handlers.Ready)
+
 	registerRoutes(router, db, jwtSecret)
 
 	router.Static("/uploads", "./uploads")
 	go jobs.RunCloudinaryPendingDeletesJob(db)
+	go jobs.RunSubscriptionHoldJob(db)
 	mustRunServer(router)
+}
+
+func configureGinMode() {
+	if os.Getenv("GIN_MODE") == "release" || strings.EqualFold(os.Getenv("APP_ENV"), "production") {
+		gin.SetMode(gin.ReleaseMode)
+	}
 }
 
 func loadEnv() {
@@ -78,6 +96,11 @@ func mustOpenDatabase() *gorm.DB {
 }
 
 func migrateAndSeed(db *gorm.DB) {
+	if !shouldAutoMigrate() {
+		log.Println("AUTO_MIGRATE=false — preskačem GORM AutoMigrate")
+		seed.RunIfEmpty(db)
+		return
+	}
 	err := db.AutoMigrate(
 		&models.Ferrata{},
 		&models.FerrataContact{},
@@ -131,6 +154,14 @@ func migrateAndSeed(db *gorm.DB) {
 	seed.RunIfEmpty(db)
 }
 
+func shouldAutoMigrate() bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv("AUTO_MIGRATE")))
+	if v == "false" || v == "0" || v == "no" {
+		return false
+	}
+	return true
+}
+
 func injectDatabase(r *gin.Engine, db *gorm.DB) {
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
@@ -143,7 +174,29 @@ func mustRunServer(r *gin.Engine) {
 	if port == "" {
 		port = "8080"
 	}
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("Neuspešno pokretanje servera:", err)
+	addr := ":" + port
+
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	go func() {
+		log.Printf("Server pokrenut na %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Neuspešno pokretanje servera:", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Gašenje servera...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server shutdown greška:", err)
+	}
+	log.Println("Server zaustavljen")
 }

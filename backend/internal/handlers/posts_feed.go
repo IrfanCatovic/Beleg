@@ -117,16 +117,9 @@ type UpdatePostRequest struct {
 func GetPosts(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	currentUser, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var currentUser models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -319,16 +312,9 @@ func GetPosts(c *gin.Context) {
 func GetPost(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	currentUser, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var currentUser models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&currentUser).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -401,16 +387,9 @@ func GetPost(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -588,16 +567,9 @@ func CreatePost(c *gin.Context) {
 func UpdatePost(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -707,16 +679,9 @@ func UpdatePost(c *gin.Context) {
 func DeletePost(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 

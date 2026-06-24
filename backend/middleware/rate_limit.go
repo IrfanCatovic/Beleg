@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"beleg-app/backend/internal/apperror"
 	"strconv"
 	"sync"
 	"time"
@@ -68,9 +68,7 @@ func NewIPRateLimiter(maxRequests int, window time.Duration) gin.HandlerFunc {
 
 		if overLimit {
 			c.Header("Retry-After", strconv.Itoa(retryAfter))
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error": "Previše zahteva. Pokušajte ponovo za nekoliko trenutaka.",
-			})
+			apperror.Abort(c, apperror.ErrRateLimited)
 			return
 		}
 

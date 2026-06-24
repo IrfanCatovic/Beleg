@@ -31,6 +31,11 @@ func GetEffectiveClubID(c *gin.Context, db *gorm.DB) (clubID uint, ok bool) {
 	role, _ := roleVal.(string)
 
 	if role != "superadmin" {
+		if klubIDVal, exists := c.Get("klubId"); exists {
+			if klubID, ok := klubIDVal.(uint); ok {
+				return klubID, true
+			}
+		}
 		usernameVal, _ := c.Get("username")
 		username, _ := usernameVal.(string)
 		if username == "" {
@@ -97,24 +102,31 @@ func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
 	return CanManageAkcija(c, db, ak.KlubID)
 }
 
-// EnsureClubHoldState učitava klub, i ako je subskripcija istekla pre više od HoldDaysAfterSubscriptionEnd dana,
-// postavlja OnHold = true i čuva. Ako je 7 dana posle isteka (a pre 14), šalje upozorenje adminima jednom.
-// Vraća da li je klub na hold-u (i ažurirani klub).
-func EnsureClubHoldState(db *gorm.DB, clubID uint) (club *models.Klubovi, onHold bool) {
-	var k models.Klubovi
-	if err := db.First(&k, clubID).Error; err != nil {
-		return nil, false
+// IsClubOnHold čita samo klubovi.on_hold — bez side-effecta (za middleware i login).
+func IsClubOnHold(db *gorm.DB, clubID uint) (bool, error) {
+	var onHold bool
+	err := db.Model(&models.Klubovi{}).Where("id = ?", clubID).Pluck("on_hold", &onHold).Error
+	if err != nil {
+		return false, err
 	}
-	club = &k
+	return onHold, nil
+}
+
+// ProcessClubSubscriptionState ažurira hold/warning stanje kluba (za background job i superadmin).
+// Šalje upozorenje adminima jednom u warning prozoru i postavlja on_hold posle grace period-a.
+func ProcessClubSubscriptionState(db *gorm.DB, clubID uint) error {
+	var club models.Klubovi
+	if err := db.First(&club, clubID).Error; err != nil {
+		return err
+	}
 	if club.SubscriptionEndsAt == nil {
-		return club, club.OnHold
+		return nil
 	}
 	now := time.Now()
 	end := *club.SubscriptionEndsAt
 	holdDeadline := end.AddDate(0, 0, HoldDaysAfterSubscriptionEnd)
 	warningWindowStart := end.AddDate(0, 0, WarningDaysAfterSubscriptionEnd)
 
-	// 7 dana posle isteka: pošalji upozorenje adminima jednom (da će za 7 dana klub na hold ako se ne plati)
 	if !now.Before(warningWindowStart) && now.Before(holdDeadline) && club.SubscriptionWarningSentAt == nil {
 		var adminIDs []uint
 		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Pluck("id", &adminIDs).Error; err == nil && len(adminIDs) > 0 {
@@ -123,15 +135,15 @@ func EnsureClubHoldState(db *gorm.DB, clubID uint) (club *models.Klubovi, onHold
 			notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home", "")
 			t := now
 			club.SubscriptionWarningSentAt = &t
-			_ = db.Model(club).Update("subscription_warning_sent_at", t)
+			_ = db.Model(&club).Update("subscription_warning_sent_at", t)
 		}
 	}
 
 	if now.After(holdDeadline) && !club.OnHold {
 		club.OnHold = true
-		_ = db.Save(club)
+		return db.Save(&club).Error
 	}
-	return club, club.OnHold
+	return nil
 }
 
 // CheckClubLimitsForRegister proverava da li klub može da primi novog člana sa datom ulogom.

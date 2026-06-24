@@ -360,6 +360,7 @@ func UpdateKlub(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju kluba: " + err.Error()})
 		return
 	}
+	_ = helpers.ProcessClubSubscriptionState(db, klub.ID)
 
 	// Ako je ažuriran datum isteka subskripcije i ističe uskoro (≤5 dana), obavesti admin i sekretar kluba
 	if req.SubscriptionEndsAt != nil && klub.SubscriptionEndsAt != nil {

@@ -13,27 +13,20 @@ import (
 	"beleg-app/backend/internal/notifications"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
+func korisnikFromContext(c *gin.Context) (models.Korisnik, bool) {
+	return AuthUser(c)
+}
+
 // GetObavestenja vraća listu obaveštenja za trenutnog korisnika.
-// Query: limit (default 20), offset (default 0). U odgovoru i unreadCount.
 func GetObavestenja(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
+	db := DB(c)
 
 	limit := 20
 	offset := 0
@@ -61,93 +54,57 @@ func GetObavestenja(c *gin.Context) {
 	db.Model(&models.Obavestenje{}).Where("user_id = ? AND read_at IS NULL", korisnik.ID).Count(&unreadCount)
 
 	c.JSON(http.StatusOK, gin.H{
-		"obavestenja":   list,
-		"unreadCount":   unreadCount,
+		"obavestenja": list,
+		"unreadCount": unreadCount,
 	})
 }
 
-// GetObavestenjeByID vraća jedno obaveštenje ako pripada trenutnom korisniku.
 func GetObavestenjeByID(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID obaveštenja"})
 		return
 	}
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-
+	db := DB(c)
 	var n models.Obavestenje
 	if err := db.Where("id = ? AND user_id = ?", id, korisnik.ID).First(&n).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Obaveštenje nije pronađeno"})
 		return
 	}
-
 	c.JSON(http.StatusOK, n)
 }
 
-// GetUnreadCount vraća samo broj nepročitanih obaveštenja (za badge).
 func GetUnreadCount(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-
+	db := DB(c)
 	var count int64
 	db.Model(&models.Obavestenje{}).Where("user_id = ? AND read_at IS NULL", korisnik.ID).Count(&count)
 	c.JSON(http.StatusOK, gin.H{"unreadCount": count})
 }
 
-// MarkRead označava jedno obaveštenje kao pročitano (PATCH /api/notifications/:id/read).
 func MarkRead(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID obaveštenja"})
 		return
 	}
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-
+	db := DB(c)
 	now := time.Now()
 	res := db.Model(&models.Obavestenje{}).
 		Where("id = ? AND user_id = ?", id, korisnik.ID).
@@ -163,24 +120,13 @@ func MarkRead(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Označeno kao pročitano"})
 }
 
-// MarkAllRead označava sva obaveštenja trenutnog korisnika kao pročitana (npr. kada otvori meni).
 func MarkAllRead(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-
+	db := DB(c)
 	now := time.Now()
 	res := db.Model(&models.Obavestenje{}).
 		Where("user_id = ? AND read_at IS NULL", korisnik.ID).
@@ -192,31 +138,19 @@ func MarkAllRead(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Sva obaveštenja označena kao pročitana", "count": res.RowsAffected})
 }
 
-// DeleteObavestenje briše jedno obaveštenje (samo svoje).
 func DeleteObavestenje(c *gin.Context) {
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := korisnikFromContext(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
-	username := usernameVal.(string)
-
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID obaveštenja"})
 		return
 	}
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-
+	db := DB(c)
 	res := db.Where("id = ? AND user_id = ?", id, korisnik.ID).Delete(&models.Obavestenje{})
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju"})
@@ -229,20 +163,17 @@ func DeleteObavestenje(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje obrisano"})
 }
 
-// BroadcastRequest body za slanje obaveštenja svima (samo admin).
 type BroadcastRequest struct {
 	Title string `json:"title" binding:"required"`
 	Body  string `json:"body"`
 }
 
-// Broadcast šalje jedno obaveštenje svim korisnicima effective kluba (ne svim korisnicima u sistemu).
 func Broadcast(c *gin.Context) {
 	roleVal, _ := c.Get("role")
 	if roleVal != "admin" && roleVal != "superadmin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili superadmin može da pošalje obaveštenje svima"})
 		return
 	}
-
 	var req BroadcastRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Obavezno polje: title"})
@@ -253,10 +184,7 @@ func Broadcast(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Naslov ne sme biti prazan"})
 		return
 	}
-
-	dbAny, _ := c.Get("db")
-	db := dbAny.(*gorm.DB)
-
+	db := DB(c)
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub (header X-Club-Id)"})
@@ -266,7 +194,6 @@ func Broadcast(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Obaveštenje poslato", "recipients": 0})
 		return
 	}
-
 	var recipientIDs []uint
 	db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &recipientIDs)
 	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipBroadcast, req.Title, req.Body, "", "")
