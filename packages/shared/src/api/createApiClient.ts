@@ -93,7 +93,8 @@ export function createApiClient(config: ApiClientConfig): ApiClientBundle {
       const method = (error.config?.method || '').toLowerCase()
       const isLoginPost =
         method === 'post' && (reqUrl === '/login' || reqUrl.endsWith('/login'))
-      if (error.response?.status === 401 && onUnauthorized && !isLoginPost) {
+      const isActivityRequest = reqUrl.includes('/api/activities')
+      if (error.response?.status === 401 && onUnauthorized && !isLoginPost && !isActivityRequest) {
         onUnauthorized()
       } else if (error.response?.status === 403 && onUnauthorized) {
         const msg = (error.response?.data as { error?: string })?.error ?? ''

@@ -28,13 +28,23 @@ npm run build:apk
 
 Build traje ~10–20 min na Expo serverima. Na kraju dobiješ **link za preuzimanje .apk** fajla.
 
-**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 7+).
+**Važno:** Stari APK bez `expo-updates` ne može da povuče OTA. Posle ove konfiguracije obavezno instaliraj **novi** APK (versionCode 8+).
 
 ## Započni avanturu (GPS + stiker)
 
-Na tabu **Istraži** kartica **Započni avanturu** pokreće praćenje koraka, km, vremena i uspona. Ruta se crta na kraju; automatski se otvara **PLANINER stiker** za deljenje.
+Na tabu **Istraži** kartica **Započni avanturu** pokreće praćenje koraka, km, vremena i uspona. Ruta se crta na kraju; **stiker** se otvara dugmetom na završnom ekranu.
 
-Za **čuvanje stikera u galeriju** i PNG export potreban je APK sa `react-native-view-shot` i `expo-media-library` (versionCode 7+). Samo praćenje i prikaz stikera na ekranu mogu raditi i preko OTA ako je native deo već u APK-u.
+Za **čuvanje stikera u galeriju** i PNG export potreban je APK sa `react-native-view-shot` i `expo-media-library` (versionCode 7+).
+
+**Pozadinsko praćenje (versionCode 8+):** dok je avantura aktivna, app može biti minimizovan — GPS i timer nastavljaju (Android foreground notifikacija). Ako se app potpuno ugasi iz recent apps, sesija se automatski prekida.
+
+## Dnevni koraci (iOS + Android)
+
+- **iOS:** koraci se čitaju iz Core Motion pri svakom otvaranju app-a.
+- **Android:** koristi **Health Connect** (mora biti instaliran na Samsung/Google uređajima). Pri prvom uključivanju brojača dozvoli **Fizička aktivnost** i **Health Connect → Koraci**.
+- Pozadinski sync (`expo-background-fetch`) periodično šalje korake na server.
+
+Za punu funkcionalnost dnevnih koraka na Androidu obavezan je **novi APK** (versionCode 8+) sa `react-native-health-connect`.
 
 ## Push obaveštenja (expo-notifications)
 
@@ -46,7 +56,7 @@ Poslovna obaveštenja (zadaci, akcije, klub, follow, finansije…) stižu kao **
 2. Pri prvom logovanju aplikacija traži dozvolu za **obaveštenja** — izaberi **Dozvoli**.
 3. Za produkcioni Android push, u Expo nalogu proveri FCM credentials: `eas credentials` (EAS automatski koristi `projectId` iz `app.json`).
 
-**Novi native modul (expo-notifications)** zahteva **novi APK build** (`npm run build:apk`). Posle toga, izmene samo u JS mogu preko OTA.
+**Novi native modul** zahteva **novi APK build** (`npm run build:apk`). Posle toga, izmene samo u JS mogu preko OTA.
 
 ## Mapa avantura (MapLibre + MapTiler — isto kao web)
 
@@ -78,9 +88,20 @@ Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** ap
 
 | Šta menjaš | Komanda |
 |------------|---------|
-| JS/TS, UI, API pozivi | `npm run update:apk` |
-| Nova native biblioteka, dozvole, ikona | `npm run build:apk` + nova instalacija |
+| JS/TS, UI, API pozivi (Faza 1–2) | `npm run update:apk` |
+| Health Connect, background GPS, nove dozvole | `npm run build:apk` + nova instalacija (versionCode 8+) |
 | `version` u `app.json` (npr. 1.0.0 → 1.1.0) | Novi APK build (menja se `runtimeVersion`) |
+
+## QA matrica (pre distribucije)
+
+| Scenario | Očekivanje |
+|----------|------------|
+| Korisnik bez kluba → Akcije | Vidi javne klupske i vodičke aktivne akcije |
+| Stop avanture | Završni ekran sa statistikom; stiker na dugme; nema logout/crash |
+| Avantura minimizovana 10+ min | Timer i GPS nastavljaju (notifikacija na Androidu) |
+| Avantura ubijena iz recent | Sesija prekinuta; poruka pri sledećem otvaranju |
+| Dnevni koraci, app ubijen | iOS: tačan broj pri otvaranju; Android: Health Connect čitanje |
+| Prijava na javnu akciju bez kluba | Zahtev za prijavu poslat |
 
 ## Instalacija na Samsung
 
@@ -88,19 +109,19 @@ Korisnici sa instaliranim APK-om dobijaju update pri **sledećem pokretanju** ap
 2. Otvori fajl → dozvoli **„Instalacija nepoznatih aplikacija”** za Chrome/fajl menadžer ako traži.
 3. Instaliraj **Planiner**.
 4. Pri prvom korišćenju:
-   - **Dnevni koraci** → tapni **„Omogući brojač koraka”** → u sistemskom prozoru izaberi **Dozvoli** (Fizička aktivnost).
-   - **Započni akciju** (kad bude aktivno) → dozvola za **Lokaciju**.
+   - **Dnevni koraci** → tapni **„Omogući brojač koraka”** → Dozvoli (Fizička aktivnost) + Health Connect koraci.
+   - **Započni avanturu** → dozvola za **Lokaciju** (uvek i u pozadini).
    - **Profil / slike** → dozvola za **Slike** (galerija).
 
 ## Dozvole u aplikaciji
 
 | Funkcija | Kada se pita | Android postavka |
 |----------|--------------|------------------|
-| Koraci | Kartica Dnevni koraci | Dozvole → Fizička aktivnost |
+| Koraci | Kartica Dnevni koraci | Fizička aktivnost + Health Connect → Koraci |
 | Obaveštenja | Prvi login / push | Dozvole → Obaveštenja |
-| Avantura / GPS | Započni avanturu | Dozvole → Lokacija + Fizička aktivnost |
-| GPS ruta | Započni akciju | Dozvole → Lokacija |
-| Mapa avantura | Istraži → Mapa | `EXPO_PUBLIC_MAPTILER_API_KEY` u `.env` (isti kao web) |
+| Avantura / GPS | Započni avanturu | Lokacija (uvek + u pozadini) |
+| Avantura u pozadini | Minimizovan app | Foreground notifikacija „Planiner avantura” |
+| Mapa avantura | Istraži → Mapa | `EXPO_PUBLIC_MAPTILER_API_KEY` u `.env` |
 | Slike | Avatar, cover, akcije | Dozvole → Slike |
 
 ## Dijeljenje test korisnicima

@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import * as Location from 'expo-location'
+import { useCallback, useEffect, useState } from 'react'
 import type { GPSPoint } from '@beleg/shared'
-
-const MIN_INTERVAL_MS = 5000
-const MIN_DISTANCE_M = 10
+import {
+  clearAdventurePoints,
+  startAdventureHeartbeat,
+  startAdventureLocationTracking,
+  stopAdventureHeartbeat,
+  stopAdventureLocationTracking,
+  subscribeAdventurePoints,
+} from '../services/adventureLocationTask'
 
 export interface LocationTrackState {
   points: GPSPoint[]
@@ -18,54 +22,33 @@ export function useLocationTrack(enabled: boolean): LocationTrackState {
   const [points, setPoints] = useState<GPSPoint[]>([])
   const [permissionGranted, setPermissionGranted] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const watchRef = useRef<Location.LocationSubscription | null>(null)
-  const lastPointRef = useRef<GPSPoint | null>(null)
-  const lastTimeRef = useRef(0)
 
   const stop = useCallback(() => {
-    watchRef.current?.remove()
-    watchRef.current = null
+    stopAdventureHeartbeat()
+    void stopAdventureLocationTracking()
   }, [])
 
   const clear = useCallback(() => {
+    void clearAdventurePoints()
     setPoints([])
-    lastPointRef.current = null
-    lastTimeRef.current = 0
   }, [])
 
   const start = useCallback(async () => {
     setError(null)
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status !== 'granted') {
+    try {
+      await startAdventureLocationTracking()
+      setPermissionGranted(true)
+      startAdventureHeartbeat()
+    } catch (e) {
       setPermissionGranted(false)
-      setError('Dozvola za lokaciju je potrebna za praćenje rute.')
-      return
+      setError(e instanceof Error ? e.message : 'Dozvola za lokaciju je potrebna za praćenje rute.')
     }
-    setPermissionGranted(true)
-    stop()
-    watchRef.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.Balanced,
-        timeInterval: MIN_INTERVAL_MS,
-        distanceInterval: MIN_DISTANCE_M,
-      },
-      (loc) => {
-        const now = Date.now()
-        const point: GPSPoint = {
-          lat: loc.coords.latitude,
-          lng: loc.coords.longitude,
-          altitude: loc.coords.altitude ?? undefined,
-          accuracy: loc.coords.accuracy ?? undefined,
-          recordedAt: new Date(loc.timestamp).toISOString(),
-        }
-        const last = lastPointRef.current
-        if (last && now - lastTimeRef.current < MIN_INTERVAL_MS) return
-        lastPointRef.current = point
-        lastTimeRef.current = now
-        setPoints((prev) => [...prev, point])
-      },
-    )
-  }, [stop])
+  }, [])
+
+  useEffect(() => {
+    const unsub = subscribeAdventurePoints(setPoints)
+    return unsub
+  }, [])
 
   useEffect(() => {
     if (enabled) {

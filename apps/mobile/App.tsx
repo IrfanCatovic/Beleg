@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './src/context/AuthContext'
 import { SuperadminClubProvider } from './src/hooks/useSuperadminClub'
 import { ModalProvider } from './src/context/ModalContext'
+import { DailyStepsProvider } from './src/context/DailyStepsContext'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { queryClient } from './src/lib/queryClient'
 import { useAppUpdates } from './src/hooks/useAppUpdates'
@@ -18,12 +19,14 @@ export default function App() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <DailyStepsProvider>
             <SuperadminClubProvider>
               <ModalProvider>
                 <RootNavigator />
                 <StatusBar style="auto" />
               </ModalProvider>
             </SuperadminClubProvider>
+            </DailyStepsProvider>
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

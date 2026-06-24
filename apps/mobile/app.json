@@ -30,13 +30,15 @@
       "associatedDomains": ["applinks:www.planiner.com"],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Planiner prati rutu avanture u pozadini dok je aktivnost u toku.",
+        "UIBackgroundModes": ["location"],
         "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti.",
         "NSPhotoLibraryUsageDescription": "Planiner koristi pristup slikama da postavite profilnu i naslovnu fotografiju i fotografije akcija."
       }
     },
     "android": {
       "package": "rs.planiner.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -59,14 +61,20 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.ACTIVITY_RECOGNITION",
         "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.health.READ_STEPS",
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
       "expo-updates",
+      "expo-task-manager",
+      "expo-background-fetch",
       "expo-asset",
       "expo-font",
       "expo-secure-store",
@@ -74,7 +82,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost."
+          "locationWhenInUsePermission": "Planiner koristi lokaciju samo tokom praćenja aktivnosti da prikaže rutu i udaljenost.",
+          "locationAlwaysAndWhenInUsePermission": "Planiner prati rutu avanture u pozadini dok je aktivnost u toku.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [
@@ -95,6 +106,17 @@
         {
           "photosPermission": "Planiner čuva stiker avanture u galeriju kada to odaberete.",
           "savePhotosPermission": "Planiner čuva stiker avanture u galeriju kada to odaberete."
+        }
+      ],
+      "expo-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
         }
       ]
     ],

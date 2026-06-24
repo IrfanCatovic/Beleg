@@ -22,6 +22,7 @@ import {
   EMPTY_ACTIONS_FILTERS,
   countActiveFilters,
   isClubListedAkcija,
+  listableAktivneFromApi,
   matchesActionFilters,
   mergeAkcijeById,
   type ActionsFilters,
@@ -83,7 +84,7 @@ export default function ActionsScreen({ navigation }: Props) {
     const data = akcijeQuery.data
     if (!data) return { combinedAktivne: [] as AkcijaListItem[], combinedZavrsene: [] as AkcijaListItem[] }
 
-    const clubAktivne = (data.aktivne ?? []).filter(isClubListedAkcija)
+    const clubAktivne = listableAktivneFromApi(data.aktivne ?? [])
     const clubZavrsene = (data.zavrsene ?? []).filter(isClubListedAkcija)
     const vodeneAktivne = data.vodeneAktivne ?? []
     const vodeneZavrsene = data.vodeneZavrsene ?? []

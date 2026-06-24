@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { InteractionManager, StyleSheet, View } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -36,6 +36,8 @@ export default function AdventureScreen({ navigation }: Props) {
   const [completedActivity, setCompletedActivity] = useState<TrackedActivity | null>(null)
   const [stickerOpen, setStickerOpen] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [showRouteMap, setShowRouteMap] = useState(false)
+  const finishHandledRef = useRef(false)
 
   const phase: ScreenPhase = useMemo(() => {
     if (completedActivity) return 'completed'
@@ -76,11 +78,15 @@ export default function AdventureScreen({ navigation }: Props) {
     if (!ok) return
     const activity = await tracker.finish()
     if (activity) {
+      finishHandledRef.current = true
       setCompletedActivity(activity)
-      setStickerOpen(true)
+      setShowRouteMap(false)
       void queryClient.invalidateQueries({ queryKey: ['activities', 'active'] })
+      InteractionManager.runAfterInteractions(() => {
+        setShowRouteMap(true)
+      })
     }
-  }, [tracker, showConfirm, t])
+  }, [tracker, showConfirm, queryClient, t])
 
   const handleDiscard = useCallback(async () => {
     const ok = await showConfirm(t('adventureDiscardTitle'), t('adventureDiscardMessage'), {
@@ -96,13 +102,16 @@ export default function AdventureScreen({ navigation }: Props) {
   const resetCompleted = useCallback(() => {
     setCompletedActivity(null)
     setStickerOpen(false)
-  }, [])
+    setShowRouteMap(false)
+    finishHandledRef.current = false
+    tracker.resetToIdle()
+  }, [tracker])
 
   useEffect(() => {
-    if (tracker.error) {
-      void showAlert('Greška', tracker.error)
-    }
-  }, [tracker.error, showAlert])
+    if (!tracker.error || completedActivity || finishHandledRef.current) return
+    if (tracker.status === 'finishing') return
+    void showAlert('Greška', tracker.error)
+  }, [tracker.error, tracker.status, completedActivity, showAlert])
 
   if (tracker.loading && phase === 'idle' && !completedActivity) {
     return (
@@ -192,7 +201,7 @@ export default function AdventureScreen({ navigation }: Props) {
             <Text variant="label" style={styles.routeTitle}>
               {t('adventureRouteTitle')}
             </Text>
-            <ActivityRouteMap points={routePoints} />
+            {showRouteMap ? <ActivityRouteMap points={routePoints} /> : <Loader />}
             <View style={styles.completedActions}>
               <Button title={t('stickerTitle')} onPress={() => setStickerOpen(true)} fullWidth />
               <Button title={t('adventureNew')} variant="secondary" onPress={resetCompleted} fullWidth />

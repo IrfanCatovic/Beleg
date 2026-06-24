@@ -42,6 +42,14 @@ function isClubListedAkcija(a: Akcija): boolean {
   return a.organizatorTip !== 'vodic' && a.uIstorijiKluba !== false
 }
 
+function isPublicActiveAkcija(a: Akcija): boolean {
+  return !!a.javna && !a.isCompleted
+}
+
+function listableAktivneFromApi(aktivne: Akcija[]): Akcija[] {
+  return aktivne.filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a))
+}
+
 export default function Actions() {
   const { t, i18n } = useTranslation('actions')
   const { isLoggedIn, user } = useAuth()
@@ -126,7 +134,7 @@ export default function Actions() {
     return true
   }
 
-  const clubAktivne = useMemo(() => aktivneAkcije.filter(isClubListedAkcija), [aktivneAkcije])
+  const clubAktivne = useMemo(() => listableAktivneFromApi(aktivneAkcije), [aktivneAkcije])
   const clubZavrsene = useMemo(() => zavrseneAkcije.filter(isClubListedAkcija), [zavrseneAkcije])
 
   const mergeAkcijeById = (...lists: Akcija[][]) => {
@@ -196,7 +204,7 @@ export default function Actions() {
       setLoading(true)
       try {
         const akcijeData = await fetchAkcije()
-        setAktivneAkcije((akcijeData.aktivne || []).filter(isClubListedAkcija))
+        setAktivneAkcije(akcijeData.aktivne || [])
         setZavrseneAkcije((akcijeData.zavrsene || []).filter(isClubListedAkcija))
         setVodeneAktivne(akcijeData.vodeneAktivne || [])
         setVodeneZavrsene(akcijeData.vodeneZavrsene || [])

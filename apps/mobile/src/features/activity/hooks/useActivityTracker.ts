@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pedometer } from 'expo-sensors'
+import { AppState } from 'react-native'
 import {
   appendActivityPoints,
   discardActivity,
@@ -10,13 +10,23 @@ import {
 import type { GPSPoint, TrackedActivity } from '@beleg/shared'
 import { client } from '../../../api/client'
 import { requestActivityPermissions } from '../services/activityPermissions'
-import { getStoredActiveActivityId, setStoredActiveActivityId } from '../services/activityLocalStore'
+import {
+  clearAdventurePoints,
+  wasAdventureProcessKilled,
+} from '../services/adventureLocationTask'
+import {
+  getSessionStepsBaseline,
+  getStoredActiveActivityId,
+  setSessionStepsBaseline,
+  setStoredActiveActivityId,
+} from '../services/activityLocalStore'
 import {
   computeElevationGainM,
   encodePolyline,
   sumRouteDistanceM,
   type LatLngAlt,
 } from '../services/activityMetrics'
+import { readTodayStepsFromOs } from '../services/stepsProvider'
 import { useLocationTrack } from './useLocationTrack'
 
 export type TrackerStatus = 'idle' | 'active' | 'paused' | 'finishing'
@@ -37,9 +47,25 @@ export interface ActivityTrackerState {
   resume: () => void
   finish: () => Promise<TrackedActivity | null>
   discard: () => Promise<void>
+  resetToIdle: () => void
 }
 
 const POINTS_BATCH_SIZE = 20
+
+function computeElapsedSec(
+  startedAt: string | null,
+  totalPausedMs: number,
+  pausedAt: number | null,
+): number {
+  if (!startedAt) return 0
+  const startMs = new Date(startedAt).getTime()
+  if (Number.isNaN(startMs)) return 0
+  let elapsedMs = Date.now() - startMs - totalPausedMs
+  if (pausedAt != null) {
+    elapsedMs -= Date.now() - pausedAt
+  }
+  return Math.max(0, Math.floor(elapsedMs / 1000))
+}
 
 export function useActivityTracker(): ActivityTrackerState {
   const [status, setStatus] = useState<TrackerStatus>('idle')
@@ -49,7 +75,9 @@ export function useActivityTracker(): ActivityTrackerState {
   const [steps, setSteps] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const stepsBaselineRef = useRef(0)
+  const sessionStepsBaselineRef = useRef(0)
+  const totalPausedMsRef = useRef(0)
+  const pausedAtRef = useRef<number | null>(null)
   const pendingUploadRef = useRef<GPSPoint[]>([])
   const uploadedCountRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -76,16 +104,40 @@ export function useActivityTracker(): ActivityTrackerState {
     }
   }, [])
 
+  const refreshSessionSteps = useCallback(async () => {
+    const os = await readTodayStepsFromOs()
+    if (!os) return
+    const baseline = sessionStepsBaselineRef.current
+    setSteps(Math.max(0, os.steps - baseline))
+  }, [])
+
   useEffect(() => {
     void (async () => {
       try {
         const storedId = await getStoredActiveActivityId()
         const remote = await fetchActiveActivity(client)
-        const active = remote ?? (storedId ? { id: storedId } as TrackedActivity : null)
+        const active = remote ?? (storedId ? ({ id: storedId } as TrackedActivity) : null)
+
         if (active?.id) {
+          const killed = await wasAdventureProcessKilled()
+          if (killed) {
+            try {
+              await discardActivity(client, active.id)
+            } catch {
+              // server discard best-effort
+            }
+            await setStoredActiveActivityId(null)
+            await clearAdventurePoints()
+            setError('Avantura je prekinuta jer je aplikacija zatvorena. Pokrenite novu.')
+            return
+          }
+
+          const baseline = (await getSessionStepsBaseline()) ?? 0
+          sessionStepsBaselineRef.current = baseline
           setActivityId(active.id)
           setStartedAt(active.startedAt ?? new Date().toISOString())
           setStatus('active')
+          void refreshSessionSteps()
         }
       } catch {
         setError('Aktivna sesija nije učitana.')
@@ -93,37 +145,33 @@ export function useActivityTracker(): ActivityTrackerState {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [refreshSessionSteps])
 
   useEffect(() => {
-    if (status !== 'active') {
+    if (status !== 'active' && status !== 'paused') {
       if (timerRef.current) clearInterval(timerRef.current)
       timerRef.current = null
       return
     }
-    timerRef.current = setInterval(() => setElapsedSec((s) => s + 1), 1000)
+    const tick = () => {
+      setElapsedSec(
+        computeElapsedSec(startedAt, totalPausedMsRef.current, pausedAtRef.current),
+      )
+    }
+    tick()
+    timerRef.current = setInterval(tick, 1000)
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [status])
+  }, [status, startedAt])
 
   useEffect(() => {
-    if (status !== 'active' || !activityId) return
-    let sub: { remove: () => void } | null = null
-    void (async () => {
-      const available = await Pedometer.isAvailableAsync()
-      if (!available) return
-      const end = new Date()
-      const start = new Date()
-      start.setHours(0, 0, 0, 0)
-      const result = await Pedometer.getStepCountAsync(start, end)
-      stepsBaselineRef.current = result.steps
-      sub = Pedometer.watchStepCount((ev) => {
-        setSteps(Math.max(0, ev.steps - stepsBaselineRef.current))
-      })
-    })()
-    return () => sub?.remove()
-  }, [status, activityId])
+    if (status !== 'active') return
+    const id = setInterval(() => {
+      void refreshSessionSteps()
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [status, refreshSessionSteps])
 
   useEffect(() => {
     if (!activityId || status !== 'active') return
@@ -141,16 +189,33 @@ export function useActivityTracker(): ActivityTrackerState {
     if (locError) setError(locError)
   }, [locError])
 
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && status === 'active') {
+        void refreshSessionSteps()
+      }
+    })
+    return () => sub.remove()
+  }, [status, refreshSessionSteps])
+
   const start = useCallback(async () => {
     setError(null)
     setLoading(true)
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
     try {
       const perms = await requestActivityPermissions()
       if (!perms.ok) {
         setError(perms.message)
         return
       }
+      const os = await readTodayStepsFromOs()
+      const baseline = os?.steps ?? 0
+      sessionStepsBaselineRef.current = baseline
+      await setSessionStepsBaseline(baseline)
+
       const res = await startActivity(client)
+      await clearAdventurePoints()
       setActivityId(res.id)
       setStartedAt(res.startedAt)
       await setStoredActiveActivityId(res.id)
@@ -170,11 +235,16 @@ export function useActivityTracker(): ActivityTrackerState {
   }, [clear])
 
   const pause = useCallback(() => {
+    pausedAtRef.current = Date.now()
     setStatus('paused')
     stopLocation()
   }, [stopLocation])
 
   const resume = useCallback(() => {
+    if (pausedAtRef.current != null) {
+      totalPausedMsRef.current += Date.now() - pausedAtRef.current
+      pausedAtRef.current = null
+    }
     setStatus('active')
   }, [])
 
@@ -188,9 +258,14 @@ export function useActivityTracker(): ActivityTrackerState {
       await uploadPendingPoints(activityId, remaining)
     }
     const last = routePoints[routePoints.length - 1]
+    const finalElapsed = computeElapsedSec(
+      startedAt,
+      totalPausedMsRef.current,
+      pausedAtRef.current,
+    )
     try {
       const res = await finishActivity(client, activityId, {
-        durationSec: elapsedSec,
+        durationSec: finalElapsed,
         distanceM,
         elevationGainM,
         steps,
@@ -199,7 +274,7 @@ export function useActivityTracker(): ActivityTrackerState {
         endLng: last?.lng,
       })
       await setStoredActiveActivityId(null)
-      setStatus('idle')
+      await clearAdventurePoints()
       setActivityId(null)
       clear()
       return res.activity
@@ -213,7 +288,7 @@ export function useActivityTracker(): ActivityTrackerState {
     stopLocation,
     uploadPendingPoints,
     routePoints,
-    elapsedSec,
+    startedAt,
     distanceM,
     elevationGainM,
     steps,
@@ -230,12 +305,29 @@ export function useActivityTracker(): ActivityTrackerState {
       setError('Otkazivanje nije uspelo.')
     }
     await setStoredActiveActivityId(null)
+    await clearAdventurePoints()
     setStatus('idle')
     setActivityId(null)
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
     clear()
     pendingUploadRef.current = []
     uploadedCountRef.current = 0
   }, [activityId, stopLocation, clear])
+
+  const resetToIdle = useCallback(() => {
+    setStatus('idle')
+    setActivityId(null)
+    setStartedAt(null)
+    setElapsedSec(0)
+    setSteps(0)
+    setError(null)
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
+    pendingUploadRef.current = []
+    uploadedCountRef.current = 0
+    clear()
+  }, [clear])
 
   return {
     status,
@@ -253,5 +345,6 @@ export function useActivityTracker(): ActivityTrackerState {
     resume,
     finish,
     discard,
+    resetToIdle,
   }
 }

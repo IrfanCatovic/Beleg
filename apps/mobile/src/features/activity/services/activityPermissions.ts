@@ -11,6 +11,14 @@ export async function requestActivityPermissions(): Promise<ActivityPermissionRe
     return { ok: false, message: 'Dozvola za lokaciju je potrebna za snimanje rute.' }
   }
 
+  const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync()
+  if (bgStatus !== 'granted') {
+    return {
+      ok: false,
+      message: 'Dozvola za lokaciju u pozadini je potrebna da avantura radi dok je app minimizovan.',
+    }
+  }
+
   const steps = await requestStepsAccess()
   if (steps.status === 'permission_denied') {
     return { ok: false, message: 'Dozvola za korake je isključena u postavkama.' }

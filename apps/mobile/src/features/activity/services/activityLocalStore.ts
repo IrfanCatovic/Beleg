@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const BASELINE_PREFIX = 'stepsBaseline:'
 const ACTIVE_ACTIVITY_KEY = 'activeActivityId'
+const SESSION_STEPS_BASELINE_KEY = 'adventureSessionStepsBaseline'
 const SYNC_INTERVAL_MS = 5 * 60 * 1000
 
 export function todayKey(): string {
@@ -32,10 +33,21 @@ export async function getStoredActiveActivityId(): Promise<number | null> {
 
 export async function setStoredActiveActivityId(id: number | null): Promise<void> {
   if (id == null) {
-    await AsyncStorage.removeItem(ACTIVE_ACTIVITY_KEY)
+    await AsyncStorage.multiRemove([ACTIVE_ACTIVITY_KEY, SESSION_STEPS_BASELINE_KEY])
     return
   }
   await AsyncStorage.setItem(ACTIVE_ACTIVITY_KEY, String(id))
+}
+
+export async function getSessionStepsBaseline(): Promise<number | null> {
+  const raw = await AsyncStorage.getItem(SESSION_STEPS_BASELINE_KEY)
+  if (raw == null) return null
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
+export async function setSessionStepsBaseline(baseline: number): Promise<void> {
+  await AsyncStorage.setItem(SESSION_STEPS_BASELINE_KEY, String(baseline))
 }
 
 export { SYNC_INTERVAL_MS }

@@ -36,6 +36,15 @@ export function isClubListedAkcija(a: AkcijaListItem): boolean {
   return a.organizatorTip !== 'vodic' && a.uIstorijiKluba !== false
 }
 
+export function isPublicActiveAkcija(a: AkcijaListItem): boolean {
+  return !!a.javna && !a.isCompleted
+}
+
+/** Aktivne akcije iz API odgovora koje treba prikazati u listi (klupske + javne vodičke). */
+export function listableAktivneFromApi(aktivne: AkcijaListItem[]): AkcijaListItem[] {
+  return aktivne.filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a))
+}
+
 export function mergeAkcijeById(...lists: AkcijaListItem[][]): AkcijaListItem[] {
   const byId = new Map<number, AkcijaListItem>()
   for (const list of lists) {
