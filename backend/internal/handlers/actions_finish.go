@@ -135,7 +135,7 @@ func BulkAddClubMembersCompleted(c *gin.Context) {
 		"added":         bulkRes.Added,
 		"updated":       bulkRes.Updated,
 		"skipped":       bulkRes.Skipped,
-		"results":       actions.BulkResultsAsGinH(bulkRes.Results),
+		"results":       bulkResultsAsGinH(bulkRes.Results),
 		"processed":     bulkRes.Processed,
 		"newlySummited": bulkRes.NewlySummited,
 	})
@@ -682,4 +682,16 @@ func GetMojePrijave(c *gin.Context) {
 		"otkaziveAkcije":       otkazive,
 		"pendingSignupAkcije":  pendingSignup,
 	})
+}
+
+func bulkResultsAsGinH(results []actions.BulkMemberUserResult) []gin.H {
+	out := make([]gin.H, 0, len(results))
+	for _, r := range results {
+		row := gin.H{"korisnikId": r.KorisnikID, "status": r.Status}
+		if r.Reason != "" {
+			row["reason"] = r.Reason
+		}
+		out = append(out, row)
+	}
+	return out
 }

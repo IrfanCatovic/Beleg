@@ -1,13 +1,11 @@
 package guidebooking
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
 	"beleg-app/backend/internal/apperror"
 	"beleg-app/backend/internal/models"
-	"beleg-app/backend/internal/notifications"
 
 	"gorm.io/gorm"
 )
@@ -215,91 +213,4 @@ func CreatePeak(db *gorm.DB, in CreatePeakInput) (*CreatePeakResult, *apperror.E
 		Targets:       targets,
 		NotifiedCount: len(targets),
 	}, nil
-}
-
-func NotifyFerrataTargets(db *gorm.DB, req models.FerrataGuideBookingRequest, targets []models.FerrataGuideBookingTarget) {
-	requesterName := displayName(req.Requester.FullName, req.Requester.Username, "Korisnik")
-	ferrataName := strings.TrimSpace(req.Ferrata.Naziv)
-	if ferrataName == "" {
-		ferrataName = "feratu"
-	}
-	dateStr := req.DesiredDate.Format("02.01.2006")
-	title := "Imate novi zahtev za akciju"
-	body := requesterName + " traži vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
-
-	metaBase := map[string]any{
-		"bookingKind":       "ferrata",
-		"bookingRequestId": req.ID,
-		"ferrataId":        req.FerrataID,
-		"ferrataNaziv":     ferrataName,
-		"requesterId":      req.RequesterID,
-		"requesterUsername": req.Requester.Username,
-		"requesterFullName": req.Requester.FullName,
-		"desiredDate":      req.DesiredDate.Format("2006-01-02"),
-		"numberOfPeople":   req.NumberOfPeople,
-	}
-
-	seen := map[uint]bool{}
-	for _, t := range targets {
-		if t.GuideUserID == 0 || seen[t.GuideUserID] {
-			continue
-		}
-		seen[t.GuideUserID] = true
-		meta := metaBase
-		meta["guideProfileId"] = t.GuideProfileID
-		metaBytes, _ := json.Marshal(meta)
-		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
-	}
-}
-
-func NotifyPeakTargets(db *gorm.DB, req models.PeakGuideBookingRequest, targets []models.PeakGuideBookingTarget) {
-	requesterName := displayName(req.Requester.FullName, req.Requester.Username, "Korisnik")
-	peakName := peakDisplayName(req.Peak)
-	dateStr := req.DesiredDate.Format("02.01.2006")
-	title := "Imate novi zahtev za akciju"
-	body := requesterName + " traži vođenje na vrh \"" + peakName + "\" za datum " + dateStr + "."
-
-	metaBase := map[string]any{
-		"bookingKind":       "peak",
-		"bookingRequestId":  req.ID,
-		"peakId":            req.PeakID,
-		"peakNaziv":         peakName,
-		"requesterId":       req.RequesterID,
-		"requesterUsername": req.Requester.Username,
-		"requesterFullName": req.Requester.FullName,
-		"desiredDate":       req.DesiredDate.Format("2006-01-02"),
-		"numberOfPeople":    req.NumberOfPeople,
-	}
-
-	seen := map[uint]bool{}
-	for _, t := range targets {
-		if t.GuideUserID == 0 || seen[t.GuideUserID] {
-			continue
-		}
-		seen[t.GuideUserID] = true
-		meta := metaBase
-		meta["guideProfileId"] = t.GuideProfileID
-		metaBytes, _ := json.Marshal(meta)
-		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
-	}
-}
-
-func displayName(fullName, username, fallback string) string {
-	if n := strings.TrimSpace(fullName); n != "" {
-		return n
-	}
-	if n := strings.TrimSpace(username); n != "" {
-		return n
-	}
-	return fallback
-}
-
-func peakDisplayName(peak *models.Peak) string {
-	if peak == nil {
-		return "vrh"
-	}
-	if n := strings.TrimSpace(peak.NazivVrha); n != "" {
-		return n
-	}
-	return "vrh"
 }

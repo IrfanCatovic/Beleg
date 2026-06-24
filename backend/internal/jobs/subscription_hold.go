@@ -12,16 +12,16 @@ import (
 
 // RunSubscriptionHoldJob periodično obrađuje subscription warning/hold za sve klubove sa datumom isteka.
 func RunSubscriptionHoldJob(db *gorm.DB) {
+	RunSubscriptionHoldOnce(db)
 	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
-	time.Sleep(2 * time.Minute)
-	for {
-		runSubscriptionHoldOnce(db)
-		<-ticker.C
+	for range ticker.C {
+		RunSubscriptionHoldOnce(db)
 	}
 }
 
-func runSubscriptionHoldOnce(db *gorm.DB) {
+// RunSubscriptionHoldOnce obrađuje sve klubove sa subscription_ends_at (boot + periodično).
+func RunSubscriptionHoldOnce(db *gorm.DB) {
 	var clubIDs []uint
 	if err := db.Model(&models.Klubovi{}).
 		Where("subscription_ends_at IS NOT NULL").

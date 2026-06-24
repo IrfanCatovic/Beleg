@@ -446,28 +446,5 @@ func viewerCanAccessPrivateAkcija(db *gorm.DB, akcija *models.Akcija, viewer *mo
 const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
 
 func resolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {
-	if actionClubID == nil || *actionClubID == 0 {
-		return fallbackUserID
-	}
-
-	var fallback models.Korisnik
-	if err := tx.Select("id", "klub_id").First(&fallback, fallbackUserID).Error; err == nil {
-		if fallback.KlubID != nil && *fallback.KlubID == *actionClubID {
-			return fallback.ID
-		}
-	}
-
-	var clubUser models.Korisnik
-	if err := tx.Select("id").
-		Where("klub_id = ? AND role IN ?", *actionClubID, []string{"admin", "blagajnik", "vodic"}).
-		Order("id ASC").
-		First(&clubUser).Error; err == nil {
-		return clubUser.ID
-	}
-
-	if err := tx.Select("id").Where("klub_id = ?", *actionClubID).Order("id ASC").First(&clubUser).Error; err == nil {
-		return clubUser.ID
-	}
-
-	return fallbackUserID
+	return helpers.ResolveFinanceRecorderID(tx, actionClubID, fallbackUserID)
 }

@@ -8,7 +8,6 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -139,17 +138,4 @@ func BulkAddMembersToCompletedAction(db *gorm.DB, akcija *models.Akcija, korisni
 	}
 	res.NewlySummited = len(newlySummitedUserIDs)
 	return res, nil
-}
-
-// BulkResultsAsGinH konvertuje rezultate za JSON odgovor.
-func BulkResultsAsGinH(results []BulkMemberUserResult) []gin.H {
-	out := make([]gin.H, 0, len(results))
-	for _, r := range results {
-		row := gin.H{"korisnikId": r.KorisnikID, "status": r.Status}
-		if r.Reason != "" {
-			row["reason"] = r.Reason
-		}
-		out = append(out, row)
-	}
-	return out
 }
