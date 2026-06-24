@@ -1,6 +1,5 @@
 import api from './api'
-import type { AkcijaDetail, AkcijaListItem } from '../types/akcija'
-import type { Prijava } from '../types/prijava'
+import type { AkcijaListItem } from '../types/akcija'
 import type { KorisnikRef } from '../types/korisnik'
 import {
   addClubMembersCompleted as addClubMembersCompletedShared,
@@ -98,6 +97,18 @@ export type ActionParticipationRequest = SharedActionParticipationRequest
 export type ExternalUserCandidate = SharedExternalUserCandidate
 export type ZavrsiAkcijaResponse = SharedZavrsiAkcijaResponse
 
+export interface PrijaviNaAkcijuResponse {
+  message?: string
+}
+
+export interface AddClubMembersCompletedResponse {
+  added?: number
+  updated?: number
+  skipped?: number
+  processed?: number
+  newlySummited?: number
+}
+
 function inviteOptions(config?: { params?: Record<string, string> }) {
   const inviteToken = config?.params?.inviteToken
   return inviteToken ? { inviteToken } : undefined
@@ -127,8 +138,8 @@ export async function prijaviNaAkciju(
   id: number | string,
   payload?: Record<string, unknown>,
   config?: { params?: Record<string, string> },
-) {
-  return prijaviNaAkcijuShared(api, id, payload, inviteOptions(config))
+): Promise<PrijaviNaAkcijuResponse> {
+  return prijaviNaAkcijuShared(api, id, payload, inviteOptions(config)) as Promise<PrijaviNaAkcijuResponse>
 }
 
 export async function updateMojaPrijava(
@@ -242,7 +253,7 @@ export async function fetchEligibleClubMembers(
 }
 
 export async function addClubMembersCompleted(akcijaId: number, payload: { korisnikIds: number[] }) {
-  return addClubMembersCompletedShared(api, akcijaId, payload)
+  return addClubMembersCompletedShared(api, akcijaId, payload) as Promise<AddClubMembersCompletedResponse>
 }
 
 export async function fetchMojePopeoSe() {

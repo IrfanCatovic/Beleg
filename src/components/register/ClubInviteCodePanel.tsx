@@ -62,10 +62,10 @@ export default function ClubInviteCodePanel() {
   }, [load])
 
   const copyCode = async () => {
-    if (!data?.code) return
+    if (!data?.inviteCode) return
     setCopyError(false)
     try {
-      await navigator.clipboard.writeText(data.code)
+      await navigator.clipboard.writeText(data.inviteCode)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -93,7 +93,7 @@ export default function ClubInviteCodePanel() {
     }
   }
 
-  const expiresLabel = (iso: string | null) => {
+  const expiresLabel = (iso: string | null | undefined) => {
     if (!iso) return t('adminPanel.expiresNone')
     try {
       return new Date(iso).toLocaleString(undefined, {
@@ -154,7 +154,7 @@ export default function ClubInviteCodePanel() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">{t('adminPanel.codeLabel')}</p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="text-lg sm:text-xl font-mono font-bold tracking-[0.2em] text-gray-900 break-all">
-              {data.code}
+              {data.inviteCode}
             </code>
             <button
               type="button"

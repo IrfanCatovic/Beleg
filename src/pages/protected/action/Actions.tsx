@@ -366,7 +366,7 @@ export default function Actions() {
 
     try {
       const response = await prijaviNaAkciju(akcijaId)
-      await showAlert(response.message)
+      await showAlert(response.message ?? t('joinSuccess'))
 
       setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
       setPendingSignupAkcije(prev => new Set([...prev, akcijaId]))

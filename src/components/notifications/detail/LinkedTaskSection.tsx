@@ -47,7 +47,7 @@ export function LinkedTaskSection({
           />
         }
       />
-      {userHasClubContext(user) && (
+      {userHasClubContext({ role: user.role, klubId: user.klubId ?? undefined }) && (
         <div className="mt-3 text-center">
           <Link to="/zadaci" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
             {t('notificationDetails:allTasks')}

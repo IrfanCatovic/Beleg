@@ -1,6 +1,5 @@
 import api from './api'
 import type { Korisnik } from '../types/korisnik'
-import type { UspesnaAkcija, KorisnikStatistika } from '../types/uspesnaAkcija'
 import type { AkcijaZaRanking } from '../utils/rankingUtils'
 import {
   addPastActionToUser as addPastActionToUserShared,
