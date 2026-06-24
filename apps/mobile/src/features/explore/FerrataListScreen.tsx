@@ -45,7 +45,9 @@ export default function FerrataListScreen({ navigation }: Props) {
 
   const items = useMemo(() => {
     const rows = ferratasQuery.data ?? []
-    return [...rows].sort((a, b) => a.naziv.localeCompare(b.naziv, 'sr', { sensitivity: 'base' }))
+    return [...rows].sort((a, b) =>
+      (a.naziv ?? '').localeCompare(b.naziv ?? '', 'sr', { sensitivity: 'base' }),
+    )
   }, [ferratasQuery.data])
 
   if (ferratasQuery.isLoading) {
@@ -117,7 +119,8 @@ export default function FerrataListScreen({ navigation }: Props) {
           <FerrataCard
             ferrata={item}
             onPress={() => {
-              if (item.slug) navigation.navigate('FerrataDetail', { slug: item.slug })
+              if (!item.slug) return
+              navigation.navigate('FerrataDetail', { slug: item.slug })
             }}
           />
         )}

@@ -1,5 +1,4 @@
-import { Linking, Pressable, StyleSheet, View } from 'react-native'
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
+import { Image, Linking, Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Card, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
@@ -18,6 +17,14 @@ function googleMapsDirectionsUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`
 }
 
+function mapTilerStaticUrl(lat: number, lng: number): string | null {
+  const key = process.env.EXPO_PUBLIC_MAPTILER_API_KEY?.trim()
+  if (!key) return null
+  const w = 640
+  const h = 320
+  return `https://api.maptiler.com/maps/streets-v2/static/${lng},${lat},12/${w}x${h}.png?key=${encodeURIComponent(key)}&markers=${lng},${lat},red`
+}
+
 export function FerrataDetailMapSection({
   lat,
   lng,
@@ -26,12 +33,7 @@ export function FerrataDetailMapSection({
   routeNote,
   embed,
 }: FerrataDetailMapSectionProps) {
-  const region = {
-    latitude: lat,
-    longitude: lng,
-    latitudeDelta: 0.04,
-    longitudeDelta: 0.04,
-  }
+  const staticMapUri = mapTilerStaticUrl(lat, lng)
 
   const openDirections = () => {
     void Linking.openURL(googleMapsDirectionsUrl(lat, lng))
@@ -55,19 +57,19 @@ export function FerrataDetailMapSection({
       ) : null}
 
       <Pressable onPress={openDirections} style={[styles.mapWrap, embed && styles.mapWrapEmbed]}>
-        <MapView
-          style={[styles.map, embed && styles.mapEmbed]}
-          provider={PROVIDER_DEFAULT}
-          initialRegion={region}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          pointerEvents="none"
-        >
-          <Marker coordinate={{ latitude: lat, longitude: lng }} title={naziv} />
-        </MapView>
-        <View style={styles.mapOverlay} pointerEvents="none" />
+        {staticMapUri ? (
+          <Image source={{ uri: staticMapUri }} style={[styles.map, embed && styles.mapEmbed]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.mapPlaceholder, embed && styles.mapEmbed]}>
+            <Ionicons name="location-outline" size={28} color={colors.brand} />
+            <Text variant="small" color={colors.textMuted} style={styles.mapLabel}>
+              {naziv}
+            </Text>
+            <Text variant="small" color={colors.textSubtle}>
+              {lat.toFixed(4)}, {lng.toFixed(4)}
+            </Text>
+          </View>
+        )}
       </Pressable>
 
       {!embed && route ? (
@@ -113,10 +115,15 @@ const styles = StyleSheet.create({
   mapWrapEmbed: { marginTop: spacing.xs },
   map: { width: '100%', height: 200 },
   mapEmbed: { height: 160 },
-  mapOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
+  mapPlaceholder: {
+    width: '100%',
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    padding: spacing.md,
   },
+  mapLabel: { textAlign: 'center' },
   routeBox: {
     gap: spacing.xs,
     padding: spacing.md,
