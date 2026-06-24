@@ -29,11 +29,24 @@ export function ActionDetailAddTransportSheet({
   const [kapacitet, setKapacitet] = useState('4')
   const [cenaPoOsobi, setCenaPoOsobi] = useState('0')
   const [join, setJoin] = useState(true)
+  const [error, setError] = useState('')
 
   const submit = () => {
+    if (!tipPrevoza.trim()) {
+      setError('Unesite tip prevoza.')
+      return
+    }
+    if (!nazivGrupe.trim()) {
+      setError('Unesite naziv grupe.')
+      return
+    }
     const kap = parseInt(kapacitet, 10)
+    if (!Number.isFinite(kap) || kap < 1) {
+      setError('Kapacitet mora biti najmanje 1.')
+      return
+    }
     const cena = parseFloat(cenaPoOsobi.replace(',', '.'))
-    if (!tipPrevoza.trim() || !nazivGrupe.trim() || !Number.isFinite(kap) || kap < 1) return
+    setError('')
     void onSubmit({
       tipPrevoza: tipPrevoza.trim(),
       nazivGrupe: nazivGrupe.trim(),
@@ -61,6 +74,11 @@ export function ActionDetailAddTransportSheet({
             <Text>Pridruži me ovom prevozu</Text>
             <Switch value={join} onValueChange={setJoin} trackColor={{ true: colors.brand }} />
           </View>
+          {error ? (
+            <Text variant="small" color={colors.danger}>
+              {error}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
             <Button title="Otkaži" variant="ghost" onPress={onClose} />
             <Button title="Sačuvaj" loading={loading} onPress={submit} />

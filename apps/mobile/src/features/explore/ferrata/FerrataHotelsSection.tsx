@@ -9,6 +9,7 @@ import { FerrataDetailMapSection } from './FerrataDetailMapSection'
 interface FerrataHotelsSectionProps {
   hotels: HotelNearbyPublic[]
   loading?: boolean
+  onDetailOpenChange?: (open: boolean) => void
 }
 
 function hotelThumb(h: HotelNearbyPublic): string | null {
@@ -24,13 +25,19 @@ function formatDistanceKm(km: number | undefined): string {
   return String(rounded).replace(/\.0$/, '')
 }
 
-export function FerrataHotelsSection({ hotels, loading }: FerrataHotelsSectionProps) {
+export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange }: FerrataHotelsSectionProps) {
   const [selected, setSelected] = useState<HotelNearbyPublic | null>(null)
   const [imgIx, setImgIx] = useState(0)
 
   useEffect(() => {
     setImgIx(0)
   }, [selected?.id])
+
+  useEffect(() => {
+    onDetailOpenChange?.(!!selected)
+  }, [selected, onDetailOpenChange])
+
+  const closeDetail = () => setSelected(null)
 
   if (loading) {
     return (
@@ -64,98 +71,108 @@ export function FerrataHotelsSection({ hotels, loading }: FerrataHotelsSectionPr
         </View>
       </Card>
 
-      <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
-        <Pressable style={styles.overlay} onPress={() => setSelected(null)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            {selected ? (
-              <ScrollView
-                contentContainerStyle={styles.sheetContent}
-                nestedScrollEnabled
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator
-              >
-                <View style={styles.sheetHeader}>
-                  <Text variant="heading">{selected.naziv || 'Hotel'}</Text>
-                  <Pressable onPress={() => setSelected(null)} hitSlop={8}>
-                    <Ionicons name="close" size={24} color={colors.textMuted} />
-                  </Pressable>
-                </View>
+      <Modal
+        visible={!!selected}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeDetail}
+      >
+        {selected ? (
+          <View style={styles.modalRoot}>
+            <View style={styles.sheetHeader}>
+              <Text variant="heading" style={styles.sheetTitle}>
+                {selected.naziv || 'Hotel'}
+              </Text>
+              <Pressable onPress={closeDetail} hitSlop={8} accessibilityLabel="Zatvori">
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </Pressable>
+            </View>
 
-                <View style={styles.galleryRow}>
-                  <View style={styles.mainImageWrap}>
-                    {mainImage ? (
-                      <Image source={{ uri: mainImage }} style={styles.mainImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.mainImage, styles.imageFallback]}>
-                        <Ionicons name="bed-outline" size={40} color={colors.brandLight} />
-                      </View>
-                    )}
-                  </View>
-                  {selectedImages.length > 1 ? (
-                    <ScrollView style={styles.thumbs} showsVerticalScrollIndicator={false}>
-                      {selectedImages.map((url, ix) => (
-                        <Pressable
-                          key={`${url}-${ix}`}
-                          onPress={() => setImgIx(ix)}
-                          style={[styles.thumb, ix === imgIx && styles.thumbActive]}
-                        >
-                          <Image source={{ uri: url }} style={styles.thumbImage} resizeMode="cover" />
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  ) : null}
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetContent}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+            >
+              <View style={styles.galleryRow}>
+                <View style={styles.mainImageWrap}>
+                  {mainImage ? (
+                    <Image source={{ uri: mainImage }} style={styles.mainImage} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.mainImage, styles.imageFallback]}>
+                      <Ionicons name="bed-outline" size={40} color={colors.brandLight} />
+                    </View>
+                  )}
                 </View>
-
-                {selected.distanceKm != null ? (
-                  <View style={styles.metaRow}>
-                    <Ionicons name="location-outline" size={16} color={colors.brand} />
-                    <Text variant="small" color={colors.textMuted}>
-                      {formatDistanceKm(selected.distanceKm)} km od ferate
-                    </Text>
-                  </View>
+                {selectedImages.length > 1 ? (
+                  <ScrollView
+                    style={styles.thumbs}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {selectedImages.map((url, ix) => (
+                      <Pressable
+                        key={`${url}-${ix}`}
+                        onPress={() => setImgIx(ix)}
+                        style={[styles.thumb, ix === imgIx && styles.thumbActive]}
+                      >
+                        <Image source={{ uri: url }} style={styles.thumbImage} resizeMode="cover" />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
                 ) : null}
+              </View>
 
-                {selected.opis ? (
-                  <Text variant="body" color={colors.textMuted}>
-                    {selected.opis}
+              {selected.distanceKm != null ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="location-outline" size={16} color={colors.brand} />
+                  <Text variant="small" color={colors.textMuted}>
+                    {formatDistanceKm(selected.distanceKm)} km od ferate
                   </Text>
-                ) : null}
+                </View>
+              ) : null}
 
-                {typeof selected.lat === 'number' && typeof selected.lng === 'number' ? (
-                  <FerrataDetailMapSection
-                    embed
-                    lat={selected.lat}
-                    lng={selected.lng}
-                    naziv={selected.naziv}
-                  />
-                ) : null}
+              {selected.opis ? (
+                <Text variant="body" color={colors.textMuted}>
+                  {selected.opis}
+                </Text>
+              ) : null}
 
-                {selected.telefon ? (
-                  <Button
-                    title={`Pozovi: ${selected.telefon}`}
-                    variant="secondary"
-                    onPress={() => void Linking.openURL(`tel:${selected.telefon}`)}
-                  />
-                ) : null}
-                {selected.bookingUrl ? (
-                  <Button
-                    title="Rezerviši (Booking)"
-                    onPress={() => void Linking.openURL(String(selected.bookingUrl))}
-                  />
-                ) : null}
-                {(selected.instagramUrl || selected.instagram) ? (
-                  <Button
-                    title="Instagram profil"
-                    variant="secondary"
-                    onPress={() =>
-                      void Linking.openURL(String(selected.instagramUrl || selected.instagram))
-                    }
-                  />
-                ) : null}
-              </ScrollView>
-            ) : null}
-          </Pressable>
-        </Pressable>
+              {typeof selected.lat === 'number' && typeof selected.lng === 'number' ? (
+                <FerrataDetailMapSection
+                  embed
+                  lat={selected.lat}
+                  lng={selected.lng}
+                  naziv={selected.naziv}
+                />
+              ) : null}
+
+              {selected.telefon ? (
+                <Button
+                  title={`Pozovi: ${selected.telefon}`}
+                  variant="secondary"
+                  onPress={() => void Linking.openURL(`tel:${selected.telefon}`)}
+                />
+              ) : null}
+              {selected.bookingUrl ? (
+                <Button
+                  title="Rezerviši (Booking)"
+                  onPress={() => void Linking.openURL(String(selected.bookingUrl))}
+                />
+              ) : null}
+              {selected.instagramUrl || selected.instagram ? (
+                <Button
+                  title="Instagram profil"
+                  variant="secondary"
+                  onPress={() =>
+                    void Linking.openURL(String(selected.instagramUrl || selected.instagram))
+                  }
+                />
+              ) : null}
+            </ScrollView>
+          </View>
+        ) : null}
       </Modal>
     </>
   )
@@ -232,24 +249,22 @@ const styles = StyleSheet.create({
   },
   hotelInfo: { flex: 1, gap: spacing.xs },
   distanceRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '90%',
-  },
-  sheetContent: { padding: spacing.lg, gap: spacing.md },
+  modalRoot: { flex: 1, backgroundColor: colors.bg },
+  sheetScroll: { flex: 1 },
+  sheetContent: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
+  sheetTitle: { flex: 1 },
   galleryRow: { flexDirection: 'row', gap: spacing.sm },
   mainImageWrap: {
     flex: 1,

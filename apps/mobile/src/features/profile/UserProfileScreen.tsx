@@ -338,7 +338,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
   const goUserProfile = (username: string) => {
     setFollowModal(null)
-    if (inProfileStack) {
+    if (routeNames.includes('UserProfile')) {
       profileNavigation.push('UserProfile', { username })
       return
     }

@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
-import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { GuideNearbyPublic } from '@beleg/shared/services'
 import {
   fetchFerrataBySlug,
   fetchFerrataUpcomingActions,
@@ -27,6 +29,9 @@ type Props =
 export default function FerrataDetailScreen({ route, navigation }: Props) {
   const { slug } = route.params
   const [bookOpen, setBookOpen] = useState(false)
+  const [hotelDetailOpen, setHotelDetailOpen] = useState(false)
+  const insets = useSafeAreaInsets()
+  const footerPad = spacing.lg * 2 + 48 + insets.bottom
 
   const detailQuery = useQuery({
     queryKey: ['ferrata', slug],
@@ -100,12 +105,23 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
     navigateToActionDetailFromExplore(id)
   }
 
+  const handlePressGuide = (guide: GuideNearbyPublic) => {
+    const username = guide.user?.username?.trim()
+    if (username) {
+      const stackNav = navigation as NativeStackNavigationProp<ExploreStackParamList>
+      stackNav.push('UserProfile', { username })
+      return
+    }
+    setBookOpen(true)
+  }
+
   return (
     <Screen padded={false} edges={['left', 'right']}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: footerPad }]}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={!hotelDetailOpen}
       >
         {f.coverImage ? (
           <Image source={{ uri: f.coverImage }} style={styles.hero} resizeMode="cover" />
@@ -158,9 +174,17 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
             onPressAction={navigateToAction}
           />
 
-          <FerrataGuidesSection guides={guidesQuery.data ?? []} loading={guidesQuery.isLoading} />
+          <FerrataGuidesSection
+            guides={guidesQuery.data ?? []}
+            loading={guidesQuery.isLoading}
+            onPressGuide={handlePressGuide}
+          />
 
-          <FerrataHotelsSection hotels={hotelsQuery.data ?? []} loading={hotelsQuery.isLoading} />
+          <FerrataHotelsSection
+            hotels={hotelsQuery.data ?? []}
+            loading={hotelsQuery.isLoading}
+            onDetailOpenChange={setHotelDetailOpen}
+          />
 
           {lat != null && lng != null ? (
             <FerrataDetailMapSection
@@ -196,7 +220,7 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
         <Button title="Zakaži vodiča" onPress={() => setBookOpen(true)} fullWidth />
       </View>
 
@@ -225,7 +249,7 @@ function Stat({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: 100 },
+  scroll: {},
   hero: { width: '100%', height: 240 },
   heroFallback: { backgroundColor: '#cbd5e1' },
   content: { padding: spacing.lg, gap: spacing.sm },

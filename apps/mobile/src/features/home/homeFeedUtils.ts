@@ -138,9 +138,10 @@ export function buildHomeListItems(
 }
 
 export function pickRandomFerrata(ferrate: FerrataRow[]): FerrataRow | null {
-  if (!ferrate.length) return null
-  const index = Math.floor(Math.random() * ferrate.length)
-  return ferrate[index] ?? null
+  const withSlug = ferrate.filter((f) => f.slug?.trim())
+  if (!withSlug.length) return null
+  const index = Math.floor(Math.random() * withSlug.length)
+  return withSlug[index] ?? null
 }
 
 export function pickSuggestedUsers(

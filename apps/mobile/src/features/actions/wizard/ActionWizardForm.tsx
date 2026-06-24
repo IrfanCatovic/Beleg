@@ -15,7 +15,7 @@ import {
   parseLocalDate,
 } from '@beleg/shared'
 import { ChipRow } from '../../../components/ui/ChipRow'
-import { Button, Card, DatePickerField, Input, Text } from '../../../components/ui'
+import { Button, Card, DatePickerField, Input, Text, TimePickerField } from '../../../components/ui'
 import { colors, fontSize, radius, spacing } from '../../../theme'
 
 export interface ActionWizardFormProps {
@@ -512,12 +512,10 @@ export function ActionWizardForm({
             />
 
             {isVia ? (
-              <Input
+              <TimePickerField
                 label="Vreme polaska"
-                value={values.vremePolaska}
-                onChangeText={(t) => patch({ vremePolaska: t })}
-                placeholder="HH:MM"
-                autoCapitalize="none"
+                value={values.vremePolaska || null}
+                onChange={(hhmm) => patch({ vremePolaska: hhmm ?? '' })}
               />
             ) : null}
 

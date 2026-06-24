@@ -242,7 +242,8 @@ export default function HomeScreen({ navigation }: Props) {
         return <HomeSuggestedUsersRow users={item.users} onPressUser={navigateToUser} />
       }
       if (item.kind === 'ferrata') {
-        const slug = item.ferrata.slug || String(item.ferrata.id)
+        const slug = item.ferrata.slug?.trim()
+        if (!slug) return null
         return (
           <HomeFeedFerrataCard
             ferrata={item.ferrata}

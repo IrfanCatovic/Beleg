@@ -2,91 +2,79 @@ import { useMemo, useState } from 'react'
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
-import { formatActionDate, parseLocalDate } from '@beleg/shared'
-import {
-  clampDate,
-  getDateBounds,
-  todayAtMidnight,
-  toLocalYMD,
-  type DatePickerPreset,
-} from '../../utils/datePickerBounds'
+import { dateFromHHMM, formatHHMM, isValidHHMM } from '@beleg/shared'
 import { Button } from './Button'
 import { Text } from './Text'
 import { colors, radius, spacing } from '../../theme'
 
-export type DatePickerFieldProps = {
+export type TimePickerFieldProps = {
   label?: string
   value: string | null
-  onChange: (ymd: string | null) => void
-  preset?: DatePickerPreset
-  minimumDate?: Date
-  maximumDate?: Date
+  onChange: (hhmm: string | null) => void
+  minuteInterval?: 1 | 5 | 10 | 15 | 30
   optional?: boolean
   placeholder?: string
   disabled?: boolean
-  /** Kad je true (iOS), picker se prikazuje inline umesto u novom Modal-u — za upotrebu unutar pageSheet modala. */
   nestedInModal?: boolean
 }
 
-export function DatePickerField({
+function defaultTime(): Date {
+  const d = new Date()
+  d.setHours(9, 0, 0, 0)
+  return d
+}
+
+export function TimePickerField({
   label,
   value,
   onChange,
-  preset = 'any',
-  minimumDate: minimumDateProp,
-  maximumDate: maximumDateProp,
+  minuteInterval = 5,
   optional = false,
-  placeholder = 'Izaberi datum',
+  placeholder = 'Izaberi vreme',
   disabled = false,
   nestedInModal = false,
-}: DatePickerFieldProps) {
+}: TimePickerFieldProps) {
   const [showPicker, setShowPicker] = useState(false)
-  const [draftDate, setDraftDate] = useState<Date>(() => todayAtMidnight())
+  const [draftTime, setDraftTime] = useState<Date>(() => defaultTime())
 
-  const bounds = useMemo(() => {
-    const presetBounds = getDateBounds(preset)
-    return {
-      minimumDate: minimumDateProp ?? presetBounds.minimumDate,
-      maximumDate: maximumDateProp ?? presetBounds.maximumDate,
-    }
-  }, [preset, minimumDateProp, maximumDateProp])
+  const displayText = useMemo(() => {
+    if (!value?.trim()) return placeholder
+    return isValidHHMM(value) ? value.trim() : placeholder
+  }, [value, placeholder])
 
-  const displayText = value ? formatActionDate(value) : placeholder
-  const displayColor = value ? colors.text : colors.textMuted
+  const displayColor = value?.trim() && isValidHHMM(value) ? colors.text : colors.textMuted
   const useInlineIos = Platform.OS === 'ios' && nestedInModal
 
   const openPicker = () => {
     if (disabled) return
-    const initial = parseLocalDate(value) ?? todayAtMidnight()
-    setDraftDate(clampDate(initial, bounds.minimumDate, bounds.maximumDate))
+    const initial = dateFromHHMM(value ?? '') ?? defaultTime()
+    setDraftTime(initial)
     setShowPicker(true)
   }
 
   const closePicker = () => setShowPicker(false)
 
-  const applyDate = (date: Date) => {
-    const clamped = clampDate(date, bounds.minimumDate, bounds.maximumDate)
-    onChange(toLocalYMD(clamped))
+  const applyTime = (date: Date) => {
+    onChange(formatHHMM(date))
     closePicker()
   }
 
   const onAndroidChange = (_event: DateTimePickerEvent, selected?: Date) => {
     setShowPicker(false)
-    if (selected) applyDate(selected)
+    if (selected) applyTime(selected)
   }
 
   const onIosChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (selected) setDraftDate(clampDate(selected, bounds.minimumDate, bounds.maximumDate))
+    if (selected) setDraftTime(selected)
   }
 
   const iosPicker = (
     <>
       <DateTimePicker
-        value={draftDate}
-        mode="date"
-        display={useInlineIos ? 'inline' : 'inline'}
-        minimumDate={bounds.minimumDate}
-        maximumDate={bounds.maximumDate}
+        value={draftTime}
+        mode="time"
+        display="spinner"
+        minuteInterval={minuteInterval}
         onChange={onIosChange}
         locale="sr-Latn-RS"
         style={styles.iosPicker}
@@ -96,7 +84,7 @@ export function DatePickerField({
           <Button title="Otkaži" variant="secondary" onPress={closePicker} fullWidth />
         </View>
         <View style={styles.sheetBtn}>
-          <Button title="Potvrdi" onPress={() => applyDate(draftDate)} fullWidth />
+          <Button title="Potvrdi" onPress={() => applyTime(draftTime)} fullWidth />
         </View>
       </View>
     </>
@@ -106,29 +94,29 @@ export function DatePickerField({
     <View style={styles.wrap}>
       {label ? <Text variant="label">{label}</Text> : null}
       <Pressable
-        style={[styles.dateRow, disabled && styles.dateRowDisabled]}
+        style={[styles.timeRow, disabled && styles.timeRowDisabled]}
         onPress={openPicker}
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={label ?? placeholder}
       >
-        <Text color={displayColor} style={styles.dateText}>
+        <Text color={displayColor} style={styles.timeText}>
           {displayText}
         </Text>
-        <Ionicons name="calendar-outline" size={22} color={colors.brand} />
+        <Ionicons name="time-outline" size={22} color={colors.brand} />
       </Pressable>
 
       {optional && value ? (
-        <Button title="Ukloni datum" variant="ghost" onPress={() => onChange(null)} />
+        <Button title="Ukloni vreme" variant="ghost" onPress={() => onChange(null)} />
       ) : null}
 
       {Platform.OS === 'android' && showPicker ? (
         <DateTimePicker
-          value={draftDate}
-          mode="date"
+          value={draftTime}
+          mode="time"
           display="default"
-          minimumDate={bounds.minimumDate}
-          maximumDate={bounds.maximumDate}
+          minuteInterval={minuteInterval}
+          is24Hour
           onChange={onAndroidChange}
         />
       ) : null}
@@ -142,7 +130,7 @@ export function DatePickerField({
           <Pressable style={styles.overlay} onPress={closePicker}>
             <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
               <View style={styles.sheetHeader}>
-                <Text variant="label">{label ?? 'Izaberi datum'}</Text>
+                <Text variant="label">{label ?? 'Izaberi vreme'}</Text>
               </View>
               {iosPicker}
             </Pressable>
@@ -155,7 +143,7 @@ export function DatePickerField({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },
-  dateRow: {
+  timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -166,8 +154,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     minHeight: 48,
   },
-  dateRowDisabled: { opacity: 0.5 },
-  dateText: { flex: 1, marginRight: spacing.sm },
+  timeRowDisabled: { opacity: 0.5 },
+  timeText: { flex: 1, marginRight: spacing.sm },
   inlinePicker: {
     borderWidth: 1,
     borderColor: colors.border,

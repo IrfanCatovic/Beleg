@@ -10,6 +10,7 @@ export {
 } from './ferrataWizardPrefill'
 export { computePERForAkcija } from './ranking'
 export { formatActionDate, formatActionDateShort, parseLocalDate } from './dateFormat'
+export { dateFromHHMM, formatHHMM, isValidHHMM, parseHHMM } from './timeFormat'
 export {
   buildActionInviteWhatsAppMessage,
   buildActionShareUrl,

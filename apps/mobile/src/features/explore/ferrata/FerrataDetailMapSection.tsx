@@ -1,6 +1,6 @@
-import { Image, Linking, Pressable, StyleSheet, View } from 'react-native'
+import { Image, Linking, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Card, Text } from '../../../components/ui'
+import { Button, Card, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 
 interface FerrataDetailMapSectionProps {
@@ -56,7 +56,7 @@ export function FerrataDetailMapSection({
         </Text>
       ) : null}
 
-      <Pressable onPress={openDirections} style={[styles.mapWrap, embed && styles.mapWrapEmbed]}>
+      <View style={[styles.mapWrap, embed && styles.mapWrapEmbed]}>
         {staticMapUri ? (
           <Image source={{ uri: staticMapUri }} style={[styles.map, embed && styles.mapEmbed]} resizeMode="cover" />
         ) : (
@@ -70,7 +70,7 @@ export function FerrataDetailMapSection({
             </Text>
           </View>
         )}
-      </Pressable>
+      </View>
 
       {!embed && route ? (
         <View style={styles.routeBox}>
@@ -83,14 +83,12 @@ export function FerrataDetailMapSection({
         </View>
       ) : null}
 
-      {!embed ? (
-        <Pressable style={styles.routeBtn} onPress={openDirections}>
-          <Ionicons name="navigate-outline" size={18} color={colors.brandDark} />
-          <Text variant="label" color={colors.brandDark}>
-            Putanja
-          </Text>
-        </Pressable>
-      ) : null}
+      <Button
+        title="Navigacija (Google Maps)"
+        variant="secondary"
+        onPress={openDirections}
+        fullWidth
+      />
     </>
   )
 
@@ -131,16 +129,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#ecfdf5',
     borderWidth: 1,
     borderColor: '#a7f3d0',
-  },
-  routeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    backgroundColor: '#ecfdf5',
   },
 })

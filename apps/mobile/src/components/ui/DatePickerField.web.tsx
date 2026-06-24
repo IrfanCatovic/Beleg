@@ -22,6 +22,8 @@ export type DatePickerFieldProps = {
   optional?: boolean
   placeholder?: string
   disabled?: boolean
+  /** Kad je true (iOS), picker se prikazuje inline umesto u novom Modal-u. */
+  nestedInModal?: boolean
 }
 
 function toInputValue(ymd: string | null): string {

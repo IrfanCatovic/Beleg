@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -533,7 +535,11 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
                 </Text>
               </Pressable>
             </View>
-            <View style={styles.userList}>
+            <ScrollView
+              style={styles.userList}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
               {korisnici.map((k) => {
                 const id = String(k.id)
                 return (
@@ -546,7 +552,7 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
                   />
                 )
               })}
-            </View>
+            </ScrollView>
 
             <Input label="Naziv akcije" value={naziv} onChangeText={setNaziv} placeholder="Naziv" />
             <Input label="Planina" value={planina} onChangeText={setPlanina} placeholder="Planina" />
@@ -676,7 +682,8 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
 
       <Modal visible={showManageModal} transparent animationType="fade" onRequestClose={closeManageModal}>
         <Pressable style={styles.modalOverlay} onPress={closeManageModal}>
-          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
             {selectedExistingAction ? (
               <>
                 <View style={styles.modalHeader}>
@@ -846,6 +853,7 @@ export default function AddPastActionScreen({ navigation, route }: Props) {
               </>
             ) : null}
           </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </View>

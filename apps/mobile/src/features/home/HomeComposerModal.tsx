@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
@@ -36,26 +36,28 @@ export function HomeComposerModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.header}>
-            <Text variant="heading">{t('composerModalTitle')}</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text color={colors.brand}>{t('composerClose')}</Text>
-            </Pressable>
-          </View>
-          <HomeComposer
-            avatarUri={avatarUri}
-            avatarName={avatarName}
-            composer={composer}
-            imageUri={imageUri}
-            publishing={publishing}
-            onChangeText={onChangeText}
-            onPickImage={onPickImage}
-            onRemoveImage={onRemoveImage}
-            onPublish={onPublish}
-            variant="modal"
-          />
-        </Pressable>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.header}>
+              <Text variant="heading">{t('composerModalTitle')}</Text>
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Text color={colors.brand}>{t('composerClose')}</Text>
+              </Pressable>
+            </View>
+            <HomeComposer
+              avatarUri={avatarUri}
+              avatarName={avatarName}
+              composer={composer}
+              imageUri={imageUri}
+              publishing={publishing}
+              onChangeText={onChangeText}
+              onPickImage={onPickImage}
+              onRemoveImage={onRemoveImage}
+              onPublish={onPublish}
+              variant="modal"
+            />
+          </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   )
@@ -64,8 +66,8 @@ export function HomeComposerModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
+    backgroundColor: colors.overlay,
   },
   sheet: {
     backgroundColor: colors.surface,

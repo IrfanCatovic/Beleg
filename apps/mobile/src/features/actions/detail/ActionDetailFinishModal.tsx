@@ -34,9 +34,13 @@ export function ActionDetailFinishModal({
 }: ActionDetailFinishModalProps) {
   const insets = useSafeAreaInsets()
   const [rashodStr, setRashodStr] = useState('0')
+  const [localError, setLocalError] = useState('')
 
   useEffect(() => {
-    if (visible) setRashodStr('0')
+    if (visible) {
+      setRashodStr('0')
+      setLocalError('')
+    }
   }, [visible])
 
   const rashod = useMemo(() => parseAmount(rashodStr), [rashodStr])
@@ -82,13 +86,23 @@ export function ActionDetailFinishModal({
             </Text>
           ) : null}
 
+          {localError ? (
+            <Text variant="small" color="#dc2626">
+              {localError}
+            </Text>
+          ) : null}
+
           <View style={styles.actions}>
             <Button title="Otkaži" variant="ghost" onPress={onClose} disabled={loading} />
             <Button
               title="Završi"
               loading={loading}
               onPress={() => {
-                if (!Number.isFinite(rashod) || rashod < 0) return
+                if (!Number.isFinite(rashod) || rashod < 0) {
+                  setLocalError('Unesite validan rashod (0 ili više).')
+                  return
+                }
+                setLocalError('')
                 onConfirm(rashod)
               }}
             />

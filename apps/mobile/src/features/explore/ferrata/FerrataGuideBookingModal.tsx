@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { useMutation } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { formatActionDate, getApiErrorMessage } from '@beleg/shared'
+import { formatActionDate, getApiErrorMessage, isValidHHMM } from '@beleg/shared'
 import type {
   GuideBookingEquipmentStatus,
   GuideBookingGroupExperience,
@@ -26,7 +26,7 @@ import {
 import { client } from '../../../api/client'
 import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
-import { Avatar, Button, DatePickerField, Text } from '../../../components/ui'
+import { Avatar, Button, DatePickerField, Text, TimePickerField } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 
 interface FerrataGuideBookingModalProps {
@@ -87,6 +87,8 @@ export function FerrataGuideBookingModal({
   const [guidesLoading, setGuidesLoading] = useState(false)
   const [showAllGuides, setShowAllGuides] = useState(false)
   const [selectedGuideIds, setSelectedGuideIds] = useState<Set<number>>(new Set())
+  const [localError, setLocalError] = useState('')
+  const [step2Error, setStep2Error] = useState('')
 
   const hasCoords = ferrataLat != null && ferrataLng != null
 
@@ -95,7 +97,7 @@ export function FerrataGuideBookingModal({
     setStep(1)
     setDesiredDate('')
     setTimeOfDay('any')
-    setExactTime('')
+    setExactTime('09:00')
     setDateFlexible(false)
     setNumberOfPeople('2')
     setGroupExperience('')
@@ -105,15 +107,17 @@ export function FerrataGuideBookingModal({
     setGuides([])
     setShowAllGuides(false)
     setSelectedGuideIds(new Set())
+    setLocalError('')
+    setStep2Error('')
   }, [visible])
 
   const submitMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (skipGuides: boolean) => {
       if (!desiredDate.trim()) throw new Error('Izaberite datum.')
       return createFerrataGuideBooking(client, {
         ferrataId,
-        guideProfileIds: Array.from(selectedGuideIds),
-        skipGuides: false,
+        guideProfileIds: skipGuides ? [] : Array.from(selectedGuideIds),
+        skipGuides,
         desiredDate: desiredDate.trim(),
         timeOfDay,
         exactTime: timeOfDay === 'exact' ? exactTime : '',
@@ -135,33 +139,15 @@ export function FerrataGuideBookingModal({
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Slanje zahteva nije uspelo.')),
   })
 
-  const validateStep1 = async (): Promise<boolean> => {
-    if (!desiredDate.trim()) {
-      await showAlert('Datum', 'Izaberite željeni datum.')
-      return false
-    }
-    if (timeOfDay === 'exact' && !exactTime.trim()) {
-      await showAlert('Vreme', 'Unesite tačno vreme polaska.')
-      return false
-    }
+  const validateStep1 = (): string | null => {
+    if (!desiredDate.trim()) return 'Izaberite željeni datum.'
+    if (timeOfDay === 'exact' && !isValidHHMM(exactTime)) return 'Izaberite tačno vreme polaska.'
     const n = Number(numberOfPeople)
-    if (!Number.isFinite(n) || n < 1) {
-      await showAlert('Broj osoba', 'Unesite validan broj osoba.')
-      return false
-    }
-    if (!groupExperience) {
-      await showAlert('Iskustvo', 'Izaberite iskustvo grupe.')
-      return false
-    }
-    if (!equipmentStatus) {
-      await showAlert('Oprema', 'Izaberite status opreme.')
-      return false
-    }
-    if (!contactPhone.trim()) {
-      await showAlert('Telefon', 'Unesite kontakt telefon.')
-      return false
-    }
-    return true
+    if (!Number.isFinite(n) || n < 1) return 'Unesite validan broj osoba.'
+    if (!groupExperience) return 'Izaberite iskustvo grupe.'
+    if (!equipmentStatus) return 'Izaberite status opreme.'
+    if (!contactPhone.trim()) return 'Unesite kontakt telefon.'
+    return null
   }
 
   const loadNearbyGuides = async () => {
@@ -199,20 +185,31 @@ export function FerrataGuideBookingModal({
   }
 
   const goStep2 = async () => {
-    if (!(await validateStep1())) return
+    const err = validateStep1()
+    if (err) {
+      setLocalError(err)
+      return
+    }
+    setLocalError('')
+    if (!hasCoords) {
+      submitMutation.mutate(true)
+      return
+    }
     await loadNearbyGuides()
     setStep(2)
   }
 
-  const goStep3 = async () => {
+  const goStep3 = () => {
     if (selectedGuideIds.size === 0) {
-      await showAlert('Vodič', 'Izaberite bar jednog vodiča.')
+      setStep2Error('Izaberite bar jednog vodiča.')
       return
     }
+    setStep2Error('')
     setStep(3)
   }
 
   const toggleGuide = (id: number) => {
+    setStep2Error('')
     setSelectedGuideIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -246,21 +243,25 @@ export function FerrataGuideBookingModal({
               <DatePickerField
                 label="Željeni datum"
                 value={desiredDate || null}
-                onChange={(ymd) => setDesiredDate(ymd ?? '')}
+                onChange={(ymd) => {
+                  setDesiredDate(ymd ?? '')
+                  setLocalError('')
+                }}
                 preset="future"
+                nestedInModal
               />
 
               <ChipField label="Vreme dana" options={TIME_OPTIONS} value={timeOfDay} onChange={setTimeOfDay} />
               {timeOfDay === 'exact' ? (
-                <Field label="Tačno vreme">
-                  <TextInput
-                    style={styles.input}
-                    value={exactTime}
-                    onChangeText={setExactTime}
-                    placeholder="08:30"
-                    placeholderTextColor={colors.textSubtle}
-                  />
-                </Field>
+                <TimePickerField
+                  label="Tačno vreme"
+                  value={exactTime || null}
+                  onChange={(hhmm) => {
+                    setExactTime(hhmm ?? '')
+                    setLocalError('')
+                  }}
+                  nestedInModal
+                />
               ) : null}
 
               <Field label="Broj osoba">
@@ -312,6 +313,12 @@ export function FerrataGuideBookingModal({
                 <Text variant="body">Fleksibilan datum</Text>
                 <Switch value={dateFlexible} onValueChange={setDateFlexible} trackColor={{ true: colors.brand }} />
               </View>
+
+              {localError ? (
+                <Text variant="small" color={colors.danger}>
+                  {localError}
+                </Text>
+              ) : null}
             </View>
           ) : null}
 
@@ -363,6 +370,11 @@ export function FerrataGuideBookingModal({
                   ) : null}
                 </>
               )}
+              {step2Error ? (
+                <Text variant="small" color={colors.danger}>
+                  {step2Error}
+                </Text>
+              ) : null}
             </View>
           ) : null}
 
@@ -408,11 +420,11 @@ export function FerrataGuideBookingModal({
           {step === 1 ? (
             <Button title="Dalje" onPress={() => void goStep2()} />
           ) : step === 2 ? (
-            <Button title="Dalje" onPress={() => void goStep3()} disabled={selectedGuideIds.size === 0} />
+            <Button title="Dalje" onPress={goStep3} disabled={selectedGuideIds.size === 0} />
           ) : (
             <Button
               title="Pošalji zahtev"
-              onPress={() => submitMutation.mutate()}
+              onPress={() => submitMutation.mutate(false)}
               loading={submitMutation.isPending}
             />
           )}
@@ -505,6 +517,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chipActive: { borderColor: colors.brand, backgroundColor: '#ecfdf5' },
+  errorText: { color: colors.danger },
   guideRow: {
     flexDirection: 'row',
     alignItems: 'center',

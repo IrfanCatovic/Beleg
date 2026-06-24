@@ -11,6 +11,7 @@ import {
   getApiErrorMessage,
   buildGuideBookingWizardPrefill,
   buildPeakGuideBookingWizardPrefill,
+  isValidHHMM,
 } from '@beleg/shared'
 import {
   acceptFerrataGuideBooking,
@@ -239,8 +240,8 @@ export default function ActionWizardScreen({ navigation, route }: Props) {
         setSubmitLoading(false)
         return
       }
-      if (!values.vremePolaska.trim()) {
-        setError('Unesite vreme polaska.')
+      if (!isValidHHMM(values.vremePolaska)) {
+        setError('Izaberite validno vreme polaska.')
         setSubmitLoading(false)
         return
       }
