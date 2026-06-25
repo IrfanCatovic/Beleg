@@ -18,11 +18,13 @@ import (
 const expoPushURL = "https://exp.host/--/api/v2/push/send"
 
 type expoMessage struct {
-	To    string            `json:"to"`
-	Title string            `json:"title,omitempty"`
-	Body  string            `json:"body,omitempty"`
-	Data  map[string]string `json:"data,omitempty"`
-	Sound string            `json:"sound,omitempty"`
+	To        string            `json:"to"`
+	Title     string            `json:"title,omitempty"`
+	Body      string            `json:"body,omitempty"`
+	Data      map[string]string `json:"data,omitempty"`
+	Sound     string            `json:"sound,omitempty"`
+	Priority  string            `json:"priority,omitempty"`
+	ChannelID string            `json:"channelId,omitempty"`
 }
 
 type expoTicket struct {
@@ -86,11 +88,13 @@ func sendPush(tokens []string, title, body string, data map[string]string) []str
 	messages := make([]expoMessage, 0, len(tokens))
 	for _, tok := range tokens {
 		messages = append(messages, expoMessage{
-			To:    tok,
-			Title: title,
-			Body:  body,
-			Data:  data,
-			Sound: "default",
+			To:        tok,
+			Title:     title,
+			Body:      body,
+			Data:      data,
+			Sound:     "default",
+			Priority:  "high",
+			ChannelID: "default",
 		})
 	}
 

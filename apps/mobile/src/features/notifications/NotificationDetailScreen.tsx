@@ -60,8 +60,31 @@ interface ParsedMeta {
   clubJoinRequestId?: number
   requesterUsername?: string
   requesterFullName?: string
+  requesterId?: number
+  targetId?: number
+  targetUsername?: string
+  targetFullName?: string
+  followId?: number
   bookingRequestId?: number
   bookingKind?: string
+}
+
+function resolveProfileFromNotification(meta: ParsedMeta, body?: string) {
+  const fromFollowBody = body?.match(/^(.+?)\s+želi da te zaprati\.?$/i)?.[1]?.trim()
+  const fromAcceptedBody = body?.match(/^(.+?)\s+je prihvatio\/la tvoj zahtev\.?$/i)?.[1]?.trim()
+  const username = meta.requesterUsername || meta.targetUsername || meta.username
+  const displayName =
+    meta.requesterFullName?.trim() ||
+    meta.targetFullName?.trim() ||
+    fromFollowBody ||
+    fromAcceptedBody ||
+    username ||
+    undefined
+  return {
+    displayName: displayName || 'Korisnik',
+    username,
+    userId: meta.requesterId ?? meta.targetId ?? meta.userId,
+  }
 }
 
 function parseMetadata(metadata?: string): ParsedMeta {
@@ -245,13 +268,16 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
 
   const item = detailQuery.data
   const actionId = meta.akcijaId ?? meta.actionId
-  const userTarget = meta.username || meta.requesterUsername || (meta.userId ? String(meta.userId) : undefined)
+  const profile = resolveProfileFromNotification(meta, item.body)
+  const userTarget =
+    profile.username ||
+    profile.userId != null ||
+    /želi da te zaprati/i.test(item.body ?? '') ||
+    meta.followId != null
   const displayName =
-    joinRequest?.fullName ||
-    meta.requesterFullName ||
+    joinRequest?.fullName?.trim() ||
     joinRequest?.username ||
-    meta.requesterUsername ||
-    userTarget
+    profile.displayName
   const linkLabel = friendlyLinkLabel(item.link)
   const canRespondJoin =
     !!joinRequest &&
@@ -571,17 +597,24 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
 
         {userTarget && !clubJoinRequestId ? (
           <Card style={styles.card}>
-            <View style={styles.linkRow}>
-              <Ionicons name="person-outline" size={20} color={colors.brand} />
-              <Text variant="label">Korisnik</Text>
+            <View style={styles.userRow}>
+              <Avatar uri={undefined} name={displayName} size={48} />
+              <View style={styles.userInfo}>
+                <Text variant="label">{displayName}</Text>
+                {profile.username ? (
+                  <Text variant="small" color={colors.textMuted}>
+                    @{profile.username}
+                  </Text>
+                ) : null}
+              </View>
             </View>
             <Button
               title="Otvori profil"
               variant="secondary"
               onPress={() =>
                 navigation.navigate('UserProfile', {
-                  username: meta.username || meta.requesterUsername,
-                  id: meta.userId,
+                  username: profile.username,
+                  id: profile.userId,
                 })
               }
             />

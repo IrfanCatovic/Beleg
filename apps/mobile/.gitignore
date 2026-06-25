@@ -7,3 +7,5 @@ web-build/
 *.bundle
 *.log
 .DS_Store
+# Firebase FCM tajni ključ (service account JSON) — nikad u git
+*-firebase-adminsdk-*.json

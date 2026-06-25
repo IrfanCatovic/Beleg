@@ -47,3 +47,14 @@ Vidi [`backend/.env.example`](backend/.env.example) i [`.env.example`](.env.exam
 npm run build          # frontend → dist/
 cd backend && go build # backend binary
 ```
+
+## Debug vodiči
+
+Prostim jezikom — gde je šta u kodu i šta proveriti kad nešto ne radi:
+
+| Deo | Fajl |
+|-----|------|
+| Backend (Go API) | [`backend/DEBUG.md`](backend/DEBUG.md) |
+| Web (React) | [`src/DEBUG.md`](src/DEBUG.md) |
+| Mobile (Expo) | [`apps/mobile/DEBUG.md`](apps/mobile/DEBUG.md) |
+| Shared (zajednički kod) | [`packages/shared/DEBUG.md`](packages/shared/DEBUG.md) |

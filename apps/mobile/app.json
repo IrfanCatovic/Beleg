@@ -38,7 +38,8 @@
     },
     "android": {
       "package": "rs.planiner.app",
-      "versionCode": 8,
+      "versionCode": 9,
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -98,7 +99,9 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.jpg",
-          "color": "#1a6b52"
+          "color": "#1a6b52",
+          "defaultChannel": "default",
+          "sounds": []
         }
       ],
       [

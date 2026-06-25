@@ -48,13 +48,63 @@ Za punu funkcionalnost dnevnih koraka na Androidu obavezan je **novi APK** (vers
 
 ## Push obaveštenja (expo-notifications)
 
-Poslovna obaveštenja (zadaci, akcije, klub, follow, finansije…) stižu kao **push na telefon**, ne kao email. Email ostaje samo za verifikaciju registracije i reset lozinke.
+Poslovna obaveštenja (zadaci, akcije, klub, follow, finansije…) treba da stižu **na telefon u notifikacionoj traci**, čak i kad je app ugašena.
 
-### Jednokratna priprema
+**Ako vidiš obaveštenje tek kad otvoriš app** (npr. „pre 20 min”) — to **nije push**. App tada samo učitava listu sa servera. Push na Androidu **ne radi** dok ne podesiš Firebase (FCM) ispod.
 
-1. Novi APK sa `expo-notifications` (versionCode 6+).
-2. Pri prvom logovanju aplikacija traži dozvolu za **obaveštenja** — izaberi **Dozvoli**.
-3. Za produkcioni Android push, u Expo nalogu proveri FCM credentials: `eas credentials` (EAS automatski koristi `projectId` iz `app.json`).
+### Zašto treba Firebase (FCM)?
+
+Android push ide ovim putem:
+
+```
+Server → Expo → Google (FCM) → tvoj telefon
+```
+
+Bez Firebase ključeva, Google ne zna kuda da pošalje poruku na tvoj telefon. Obaveštenje se ipak sačuva u bazi — zato ga vidiš kad uđeš u app.
+
+### Jednokratna priprema (~15 min)
+
+#### Korak A — Firebase projekat
+
+1. Otvori [Firebase Console](https://console.firebase.google.com/) → **Add project** (ili koristi postojeći).
+2. **Add app** → **Android**.
+3. **Android package name:** `rs.planiner.app` (mora tačno ovako).
+4. Preuzmi **`google-services.json`**.
+5. Stavi fajl ovde: `apps/mobile/google-services.json` (pored `app.json`).
+
+#### Korak B — FCM ključ na Expo (ovo je „tačka 3”)
+
+1. U Firebase: **Project settings** → **Service accounts** → **Generate new private key** → preuzmi JSON (čuvaj ga, ne deli javno).
+2. Otvori [expo.dev](https://expo.dev) → projekat **beleg-mobile** → **Project settings** → **Credentials**.
+3. Android → identifier `rs.planiner.app` → **FCM V1 service account key** → **Upload** → izaberi taj JSON → **Save**.
+
+Alternativa iz terminala (`apps/mobile`):
+
+```powershell
+eas credentials
+```
+
+→ Android → Google Service Account → Upload service account key for FCM V1.
+
+#### Korak C — Novi APK i dozvola na telefonu
+
+1. **Obavezno** posle koraka A i B:
+   ```powershell
+   npm run build:apk
+   ```
+   (Build **neće proći** dok nema `google-services.json` u `apps/mobile/`.)
+2. Instaliraj novi APK (versionCode 9+).
+3. Pri logovanju dozvoli **Obaveštenja** (Android pita pri prvom putu).
+4. Deploy backend-a na Render (da server šalje push sa `priority: high`).
+
+### Provera da li radi
+
+1. Uloguj se na telefonu, dozvoli obaveštenja.
+2. **Potpuno ugasi** app (povuci iz recent apps).
+3. Sa drugog naloga pošalji follow zahtev ili neko drugo obaveštenje.
+4. Treba da vidiš poruku u **Android traci** za par sekundi — bez otvaranja app-a.
+
+Ako i dalje ne stiže: u Expo Credentials proveri da je FCM V1 key uploadovan, i da je `google-services.json` u buildu (novi APK posle dodavanja fajla).
 
 **Novi native modul** zahteva **novi APK build** (`npm run build:apk`). Posle toga, izmene samo u JS mogu preko OTA.
 

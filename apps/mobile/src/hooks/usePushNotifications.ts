@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import Constants from 'expo-constants'
 import { registerPushToken, unregisterPushToken } from '@beleg/shared/services'
 import { client } from '../api/client'
 import { navigateToNotificationDetail } from '../navigation/navigationRef'
+
+const ANDROID_CHANNEL_ID = 'default'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -27,28 +29,57 @@ function parseObavestenjeId(data: Record<string, unknown> | undefined): number |
   return null
 }
 
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return
+  await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
+    name: 'Obaveštenja',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#1a6b52',
+    sound: 'default',
+    enableVibrate: true,
+    showBadge: true,
+  })
+}
+
 async function ensurePushPermissions(): Promise<boolean> {
   if (!Device.isDevice) return false
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Obaveštenja',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    })
-  }
+  await ensureAndroidChannel()
 
   const { status: existing } = await Notifications.getPermissionsAsync()
   if (existing === 'granted') return true
-  const { status } = await Notifications.requestPermissionsAsync()
+  const { status } = await Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: true,
+      allowSound: true,
+    },
+  })
   return status === 'granted'
 }
 
 async function getExpoPushToken(): Promise<string | null> {
   const extra = Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined
   const projectId = extra?.eas?.projectId ?? Constants.easConfig?.projectId
-  if (!projectId) return null
+  if (!projectId) {
+    if (__DEV__) console.warn('[push] missing EAS projectId — push token unavailable')
+    return null
+  }
   const result = await Notifications.getExpoPushTokenAsync({ projectId })
   return result.data
+}
+
+async function registerDevicePushToken(): Promise<string | null> {
+  const allowed = await ensurePushPermissions()
+  if (!allowed) return null
+  const token = await getExpoPushToken()
+  if (!token) return null
+  await registerPushToken(client, {
+    token,
+    platform: Platform.OS === 'ios' ? 'ios' : 'android',
+  })
+  return token
 }
 
 export function usePushNotifications(isLoggedIn: boolean) {
@@ -91,18 +122,12 @@ export function usePushNotifications(isLoggedIn: boolean) {
     let cancelled = false
 
     async function register() {
-      const allowed = await ensurePushPermissions()
-      if (!allowed || cancelled) return
       try {
-        const token = await getExpoPushToken()
+        const token = await registerDevicePushToken()
         if (!token || cancelled) return
         tokenRef.current = token
-        await registerPushToken(client, {
-          token,
-          platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        })
-      } catch {
-        // push je best-effort
+      } catch (err) {
+        if (__DEV__) console.warn('[push] register failed', err)
       }
     }
 
@@ -118,9 +143,14 @@ export function usePushNotifications(isLoggedIn: boolean) {
       }).catch(() => {})
     })
 
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void register()
+    })
+
     return () => {
       cancelled = true
       tokenSub.remove()
+      appStateSub.remove()
     }
   }, [isLoggedIn])
 }
