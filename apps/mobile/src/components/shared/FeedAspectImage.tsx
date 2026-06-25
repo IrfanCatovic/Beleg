@@ -73,7 +73,7 @@ export function FeedAspectImage({
         if (w > 0 && w !== layoutWidth) setLayoutWidth(w)
       }}
     >
-      <Image source={{ uri }} style={styles.image} resizeMode="contain" />
+      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
       {children}
     </View>
   )

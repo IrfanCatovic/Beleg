@@ -3,7 +3,7 @@ import type { Post } from '@beleg/shared'
 import { Avatar, Card, Text } from '../ui'
 import { FeedAspectImage } from './FeedAspectImage'
 import { PostLikeBar } from './PostLikeBar'
-import { feedBlockStyle } from './feedStyles'
+import { feedBlockStyle, feedContentPadding } from './feedStyles'
 import { colors, spacing } from '../../theme'
 
 interface PostCardProps {
@@ -100,9 +100,9 @@ const styles = StyleSheet.create({
     ...feedBlockStyle,
     paddingBottom: spacing.md,
   },
-  feedPadded: { paddingHorizontal: spacing.lg },
+  feedPadded: { paddingHorizontal: feedContentPadding },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   headerText: { flex: 1 },
   content: { marginBottom: spacing.sm },
-  image: { marginBottom: spacing.sm },
+  image: { marginBottom: 0 },
 })

@@ -20,6 +20,8 @@ import { getMobilePlaninerMapStyle } from '../../utils/planinerMapStyle'
 import { colors, radius, spacing } from '../../theme'
 import { canManageActions } from '../../utils/roles'
 import type { ExploreStackParamList } from '../../navigation/types'
+import { FerrataGuideBookingModal } from './ferrata/FerrataGuideBookingModal'
+import { PeakGuideBookingModal } from './PeakGuideBookingModal'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'Map'>
 
@@ -43,6 +45,8 @@ export default function MapScreenMapLibre({ navigation }: Props) {
   const [showPeaks, setShowPeaks] = useState(true)
   const [active, setActive] = useState<ActivePin>(null)
   const [mapReady, setMapReady] = useState(false)
+  const [bookingFerrata, setBookingFerrata] = useState<FerrataRow | null>(null)
+  const [bookingPeak, setBookingPeak] = useState<PeakRow | null>(null)
 
   const mapQuery = useQuery({
     queryKey: ['explore-map'],
@@ -93,7 +97,41 @@ export default function MapScreenMapLibre({ navigation }: Props) {
     fitMarkers()
   }, [mapReady, mapQuery.isLoading, showFerrate, showHotels, showPeaks, fitMarkers])
 
-  const canCreateFromPeak = canManageActions(user?.role)
+  const canCreateGuideAction = canManageActions(user?.role)
+
+  const openFerrataDetail = useCallback(
+    (slug: string) => {
+      setActive(null)
+      navigation.navigate('FerrataDetail', { slug })
+    },
+    [navigation],
+  )
+
+  const openPeakActionWizard = useCallback(
+    (peakId: number) => {
+      setActive(null)
+      navigation.getParent()?.navigate('ActionsTab', {
+        screen: 'ActionWizard',
+        params: {
+          tip: 'planina',
+          peakId,
+          organizator: user?.role === 'vodic' ? 'vodic' : undefined,
+        },
+      })
+    },
+    [navigation, user?.role],
+  )
+
+  const openFerrataActionWizard = useCallback(
+    (ferrataId: number) => {
+      setActive(null)
+      navigation.getParent()?.navigate('ActionsTab', {
+        screen: 'ActionWizard',
+        params: { tip: 'via_ferrata', ferrataId, organizator: 'vodic' },
+      })
+    },
+    [navigation],
+  )
 
   if (!mapStyle) {
     return (
@@ -121,6 +159,7 @@ export default function MapScreenMapLibre({ navigation }: Props) {
       </View>
     )
   }
+
   return (
     <View style={styles.root}>
       <Map
@@ -131,10 +170,7 @@ export default function MapScreenMapLibre({ navigation }: Props) {
         attributionPosition={{ bottom: 8, left: 8 }}
         onDidFinishLoadingMap={() => setMapReady(true)}
       >
-        <Camera
-          ref={cameraRef}
-          initialViewState={{ center: DEFAULT_CENTER, zoom: 6.2 }}
-        />
+        <Camera ref={cameraRef} initialViewState={{ center: DEFAULT_CENTER, zoom: 6.2 }} />
 
         {visibleFerrate.map((f) => (
           <Marker
@@ -187,20 +223,42 @@ export default function MapScreenMapLibre({ navigation }: Props) {
 
       <PinSheet
         active={active}
+        canCreateGuideAction={canCreateGuideAction}
         onClose={() => setActive(null)}
-        onOpenFerrata={(slug) => {
+        onBookFerrata={(f) => {
           setActive(null)
-          navigation.navigate('FerrataDetail', { slug })
+          setBookingFerrata(f)
         }}
-        onCreatePeakAction={(peakId) => {
+        onBookPeak={(p) => {
           setActive(null)
-          navigation.getParent()?.navigate('ActionsTab', {
-            screen: 'ActionWizard',
-            params: { tip: 'planina', peakId, organizator: user?.role === 'vodic' ? 'vodic' : undefined },
-          })
+          setBookingPeak(p)
         }}
-        canCreateFromPeak={canCreateFromPeak}
+        onOpenFerrata={openFerrataDetail}
+        onCreateFerrataAction={openFerrataActionWizard}
+        onCreatePeakAction={openPeakActionWizard}
       />
+
+      {bookingFerrata ? (
+        <FerrataGuideBookingModal
+          visible
+          ferrataId={bookingFerrata.id}
+          ferrataName={bookingFerrata.naziv}
+          ferrataLat={bookingFerrata.lat}
+          ferrataLng={bookingFerrata.lng}
+          onClose={() => setBookingFerrata(null)}
+        />
+      ) : null}
+
+      {bookingPeak ? (
+        <PeakGuideBookingModal
+          visible
+          peakId={bookingPeak.id}
+          peakName={bookingPeak.naziv}
+          peakLat={bookingPeak.lat}
+          peakLng={bookingPeak.lng}
+          onClose={() => setBookingPeak(null)}
+        />
+      ) : null}
     </View>
   )
 }
@@ -211,16 +269,22 @@ function hasCoords(lat?: number, lng?: number): lat is number {
 
 function PinSheet({
   active,
+  canCreateGuideAction,
   onClose,
+  onBookFerrata,
+  onBookPeak,
   onOpenFerrata,
+  onCreateFerrataAction,
   onCreatePeakAction,
-  canCreateFromPeak,
 }: {
   active: ActivePin
+  canCreateGuideAction: boolean
   onClose: () => void
+  onBookFerrata: (f: FerrataRow) => void
+  onBookPeak: (p: PeakRow) => void
   onOpenFerrata: (slug: string) => void
+  onCreateFerrataAction: (ferrataId: number) => void
   onCreatePeakAction: (peakId: number) => void
-  canCreateFromPeak: boolean
 }) {
   if (!active) return null
 
@@ -249,8 +313,22 @@ function PinSheet({
               <Text variant="small" color={colors.textMuted}>
                 {[active.data.podrucje, active.data.tezina].filter(Boolean).join(' · ')}
               </Text>
+              <Button title="Pošalji zahtev vodiču" onPress={() => onBookFerrata(active.data)} fullWidth />
+              {canCreateGuideAction ? (
+                <Button
+                  title="Kreiraj akciju"
+                  variant="secondary"
+                  onPress={() => onCreateFerrataAction(active.data.id)}
+                  fullWidth
+                />
+              ) : null}
               {active.data.slug ? (
-                <Button title="Pogledaj feratu" onPress={() => onOpenFerrata(active.data.slug!)} fullWidth />
+                <Button
+                  title="Pogledaj feratu"
+                  variant="ghost"
+                  onPress={() => onOpenFerrata(active.data.slug!)}
+                  fullWidth
+                />
               ) : null}
             </>
           ) : null}
@@ -294,8 +372,14 @@ function PinSheet({
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
-              {canCreateFromPeak ? (
-                <Button title="Kreiraj akciju" onPress={() => onCreatePeakAction(active.data.id)} fullWidth />
+              <Button title="Pošalji zahtev vodiču" onPress={() => onBookPeak(active.data)} fullWidth />
+              {canCreateGuideAction ? (
+                <Button
+                  title="Kreiraj akciju"
+                  variant="secondary"
+                  onPress={() => onCreatePeakAction(active.data.id)}
+                  fullWidth
+                />
               ) : null}
             </>
           ) : null}

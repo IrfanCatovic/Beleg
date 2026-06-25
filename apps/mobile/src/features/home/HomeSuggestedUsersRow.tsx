@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet } from 'react-native'
+import { feedContentPadding } from '../../components/shared/feedStyles'
 import { spacing } from '../../theme'
 import type { MentionUser } from './homeFeedUtils'
 import { InviteFriendsCard } from './InviteFriendsCard'
@@ -29,5 +30,5 @@ export function HomeSuggestedUsersRow({ users, onPressUser }: HomeSuggestedUsers
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.sm },
-  scroll: { paddingBottom: spacing.xs },
+  scroll: { paddingHorizontal: feedContentPadding, paddingBottom: spacing.xs },
 })

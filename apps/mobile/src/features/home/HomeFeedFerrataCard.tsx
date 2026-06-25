@@ -1,7 +1,7 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { FerrataRow } from '@beleg/shared'
 import { Text } from '../../components/ui'
-import { feedBlockStyle } from '../../components/shared/feedStyles'
+import { feedBlockStyle, feedContentPadding } from '../../components/shared/feedStyles'
 import { colors, radius, spacing } from '../../theme'
 
 interface HomeFeedFerrataCardProps {
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: { color: colors.white, fontSize: 18, fontWeight: '700' },
   heroRegion: { color: 'rgba(255,255,255,0.9)', fontSize: 13, marginTop: 4 },
-  body: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  body: { paddingHorizontal: feedContentPadding, paddingVertical: spacing.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm },
   chipText: { color: colors.white, fontSize: 11, fontWeight: '700' },

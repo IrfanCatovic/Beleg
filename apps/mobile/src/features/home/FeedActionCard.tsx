@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { AkcijaListItem } from '@beleg/shared'
 import { Avatar, Card, Text } from '../../components/ui'
 import { FeedAspectImage } from '../../components/shared/FeedAspectImage'
-import { feedBlockStyle } from '../../components/shared/feedStyles'
+import { feedBlockStyle, feedContentPadding } from '../../components/shared/feedStyles'
 import { colors, radius, spacing } from '../../theme'
 import type { MentionUser } from './homeFeedUtils'
 import { difficultyBadgeStyle, formatDateShort, isGuideOrganizedAkcija } from './homeFeedUtils'
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   feedWrap: {
     ...feedBlockStyle,
   },
-  feedPadded: { paddingHorizontal: spacing.lg },
+  feedPadded: { paddingHorizontal: feedContentPadding },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

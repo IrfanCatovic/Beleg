@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from '../ui'
+import { feedContentPadding } from './feedStyles'
 import { colors, spacing } from '../../theme'
 
 interface PostLikeBarProps {
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.xs,
   },
-  padded: { paddingHorizontal: spacing.lg },
+  padded: { paddingHorizontal: feedContentPadding },
   likeBtn: {
     padding: spacing.xs,
     backgroundColor: 'transparent',
