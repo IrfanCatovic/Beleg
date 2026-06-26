@@ -29,13 +29,49 @@ export function sumRouteDistanceM(points: LatLngAlt[]): number {
 
 export function computeElevationGainM(points: LatLngAlt[]): number {
   let gain = 0
+  let skippedMissingAlt = 0
+  let skippedBelowThreshold = 0
+  let countedSegments = 0
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1].altitude
     const curr = points[i].altitude
-    if (prev == null || curr == null) continue
+    if (prev == null || curr == null) {
+      skippedMissingAlt++
+      continue
+    }
     const delta = curr - prev
-    if (delta >= ELEVATION_THRESHOLD_M) gain += delta
+    if (delta >= ELEVATION_THRESHOLD_M) {
+      gain += delta
+      countedSegments++
+    } else if (delta > 0) {
+      skippedBelowThreshold++
+    }
   }
+  const withAlt = points.filter((p) => p.altitude != null).length
+  // #region agent log
+  if (points.length >= 2) {
+    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
+      body: JSON.stringify({
+        sessionId: '6cb8dd',
+        runId: 'pre-fix',
+        hypothesisId: 'A-B-C',
+        location: 'activityMetrics.ts:computeElevationGainM',
+        message: 'elevation gain computed',
+        data: {
+          totalPoints: points.length,
+          withAltitude: withAlt,
+          skippedMissingAlt,
+          skippedBelowThreshold,
+          countedSegments,
+          gainM: Math.round(gain * 10) / 10,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }
+  // #endregion
   return gain
 }
 

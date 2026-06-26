@@ -35,6 +35,29 @@ async function loadPersistedPoints() {
 }
 
 function locationToPoint(loc: Location.LocationObject): GPSPoint {
+  const hasAltitude = loc.coords.altitude != null
+  // #region agent log
+  if (memoryPoints.length % 5 === 0) {
+    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
+      body: JSON.stringify({
+        sessionId: '6cb8dd',
+        runId: 'pre-fix',
+        hypothesisId: 'A',
+        location: 'adventureLocationTask.ts:locationToPoint',
+        message: 'gps point sampled',
+        data: {
+          pointIndex: memoryPoints.length,
+          hasAltitude,
+          altitude: hasAltitude ? Math.round(loc.coords.altitude! * 10) / 10 : null,
+          accuracy: loc.coords.accuracy != null ? Math.round(loc.coords.accuracy) : null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+  }
+  // #endregion
   return {
     lat: loc.coords.latitude,
     lng: loc.coords.longitude,

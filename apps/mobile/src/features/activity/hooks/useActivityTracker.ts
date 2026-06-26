@@ -300,6 +300,32 @@ export function useActivityTracker(): ActivityTrackerState {
       totalPausedMsRef.current,
       pausedAtRef.current,
     )
+    const altitudes = latLngPoints.map((p) => p.altitude).filter((a): a is number => a != null)
+    const minAlt = altitudes.length ? Math.min(...altitudes) : null
+    const maxAlt = altitudes.length ? Math.max(...altitudes) : null
+    // #region agent log
+    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
+      body: JSON.stringify({
+        sessionId: '6cb8dd',
+        runId: 'pre-fix',
+        hypothesisId: 'D-E',
+        location: 'useActivityTracker.ts:finish',
+        message: 'finish payload',
+        data: {
+          pointCount: latLngPoints.length,
+          pointsWithAltitude: altitudes.length,
+          minAlt,
+          maxAlt,
+          netAltDelta: minAlt != null && maxAlt != null ? Math.round((maxAlt - minAlt) * 10) / 10 : null,
+          elevationGainM: Math.round(elevationGainM * 10) / 10,
+          distanceM: Math.round(distanceM),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     try {
       const res = await finishActivity(client, activityId, {
         durationSec: finalElapsed,
@@ -310,6 +336,24 @@ export function useActivityTracker(): ActivityTrackerState {
         endLat: last?.lat,
         endLng: last?.lng,
       })
+      // #region agent log
+      fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
+        body: JSON.stringify({
+          sessionId: '6cb8dd',
+          runId: 'pre-fix',
+          hypothesisId: 'E',
+          location: 'useActivityTracker.ts:finish:response',
+          message: 'finish response elevation',
+          data: {
+            sentElevationGainM: Math.round(elevationGainM * 10) / 10,
+            returnedElevationGainM: Math.round((res.activity.elevationGainM ?? 0) * 10) / 10,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
       await setStoredActiveActivityId(null)
       await clearAdventurePoints()
       setActivityId(null)

@@ -9,10 +9,10 @@ import {
 } from '../services/activityMetrics'
 
 export const ADVENTURE_STICKER_WIDTH = 270
-export const ADVENTURE_STICKER_HEIGHT = 480
+export const ADVENTURE_STICKER_HEIGHT = 400
 
-const ROUTE_BOX_W = 230
-const ROUTE_BOX_H = 130
+const ROUTE_BOX_W = 220
+const ROUTE_BOX_H = 118
 const ROUTE_PAD = 12
 const ROUTE_DOT = 3
 const ROUTE_GAP = 4 // px spacing between interpolated dots
@@ -141,34 +141,41 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    justifyContent: 'flex-start',
     backgroundColor: 'transparent',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    columnGap: 10,
+    rowGap: 6,
     justifyContent: 'center',
-    marginVertical: spacing.lg,
+    alignSelf: 'center',
+    marginBottom: spacing.xs,
   },
   cell: {
-    width: '46%',
+    width: 115,
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: 6,
+    paddingVertical: 2,
+    gap: 1,
   },
   cellLabel: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.8,
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    lineHeight: 13,
+    marginBottom: 1,
     ...TEXT_SHADOW,
   },
   cellValue: {
     color: colors.white,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
+    lineHeight: 24,
     textAlign: 'center',
     ...TEXT_SHADOW,
   },
@@ -176,7 +183,7 @@ const styles = StyleSheet.create({
     width: ROUTE_BOX_W,
     height: ROUTE_BOX_H,
     alignSelf: 'center',
-    marginTop: spacing.sm,
+    marginTop: 2,
   },
   routeDot: {
     position: 'absolute',
@@ -187,14 +194,13 @@ const styles = StyleSheet.create({
   },
   brandWrap: {
     alignItems: 'center',
-    paddingBottom: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
   },
   brand: {
     color: colors.white,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    letterSpacing: 4,
+    letterSpacing: 3,
     ...TEXT_SHADOW,
   },
 })
