@@ -47,4 +47,6 @@ tmp-en-i18n.json
 .pgadmin/
 *.log
 
+# Android build artifacts
+*.apk
 
