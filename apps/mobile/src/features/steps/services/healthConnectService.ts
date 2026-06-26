@@ -153,49 +153,6 @@ export async function readAggregateSteps(start: Date, end: Date): Promise<number
   }
 }
 
-// #region agent log
-/** Temporary on-screen diagnostic (physical device can't reach HTTP log sink). */
-export interface HealthConnectDiagnostics {
-  marker: string
-  platform: string
-  availability: HealthConnectAvailability
-  initialized: boolean
-  hasPermission: boolean
-  today: number
-  week: number
-  month: number
-  error: string
-}
-
-export async function getHealthConnectDiagnostics(): Promise<HealthConnectDiagnostics> {
-  const diag: HealthConnectDiagnostics = {
-    marker: 'HCFLOW_v2',
-    platform: Platform.OS,
-    availability: 'unsupported_platform',
-    initialized: false,
-    hasPermission: false,
-    today: 0,
-    week: 0,
-    month: 0,
-    error: '',
-  }
-  try {
-    diag.availability = await getHealthConnectAvailability()
-    if (diag.availability !== 'available') return diag
-    diag.initialized = await ensureInitialized()
-    diag.hasPermission = await hasHealthConnectStepsPermission()
-    if (!diag.hasPermission) return diag
-    const now = new Date()
-    diag.today = await readAggregateSteps(startOfDay(now), now)
-    diag.week = await readAggregateSteps(startOfWeekMonday(now), now)
-    diag.month = await readAggregateSteps(startOfMonth(now), now)
-  } catch (e) {
-    diag.error = e instanceof Error ? e.message : String(e)
-  }
-  return diag
-}
-// #endregion
-
 export async function readStepsPeriodTotals(): Promise<StepsPeriodTotals | null> {
   if (Platform.OS !== 'android') return null
   const hasPerm = await hasHealthConnectStepsPermission()

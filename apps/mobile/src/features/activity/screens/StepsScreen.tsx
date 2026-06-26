@@ -18,13 +18,7 @@ import type { ExploreStackParamList } from '../../../navigation/types'
 import { useDailySteps } from '../hooks/useDailySteps'
 import { StepsAccessCard } from '../components/StepsAccessCard'
 import { StepsPeriodSummary } from '../components/StepsPeriodSummary'
-// #region agent log
-import {
-  getHealthConnectDiagnostics,
-  requestHealthConnectStepsPermission,
-  type HealthConnectDiagnostics,
-} from '../../steps/services/healthConnectService'
-// #endregion
+import { StepsHealthConnectDebugTrigger } from '../components/StepsHealthConnectDebugPanel'
 import {
   computeMonthlyAverage,
   deriveActiveMinutes,
@@ -81,24 +75,6 @@ export default function StepsScreen({ navigation }: Props) {
   const daily = useDailySteps()
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [clubsModalOpen, setClubsModalOpen] = useState(false)
-  // #region agent log
-  const [hcDiag, setHcDiag] = useState<HealthConnectDiagnostics | null>(null)
-  const [promptResult, setPromptResult] = useState<string>('—')
-  const runHcDiag = useCallback(async () => {
-    const d = await getHealthConnectDiagnostics()
-    setHcDiag(d)
-  }, [])
-  const forcePrompt = useCallback(async () => {
-    setPromptResult('otvaram...')
-    try {
-      const granted = await requestHealthConnectStepsPermission()
-      setPromptResult(granted ? 'granted' : 'denied/no-dialog')
-    } catch (e) {
-      setPromptResult(`err: ${e instanceof Error ? e.message : String(e)}`)
-    }
-    await runHcDiag()
-  }, [runHcDiag])
-  // #endregion
   const monthRange = monthRangeKeys()
 
   const historyQuery = useQuery({
@@ -120,11 +96,10 @@ export default function StepsScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       void daily.refresh()
-      void runHcDiag()
       void queryClient.invalidateQueries({ queryKey: ['steps-history'] })
       void queryClient.invalidateQueries({ queryKey: ['steps-lb-global-month'] })
       void queryClient.invalidateQueries({ queryKey: ['steps-lb-clubs-month'] })
-    }, [daily.refresh, queryClient, runHcDiag]),
+    }, [daily.refresh, queryClient]),
   )
 
   const days = useMemo(() => {
@@ -194,28 +169,6 @@ export default function StepsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <AppTopBar title="Dnevni koraci" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* #region agent log */}
-        <Card style={styles.accessCard}>
-          <Text variant="small" color={colors.textMuted}>
-            DEBUG Health Connect (privremeno)
-          </Text>
-          {hcDiag ? (
-            <Text variant="small">
-              {hcDiag.marker} · {hcDiag.platform}{'\n'}
-              availability: {hcDiag.availability}{'\n'}
-              init: {String(hcDiag.initialized)} · perm: {String(hcDiag.hasPermission)}{'\n'}
-              danas: {hcDiag.today} · sed: {hcDiag.week} · mj: {hcDiag.month}{'\n'}
-              status: {daily.accessStatus} · connected: {String(daily.stepsConnected)}{'\n'}
-              prompt: {promptResult}
-              {hcDiag.error ? `\nerr: ${hcDiag.error}` : ''}
-            </Text>
-          ) : (
-            <Text variant="small">učitavam...</Text>
-          )}
-          <Button title="Zatraži dozvolu (test)" variant="secondary" onPress={() => void forcePrompt()} />
-        </Card>
-        {/* #endregion */}
-
         {needsStepsAccess ? (
           <StepsAccessCard
             accessStatus={daily.accessStatus}
@@ -348,6 +301,12 @@ export default function StepsScreen({ navigation }: Props) {
         <Text variant="small" color={colors.textSubtle} style={styles.footnote}>
           Udaljenost i aktivno vrijeme su procjena iz broja koraka (≈). GPS praćenje dolazi u narednoj fazi.
         </Text>
+
+        <StepsHealthConnectDebugTrigger
+          accessStatus={daily.accessStatus}
+          stepsConnected={daily.stepsConnected}
+          todaySteps={daily.todaySteps}
+        />
       </ScrollView>
 
       <Modal visible={clubsModalOpen} animationType="slide" transparent onRequestClose={() => setClubsModalOpen(false)}>
@@ -392,7 +351,6 @@ export default function StepsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  accessCard: { gap: spacing.sm },
   dayPicker: { gap: spacing.sm, paddingVertical: spacing.xs },
   dayPill: {
     minWidth: 56,
