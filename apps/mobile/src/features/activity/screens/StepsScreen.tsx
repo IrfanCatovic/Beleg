@@ -3,7 +3,6 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
-import { useTranslation } from 'react-i18next'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { ClubStepsLeaderboardEntry, StepsLeaderboardEntry } from '@beleg/shared'
 import {
@@ -17,6 +16,15 @@ import { AppTopBar, Avatar, Button, Card, Loader, Text } from '../../../componen
 import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
 import { useDailySteps } from '../hooks/useDailySteps'
+import { StepsAccessCard } from '../components/StepsAccessCard'
+import { StepsPeriodSummary } from '../components/StepsPeriodSummary'
+// #region agent log
+import {
+  getHealthConnectDiagnostics,
+  requestHealthConnectStepsPermission,
+  type HealthConnectDiagnostics,
+} from '../../steps/services/healthConnectService'
+// #endregion
 import {
   computeMonthlyAverage,
   deriveActiveMinutes,
@@ -68,12 +76,29 @@ function ClubLbRow({ item, highlight }: { item: ClubStepsLeaderboardEntry; highl
 }
 
 export default function StepsScreen({ navigation }: Props) {
-  const { t } = useTranslation('explore')
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const daily = useDailySteps()
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [clubsModalOpen, setClubsModalOpen] = useState(false)
+  // #region agent log
+  const [hcDiag, setHcDiag] = useState<HealthConnectDiagnostics | null>(null)
+  const [promptResult, setPromptResult] = useState<string>('—')
+  const runHcDiag = useCallback(async () => {
+    const d = await getHealthConnectDiagnostics()
+    setHcDiag(d)
+  }, [])
+  const forcePrompt = useCallback(async () => {
+    setPromptResult('otvaram...')
+    try {
+      const granted = await requestHealthConnectStepsPermission()
+      setPromptResult(granted ? 'granted' : 'denied/no-dialog')
+    } catch (e) {
+      setPromptResult(`err: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    await runHcDiag()
+  }, [runHcDiag])
+  // #endregion
   const monthRange = monthRangeKeys()
 
   const historyQuery = useQuery({
@@ -95,10 +120,11 @@ export default function StepsScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       void daily.refresh()
+      void runHcDiag()
       void queryClient.invalidateQueries({ queryKey: ['steps-history'] })
       void queryClient.invalidateQueries({ queryKey: ['steps-lb-global-month'] })
       void queryClient.invalidateQueries({ queryKey: ['steps-lb-clubs-month'] })
-    }, [daily.refresh, queryClient]),
+    }, [daily.refresh, queryClient, runHcDiag]),
   )
 
   const days = useMemo(() => {
@@ -145,7 +171,11 @@ export default function StepsScreen({ navigation }: Props) {
     daily.goal > 0 ? Math.min(100, Math.round((selectedSteps / daily.goal) * 100)) : 0
 
   const needsStepsAccess =
-    daily.accessStatus === 'permission_needed' || daily.accessStatus === 'permission_denied'
+    !daily.stepsConnected &&
+    (daily.accessStatus === 'permission_needed' ||
+      daily.accessStatus === 'permission_denied' ||
+      daily.accessStatus === 'device_unavailable' ||
+      daily.accessStatus === 'health_connect_update_required')
 
   const goToClub = () => {
     navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
@@ -164,33 +194,53 @@ export default function StepsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <AppTopBar title="Dnevni koraci" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {needsStepsAccess ? (
-          <Card style={styles.accessCard}>
-            <Text variant="small" color={colors.textMuted}>
-              {daily.accessStatus === 'permission_denied'
-                ? Platform.OS === 'ios'
-                  ? t('dailyStepsPermissionDeniedIos')
-                  : t('dailyStepsPermissionDeniedAndroid')
-                : t('dailyStepsPermissionNeeded')}
+        {/* #region agent log */}
+        <Card style={styles.accessCard}>
+          <Text variant="small" color={colors.textMuted}>
+            DEBUG Health Connect (privremeno)
+          </Text>
+          {hcDiag ? (
+            <Text variant="small">
+              {hcDiag.marker} · {hcDiag.platform}{'\n'}
+              availability: {hcDiag.availability}{'\n'}
+              init: {String(hcDiag.initialized)} · perm: {String(hcDiag.hasPermission)}{'\n'}
+              danas: {hcDiag.today} · sed: {hcDiag.week} · mj: {hcDiag.month}{'\n'}
+              status: {daily.accessStatus} · connected: {String(daily.stepsConnected)}{'\n'}
+              prompt: {promptResult}
+              {hcDiag.error ? `\nerr: ${hcDiag.error}` : ''}
             </Text>
-            <Button
-              title={
-                daily.accessStatus === 'permission_denied'
-                  ? t('dailyStepsOpenSettings')
-                  : t('dailyStepsEnable')
-              }
-              variant="secondary"
-              onPress={() => void daily.requestAccess()}
-            />
-          </Card>
+          ) : (
+            <Text variant="small">učitavam...</Text>
+          )}
+          <Button title="Zatraži dozvolu (test)" variant="secondary" onPress={() => void forcePrompt()} />
+        </Card>
+        {/* #endregion */}
+
+        {needsStepsAccess ? (
+          <StepsAccessCard
+            accessStatus={daily.accessStatus}
+            connected={daily.stepsConnected}
+            loading={daily.loading}
+            onRequestAccess={() => void daily.requestAccess()}
+            onOpenSettings={() => void daily.openSettings()}
+            onInstallHealthConnect={() => void daily.installHealthConnect()}
+          />
+        ) : daily.stepsConnected ? (
+          <StepsAccessCard
+            accessStatus={daily.accessStatus}
+            connected
+            onRequestAccess={() => {}}
+          />
         ) : null}
 
-        {daily.accessStatus === 'device_unavailable' ? (
-          <Card style={styles.accessCard}>
-            <Text variant="small" color={colors.textMuted}>
-              {t('dailyStepsUnavailable')}
-            </Text>
-          </Card>
+        {daily.stepsConnected && Platform.OS === 'android' ? (
+          <StepsPeriodSummary
+            periods={{
+              today: daily.todaySteps,
+              week: daily.weekSteps,
+              month: daily.monthSteps,
+            }}
+          />
         ) : null}
 
         <Text variant="small" color={colors.textMuted}>

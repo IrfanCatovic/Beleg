@@ -307,6 +307,24 @@ export const sr = {
       'Brojač koraka u Expo Go aplikaciji često ne radi. Instaliraj dev build Planinera na telefon za pravo brojanje.',
     dailyStepsPermissionNeeded:
       'Planiner treba dozvolu za korake i kretanje. Pritisni dugme i u sistemskom prozoru izaberi „Dozvoli“.',
+    stepsConnectTitle: 'Omogući praćenje koraka',
+    stepsConnectBody:
+      'Da bi Planiner mogao prikazati tvoje dnevne korake, napredak i rang u klubu, potrebno je da dozvoliš pristup koracima na sistemskom ekranu koji će se sada otvoriti. Samo potvrdi dozvolu za korake i Planiner će sve ostalo završiti automatski.',
+    stepsConnectButton: 'Dozvoli praćenje koraka',
+    stepsConnectedTitle: 'Koraci povezani',
+    stepsConnectedHint: 'Planiner automatski prikazuje tvoje korake.',
+    stepsPermissionDeniedTitle: 'Dozvola nije odobrena',
+    stepsPermissionDeniedBody:
+      'Bez dozvole Planiner ne može prikazati tvoje korake ni rang liste. Otvori dozvole i uključi pristup koracima.',
+    stepsOpenPermissions: 'Otvori dozvole',
+    stepsHcUnavailable:
+      'Na ovom uređaju nedostaje potrebna sistemska aplikacija za korake. Preuzmi je i vrati se u Planiner.',
+    stepsHcUpdateRequired:
+      'Potrebna je ažurirana verzija sistemske aplikacije za korake. Preuzmi ažuriranje i vrati se u Planiner.',
+    stepsHcInstallButton: 'Preuzmi aplikaciju',
+    stepsPeriodToday: 'Danas',
+    stepsPeriodWeek: 'Ova sedmica',
+    stepsPeriodMonth: 'Ovaj mjesec',
     dailyStepsPermissionDeniedIos:
       'Dozvola za korake je isključena. Otvori Postavke → Planiner → „Kretanje i fitnes“ (Motion & Fitness) i uključi ga, pa se vrati u app.',
     dailyStepsPermissionDeniedAndroid:

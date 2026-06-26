@@ -56,7 +56,16 @@ export default function ExploreHomeScreen({ navigation }: Props) {
             loading={dailySteps.loading}
             accessStatus={dailySteps.accessStatus}
             accessDebug={dailySteps.accessDebug}
-            onRequestAccess={() => void dailySteps.requestAccess()}
+            onRequestAccess={() => {
+              if (
+                dailySteps.accessStatus === 'device_unavailable' ||
+                dailySteps.accessStatus === 'health_connect_update_required'
+              ) {
+                void dailySteps.installHealthConnect()
+              } else {
+                void dailySteps.requestAccess()
+              }
+            }}
             onPress={() => navigation.navigate('Steps')}
           />
 

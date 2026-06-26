@@ -1,11 +1,19 @@
 import { Linking, PermissionsAndroid, Platform } from 'react-native'
 import { Pedometer } from 'expo-sensors'
+import {
+  getHealthConnectAvailability,
+  hasHealthConnectStepsPermission,
+  openHealthConnectAppSettings,
+  openHealthConnectInstall,
+  requestHealthConnectStepsPermission,
+} from '../../steps/services/healthConnectService'
 
 export type StepsAccessStatus =
   | 'ready'
   | 'device_unavailable'
   | 'permission_needed'
   | 'permission_denied'
+  | 'health_connect_update_required'
 
 export interface StepsAccessDebug {
   platform: string
@@ -24,98 +32,101 @@ export function accessStatusFromPermission(perm: PedometerPermission): StepsAcce
   return perm.canAskAgain === false ? 'permission_denied' : 'permission_needed'
 }
 
+async function ensureActivityRecognition(requestIfNeeded: boolean): Promise<boolean> {
+  const hasPerm = await PermissionsAndroid.check(
+    PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
+  )
+  if (hasPerm) return true
+  if (!requestIfNeeded) return false
+  const result = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
+    {
+      title: 'Dozvola za korake',
+      message: 'Planiner koristi ovu dozvolu za tačnije praćenje koraka dok je aplikacija otvorena.',
+      buttonPositive: 'Dozvoli',
+      buttonNegative: 'Odbij',
+    },
+  )
+  return result === PermissionsAndroid.RESULTS.GRANTED
+}
+
 async function resolveAndroidStepsAccess(requestIfNeeded: boolean): Promise<{
   status: StepsAccessStatus
   debug: StepsAccessDebug
 }> {
-  let isAvailable: boolean | null = null
-  try {
-    isAvailable = await Pedometer.isAvailableAsync()
-  } catch {
-    // Samsung devices may throw; permission check below is authoritative.
+  const availability = await getHealthConnectAvailability()
+
+  if (availability === 'unavailable') {
+    return {
+      status: 'device_unavailable',
+      debug: {
+        platform: 'android',
+        isAvailable: false,
+        permStatus: 'hc_unavailable',
+        permGranted: false,
+        canAskAgain: true,
+        path: 'android_hc_unavailable',
+      },
+    }
   }
 
-  const hasPerm = await PermissionsAndroid.check(
-    PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
-  )
+  if (availability === 'update_required') {
+    return {
+      status: 'health_connect_update_required',
+      debug: {
+        platform: 'android',
+        isAvailable: false,
+        permStatus: 'hc_update_required',
+        permGranted: false,
+        canAskAgain: true,
+        path: 'android_hc_update_required',
+      },
+    }
+  }
 
-  if (!hasPerm) {
+  const hasHcPerm = await hasHealthConnectStepsPermission()
+  if (!hasHcPerm) {
     if (!requestIfNeeded) {
       return {
         status: 'permission_needed',
         debug: {
           platform: 'android',
-          isAvailable,
-          permStatus: 'not_granted',
+          isAvailable: true,
+          permStatus: 'hc_not_granted',
           permGranted: false,
           canAskAgain: true,
-          path: 'android_check_only',
+          path: 'android_hc_check_only',
         },
       }
     }
 
-    const result = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
-      {
-        title: 'Dozvola za korake',
-        message:
-          'Planiner treba dozvolu „Fizička aktivnost” da broji vaše dnevne korake na Samsung telefonu.',
-        buttonPositive: 'Dozvoli',
-        buttonNegative: 'Odbij',
-      },
-    )
-
-    if (result === PermissionsAndroid.RESULTS.GRANTED) {
-      return {
-        status: 'ready',
-        debug: {
-          platform: 'android',
-          isAvailable,
-          permStatus: 'granted',
-          permGranted: true,
-          canAskAgain: true,
-          path: 'android_request_granted',
-        },
-      }
-    }
-
-    if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+    const granted = await requestHealthConnectStepsPermission()
+    if (!granted) {
       return {
         status: 'permission_denied',
         debug: {
           platform: 'android',
-          isAvailable,
-          permStatus: 'never_ask_again',
+          isAvailable: true,
+          permStatus: 'hc_denied',
           permGranted: false,
-          canAskAgain: false,
-          path: 'android_request_denied',
+          canAskAgain: true,
+          path: 'android_hc_request_denied',
         },
       }
     }
-
-    return {
-      status: 'permission_needed',
-      debug: {
-        platform: 'android',
-        isAvailable,
-        permStatus: String(result),
-        permGranted: false,
-        canAskAgain: true,
-        path: 'android_request_denied_soft',
-      },
-    }
   }
 
-  // Na Androidu ne oslanjamo se na isAvailableAsync — na Samsungu često lažno vraća false.
+  await ensureActivityRecognition(requestIfNeeded)
+
   return {
     status: 'ready',
     debug: {
       platform: 'android',
-      isAvailable,
-      permStatus: 'granted',
+      isAvailable: true,
+      permStatus: 'hc_granted',
       permGranted: true,
       canAskAgain: true,
-      path: 'android_perm_granted',
+      path: 'android_hc_ready',
     },
   }
 }
@@ -242,4 +253,16 @@ export async function requestStepsAccess(): Promise<{
       path: 'ios_request_dialog',
     },
   }
+}
+
+export async function openStepsAccessSettings(status: StepsAccessStatus): Promise<void> {
+  if (Platform.OS === 'android') {
+    if (status === 'device_unavailable' || status === 'health_connect_update_required') {
+      await openHealthConnectInstall()
+      return
+    }
+    await openHealthConnectAppSettings()
+    return
+  }
+  await Linking.openSettings()
 }

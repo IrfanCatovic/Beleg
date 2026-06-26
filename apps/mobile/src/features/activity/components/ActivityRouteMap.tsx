@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
-import MapView, { Polyline, PROVIDER_DEFAULT } from 'react-native-maps'
+import { Camera, GeoJSONSource, Layer, Map, type CameraRef } from '@maplibre/maplibre-react-native'
 import type { LatLngAlt } from '../services/activityMetrics'
 import { Text } from '../../../components/ui'
+import { getMobilePlaninerMapStyle } from '../../../utils/planinerMapStyle'
 import { colors, radius, spacing } from '../../../theme'
 
 interface Props {
@@ -10,45 +11,50 @@ interface Props {
   height?: number
 }
 
-export function ActivityRouteMap({ points, height = 220 }: Props) {
-  const mapRef = useRef<MapView>(null)
+const DEFAULT_CENTER: [number, number] = [21.0059, 44.0165]
 
-  const coords = useMemo(
-    () => points.map((p) => ({ latitude: p.lat, longitude: p.lng })),
+export function ActivityRouteMap({ points, height = 220 }: Props) {
+  const cameraRef = useRef<CameraRef>(null)
+  const mapStyle = getMobilePlaninerMapStyle()
+
+  const coords = useMemo<[number, number][]>(
+    () => points.map((p) => [p.lng, p.lat]),
     [points],
   )
 
-  const region = useMemo(() => {
-    if (coords.length === 0) return null
+  const lineShape = useMemo(
+    () => ({
+      type: 'Feature' as const,
+      geometry: { type: 'LineString' as const, coordinates: coords },
+      properties: {},
+    }),
+    [coords],
+  )
+
+  const fit = () => {
+    // #region agent log
+    console.log('[adv-debug] ActivityRouteMap render', {
+      points: coords.length,
+      hasStyle: !!mapStyle,
+    })
+    // #endregion
     if (coords.length === 1) {
-      return {
-        latitude: coords[0].latitude,
-        longitude: coords[0].longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }
+      cameraRef.current?.jumpTo({ center: coords[0], zoom: 14 })
+      return
     }
-    const lats = coords.map((c) => c.latitude)
-    const lngs = coords.map((c) => c.longitude)
-    const minLat = Math.min(...lats)
-    const maxLat = Math.max(...lats)
-    const minLng = Math.min(...lngs)
-    const maxLng = Math.max(...lngs)
-    const pad = 0.002
-    return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max(0.01, maxLat - minLat + pad),
-      longitudeDelta: Math.max(0.01, maxLng - minLng + pad),
+    if (coords.length >= 2) {
+      const lngs = coords.map((c) => c[0])
+      const lats = coords.map((c) => c[1])
+      cameraRef.current?.fitBounds(
+        [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+        { padding: { top: 40, right: 40, bottom: 40, left: 40 }, duration: 300 },
+      )
     }
-  }, [coords])
+  }
 
   useEffect(() => {
-    if (!mapRef.current || coords.length < 2) return
-    mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: true,
-    })
+    fit()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords])
 
   if (coords.length === 0) {
@@ -61,22 +67,43 @@ export function ActivityRouteMap({ points, height = 220 }: Props) {
     )
   }
 
+  if (!mapStyle) {
+    return (
+      <View style={[styles.empty, { height }]}>
+        <Text variant="small" color={colors.textMuted}>
+          Mapa nije dostupna ({coords.length} tačaka).
+        </Text>
+      </View>
+    )
+  }
+
   return (
     <View style={[styles.wrap, { height }]}>
-      <MapView
-        ref={mapRef}
+      <Map
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_DEFAULT}
-        initialRegion={region ?? undefined}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
+        mapStyle={mapStyle.styleUrl}
+        logo={false}
+        attribution
+        attributionPosition={{ bottom: 6, left: 6 }}
+        dragPan={false}
+        touchZoom={false}
+        touchRotate={false}
+        touchPitch={false}
+        onDidFinishLoadingMap={fit}
       >
-        {coords.length > 1 ? (
-          <Polyline coordinates={coords} strokeColor={colors.brand} strokeWidth={4} />
-        ) : null}
-      </MapView>
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: coords[0] ?? DEFAULT_CENTER, zoom: 12 }}
+        />
+        <GeoJSONSource id="adventure-route" data={lineShape}>
+          <Layer
+            id="adventure-route-line"
+            type="line"
+            layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+            paint={{ 'line-color': colors.brand, 'line-width': 4 }}
+          />
+        </GeoJSONSource>
+      </Map>
     </View>
   )
 }

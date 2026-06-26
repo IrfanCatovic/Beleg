@@ -26,7 +26,7 @@ import {
   sumRouteDistanceM,
   type LatLngAlt,
 } from '../services/activityMetrics'
-import { readTodayStepsFromOs } from '../services/stepsProvider'
+import { readTodayStepsFromOs, watchLiveStepDelta } from '../services/stepsProvider'
 import { useLocationTrack } from './useLocationTrack'
 
 export type TrackerStatus = 'idle' | 'active' | 'paused' | 'finishing'
@@ -76,6 +76,11 @@ export function useActivityTracker(): ActivityTrackerState {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const sessionStepsBaselineRef = useRef(0)
+  // Health Connect step delta (lags on Android); used as a floor only.
+  const hcDeltaRef = useRef(0)
+  // Live hardware pedometer accumulated across the session (real-time source).
+  const liveAccumRef = useRef(0)
+  const lastLiveCumRef = useRef(0)
   const totalPausedMsRef = useRef(0)
   const pausedAtRef = useRef<number | null>(null)
   const pendingUploadRef = useRef<GPSPoint[]>([])
@@ -106,9 +111,19 @@ export function useActivityTracker(): ActivityTrackerState {
 
   const refreshSessionSteps = useCallback(async () => {
     const os = await readTodayStepsFromOs()
-    if (!os) return
-    const baseline = sessionStepsBaselineRef.current
-    setSteps(Math.max(0, os.steps - baseline))
+    if (os) {
+      const baseline = sessionStepsBaselineRef.current
+      hcDeltaRef.current = Math.max(0, os.steps - baseline)
+    }
+    const combined = Math.max(hcDeltaRef.current, liveAccumRef.current)
+    // #region agent log
+    console.log('[adv-debug] refreshSessionSteps', {
+      hcDelta: hcDeltaRef.current,
+      liveAccum: liveAccumRef.current,
+      combined,
+    })
+    // #endregion
+    setSteps(combined)
   }, [])
 
   useEffect(() => {
@@ -173,6 +188,25 @@ export function useActivityTracker(): ActivityTrackerState {
     return () => clearInterval(id)
   }, [status, refreshSessionSteps])
 
+  // Real-time step counting via the hardware pedometer (Health Connect lags too
+  // much for a live session). Accumulates across pause/resume without resetting.
+  useEffect(() => {
+    if (status !== 'active') return
+    lastLiveCumRef.current = 0
+    const stop = watchLiveStepDelta((cum) => {
+      const inc = Math.max(0, cum - lastLiveCumRef.current)
+      lastLiveCumRef.current = cum
+      if (inc === 0) return
+      liveAccumRef.current += inc
+      const combined = Math.max(hcDeltaRef.current, liveAccumRef.current)
+      // #region agent log
+      console.log('[adv-debug] livePedometer', { cum, inc, liveAccum: liveAccumRef.current, combined })
+      // #endregion
+      setSteps(combined)
+    })
+    return stop
+  }, [status])
+
   useEffect(() => {
     if (!activityId || status !== 'active') return
     const newPoints = points.slice(uploadedCountRef.current)
@@ -212,6 +246,9 @@ export function useActivityTracker(): ActivityTrackerState {
       const os = await readTodayStepsFromOs()
       const baseline = os?.steps ?? 0
       sessionStepsBaselineRef.current = baseline
+      hcDeltaRef.current = 0
+      liveAccumRef.current = 0
+      lastLiveCumRef.current = 0
       await setSessionStepsBaseline(baseline)
 
       const res = await startActivity(client)
@@ -326,6 +363,9 @@ export function useActivityTracker(): ActivityTrackerState {
     pausedAtRef.current = null
     pendingUploadRef.current = []
     uploadedCountRef.current = 0
+    hcDeltaRef.current = 0
+    liveAccumRef.current = 0
+    lastLiveCumRef.current = 0
     clear()
   }, [clear])
 

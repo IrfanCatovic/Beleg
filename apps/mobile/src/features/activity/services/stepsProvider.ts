@@ -1,5 +1,11 @@
 import { Platform } from 'react-native'
 import { Pedometer } from 'expo-sensors'
+import {
+  hasHealthConnectStepsPermission,
+  readAggregateSteps,
+  readStepsPeriodTotals,
+  type StepsPeriodTotals,
+} from '../../steps/services/healthConnectService'
 
 export type StepsOsSource = 'ios_pedometer' | 'android_health_connect' | 'android_watch'
 
@@ -16,48 +22,11 @@ async function readIosTodaySteps(): Promise<number | null> {
   return Math.max(0, result.steps)
 }
 
-let healthConnectReady: boolean | null = null
-
-async function ensureHealthConnect(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false
-  if (healthConnectReady !== null) return healthConnectReady
-  try {
-    const { initialize, requestPermission } = await import('react-native-health-connect')
-    const ok = await initialize()
-    if (!ok) {
-      healthConnectReady = false
-      return false
-    }
-    const perms = await requestPermission([{ accessType: 'read', recordType: 'Steps' }])
-    healthConnectReady = perms.some((p) => p.recordType === 'Steps' && p.accessType === 'read')
-    return healthConnectReady
-  } catch {
-    healthConnectReady = false
-    return false
-  }
-}
-
-async function readAndroidHealthConnectSteps(): Promise<number | null> {
-  const ready = await ensureHealthConnect()
-  if (!ready) return null
-  try {
-    const { readRecords } = await import('react-native-health-connect')
-    const end = new Date()
-    const start = startOfToday()
-    const result = await readRecords('Steps', {
-      timeRangeFilter: {
-        operator: 'between',
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
-      },
-    })
-    const records = Array.isArray(result)
-      ? result
-      : ((result as { records?: Array<{ count?: number }> }).records ?? [])
-    return records.reduce((sum: number, row) => sum + (row.count ?? 0), 0)
-  } catch {
-    return null
-  }
+async function readAndroidHealthConnectTodaySteps(): Promise<number | null> {
+  const hasPerm = await hasHealthConnectStepsPermission()
+  if (!hasPerm) return null
+  const steps = await readAggregateSteps(startOfToday(), new Date())
+  return steps
 }
 
 /** Autoritativno čitanje dnevnih koraka iz OS-a (radi i posle restarta app-a). */
@@ -71,11 +40,17 @@ export async function readTodayStepsFromOs(): Promise<{
     return { steps, source: 'ios_pedometer' }
   }
 
-  const hcSteps = await readAndroidHealthConnectSteps()
+  const hcSteps = await readAndroidHealthConnectTodaySteps()
   if (hcSteps != null) {
     return { steps: hcSteps, source: 'android_health_connect' }
   }
   return null
+}
+
+/** Agregirani koraci za danas / sedmicu / mjesec (Android Health Connect). */
+export async function readStepsPeriodsFromOs(): Promise<StepsPeriodTotals | null> {
+  if (Platform.OS !== 'android') return null
+  return readStepsPeriodTotals()
 }
 
 /** Live delta dok je app u foreground-u (dopuna, ne jedini izvor). */
@@ -96,17 +71,12 @@ export async function requestOsStepsAccess(): Promise<boolean> {
     const perm = await Pedometer.requestPermissionsAsync()
     return perm.status === 'granted'
   }
-  return ensureHealthConnect()
+  return hasHealthConnectStepsPermission()
 }
 
 export async function isOsStepsReaderAvailable(): Promise<boolean> {
   if (Platform.OS === 'ios') {
     return Pedometer.isAvailableAsync()
   }
-  try {
-    const { initialize } = await import('react-native-health-connect')
-    return initialize()
-  } catch {
-    return false
-  }
+  return hasHealthConnectStepsPermission()
 }

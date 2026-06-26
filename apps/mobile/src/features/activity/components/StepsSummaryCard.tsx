@@ -36,11 +36,14 @@ export function StepsSummaryCard({
   const pct = Math.min(100, progressPercent)
   const isExpoGo = Constants.appOwnership === 'expo'
   const needsAccess =
-    accessStatus === 'permission_needed' || accessStatus === 'permission_denied'
+    accessStatus === 'permission_needed' ||
+    accessStatus === 'permission_denied' ||
+    accessStatus === 'device_unavailable' ||
+    accessStatus === 'health_connect_update_required'
   const deniedText =
     Platform.OS === 'ios'
       ? t('dailyStepsPermissionDeniedIos')
-      : t('dailyStepsPermissionDeniedAndroid')
+      : t('stepsPermissionDeniedBody')
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
@@ -63,32 +66,37 @@ export function StepsSummaryCard({
             </Text>
             <View style={styles.skeletonTrack} />
           </View>
-        ) : accessStatus === 'device_unavailable' ? (
+        ) : accessStatus === 'device_unavailable' || accessStatus === 'health_connect_update_required' ? (
           <View style={styles.accessBody}>
             <Text variant="small" color={colors.textMuted}>
-              {isExpoGo ? t('dailyStepsExpoGoHint') : t('dailyStepsUnavailable')}
+              {isExpoGo
+                ? t('dailyStepsExpoGoHint')
+                : accessStatus === 'health_connect_update_required'
+                  ? t('stepsHcUpdateRequired')
+                  : t('stepsHcUnavailable')}
             </Text>
-            {accessDebug ? (
-              <Text variant="small" color={colors.textSubtle} style={styles.debugText}>
-                Diag: {accessDebug.path} · avail={String(accessDebug.isAvailable)} · perm=
-                {accessDebug.permStatus}
-                {accessDebug.error ? ` · err=${accessDebug.error}` : ''}
-              </Text>
+            {onRequestAccess ? (
+              <Button
+                title={t('stepsHcInstallButton')}
+                variant="secondary"
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onRequestAccess()
+                }}
+              />
             ) : null}
           </View>
         ) : needsAccess ? (
           <View style={styles.accessBody}>
             <Text variant="small" color={colors.textMuted}>
-              {accessStatus === 'permission_denied'
-                ? deniedText
-                : t('dailyStepsPermissionNeeded')}
+              {accessStatus === 'permission_denied' ? deniedText : t('stepsConnectBody')}
             </Text>
             {onRequestAccess ? (
               <Button
                 title={
                   accessStatus === 'permission_denied'
-                    ? t('dailyStepsOpenSettings')
-                    : t('dailyStepsEnable')
+                    ? t('stepsOpenPermissions')
+                    : t('stepsConnectButton')
                 }
                 variant="secondary"
                 onPress={(e) => {

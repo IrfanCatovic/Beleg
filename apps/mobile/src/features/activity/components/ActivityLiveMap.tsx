@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
-import MapView, { Polyline, PROVIDER_DEFAULT } from 'react-native-maps'
+import { Camera, GeoJSONSource, Layer, Map, type CameraRef } from '@maplibre/maplibre-react-native'
 import type { GPSPoint } from '@beleg/shared'
+import { Text } from '../../../components/ui'
+import { getMobilePlaninerMapStyle } from '../../../utils/planinerMapStyle'
 import { colors } from '../../../theme'
 
 interface Props {
@@ -9,47 +11,67 @@ interface Props {
   follow?: boolean
 }
 
-export function ActivityLiveMap({ points, follow = true }: Props) {
-  const region = useMemo(() => {
-    if (points.length === 0) {
-      return {
-        latitude: 44.0165,
-        longitude: 21.0059,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }
-    }
-    const last = points[points.length - 1]
-    return {
-      latitude: last.lat,
-      longitude: last.lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    }
-  }, [points])
+const DEFAULT_CENTER: [number, number] = [21.0059, 44.0165]
 
-  const coords = useMemo(
-    () => points.map((p) => ({ latitude: p.lat, longitude: p.lng })),
+export function ActivityLiveMap({ points, follow = true }: Props) {
+  const cameraRef = useRef<CameraRef>(null)
+  const mapStyle = getMobilePlaninerMapStyle()
+
+  const coords = useMemo<[number, number][]>(
+    () => points.map((p) => [p.lng, p.lat]),
     [points],
   )
 
+  const last = coords.length > 0 ? coords[coords.length - 1] : DEFAULT_CENTER
+
+  const lineShape = useMemo(
+    () => ({
+      type: 'Feature' as const,
+      geometry: { type: 'LineString' as const, coordinates: coords },
+      properties: {},
+    }),
+    [coords],
+  )
+
+  useEffect(() => {
+    if (follow && coords.length > 0) {
+      cameraRef.current?.easeTo({ center: last, zoom: 15, duration: 500 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords, follow])
+
+  if (!mapStyle) {
+    return (
+      <View style={styles.root}>
+        <Text variant="small" color={colors.textMuted}>
+          Mapa nije dostupna.
+        </Text>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.root}>
-      <MapView
-        style={StyleSheet.absoluteFill}
-        provider={PROVIDER_DEFAULT}
-        region={region}
-        showsUserLocation
-        followsUserLocation={follow && points.length > 0}
-      >
+      <Map style={StyleSheet.absoluteFill} mapStyle={mapStyle.styleUrl} logo={false}>
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: last, zoom: coords.length > 0 ? 15 : 6.2 }}
+        />
         {coords.length > 1 ? (
-          <Polyline coordinates={coords} strokeColor={colors.brand} strokeWidth={4} />
+          <GeoJSONSource id="adventure-live-route" data={lineShape}>
+            <Layer
+              id="adventure-live-line"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{ 'line-color': colors.brand, 'line-width': 4 }}
+            />
+          </GeoJSONSource>
         ) : null}
-      </MapView>
+      </Map>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 })

@@ -218,6 +218,7 @@ export default function AdventureScreen({ navigation }: Props) {
           elevationGainM={completedActivity.elevationGainM}
           steps={completedActivity.steps}
           dateLabel={formatActivityDate(completedActivity.endedAt ?? completedActivity.startedAt)}
+          routePoints={routePoints}
           onClose={() => setStickerOpen(false)}
         />
       ) : null}

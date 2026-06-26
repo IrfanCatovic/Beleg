@@ -6,6 +6,7 @@ import * as MediaLibrary from 'expo-media-library'
 import { useTranslation } from 'react-i18next'
 import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
+import type { LatLngAlt } from '../services/activityMetrics'
 import { AdventureSticker } from './AdventureSticker'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   elevationGainM: number
   steps: number
   dateLabel: string
+  routePoints?: LatLngAlt[]
   onClose: () => void
 }
 
@@ -25,6 +27,7 @@ export function AdventureStickerModal({
   elevationGainM,
   steps,
   dateLabel,
+  routePoints,
   onClose,
 }: Props) {
   const { t } = useTranslation('explore')
@@ -85,6 +88,7 @@ export function AdventureStickerModal({
               elevationGainM={elevationGainM}
               steps={steps}
               dateLabel={dateLabel}
+              routePoints={routePoints}
             />
           </View>
 
