@@ -339,6 +339,12 @@ export const sr = {
     adventureIdleTitle: 'Spreman za hod?',
     adventureIdleBody: 'Pritisni play da započneš praćenje. Ruta se crta kada završiš aktivnost.',
     adventurePlay: 'Započni',
+    adventureLocationOff:
+      'Lokacija na telefonu je isključena. Uključi GPS u postavkama — bez toga ne možeš započeti avanturu.',
+    adventureLocationPermission:
+      'Planiner nema dozvolu za lokaciju. Dozvoli pristup u postavkama da započneš avanturu.',
+    adventureLocationEnable: 'Uključi lokaciju',
+    adventureLocationOpenSettings: 'Otvori postavke',
     adventureActive: 'Aktivno',
     adventurePaused: 'Pauzirano',
     adventurePause: 'Pauza',

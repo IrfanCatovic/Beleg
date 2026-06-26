@@ -7,14 +7,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { TrackedActivity } from '@beleg/shared'
 import { AppTopBar, Button, Loader, Screen, Text } from '../../../components/ui'
 import { useModal } from '../../../context/ModalContext'
-import { colors, spacing } from '../../../theme'
+import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
 import { ActivityLiveStatsBar } from '../components/ActivityLiveStatsBar'
 import { ActivityRouteMap } from '../components/ActivityRouteMap'
 import { ActivitySummaryStats } from '../components/ActivitySummaryStats'
 import { AdventureStickerModal } from '../components/AdventureStickerModal'
 import { useActivityTracker } from '../hooks/useActivityTracker'
+import { useLocationReadiness } from '../hooks/useLocationReadiness'
 import { requestActivityPermissions } from '../services/activityPermissions'
+import { openLocationSettings } from '../services/locationReadiness'
 import { decodePolyline, formatDuration } from '../services/activityMetrics'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'Adventure'>
@@ -47,6 +49,16 @@ export default function AdventureScreen({ navigation }: Props) {
     return 'idle'
   }, [completedActivity, tracker.status])
 
+  const locationReadiness = useLocationReadiness(phase === 'idle')
+
+  const locationWarning = useMemo(() => {
+    if (locationReadiness.ready || locationReadiness.checking) return null
+    if (locationReadiness.issue === 'permission_denied') {
+      return t('adventureLocationPermission')
+    }
+    return t('adventureLocationOff')
+  }, [locationReadiness.ready, locationReadiness.checking, locationReadiness.issue, t])
+
   const routePoints = useMemo(() => {
     if (completedActivity?.routePolyline) {
       return decodePolyline(completedActivity.routePolyline)
@@ -54,8 +66,31 @@ export default function AdventureScreen({ navigation }: Props) {
     return []
   }, [completedActivity?.routePolyline])
 
+  const handleEnableLocation = useCallback(async () => {
+    if (!locationReadiness.issue) return
+    await openLocationSettings(locationReadiness.issue)
+    await locationReadiness.refresh()
+  }, [locationReadiness])
+
   const handleStart = useCallback(async () => {
     if (tracker.status === 'active' || tracker.status === 'paused') {
+      return
+    }
+
+    if (!locationReadiness.ready) {
+      const title = locationReadiness.issue === 'permission_denied' ? 'Dozvola' : 'Lokacija'
+      const message =
+        locationReadiness.issue === 'permission_denied'
+          ? t('adventureLocationPermission')
+          : t('adventureLocationOff')
+      const open = await showConfirm(title, message, {
+        confirmLabel: t('adventureLocationOpenSettings'),
+        cancelLabel: 'Otkaži',
+      })
+      if (open && locationReadiness.issue) {
+        await openLocationSettings(locationReadiness.issue)
+        await locationReadiness.refresh()
+      }
       return
     }
 
@@ -68,7 +103,7 @@ export default function AdventureScreen({ navigation }: Props) {
     }
     await tracker.start()
     setStarting(false)
-  }, [tracker, showAlert])
+  }, [tracker, showAlert, showConfirm, locationReadiness, t])
 
   const handleStop = useCallback(async () => {
     const ok = await showConfirm(t('adventureStopTitle'), t('adventureStopMessage'), {
@@ -148,10 +183,18 @@ export default function AdventureScreen({ navigation }: Props) {
             <Text color={colors.textMuted} style={styles.idleText}>
               {t('adventureIdleBody')}
             </Text>
+            {locationWarning ? (
+              <View style={styles.locationWarning}>
+                <Ionicons name="location-outline" size={20} color={colors.warning} />
+                <Text variant="small" color={colors.warning} style={styles.locationWarningText}>
+                  {locationWarning}
+                </Text>
+              </View>
+            ) : null}
             <Button
-              title={t('adventurePlay')}
-              onPress={() => void handleStart()}
-              loading={starting || tracker.loading}
+              title={locationReadiness.ready ? t('adventurePlay') : t('adventureLocationEnable')}
+              onPress={() => void (locationReadiness.ready ? handleStart() : handleEnableLocation())}
+              loading={starting || tracker.loading || locationReadiness.checking}
               fullWidth
             />
           </View>
@@ -239,6 +282,18 @@ const styles = StyleSheet.create({
   },
   idleTitle: { textAlign: 'center' },
   idleText: { textAlign: 'center', marginBottom: spacing.md },
+  locationWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    width: '100%',
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  locationWarningText: { flex: 1, lineHeight: 20 },
   tracking: { gap: spacing.lg, paddingVertical: spacing.lg },
   timer: {
     fontSize: 56,

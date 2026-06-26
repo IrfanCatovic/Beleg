@@ -112,6 +112,12 @@ export async function wasAdventureProcessKilled(): Promise<boolean> {
 
 export async function startAdventureLocationTracking(): Promise<void> {
   await loadPersistedPoints()
+
+  const servicesOn = await Location.hasServicesEnabledAsync()
+  if (!servicesOn) {
+    throw new Error('Lokacija na telefonu je isključena. Uključi GPS u postavkama.')
+  }
+
   const fg = await Location.requestForegroundPermissionsAsync()
   if (fg.status !== 'granted') {
     throw new Error('Dozvola za lokaciju nije dodeljena.')

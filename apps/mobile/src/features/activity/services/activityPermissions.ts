@@ -1,14 +1,32 @@
 import * as Location from 'expo-location'
 import { requestStepsAccess } from './stepsAccess'
+import { checkLocationReadiness } from './locationReadiness'
 
 export type ActivityPermissionResult =
   | { ok: true }
   | { ok: false; message: string }
 
 export async function requestActivityPermissions(): Promise<ActivityPermissionResult> {
-  const { status: locStatus } = await Location.requestForegroundPermissionsAsync()
+  const readiness = await checkLocationReadiness()
+  if (!readiness.ready) {
+    if (readiness.issue === 'services_off') {
+      return {
+        ok: false,
+        message: 'Lokacija na telefonu je isključena. Uključi GPS u postavkama da započneš avanturu.',
+      }
+    }
+    return {
+      ok: false,
+      message: 'Dozvola za lokaciju je potrebna za snimanje rute.',
+    }
+  }
+
+  const { status: locStatus } = await Location.getForegroundPermissionsAsync()
   if (locStatus !== 'granted') {
-    return { ok: false, message: 'Dozvola za lokaciju je potrebna za snimanje rute.' }
+    const { status: requested } = await Location.requestForegroundPermissionsAsync()
+    if (requested !== 'granted') {
+      return { ok: false, message: 'Dozvola za lokaciju je potrebna za snimanje rute.' }
+    }
   }
 
   const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync()
