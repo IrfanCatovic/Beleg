@@ -70,7 +70,13 @@ Bez Firebase ključeva, Google ne zna kuda da pošalje poruku na tvoj telefon. O
 2. **Add app** → **Android**.
 3. **Android package name:** `rs.planiner.app` (mora tačno ovako).
 4. Preuzmi **`google-services.json`**.
-5. Stavi fajl ovde: `apps/mobile/google-services.json` (pored `app.json`).
+5. Za **lokalni** build: stavi fajl u `apps/mobile/google-services.json` (pored `app.json`).
+6. Za **EAS cloud build** (fajl ne ide u git): upload na Expo:
+   ```powershell
+   cd apps\mobile
+   npx eas env:create --name GOOGLE_SERVICES_JSON --type file --value .\google-services.json --environment preview --visibility secret
+   ```
+   Ponovi sa `--environment production` ako koristiš production profil.
 
 #### Korak B — FCM ključ na Expo (ovo je „tačka 3”)
 
@@ -92,7 +98,7 @@ eas credentials
    ```powershell
    npm run build:apk
    ```
-   (Build **neće proći** dok nema `google-services.json` u `apps/mobile/`.)
+   (Build **neće proći** dok nema `google-services.json` lokalno **ili** `GOOGLE_SERVICES_JSON` na EAS-u.)
 2. Instaliraj novi APK (versionCode 9+).
 3. Pri logovanju dozvoli **Obaveštenja** (Android pita pri prvom putu).
 4. Deploy backend-a na Render (da server šalje push sa `priority: high`).

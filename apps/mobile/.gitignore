@@ -7,5 +7,7 @@ web-build/
 *.bundle
 *.log
 .DS_Store
+# Firebase Android config — upload na EAS kao GOOGLE_SERVICES_JSON (ne u git)
+google-services.json
 # Firebase FCM tajni ključ (service account JSON) — nikad u git
 *-firebase-adminsdk-*.json
