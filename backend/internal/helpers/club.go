@@ -86,20 +86,60 @@ func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
 	if ak == nil {
 		return false
 	}
-	if strings.TrimSpace(strings.ToLower(ak.OrganizatorTip)) == "vodic" && ak.VodicID > 0 {
-		roleVal, _ := c.Get("role")
-		role, _ := roleVal.(string)
-		if role != "admin" && role != "vodic" && role != "superadmin" {
-			return false
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	username, _ := c.Get("username")
+	var u models.Korisnik
+	userLoaded := DBWhereUsername(db, UsernameFromContext(username)).First(&u).Error == nil
+
+	orgVodic := strings.TrimSpace(strings.ToLower(ak.OrganizatorTip)) == "vodic" && ak.VodicID > 0
+	roleOk := role == "admin" || role == "vodic" || role == "superadmin"
+	vodicMatch := userLoaded && u.ID == ak.VodicID
+	addedByMatch := userLoaded && ak.AddedByID > 0 && u.ID == ak.AddedByID
+
+	var result bool
+	blockReason := "unknown"
+	if orgVodic {
+		if !roleOk {
+			blockReason = "role_not_allowed"
+		} else if !userLoaded {
+			blockReason = "user_not_loaded"
+		} else if vodicMatch {
+			result = true
+			blockReason = "vodic_id_match"
+		} else {
+			blockReason = "vodic_id_mismatch"
 		}
-		username, _ := c.Get("username")
-		var u models.Korisnik
-		if err := DBWhereUsername(db, UsernameFromContext(username)).First(&u).Error; err != nil {
-			return false
+	} else {
+		result = CanManageAkcija(c, db, ak.KlubID)
+		if result {
+			blockReason = "club_manage"
+		} else if ak.VodicID > 0 && vodicMatch && roleOk {
+			result = true
+			blockReason = "assigned_vodic"
+		} else {
+			blockReason = "club_manage_denied"
 		}
-		return u.ID == ak.VodicID
 	}
-	return CanManageAkcija(c, db, ak.KlubID)
+
+	// #region agent log
+	AgentDebugLog("club.go:CanManageAkcijaEx", "CanManageAkcijaEx evaluated", "A-C", "pre-fix", map[string]any{
+		"result":         result,
+		"blockReason":    blockReason,
+		"role":           role,
+		"organizatorTip": ak.OrganizatorTip,
+		"vodicId":        ak.VodicID,
+		"addedById":      ak.AddedByID,
+		"klubId":         ak.KlubID,
+		"viewerId":       u.ID,
+		"userLoaded":     userLoaded,
+		"roleOk":         roleOk,
+		"vodicMatch":     vodicMatch,
+		"addedByMatch":   addedByMatch,
+	})
+	// #endregion
+
+	return result
 }
 
 // IsClubOnHold čita samo klubovi.on_hold — bez side-effecta (za middleware i login).

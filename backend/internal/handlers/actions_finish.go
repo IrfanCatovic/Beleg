@@ -296,10 +296,6 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 }
 
 func ZavrsiAkciju(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može završiti akciju", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -319,7 +315,32 @@ func ZavrsiAkciju(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
-	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
+
+	roleVal, _ := c.Get("role")
+	role, _ := roleVal.(string)
+	roleAllowed := role == "admin" || role == "vodic" || role == "superadmin"
+	canManage := helpers.CanManageAkcijaEx(c, db, &akcija)
+
+	// #region agent log
+	helpers.AgentDebugLog("actions_finish.go:ZavrsiAkciju", "finish attempt", "A-D", "pre-fix", map[string]any{
+		"actionId":       id,
+		"role":           role,
+		"roleAllowed":    roleAllowed,
+		"canManage":      canManage,
+		"organizatorTip": akcija.OrganizatorTip,
+		"vodicId":        akcija.VodicID,
+		"addedById":      akcija.AddedByID,
+		"actorId":        actor.ID,
+		"isCompleted":    akcija.IsCompleted,
+	})
+	// #endregion
+
+	if !roleAllowed {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može završiti akciju"})
+		return
+	}
+
+	if !canManage {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič kluba koji je objavio akciju može da je završi"})
 		return
 	}
