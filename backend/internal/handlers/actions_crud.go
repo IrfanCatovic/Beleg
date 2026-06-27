@@ -772,12 +772,6 @@ func CreateAkcija(c *gin.Context) {
 }
 
 func UpdateAkcija(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" && role != "vodic" && role != "superadmin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može izmeniti akciju"})
-		return
-	}
-
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {

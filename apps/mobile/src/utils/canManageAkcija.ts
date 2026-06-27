@@ -5,18 +5,20 @@ export type AkcijaManageContext = {
   organizatorTip?: string | null
   vodicId?: number | null
   vodicUsername?: string | null
+  addedByUsername?: string | null
+}
+
+function isActionLeader(user: SessionUser, akcija: AkcijaManageContext): boolean {
+  if (!user.username) return false
+  if (akcija.vodicUsername && user.username === akcija.vodicUsername) return true
+  if (akcija.addedByUsername && user.username === akcija.addedByUsername) return true
+  return false
 }
 
 export function canManageHostAkcija(user: SessionUser | null, akcija: AkcijaManageContext): boolean {
-  if (!user || !['admin', 'vodic', 'superadmin'].includes(user.role ?? '')) return false
-
-  const org = (akcija.organizatorTip ?? 'klub').toLowerCase()
-  if (org === 'vodic' && (akcija.vodicId || akcija.vodicUsername)) {
-    if (akcija.vodicUsername && user.username) {
-      return akcija.vodicUsername === user.username
-    }
-    return false
-  }
+  if (!user) return false
+  if (isActionLeader(user, akcija)) return true
+  if (!['admin', 'vodic', 'superadmin'].includes(user.role ?? '')) return false
 
   const akcijaKlubId = akcija.klubId
   if (akcijaKlubId == null || akcijaKlubId === 0) return false
@@ -28,18 +30,14 @@ export function canManageHostAkcija(user: SessionUser | null, akcija: AkcijaMana
   return Number(uid) === Number(akcijaKlubId)
 }
 
-/** Ko može odobriti zahtev za prijavu: vodič akcije ili admin/sekretar kluba ako nema vodiča. */
+/** Ko može odobriti zahtev za prijavu: vodič akcije, kreator, ili admin/sekretar kluba ako nema vodiča. */
 export function canApproveSignupRequest(user: SessionUser | null, akcija: AkcijaManageContext): boolean {
   if (!user) return false
   if (user.role === 'superadmin') return true
+  if (isActionLeader(user, akcija)) return true
 
   const hasGuide = !!(akcija.vodicId || akcija.vodicUsername)
-  if (hasGuide) {
-    if (akcija.vodicUsername && user.username) {
-      return akcija.vodicUsername === user.username
-    }
-    return false
-  }
+  if (hasGuide) return false
 
   const akcijaKlubId = akcija.klubId
   if (akcijaKlubId == null || akcijaKlubId === 0) return false

@@ -227,6 +227,9 @@ func GetPrevozPrijave(c *gin.Context) {
 		}
 	}
 	if !canSee {
+		canSee = helpers.CanManageAkcijaEx(c, db, &akcija)
+	}
+	if !canSee {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Spisak prevoza nije dostupan"})
 		return
 	}

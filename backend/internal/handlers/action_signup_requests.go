@@ -110,8 +110,8 @@ func canApproveSignupRequest(c *gin.Context, db *gorm.DB, akcija *models.Akcija)
 	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(usernameVal)).First(&viewer).Error; err != nil {
 		return false
 	}
-	if akcija.VodicID > 0 {
-		return viewer.ID == akcija.VodicID
+	if akcija.VodicID > 0 || akcija.AddedByID > 0 {
+		return helpers.IsAkcijaLeader(akcija, viewer.ID)
 	}
 	if akcija.KlubID != nil && viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
 		return role == "admin" || role == "sekretar"

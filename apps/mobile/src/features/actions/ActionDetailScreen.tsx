@@ -117,6 +117,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         organizatorTip: akcija.organizatorTip,
         vodicId: akcija.vodicId,
         vodicUsername: akcija.vodic?.username,
+        addedByUsername: akcija.addedBy?.username,
       }
     : {}
 

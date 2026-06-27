@@ -211,10 +211,8 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		return
 	}
 	canSeePrijave := false
-	roleVal, _ := c.Get("role")
-	role, _ := roleVal.(string)
 	if !akcijaZaPravo.PrikaziListuPrijavljenih {
-		canSeePrijave = role == "vodic" || role == "admin" || role == "superadmin"
+		canSeePrijave = helpers.CanManageAkcijaEx(c, db, &akcijaZaPravo)
 	} else if akcijaZaPravo.Javna {
 		canSeePrijave = true
 	} else if akcijaZaPravo.KlubID != nil {

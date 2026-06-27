@@ -5,25 +5,28 @@ export type AkcijaManageContext = {
   organizatorTip?: string | null
   vodicId?: number | null
   vodicUsername?: string | null
+  addedByUsername?: string | null
 }
 
-/** Admin/vodič kluba (domaćin) ili vodič koji vodi nezavisnu turu. */
+function isActionLeader(user: User, akcija: AkcijaManageContext): boolean {
+  if (!user.username) return false
+  if (akcija.vodicUsername && user.username === akcija.vodicUsername) return true
+  if (akcija.addedByUsername && user.username === akcija.addedByUsername) return true
+  return false
+}
+
+/** Vođa/kreator akcije (npr. profi vodič sa ulogom clan) ili admin/vodič kluba domaćina. */
 export function canManageHostAkcija(user: User | null, akcija: AkcijaManageContext): boolean {
-  const org = (akcija.organizatorTip ?? 'klub').toLowerCase()
   let result = false
   let blockReason = 'unknown'
 
   if (!user) {
     blockReason = 'no_user'
+  } else if (isActionLeader(user, akcija)) {
+    result = true
+    blockReason = 'action_leader'
   } else if (!['admin', 'vodic', 'superadmin'].includes(user.role)) {
     blockReason = 'role_not_allowed'
-  } else if (org === 'vodic' && (akcija.vodicId || akcija.vodicUsername)) {
-    if (akcija.vodicUsername && user.username) {
-      result = akcija.vodicUsername === user.username
-      blockReason = result ? 'vodic_username_match' : 'vodic_username_mismatch'
-    } else {
-      blockReason = 'vodic_username_missing'
-    }
   } else {
     const akcijaKlubId = akcija.klubId
     if (akcijaKlubId == null || akcijaKlubId === 0) {
@@ -55,17 +58,18 @@ export function canManageHostAkcija(user: User | null, akcija: AkcijaManageConte
       sessionId: '0764c5',
       location: 'canManageAkcija.ts:canManageHostAkcija',
       message: 'canManageHostAkcija evaluated',
-      hypothesisId: 'A-B-C',
+      hypothesisId: 'A',
       data: {
         result,
         blockReason,
         userRole: user?.role ?? null,
         userUsername: user?.username ?? null,
         userKlubId: user?.klubId ?? null,
-        organizatorTip: org,
+        organizatorTip: akcija.organizatorTip ?? null,
         akcijaKlubId: akcija.klubId ?? null,
         vodicId: akcija.vodicId ?? null,
         vodicUsername: akcija.vodicUsername ?? null,
+        addedByUsername: akcija.addedByUsername ?? null,
       },
       timestamp: Date.now(),
     }),
@@ -75,18 +79,15 @@ export function canManageHostAkcija(user: User | null, akcija: AkcijaManageConte
   return result
 }
 
-/** Ko može odobriti zahtev za prijavu: vodič akcije ili admin/sekretar kluba ako nema vodiča. */
+/** Ko može odobriti zahtev za prijavu: vodič akcije, kreator, ili admin/sekretar kluba ako nema vodiča. */
 export function canApproveSignupRequest(user: User | null, akcija: AkcijaManageContext): boolean {
   if (!user) return false
   if (user.role === 'superadmin') return true
 
+  if (isActionLeader(user, akcija)) return true
+
   const hasGuide = !!(akcija.vodicId || akcija.vodicUsername)
-  if (hasGuide) {
-    if (akcija.vodicUsername && user.username) {
-      return akcija.vodicUsername === user.username
-    }
-    return false
-  }
+  if (hasGuide) return false
 
   const akcijaKlubId = akcija.klubId
   if (akcijaKlubId == null || akcijaKlubId === 0) return false

@@ -112,6 +112,7 @@ export default function ActionDetails() {
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     }) &&
     akcija.isCompleted
   )
@@ -169,6 +170,7 @@ export default function ActionDetails() {
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     }) || !akcija.isCompleted) {
       setSelectedMemberId('')
     }
@@ -182,6 +184,7 @@ export default function ActionDetails() {
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     })
   )
 
@@ -194,6 +197,7 @@ export default function ActionDetails() {
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     })
   )
 
@@ -220,6 +224,7 @@ export default function ActionDetails() {
           vodicId: akcija.vodicId ?? null,
           addedById: akcija.addedById ?? null,
           vodicUsername: akcija.vodic?.username ?? null,
+          addedByUsername: akcija.addedBy?.username ?? null,
           userRole: user.role,
           userUsername: user.username,
           prijaveCount: prijave.length,
@@ -353,6 +358,7 @@ export default function ActionDetails() {
         organizatorTip: akcija.organizatorTip,
         vodicId: akcija.vodicId,
         vodicUsername: akcija.vodic?.username,
+        addedByUsername: akcija.addedBy?.username,
       })) return
     const ok = await showConfirm(
       `Da li ste sigurni da želite da obrišete prevoz „${row.nazivGrupe}"? Svi koji su bili prijavljeni na ovaj prevoz biće uklonjeni sa prevoza (neće biti automatski prebačeni na drugi prevoz).`,
@@ -1187,6 +1193,7 @@ export default function ActionDetails() {
         organizatorTip: akcija.organizatorTip,
         vodicId: akcija.vodicId,
         vodicUsername: akcija.vodic?.username,
+        addedByUsername: akcija.addedBy?.username,
       }) && !akcija.isCompleted}
                             onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
                           />

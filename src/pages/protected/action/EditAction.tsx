@@ -134,6 +134,7 @@ export default function EditAction() {
             organizatorTip: a.organizatorTip,
             vodicId: a.vodicId,
             vodicUsername: a.vodic?.username,
+            addedByUsername: a.addedBy?.username,
           })
         ) {
           navigate(`/akcije/${id}`, { replace: true })

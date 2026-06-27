@@ -20,10 +20,6 @@ import (
 )
 
 func DodajClanaPopeoSe(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može dodati člana na završenu akciju", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	akcijaID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -84,10 +80,6 @@ func DodajClanaPopeoSe(c *gin.Context) {
 }
 
 func BulkAddClubMembersCompleted(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može dodati članove na završenu akciju", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	akcijaID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -322,7 +314,7 @@ func ZavrsiAkciju(c *gin.Context) {
 	canManage := helpers.CanManageAkcijaEx(c, db, &akcija)
 
 	// #region agent log
-	helpers.AgentDebugLog("actions_finish.go:ZavrsiAkciju", "finish attempt", "A-D", "pre-fix", map[string]any{
+	helpers.AgentDebugLog("actions_finish.go:ZavrsiAkciju", "finish attempt", "A", "post-fix", map[string]any{
 		"actionId":       id,
 		"role":           role,
 		"roleAllowed":    roleAllowed,
@@ -335,13 +327,8 @@ func ZavrsiAkciju(c *gin.Context) {
 	})
 	// #endregion
 
-	if !roleAllowed {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili vodič može završiti akciju"})
-		return
-	}
-
 	if !canManage {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin ili vodič kluba koji je objavio akciju može da je završi"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da završite ovu akciju"})
 		return
 	}
 
@@ -385,10 +372,6 @@ func ZavrsiAkciju(c *gin.Context) {
 }
 
 func DeleteAkcija(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može obrisati akciju", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -525,10 +508,6 @@ func GetMojePopeoSe(c *gin.Context) {
 }
 
 func UpdatePrijavaStatus(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može menjati status", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	prijavaID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -610,10 +589,6 @@ func UpdatePrijavaStatus(c *gin.Context) {
 }
 
 func DeletePrijava(c *gin.Context) {
-	if !RequireAnyRole(c, "Samo admin, superadmin ili vodič može da ukloni člana sa akcije", "admin", "vodic", "superadmin") {
-		return
-	}
-
 	idStr := c.Param("id")
 	prijavaID, err := strconv.Atoi(idStr)
 	if err != nil {

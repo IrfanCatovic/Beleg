@@ -119,6 +119,7 @@ export function useActionDetailsData({ id, inviteToken, user, loadErrorFallback 
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     }) || !akcija.isCompleted) {
       setClubMembers([])
       return

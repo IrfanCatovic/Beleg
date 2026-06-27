@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"beleg-app/backend/internal/models"
@@ -81,7 +80,21 @@ func CanManageAkcija(c *gin.Context, db *gorm.DB, akcijaKlubID *uint) bool {
 	return effectiveClubID == *akcijaKlubID
 }
 
-// CanManageAkcijaEx: klupske akcije — CanManageAkcija; vodičke — samo vodič koji vodi turu.
+// IsAkcijaLeader: vodič dodeljen na akciju ili korisnik koji je kreirao akciju (npr. profi vodič sa ulogom clan).
+func IsAkcijaLeader(ak *models.Akcija, viewerID uint) bool {
+	if ak == nil || viewerID == 0 {
+		return false
+	}
+	if ak.VodicID > 0 && ak.VodicID == viewerID {
+		return true
+	}
+	if ak.AddedByID > 0 && ak.AddedByID == viewerID {
+		return true
+	}
+	return false
+}
+
+// CanManageAkcijaEx: vođa/kreator akcije (bilo koja uloga) ili admin/vodič kluba domaćina.
 func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
 	if ak == nil {
 		return false
@@ -92,38 +105,24 @@ func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
 	var u models.Korisnik
 	userLoaded := DBWhereUsername(db, UsernameFromContext(username)).First(&u).Error == nil
 
-	orgVodic := strings.TrimSpace(strings.ToLower(ak.OrganizatorTip)) == "vodic" && ak.VodicID > 0
-	roleOk := role == "admin" || role == "vodic" || role == "superadmin"
-	vodicMatch := userLoaded && u.ID == ak.VodicID
-	addedByMatch := userLoaded && ak.AddedByID > 0 && u.ID == ak.AddedByID
-
 	var result bool
 	blockReason := "unknown"
-	if orgVodic {
-		if !roleOk {
-			blockReason = "role_not_allowed"
-		} else if !userLoaded {
-			blockReason = "user_not_loaded"
-		} else if vodicMatch {
-			result = true
-			blockReason = "vodic_id_match"
-		} else {
-			blockReason = "vodic_id_mismatch"
-		}
+	if userLoaded && IsAkcijaLeader(ak, u.ID) {
+		result = true
+		blockReason = "action_leader"
 	} else {
 		result = CanManageAkcija(c, db, ak.KlubID)
 		if result {
-			blockReason = "club_manage"
-		} else if ak.VodicID > 0 && vodicMatch && roleOk {
-			result = true
-			blockReason = "assigned_vodic"
+			blockReason = "club_host"
+		} else if !userLoaded {
+			blockReason = "user_not_loaded"
 		} else {
-			blockReason = "club_manage_denied"
+			blockReason = "denied"
 		}
 	}
 
 	// #region agent log
-	AgentDebugLog("club.go:CanManageAkcijaEx", "CanManageAkcijaEx evaluated", "A-C", "pre-fix", map[string]any{
+	AgentDebugLog("club.go:CanManageAkcijaEx", "CanManageAkcijaEx evaluated", "A", "post-fix", map[string]any{
 		"result":         result,
 		"blockReason":    blockReason,
 		"role":           role,
@@ -133,9 +132,7 @@ func CanManageAkcijaEx(c *gin.Context, db *gorm.DB, ak *models.Akcija) bool {
 		"klubId":         ak.KlubID,
 		"viewerId":       u.ID,
 		"userLoaded":     userLoaded,
-		"roleOk":         roleOk,
-		"vodicMatch":     vodicMatch,
-		"addedByMatch":   addedByMatch,
+		"isLeader":       userLoaded && IsAkcijaLeader(ak, u.ID),
 	})
 	// #endregion
 

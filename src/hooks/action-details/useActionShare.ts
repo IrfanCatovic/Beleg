@@ -259,6 +259,7 @@ export function useActionShare({
         organizatorTip: akcija.organizatorTip,
         vodicId: akcija.vodicId,
         vodicUsername: akcija.vodic?.username,
+        addedByUsername: akcija.addedBy?.username,
       })) {
         setActionShareUrl(resolveActionPublicUrl())
       } else if (!actionShareUrl) {

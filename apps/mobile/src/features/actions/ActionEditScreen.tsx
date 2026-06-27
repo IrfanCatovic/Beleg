@@ -77,6 +77,7 @@ export default function ActionEditScreen({ navigation, route }: Props) {
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     })
     if (!allowed) {
       navigation.replace('ActionDetail', { id })

@@ -43,6 +43,7 @@ export function useParticipationRequests({
       organizatorTip: akcija.organizatorTip,
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
+      addedByUsername: akcija.addedBy?.username,
     }) || !akcija.isCompleted || !id) {
       setActionParticipationRequests([])
       return
