@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useFocusEffect } from '@react-navigation/native'
@@ -17,8 +17,9 @@ import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
 import { useDailySteps } from '../hooks/useDailySteps'
 import { StepsAccessCard } from '../components/StepsAccessCard'
+import { StepsDiagnosisCard } from '../components/StepsDiagnosisCard'
 import { StepsPeriodSummary } from '../components/StepsPeriodSummary'
-import { StepsHealthConnectDebugTrigger } from '../components/StepsHealthConnectDebugPanel'
+import { useStepsDiagnostics } from '../../steps/hooks/useStepsDiagnostics'
 import {
   computeMonthlyAverage,
   deriveActiveMinutes,
@@ -93,32 +94,57 @@ export default function StepsScreen({ navigation }: Props) {
     enabled: clubsModalOpen || !!user?.klubId,
   })
 
+  const stepsDiagnostics = useStepsDiagnostics({
+    accessStatus: daily.accessStatus,
+    stepsConnected: daily.stepsConnected,
+    todaySteps: daily.todaySteps,
+    onRequestPermission: daily.requestAccess,
+    onOpenSettings: daily.openSettings,
+    onInstallHealthConnect: daily.installHealthConnect,
+    onRefresh: daily.refresh,
+  })
+
   useFocusEffect(
     useCallback(() => {
-      void daily.refresh()
-      void queryClient.invalidateQueries({ queryKey: ['steps-history'] })
-      void queryClient.invalidateQueries({ queryKey: ['steps-lb-global-month'] })
-      void queryClient.invalidateQueries({ queryKey: ['steps-lb-clubs-month'] })
-    }, [daily.refresh, queryClient]),
+      void (async () => {
+        await daily.refresh()
+        void queryClient.invalidateQueries({ queryKey: ['steps-history'] })
+        void queryClient.invalidateQueries({ queryKey: ['steps-lb-global-month'] })
+        void queryClient.invalidateQueries({ queryKey: ['steps-lb-clubs-month'] })
+        await stepsDiagnostics.runDiagnosis()
+      })()
+    }, [daily.refresh, queryClient, stepsDiagnostics.runDiagnosis]),
   )
+
+  useEffect(() => {
+    stepsDiagnostics.markConnected()
+  }, [daily.todaySteps, daily.stepsConnected, stepsDiagnostics.markConnected])
+
+  const displayTodaySteps = useMemo(() => {
+    const fallback = stepsDiagnostics.diagnosis?.fallbackTodaySteps
+    if (fallback != null && fallback > 0 && daily.todaySteps === 0) {
+      return fallback
+    }
+    return daily.todaySteps
+  }, [daily.todaySteps, stepsDiagnostics.diagnosis?.fallbackTodaySteps])
 
   const days = useMemo(() => {
     const fromHistory = historyQuery.data?.days ?? []
     const map = new Map(fromHistory.map((d) => [d.date, d.steps]))
-    if (selectedDate === todayKey() && daily.todaySteps > (map.get(todayKey()) ?? 0)) {
-      map.set(todayKey(), daily.todaySteps)
+    if (selectedDate === todayKey() && displayTodaySteps > (map.get(todayKey()) ?? 0)) {
+      map.set(todayKey(), displayTodaySteps)
     }
     return fromHistory.map((d) => ({
       date: d.date,
       steps: map.get(d.date) ?? d.steps,
       dayNum: Number(d.date.slice(-2)),
     }))
-  }, [historyQuery.data, daily.todaySteps, selectedDate])
+  }, [historyQuery.data, displayTodaySteps, selectedDate])
 
   const selectedSteps = useMemo(() => {
-    if (selectedDate === todayKey()) return daily.todaySteps
+    if (selectedDate === todayKey()) return displayTodaySteps
     return days.find((d) => d.date === selectedDate)?.steps ?? 0
-  }, [selectedDate, daily.todaySteps, days])
+  }, [selectedDate, displayTodaySteps, days])
 
   const monthlyAverage = useMemo(
     () => computeMonthlyAverage(days.map((d) => ({ steps: d.steps }))),
@@ -152,6 +178,15 @@ export default function StepsScreen({ navigation }: Props) {
       daily.accessStatus === 'device_unavailable' ||
       daily.accessStatus === 'health_connect_update_required')
 
+  const showDiagnosis =
+    stepsDiagnostics.shouldDiagnose ||
+    (stepsDiagnostics.diagnosis != null && stepsDiagnostics.diagnosis.status !== 'connected')
+
+  const showConnectedSummary =
+    daily.stepsConnected &&
+    stepsDiagnostics.diagnosis?.status === 'connected' &&
+    displayTodaySteps > 0
+
   const goToClub = () => {
     navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
   }
@@ -169,7 +204,14 @@ export default function StepsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <AppTopBar title="Dnevni koraci" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {needsStepsAccess ? (
+        {showDiagnosis ? (
+          <StepsDiagnosisCard
+            diagnosis={stepsDiagnostics.diagnosis}
+            loading={stepsDiagnostics.loading || daily.loading}
+            onAction={() => void stepsDiagnostics.handleAction()}
+            onRetry={() => void stepsDiagnostics.runDiagnosisWithRefresh()}
+          />
+        ) : needsStepsAccess ? (
           <StepsAccessCard
             accessStatus={daily.accessStatus}
             connected={daily.stepsConnected}
@@ -178,7 +220,7 @@ export default function StepsScreen({ navigation }: Props) {
             onOpenSettings={() => void daily.openSettings()}
             onInstallHealthConnect={() => void daily.installHealthConnect()}
           />
-        ) : daily.stepsConnected ? (
+        ) : showConnectedSummary ? (
           <StepsAccessCard
             accessStatus={daily.accessStatus}
             connected
@@ -186,10 +228,10 @@ export default function StepsScreen({ navigation }: Props) {
           />
         ) : null}
 
-        {daily.stepsConnected && Platform.OS === 'android' ? (
+        {(daily.stepsConnected || displayTodaySteps > 0) && Platform.OS === 'android' ? (
           <StepsPeriodSummary
             periods={{
-              today: daily.todaySteps,
+              today: displayTodaySteps,
               week: daily.weekSteps,
               month: daily.monthSteps,
             }}
@@ -301,12 +343,6 @@ export default function StepsScreen({ navigation }: Props) {
         <Text variant="small" color={colors.textSubtle} style={styles.footnote}>
           Udaljenost i aktivno vrijeme su procjena iz broja koraka (≈). GPS praćenje dolazi u narednoj fazi.
         </Text>
-
-        <StepsHealthConnectDebugTrigger
-          accessStatus={daily.accessStatus}
-          stepsConnected={daily.stepsConnected}
-          todaySteps={daily.todaySteps}
-        />
       </ScrollView>
 
       <Modal visible={clubsModalOpen} animationType="slide" transparent onRequestClose={() => setClubsModalOpen(false)}>
