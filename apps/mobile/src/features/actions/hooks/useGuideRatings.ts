@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEffect, useState } from 'react'
 import type { AkcijaDetail } from '@beleg/shared/types'
 import type { SessionUser } from '@beleg/shared'
-import { vodicCanReceiveGuideRatings } from '@beleg/shared'
 import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '@beleg/shared/services'
 import { client } from '../../../api/client'
 
@@ -14,7 +13,7 @@ export function useGuideRatings(options: {
   actionId: number
   user: SessionUser | null
   akcija: AkcijaDetail | undefined
-  mojaPrijava: MojaPrijavaLike | undefined
+  mojaPrijava: MojaPrijavaLike | null | undefined
   showAlert: (title: string, message?: string) => Promise<unknown>
 }) {
   const { actionId, user, akcija, mojaPrijava, showAlert } = options
@@ -23,22 +22,34 @@ export function useGuideRatings(options: {
   const [guideRatingSkipped, setGuideRatingSkipped] = useState(false)
   const [guideRatingSaving, setGuideRatingSaving] = useState(false)
   const [guideRatingChecked, setGuideRatingChecked] = useState(false)
+  const [guideRatingApplicable, setGuideRatingApplicable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setGuideRatingOpen(false)
+    setGuideRatingSubmitted(false)
+    setGuideRatingSkipped(false)
+    setGuideRatingChecked(false)
+    setGuideRatingApplicable(null)
+  }, [actionId])
 
   useEffect(() => {
     if (!user || !akcija?.isCompleted) {
       setGuideRatingChecked(false)
+      setGuideRatingApplicable(null)
+      return
+    }
+    if (mojaPrijava === undefined) {
+      setGuideRatingChecked(false)
+      setGuideRatingApplicable(null)
       return
     }
     if (mojaPrijava?.status !== 'popeo se') {
-      setGuideRatingChecked(false)
-      return
-    }
-    const vodicId = akcija.vodicId ?? 0
-    if (vodicId <= 0 || !vodicCanReceiveGuideRatings(akcija)) {
+      setGuideRatingApplicable(false)
       setGuideRatingChecked(true)
       return
     }
     if (akcija.vodic?.username && akcija.vodic.username === user.username) {
+      setGuideRatingApplicable(false)
       setGuideRatingChecked(true)
       return
     }
@@ -50,6 +61,7 @@ export function useGuideRatings(options: {
       if (skipped === '1') {
         if (!cancelled) {
           setGuideRatingSkipped(true)
+          setGuideRatingApplicable(false)
           setGuideRatingChecked(true)
         }
         return
@@ -57,7 +69,9 @@ export function useGuideRatings(options: {
       try {
         const res = await fetchMyGuideRatingForAction(client, actionId)
         if (cancelled) return
-        if (res.applicable === false) {
+        const applicable = res.applicable !== false
+        setGuideRatingApplicable(applicable)
+        if (!applicable) {
           setGuideRatingChecked(true)
           return
         }
@@ -65,14 +79,17 @@ export function useGuideRatings(options: {
         else setGuideRatingOpen(true)
         setGuideRatingChecked(true)
       } catch {
-        if (!cancelled) setGuideRatingChecked(true)
+        if (!cancelled) {
+          setGuideRatingApplicable(false)
+          setGuideRatingChecked(true)
+        }
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [user, actionId, akcija, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, akcija?.vodic?.isProfiGuide, mojaPrijava?.status])
+  }, [user, actionId, akcija?.isCompleted, akcija?.vodic?.username, mojaPrijava])
 
   const guideRatingGuideName =
     akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'Vodič'
@@ -81,7 +98,7 @@ export function useGuideRatings(options: {
     !!user &&
     !!akcija?.isCompleted &&
     mojaPrijava?.status === 'popeo se' &&
-    vodicCanReceiveGuideRatings(akcija) &&
+    guideRatingApplicable === true &&
     akcija.vodic?.username !== user.username &&
     guideRatingChecked &&
     !guideRatingSubmitted &&

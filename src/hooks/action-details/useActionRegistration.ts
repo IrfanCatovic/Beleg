@@ -37,6 +37,8 @@ export interface UseActionRegistrationParams {
   showAlert: (message: string, title?: string) => Promise<void>
   showConfirm: (message: string, options?: Partial<ConfirmOptions>) => Promise<boolean>
   t: (key: string, options?: Record<string, unknown>) => string
+  /** Osveži prijavu kad korisnik ponovo otvori stranicu (npr. dodat naknadno na završenu akciju). */
+  refetchRegistrationOnFocus?: boolean
 }
 
 function applyChoicesToState(
@@ -68,6 +70,7 @@ export function useActionRegistration({
   showAlert,
   showConfirm,
   t,
+  refetchRegistrationOnFocus = false,
 }: UseActionRegistrationParams) {
   const [mojaPrijava, setMojaPrijava] = useState<MojaPrijava | undefined>(undefined)
   const [pendingSignup, setPendingSignup] = useState<PendingSignupRequest | undefined>(undefined)
@@ -115,6 +118,23 @@ export function useActionRegistration({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user])
+
+  useEffect(() => {
+    if (!user || !id || !refetchRegistrationOnFocus) return
+    const refetch = () => {
+      void loadRegistrationState()
+    }
+    window.addEventListener('focus', refetch)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refetch()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', refetch)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user, refetchRegistrationOnFocus])
 
   useEffect(() => {
     if (!registerOptionsOpen) return

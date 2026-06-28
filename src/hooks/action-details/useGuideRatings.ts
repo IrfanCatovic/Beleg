@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '../../services/guideRatings'
 import { getApiErrorMessage } from '../../utils/apiError'
-import { vodicCanReceiveGuideRatings } from '@beleg/shared'
 import type { User } from '../../context/AuthContext'
 import type { Akcija } from '../../types/akcija'
 import type { MojaPrijava } from './useActionRegistration'
@@ -28,28 +27,41 @@ export function useGuideRatings({
   const [guideRatingSkipped, setGuideRatingSkipped] = useState(false)
   const [guideRatingSaving, setGuideRatingSaving] = useState(false)
   const [guideRatingChecked, setGuideRatingChecked] = useState(false)
+  const [guideRatingApplicable, setGuideRatingApplicable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setGuideRatingOpen(false)
+    setGuideRatingSubmitted(false)
+    setGuideRatingSkipped(false)
+    setGuideRatingChecked(false)
+    setGuideRatingApplicable(null)
+  }, [id])
 
   useEffect(() => {
     if (!user || !id || !akcija?.isCompleted) {
       setGuideRatingChecked(false)
+      setGuideRatingApplicable(null)
+      return
+    }
+    if (mojaPrijava === undefined) {
+      setGuideRatingChecked(false)
+      setGuideRatingApplicable(null)
       return
     }
     if (mojaPrijava?.status !== 'popeo se') {
-      setGuideRatingChecked(false)
-      return
-    }
-    const vodicId = akcija.vodicId ?? 0
-    if (vodicId <= 0 || !vodicCanReceiveGuideRatings(akcija)) {
+      setGuideRatingApplicable(false)
       setGuideRatingChecked(true)
       return
     }
     if (akcija.vodic?.username && akcija.vodic.username === user.username) {
+      setGuideRatingApplicable(false)
       setGuideRatingChecked(true)
       return
     }
     const skipKey = `guide-rating-skip-${id}`
     if (sessionStorage.getItem(skipKey) === '1') {
       setGuideRatingSkipped(true)
+      setGuideRatingApplicable(false)
       setGuideRatingChecked(true)
       return
     }
@@ -57,7 +69,9 @@ export function useGuideRatings({
     void fetchMyGuideRatingForAction(Number(id))
       .then((res) => {
         if (cancelled) return
-        if (res.applicable === false) {
+        const applicable = res.applicable !== false
+        setGuideRatingApplicable(applicable)
+        if (!applicable) {
           setGuideRatingChecked(true)
           return
         }
@@ -66,19 +80,22 @@ export function useGuideRatings({
         setGuideRatingChecked(true)
       })
       .catch(() => {
-        if (!cancelled) setGuideRatingChecked(true)
+        if (!cancelled) {
+          setGuideRatingApplicable(false)
+          setGuideRatingChecked(true)
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [user, id, akcija, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, akcija?.vodic?.isProfiGuide, mojaPrijava?.status])
+  }, [user, id, akcija?.isCompleted, akcija?.vodic?.username, mojaPrijava])
 
   const guideRatingGuideName = akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'Vodič'
   const canShowGuideRatingPrompt =
     !!user &&
     !!akcija?.isCompleted &&
     mojaPrijava?.status === 'popeo se' &&
-    vodicCanReceiveGuideRatings(akcija) &&
+    guideRatingApplicable === true &&
     akcija.vodic?.username !== user.username &&
     guideRatingChecked &&
     !guideRatingSubmitted &&

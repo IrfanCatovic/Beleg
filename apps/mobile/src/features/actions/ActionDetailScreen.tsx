@@ -158,7 +158,9 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     actionId: id,
     user,
     akcija,
-    mojaPrijava: mojaPrijavaQuery.data?.prijava ?? undefined,
+    mojaPrijava: mojaPrijavaQuery.isSuccess
+      ? (mojaPrijavaQuery.data?.prijava ?? null)
+      : undefined,
     showAlert,
   })
 

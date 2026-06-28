@@ -104,6 +104,7 @@ export default function ActionDetails() {
     showAlert,
     showConfirm,
     t,
+    refetchRegistrationOnFocus: !!akcija?.isCompleted,
   })
 
   const canManageHostForExternal = !!(

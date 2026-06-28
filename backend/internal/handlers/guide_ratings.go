@@ -104,6 +104,10 @@ func approvedGuideProfileForVodic(db *gorm.DB, vodicID uint) (*models.GuideProfi
 	return &gp, true
 }
 
+func guideRatingNotApplicable() gin.H {
+	return gin.H{"submitted": false, "applicable": false, "rating": nil}
+}
+
 // GetMyGuideRatingForAkcija GET /api/akcije/:id/guide-rating/mine
 func GetMyGuideRatingForAkcija(c *gin.Context) {
 	db := DB(c)
@@ -115,12 +119,30 @@ func GetMyGuideRatingForAkcija(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if !akcija.IsCompleted || akcija.VodicID == 0 || k.ID == akcija.VodicID {
+		c.JSON(http.StatusOK, guideRatingNotApplicable())
+		return
+	}
+	var prijava models.Prijava
+	err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, k.ID).First(&prijava).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusOK, guideRatingNotApplicable())
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri prijave"})
+		return
+	}
+	if prijava.Status != "popeo se" {
+		c.JSON(http.StatusOK, guideRatingNotApplicable())
+		return
+	}
 	if !helpers.VodicCanReceiveGuideRatings(db, akcija.VodicID) {
-		c.JSON(http.StatusOK, gin.H{"submitted": false, "applicable": false, "rating": nil})
+		c.JSON(http.StatusOK, guideRatingNotApplicable())
 		return
 	}
 	var row models.GuideActionRating
-	err := db.Where("akcija_id = ? AND rater_korisnik_id = ?", akcija.ID, k.ID).First(&row).Error
+	err = db.Where("akcija_id = ? AND rater_korisnik_id = ?", akcija.ID, k.ID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusOK, gin.H{"submitted": false, "applicable": true, "rating": nil})
