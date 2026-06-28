@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { Korisnik, StepsLeaderboardEntry } from '@beleg/shared'
-import { fetchKorisnici, fetchStepsLeaderboard } from '@beleg/shared'
+import { fetchKorisnici, fetchKorisnikPopeoSe, fetchStepsLeaderboard } from '@beleg/shared'
 import { client } from '../../api/client'
 import { Avatar, Card, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
 import { GlobalSearchModal } from './GlobalSearchModal'
@@ -53,6 +53,33 @@ export default function ClubMembersScreen({ navigation }: Props) {
       fetchStepsLeaderboard(client, { scope: 'club', period: 'month', includeAll: true }),
   })
 
+  const memberRanksQuery = useQuery({
+    queryKey: ['club-member-ranks', membersQuery.data?.map((m) => m.id)],
+    enabled: (membersQuery.data?.length ?? 0) > 0,
+    queryFn: async () => {
+      const members = membersQuery.data ?? []
+      const entries = await Promise.all(
+        members.map(async (m) => {
+          try {
+            const akcije = await fetchKorisnikPopeoSe(client, String(m.id))
+            const rank = computeProfileRank(akcije, {
+              ukupnoKm: m.ukupnoKm,
+              ukupnoMetaraUspona: m.ukupnoMetaraUspona,
+            })
+            return [m.id, rank] as const
+          } catch {
+            const rank = computeProfileRank([], {
+              ukupnoKm: m.ukupnoKm,
+              ukupnoMetaraUspona: m.ukupnoMetaraUspona,
+            })
+            return [m.id, rank] as const
+          }
+        }),
+      )
+      return Object.fromEntries(entries) as Record<number, ReturnType<typeof computeProfileRank>>
+    },
+  })
+
   const stepMap = useMemo(() => {
     const map = new Map<number, StepsLeaderboardEntry>()
     for (const e of stepsLbQuery.data?.entries ?? []) {
@@ -66,11 +93,14 @@ export default function ClubMembersScreen({ navigation }: Props) {
 
   const rows = useMemo((): MemberRow[] => {
     const members = membersQuery.data ?? []
+    const rankByUserId = memberRanksQuery.data ?? {}
     return members.map((m) => {
-      const rank = computeProfileRank([], {
-        ukupnoKm: m.ukupnoKm,
-        ukupnoMetaraUspona: m.ukupnoMetaraUspona,
-      })
+      const rank =
+        rankByUserId[m.id] ??
+        computeProfileRank([], {
+          ukupnoKm: m.ukupnoKm,
+          ukupnoMetaraUspona: m.ukupnoMetaraUspona,
+        })
       const stepEntry = stepMap.get(m.id)
       return {
         ...m,
@@ -80,7 +110,7 @@ export default function ClubMembersScreen({ navigation }: Props) {
         stepsRank: stepEntry?.rank ?? 999,
       }
     })
-  }, [membersQuery.data, stepMap])
+  }, [membersQuery.data, memberRanksQuery.data, stepMap])
 
   const sorted = useMemo(() => {
     const list = [...rows]
@@ -89,7 +119,7 @@ export default function ClubMembersScreen({ navigation }: Props) {
     return list
   }, [rows, sortMode])
 
-  if (membersQuery.isLoading) {
+  if (membersQuery.isLoading || memberRanksQuery.isLoading) {
     return (
       <View style={styles.root}>
         <Loader />

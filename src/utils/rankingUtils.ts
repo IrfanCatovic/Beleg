@@ -167,12 +167,15 @@ export function computeRank(statistika: {
   ukupnoMetaraUspona?: number
 }): RankResult {
   const ture = statistika.ture ?? []
-  const per =
-    ture.length > 0
-      ? computePER(ture)
-      : Math.round((statistika.ukupnoKm ?? 0) * 1 + (statistika.ukupnoMetaraUspona ?? 0) * 0.04)
-
-  return getRankFromPER(per)
+  const usedFallback = ture.length === 0
+  const per = usedFallback
+    ? Math.round((statistika.ukupnoKm ?? 0) * 1 + (statistika.ukupnoMetaraUspona ?? 0) * 0.04)
+    : computePER(ture)
+  const result = getRankFromPER(per)
+  // #region agent log
+  fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'rankingUtils.ts:computeRank',message:'PER computed',data:{tureCount:ture.length,usedFallback,per:result.per,ukupnoKm:statistika.ukupnoKm,ukupnoMetaraUspona:statistika.ukupnoMetaraUspona},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  return result
 }
 
 /** Objekat akcije kao iz API-ja (uspesneAkcije)  polja potrebna za PER. */

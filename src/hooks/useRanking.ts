@@ -34,14 +34,19 @@ export function useRanking(statistika: StatistikaZaRanking | null | undefined): 
     const ture =
       statistika.ture ??
       (statistika.uspesneAkcije?.map(mapAkcijaToTura) ?? [])
-    return computeRank({
+    const result = computeRank({
       ture,
       ukupnoKm: statistika.ukupnoKm,
       ukupnoMetaraUspona: statistika.ukupnoMetaraUspona,
     })
+    // #region agent log
+    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'useRanking.ts',message:'hook rank',data:{tureCount:ture.length,uspesneCount:statistika.uspesneAkcije?.length??0,per:result.per},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return result
   }, [
     statistika?.ture,
     statistika?.uspesneAkcije,
+    statistika?.uspesneAkcije?.length,
     statistika?.ukupnoKm,
     statistika?.ukupnoMetaraUspona,
   ])

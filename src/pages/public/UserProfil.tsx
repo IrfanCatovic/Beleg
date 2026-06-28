@@ -3,7 +3,7 @@ import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfil
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
 import type { GuideRatingSummary } from '../../services/guideRatings'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
@@ -27,7 +27,6 @@ import FollowListModal, { type FollowListUser } from '../../components/modals/Fo
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate, formatDateShort } from '../../utils/dateUtils'
-import { useRanking } from '../../hooks/useRanking'
 import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura } from '../../utils/rankingUtils'
 import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
 import { actionDifficultyBadge } from '../../utils/difficultyI18n'
@@ -127,11 +126,17 @@ export default function UserProfile() {
   const [followModalLoading, setFollowModalLoading] = useState(false)
   const [myGuideProfile, setMyGuideProfile] = useState<GuideProfile | null | undefined>(undefined)
 
-  const rank = useRanking({
-    uspesneAkcije: akcije,
-    ukupnoKm: stats.ukupnoKm,
-    ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
-  })
+  const rank = useMemo(() => {
+    const result = computeRank({
+      ture: akcije.map(mapAkcijaToTura),
+      ukupnoKm: stats.ukupnoKm,
+      ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
+    })
+    // #region agent log
+    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'UserProfil.tsx:rank',message:'profile rank',data:{akcijeCount:akcije.length,per:result.per},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return result
+  }, [akcije, stats.ukupnoKm, stats.ukupnoMetaraUspona])
 
   const fetchFollowCounts = useCallback(async () => {
     if (!korisnik?.id) return
@@ -172,6 +177,9 @@ export default function UserProfile() {
         setAkcije(akcijeData as UspesnaAkcija[])
         setVodeneAkcije((vodeneData as UspesnaAkcija[] | null) ?? [])
         setProfileActionsTab('climbed')
+        // #region agent log
+        fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'UserProfil.tsx:fetch',message:'profile data loaded',data:{userId:k.id,username:k.username,akcijeCount:(akcijeData as UspesnaAkcija[]).length,stats:statsData},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
       } catch (e: any) {
         if (!cancelled) setError(e.response?.data?.error || t('loadError'))
       } finally {

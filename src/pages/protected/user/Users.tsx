@@ -98,6 +98,11 @@ export default function Korisnici() {
               ukupnoKm: k.ukupnoKm ?? 0,
               ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
             })
+            // #region agent log
+            if (k.id === korisnici[0]?.id || rank.per >= 600) {
+              fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'Users.tsx:rankLoad',message:'club member rank',data:{userId:k.id,username:k.username,akcijeCount:akcije.length,per:rank.per},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+            }
+            // #endregion
             return [k.id, rank] as const
           } catch {
             const fallbackRank = computeRank({

@@ -101,7 +101,9 @@ export function computeProfileRank(
     ture.length > 0
       ? ture.reduce((sum, t) => sum + perJedneTure(t), 0)
       : Math.round((stats.ukupnoKm ?? 0) * 1 + (stats.ukupnoMetaraUspona ?? 0) * 0.04)
-
+  // #region agent log
+  fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'profileRank.ts:computeProfileRank',message:'mobile PER',data:{akcijeCount:akcije.length,usedFallback:akcije.length===0,per},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   return getRankFromPER(per)
 }
 
