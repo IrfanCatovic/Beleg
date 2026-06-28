@@ -618,7 +618,12 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                 </View>
               ) : null}
 
-              <ProfileActionGrid actions={displayedActions} onPressAction={goAction} fullWidth />
+              <ProfileActionGrid
+                actions={displayedActions}
+                onPressAction={goAction}
+                fullWidth
+                mode={actionsTab === 'guided' ? 'guided' : 'climbed'}
+              />
             </View>
           </Pressable>
         )}

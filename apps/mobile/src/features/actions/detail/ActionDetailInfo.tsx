@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { AkcijaDetail } from '@beleg/shared'
-import { formatActionDate } from '@beleg/shared'
+import { computePERForAkcija, formatActionDate } from '@beleg/shared'
 import { Card, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
@@ -35,6 +35,8 @@ function InfoRow({
 }
 
 export function ActionDetailInfo({ akcija }: ActionDetailInfoProps) {
+  const isFerrata = akcija.tipAkcije === 'via_ferrata'
+  const actionPer = !isFerrata ? computePERForAkcija(akcija) : 0
   const dateStr = formatActionDate(akcija.datum)
   const rokStr = formatActionDate(akcija.rokPrijava, '')
 
@@ -43,6 +45,26 @@ export function ActionDetailInfo({ akcija }: ActionDetailInfoProps) {
   return (
     <Card style={styles.card}>
       <Text variant="label">Detalji akcije</Text>
+      {!isFerrata && akcija.planina ? (
+        <InfoRow icon="triangle-outline" label="Planina" value={akcija.planina} />
+      ) : null}
+      {!isFerrata && akcija.vrh ? <InfoRow icon="flag-outline" label="Vrh" value={akcija.vrh} /> : null}
+      {!isFerrata && akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0 ? (
+        <InfoRow
+          icon="resize-outline"
+          label="Dužina staze"
+          value={`${akcija.duzinaStazeKm.toFixed(1)} km`}
+        />
+      ) : null}
+      {!isFerrata && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0 ? (
+        <InfoRow icon="trending-up-outline" label="Uspon" value={`${akcija.kumulativniUsponM} m`} />
+      ) : null}
+      {!isFerrata && akcija.visinaVrhM != null && akcija.visinaVrhM > 0 ? (
+        <InfoRow icon="arrow-up-outline" label="Visina vrha" value={`${akcija.visinaVrhM} m`} />
+      ) : null}
+      {!isFerrata && actionPer > 0 ? (
+        <InfoRow icon="star-outline" label="PER" value={String(actionPer)} />
+      ) : null}
       <InfoRow icon="calendar-outline" label="Datum akcije" value={dateStr} />
       <InfoRow icon="person-outline" label="Vodič" value={guideName || ''} />
       <InfoRow icon="business-outline" label="Klub" value={akcija.klubNaziv || ''} />

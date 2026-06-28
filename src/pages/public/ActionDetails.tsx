@@ -29,7 +29,7 @@ import {
 import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportPlaceholder from '../../components/action-details/AddTransportPlaceholder'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
-import { getActionPriceDisplay } from '@beleg/shared'
+import { getActionPriceDisplay, computePERForAkcija } from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
@@ -696,6 +696,9 @@ export default function ActionDetails() {
     ? ferrataTezinaLabel(ferrataSnap?.tezina || akcija.tezina)
     : ''
   const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
+  const actionPer = !isFerrataAction ? computePERForAkcija(akcija) : 0
+  const showTrailKm = !isFerrataAction && akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0
+  const showAscentM = !isFerrataAction && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0
   const isLimitedView = !!akcija.limited
   const canAddTransport =
     !!user && !akcija.isCompleted && (canManageHost || mojaPrijava?.status === 'prijavljen')
@@ -880,6 +883,29 @@ export default function ActionDetails() {
                   value={akcija.vrh}
                   label={t('peak')}
                 />
+                {showTrailKm && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" /></svg>}
+                    value={akcija.duzinaStazeKm!.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                    unit="km"
+                    label={t('summitPngTrail')}
+                  />
+                )}
+                {showAscentM && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
+                    value={`${akcija.kumulativniUsponM}`}
+                    unit="m"
+                    label={t('summitPngAscent')}
+                  />
+                )}
+                {actionPer > 0 && (
+                  <StatCell
+                    icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>}
+                    value={String(actionPer)}
+                    label={t('summitPngPer')}
+                  />
+                )}
                 {showPeakHeight && (
                   <StatCell
                     icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>}
@@ -983,6 +1009,78 @@ export default function ActionDetails() {
                         iconBg="bg-slate-50"
                         label={t('ferrataRequiredGear')}
                         value={ferrataSnap.obavezna_oprema.join(', ')}
+                      />
+                    )}
+                    {!isFerrataAction && akcija.planina && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
+                          </svg>
+                        }
+                        iconBg="bg-emerald-50"
+                        label={t('mountain')}
+                        value={akcija.planina}
+                      />
+                    )}
+                    {!isFerrataAction && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" />
+                          </svg>
+                        }
+                        iconBg="bg-sky-50"
+                        label={t('peak')}
+                        value={akcija.vrh}
+                      />
+                    )}
+                    {!isFerrataAction && showTrailKm && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-4.5-4.5m4.5 4.5l-4.5 4.5" />
+                          </svg>
+                        }
+                        iconBg="bg-sky-50"
+                        label={t('summitPngTrail')}
+                        value={`${akcija.duzinaStazeKm!.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`}
+                      />
+                    )}
+                    {!isFerrataAction && showAscentM && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        }
+                        iconBg="bg-amber-50"
+                        label={t('summitPngAscent')}
+                        value={`${akcija.kumulativniUsponM} m`}
+                      />
+                    )}
+                    {!isFerrataAction && showPeakHeight && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        }
+                        iconBg="bg-violet-50"
+                        label={t('height')}
+                        value={`${akcija.visinaVrhM} m`}
+                      />
+                    )}
+                    {!isFerrataAction && actionPer > 0 && (
+                      <InfoRow
+                        icon={
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                          </svg>
+                        }
+                        iconBg="bg-emerald-50"
+                        label={t('summitPngPer')}
+                        value={String(actionPer)}
                       />
                     )}
                     {(akcija.vodic || akcija.drugiVodicIme) && (

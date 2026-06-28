@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { formatActionDate } from '@beleg/shared'
+import { computePERForAkcija, formatActionDate } from '@beleg/shared'
 import type { AkcijaDetail } from '@beleg/shared'
 import { Badge, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
@@ -14,6 +14,21 @@ interface ActionDetailHeroProps {
 export function ActionDetailHero({ akcija, locationSubtitle, onBack }: ActionDetailHeroProps) {
   const isFerrata = akcija.tipAkcije === 'via_ferrata'
   const dateLabel = formatActionDate(akcija.datum)
+  const actionPer = !isFerrata ? computePERForAkcija(akcija) : 0
+  const statsParts: string[] = []
+  if (!isFerrata && akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0) {
+    statsParts.push(`${akcija.duzinaStazeKm.toFixed(1)} km`)
+  }
+  if (!isFerrata && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0) {
+    statsParts.push(`${akcija.kumulativniUsponM} m uspon`)
+  }
+  if (!isFerrata && akcija.visinaVrhM != null && akcija.visinaVrhM > 0) {
+    statsParts.push(`${akcija.visinaVrhM} m`)
+  }
+  if (actionPer > 0) {
+    statsParts.push(`${actionPer} PER`)
+  }
+  const statsSubtitle = statsParts.join(' · ')
 
   return (
     <View style={styles.wrap}>
@@ -51,6 +66,7 @@ export function ActionDetailHero({ akcija, locationSubtitle, onBack }: ActionDet
           <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.8)" />
           <Text style={styles.location}>{locationSubtitle}</Text>
         </View>
+        {statsSubtitle ? <Text style={styles.stats}>{statsSubtitle}</Text> : null}
       </View>
     </View>
   )
@@ -92,4 +108,5 @@ const styles = StyleSheet.create({
   title: { color: colors.white, fontSize: 22, fontWeight: '800' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   location: { color: 'rgba(255,255,255,0.85)', fontSize: 13, flex: 1 },
+  stats: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 4, fontWeight: '600' },
 })

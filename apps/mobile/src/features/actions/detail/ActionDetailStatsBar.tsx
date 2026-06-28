@@ -1,12 +1,53 @@
 import { StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { AkcijaDetail } from '@beleg/shared'
+import { computePERForAkcija } from '@beleg/shared'
 import { Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
 interface ActionDetailStatsBarProps {
   akcija: AkcijaDetail
   memberCount: number
+}
+
+type StatCell = {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  value: string
+}
+
+function buildMountainCells(akcija: AkcijaDetail, memberLabel: string): StatCell[] {
+  const per = computePERForAkcija(akcija)
+  const cells: StatCell[] = [
+    { icon: 'triangle-outline', label: 'PLANINA', value: akcija.planina || '—' },
+    { icon: 'flag-outline', label: 'VRH', value: akcija.vrh || '—' },
+  ]
+  if (akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0) {
+    cells.push({
+      icon: 'resize-outline',
+      label: 'DUŽINA STAZE',
+      value: `${akcija.duzinaStazeKm.toFixed(1)} km`,
+    })
+  }
+  if (akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0) {
+    cells.push({
+      icon: 'trending-up-outline',
+      label: 'USPON',
+      value: `${akcija.kumulativniUsponM} m`,
+    })
+  }
+  if (per > 0) {
+    cells.push({ icon: 'star-outline', label: 'PER', value: String(per) })
+  }
+  if (akcija.visinaVrhM != null && akcija.visinaVrhM > 0) {
+    cells.push({
+      icon: 'arrow-up-outline',
+      label: 'VISINA',
+      value: `${akcija.visinaVrhM} m`,
+    })
+  }
+  cells.push({ icon: 'people-outline', label: 'PRIJAVLJENIH', value: memberLabel })
+  return cells
 }
 
 export function ActionDetailStatsBar({ akcija, memberCount }: ActionDetailStatsBarProps) {
@@ -17,23 +58,17 @@ export function ActionDetailStatsBar({ akcija, memberCount }: ActionDetailStatsB
       ? `${memberCount} / ${akcija.maxLjudi}`
       : String(memberCount)
 
-  const cells = isFerrata
+  const cells: StatCell[] = isFerrata
     ? [
-        { icon: 'trail-sign-outline' as const, label: 'FERATA', value: snap?.naziv || akcija.naziv },
-        { icon: 'map-outline' as const, label: 'REGION', value: snap?.lokacija || akcija.planina || '—' },
-        { icon: 'people-outline' as const, label: 'PRIJAVLJENO', value: memberLabel },
-        { icon: 'fitness-outline' as const, label: 'TEŽINA', value: akcija.tezina || snap?.tezina || '—' },
+        { icon: 'trail-sign-outline', label: 'FERATA', value: snap?.naziv || akcija.naziv },
+        { icon: 'map-outline', label: 'REGION', value: snap?.lokacija || akcija.planina || '—' },
+        { icon: 'people-outline', label: 'PRIJAVLJENO', value: memberLabel },
+        { icon: 'fitness-outline', label: 'TEŽINA', value: akcija.tezina || snap?.tezina || '—' },
       ]
-    : [
-        { icon: 'triangle-outline' as const, label: 'PLANINA', value: akcija.planina || '—' },
-        { icon: 'flag-outline' as const, label: 'VRH', value: akcija.vrh || '—' },
-        {
-          icon: 'trending-up-outline' as const,
-          label: 'VISINA',
-          value: akcija.visinaVrhM != null ? `${akcija.visinaVrhM} m` : '—',
-        },
-        { icon: 'people-outline' as const, label: 'PRIJAVLJENIH', value: memberLabel },
-      ]
+    : buildMountainCells(akcija, memberLabel)
+
+  const cols = 2
+  const rows = Math.ceil(cells.length / cols)
 
   return (
     <View style={styles.bar}>
@@ -41,7 +76,11 @@ export function ActionDetailStatsBar({ akcija, memberCount }: ActionDetailStatsB
         {cells.map((c, i) => (
           <View
             key={c.label}
-            style={[styles.cell, i % 2 === 0 && styles.cellBorderRight, i < 2 && styles.cellBorderBottom]}
+            style={[
+              styles.cell,
+              i % cols !== cols - 1 && styles.cellBorderRight,
+              Math.floor(i / cols) < rows - 1 && styles.cellBorderBottom,
+            ]}
           >
             <Ionicons name={c.icon} size={14} color={colors.brand} />
             <Text style={styles.value} numberOfLines={2}>
