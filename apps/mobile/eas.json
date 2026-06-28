@@ -12,6 +12,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://www.planiner.com",
         "EXPO_PUBLIC_MAPTILER_API_KEY": "fjRrNDx9biXAh6impOvz",
         "EXPO_PUBLIC_MAPTILER_MAP_ID": "streets-v4-dark"
       }
@@ -24,6 +25,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://planiner-api.onrender.com",
+        "EXPO_PUBLIC_WEB_URL": "https://www.planiner.com",
         "EXPO_PUBLIC_MAPTILER_API_KEY": "fjRrNDx9biXAh6impOvz",
         "EXPO_PUBLIC_MAPTILER_MAP_ID": "streets-v4-dark"
       }

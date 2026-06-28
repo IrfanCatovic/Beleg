@@ -55,6 +55,10 @@ export async function resolveActionInviteShareUrl(
   }
 
   const res = await regenerateAkcijaInviteLink(client, actionId)
+  const token = (res.inviteToken ?? '').trim()
+  if (token) {
+    return buildActionShareUrl(webBaseUrl, actionId, token)
+  }
   const inviteUrl = (res.inviteUrl ?? '').trim()
   if (!inviteUrl) {
     throw new Error('INVITE_URL_FAILED')

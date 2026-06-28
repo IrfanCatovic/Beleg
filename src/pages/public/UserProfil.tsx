@@ -26,10 +26,9 @@ import BlockUserButton from '../../components/buttons/BlockUserButton'
 import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
-import { formatDate, formatDateShort } from '../../utils/dateUtils'
-import { computePERForAkcija, computeRank, formatRankDisplayName, mapAkcijaToTura } from '../../utils/rankingUtils'
-import { AkcijaImageOrFallback } from '../../components/AkcijaImageFallback'
-import { actionDifficultyBadge } from '../../utils/difficultyI18n'
+import { formatDate } from '../../utils/dateUtils'
+import { computeRank, formatRankDisplayName, mapAkcijaToTura } from '../../utils/rankingUtils'
+import { ProfileActionGrid } from '../../components/profile/ProfileActionGrid'
 import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -126,17 +125,15 @@ export default function UserProfile() {
   const [followModalLoading, setFollowModalLoading] = useState(false)
   const [myGuideProfile, setMyGuideProfile] = useState<GuideProfile | null | undefined>(undefined)
 
-  const rank = useMemo(() => {
-    const result = computeRank({
-      ture: akcije.map(mapAkcijaToTura),
-      ukupnoKm: stats.ukupnoKm,
-      ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
-    })
-    // #region agent log
-    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'UserProfil.tsx:rank',message:'profile rank',data:{akcijeCount:akcije.length,per:result.per},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    return result
-  }, [akcije, stats.ukupnoKm, stats.ukupnoMetaraUspona])
+  const rank = useMemo(
+    () =>
+      computeRank({
+        uspesneAkcije: akcije,
+        ukupnoKm: stats.ukupnoKm,
+        ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
+      }),
+    [akcije, stats.ukupnoKm, stats.ukupnoMetaraUspona],
+  )
 
   const fetchFollowCounts = useCallback(async () => {
     if (!korisnik?.id) return
@@ -1057,62 +1054,60 @@ export default function UserProfile() {
 
       {/* ══════════ AKCIJE GRID ══════════ */}
       <div className="bg-gray-50/80 min-h-[40vh]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-4 sm:pb-6">
           {showProfiGuideBadge ? (
-            <>
-              <div className="mb-7 sm:mb-8">
-                <ProfileActionsToggle
-                  tab={profileActionsTab}
-                  climbedCount={akcije.length}
-                  guidedCount={vodeneAkcije.length}
-                  climbedLabel={t('actionsTabClimbed')}
-                  guidedLabel={t('actionsTabGuided')}
-                  onChange={setProfileActionsTab}
-                />
-              </div>
-              {profileActionsTab === 'guided' ? (
-                vodeneAkcije.length === 0 ? (
-                  <ProfileActionsEmpty message={t('noGuidedTours')} />
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {vodeneAkcije.map((a) => (
-                      <AkcijaCard key={`guided-${a.id}`} akcija={a} mode="guided" />
-                    ))}
-                  </div>
-                )
-              ) : akcije.length === 0 ? (
-                <ProfileActionsEmpty message={t('noCompletedActions')} />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {akcije.map((a) => (
-                    <AkcijaCard key={a.id} akcija={a} mode="climbed" />
-                  ))}
-                </div>
-              )}
-            </>
+            <div className="mb-6 sm:mb-7">
+              <ProfileActionsToggle
+                tab={profileActionsTab}
+                climbedCount={akcije.length}
+                guidedCount={vodeneAkcije.length}
+                climbedLabel={t('actionsTabClimbed')}
+                guidedLabel={t('actionsTabGuided')}
+                onChange={setProfileActionsTab}
+              />
+            </div>
           ) : (
-            <>
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
-                {akcije.length > 0 && (
-                  <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                    {akcije.length}
-                  </span>
-                )}
-              </div>
-              {akcije.length === 0 ? (
-                <ProfileActionsEmpty message={t('noCompletedActions')} />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {akcije.map((a) => (
-                    <AkcijaCard key={a.id} akcija={a} mode="climbed" />
-                  ))}
-                </div>
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
+              {akcije.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                  {akcije.length}
+                </span>
               )}
-            </>
+            </div>
           )}
         </div>
+
+        {showProfiGuideBadge ? (
+          profileActionsTab === 'guided' ? (
+            vodeneAkcije.length === 0 ? (
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
+                <ProfileActionsEmpty message={t('noGuidedTours')} />
+              </div>
+            ) : (
+              <div className="pb-8 sm:pb-10">
+                <ProfileActionGrid actions={vodeneAkcije} mode="guided" />
+              </div>
+            )
+          ) : akcije.length === 0 ? (
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
+              <ProfileActionsEmpty message={t('noCompletedActions')} />
+            </div>
+          ) : (
+            <div className="pb-8 sm:pb-10">
+              <ProfileActionGrid actions={akcije} mode="climbed" />
+            </div>
+          )
+        ) : akcije.length === 0 ? (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
+            <ProfileActionsEmpty message={t('noCompletedActions')} />
+          </div>
+        ) : (
+          <div className="pb-8 sm:pb-10">
+            <ProfileActionGrid actions={akcije} mode="climbed" />
+          </div>
+        )}
       </div>
 
       {/* Puna veličina profilne slike */}
@@ -1353,92 +1348,3 @@ function ProfileActionsEmpty({ message }: { message: string }) {
   )
 }
 
-function AkcijaCard({ akcija, mode = 'climbed' }: { akcija: UspesnaAkcija; mode?: 'climbed' | 'guided' }) {
-  const { t, i18n } = useTranslation('userProfile')
-  const isGuided = mode === 'guided'
-  const per = computePERForAkcija({
-    tipAkcije: akcija.tipAkcije,
-    duzinaStazeKm: akcija.duzinaStazeKm,
-    kumulativniUsponM: akcija.kumulativniUsponM,
-    visinaVrhM: akcija.visinaVrhM,
-    zimskiUspon: akcija.zimskiUspon,
-    tezina: akcija.tezina,
-    datum: akcija.datum,
-  })
-  const difficultyBadge = actionDifficultyBadge(akcija.tezina, t, akcija.tipAkcije, { withBorder: true })
-
-  return (
-    <Link
-      to={`/akcije/${akcija.id}`}
-      className={`group bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 hover:no-underline ${
-        isGuided ? 'border-violet-100 hover:border-violet-200' : 'border-gray-100'
-      }`}
-    >
-      {/* image */}
-      <div className="relative w-full aspect-[3/2] overflow-hidden bg-gray-100">
-        <AkcijaImageOrFallback
-          src={akcija.slikaUrl}
-          alt={akcija.naziv}
-          imgClassName="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-        {isGuided && (
-          <span className="absolute top-2 left-2.5 text-[10px] font-bold text-white bg-violet-600 px-2 py-0.5 rounded-md shadow-sm">
-            {t('guided')}
-          </span>
-        )}
-        <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
-          <span className="text-white/90 text-[10px] font-semibold bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-md">
-            {formatDateShort(akcija.datum)}
-          </span>
-          {!isGuided && akcija.tipAkcije !== 'via_ferrata' && (
-            <span className="text-white text-[10px] font-bold bg-emerald-500/90 px-2 py-0.5 rounded-md shadow-sm">
-              +{per} PER
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* body */}
-      <div className="p-3.5">
-        <h4
-          className={`text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 transition-colors leading-snug ${
-            isGuided ? 'group-hover:text-violet-700' : 'group-hover:text-emerald-600'
-          }`}
-        >
-          {akcija.naziv}
-        </h4>
-
-        <p className="text-[11px] text-gray-400 font-medium truncate mb-2">
-          {akcija.planina ? `${akcija.planina} · ${akcija.vrh}` : akcija.vrh}
-        </p>
-
-        <div className="flex items-center gap-2 text-[11px] text-gray-500 font-medium">
-          <span className="flex items-center gap-0.5">
-            <svg className="w-3 h-3 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            {akcija.duzinaStazeKm?.toFixed(1) || '0.0'} km
-          </span>
-          <span className="w-px h-3 bg-gray-200" />
-          <span className="flex items-center gap-0.5">
-            <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" /></svg>
-            {akcija.kumulativniUsponM?.toLocaleString(i18n.language) || '0'} m
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${difficultyBadge.bg} ${difficultyBadge.text} ${difficultyBadge.border}`}>
-            {difficultyBadge.label}
-          </span>
-          <span
-            className={`inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider ${
-              isGuided ? 'text-violet-600' : 'text-emerald-500'
-            }`}
-          >
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-            {isGuided ? t('guided') : t('climbed')}
-          </span>
-        </div>
-      </div>
-    </Link>
-  )
-}

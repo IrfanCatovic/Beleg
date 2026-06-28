@@ -20,7 +20,7 @@ func actionInvitePublicBaseURL() string {
 		base = strings.TrimSpace(os.Getenv("FRONTEND_URL"))
 	}
 	if base == "" {
-		base = "http://localhost:5173"
+		base = "https://www.planiner.com"
 	}
 	return strings.TrimRight(base, "/")
 }
