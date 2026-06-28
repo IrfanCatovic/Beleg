@@ -555,6 +555,21 @@ function WizardStep4(props: WizardStepProps) {
                   {t('wizard.step4.transport.add')}
                 </button>
               </div>
+              {values.prevoz.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={addPrevoz}
+                  className="w-full rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 p-8 text-center transition-all hover:border-sky-300 hover:bg-sky-50/80 hover:shadow-sm active:scale-[0.99]"
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                  </span>
+                  <p className="mt-3 text-sm font-semibold text-gray-700">{t('wizard.step4.transport.add')}</p>
+                  <p className="mt-1 text-xs text-gray-500">Nema opcija prevoza — kliknite da dodate.</p>
+                </button>
+              ) : null}
               {values.prevoz.map((p) => (
                 <div key={p.localId} className="grid gap-3 sm:grid-cols-4 p-3 rounded-xl border border-gray-100 bg-gray-50/60">
                   <input placeholder={t('wizard.step4.transport.typePlaceholder')} value={p.tipPrevoza} onChange={(e) => patch({ prevoz: values.prevoz.map((it) => (it.localId === p.localId ? { ...it, tipPrevoza: e.target.value } : it)) })} className={baseInput} />

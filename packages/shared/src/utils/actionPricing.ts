@@ -37,6 +37,49 @@ export function effectiveBaseCena(
   return akcija.cenaClan ?? 0
 }
 
+export type ActionPriceDisplayMode = 'banner' | 'row' | 'summary'
+
+export interface ActionPriceTier {
+  label: string
+  amount: number
+}
+
+export type ActionPriceDisplay =
+  | { kind: 'single'; label: string; amount: number }
+  | { kind: 'tiers'; tiers: ActionPriceTier[] }
+
+/** Javna akcija sa obe definisane cene (član + ostali). */
+export function actionHasTwoTierPrices(
+  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna'>,
+): boolean {
+  return !!akcija.javna && akcija.cenaClan != null && akcija.cenaOstali != null
+}
+
+export function getActionPriceDisplay(ctx: {
+  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna'>
+  isClan: boolean
+  isActionHost: boolean
+  mode: ActionPriceDisplayMode
+}): ActionPriceDisplay {
+  const { akcija, isClan, isActionHost } = ctx
+
+  if (actionHasTwoTierPrices(akcija) && isActionHost) {
+    return {
+      kind: 'tiers',
+      tiers: [
+        { label: 'Cena za članove', amount: akcija.cenaClan ?? 0 },
+        { label: 'Cena za ostale', amount: akcija.cenaOstali ?? 0 },
+      ],
+    }
+  }
+
+  return {
+    kind: 'single',
+    label: 'Cena',
+    amount: effectiveBaseCena(akcija, isClan),
+  }
+}
+
 export function buildChoicesPayload(
   akcija: Pick<AkcijaDetail, 'smestaj' | 'prevoz' | 'opremaRent'>,
   selections: ActionSelections,

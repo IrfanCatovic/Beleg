@@ -29,7 +29,7 @@ export function ActionDetailPriceSummary({
   return (
     <Card style={styles.card}>
       <SectionHeader title="Pregled cene" />
-      {baseCena > 0 ? <Row label="Osnovna cena" value={fmt(baseCena)} /> : null}
+      {baseCena > 0 ? <Row label="Cena" value={fmt(baseCena)} /> : null}
       {smestajTotal > 0 ? <Row label="Smeštaj" value={fmt(smestajTotal)} /> : null}
       {prevozTotal > 0 ? <Row label="Prevoz" value={fmt(prevozTotal)} /> : null}
       {rentTotal > 0 ? <Row label="Oprema" value={fmt(rentTotal)} /> : null}

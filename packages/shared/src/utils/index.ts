@@ -19,6 +19,7 @@ export {
 } from './actionInviteShare'
 export type { ResolveActionInviteShareUrlOptions } from './actionInviteShare'
 export {
+  actionHasTwoTierPrices,
   buildChoicesPayload,
   computeClientSaldo,
   computeLogisticsTotals,
@@ -26,8 +27,16 @@ export {
   effectiveBaseCena,
   effectiveIsClanKluba,
   filterTrackedPrijave,
+  getActionPriceDisplay,
 } from './actionPricing'
-export type { ActionSelections, HeldSelections, UserClubContext } from './actionPricing'
+export type {
+  ActionPriceDisplay,
+  ActionPriceDisplayMode,
+  ActionPriceTier,
+  ActionSelections,
+  HeldSelections,
+  UserClubContext,
+} from './actionPricing'
 export { akcijaToWizardValues } from './akcijaToWizardValues'
 export {
   bookingDepartureTime,

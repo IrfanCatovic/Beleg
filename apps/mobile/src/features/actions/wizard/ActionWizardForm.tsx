@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import type {
   ActionKind,
@@ -857,6 +858,17 @@ export function ActionWizardForm({
                   <Text variant="heading">Prevoz</Text>
                   <Button title="Dodaj" variant="ghost" onPress={addPrevoz} />
                 </View>
+                {values.prevoz.length === 0 ? (
+                  <Pressable onPress={addPrevoz} style={styles.transportPlaceholder}>
+                    <View style={styles.transportPlaceholderIcon}>
+                      <Ionicons name="add" size={24} color={colors.brand} />
+                    </View>
+                    <Text variant="label">Dodaj prevoz</Text>
+                    <Text variant="small" color={colors.textMuted} style={styles.transportPlaceholderHint}>
+                      Nema opcija prevoza — dodajte svoju.
+                    </Text>
+                  </Pressable>
+                ) : null}
                 {values.prevoz.map((p) => (
                   <View key={p.localId} style={styles.repeatBlock}>
                     <Input
@@ -1076,6 +1088,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  transportPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#bae6fd',
+    backgroundColor: '#f0f9ff',
+    gap: spacing.xs,
+  },
+  transportPlaceholderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transportPlaceholderHint: { textAlign: 'center' },
   repeatBlock: {
     gap: spacing.sm,
     padding: spacing.md,

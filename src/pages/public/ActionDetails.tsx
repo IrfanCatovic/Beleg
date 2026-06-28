@@ -27,7 +27,9 @@ import {
   ferrataActionDurationLabel,
 } from '../../utils/actionFerrataDisplay'
 import TransportCard from '../../components/action-details/TransportCard'
+import AddTransportPlaceholder from '../../components/action-details/AddTransportPlaceholder'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
+import { getActionPriceDisplay } from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
@@ -566,6 +568,45 @@ export default function ActionDetails() {
         : akcija?.cenaClan ?? 0
   }, [effectiveIsClanKluba, akcija?.cenaClan, akcija?.cenaOstali, akcija?.javna])
 
+  const bannerPriceDisplay = useMemo(
+    () =>
+      akcija
+        ? getActionPriceDisplay({
+            akcija,
+            isClan: effectiveIsClanKluba,
+            isActionHost: canManageHost,
+            mode: 'banner',
+          })
+        : null,
+    [akcija, effectiveIsClanKluba, canManageHost],
+  )
+
+  const sidebarPriceDisplay = useMemo(
+    () =>
+      akcija
+        ? getActionPriceDisplay({
+            akcija,
+            isClan: effectiveIsClanKluba,
+            isActionHost: canManageHost,
+            mode: 'row',
+          })
+        : null,
+    [akcija, effectiveIsClanKluba, canManageHost],
+  )
+
+  const summaryPriceDisplay = useMemo(
+    () =>
+      akcija
+        ? getActionPriceDisplay({
+            akcija,
+            isClan: effectiveIsClanKluba,
+            isActionHost: canManageHost,
+            mode: 'summary',
+          })
+        : null,
+    [akcija, effectiveIsClanKluba, canManageHost],
+  )
+
   const totalSummary = useMemo(() => {
     return summaryRows.reduce((acc, r) => acc + r.amount, effectiveBaseCena)
   }, [summaryRows, effectiveBaseCena])
@@ -655,6 +696,13 @@ export default function ActionDetails() {
     : ''
   const showPeakHeight = !isFerrataAction && akcija.visinaVrhM != null && akcija.visinaVrhM > 0
   const isLimitedView = !!akcija.limited
+  const canAddTransport =
+    !!user && !akcija.isCompleted && (canManageHost || mojaPrijava?.status === 'prijavljen')
+  const hasSmestajOprema = !!(
+    akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length
+  )
+  const showTransportPanel = !isFerrataAction
+  const showLogisticsRow = showTransportPanel || hasSmestajOprema
   /** Član domaćeg kluba sa ulogom `clan` — bez klika na kartice i bez modala detalja. */
   const isHostClubPlainMember =
     !!user &&
@@ -745,21 +793,30 @@ export default function ActionDetails() {
                   <p className={`text-xs font-bold uppercase tracking-wider ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
                     {effectiveIsClanKluba ? 'Tvoj status: član kluba' : 'Tvoj status: gost (van kluba)'}
                   </p>
-                  <p className="text-sm text-gray-700 mt-0.5">
-                    {effectiveIsClanKluba
-                      ? 'Plaćaš povlašćenu cenu za članove kluba.'
-                      : akcija.javna
-                        ? 'Plaćaš cenu za eksterne učesnike.'
-                        : 'Akcija je interna — primenjuje se cena kao za članove.'}
-                  </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Tvoja osnovna cena</p>
-                <p className={`text-2xl font-extrabold ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                  {effectiveBaseCena.toFixed(2)}
-                  <span className="text-sm font-bold ml-1">{clubCurrency}</span>
-                </p>
+                {bannerPriceDisplay?.kind === 'tiers' ? (
+                  <div className="space-y-2">
+                    {bannerPriceDisplay.tiers.map((tier) => (
+                      <div key={tier.label}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{tier.label}</p>
+                        <p className="text-lg font-extrabold text-gray-900 tabular-nums">
+                          {tier.amount.toFixed(2)}
+                          <span className="text-sm font-bold ml-1">{clubCurrency}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Cena</p>
+                    <p className={`text-2xl font-extrabold ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
+                      {(bannerPriceDisplay?.amount ?? effectiveBaseCena).toFixed(2)}
+                      <span className="text-sm font-bold ml-1">{clubCurrency}</span>
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1114,156 +1171,181 @@ export default function ActionDetails() {
                         </span>
                       </div>
                     )}
-                    {user && akcija.cenaClan != null && (
+                    {user && sidebarPriceDisplay?.kind === 'tiers' ? (
+                      sidebarPriceDisplay.tiers.map((tier, idx) => (
+                        <div
+                          key={tier.label}
+                          className={`flex items-center justify-between py-2 px-3 rounded-xl border ${
+                            idx === 0
+                              ? 'bg-amber-50 border-amber-100'
+                              : 'bg-violet-50 border-violet-100'
+                          }`}
+                        >
+                          <span
+                            className={`text-[11px] font-medium ${
+                              idx === 0 ? 'text-amber-700' : 'text-violet-700'
+                            }`}
+                          >
+                            {tier.label}
+                          </span>
+                          <span
+                            className={`text-sm font-bold tabular-nums ${
+                              idx === 0 ? 'text-amber-800' : 'text-violet-800'
+                            }`}
+                          >
+                            {tier.amount.toFixed(2)} {clubCurrency}
+                          </span>
+                        </div>
+                      ))
+                    ) : user && sidebarPriceDisplay?.kind === 'single' && (akcija.cenaClan != null || akcija.cenaOstali != null) ? (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-amber-50 border border-amber-100">
-                        <span className="text-[11px] text-amber-700 font-medium">Tvoja cena (član)</span>
+                        <span className="text-[11px] text-amber-700 font-medium">{sidebarPriceDisplay.label}</span>
                         <span className="text-sm font-bold text-amber-800 tabular-nums">
-                          {akcija.cenaClan.toFixed(2)} {clubCurrency}
+                          {sidebarPriceDisplay.amount.toFixed(2)} {clubCurrency}
                         </span>
                       </div>
-                    )}
-                    {user && akcija.javna && akcija.cenaOstali != null && (
-                      <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-violet-50 border border-violet-100">
-                        <span className="text-[11px] text-violet-700 font-medium">Cena za ostale</span>
-                        <span className="text-sm font-bold text-violet-800 tabular-nums">
-                          {akcija.cenaOstali.toFixed(2)} {clubCurrency}
-                        </span>
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ROW 2: Logistics */}
-            {(akcija.prevoz?.length || akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length) ? (
+            {showLogisticsRow ? (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                {/* Transport (lg:7) */}
-                <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-100 shadow-sm">
-                  <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-1 h-5 rounded-full bg-gradient-to-b from-sky-400 to-indigo-600" />
-                      <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Prevoz</h2>
-                      {!!akcija.prevoz?.length && (
-                        <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-100">
-                          {akcija.prevoz.length} opcija
-                        </span>
+                {showTransportPanel ? (
+                  <div
+                    className={`bg-white rounded-3xl border border-gray-100 shadow-sm ${
+                      hasSmestajOprema ? 'lg:col-span-7' : 'lg:col-span-12'
+                    }`}
+                  >
+                    <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-sky-400 to-indigo-600" />
+                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Prevoz</h2>
+                        {!!akcija.prevoz?.length && (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-100">
+                            {akcija.prevoz.length} opcija
+                          </span>
+                        )}
+                      </div>
+                      {canAddTransport ? (
+                        <button
+                          type="button"
+                          onClick={() => setAddTransportOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 shadow-sm transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          Dodaj prevoz
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="p-5 sm:p-6">
+                      {!akcija.prevoz?.length ? (
+                        <AddTransportPlaceholder
+                          onClick={canAddTransport ? () => setAddTransportOpen(true) : undefined}
+                          disabled={!canAddTransport}
+                        />
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {akcija.prevoz.map((p) => (
+                            <TransportCard
+                              key={p.id}
+                              id={p.id}
+                              tipPrevoza={p.tipPrevoza}
+                              nazivGrupe={p.nazivGrupe}
+                              kapacitet={p.kapacitet}
+                              cenaPoOsobi={p.cenaPoOsobi}
+                              currency={clubCurrency}
+                              participants={prevozPrijave[p.id] || []}
+                              myUsername={user?.username}
+                              selected={selPrevoz.has(p.id)}
+                              disabled={!canEditLogistics}
+                              onToggle={() => togglePrevoz(p.id)}
+                              canDelete={
+                                !!user &&
+                                canManageHostAkcija(user, {
+                                  klubId: akcija.klubId,
+                                  organizatorTip: akcija.organizatorTip,
+                                  vodicId: akcija.vodicId,
+                                  vodicUsername: akcija.vodic?.username,
+                                  addedByUsername: akcija.addedBy?.username,
+                                }) &&
+                                !akcija.isCompleted
+                              }
+                              onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {!user && !!akcija.prevoz?.length && (
+                        <p className="mt-4 text-[11px] text-gray-500 text-center">
+                          <Link
+                            to="/login"
+                            state={{ returnTo: `${location.pathname}${location.search}` }}
+                            className="text-sky-600 font-bold hover:text-sky-700"
+                          >
+                            Prijavite se
+                          </Link>{' '}
+                          da biste mogli da odaberete prevoz.
+                        </p>
                       )}
                     </div>
-                    {!!user && !!mojaPrijava && !akcija.isCompleted && (
-                      <button
-                        type="button"
-                        onClick={() => setAddTransportOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 shadow-sm transition-all"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Dodaj prevoz
-                      </button>
+                  </div>
+                ) : null}
+
+                {hasSmestajOprema ? (
+                  <div className={`space-y-6 ${showTransportPanel ? 'lg:col-span-5' : 'lg:col-span-12'}`}>
+                    {!!akcija.smestaj?.length && (
+                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                          <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
+                          <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Smeštaj</h2>
+                        </div>
+                        <div className="p-5 sm:p-6 space-y-3">
+                          {akcija.smestaj.map((s) => (
+                            <AccommodationCard
+                              key={s.id}
+                              id={s.id}
+                              naziv={s.naziv}
+                              opis={s.opis}
+                              cenaPoOsobiUkupno={s.cenaPoOsobiUkupno}
+                              currency={clubCurrency}
+                              selected={selSmestaj.has(s.id)}
+                              disabled={!canEditLogistics}
+                              onToggle={() => toggleSmestaj(s.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(!!akcija.oprema?.length || !!akcija.opremaRent?.length) && (
+                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                          <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-400 to-fuchsia-500" />
+                          <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Oprema</h2>
+                        </div>
+                        <div className="p-5 sm:p-6 space-y-2">
+                          {equipmentList.map((it) => (
+                            <EquipmentItem
+                              key={it.key}
+                              naziv={it.naziv}
+                              obavezna={it.obavezna}
+                              rent={it.rent}
+                              currency={clubCurrency}
+                              selectedKolicina={it.rent ? selRent[it.rent.rentId] || 0 : 0}
+                              disabled={!canEditLogistics}
+                              onChange={(qty) => it.rent && setRentQty(it.rent.rentId, qty)}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="p-5 sm:p-6">
-                    {!akcija.prevoz?.length ? (
-                      <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 p-6 text-center">
-                        <p className="text-sm text-gray-500">
-                          Trenutno nema dostupnih opcija prevoza.
-                          {!!user && !!mojaPrijava && !akcija.isCompleted && ' Možete dodati svoj prevoz dugmetom iznad.'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {akcija.prevoz.map((p) => (
-                          <TransportCard
-                            key={p.id}
-                            id={p.id}
-                            tipPrevoza={p.tipPrevoza}
-                            nazivGrupe={p.nazivGrupe}
-                            kapacitet={p.kapacitet}
-                            cenaPoOsobi={p.cenaPoOsobi}
-                            currency={clubCurrency}
-                            participants={prevozPrijave[p.id] || []}
-                            myUsername={user?.username}
-                            selected={selPrevoz.has(p.id)}
-                            disabled={!canEditLogistics}
-                            onToggle={() => togglePrevoz(p.id)}
-                            canDelete={!!user && canManageHostAkcija(user, {
-        klubId: akcija.klubId,
-        organizatorTip: akcija.organizatorTip,
-        vodicId: akcija.vodicId,
-        vodicUsername: akcija.vodic?.username,
-        addedByUsername: akcija.addedBy?.username,
-      }) && !akcija.isCompleted}
-                            onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    {!user && !!akcija.prevoz?.length && (
-                      <p className="mt-4 text-[11px] text-gray-500 text-center">
-                        <Link
-                          to="/login"
-                          state={{ returnTo: `${location.pathname}${location.search}` }}
-                          className="text-sky-600 font-bold hover:text-sky-700"
-                        >
-                          Prijavite se
-                        </Link>{' '}
-                        da biste mogli da odaberete prevoz.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right column: Smestaj + Oprema */}
-                <div className="lg:col-span-5 space-y-6">
-                  {!!akcija.smestaj?.length && (
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
-                      <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
-                        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
-                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Smeštaj</h2>
-                      </div>
-                      <div className="p-5 sm:p-6 space-y-3">
-                        {akcija.smestaj.map((s) => (
-                          <AccommodationCard
-                            key={s.id}
-                            id={s.id}
-                            naziv={s.naziv}
-                            opis={s.opis}
-                            cenaPoOsobiUkupno={s.cenaPoOsobiUkupno}
-                            currency={clubCurrency}
-                            selected={selSmestaj.has(s.id)}
-                            disabled={!canEditLogistics}
-                            onToggle={() => toggleSmestaj(s.id)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {(!!akcija.oprema?.length || !!akcija.opremaRent?.length) && (
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
-                      <div className="px-5 sm:px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
-                        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-violet-400 to-fuchsia-500" />
-                        <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Oprema</h2>
-                      </div>
-                      <div className="p-5 sm:p-6 space-y-2">
-                        {equipmentList.map((it) => (
-                          <EquipmentItem
-                            key={it.key}
-                            naziv={it.naziv}
-                            obavezna={it.obavezna}
-                            rent={it.rent}
-                            currency={clubCurrency}
-                            selectedKolicina={it.rent ? selRent[it.rent.rentId] || 0 : 0}
-                            disabled={!canEditLogistics}
-                            onChange={(qty) => it.rent && setRentQty(it.rent.rentId, qty)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -1278,17 +1360,28 @@ export default function ActionDetails() {
 
                   {/* Breakdown list */}
                   <div className="lg:col-span-2 space-y-2">
-                    <div className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100">
-                      <span className="text-xs font-semibold text-gray-700">
-                        Osnovna cena akcije{' '}
-                        <span className={`text-[10px] font-bold uppercase ml-1 ${effectiveIsClanKluba ? 'text-emerald-700' : 'text-violet-700'}`}>
-                          ({effectiveIsClanKluba ? 'član kluba' : akcija.javna ? 'gost' : 'klub'})
+                    {summaryPriceDisplay?.kind === 'tiers' ? (
+                      summaryPriceDisplay.tiers.map((tier, idx) => (
+                        <div
+                          key={tier.label}
+                          className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100"
+                        >
+                          <span className="text-xs font-semibold text-gray-700">{tier.label}</span>
+                          <span className="text-sm font-bold text-gray-900 tabular-nums">
+                            {tier.amount.toFixed(2)} {clubCurrency}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {summaryPriceDisplay?.label ?? 'Cena'}
                         </span>
-                      </span>
-                      <span className="text-sm font-bold text-gray-900 tabular-nums">
-                        {effectiveBaseCena.toFixed(2)} {clubCurrency}
-                      </span>
-                    </div>
+                        <span className="text-sm font-bold text-gray-900 tabular-nums">
+                          {(summaryPriceDisplay?.amount ?? effectiveBaseCena).toFixed(2)} {clubCurrency}
+                        </span>
+                      </div>
+                    )}
 
                     {summaryRows.map((row, idx) => (
                       <div key={idx} className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100">

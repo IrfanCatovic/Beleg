@@ -174,7 +174,8 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Dodavanje prevoza nije uspelo.')),
   })
 
-  const canAddTransport = !!user && registration.isRegistered && !akcija?.isCompleted
+  const canAddTransport =
+    !!user && !akcija?.isCompleted && (canManageHost || registration.isRegistered)
 
   useFocusEffect(
     useCallback(() => {
@@ -351,8 +352,9 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.body}>
           <ActionDetailMembershipBanner
+            akcija={akcija}
             isClan={registration.isClan}
-            baseCena={registration.baseCena}
+            isActionHost={canManageHost}
             currency={currency}
             visible={showPriceBanner}
           />

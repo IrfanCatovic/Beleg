@@ -133,7 +133,29 @@ export function ActionDetailLogistics({
             ) : null}
           </View>
           {prevoz.length === 0 && showAddTransport ? (
-            <Text variant="small" color={colors.textMuted}>Nema opcija prevoza. Dodajte svoj prevoz.</Text>
+            onAddTransport ? (
+              <Pressable onPress={onAddTransport} style={styles.addPlaceholder}>
+                <View style={styles.addPlaceholderIcon}>
+                  <Ionicons name="add" size={24} color={colors.brand} />
+                </View>
+                <Text variant="label">Dodaj prevoz</Text>
+                <Text variant="small" color={colors.textMuted} style={styles.addPlaceholderHint}>
+                  Nema opcija prevoza — dodajte svoju.
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={[styles.addPlaceholder, styles.addPlaceholderDisabled]}>
+                <View style={styles.addPlaceholderIcon}>
+                  <Ionicons name="add" size={24} color={colors.textMuted} />
+                </View>
+                <Text variant="label" color={colors.textMuted}>
+                  Dodaj prevoz
+                </Text>
+                <Text variant="small" color={colors.textMuted} style={styles.addPlaceholderHint}>
+                  Prijavite se na akciju da biste mogli da dodate prevoz.
+                </Text>
+              </View>
+            )
           ) : null}
           {prevoz.map((p) => {
             const occupied = prevozOccupied?.get(p.id) ?? 0
@@ -236,6 +258,30 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radius.md,
   },
+  addPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#bae6fd',
+    backgroundColor: '#f0f9ff',
+    gap: spacing.xs,
+  },
+  addPlaceholderDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+  },
+  addPlaceholderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPlaceholderHint: { textAlign: 'center' },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
