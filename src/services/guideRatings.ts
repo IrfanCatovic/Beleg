@@ -8,6 +8,7 @@ export type GuideActionRatingDTO = {
 
 export type MyGuideRatingResponse = {
   submitted: boolean
+  applicable?: boolean
   rating: GuideActionRatingDTO | null
 }
 

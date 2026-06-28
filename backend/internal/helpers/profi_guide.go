@@ -46,6 +46,11 @@ func KorisnikIsApprovedProfiGuide(db *gorm.DB, korisnikID uint) bool {
 	return ApprovedProfiGuideKorisnikIDs(db, []uint{korisnikID})[korisnikID]
 }
 
+// VodicCanReceiveGuideRatings — ocene posle akcije samo za odobrene profi vodiče.
+func VodicCanReceiveGuideRatings(db *gorm.DB, vodicID uint) bool {
+	return vodicID > 0 && KorisnikIsApprovedProfiGuide(db, vodicID)
+}
+
 // ApplyProfiGuideFlagsToKorisnici postavlja IsProfiGuide na slice (gorm:"-" polje).
 func ApplyProfiGuideFlagsToKorisnici(db *gorm.DB, rows []models.Korisnik) {
 	if len(rows) == 0 {

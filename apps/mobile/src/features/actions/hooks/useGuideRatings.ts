@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEffect, useState } from 'react'
 import type { AkcijaDetail } from '@beleg/shared/types'
 import type { SessionUser } from '@beleg/shared'
+import { vodicCanReceiveGuideRatings } from '@beleg/shared'
 import { fetchMyGuideRatingForAction, submitGuideRatingForAction } from '@beleg/shared/services'
 import { client } from '../../../api/client'
 
@@ -33,7 +34,7 @@ export function useGuideRatings(options: {
       return
     }
     const vodicId = akcija.vodicId ?? 0
-    if (vodicId <= 0) {
+    if (vodicId <= 0 || !vodicCanReceiveGuideRatings(akcija)) {
       setGuideRatingChecked(true)
       return
     }
@@ -56,6 +57,10 @@ export function useGuideRatings(options: {
       try {
         const res = await fetchMyGuideRatingForAction(client, actionId)
         if (cancelled) return
+        if (res.applicable === false) {
+          setGuideRatingChecked(true)
+          return
+        }
         if (res.submitted) setGuideRatingSubmitted(true)
         else setGuideRatingOpen(true)
         setGuideRatingChecked(true)
@@ -67,7 +72,7 @@ export function useGuideRatings(options: {
     return () => {
       cancelled = true
     }
-  }, [user, actionId, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, mojaPrijava?.status])
+  }, [user, actionId, akcija, akcija?.isCompleted, akcija?.vodicId, akcija?.vodic?.username, akcija?.vodic?.isProfiGuide, mojaPrijava?.status])
 
   const guideRatingGuideName =
     akcija?.vodic?.fullName?.trim() || akcija?.vodic?.username || 'Vodič'
@@ -76,7 +81,7 @@ export function useGuideRatings(options: {
     !!user &&
     !!akcija?.isCompleted &&
     mojaPrijava?.status === 'popeo se' &&
-    (akcija.vodicId ?? 0) > 0 &&
+    vodicCanReceiveGuideRatings(akcija) &&
     akcija.vodic?.username !== user.username &&
     guideRatingChecked &&
     !guideRatingSubmitted &&

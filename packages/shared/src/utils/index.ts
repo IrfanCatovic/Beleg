@@ -38,6 +38,7 @@ export type {
   UserClubContext,
 } from './actionPricing'
 export { akcijaToWizardValues } from './akcijaToWizardValues'
+export { vodicCanReceiveGuideRatings } from './guideRatings'
 export {
   bookingDepartureTime,
   buildGuideBookingActionDescription,

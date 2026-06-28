@@ -115,18 +115,23 @@ func GetMyGuideRatingForAkcija(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if !helpers.VodicCanReceiveGuideRatings(db, akcija.VodicID) {
+		c.JSON(http.StatusOK, gin.H{"submitted": false, "applicable": false, "rating": nil})
+		return
+	}
 	var row models.GuideActionRating
 	err := db.Where("akcija_id = ? AND rater_korisnik_id = ?", akcija.ID, k.ID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusOK, gin.H{"submitted": false, "rating": nil})
+			c.JSON(http.StatusOK, gin.H{"submitted": false, "applicable": true, "rating": nil})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju ocene"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"submitted": true,
+		"submitted":  true,
+		"applicable": true,
 		"rating": gin.H{
 			"id":       row.ID,
 			"ocena":    row.Ocena,
@@ -147,6 +152,11 @@ func SubmitGuideRatingForAkcija(c *gin.Context) {
 		return
 	}
 	if !participantCanRateGuide(c, db, akcija, k) {
+		return
+	}
+
+	if !helpers.VodicCanReceiveGuideRatings(db, akcija.VodicID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vodič nema odobren profi vodički profil za ocenjivanje"})
 		return
 	}
 
