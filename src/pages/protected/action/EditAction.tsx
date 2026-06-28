@@ -25,6 +25,7 @@ interface AkcijaData {
   duzinaStazeKm?: number
   vodicId?: number
   vodic?: { username: string }
+  addedBy?: { username: string }
   drugiVodicIme?: string
   isCompleted?: boolean
   javna?: boolean
