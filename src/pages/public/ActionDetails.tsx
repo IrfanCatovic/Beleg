@@ -1362,7 +1362,7 @@ export default function ActionDetails() {
                   {/* Breakdown list */}
                   <div className="lg:col-span-2 space-y-2">
                     {summaryPriceDisplay?.kind === 'tiers' ? (
-                      summaryPriceDisplay.tiers.map((tier, idx) => (
+                      summaryPriceDisplay.tiers.map((tier) => (
                         <div
                           key={tier.label}
                           className="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-white border border-gray-100"
