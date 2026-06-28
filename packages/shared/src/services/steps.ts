@@ -26,6 +26,14 @@ export async function syncDailySteps(
   return res.data as { steps: number; date: string }
 }
 
+export async function syncDailyStepsBatch(
+  client: AxiosInstance,
+  payload: { days: { date: string; steps: number }[] },
+): Promise<{ synced: number }> {
+  const res = await client.post('/api/me/steps/sync-batch', payload)
+  return res.data as { synced: number }
+}
+
 export async function fetchStepsHistory(
   client: AxiosInstance,
   params: { from: string; to: string },
@@ -36,7 +44,7 @@ export async function fetchStepsHistory(
 
 export async function fetchStepsLeaderboard(
   client: AxiosInstance,
-  params: { scope?: LeaderboardScope; period?: LeaderboardPeriod; limit?: number },
+  params: { scope?: LeaderboardScope; period?: LeaderboardPeriod; limit?: number; includeAll?: boolean },
 ): Promise<StepsLeaderboardResponse> {
   const res = await client.get('/api/leaderboards/steps', { params })
   return res.data as StepsLeaderboardResponse

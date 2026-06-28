@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -176,6 +178,33 @@ type syncStepsBody struct {
 	Steps int    `json:"steps"`
 }
 
+func upsertDailySteps(db *gorm.DB, userID uint, date time.Time, steps int) (int, error) {
+	var existing models.UserDailySteps
+	err := db.Where("user_id = ? AND date = ?", userID, date).First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		row := models.UserDailySteps{
+			UserID: userID,
+			Date:   date,
+			Steps:  steps,
+			Source: "pedometer",
+		}
+		if err := db.Create(&row).Error; err != nil {
+			return 0, err
+		}
+		return row.Steps, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	if steps > existing.Steps {
+		existing.Steps = steps
+		if err := db.Save(&existing).Error; err != nil {
+			return 0, err
+		}
+	}
+	return existing.Steps, nil
+}
+
 // SyncDailySteps upserts daily steps (keeps max of stored and incoming).
 func SyncDailySteps(c *gin.Context) {
 	db := DB(c)
@@ -196,34 +225,57 @@ func SyncDailySteps(c *gin.Context) {
 	if !okDate {
 		date = todayDateUTC()
 	}
-	var existing models.UserDailySteps
-	err := db.Where("user_id = ? AND date = ?", user.ID, date).First(&existing).Error
-	if err == gorm.ErrRecordNotFound {
-		row := models.UserDailySteps{
-			UserID: user.ID,
-			Date:   date,
-			Steps:  body.Steps,
-			Source: "pedometer",
-		}
-		if err := db.Create(&row).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri sinhronizaciji"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"steps": row.Steps, "date": date.Format("2006-01-02")})
-		return
-	}
+	stored, err := upsertDailySteps(db, user.ID, date, body.Steps)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri sinhronizaciji"})
 		return
 	}
-	if body.Steps > existing.Steps {
-		existing.Steps = body.Steps
-		if err := db.Save(&existing).Error; err != nil {
+	c.JSON(http.StatusOK, gin.H{"steps": stored, "date": date.Format("2006-01-02")})
+}
+
+type syncStepsBatchBody struct {
+	Days []syncStepsBody `json:"days"`
+}
+
+// SyncDailyStepsBatch upserts multiple daily step records (max one calendar month).
+func SyncDailyStepsBatch(c *gin.Context) {
+	db := DB(c)
+	user, ok := currentUser(c, db)
+	if !ok {
+		return
+	}
+	var body syncStepsBatchBody
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.Days) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravan zahtev"})
+		return
+	}
+	if len(body.Days) > 31 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Previše dana u jednom zahtevu"})
+		return
+	}
+	var monthAnchor *time.Time
+	synced := 0
+	for _, day := range body.Days {
+		if day.Steps < 0 || day.Steps > maxDailySteps {
+			continue
+		}
+		date, okDate := parseDateYMD(day.Date)
+		if !okDate {
+			continue
+		}
+		if monthAnchor == nil {
+			monthAnchor = &date
+		} else if date.Year() != monthAnchor.Year() || date.Month() != monthAnchor.Month() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Svi datumi moraju biti u istom mesecu"})
+			return
+		}
+		if _, err := upsertDailySteps(db, user.ID, date, day.Steps); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri sinhronizaciji"})
 			return
 		}
+		synced++
 	}
-	c.JSON(http.StatusOK, gin.H{"steps": existing.Steps, "date": date.Format("2006-01-02")})
+	c.JSON(http.StatusOK, gin.H{"synced": synced})
 }
 
 type stepsHistoryDay struct {
@@ -294,6 +346,52 @@ func GetStepsLeaderboard(c *gin.Context) {
 	}
 
 	fromDate, toDate, period := stepsPeriodRange(period)
+	includeAll := c.Query("includeAll") == "true"
+
+	if scope == "club" && includeAll {
+		clubID, clubOk := helpers.GetEffectiveClubID(c, db)
+		if !clubOk {
+			me := buildLeaderboardMe(db, user, fromDate, toDate, scope)
+			c.JSON(http.StatusOK, gin.H{"entries": []leaderboardEntry{}, "me": me, "scope": scope, "period": period})
+			return
+		}
+		var members []models.Korisnik
+		if err := db.Where("klub_id = ?", clubID).Find(&members).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju rang liste"})
+			return
+		}
+		type memberRow struct {
+			member models.Korisnik
+			steps  int
+		}
+		rows := make([]memberRow, 0, len(members))
+		for _, m := range members {
+			rows = append(rows, memberRow{
+				member: m,
+				steps:  userStepsInPeriod(db, m.ID, fromDate, toDate),
+			})
+		}
+		sort.Slice(rows, func(i, j int) bool {
+			if rows[i].steps != rows[j].steps {
+				return rows[i].steps > rows[j].steps
+			}
+			return rows[i].member.ID < rows[j].member.ID
+		})
+		entries := make([]leaderboardEntry, 0, len(rows))
+		for i, row := range rows {
+			entries = append(entries, leaderboardEntry{
+				UserID:    row.member.ID,
+				Username:  row.member.Username,
+				FullName:  row.member.FullName,
+				AvatarURL: row.member.AvatarURL,
+				Steps:     row.steps,
+				Rank:      i + 1,
+			})
+		}
+		me := buildLeaderboardMe(db, user, fromDate, toDate, scope)
+		c.JSON(http.StatusOK, gin.H{"entries": entries, "me": me, "scope": scope, "period": period})
+		return
+	}
 
 	if scope == "club" && user.KlubID == nil {
 		me := buildLeaderboardMe(db, user, fromDate, toDate, scope)

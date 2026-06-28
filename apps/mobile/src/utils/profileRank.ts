@@ -95,27 +95,12 @@ function getRankFromPER(per: number): ProfileRankResult {
 export function computeProfileRank(
   akcije: UspesnaAkcija[],
   stats: { ukupnoKm?: number; ukupnoMetaraUspona?: number },
-  createdAt?: string,
 ): ProfileRankResult {
   const ture = akcije.map(mapAkcijaToTura)
-  let per =
+  const per =
     ture.length > 0
       ? ture.reduce((sum, t) => sum + perJedneTure(t), 0)
       : Math.round((stats.ukupnoKm ?? 0) * 1 + (stats.ukupnoMetaraUspona ?? 0) * 0.04)
-
-  const danas = new Date()
-  danas.setHours(0, 0, 0, 0)
-  const granica = new Date(danas)
-  granica.setDate(granica.getDate() - 30)
-  const created = createdAt ? new Date(createdAt) : null
-  const grace = created != null && !Number.isNaN(created.getTime()) && created.getTime() > granica.getTime()
-
-  if (ture.length > 0) {
-    const poslednji = Math.max(...ture.map((t) => new Date(t.datum).getTime()))
-    if (!grace && poslednji < granica.getTime()) per -= 25
-  } else if (!grace) {
-    per -= 25
-  }
 
   return getRankFromPER(per)
 }

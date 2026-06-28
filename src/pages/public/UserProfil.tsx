@@ -131,7 +131,6 @@ export default function UserProfile() {
     uspesneAkcije: akcije,
     ukupnoKm: stats.ukupnoKm,
     ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
-    createdAt: korisnik?.createdAt,
   })
 
   const fetchFollowCounts = useCallback(async () => {
@@ -198,7 +197,6 @@ export default function UserProfile() {
                 ture: akcije.map(mapAkcijaToTura),
                 ukupnoKm: k.ukupnoKm ?? 0,
                 ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-                createdAt: k.createdAt,
               })
               return { ...k, rank }
             } catch {
@@ -207,7 +205,6 @@ export default function UserProfile() {
                 rank: computeRank({
                   ukupnoKm: k.ukupnoKm ?? 0,
                   ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
-                  createdAt: k.createdAt,
                 }),
               }
             }

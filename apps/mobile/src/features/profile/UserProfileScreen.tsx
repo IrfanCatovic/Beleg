@@ -302,8 +302,8 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   )
 
   const rank = useMemo(() => {
-    return computeProfileRank(popeoQuery.data ?? [], statsQuery.data ?? {}, profileQuery.data?.createdAt)
-  }, [popeoQuery.data, statsQuery.data, profileQuery.data?.createdAt])
+    return computeProfileRank(popeoQuery.data ?? [], statsQuery.data ?? {})
+  }, [popeoQuery.data, statsQuery.data])
 
   const displayedActions = actionsTab === 'guided' ? (vodioQuery.data ?? []) : (popeoQuery.data ?? [])
 

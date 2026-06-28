@@ -11,6 +11,7 @@ func RegisterActivityRoutes(protected *gin.RouterGroup) {
 	protected.GET("/me/steps/today", handlers.GetTodaySteps)
 	protected.PUT("/me/steps/goal", handlers.UpdateStepGoal)
 	protected.POST("/me/steps/sync", handlers.SyncDailySteps)
+	protected.POST("/me/steps/sync-batch", handlers.SyncDailyStepsBatch)
 	protected.GET("/me/steps/history", handlers.GetStepsHistory)
 	protected.GET("/me/activity-stats", handlers.GetMyActivityStats)
 

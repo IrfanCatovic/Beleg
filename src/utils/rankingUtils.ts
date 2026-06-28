@@ -156,54 +156,21 @@ export function getRankFromPER(per: number): RankResult {
   }
 }
 
-/** Broj dana neaktivnosti posle kojeg se primenjuje kazna (mesec dana). */
-const INACTIVITY_DAYS = 30
-
-/** PER kazna ako nema uspešne akcije u poslednjih INACTIVITY_DAYS dana. */
-const INACTIVITY_PENALTY_PER = 25
-
 /**
  * Računa rank iz objekta statistike koji sadrži niz tura.
  * Ako nema tura, može se proslediti ukupnoKm i ukupnoMetaraUspona za fallback
  * (jedna "sintetička" tura bez bonusa).
- * Ako u poslednjih 30 dana nije bilo nijedne uspešne akcije, oduzima se 35 PER.
  */
 export function computeRank(statistika: {
   ture?: Tura[]
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
-  createdAt?: string | Date
 }): RankResult {
   const ture = statistika.ture ?? []
-  let per: number
-
-  const danas = new Date()
-  danas.setHours(0, 0, 0, 0)
-  const granicaNeaktivnosti = new Date(danas)
-  granicaNeaktivnosti.setDate(granicaNeaktivnosti.getDate() - INACTIVITY_DAYS)
-
-  const createdAtDate =
-    statistika.createdAt != null ? new Date(statistika.createdAt) : null
-  const korisnikJeUNovomGracePeriodu =
-    createdAtDate != null &&
-    !Number.isNaN(createdAtDate.getTime()) &&
-    createdAtDate.getTime() > granicaNeaktivnosti.getTime()
-
-  if (ture.length > 0) {
-    per = computePER(ture)
-
-    const poslednjiDatumMs = Math.max(...ture.map((t) => new Date(t.datum).getTime()))
-    if (!korisnikJeUNovomGracePeriodu && poslednjiDatumMs < granicaNeaktivnosti.getTime()) {
-      per -= INACTIVITY_PENALTY_PER
-    }
-  } else {
-    const km = statistika.ukupnoKm ?? 0
-    const uspon = statistika.ukupnoMetaraUspona ?? 0
-    per = Math.round(km * 1 + uspon * 0.04)
-    if (!korisnikJeUNovomGracePeriodu) {
-      per -= INACTIVITY_PENALTY_PER
-    }
-  }
+  const per =
+    ture.length > 0
+      ? computePER(ture)
+      : Math.round((statistika.ukupnoKm ?? 0) * 1 + (statistika.ukupnoMetaraUspona ?? 0) * 0.04)
 
   return getRankFromPER(per)
 }

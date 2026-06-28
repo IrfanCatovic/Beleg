@@ -48,9 +48,9 @@ export default function ClubMembersScreen({ navigation }: Props) {
   })
 
   const stepsLbQuery = useQuery({
-    queryKey: ['steps-lb-club-month'],
-    queryFn: () => fetchStepsLeaderboard(client, { scope: 'club', period: 'month', limit: 100 }),
-    enabled: sortMode === 'steps',
+    queryKey: ['steps-lb-club-month-all'],
+    queryFn: () =>
+      fetchStepsLeaderboard(client, { scope: 'club', period: 'month', includeAll: true }),
   })
 
   const stepMap = useMemo(() => {
@@ -70,7 +70,7 @@ export default function ClubMembersScreen({ navigation }: Props) {
       const rank = computeProfileRank([], {
         ukupnoKm: m.ukupnoKm,
         ukupnoMetaraUspona: m.ukupnoMetaraUspona,
-      }, m.createdAt)
+      })
       const stepEntry = stepMap.get(m.id)
       return {
         ...m,
@@ -123,7 +123,12 @@ export default function ClubMembersScreen({ navigation }: Props) {
         ) : null}
       </View>
 
-      {sortMode === 'steps' && stepsLbQuery.isLoading ? (
+      {sortMode === 'steps' && stepsLbQuery.isError ? (
+        <ErrorView
+          message="Koraci nisu učitani."
+          onRetry={() => stepsLbQuery.refetch()}
+        />
+      ) : sortMode === 'steps' && stepsLbQuery.isLoading ? (
         <Loader />
       ) : (
         <FlatList
@@ -135,7 +140,7 @@ export default function ClubMembersScreen({ navigation }: Props) {
               refreshing={membersQuery.isRefetching || stepsLbQuery.isRefetching}
               onRefresh={() => {
                 void membersQuery.refetch()
-                if (sortMode === 'steps') void stepsLbQuery.refetch()
+                void stepsLbQuery.refetch()
               }}
             />
           }

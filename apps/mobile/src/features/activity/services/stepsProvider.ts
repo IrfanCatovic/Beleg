@@ -15,6 +15,25 @@ function startOfToday(): Date {
   return start
 }
 
+function startOfDay(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(23, 59, 59, 999)
+  return x
+}
+
+function dateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 async function readIosTodaySteps(): Promise<number | null> {
   const available = await Pedometer.isAvailableAsync()
   if (!available) return null
@@ -51,6 +70,37 @@ export async function readTodayStepsFromOs(): Promise<{
 export async function readStepsPeriodsFromOs(): Promise<StepsPeriodTotals | null> {
   if (Platform.OS !== 'android') return null
   return readStepsPeriodTotals()
+}
+
+/** Dnevni koraci po datumu (YYYY-MM-DD) u zadatom rasponu, uključujući from i to. */
+export async function readDailyStepsForRange(from: Date, to: Date): Promise<Map<string, number>> {
+  const map = new Map<string, number>()
+  const start = startOfDay(from)
+  const end = startOfDay(to)
+  const now = new Date()
+  const todayStart = startOfDay(now)
+
+  const cur = new Date(start)
+  while (cur <= end) {
+    const dayStart = startOfDay(cur)
+    const dayEnd = cur.getTime() === todayStart.getTime() ? now : endOfDay(cur)
+    const key = dateKey(cur)
+
+    if (Platform.OS === 'ios') {
+      const available = await Pedometer.isAvailableAsync()
+      if (available) {
+        const result = await Pedometer.getStepCountAsync(dayStart, dayEnd)
+        if (result.steps > 0) map.set(key, result.steps)
+      }
+    } else {
+      const steps = await readAggregateSteps(dayStart, dayEnd)
+      if (steps > 0) map.set(key, steps)
+    }
+
+    cur.setDate(cur.getDate() + 1)
+  }
+
+  return map
 }
 
 /** Live delta dok je app u foreground-u (dopuna, ne jedini izvor). */

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const GOAL_KEY = 'dailyStepGoal'
 const STEPS_KEY_PREFIX = 'dailySteps:'
+const LAST_MONTH_SYNC_KEY = 'lastMonthStepsSync'
 export const DEFAULT_DAILY_STEP_GOAL = 10000
 
 export function todayKey(): string {
@@ -36,4 +37,19 @@ export async function getDailyStepGoal(): Promise<number> {
 
 export async function setDailyStepGoal(goal: number): Promise<void> {
   await AsyncStorage.setItem(GOAL_KEY, String(goal))
+}
+
+export async function getLastMonthSyncKey(): Promise<string | null> {
+  return AsyncStorage.getItem(LAST_MONTH_SYNC_KEY)
+}
+
+export async function setLastMonthSyncKey(day: string): Promise<void> {
+  await AsyncStorage.setItem(LAST_MONTH_SYNC_KEY, day)
+}
+
+export function startOfMonth(d = new Date()): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  x.setDate(1)
+  return x
 }
