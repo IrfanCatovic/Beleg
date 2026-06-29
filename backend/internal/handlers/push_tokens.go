@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/debuglog"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
@@ -15,6 +16,14 @@ import (
 type pushTokenRequest struct {
 	Token    string `json:"token" binding:"required"`
 	Platform string `json:"platform"`
+	AppKind  string `json:"appKind"`
+}
+
+type pushTokenSummary struct {
+	Platform  string    `json:"platform"`
+	AppKind   string    `json:"appKind"`
+	Suffix    string    `json:"suffix"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func pushTokenKorisnik(c *gin.Context, db *gorm.DB) (*models.Korisnik, bool) {
@@ -29,6 +38,51 @@ func pushTokenKorisnik(c *gin.Context, db *gorm.DB) (*models.Korisnik, bool) {
 		return nil, false
 	}
 	return &korisnik, true
+}
+
+func normalizeAppKind(raw string) string {
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case "expo", "standalone":
+		return strings.TrimSpace(strings.ToLower(raw))
+	default:
+		return ""
+	}
+}
+
+func listUserPushTokenSummaries(db *gorm.DB, userID uint) []pushTokenSummary {
+	var rows []models.PushToken
+	if err := db.Where("user_id = ?", userID).Order("updated_at DESC").Find(&rows).Error; err != nil {
+		return nil
+	}
+	out := make([]pushTokenSummary, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, pushTokenSummary{
+			Platform:  row.Platform,
+			AppKind:   row.AppKind,
+			Suffix:    debuglog.MaskToken(row.Token),
+			UpdatedAt: row.UpdatedAt,
+		})
+	}
+	return out
+}
+
+func respondPushTokens(c *gin.Context, db *gorm.DB, userID uint) {
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"tokens": listUserPushTokenSummaries(db, userID),
+	})
+}
+
+// GetMyPushTokens vraća maskirane push tokene ulogovanog korisnika (dijagnostika).
+func GetMyPushTokens(c *gin.Context) {
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	korisnik, ok := pushTokenKorisnik(c, db)
+	if !ok {
+		return
+	}
+	respondPushTokens(c, db, korisnik.ID)
 }
 
 // RegisterPushToken upsert-uje Expo push token za ulogovanog korisnika.
@@ -57,6 +111,7 @@ func RegisterPushToken(c *gin.Context) {
 	if platform != "android" && platform != "ios" {
 		platform = ""
 	}
+	appKind := normalizeAppKind(req.AppKind)
 
 	now := time.Now()
 	var existing models.PushToken
@@ -64,12 +119,21 @@ func RegisterPushToken(c *gin.Context) {
 	if err == nil {
 		existing.UserID = korisnik.ID
 		existing.Platform = platform
+		existing.AppKind = appKind
 		existing.UpdatedAt = now
 		if err := db.Save(&existing).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju tokena"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"ok": true})
+		// #region agent log
+		debuglog.Log("push_tokens.go:RegisterPushToken", "token updated", "E", "pre-fix", map[string]interface{}{
+			"userId":   korisnik.ID,
+			"platform": platform,
+			"appKind":  appKind,
+			"suffix":   debuglog.MaskToken(token),
+		})
+		// #endregion
+		respondPushTokens(c, db, korisnik.ID)
 		return
 	}
 	if err != gorm.ErrRecordNotFound {
@@ -81,13 +145,22 @@ func RegisterPushToken(c *gin.Context) {
 		UserID:    korisnik.ID,
 		Token:     token,
 		Platform:  platform,
+		AppKind:   appKind,
 		UpdatedAt: now,
 	}
 	if err := db.Create(&row).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju tokena"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	// #region agent log
+	debuglog.Log("push_tokens.go:RegisterPushToken", "token created", "E", "pre-fix", map[string]interface{}{
+		"userId":   korisnik.ID,
+		"platform": platform,
+		"appKind":  appKind,
+		"suffix":   debuglog.MaskToken(token),
+	})
+	// #endregion
+	respondPushTokens(c, db, korisnik.ID)
 }
 
 // DeletePushToken uklanja push token pri logout-u.

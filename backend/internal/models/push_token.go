@@ -8,6 +8,7 @@ type PushToken struct {
 	UserID    uint      `gorm:"index;not null" json:"userId"`
 	Token     string    `gorm:"type:varchar(255);uniqueIndex;not null" json:"token"`
 	Platform  string    `gorm:"type:varchar(10)" json:"platform,omitempty"` // android | ios
+	AppKind   string    `gorm:"type:varchar(16)" json:"appKind,omitempty"`  // expo | standalone
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 

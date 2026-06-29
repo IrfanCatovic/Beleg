@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/debuglog"
 	"beleg-app/backend/internal/models"
 
 	"gorm.io/gorm"
@@ -56,18 +57,38 @@ func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, 
 
 	var tokens []models.PushToken
 	if err := db.Where("user_id = ?", userID).Find(&tokens).Error; err != nil || len(tokens) == 0 {
+		// #region agent log
+		debuglog.Log("expo.go:SendObavestenjeToUser", "no push tokens for user", "E", "pre-fix", map[string]interface{}{
+			"userId": userID,
+		})
+		// #endregion
 		return
 	}
 
 	tokenStrings := make([]string, 0, len(tokens))
+	tokenMeta := make([]map[string]string, 0, len(tokens))
 	for _, t := range tokens {
 		if tok := strings.TrimSpace(t.Token); tok != "" {
 			tokenStrings = append(tokenStrings, tok)
+			tokenMeta = append(tokenMeta, map[string]string{
+				"platform": t.Platform,
+				"appKind":  t.AppKind,
+				"suffix":   debuglog.MaskToken(tok),
+			})
 		}
 	}
 	if len(tokenStrings) == 0 {
 		return
 	}
+
+	// #region agent log
+	debuglog.Log("expo.go:SendObavestenjeToUser", "sending push", "D", "pre-fix", map[string]interface{}{
+		"userId":       userID,
+		"obavestenjeId": obavestenjeID,
+		"tokenCount":   len(tokenStrings),
+		"tokens":       tokenMeta,
+	})
+	// #endregion
 
 	data := map[string]string{
 		"obavestenjeId": fmt.Sprintf("%d", obavestenjeID),
@@ -139,12 +160,29 @@ func sendPush(tokens []string, title, body string, data map[string]string) []str
 	var invalid []string
 	for i, ticket := range parsed.Data {
 		if ticket.Status == "ok" {
+			if i < len(tokens) {
+				// #region agent log
+				debuglog.Log("expo.go:sendPush", "ticket ok", "D", "pre-fix", map[string]interface{}{
+					"index":  i,
+					"suffix": debuglog.MaskToken(tokens[i]),
+				})
+				// #endregion
+			}
 			continue
 		}
 		if i >= len(tokens) {
 			break
 		}
 		errCode := ticket.Details.Error
+		// #region agent log
+		debuglog.Log("expo.go:sendPush", "ticket error", "D", "pre-fix", map[string]interface{}{
+			"index":   i,
+			"suffix":  debuglog.MaskToken(tokens[i]),
+			"status":  ticket.Status,
+			"message": ticket.Message,
+			"error":   errCode,
+		})
+		// #endregion
 		if errCode == "DeviceNotRegistered" || errCode == "InvalidCredentials" {
 			invalid = append(invalid, tokens[i])
 			continue

@@ -10,6 +10,7 @@ import { useModal } from '../../context/ModalContext'
 import { Button, ChipRow, DatePickerField, Input, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { ProfileStackParamList } from '../../navigation/types'
+import { PushDebugPanel } from '../../components/PushDebugPanel'
 import { SettingsSection } from './SettingsSection'
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileSettings'>
@@ -194,6 +195,8 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
           preset="past"
         />
       </SettingsSection>
+
+      <PushDebugPanel />
 
       <View style={styles.footer}>
         {saveMutation.isPending ? <ActivityIndicator color={colors.brand} /> : null}

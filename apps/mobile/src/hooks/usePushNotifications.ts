@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications'
 import Constants from 'expo-constants'
 import { registerPushToken, unregisterPushToken } from '@beleg/shared/services'
 import { client } from '../api/client'
+import { agentDebugLog } from '../lib/agentDebugLog'
 import { navigateToNotificationDetail } from '../navigation/navigationRef'
 
 // #region agent log
@@ -144,12 +145,25 @@ export function usePushNotifications(isLoggedIn: boolean) {
       // #region agent log
       const dbg: Record<string, unknown> = {
         isDevice: Device.isDevice,
+        appOwnership: Constants.appOwnership,
+        executionEnvironment: Constants.executionEnvironment,
         perm: '?',
         projectId: false,
         token: 'none',
         registered: false,
         error: '',
       }
+      agentDebugLog(
+        'usePushNotifications.ts:register:start',
+        'push register started',
+        {
+          isDevice: Device.isDevice,
+          appOwnership: Constants.appOwnership,
+          executionEnvironment: Constants.executionEnvironment,
+          isLoggedIn,
+        },
+        'E',
+      )
       // #endregion
       try {
         const permNow = await Notifications.getPermissionsAsync()
@@ -158,6 +172,14 @@ export function usePushNotifications(isLoggedIn: boolean) {
         if (!allowed) {
           dbg.perm = `${permNow.status}->denied`
           await writePushDebug(dbg)
+          // #region agent log
+          agentDebugLog(
+            'usePushNotifications.ts:register:perm',
+            'push permission denied',
+            { perm: dbg.perm },
+            'B',
+          )
+          // #endregion
           return
         }
         dbg.perm = 'granted'
@@ -168,6 +190,14 @@ export function usePushNotifications(isLoggedIn: boolean) {
         dbg.projectId = !!projectId
         if (!projectId) {
           await writePushDebug(dbg)
+          // #region agent log
+          agentDebugLog(
+            'usePushNotifications.ts:register:projectId',
+            'missing eas projectId',
+            { hasExpoConfig: !!Constants.expoConfig },
+            'C',
+          )
+          // #endregion
           return
         }
         const { token, attempts } = await fetchExpoTokenWithRetry(projectId)
@@ -175,18 +205,52 @@ export function usePushNotifications(isLoggedIn: boolean) {
         dbg.token = token.startsWith('ExponentPushToken[')
           ? 'ExponentPushToken[…]'
           : `other:${token.slice(0, 10)}…`
-        await registerPushToken(client, {
+        // #region agent log
+        agentDebugLog(
+          'usePushNotifications.ts:register:token',
+          'expo push token acquired',
+          {
+            attempts,
+            tokenPrefix: token.slice(0, 24),
+            platform: Platform.OS,
+          },
+          'A',
+        )
+        // #endregion
+        const appKind =
+          Constants.appOwnership === 'expo'
+            ? 'expo'
+            : Constants.appOwnership === 'standalone'
+              ? 'standalone'
+              : undefined
+        const reg = await registerPushToken(client, {
           token,
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
+          appKind,
         })
         dbg.registered = true
+        dbg.serverTokens = reg.tokens
         await writePushDebug(dbg)
+        // #region agent log
+        agentDebugLog(
+          'usePushNotifications.ts:register:backend',
+          'push token registered on backend',
+          { platform: Platform.OS, registered: true },
+          'E',
+        )
+        // #endregion
         if (cancelled) return
         tokenRef.current = token
       } catch (err) {
         // #region agent log
         dbg.error = err instanceof Error ? err.message : String(err)
         await writePushDebug(dbg)
+        agentDebugLog(
+          'usePushNotifications.ts:register:error',
+          'push register failed',
+          { error: dbg.error },
+          'A',
+        )
         // #endregion
         if (__DEV__) console.warn('[push] register failed', err)
       }
@@ -201,6 +265,12 @@ export function usePushNotifications(isLoggedIn: boolean) {
       void registerPushToken(client, {
         token,
         platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        appKind:
+          Constants.appOwnership === 'expo'
+            ? 'expo'
+            : Constants.appOwnership === 'standalone'
+              ? 'standalone'
+              : undefined,
       }).catch(() => {})
     })
 
