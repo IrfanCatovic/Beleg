@@ -268,40 +268,115 @@ export async function runStepsDiagnosis(options: {
   accessStatus: StepsAccessStatus | 'loading'
   todaySteps: number
 }): Promise<StepsDiagnosis> {
-  if (Platform.OS === 'ios') {
-    if (options.accessStatus === 'loading') {
-      return {
-        status: 'error',
-        userTitle: 'Provjera u toku',
-        userMessage: 'Sačekaj trenutak dok proveravamo pristup koracima.',
-        actionType: 'none',
-      }
+  if (options.accessStatus === 'loading') {
+    return {
+      status: 'error',
+      userTitle: 'Provjera u toku',
+      userMessage: 'Sačekaj trenutak dok proveravamo pristup koracima.',
+      actionType: 'none',
     }
-    return diagnosisFromIos(options.accessStatus, options.todaySteps)
+  }
+
+  const { getTodaySteps } = await import('./stepsService')
+  const readResult = await getTodaySteps()
+
+  const baseDiagnosis: StepsDiagnosis = {
+    status: mapReadStatusToDiagnosis(readResult.status),
+    userTitle: readResult.userTitle,
+    userMessage: readResult.userMessage,
+    actionLabel: readResult.actionLabel,
+    actionType: mapUserActionToDiagnosisAction(readResult.actionType),
+    debug: {
+      todayAggregateSteps: readResult.aggregateSteps,
+      todayRawStepsSum: readResult.rawStepsTotal,
+      lastError: readResult.debugMessage,
+    },
+  }
+
+  if (Platform.OS === 'ios') {
+    return baseDiagnosis
   }
 
   try {
     const report = await runHealthConnectDebugReport()
-    const diagnosis = diagnosisFromHcReport(report)
-
-    if (diagnosis.status === 'connected' && options.todaySteps === 0 && report.aggregate.today > 0) {
-      return {
-        ...diagnosis,
-        fallbackTodaySteps: report.aggregate.today,
-      }
+    return {
+      ...baseDiagnosis,
+      debug: {
+        healthConnectAvailable: report.availability === 'available' && report.initialized,
+        readStepsPermissionGranted: report.hasReadStepsPermission,
+        todayAggregateSteps: report.aggregate.today,
+        weekAggregateSteps: report.aggregate.week,
+        monthAggregateSteps: report.aggregate.month,
+        todayRawRecordsCount: report.rawRecords.today.recordCount,
+        todayRawStepsSum: report.rawRecords.today.stepSum,
+        weekRawRecordsCount: report.rawRecords.week.recordCount,
+        weekRawStepsSum: report.rawRecords.week.stepSum,
+        dataOrigins: [
+          ...new Set(
+            [
+              ...report.rawRecords.today.origins.map((o) => o.packageName),
+              ...report.rawRecords.week.origins.map((o) => o.packageName),
+            ].filter((o) => o !== 'unknown'),
+          ),
+        ],
+        todayStartIso: report.dateRanges.todayStartIso,
+        nowIso: report.dateRanges.nowIso,
+        lastError: report.lastError || readResult.debugMessage,
+      },
     }
-
-    return diagnosis
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     return {
+      ...baseDiagnosis,
       status: 'error',
       userTitle: 'Greška pri dijagnostici',
       userMessage: 'Nije moguće proveriti stanje koraka. Pokušaj ponovo.',
       actionLabel: 'Provjeri ponovo',
       actionType: 'refresh',
-      debug: { lastError: msg },
+      debug: { ...baseDiagnosis.debug, lastError: msg },
     }
+  }
+}
+
+function mapUserActionToDiagnosisAction(
+  action?: import('../types/stepsTypes').StepsUserAction,
+): StepsDiagnosisActionType | undefined {
+  switch (action) {
+    case 'request_permission':
+      return 'request_permission'
+    case 'install_health_connect':
+      return 'open_health_connect'
+    case 'open_health_connect_settings':
+      return 'open_health_connect_settings'
+    case 'refresh':
+      return 'refresh'
+    case 'none':
+      return 'none'
+    default:
+      return undefined
+  }
+}
+
+function mapReadStatusToDiagnosis(
+  status: import('../types/stepsTypes').StepsReadStatus,
+): StepsDiagnosisStatus {
+  switch (status) {
+    case 'ready':
+      return 'connected'
+    case 'raw_fallback_used':
+      return 'aggregate_empty_raw_available'
+    case 'permission_missing':
+      return 'missing_permission'
+    case 'health_connect_unavailable':
+    case 'health_connect_update_required':
+    case 'unsupported_platform':
+      return 'health_connect_unavailable'
+    case 'no_data':
+      return 'no_step_data'
+    case 'error':
+      return 'error'
+    default:
+      return 'error'
   }
 }
 

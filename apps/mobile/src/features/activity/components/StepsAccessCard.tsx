@@ -3,12 +3,16 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
-import type { StepsAccessStatus } from '../../activity/services/stepsAccess'
+import type { StepsAccessStatus } from '../services/stepsAccess'
+import type { StepsReadStatus } from '../../steps/types/stepsTypes'
 
 interface Props {
   accessStatus: StepsAccessStatus | 'loading'
   connected?: boolean
   loading?: boolean
+  userTitle?: string
+  userMessage?: string
+  stepStatus?: StepsReadStatus
   onRequestAccess: () => void
   onOpenSettings?: () => void
   onInstallHealthConnect?: () => void
@@ -18,13 +22,21 @@ export function StepsAccessCard({
   accessStatus,
   connected = false,
   loading = false,
+  userTitle,
+  userMessage,
+  stepStatus,
   onRequestAccess,
   onOpenSettings,
   onInstallHealthConnect,
 }: Props) {
   const { t } = useTranslation('explore')
 
-  if (connected) {
+  const isConnected =
+    connected ||
+    stepStatus === 'ready' ||
+    stepStatus === 'raw_fallback_used'
+
+  if (isConnected) {
     return (
       <Card style={styles.card}>
         <View style={styles.connectedRow}>
@@ -32,9 +44,9 @@ export function StepsAccessCard({
             <Ionicons name="checkmark-circle" size={22} color={colors.brand} />
           </View>
           <View style={styles.connectedText}>
-            <Text variant="label">{t('stepsConnectedTitle')}</Text>
+            <Text variant="label">{userTitle || t('stepsConnectedTitle')}</Text>
             <Text variant="small" color={colors.textMuted}>
-              {t('stepsConnectedHint')}
+              {userMessage || t('stepsConnectedHint')}
             </Text>
           </View>
         </View>
@@ -45,11 +57,12 @@ export function StepsAccessCard({
   if (accessStatus === 'device_unavailable' || accessStatus === 'health_connect_update_required') {
     return (
       <Card style={styles.card}>
-        <Text variant="label">{t('stepsConnectTitle')}</Text>
+        <Text variant="label">{userTitle || t('stepsConnectTitle')}</Text>
         <Text variant="small" color={colors.textMuted} style={styles.body}>
-          {accessStatus === 'health_connect_update_required'
-            ? t('stepsHcUpdateRequired')
-            : t('stepsHcUnavailable')}
+          {userMessage ||
+            (accessStatus === 'health_connect_update_required'
+              ? t('stepsHcUpdateRequired')
+              : t('stepsHcUnavailable'))}
         </Text>
         {onInstallHealthConnect ? (
           <Button
@@ -65,9 +78,9 @@ export function StepsAccessCard({
   if (accessStatus === 'permission_denied') {
     return (
       <Card style={styles.card}>
-        <Text variant="label">{t('stepsPermissionDeniedTitle')}</Text>
+        <Text variant="label">{userTitle || t('stepsPermissionDeniedTitle')}</Text>
         <Text variant="small" color={colors.textMuted} style={styles.body}>
-          {t('stepsPermissionDeniedBody')}
+          {userMessage || t('stepsPermissionDeniedBody')}
         </Text>
         <Button
           title={onOpenSettings ? t('stepsOpenPermissions') : t('dailyStepsOpenSettings')}
@@ -85,11 +98,11 @@ export function StepsAccessCard({
           <Ionicons name="footsteps-outline" size={22} color={colors.brand} />
         </View>
         <Text variant="label" style={styles.title}>
-          {t('stepsConnectTitle')}
+          {userTitle || t('stepsConnectTitle')}
         </Text>
       </View>
       <Text variant="small" color={colors.textMuted} style={styles.body}>
-        {t('stepsConnectBody')}
+        {userMessage || t('stepsConnectBody')}
       </Text>
       <Button
         title={t('stepsConnectButton')}

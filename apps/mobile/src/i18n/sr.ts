@@ -331,6 +331,49 @@ export const sr = {
       'Dozvola za korake je isključena. Otvori Postavke → Dozvole → „Fizička aktivnost“ i izaberi „Dozvoli“, pa se vrati u app.',
     dailyStepsEnable: 'Omogući brojač koraka',
     dailyStepsOpenSettings: 'Otvori postavke aplikacije',
+    stepsStatus: {
+      connected: {
+        title: 'Koraci su pronađeni',
+        message: 'Planiner koristi tvoje korake za dnevni napredak.',
+      },
+      permissionMissing: {
+        title: 'Planiner još nema dozvolu za korake',
+        message:
+          'Da bi Planiner mogao prikazati tvoje dnevne korake i napredak, potrebna je dozvola za čitanje koraka.',
+        action: 'Dozvoli korake',
+      },
+      hcUnavailable: {
+        title: 'Health Connect nije spreman na ovom uređaju',
+        message:
+          'Za praćenje koraka na Androidu potrebna je sistemska aplikacija Health Connect. Preuzmi je i vrati se u Planiner.',
+        action: 'Omogući Health Connect',
+      },
+      hcUpdateRequired: {
+        title: 'Potrebno je ažuriranje Health Connect-a',
+        message:
+          'Verzija Health Connect aplikacije na uređaju je zastarela. Ažuriraj je da Planiner može čitati korake.',
+        action: 'Ažuriraj Health Connect',
+      },
+      unsupported: {
+        title: 'Praćenje koraka nije dostupno',
+        message: 'Ovaj uređaj ne podržava praćenje koraka na ovaj način.',
+      },
+      noData: {
+        title: 'Nema koraka za danas',
+        message:
+          'Koraci nisu pronađeni za danas. Planiner će ih prikazati čim ih telefon ili aplikacija za zdravlje upiše.',
+        action: 'Provjeri ponovo',
+      },
+      error: {
+        title: 'Planiner trenutno ne može učitati korake',
+        message: 'Došlo je do greške pri čitanju koraka. Pokušaj ponovo za trenutak.',
+        action: 'Pokušaj ponovo',
+      },
+      loading: {
+        title: 'Učitavanje koraka',
+        message: 'Proveravamo stanje koraka…',
+      },
+    },
     startActivity: 'Započni akciju',
     startActivityHint: 'GPS praćenje rute, udaljenosti i uspona.',
     startAdventure: 'Započni avanturu',

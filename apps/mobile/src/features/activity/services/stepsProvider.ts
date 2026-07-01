@@ -2,10 +2,13 @@ import { Platform } from 'react-native'
 import { Pedometer } from 'expo-sensors'
 import {
   hasHealthConnectStepsPermission,
-  readAggregateSteps,
+  readHealthConnectSteps,
   readStepsPeriodTotals,
   type StepsPeriodTotals,
 } from '../../steps/services/healthConnectService'
+import { buildUserPresentation } from '../../steps/services/stepsUserMessages'
+import type { StepsReadResult } from '../../steps/types/stepsTypes'
+import { isReliableStepCount } from '../../steps/types/stepsTypes'
 
 export type StepsOsSource = 'ios_pedometer' | 'android_health_connect' | 'android_watch'
 
@@ -34,36 +37,104 @@ function dateKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-async function readIosTodaySteps(): Promise<number | null> {
-  const available = await Pedometer.isAvailableAsync()
-  if (!available) return null
-  const result = await Pedometer.getStepCountAsync(startOfToday(), new Date())
-  return Math.max(0, result.steps)
+async function readIosStepsResult(start: Date, end: Date): Promise<StepsReadResult> {
+  let available = false
+  try {
+    available = await Pedometer.isAvailableAsync()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    const presentation = buildUserPresentation('error')
+    return {
+      steps: 0,
+      status: 'error',
+      source: 'none',
+      ...presentation,
+      debugMessage: msg,
+    }
+  }
+
+  if (!available) {
+    const presentation = buildUserPresentation('unsupported_platform')
+    return {
+      steps: 0,
+      status: 'unsupported_platform',
+      source: 'none',
+      ...presentation,
+    }
+  }
+
+  const perm = await Pedometer.getPermissionsAsync()
+  if (perm.status !== 'granted') {
+    const presentation = buildUserPresentation('permission_missing')
+    return {
+      steps: 0,
+      status: 'permission_missing',
+      source: 'none',
+      ...presentation,
+    }
+  }
+
+  try {
+    const result = await Pedometer.getStepCountAsync(start, end)
+    const steps = Math.max(0, result.steps)
+    if (steps > 0) {
+      const presentation = buildUserPresentation('ready')
+      return {
+        steps,
+        status: 'ready',
+        source: 'ios_pedometer',
+        ...presentation,
+      }
+    }
+    const presentation = buildUserPresentation('no_data')
+    return {
+      steps: 0,
+      status: 'no_data',
+      source: 'ios_pedometer',
+      ...presentation,
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    const presentation = buildUserPresentation('error')
+    return {
+      steps: 0,
+      status: 'error',
+      source: 'none',
+      ...presentation,
+      debugMessage: msg,
+    }
+  }
 }
 
-async function readAndroidHealthConnectTodaySteps(): Promise<number | null> {
-  const hasPerm = await hasHealthConnectStepsPermission()
-  if (!hasPerm) return null
-  const steps = await readAggregateSteps(startOfToday(), new Date())
-  return steps
+/** Detailed read for a single day/range from OS. */
+export async function readStepsForDay(start: Date, end: Date): Promise<StepsReadResult> {
+  if (Platform.OS === 'ios') {
+    return readIosStepsResult(start, end)
+  }
+  return readHealthConnectSteps(start, end)
 }
 
-/** Autoritativno čitanje dnevnih koraka iz OS-a (radi i posle restarta app-a). */
+/** Detailed read for today from OS. */
+export async function readTodayStepsResultFromOs(): Promise<StepsReadResult> {
+  return readStepsForDay(startOfToday(), new Date())
+}
+
+function mapSourceToOsSource(result: StepsReadResult): StepsOsSource {
+  if (result.source === 'ios_pedometer') return 'ios_pedometer'
+  if (result.source === 'health_connect_raw' || result.source === 'health_connect_aggregate') {
+    return 'android_health_connect'
+  }
+  return 'android_health_connect'
+}
+
+/** Backward-compatible wrapper for adventure tracker and legacy callers. */
 export async function readTodayStepsFromOs(): Promise<{
   steps: number
   source: StepsOsSource
 } | null> {
-  if (Platform.OS === 'ios') {
-    const steps = await readIosTodaySteps()
-    if (steps == null) return null
-    return { steps, source: 'ios_pedometer' }
-  }
-
-  const hcSteps = await readAndroidHealthConnectTodaySteps()
-  if (hcSteps != null) {
-    return { steps: hcSteps, source: 'android_health_connect' }
-  }
-  return null
+  const result = await readTodayStepsResultFromOs()
+  if (!isReliableStepCount(result)) return null
+  return { steps: result.steps, source: mapSourceToOsSource(result) }
 }
 
 /** Agregirani koraci za danas / sedmicu / mjesec (Android Health Connect). */
@@ -85,18 +156,8 @@ export async function readDailyStepsForRange(from: Date, to: Date): Promise<Map<
     const dayStart = startOfDay(cur)
     const dayEnd = cur.getTime() === todayStart.getTime() ? now : endOfDay(cur)
     const key = dateKey(cur)
-
-    if (Platform.OS === 'ios') {
-      const available = await Pedometer.isAvailableAsync()
-      if (available) {
-        const result = await Pedometer.getStepCountAsync(dayStart, dayEnd)
-        if (result.steps > 0) map.set(key, result.steps)
-      }
-    } else {
-      const steps = await readAggregateSteps(dayStart, dayEnd)
-      if (steps > 0) map.set(key, steps)
-    }
-
+    const result = await readStepsForDay(dayStart, dayEnd)
+    if (result.steps > 0) map.set(key, result.steps)
     cur.setDate(cur.getDate() + 1)
   }
 

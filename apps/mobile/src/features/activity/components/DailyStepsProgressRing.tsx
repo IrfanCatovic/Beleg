@@ -9,6 +9,7 @@ interface Props {
   progressPercent: number
 }
 
+/** @deprecated Unused — prefer StepsSummaryCard with DailyStepsContext state. */
 export function DailyStepsProgressRing({ steps, goal, progressPercent }: Props) {
   return (
     <View style={styles.wrap}>

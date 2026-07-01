@@ -2,18 +2,19 @@ import * as BackgroundFetch from 'expo-background-fetch'
 import * as TaskManager from 'expo-task-manager'
 import { syncDailySteps } from '@beleg/shared'
 import { client } from '../../../api/client'
-import { readTodayStepsFromOs } from './stepsProvider'
+import { getTodaySteps } from '../../steps/services/stepsService'
+import { shouldSyncSteps } from '../../steps/types/stepsTypes'
 import { setCachedDailySteps, todayKey } from './stepsLocalStore'
 
 export const STEPS_BACKGROUND_TASK = 'planiner-daily-steps-sync'
 
 async function syncStepsOnce(): Promise<boolean> {
-  const os = await readTodayStepsFromOs()
-  if (!os || os.steps <= 0) return false
+  const result = await getTodaySteps()
+  if (!shouldSyncSteps(result)) return false
   const day = todayKey()
-  await setCachedDailySteps(day, os.steps)
+  await setCachedDailySteps(day, result.steps)
   try {
-    const res = await syncDailySteps(client, { date: day, steps: os.steps })
+    const res = await syncDailySteps(client, { date: day, steps: result.steps })
     await setCachedDailySteps(day, res.steps)
     return true
   } catch {

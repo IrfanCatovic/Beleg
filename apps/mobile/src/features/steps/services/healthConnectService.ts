@@ -1,4 +1,10 @@
 import { Linking, Platform } from 'react-native'
+import type { StepsReadResult } from '../types/stepsTypes'
+import { buildUserPresentation } from './stepsUserMessages'
+import {
+  extractAggregateCount,
+  parseStepCountFromRecord,
+} from './healthConnectRecordUtils'
 
 export const HEALTH_CONNECT_PACKAGE = 'com.google.android.apps.healthdata'
 export const HEALTH_CONNECT_PLAY_STORE =
@@ -123,12 +129,163 @@ export async function requestHealthConnectStepsPermission(): Promise<boolean> {
   }
 }
 
-function extractStepCount(result: unknown): number {
-  if (!result || typeof result !== 'object') return 0
-  const row = result as Record<string, unknown>
-  const total = row.COUNT_TOTAL ?? row.countTotal ?? row.count
-  const n = Number(total)
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0
+function buildHcResult(
+  partial: Pick<
+    StepsReadResult,
+    'steps' | 'status' | 'source' | 'debugMessage' | 'aggregateSteps' | 'rawStepsTotal'
+  >,
+): StepsReadResult {
+  const presentation = buildUserPresentation(partial.status)
+  return {
+    ...presentation,
+    ...partial,
+  }
+}
+
+export async function readRawStepsSum(
+  start: Date,
+  end: Date,
+): Promise<{ sum: number; error?: string }> {
+  if (Platform.OS !== 'android') return { sum: 0 }
+  const ok = await ensureInitialized()
+  if (!ok) return { sum: 0, error: 'Health Connect not initialized' }
+  const hasPerm = await hasHealthConnectStepsPermission()
+  if (!hasPerm) return { sum: 0, error: 'READ_STEPS not granted' }
+
+  let sum = 0
+  try {
+    const { readRecords } = await loadHealthConnect()
+    let pageToken: string | undefined
+    do {
+      const page = await readRecords('Steps', {
+        timeRangeFilter: {
+          operator: 'between',
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+        },
+        pageSize: 1000,
+        pageToken,
+      })
+      for (const record of page.records) {
+        sum += parseStepCountFromRecord(record)
+      }
+      pageToken = page.pageToken
+    } while (pageToken)
+    return { sum }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { sum, error: msg }
+  }
+}
+
+/** Production read: aggregate first, raw fallback second, with detailed status. */
+export async function readHealthConnectSteps(
+  start: Date,
+  end: Date,
+): Promise<StepsReadResult> {
+  if (Platform.OS !== 'android') {
+    return buildHcResult({
+      steps: 0,
+      status: 'unsupported_platform',
+      source: 'none',
+    })
+  }
+
+  const availability = await getHealthConnectAvailability()
+  if (availability === 'update_required') {
+    return buildHcResult({
+      steps: 0,
+      status: 'health_connect_update_required',
+      source: 'none',
+    })
+  }
+  if (availability !== 'available') {
+    return buildHcResult({
+      steps: 0,
+      status: 'health_connect_unavailable',
+      source: 'none',
+    })
+  }
+
+  const initialized = await ensureInitialized()
+  if (!initialized) {
+    return buildHcResult({
+      steps: 0,
+      status: 'error',
+      source: 'none',
+      debugMessage: 'Health Connect initialize() returned false',
+    })
+  }
+
+  const hasPerm = await hasHealthConnectStepsPermission()
+  if (!hasPerm) {
+    return buildHcResult({
+      steps: 0,
+      status: 'permission_missing',
+      source: 'none',
+    })
+  }
+
+  try {
+    const { aggregateRecord } = await loadHealthConnect()
+    const aggResult = await aggregateRecord({
+      recordType: 'Steps',
+      timeRangeFilter: {
+        operator: 'between',
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+      },
+    })
+    const aggregateSteps = extractAggregateCount(aggResult)
+
+    if (aggregateSteps > 0) {
+      return buildHcResult({
+        steps: aggregateSteps,
+        status: 'ready',
+        source: 'health_connect_aggregate',
+        aggregateSteps,
+        rawStepsTotal: undefined,
+      })
+    }
+
+    const raw = await readRawStepsSum(start, end)
+    if (raw.error && raw.sum === 0) {
+      return buildHcResult({
+        steps: 0,
+        status: 'error',
+        source: 'none',
+        debugMessage: raw.error,
+        aggregateSteps: 0,
+        rawStepsTotal: 0,
+      })
+    }
+
+    if (raw.sum > 0) {
+      return buildHcResult({
+        steps: raw.sum,
+        status: 'raw_fallback_used',
+        source: 'health_connect_raw',
+        aggregateSteps: 0,
+        rawStepsTotal: raw.sum,
+      })
+    }
+
+    return buildHcResult({
+      steps: 0,
+      status: 'no_data',
+      source: 'health_connect_aggregate',
+      aggregateSteps: 0,
+      rawStepsTotal: 0,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return buildHcResult({
+      steps: 0,
+      status: 'error',
+      source: 'none',
+      debugMessage: msg,
+    })
+  }
 }
 
 export async function readAggregateSteps(start: Date, end: Date): Promise<number> {
@@ -147,7 +304,7 @@ export async function readAggregateSteps(start: Date, end: Date): Promise<number
         endTime: end.toISOString(),
       },
     })
-    return extractStepCount(result)
+    return extractAggregateCount(result)
   } catch {
     return 0
   }
@@ -158,10 +315,14 @@ export async function readStepsPeriodTotals(): Promise<StepsPeriodTotals | null>
   const hasPerm = await hasHealthConnectStepsPermission()
   if (!hasPerm) return null
   const now = new Date()
-  const [today, week, month] = await Promise.all([
-    readAggregateSteps(startOfDay(now), now),
-    readAggregateSteps(startOfWeekMonday(now), now),
-    readAggregateSteps(startOfMonth(now), now),
+  const [todayResult, weekResult, monthResult] = await Promise.all([
+    readHealthConnectSteps(startOfDay(now), now),
+    readHealthConnectSteps(startOfWeekMonday(now), now),
+    readHealthConnectSteps(startOfMonth(now), now),
   ])
-  return { today, week, month }
+  return {
+    today: todayResult.steps,
+    week: weekResult.steps,
+    month: monthResult.steps,
+  }
 }

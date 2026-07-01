@@ -1,4 +1,4 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import Constants from 'expo-constants'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 import type { StepsAccessStatus } from '../services/stepsAccess'
 import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
+import type { StepsReadStatus, StepsUserAction } from '../../steps/types/stepsTypes'
 
 interface Props {
   steps: number
@@ -15,9 +16,41 @@ interface Props {
   activeMinutes: number
   loading?: boolean
   accessStatus?: StepsAccessStatus | 'loading'
-  accessDebug?: import('../services/stepsAccess').StepsAccessDebug | null
+  stepStatus?: StepsReadStatus
+  stepUserTitle?: string
+  stepUserMessage?: string
+  stepActionLabel?: string
+  stepActionType?: StepsUserAction
   onRequestAccess?: () => void
+  onStepAction?: () => void
   onPress: () => void
+}
+
+function isAccessProblem(accessStatus: StepsAccessStatus | 'loading'): boolean {
+  return (
+    accessStatus === 'permission_needed' ||
+    accessStatus === 'permission_denied' ||
+    accessStatus === 'device_unavailable' ||
+    accessStatus === 'health_connect_update_required'
+  )
+}
+
+function isStepProblem(stepStatus: StepsReadStatus): boolean {
+  return (
+    stepStatus === 'permission_missing' ||
+    stepStatus === 'health_connect_unavailable' ||
+    stepStatus === 'health_connect_update_required' ||
+    stepStatus === 'error' ||
+    stepStatus === 'unsupported_platform'
+  )
+}
+
+function showHealthySteps(stepStatus: StepsReadStatus): boolean {
+  return (
+    stepStatus === 'ready' ||
+    stepStatus === 'raw_fallback_used' ||
+    stepStatus === 'no_data'
+  )
 }
 
 export function StepsSummaryCard({
@@ -28,22 +61,30 @@ export function StepsSummaryCard({
   activeMinutes,
   loading = false,
   accessStatus = 'ready',
-  accessDebug = null,
+  stepStatus = 'loading',
+  stepUserTitle = '',
+  stepUserMessage = '',
+  stepActionLabel,
+  stepActionType,
   onRequestAccess,
+  onStepAction,
   onPress,
 }: Props) {
   const { t } = useTranslation('explore')
   const pct = Math.min(100, progressPercent)
   const isExpoGo = Constants.appOwnership === 'expo'
-  const needsAccess =
-    accessStatus === 'permission_needed' ||
-    accessStatus === 'permission_denied' ||
-    accessStatus === 'device_unavailable' ||
-    accessStatus === 'health_connect_update_required'
-  const deniedText =
-    Platform.OS === 'ios'
-      ? t('dailyStepsPermissionDeniedIos')
-      : t('stepsPermissionDeniedBody')
+  const accessProblem = isAccessProblem(accessStatus)
+  const stepProblem = isStepProblem(stepStatus)
+  const showSteps = showHealthySteps(stepStatus) && !accessProblem
+
+  const handleAction = (e?: { stopPropagation?: () => void }) => {
+    e?.stopPropagation?.()
+    if (onStepAction && stepActionType && stepActionType !== 'none') {
+      onStepAction()
+      return
+    }
+    onRequestAccess?.()
+  }
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
@@ -62,51 +103,42 @@ export function StepsSummaryCard({
         {loading ? (
           <View style={styles.loadingBody}>
             <Text variant="small" color={colors.textMuted}>
-              {t('dailyStepsLoading')}
+              {stepUserMessage || t('dailyStepsLoading')}
             </Text>
             <View style={styles.skeletonTrack} />
           </View>
-        ) : accessStatus === 'device_unavailable' || accessStatus === 'health_connect_update_required' ? (
+        ) : accessProblem || stepProblem ? (
           <View style={styles.accessBody}>
-            <Text variant="small" color={colors.textMuted}>
-              {isExpoGo
-                ? t('dailyStepsExpoGoHint')
-                : accessStatus === 'health_connect_update_required'
-                  ? t('stepsHcUpdateRequired')
-                  : t('stepsHcUnavailable')}
-            </Text>
-            {onRequestAccess ? (
-              <Button
-                title={t('stepsHcInstallButton')}
-                variant="secondary"
-                onPress={(e) => {
-                  e.stopPropagation()
-                  onRequestAccess()
-                }}
-              />
+            {stepUserTitle ? (
+              <Text variant="label">{stepUserTitle}</Text>
             ) : null}
-          </View>
-        ) : needsAccess ? (
-          <View style={styles.accessBody}>
             <Text variant="small" color={colors.textMuted}>
-              {accessStatus === 'permission_denied' ? deniedText : t('stepsConnectBody')}
+              {isExpoGo && accessStatus === 'device_unavailable'
+                ? t('dailyStepsExpoGoHint')
+                : stepUserMessage ||
+                  (accessStatus === 'health_connect_update_required'
+                    ? t('stepsHcUpdateRequired')
+                    : accessStatus === 'device_unavailable'
+                      ? t('stepsHcUnavailable')
+                      : t('stepsConnectBody'))}
             </Text>
-            {onRequestAccess ? (
+            {stepActionLabel || onRequestAccess ? (
               <Button
                 title={
-                  accessStatus === 'permission_denied'
-                    ? t('stepsOpenPermissions')
-                    : t('stepsConnectButton')
+                  stepActionLabel ||
+                  (accessStatus === 'device_unavailable' ||
+                  accessStatus === 'health_connect_update_required'
+                    ? t('stepsHcInstallButton')
+                    : accessStatus === 'permission_denied'
+                      ? t('stepsOpenPermissions')
+                      : t('stepsConnectButton'))
                 }
                 variant="secondary"
-                onPress={(e) => {
-                  e.stopPropagation()
-                  onRequestAccess()
-                }}
+                onPress={(e) => handleAction(e)}
               />
             ) : null}
           </View>
-        ) : (
+        ) : showSteps ? (
           <>
             <View style={styles.countRow}>
               <Text variant="label" style={styles.count}>
@@ -116,6 +148,11 @@ export function StepsSummaryCard({
                 / {formatSteps(goal)}
               </Text>
             </View>
+            {stepStatus === 'no_data' && stepUserMessage ? (
+              <Text variant="small" color={colors.textMuted} style={styles.hint}>
+                {stepUserMessage}
+              </Text>
+            ) : null}
             <View style={styles.barRow}>
               <View style={styles.track}>
                 <View style={[styles.fill, { width: `${pct}%` }]} />
@@ -132,8 +169,15 @@ export function StepsSummaryCard({
                 ≈ {activeMinutes} min aktivno
               </Text>
             </View>
+            {stepStatus === 'no_data' && stepActionLabel ? (
+              <Button
+                title={stepActionLabel}
+                variant="secondary"
+                onPress={(e) => handleAction(e)}
+              />
+            ) : null}
           </>
-        )}
+        ) : null}
       </View>
     </Pressable>
   )
@@ -176,7 +220,7 @@ const styles = StyleSheet.create({
   },
   loadingBody: { gap: spacing.sm },
   accessBody: { gap: spacing.sm },
-  debugText: { fontSize: 10, lineHeight: 14 },
+  hint: { lineHeight: 18 },
   skeletonTrack: {
     height: 8,
     borderRadius: radius.full,

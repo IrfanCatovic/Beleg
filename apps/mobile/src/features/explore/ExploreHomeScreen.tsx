@@ -55,7 +55,11 @@ export default function ExploreHomeScreen({ navigation }: Props) {
             activeMinutes={dailySteps.activeMinutes}
             loading={dailySteps.loading}
             accessStatus={dailySteps.accessStatus}
-            accessDebug={dailySteps.accessDebug}
+            stepStatus={dailySteps.stepStatus}
+            stepUserTitle={dailySteps.stepUserTitle}
+            stepUserMessage={dailySteps.stepUserMessage}
+            stepActionLabel={dailySteps.stepActionLabel}
+            stepActionType={dailySteps.stepActionType}
             onRequestAccess={() => {
               if (
                 dailySteps.accessStatus === 'device_unavailable' ||
@@ -66,6 +70,7 @@ export default function ExploreHomeScreen({ navigation }: Props) {
                 void dailySteps.requestAccess()
               }
             }}
+            onStepAction={() => void dailySteps.executeStepAction()}
             onPress={() => navigation.navigate('Steps')}
           />
 

@@ -26,6 +26,7 @@ export interface HealthConnectStepsState {
 
 const EMPTY_PERIODS: StepsPeriodTotals = { today: 0, week: 0, month: 0 }
 
+/** @deprecated Use DailyStepsContext / stepsService instead. */
 export function useHealthConnectSteps(): HealthConnectStepsState {
   const [availability, setAvailability] = useState<HealthConnectAvailability | 'loading'>(
     'loading',

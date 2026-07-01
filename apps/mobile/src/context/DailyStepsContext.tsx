@@ -23,27 +23,28 @@ import {
   startOfMonth,
   todayKey,
 } from '../features/activity/services/stepsLocalStore'
-import {
-  type StepsAccessDebug,
-  type StepsAccessStatus,
-  openStepsAccessSettings,
-  requestStepsAccess,
-  resolveStepsAccess,
-} from '../features/activity/services/stepsAccess'
-import {
-  readStepsPeriodsFromOs,
-  readDailyStepsForRange,
-  readTodayStepsFromOs,
-  watchLiveStepDelta,
-} from '../features/activity/services/stepsProvider'
+import type { StepsAccessDebug, StepsAccessStatus } from '../features/activity/services/stepsAccess'
+import { readDailyStepsForRange, watchLiveStepDelta } from '../features/activity/services/stepsProvider'
 import { registerStepsBackgroundSync } from '../features/activity/services/stepsBackgroundSync'
 import { deriveActiveMinutes, deriveDistanceKm } from '../features/steps/services/stepsDerived'
-import type { StepsPeriodTotals } from '../features/steps/services/healthConnectService'
 import { openHealthConnectInstall } from '../features/steps/services/healthConnectService'
+import {
+  checkStepsAccess,
+  executeUserAction,
+  getPeriodTotals,
+  getTodaySteps,
+  loadingStepsResult,
+  requestStepsAccessFlow,
+} from '../features/steps/services/stepsService'
+import type {
+  StepsReadResult,
+  StepsReadSource,
+  StepsReadStatus,
+  StepsUserAction,
+} from '../features/steps/types/stepsTypes'
+import { isReliableStepCount, shouldSyncSteps } from '../features/steps/types/stepsTypes'
 
 const REFRESH_INTERVAL_MS = 30_000
-
-const EMPTY_PERIODS: StepsPeriodTotals = { today: 0, week: 0, month: 0 }
 
 export interface DailyStepsState {
   todaySteps: number
@@ -58,6 +59,12 @@ export interface DailyStepsState {
   available: boolean
   permissionGranted: boolean
   stepsConnected: boolean
+  stepStatus: StepsReadStatus
+  stepSource: StepsReadSource
+  stepUserTitle: string
+  stepUserMessage: string
+  stepActionLabel?: string
+  stepActionType?: StepsUserAction
   accessStatus: StepsAccessStatus | 'loading'
   accessDebug: StepsAccessDebug | null
   loading: boolean
@@ -66,6 +73,7 @@ export interface DailyStepsState {
   requestAccess: () => Promise<void>
   openSettings: () => Promise<void>
   installHealthConnect: () => Promise<void>
+  executeStepAction: () => Promise<void>
   setGoal: (goal: number) => Promise<void>
 }
 
@@ -75,6 +83,25 @@ function calcProgress(steps: number, goal: number) {
   const progressPercent = goal > 0 ? Math.min(100, Math.round((steps / goal) * 100)) : 0
   const stepsRemaining = Math.max(0, goal - steps)
   return { progressPercent, stepsRemaining }
+}
+
+function applyReadResultToState(
+  result: StepsReadResult,
+  setters: {
+    setStepStatus: (s: StepsReadStatus) => void
+    setStepSource: (s: StepsReadSource) => void
+    setStepUserTitle: (s: string) => void
+    setStepUserMessage: (s: string) => void
+    setStepActionLabel: (s: string | undefined) => void
+    setStepActionType: (s: StepsUserAction | undefined) => void
+  },
+) {
+  setters.setStepStatus(result.status)
+  setters.setStepSource(result.source)
+  setters.setStepUserTitle(result.userTitle)
+  setters.setStepUserMessage(result.userMessage)
+  setters.setStepActionLabel(result.actionLabel)
+  setters.setStepActionType(result.actionType)
 }
 
 export function DailyStepsProvider({ children }: { children: ReactNode }) {
@@ -88,6 +115,12 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   const [distanceKm, setDistanceKm] = useState(0)
   const [activeMinutes, setActiveMinutes] = useState(0)
   const [date, setDate] = useState(todayKey())
+  const [stepStatus, setStepStatus] = useState<StepsReadStatus>('loading')
+  const [stepSource, setStepSource] = useState<StepsReadSource>('none')
+  const [stepUserTitle, setStepUserTitle] = useState('')
+  const [stepUserMessage, setStepUserMessage] = useState('')
+  const [stepActionLabel, setStepActionLabel] = useState<string | undefined>()
+  const [stepActionType, setStepActionType] = useState<StepsUserAction | undefined>()
   const [accessStatus, setAccessStatus] = useState<StepsAccessStatus | 'loading'>('loading')
   const [accessDebug, setAccessDebug] = useState<StepsAccessDebug | null>(null)
   const [loading, setLoading] = useState(true)
@@ -100,13 +133,29 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   const liveBonusRef = useRef(0)
   const lastLiveCumRef = useRef(0)
   const displayStepsRef = useRef(0)
+  const lastReadResultRef = useRef<StepsReadResult>(loadingStepsResult())
+  const accessStatusRef = useRef<StepsAccessStatus | 'loading'>('loading')
+
+  const stepStateSetters = useMemo(
+    () => ({
+      setStepStatus,
+      setStepSource,
+      setStepUserTitle,
+      setStepUserMessage,
+      setStepActionLabel,
+      setStepActionType,
+    }),
+    [],
+  )
 
   const available =
     accessStatus !== 'loading' &&
     accessStatus !== 'device_unavailable' &&
     accessStatus !== 'health_connect_update_required'
   const permissionGranted = accessStatus === 'ready'
-  const stepsConnected = permissionGranted
+  const stepsConnected =
+    permissionGranted &&
+    (stepStatus === 'ready' || stepStatus === 'raw_fallback_used' || stepStatus === 'no_data')
 
   const applySteps = useCallback((steps: number, currentGoal: number) => {
     setTodaySteps(steps)
@@ -122,8 +171,9 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const syncToServer = useCallback(
-    async (steps: number, day: string) => {
+    async (steps: number, day: string, readResult: StepsReadResult) => {
       if (!isLoggedIn || steps <= 0) return
+      if (!shouldSyncSteps({ ...readResult, steps })) return
       try {
         const res = await syncDailySteps(client, { date: day, steps })
         await setCachedDailySteps(day, res.steps)
@@ -186,31 +236,68 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
     return { steps: resolvedSteps, goal: resolvedGoal }
   }, [applySteps, isLoggedIn, persistSteps])
 
+  const applyReadResult = useCallback(
+    (result: StepsReadResult) => {
+      lastReadResultRef.current = result
+      applyReadResultToState(result, stepStateSetters)
+    },
+    [stepStateSetters],
+  )
+
   const commitSteps = useCallback(
-    (total: number, day: string) => {
+    (total: number, day: string, readResult: StepsReadResult) => {
       const guarded = Math.max(displayStepsRef.current, total)
       displayStepsRef.current = guarded
       applySteps(guarded, goalRef.current)
       void persistSteps(guarded, day)
-      void syncToServer(guarded, day)
+      void syncToServer(guarded, day, readResult)
     },
     [applySteps, persistSteps, syncToServer],
   )
 
-  const loadPeriodTotals = useCallback(async () => {
-    const periods = await readStepsPeriodsFromOs()
-    if (!periods) {
-      setWeekSteps(0)
-      setMonthSteps(0)
-      return
-    }
-    setWeekSteps(periods.week)
-    setMonthSteps(periods.month)
-  }, [])
+  const processTodayRead = useCallback(
+    (result: StepsReadResult) => {
+      const day = todayKey()
+      setDate(day)
+      applyReadResult(result)
+
+      if (isReliableStepCount(result)) {
+        if (result.steps > osStepsBaseRef.current) {
+          osStepsBaseRef.current = result.steps
+          liveBonusRef.current = 0
+        }
+        const total = osStepsBaseRef.current + liveBonusRef.current
+        commitSteps(total, day, result)
+        setError(null)
+        return
+      }
+
+      if (result.status === 'no_data') {
+        osStepsBaseRef.current = 0
+        liveBonusRef.current = 0
+        displayStepsRef.current = 0
+        applySteps(0, goalRef.current)
+        void persistSteps(0, day)
+        setError(null)
+        return
+      }
+
+      if (result.status === 'error') {
+        setError(result.userMessage)
+        applySteps(displayStepsRef.current, goalRef.current)
+        return
+      }
+
+      setError(null)
+      applySteps(displayStepsRef.current, goalRef.current)
+    },
+    [applyReadResult, applySteps, commitSteps, persistSteps],
+  )
 
   const ensureLiveWatch = useCallback(
     (day: string) => {
       if (Platform.OS !== 'android') return
+      if (accessStatusRef.current !== 'ready') return
       if (liveWatchRef.current) return
       lastLiveCumRef.current = 0
       liveWatchRef.current = watchLiveStepDelta((cum) => {
@@ -219,50 +306,53 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
         if (inc === 0) return
         liveBonusRef.current += inc
         const total = osStepsBaseRef.current + liveBonusRef.current
-        commitSteps(total, day)
+        const liveResult: StepsReadResult = {
+          ...lastReadResultRef.current,
+          steps: total,
+          source: 'live_pedometer',
+          status:
+            lastReadResultRef.current.status === 'no_data'
+              ? 'ready'
+              : lastReadResultRef.current.status,
+        }
+        commitSteps(total, day, liveResult)
       })
     },
     [commitSteps],
   )
 
   const readOsSteps = useCallback(async () => {
-    const day = todayKey()
-    setDate(day)
-    const os = await readTodayStepsFromOs()
-    if (os) {
-      if (os.steps > osStepsBaseRef.current) {
-        osStepsBaseRef.current = os.steps
-        liveBonusRef.current = 0
-      }
-      const total = osStepsBaseRef.current + liveBonusRef.current
-      commitSteps(total, day)
-      setError(null)
-    } else {
-      commitSteps(osStepsBaseRef.current + liveBonusRef.current, day)
-    }
-    await loadPeriodTotals()
-    ensureLiveWatch(day)
+    const periods = await getPeriodTotals()
+    processTodayRead(periods.today)
+    setWeekSteps(periods.week)
+    setMonthSteps(periods.month)
+    ensureLiveWatch(todayKey())
     void syncMonthToServer()
-  }, [commitSteps, ensureLiveWatch, loadPeriodTotals, syncMonthToServer])
+  }, [ensureLiveWatch, processTodayRead, syncMonthToServer])
 
   const checkAccess = useCallback(async () => {
     try {
       await hydrateTodayFromStores()
-      const { status, debug } = await resolveStepsAccess(false)
-      setAccessStatus(status)
+      const { access, debug } = await checkStepsAccess(false)
+      setAccessStatus(access)
+      accessStatusRef.current = access
       setAccessDebug(debug)
-      if (status === 'ready') {
+
+      if (access === 'ready') {
         await readOsSteps()
       } else {
         liveWatchRef.current?.()
         liveWatchRef.current = null
+        const denied = await getTodaySteps()
+        applyReadResult(denied)
         setWeekSteps(0)
         setMonthSteps(0)
+        setError(null)
       }
-      setError(null)
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
       setAccessStatus('device_unavailable')
+      accessStatusRef.current = 'device_unavailable'
       setAccessDebug({
         platform: Platform.OS,
         isAvailable: null,
@@ -276,12 +366,15 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [hydrateTodayFromStores, readOsSteps])
+  }, [applyReadResult, hydrateTodayFromStores, readOsSteps])
 
   const refresh = useCallback(async () => {
     setLoading(true)
+    setStepStatus('loading')
+    const loadingResult = loadingStepsResult()
+    applyReadResult(loadingResult)
     await checkAccess()
-  }, [checkAccess])
+  }, [applyReadResult, checkAccess])
 
   const requestAccess = useCallback(async () => {
     if (requestingRef.current) return
@@ -289,16 +382,19 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     try {
       await hydrateTodayFromStores()
-      const { status, debug } = await requestStepsAccess()
-      setAccessStatus(status)
+      const { access, debug } = await requestStepsAccessFlow()
+      setAccessStatus(access)
+      accessStatusRef.current = access
       setAccessDebug(debug)
-      if (status === 'ready') {
+      if (access === 'ready') {
         await readOsSteps()
         setError(null)
         return
       }
       liveWatchRef.current?.()
       liveWatchRef.current = null
+      const denied = await getTodaySteps()
+      applyReadResult(denied)
       setWeekSteps(0)
       setMonthSteps(0)
       setError(null)
@@ -308,16 +404,31 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       requestingRef.current = false
       setLoading(false)
     }
-  }, [hydrateTodayFromStores, readOsSteps])
+  }, [applyReadResult, hydrateTodayFromStores, readOsSteps])
 
   const openSettings = useCallback(async () => {
     if (accessStatus === 'loading') return
-    await openStepsAccessSettings(accessStatus)
+    await executeUserAction('open_health_connect_settings', accessStatus)
   }, [accessStatus])
 
   const installHealthConnect = useCallback(async () => {
     await openHealthConnectInstall()
   }, [])
+
+  const executeStepAction = useCallback(async () => {
+    const action = stepActionType ?? 'none'
+    if (action === 'none') return
+    if (action === 'request_permission') {
+      await requestAccess()
+      return
+    }
+    await executeUserAction(action, accessStatus === 'loading' ? 'permission_needed' : accessStatus)
+    if (action === 'refresh') {
+      await refresh()
+    } else {
+      await refresh()
+    }
+  }, [accessStatus, refresh, requestAccess, stepActionType])
 
   const setGoal = useCallback(
     async (newGoal: number) => {
@@ -370,6 +481,12 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       available,
       permissionGranted,
       stepsConnected,
+      stepStatus,
+      stepSource,
+      stepUserTitle,
+      stepUserMessage,
+      stepActionLabel,
+      stepActionType,
       accessStatus,
       accessDebug,
       loading,
@@ -378,6 +495,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       requestAccess,
       openSettings,
       installHealthConnect,
+      executeStepAction,
       setGoal,
     }),
     [
@@ -393,6 +511,12 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       available,
       permissionGranted,
       stepsConnected,
+      stepStatus,
+      stepSource,
+      stepUserTitle,
+      stepUserMessage,
+      stepActionLabel,
+      stepActionType,
       accessStatus,
       accessDebug,
       loading,
@@ -401,6 +525,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       requestAccess,
       openSettings,
       installHealthConnect,
+      executeStepAction,
       setGoal,
     ],
   )
@@ -413,4 +538,3 @@ export function useDailySteps(): DailyStepsState {
   if (!ctx) throw new Error('useDailySteps must be used within DailyStepsProvider')
   return ctx
 }
-

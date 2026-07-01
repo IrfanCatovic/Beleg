@@ -54,6 +54,7 @@ function OriginsBlock({ title, origins }: { title: string; origins: HcDebugOrigi
   )
 }
 
+/** @deprecated Unused — debug is available via StepsDiagnosisCard modal. */
 export function StepsHealthConnectDebugTrigger({
   accessStatus,
   stepsConnected,
