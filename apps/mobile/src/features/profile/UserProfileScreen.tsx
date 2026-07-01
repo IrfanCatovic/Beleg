@@ -114,7 +114,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const vodioQuery = useQuery({
     queryKey: ['korisnik', idOrUsername, 'vodio'],
     queryFn: () => fetchKorisnikVodio(client, idOrUsername),
-    enabled: !!idOrUsername && !!profileQuery.data?.isProfiGuide,
+    enabled: !!idOrUsername,
   })
 
   const followQuery = useQuery({
@@ -294,16 +294,21 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   )
 
   useEffect(() => {
-    if (!profileQuery.data?.isProfiGuide) setActionsTab('climbed')
-  }, [profileQuery.data?.isProfiGuide, idOrUsername])
+    const guidedCount = vodioQuery.data?.length ?? 0
+    if (!profileQuery.data?.isProfiGuide && guidedCount === 0) setActionsTab('climbed')
+  }, [profileQuery.data?.isProfiGuide, vodioQuery.data?.length, idOrUsername])
 
   useFocusEffect(
     useCallback(() => () => dismissImageFocus(), [dismissImageFocus]),
   )
 
   const rank = useMemo(() => {
-    return computeProfileRank(popeoQuery.data ?? [], statsQuery.data ?? {})
-  }, [popeoQuery.data, statsQuery.data])
+    return computeProfileRank(
+      popeoQuery.data ?? [],
+      statsQuery.data ?? {},
+      vodioQuery.data ?? [],
+    )
+  }, [popeoQuery.data, statsQuery.data, vodioQuery.data])
 
   const displayedActions = actionsTab === 'guided' ? (vodioQuery.data ?? []) : (popeoQuery.data ?? [])
 
@@ -367,6 +372,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
   const isMe = me?.username === korisnik.username
   const isProfiGuide = !!korisnik.isProfiGuide
+  const showGuidedActionsTab = isProfiGuide || (vodioQuery.data?.length ?? 0) > 0
   const followStatus = followStatusQuery.data
   const blockedByTarget = blockStatusQuery.data?.blockedByTarget
   const stats = statsQuery.data
@@ -607,7 +613,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </View>
 
             <View style={styles.actionsSection}>
-              {isProfiGuide ? (
+              {showGuidedActionsTab ? (
                 <View style={styles.toggleWrap}>
                   <ProfileActionsToggle
                     tab={actionsTab}

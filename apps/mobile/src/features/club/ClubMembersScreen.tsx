@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { Korisnik, StepsLeaderboardEntry } from '@beleg/shared'
-import { fetchKorisnici, fetchKorisnikPopeoSe, fetchStepsLeaderboard } from '@beleg/shared'
+import { fetchKorisnici, fetchKorisnikPopeoSe, fetchKorisnikVodio, fetchStepsLeaderboard } from '@beleg/shared'
 import { client } from '../../api/client'
 import { Avatar, Card, EmptyState, ErrorView, Loader, SegmentedToggle, Text } from '../../components/ui'
 import { GlobalSearchModal } from './GlobalSearchModal'
@@ -61,11 +61,14 @@ export default function ClubMembersScreen({ navigation }: Props) {
       const entries = await Promise.all(
         members.map(async (m) => {
           try {
-            const akcije = await fetchKorisnikPopeoSe(client, String(m.id))
+            const [akcije, vodene] = await Promise.all([
+              fetchKorisnikPopeoSe(client, String(m.id)),
+              fetchKorisnikVodio(client, String(m.id)),
+            ])
             const rank = computeProfileRank(akcije, {
               ukupnoKm: m.ukupnoKm,
               ukupnoMetaraUspona: m.ukupnoMetaraUspona,
-            })
+            }, vodene)
             return [m.id, rank] as const
           } catch {
             const rank = computeProfileRank([], {

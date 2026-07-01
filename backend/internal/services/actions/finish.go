@@ -9,6 +9,7 @@ import (
 
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"gorm.io/gorm"
 )
@@ -40,6 +41,14 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 		akcija.IsCompleted = true
 		if err := tx.Save(akcija).Error; err != nil {
 			return err
+		}
+
+		guidePromoted, err := helpers.PromoteGuidePrijavaToPopeoSeIfEligible(tx, akcija)
+		if err != nil {
+			return err
+		}
+		if guidePromoted {
+			notifications.NotifySummitReward(tx, akcija.VodicID, *akcija)
 		}
 
 		var prijave []models.Prijava

@@ -6,6 +6,7 @@ import { useModal } from '../../../context/ModalContext'
 import {
   fetchKorisnici as loadKorisnici,
   fetchKorisnikPopeoSeById,
+  fetchKorisnikVodio,
   removeClubMember,
   fetchKorisnikById,
 } from '../../../services/users'
@@ -16,7 +17,7 @@ import { generateMemberPdf, type MemberPdfData } from '../../../utils/generateMe
 import { formatDate } from '../../../utils/dateUtils'
 import Loader from '../../../components/Loader'
 import { UserNameWithProfiBadge } from '../../../components/users/UserNameWithProfiBadge'
-import { computeRank, formatRankDisplayName, mapAkcijaToTura, type RankResult } from '../../../utils/rankingUtils'
+import { computeRank, formatRankDisplayName, type RankResult } from '../../../utils/rankingUtils'
 
 const PODIUM_STYLES: Record<
   1 | 2 | 3,
@@ -92,9 +93,13 @@ export default function Korisnici() {
       const entries = await Promise.all(
         korisnici.map(async (k) => {
           try {
-            const akcije = await fetchKorisnikPopeoSeById(k.id)
+            const [akcije, vodene] = await Promise.all([
+              fetchKorisnikPopeoSeById(k.id),
+              fetchKorisnikVodio(String(k.id)),
+            ])
             const rank = computeRank({
-              ture: akcije.map(mapAkcijaToTura),
+              uspesneAkcije: akcije,
+              vodeneAkcije: vodene,
               ukupnoKm: k.ukupnoKm ?? 0,
               ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
             })

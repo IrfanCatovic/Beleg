@@ -27,7 +27,7 @@ import FollowListModal, { type FollowListUser } from '../../components/modals/Fo
 import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtils'
 import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate } from '../../utils/dateUtils'
-import { computeRank, formatRankDisplayName, mapAkcijaToTura } from '../../utils/rankingUtils'
+import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { ProfileActionGrid } from '../../components/profile/ProfileActionGrid'
 import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
@@ -129,10 +129,11 @@ export default function UserProfile() {
     () =>
       computeRank({
         uspesneAkcije: akcije,
+        vodeneAkcije: vodeneAkcije,
         ukupnoKm: stats.ukupnoKm,
         ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
       }),
-    [akcije, stats.ukupnoKm, stats.ukupnoMetaraUspona],
+    [akcije, vodeneAkcije, stats.ukupnoKm, stats.ukupnoMetaraUspona],
   )
 
   const fetchFollowCounts = useCallback(async () => {
@@ -159,20 +160,18 @@ export default function UserProfile() {
         setKorisnik(k)
         if (!username && k.username) navigate(`/korisnik/${k.username}`, { replace: true })
 
-        const guidedReq = k.isProfiGuide
-          ? fetchKorisnikVodio(idOrUsername)
-          : null
+        const guidedReq = fetchKorisnikVodio(idOrUsername)
 
         const [statsData, akcijeData, vodeneData] = await Promise.all([
           fetchKorisnikStatistika(idOrUsername),
           fetchKorisnikPopeoSe(idOrUsername),
-          guidedReq ?? Promise.resolve(null),
+          guidedReq,
         ])
         if (cancelled) return
 
         setStats(statsData)
         setAkcije(akcijeData as UspesnaAkcija[])
-        setVodeneAkcije((vodeneData as UspesnaAkcija[] | null) ?? [])
+        setVodeneAkcije((vodeneData as UspesnaAkcija[]) ?? [])
         setProfileActionsTab('climbed')
         // #region agent log
         fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'UserProfil.tsx:fetch',message:'profile data loaded',data:{userId:k.id,username:k.username,akcijeCount:(akcijeData as UspesnaAkcija[]).length,stats:statsData},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
@@ -197,9 +196,13 @@ export default function UserProfile() {
         const rankedUsers = await Promise.all(
           baseUsers.map(async (k) => {
             try {
-              const akcije = await fetchKorisnikPopeoSeById(k.id)
+              const [akcije, vodene] = await Promise.all([
+                fetchKorisnikPopeoSeById(k.id),
+                fetchKorisnikVodio(String(k.id)),
+              ])
               const rank = computeRank({
-                ture: akcije.map(mapAkcijaToTura),
+                uspesneAkcije: akcije,
+                vodeneAkcije: vodene,
                 ukupnoKm: k.ukupnoKm ?? 0,
                 ukupnoMetaraUspona: k.ukupnoMetaraUspona ?? 0,
               })
@@ -250,6 +253,7 @@ export default function UserProfile() {
   const canShowBlockControls = !!currentUser && !isOwn
   const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
   const showProfiGuideBadge = !!korisnik?.isProfiGuide
+  const showGuidedActionsTab = showProfiGuideBadge || vodeneAkcije.length > 0
   const guideRatingSummary: GuideRatingSummary = korisnik?.guideRatingSummary ?? {
     prosecnaOcena: 0,
     brojOcena: 0,
@@ -1055,7 +1059,7 @@ export default function UserProfile() {
       {/* ══════════ AKCIJE GRID ══════════ */}
       <div className="bg-gray-50/80 min-h-[40vh]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-4 sm:pb-6">
-          {showProfiGuideBadge ? (
+          {showGuidedActionsTab ? (
             <div className="mb-6 sm:mb-7">
               <ProfileActionsToggle
                 tab={profileActionsTab}
@@ -1079,7 +1083,7 @@ export default function UserProfile() {
           )}
         </div>
 
-        {showProfiGuideBadge ? (
+        {showGuidedActionsTab ? (
           profileActionsTab === 'guided' ? (
             vodeneAkcije.length === 0 ? (
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
