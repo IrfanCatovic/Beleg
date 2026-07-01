@@ -612,11 +612,12 @@ export default function ActionDetails() {
     if (!akcija) return 0
     return computeParticipantSaldo(
       akcija,
-      user?.id,
+      undefined,
       effectiveIsClanKluba,
       { selSmestaj, selPrevoz, selRent },
+      { username: user?.username },
     )
-  }, [akcija, user?.id, effectiveIsClanKluba, selSmestaj, selPrevoz, selRent])
+  }, [akcija, user?.username, effectiveIsClanKluba, selSmestaj, selPrevoz, selRent])
 
   const openFinishFinanceModal = () => {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')

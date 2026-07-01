@@ -85,7 +85,9 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
   const baseCena = akcija ? effectiveBaseCena(akcija, isClan) : 0
   const selections = useMemo(() => ({ selSmestaj, selPrevoz, selRent }), [selSmestaj, selPrevoz, selRent])
   const priceTotals = akcija ? computeLogisticsTotals(akcija, selections) : { smestaj: 0, prevoz: 0, rent: 0 }
-  const total = akcija ? computeParticipantSaldo(akcija, user?.id, isClan, selections) : 0
+  const total = akcija
+    ? computeParticipantSaldo(akcija, undefined, isClan, selections, { username: user?.username })
+    : 0
   const prevozOccupied = buildPrevozOccupancy(prijaveQuery.data ?? [])
 
   const joinMutation = useMutation({

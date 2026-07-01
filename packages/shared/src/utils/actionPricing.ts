@@ -98,19 +98,38 @@ export function hasLogisticsChoicesFromSelections(selections: ActionSelections):
 }
 
 export function isActionGuideUser(
-  akcija: Pick<AkcijaDetail, 'vodicId'>,
+  akcija: Pick<AkcijaDetail, 'vodicId' | 'vodic'>,
   userId: number | null | undefined,
+  username?: string | null,
 ): boolean {
-  return userId != null && userId > 0 && akcija.vodicId != null && akcija.vodicId > 0 && akcija.vodicId === userId
+  if (
+    userId != null &&
+    userId > 0 &&
+    akcija.vodicId != null &&
+    akcija.vodicId > 0 &&
+    akcija.vodicId === userId
+  ) {
+    return true
+  }
+  const guideUsername = akcija.vodic?.username?.trim().toLowerCase()
+  const viewerUsername = username?.trim().toLowerCase()
+  return !!(guideUsername && viewerUsername && guideUsername === viewerUsername)
 }
 
 export function computeParticipantSaldo(
-  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna' | 'smestaj' | 'prevoz' | 'opremaRent' | 'vodicId'>,
+  akcija: Pick<
+    AkcijaDetail,
+    'cenaClan' | 'cenaOstali' | 'javna' | 'smestaj' | 'prevoz' | 'opremaRent' | 'vodicId' | 'vodic'
+  >,
   userId: number | null | undefined,
   isClan: boolean,
   selections: ActionSelections,
+  options?: { username?: string | null },
 ): number {
-  if (isActionGuideUser(akcija, userId) && !hasLogisticsChoicesFromSelections(selections)) {
+  if (
+    isActionGuideUser(akcija, userId, options?.username) &&
+    !hasLogisticsChoicesFromSelections(selections)
+  ) {
     return 0
   }
   const base = effectiveBaseCena(akcija, isClan)

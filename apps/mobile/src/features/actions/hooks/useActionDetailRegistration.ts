@@ -78,8 +78,8 @@ export function useActionDetailRegistration(options: {
 
   const totalPrice = useMemo(() => {
     if (!akcija) return 0
-    return computeParticipantSaldo(akcija, user?.id, isClan, selections)
-  }, [akcija, user?.id, isClan, selections])
+    return computeParticipantSaldo(akcija, undefined, isClan, selections, { username: user?.username })
+  }, [akcija, user?.username, isClan, selections])
 
   const heldSource = prijava ?? (isPendingSignup ? pendingSignup : null)
 
