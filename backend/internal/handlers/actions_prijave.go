@@ -258,25 +258,6 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		IsClanKluba        bool              `json:"isClanKluba"`
 	}
 
-	var smestajRows []models.AkcijaSmestaj
-	_ = db.Where("akcija_id = ?", id).Find(&smestajRows).Error
-	smestajByID := map[uint]float64{}
-	for _, s := range smestajRows {
-		smestajByID[s.ID] = s.CenaPoOsobiUkupno
-	}
-	var prevozRows []models.AkcijaPrevoz
-	_ = db.Where("akcija_id = ?", id).Find(&prevozRows).Error
-	prevozByID := map[uint]float64{}
-	for _, p := range prevozRows {
-		prevozByID[p.ID] = p.CenaPoOsobi
-	}
-	var rentRows []models.AkcijaOpremaRent
-	_ = db.Where("akcija_id = ?", id).Find(&rentRows).Error
-	rentByID := map[uint]float64{}
-	for _, r := range rentRows {
-		rentByID[r.ID] = r.CenaPoSetu
-	}
-
 	korisnikIDs := make([]uint, 0, len(prijave))
 	for _, p := range prijave {
 		if p.Korisnik.ID != 0 {
@@ -308,26 +289,7 @@ func GetPrijaveZaAkciju(c *gin.Context) {
 		if p.Korisnik.ID != 0 && akcijaZaPravo.KlubID != nil && p.Korisnik.KlubID != nil && *p.Korisnik.KlubID == *akcijaZaPravo.KlubID {
 			isClan = true
 		}
-		saldo := 0.0
-		if isClan {
-			saldo += akcijaZaPravo.CenaClan
-		} else if akcijaZaPravo.Javna {
-			saldo += akcijaZaPravo.CenaOstali
-		} else {
-			saldo += akcijaZaPravo.CenaClan
-		}
-		for _, sid := range selSmestaj {
-			saldo += smestajByID[sid]
-		}
-		for _, pid := range selPrevoz {
-			saldo += prevozByID[pid]
-		}
-		for _, item := range selRent {
-			if item.Kolicina <= 0 {
-				continue
-			}
-			saldo += rentByID[item.RentID] * float64(item.Kolicina)
-		}
+		saldo := computeSaldoForParticipant(db, akcijaZaPravo, p.Korisnik, selSmestaj, selPrevoz, selRent)
 		out = append(out, PrijavaDTO{
 			ID:                 p.ID,
 			Korisnik:           p.Korisnik.Username,
@@ -445,28 +407,7 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju izbora"})
 		return
 	}
-	saldo := computeBaseCenaForUser(akcija, korisnik)
-	for _, sid := range payload.SelectedSmestajIDs {
-		var row models.AkcijaSmestaj
-		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, sid).First(&row).Error; err == nil {
-			saldo += row.CenaPoOsobiUkupno
-		}
-	}
-	for _, pid := range payload.SelectedPrevozIDs {
-		var row models.AkcijaPrevoz
-		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, pid).First(&row).Error; err == nil {
-			saldo += row.CenaPoOsobi
-		}
-	}
-	for _, item := range payload.SelectedRentItems {
-		if item.RentID == 0 || item.Kolicina <= 0 {
-			continue
-		}
-		var row models.AkcijaOpremaRent
-		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&row).Error; err == nil {
-			saldo += row.CenaPoSetu * float64(item.Kolicina)
-		}
-	}
+	saldo := computeSaldoForParticipant(db, akcija, korisnik, payload.SelectedSmestajIDs, payload.SelectedPrevozIDs, payload.SelectedRentItems)
 	c.JSON(200, gin.H{
 		"message":            "Izbori sačuvani",
 		"saldo":              saldo,

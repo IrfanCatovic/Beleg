@@ -4,6 +4,7 @@ import type { AkcijaDetail } from '@beleg/shared'
 import {
   buildChoicesPayload,
   computeLogisticsTotals,
+  computeParticipantSaldo,
   effectiveBaseCena,
   effectiveIsClanKluba,
   getApiErrorMessage,
@@ -75,7 +76,10 @@ export function useActionDetailRegistration(options: {
     return computeLogisticsTotals(akcija, selections)
   }, [akcija, selections])
 
-  const totalPrice = baseCena + priceTotals.smestaj + priceTotals.prevoz + priceTotals.rent
+  const totalPrice = useMemo(() => {
+    if (!akcija) return 0
+    return computeParticipantSaldo(akcija, user?.id, isClan, selections)
+  }, [akcija, user?.id, isClan, selections])
 
   const heldSource = prijava ?? (isPendingSignup ? pendingSignup : null)
 

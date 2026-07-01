@@ -8,6 +8,7 @@ import { registerPushToken, unregisterPushToken } from '@beleg/shared/services'
 import { client } from '../api/client'
 import { agentDebugLog } from '../lib/agentDebugLog'
 import { navigateToNotificationDetail } from '../navigation/navigationRef'
+import { resolvePushAppKind } from '../utils/resolveAppKind'
 
 // #region agent log
 // Temporary push diagnostic surfaced on the Steps DEBUG card. Stores only a
@@ -217,12 +218,8 @@ export function usePushNotifications(isLoggedIn: boolean) {
           'A',
         )
         // #endregion
-        const appKind =
-          Constants.appOwnership === 'expo'
-            ? 'expo'
-            : Constants.appOwnership === 'standalone'
-              ? 'standalone'
-              : undefined
+        const appKind = resolvePushAppKind()
+        dbg.appKind = appKind ?? ''
         const reg = await registerPushToken(client, {
           token,
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
@@ -265,12 +262,7 @@ export function usePushNotifications(isLoggedIn: boolean) {
       void registerPushToken(client, {
         token,
         platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        appKind:
-          Constants.appOwnership === 'expo'
-            ? 'expo'
-            : Constants.appOwnership === 'standalone'
-              ? 'standalone'
-              : undefined,
+        appKind: resolvePushAppKind(),
       }).catch(() => {})
     })
 

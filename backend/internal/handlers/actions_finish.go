@@ -210,47 +210,17 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 				return err
 			}
 
-			saldo := computeBaseCenaForUser(akcija, prijavaWithUser.Korisnik)
-			var izbor models.PrijavaIzbori
 			selSmestaj := []uint{}
 			selPrevoz := []uint{}
 			selRent := []prijavaRentItem{}
+			var izbor models.PrijavaIzbori
 			if err := tx.Where("prijava_id = ?", prijava.ID).First(&izbor).Error; err == nil {
 				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
 				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
 				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
 			}
 
-			if len(selSmestaj) > 0 {
-				var smestajRows []models.AkcijaSmestaj
-				if err := tx.Where("akcija_id = ? AND id IN ?", akcija.ID, selSmestaj).Find(&smestajRows).Error; err == nil {
-					for _, row := range smestajRows {
-						saldo += row.CenaPoOsobiUkupno
-					}
-				}
-			}
-			if len(selPrevoz) > 0 {
-				var prevozRows []models.AkcijaPrevoz
-				if err := tx.Where("akcija_id = ? AND id IN ?", akcija.ID, selPrevoz).Find(&prevozRows).Error; err == nil {
-					for _, row := range prevozRows {
-						saldo += row.CenaPoOsobi
-					}
-				}
-			}
-			if len(selRent) > 0 {
-				var rentRows []models.AkcijaOpremaRent
-				if err := tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error; err == nil {
-					rentByID := map[uint]float64{}
-					for _, r := range rentRows {
-						rentByID[r.ID] = r.CenaPoSetu
-					}
-					for _, item := range selRent {
-						if item.Kolicina > 0 {
-							saldo += rentByID[item.RentID] * float64(item.Kolicina)
-						}
-					}
-				}
-			}
+			saldo := computeSaldoForParticipant(tx, akcija, prijavaWithUser.Korisnik, selSmestaj, selPrevoz, selRent)
 
 			if saldo > 0 {
 				recorderID := resolveFinanceRecorderID(tx, akcija.KlubID, actor.ID)

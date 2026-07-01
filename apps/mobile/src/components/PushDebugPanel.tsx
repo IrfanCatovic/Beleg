@@ -9,6 +9,7 @@ import { client } from '../api/client'
 import { Button, Card, Text } from './ui'
 import { colors, spacing } from '../theme'
 import { PUSH_DEBUG_KEY } from '../hooks/usePushNotifications'
+import { isStandalonePushClient, resolvePushAppKind } from '../utils/resolveAppKind'
 
 function DebugRow({ label, value }: { label: string; value: string }) {
   return (
@@ -28,6 +29,29 @@ function formatServerTokens(tokens: PushTokenSummary[]): string {
   return tokens
     .map((t) => `${t.appKind || '?'}:${t.platform || '?'} …${t.suffix}`)
     .join(' | ')
+}
+
+function hasApkTokenOnServer(tokens: PushTokenSummary[], localStandalone: boolean): boolean {
+  if (tokens.some((t) => t.platform === 'android' && t.appKind === 'standalone')) return true
+  // Legacy rows before appKind fix: bare APK still registers android token
+  if (localStandalone && tokens.some((t) => t.platform === 'android')) return true
+  return false
+}
+
+function diagnosePush(
+  tokens: PushTokenSummary[],
+  localRegistered: boolean,
+  perm: string,
+): string {
+  const localStandalone = isStandalonePushClient()
+  const apkOnServer = hasApkTokenOnServer(tokens, localStandalone)
+  if (!localRegistered) return 'Token nije registrovan — proveri grešku u last register'
+  if (perm !== 'granted') return 'Nema dozvole za obaveštenja'
+  if (!apkOnServer) return 'Android token nije na serveru'
+  if (localStandalone) {
+    return 'Token OK na serveru. Ako push ne stiže → FCM nije u APK buildu (treba novi APK + Firebase, vidi BUILD_APK.md)'
+  }
+  return 'Token OK'
 }
 
 export function PushDebugPanel() {
@@ -63,9 +87,20 @@ export function PushDebugPanel() {
 
   const extra = Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined
   const projectId = extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? 'missing'
-  const hasStandaloneAndroid = (serverTokens ?? []).some(
-    (t) => t.platform === 'android' && t.appKind === 'standalone',
-  )
+  const localStandalone = isStandalonePushClient()
+  const parsedDebug = (() => {
+    if (!debugJson) return null
+    try {
+      return JSON.parse(debugJson) as { registered?: boolean }
+    } catch {
+      return null
+    }
+  })()
+  const localRegistered = parsedDebug?.registered === true
+  const apkOnServer = hasApkTokenOnServer(serverTokens ?? [], localStandalone)
+  const diagnosis =
+    serverError ??
+    diagnosePush(serverTokens ?? [], localRegistered, perm)
 
   return (
     <Card style={styles.card}>
@@ -73,17 +108,16 @@ export function PushDebugPanel() {
       <Text variant="small" color={colors.textMuted} style={styles.hint}>
         Server šalje na SVE tokene korisnika. Expo Go i APK imaju različite tokene.
       </Text>
-      <DebugRow label="appOwnership" value={String(Constants.appOwnership ?? '?')} />
+      <DebugRow label="appKind (resolved)" value={resolvePushAppKind() ?? '?'} />
+      <DebugRow label="appOwnership" value={String(Constants.appOwnership ?? 'null')} />
       <DebugRow label="executionEnvironment" value={String(Constants.executionEnvironment ?? '?')} />
       <DebugRow label="isDevice" value={String(Device.isDevice)} />
       <DebugRow label="platform" value={Platform.OS} />
       <DebugRow label="projectId" value={projectId === 'missing' ? 'MISSING' : `${projectId.slice(0, 8)}…`} />
       <DebugRow label="permission now" value={perm} />
       <DebugRow label="server tokens" value={serverError ?? formatServerTokens(serverTokens ?? [])} />
-      <DebugRow
-        label="APK token na serveru"
-        value={hasStandaloneAndroid ? 'DA' : 'NE — push ne može stići na APK'}
-      />
+      <DebugRow label="APK token na serveru" value={apkOnServer ? 'DA' : 'NE'} />
+      <DebugRow label="dijagnoza" value={diagnosis} />
       <DebugRow label="last register" value={debugJson ?? '—'} />
       <Button
         title={loading ? 'Učitavam…' : 'Osvježi push debug'}

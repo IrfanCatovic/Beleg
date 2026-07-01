@@ -29,7 +29,7 @@ import {
 import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportPlaceholder from '../../components/action-details/AddTransportPlaceholder'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
-import { getActionPriceDisplay, computePERForAkcija } from '@beleg/shared'
+import { computeParticipantSaldo, getActionPriceDisplay, computePERForAkcija } from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
@@ -609,8 +609,14 @@ export default function ActionDetails() {
   )
 
   const totalSummary = useMemo(() => {
-    return summaryRows.reduce((acc, r) => acc + r.amount, effectiveBaseCena)
-  }, [summaryRows, effectiveBaseCena])
+    if (!akcija) return 0
+    return computeParticipantSaldo(
+      akcija,
+      user?.id,
+      effectiveIsClanKluba,
+      { selSmestaj, selPrevoz, selRent },
+    )
+  }, [akcija, user?.id, effectiveIsClanKluba, selSmestaj, selPrevoz, selRent])
 
   const openFinishFinanceModal = () => {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')

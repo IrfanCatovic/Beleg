@@ -16,6 +16,7 @@ export {
   formatRankDisplayName,
   getRankFromPER,
   mapAkcijaToTura,
+  mergeAkcijeZaRanking,
   sumPERFromAkcije,
   RANK_COLORS,
   RANK_NAMES,
@@ -35,11 +36,15 @@ export {
   buildChoicesPayload,
   computeClientSaldo,
   computeLogisticsTotals,
+  computeParticipantSaldo,
   countActivePrijave,
   effectiveBaseCena,
   effectiveIsClanKluba,
   filterTrackedPrijave,
   getActionPriceDisplay,
+  hasLogisticsChoicesFromMember,
+  hasLogisticsChoicesFromSelections,
+  isActionGuideUser,
 } from './actionPricing'
 export type {
   ActionPriceDisplay,

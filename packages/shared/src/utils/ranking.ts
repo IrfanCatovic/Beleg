@@ -12,6 +12,7 @@ export interface Tura {
 }
 
 export interface AkcijaZaRanking {
+  id?: number
   tipAkcije?: TipAkcije
   duzinaStazeKm?: number
   kumulativniUsponM?: number
@@ -179,15 +180,36 @@ export function computePERForAkcija(a: AkcijaZaRanking): number {
   return perJedneTure(mapAkcijaToTura(a))
 }
 
+/** Spaja osvojene i vođene akcije bez duplog brojanja iste akcije. */
+export function mergeAkcijeZaRanking(
+  uspesneAkcije: AkcijaZaRanking[] = [],
+  vodeneAkcije: AkcijaZaRanking[] = [],
+): AkcijaZaRanking[] {
+  const byId = new Map<number, AkcijaZaRanking>()
+  for (const a of uspesneAkcije) {
+    if (a.id != null) byId.set(a.id, a)
+  }
+  for (const a of vodeneAkcije) {
+    if (a.id != null && !byId.has(a.id)) byId.set(a.id, a)
+  }
+  const withoutId = [...uspesneAkcije, ...vodeneAkcije].filter((a) => a.id == null)
+  return [...byId.values(), ...withoutId]
+}
+
 export function computeRank(statistika: {
   ture?: Tura[]
   uspesneAkcije?: AkcijaZaRanking[]
+  vodeneAkcije?: AkcijaZaRanking[]
   ukupnoKm?: number
   ukupnoMetaraUspona?: number
 }): RankResult {
+  const mergedAkcije = mergeAkcijeZaRanking(
+    statistika.uspesneAkcije,
+    statistika.vodeneAkcije,
+  )
   const ture =
     statistika.ture ??
-    (statistika.uspesneAkcije?.map(mapAkcijaToTura) ?? [])
+    (mergedAkcije.length > 0 ? mergedAkcije.map(mapAkcijaToTura) : [])
   const usedFallback = ture.length === 0
   const per = usedFallback
     ? Math.round((statistika.ukupnoKm ?? 0) * 1 + (statistika.ukupnoMetaraUspona ?? 0) * 0.04)

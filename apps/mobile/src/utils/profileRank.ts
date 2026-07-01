@@ -9,9 +9,11 @@ export type ProfileRankResult = Pick<RankResult, 'naziv' | 'boja' | 'per'>
 export function computeProfileRank(
   akcije: UspesnaAkcija[],
   stats: { ukupnoKm?: number; ukupnoMetaraUspona?: number },
+  vodeneAkcije: UspesnaAkcija[] = [],
 ): ProfileRankResult {
   const rank = computeRank({
     uspesneAkcije: akcije,
+    vodeneAkcije,
     ukupnoKm: stats.ukupnoKm,
     ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
   })

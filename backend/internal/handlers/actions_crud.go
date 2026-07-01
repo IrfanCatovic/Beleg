@@ -200,45 +200,19 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 				isClan = true
 			}
 			resp["isClanKluba"] = isClan
-			saldo := computeBaseCenaForUser(akcija, *viewer)
+			choices := helpers.ParticipantChoices{}
 			var moja models.Prijava
 			if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, viewer.ID).First(&moja).Error; err == nil {
 				var izbor models.PrijavaIzbori
 				if err := db.Where("prijava_id = ?", moja.ID).First(&izbor).Error; err == nil {
-					var smestajIDs []uint
-					var prevozIDs []uint
+					_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &choices.SelectedSmestajIDs)
+					_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &choices.SelectedPrevozIDs)
 					var rentItems []prijavaRentItem
-					_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &smestajIDs)
-					_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &prevozIDs)
 					_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &rentItems)
-					if len(smestajIDs) > 0 {
-						var picked []models.AkcijaSmestaj
-						if err := db.Where("akcija_id = ? AND id IN ?", akcija.ID, smestajIDs).Find(&picked).Error; err == nil {
-							for _, row := range picked {
-								saldo += row.CenaPoOsobiUkupno
-							}
-						}
-					}
-					if len(prevozIDs) > 0 {
-						var picked []models.AkcijaPrevoz
-						if err := db.Where("akcija_id = ? AND id IN ?", akcija.ID, prevozIDs).Find(&picked).Error; err == nil {
-							for _, row := range picked {
-								saldo += row.CenaPoOsobi
-							}
-						}
-					}
-					for _, item := range rentItems {
-						if item.RentID == 0 || item.Kolicina <= 0 {
-							continue
-						}
-						var row models.AkcijaOpremaRent
-						if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&row).Error; err == nil {
-							saldo += row.CenaPoSetu * float64(item.Kolicina)
-						}
-					}
+					choices.SelectedRentItems = rentItemsToHelpers(rentItems)
 				}
 			}
-			resp["mojSaldo"] = saldo
+			resp["mojSaldo"] = helpers.ComputeSaldoForParticipant(db, akcija, *viewer, choices)
 		}
 		c.JSON(200, resp)
 	}
@@ -690,6 +664,11 @@ func CreateAkcija(c *gin.Context) {
 		return
 	}
 
+	if err := EnsureGuidePrijava(db, akcija.ID, akcija.VodicID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri automatskoj prijavi vodiča"})
+		return
+	}
+
 	if organizatorTip == "klub" && clubID > 0 {
 		var notifyUserIDs []uint
 		if javna {
@@ -981,6 +960,11 @@ func UpdateAkcija(c *gin.Context) {
 	}
 	if err := syncActionNestedData(db, akcija.ID, c); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := EnsureGuidePrijava(db, akcija.ID, akcija.VodicID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri automatskoj prijavi vodiča"})
 		return
 	}
 

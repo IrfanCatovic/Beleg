@@ -80,6 +80,44 @@ export function getActionPriceDisplay(ctx: {
   }
 }
 
+export function hasLogisticsChoicesFromMember(
+  member: Pick<Prijava, 'selectedSmestajIds' | 'selectedPrevozIds' | 'selectedRentItems'>,
+): boolean {
+  if ((member.selectedSmestajIds?.length ?? 0) > 0 || (member.selectedPrevozIds?.length ?? 0) > 0) {
+    return true
+  }
+  for (const it of member.selectedRentItems ?? []) {
+    if (it.rentId && it.kolicina > 0) return true
+  }
+  return false
+}
+
+export function hasLogisticsChoicesFromSelections(selections: ActionSelections): boolean {
+  if (selections.selSmestaj.size > 0 || selections.selPrevoz.size > 0) return true
+  return Object.values(selections.selRent).some((qty) => (qty ?? 0) > 0)
+}
+
+export function isActionGuideUser(
+  akcija: Pick<AkcijaDetail, 'vodicId'>,
+  userId: number | null | undefined,
+): boolean {
+  return userId != null && userId > 0 && akcija.vodicId != null && akcija.vodicId > 0 && akcija.vodicId === userId
+}
+
+export function computeParticipantSaldo(
+  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna' | 'smestaj' | 'prevoz' | 'opremaRent' | 'vodicId'>,
+  userId: number | null | undefined,
+  isClan: boolean,
+  selections: ActionSelections,
+): number {
+  if (isActionGuideUser(akcija, userId) && !hasLogisticsChoicesFromSelections(selections)) {
+    return 0
+  }
+  const base = effectiveBaseCena(akcija, isClan)
+  const logistics = computeLogisticsTotals(akcija, selections)
+  return base + logistics.smestaj + logistics.prevoz + logistics.rent
+}
+
 export function buildChoicesPayload(
   akcija: Pick<AkcijaDetail, 'smestaj' | 'prevoz' | 'opremaRent'>,
   selections: ActionSelections,
@@ -139,9 +177,17 @@ export function computeClientSaldo(
     Prijava,
     'saldo' | 'isClanKluba' | 'selectedSmestajIds' | 'selectedPrevozIds' | 'selectedRentItems'
   >,
-  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna' | 'smestaj' | 'prevoz' | 'opremaRent'>,
+  akcija: Pick<AkcijaDetail, 'cenaClan' | 'cenaOstali' | 'javna' | 'smestaj' | 'prevoz' | 'opremaRent' | 'vodicId'>,
+  options?: { korisnikId?: number | null },
 ): number {
   if (typeof member.saldo === 'number') return member.saldo
+  if (
+    options?.korisnikId != null &&
+    isActionGuideUser(akcija, options.korisnikId) &&
+    !hasLogisticsChoicesFromMember(member)
+  ) {
+    return 0
+  }
   const base = member.isClanKluba
     ? akcija.cenaClan ?? 0
     : akcija.javna

@@ -415,6 +415,63 @@ func computeBaseCenaForUser(akcija models.Akcija, korisnik models.Korisnik) floa
 	return helpers.ComputeBaseCenaForUser(akcija, korisnik)
 }
 
+func rentItemsToHelpers(items []prijavaRentItem) []helpers.PrijavaRentItem {
+	out := make([]helpers.PrijavaRentItem, 0, len(items))
+	for _, item := range items {
+		out = append(out, helpers.PrijavaRentItem{RentID: item.RentID, Kolicina: item.Kolicina})
+	}
+	return out
+}
+
+func choicesPayloadToHelpers(choices prijavaChoicesPayload) helpers.ParticipantChoices {
+	return helpers.ParticipantChoices{
+		SelectedSmestajIDs: choices.SelectedSmestajIDs,
+		SelectedPrevozIDs:  choices.SelectedPrevozIDs,
+		SelectedRentItems:  rentItemsToHelpers(choices.SelectedRentItems),
+	}
+}
+
+func computeSaldoForParticipant(db *gorm.DB, akcija models.Akcija, korisnik models.Korisnik, smestaj []uint, prevoz []uint, rent []prijavaRentItem) float64 {
+	return helpers.ComputeSaldoForParticipant(db, akcija, korisnik, helpers.ParticipantChoices{
+		SelectedSmestajIDs: smestaj,
+		SelectedPrevozIDs:  prevoz,
+		SelectedRentItems:  rentItemsToHelpers(rent),
+	})
+}
+
+// EnsureGuidePrijava automatski prijavljuje vodiča na akciju sa praznim izborima (saldo 0 dok ne izabere logistiku).
+func EnsureGuidePrijava(db *gorm.DB, akcijaID, vodicID uint) error {
+	if vodicID == 0 {
+		return nil
+	}
+	var count int64
+	if err := db.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND korisnik_id = ?", akcijaID, vodicID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	prijava := models.Prijava{
+		AkcijaID:   akcijaID,
+		KorisnikID: vodicID,
+		Status:     "prijavljen",
+		Platio:     false,
+	}
+	if err := db.Create(&prijava).Error; err != nil {
+		return err
+	}
+	empty := "[]"
+	izbor := models.PrijavaIzbori{
+		PrijavaID:            prijava.ID,
+		SelectedSmestajIDs:   empty,
+		SelectedPrevozIDs:    empty,
+		SelectedRentItemsRaw: empty,
+	}
+	return db.Create(&izbor).Error
+}
+
 // akcijaSkipsClubFinances: privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.
 func akcijaSkipsClubFinances(akcija models.Akcija) bool {
 	return helpers.AkcijaSkipsClubFinances(akcija)

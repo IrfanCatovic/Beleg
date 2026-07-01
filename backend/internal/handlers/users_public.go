@@ -169,7 +169,7 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 	})
 }
 
-// GetPublicKorisnikVodio: završene ture koje je korisnik vodio kao profi vodič (trenutno via ferrata).
+// GetPublicKorisnikVodio: završene ture koje je korisnik vodio.
 func GetPublicKorisnikVodio(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
@@ -177,10 +177,6 @@ func GetPublicKorisnikVodio(c *gin.Context) {
 	korisnik := getKorisnikByIDOrUsername(db, param)
 	if korisnik == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-	if !helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID) {
-		c.JSON(http.StatusOK, gin.H{"vodeneAkcije": []models.Akcija{}})
 		return
 	}
 

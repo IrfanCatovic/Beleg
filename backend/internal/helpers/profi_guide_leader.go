@@ -30,12 +30,12 @@ func AkcijaProfiGuideAsLeader(db *gorm.DB, akcija *models.Akcija, korisnikID uin
 	return true
 }
 
-// AkcijaCountsAsGuidedTourForVodic — završena akcija u sekciji vođenih tura na profilu profi vodiča.
+// AkcijaCountsAsGuidedTourForVodic — završena akcija koju je korisnik vodio (PER iz vođenih tura).
 func AkcijaCountsAsGuidedTourForVodic(db *gorm.DB, akcija *models.Akcija, korisnikID uint) bool {
 	if akcija == nil || !akcija.IsCompleted || korisnikID == 0 || akcija.VodicID != korisnikID {
 		return false
 	}
-	return AkcijaProfiGuideAsLeader(db, akcija, korisnikID)
+	return true
 }
 
 // PrijavaCountsAsClimbedPeak — da li uspešna prijava ulazi u osvojene vrhove / statistiku uspona.

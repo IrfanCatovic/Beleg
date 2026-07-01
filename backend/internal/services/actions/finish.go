@@ -50,29 +50,7 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 		}
 
 		if len(prijave) > 0 {
-			var smestajRows []models.AkcijaSmestaj
-			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&smestajRows).Error
-			smestajByID := map[uint]float64{}
-			for _, s := range smestajRows {
-				smestajByID[s.ID] = s.CenaPoOsobiUkupno
-			}
-
-			var prevozRows []models.AkcijaPrevoz
-			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&prevozRows).Error
-			prevozByID := map[uint]float64{}
-			for _, p := range prevozRows {
-				prevozByID[p.ID] = p.CenaPoOsobi
-			}
-
-			var rentRows []models.AkcijaOpremaRent
-			_ = tx.Where("akcija_id = ?", akcija.ID).Find(&rentRows).Error
-			rentByID := map[uint]float64{}
-			for _, r := range rentRows {
-				rentByID[r.ID] = r.CenaPoSetu
-			}
-
 			for _, p := range prijave {
-				saldo := helpers.ComputeBaseCenaForUser(*akcija, p.Korisnik)
 				var izbor models.PrijavaIzbori
 				selSmestaj := []uint{}
 				selPrevoz := []uint{}
@@ -82,18 +60,11 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 					_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
 					_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
 				}
-				for _, sid := range selSmestaj {
-					saldo += smestajByID[sid]
-				}
-				for _, pid := range selPrevoz {
-					saldo += prevozByID[pid]
-				}
-				for _, item := range selRent {
-					if item.Kolicina <= 0 {
-						continue
-					}
-					saldo += rentByID[item.RentID] * float64(item.Kolicina)
-				}
+				saldo := helpers.ComputeSaldoForParticipant(tx, *akcija, p.Korisnik, helpers.ParticipantChoices{
+					SelectedSmestajIDs: selSmestaj,
+					SelectedPrevozIDs:  selPrevoz,
+					SelectedRentItems:  selRent,
+				})
 				if saldo <= 0 {
 					continue
 				}

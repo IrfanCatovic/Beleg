@@ -281,33 +281,7 @@ func createPrijavaFromChoices(tx *gorm.DB, akcija models.Akcija, korisnik models
 }
 
 func computeSaldoForChoices(db *gorm.DB, akcija models.Akcija, korisnik models.Korisnik, choices prijavaChoicesPayload) float64 {
-	saldo := computeBaseCenaForUser(akcija, korisnik)
-	if len(choices.SelectedSmestajIDs) > 0 {
-		var picked []models.AkcijaSmestaj
-		if err := db.Where("akcija_id = ? AND id IN ?", akcija.ID, choices.SelectedSmestajIDs).Find(&picked).Error; err == nil {
-			for _, row := range picked {
-				saldo += row.CenaPoOsobiUkupno
-			}
-		}
-	}
-	if len(choices.SelectedPrevozIDs) > 0 {
-		var picked []models.AkcijaPrevoz
-		if err := db.Where("akcija_id = ? AND id IN ?", akcija.ID, choices.SelectedPrevozIDs).Find(&picked).Error; err == nil {
-			for _, row := range picked {
-				saldo += row.CenaPoOsobi
-			}
-		}
-	}
-	for _, item := range choices.SelectedRentItems {
-		if item.RentID == 0 || item.Kolicina <= 0 {
-			continue
-		}
-		var rentRow models.AkcijaOpremaRent
-		if err := db.Where("akcija_id = ? AND id = ?", akcija.ID, item.RentID).First(&rentRow).Error; err == nil {
-			saldo += rentRow.CenaPoSetu * float64(item.Kolicina)
-		}
-	}
-	return saldo
+	return helpers.ComputeSaldoForParticipant(db, akcija, korisnik, choicesPayloadToHelpers(choices))
 }
 
 func parseChoicesFromRequest(c *gin.Context) prijavaChoicesPayload {
