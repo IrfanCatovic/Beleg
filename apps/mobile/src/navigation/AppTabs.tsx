@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { HomeStack } from './stacks/HomeStack'
 import { ActionsStack } from './stacks/ActionsStack'
 import { ExploreStack } from './stacks/ExploreStack'
@@ -11,6 +12,9 @@ import type { AppTabsParamList } from './types'
 
 const Tab = createBottomTabNavigator<AppTabsParamList>()
 
+const TAB_BAR_HEIGHT = 60
+const TAB_BAR_PADDING = 6
+
 function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
@@ -20,6 +24,8 @@ function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focu
 }
 
 export function AppTabs() {
+  const insets = useSafeAreaInsets()
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -27,7 +33,13 @@ export function AppTabs() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.textOnDark,
         tabBarInactiveTintColor: colors.textOnDarkMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom + TAB_BAR_PADDING,
+          },
+        ],
       }}
     >
       <Tab.Screen
@@ -76,9 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.navBgMid,
     borderTopColor: colors.navBorder,
     borderTopWidth: 1,
-    height: 60,
-    paddingBottom: 6,
-    paddingTop: 6,
+    paddingTop: TAB_BAR_PADDING,
   },
   iconWrap: {
     width: 44,
