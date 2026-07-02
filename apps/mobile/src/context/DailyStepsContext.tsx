@@ -42,9 +42,20 @@ import type {
   StepsReadStatus,
   StepsUserAction,
 } from '../features/steps/types/stepsTypes'
+import {
+  isNewDay,
+  resolveCommittedSteps,
+  resolveOsStepsBaseUpdate,
+} from '../features/steps/services/dailyStepsDayLogic'
 import { isReliableStepCount, shouldSyncSteps } from '../features/steps/types/stepsTypes'
 
 const REFRESH_INTERVAL_MS = 30_000
+
+function debugStepsDay(event: string, payload: Record<string, unknown>) {
+  if (__DEV__) {
+    console.debug(`[steps-day] ${event}`, payload)
+  }
+}
 
 export interface DailyStepsState {
   todaySteps: number
@@ -128,13 +139,51 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
 
   const requestingRef = useRef(false)
   const goalRef = useRef(DEFAULT_DAILY_STEP_GOAL)
+  const activeDayRef = useRef(todayKey())
+  const hasReliableOsReadForActiveDayRef = useRef(false)
   const liveWatchRef = useRef<(() => void) | null>(null)
+  const liveWatchDayRef = useRef<string | null>(null)
   const osStepsBaseRef = useRef(0)
   const liveBonusRef = useRef(0)
   const lastLiveCumRef = useRef(0)
   const displayStepsRef = useRef(0)
   const lastReadResultRef = useRef<StepsReadResult>(loadingStepsResult())
   const accessStatusRef = useRef<StepsAccessStatus | 'loading'>('loading')
+
+  const stopLiveWatch = useCallback(() => {
+    liveWatchRef.current?.()
+    liveWatchRef.current = null
+    liveWatchDayRef.current = null
+  }, [])
+
+  const resetForNewDay = useCallback(
+    (newDay: string) => {
+      debugStepsDay('resetForNewDay', {
+        todayKey: newDay,
+        activeDayRef_before: activeDayRef.current,
+        osStepsBaseRef_before: osStepsBaseRef.current,
+        liveBonusRef_before: liveBonusRef.current,
+        displayStepsRef_before: displayStepsRef.current,
+      })
+      activeDayRef.current = newDay
+      osStepsBaseRef.current = 0
+      liveBonusRef.current = 0
+      displayStepsRef.current = 0
+      lastLiveCumRef.current = 0
+      hasReliableOsReadForActiveDayRef.current = false
+      stopLiveWatch()
+    },
+    [stopLiveWatch],
+  )
+
+  const ensureActiveDay = useCallback(
+    (day: string) => {
+      if (isNewDay(day, activeDayRef.current)) {
+        resetForNewDay(day)
+      }
+    },
+    [resetForNewDay],
+  )
 
   const stepStateSetters = useMemo(
     () => ({
@@ -172,6 +221,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
 
   const syncToServer = useCallback(
     async (steps: number, day: string, readResult: StepsReadResult) => {
+      ensureActiveDay(day)
       if (!isLoggedIn || steps <= 0) return
       if (!shouldSyncSteps({ ...readResult, steps })) return
       try {
@@ -181,7 +231,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
         // offline
       }
     },
-    [isLoggedIn],
+    [ensureActiveDay, isLoggedIn],
   )
 
   const syncMonthToServer = useCallback(async () => {
@@ -207,6 +257,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
 
   const hydrateTodayFromStores = useCallback(async (): Promise<{ steps: number; goal: number }> => {
     const day = todayKey()
+    ensureActiveDay(day)
     let resolvedGoal = await getDailyStepGoal()
     let resolvedSteps = await getCachedDailySteps(day)
 
@@ -225,16 +276,24 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    debugStepsDay('hydrate', {
+      todayKey: day,
+      activeDayRef: activeDayRef.current,
+      cacheSteps: resolvedSteps,
+      hasReliableOsRead: hasReliableOsReadForActiveDayRef.current,
+    })
+
     goalRef.current = resolvedGoal
     setGoalState(resolvedGoal)
+    // Temporary placeholder until reliable OS read; must not block lower HC value later.
     osStepsBaseRef.current = resolvedSteps
     liveBonusRef.current = 0
     displayStepsRef.current = resolvedSteps
+    hasReliableOsReadForActiveDayRef.current = false
     setDate(day)
     applySteps(resolvedSteps, resolvedGoal)
-    await persistSteps(resolvedSteps, day)
     return { steps: resolvedSteps, goal: resolvedGoal }
-  }, [applySteps, isLoggedIn, persistSteps])
+  }, [applySteps, ensureActiveDay, isLoggedIn])
 
   const applyReadResult = useCallback(
     (result: StepsReadResult) => {
@@ -246,26 +305,69 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
 
   const commitSteps = useCallback(
     (total: number, day: string, readResult: StepsReadResult) => {
-      const guarded = Math.max(displayStepsRef.current, total)
+      ensureActiveDay(day)
+      const displayBefore = displayStepsRef.current
+      const guarded = resolveCommittedSteps(
+        total,
+        displayStepsRef.current,
+        hasReliableOsReadForActiveDayRef.current,
+      )
+      debugStepsDay('commitSteps', {
+        todayKey: day,
+        activeDayRef: activeDayRef.current,
+        total,
+        displayStepsRef_before: displayBefore,
+        displayStepsRef_after: guarded,
+        osStepsBaseRef: osStepsBaseRef.current,
+        liveBonusRef: liveBonusRef.current,
+        hasReliableOsRead: hasReliableOsReadForActiveDayRef.current,
+        source: readResult.source,
+        status: readResult.status,
+      })
       displayStepsRef.current = guarded
       applySteps(guarded, goalRef.current)
       void persistSteps(guarded, day)
       void syncToServer(guarded, day, readResult)
     },
-    [applySteps, persistSteps, syncToServer],
+    [applySteps, ensureActiveDay, persistSteps, syncToServer],
   )
 
   const processTodayRead = useCallback(
     (result: StepsReadResult) => {
       const day = todayKey()
+      const wasNewDay = isNewDay(day, activeDayRef.current)
+      ensureActiveDay(day)
       setDate(day)
       applyReadResult(result)
 
       if (isReliableStepCount(result)) {
-        if (result.steps > osStepsBaseRef.current) {
-          osStepsBaseRef.current = result.steps
-          liveBonusRef.current = 0
-        }
+        const osBaseBefore = osStepsBaseRef.current
+        const liveBonusBefore = liveBonusRef.current
+        const update = resolveOsStepsBaseUpdate(
+          result.steps,
+          osStepsBaseRef.current,
+          hasReliableOsReadForActiveDayRef.current,
+        )
+        osStepsBaseRef.current = update.base
+        if (update.resetLiveBonus) liveBonusRef.current = 0
+        if (update.setDisplayToResult) displayStepsRef.current = result.steps
+        if (update.markReliable) hasReliableOsReadForActiveDayRef.current = true
+
+        debugStepsDay('processTodayRead', {
+          todayKey: day,
+          activeDayRef: activeDayRef.current,
+          isNewDay: wasNewDay,
+          resultSteps: result.steps,
+          osStepsBaseRef_before: osBaseBefore,
+          osStepsBaseRef_after: osStepsBaseRef.current,
+          liveBonusRef_before: liveBonusBefore,
+          liveBonusRef_after: liveBonusRef.current,
+          displayStepsRef: displayStepsRef.current,
+          hasReliableOsRead: hasReliableOsReadForActiveDayRef.current,
+          source: result.source,
+          status: result.status,
+        })
+
         const total = osStepsBaseRef.current + liveBonusRef.current
         commitSteps(total, day, result)
         setError(null)
@@ -276,6 +378,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
         osStepsBaseRef.current = 0
         liveBonusRef.current = 0
         displayStepsRef.current = 0
+        hasReliableOsReadForActiveDayRef.current = false
         applySteps(0, goalRef.current)
         void persistSteps(0, day)
         setError(null)
@@ -291,16 +394,28 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       setError(null)
       applySteps(displayStepsRef.current, goalRef.current)
     },
-    [applyReadResult, applySteps, commitSteps, persistSteps],
+    [applyReadResult, applySteps, commitSteps, ensureActiveDay, persistSteps],
   )
 
   const ensureLiveWatch = useCallback(
     (day: string) => {
       if (Platform.OS !== 'android') return
       if (accessStatusRef.current !== 'ready') return
+      ensureActiveDay(day)
+
+      if (liveWatchRef.current && liveWatchDayRef.current !== day) {
+        stopLiveWatch()
+        lastLiveCumRef.current = 0
+        liveBonusRef.current = 0
+      }
+
       if (liveWatchRef.current) return
+
       lastLiveCumRef.current = 0
+      liveWatchDayRef.current = day
       liveWatchRef.current = watchLiveStepDelta((cum) => {
+        const currentDay = todayKey()
+        ensureActiveDay(currentDay)
         const inc = Math.max(0, cum - lastLiveCumRef.current)
         lastLiveCumRef.current = cum
         if (inc === 0) return
@@ -315,10 +430,10 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
               ? 'ready'
               : lastReadResultRef.current.status,
         }
-        commitSteps(total, day, liveResult)
+        commitSteps(total, currentDay, liveResult)
       })
     },
-    [commitSteps],
+    [commitSteps, ensureActiveDay, stopLiveWatch],
   )
 
   const readOsSteps = useCallback(async () => {
@@ -341,8 +456,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       if (access === 'ready') {
         await readOsSteps()
       } else {
-        liveWatchRef.current?.()
-        liveWatchRef.current = null
+        stopLiveWatch()
         const denied = await getTodaySteps()
         applyReadResult(denied)
         setWeekSteps(0)
@@ -366,7 +480,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [applyReadResult, hydrateTodayFromStores, readOsSteps])
+  }, [applyReadResult, hydrateTodayFromStores, readOsSteps, stopLiveWatch])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -391,8 +505,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
         setError(null)
         return
       }
-      liveWatchRef.current?.()
-      liveWatchRef.current = null
+      stopLiveWatch()
       const denied = await getTodaySteps()
       applyReadResult(denied)
       setWeekSteps(0)
@@ -404,7 +517,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       requestingRef.current = false
       setLoading(false)
     }
-  }, [applyReadResult, hydrateTodayFromStores, readOsSteps])
+  }, [applyReadResult, hydrateTodayFromStores, readOsSteps, stopLiveWatch])
 
   const openSettings = useCallback(async () => {
     if (accessStatus === 'loading') return
@@ -446,9 +559,9 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
     void checkAccess()
     void registerStepsBackgroundSync()
     return () => {
-      liveWatchRef.current?.()
+      stopLiveWatch()
     }
-  }, [checkAccess])
+  }, [checkAccess, stopLiveWatch])
 
   useEffect(() => {
     if (!permissionGranted) return

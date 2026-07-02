@@ -1,0 +1,56 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Catko\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Γÿà eas-cli@20.5.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+Found eas-cli in your project dependencies.
+It's recommended to use the "cli.version" field in eas.json to enforce the eas-cli version for your project.
+Learn more: https://github.com/expo/eas-cli#enforcing-eas-cli-version-for-your-project
+
+- Fetching the buildΓÇª
+ΓêÜ Found a matching build for the project @catko/beleg-mobile
+{
+  "id": "f2bd2874-684d-4bd4-9f07-797fb6ac75b3",
+  "status": "IN_QUEUE",
+  "platform": "ANDROID",
+  "artifacts": {},
+  "fingerprint": {
+    "id": "019f1db4-e22f-790b-a43e-c21f54ce8aff",
+    "hash": "d9273b5b8dcfb2b56246a29963d278fb248b926c"
+  },
+  "initiatingActor": {
+    "id": "fc04a91d-3922-48bf-8573-a4136422cae1",
+    "displayName": "catko"
+  },
+  "logFiles": [],
+  "project": {
+    "id": "c10dd732-8c2e-4f81-b8dc-f81d74e5933e",
+    "name": "beleg-mobile",
+    "slug": "beleg-mobile",
+    "ownerAccount": {
+      "id": "fe1db639-ca33-415c-a22b-ef55e87d179d",
+      "name": "catko"
+    }
+  },
+  "channel": "preview",
+  "distribution": "INTERNAL",
+  "buildProfile": "preview",
+  "sdkVersion": "54.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "9",
+  "runtimeVersion": "1.0.0",
+  "gitCommitHash": "5f41067d67ce8b7475e2b153abdc3e2fd8356bfa",
+  "gitCommitMessage": "Implement user-friendly steps service with Health Connect fallback",
+  "priority": "NORMAL",
+  "createdAt": "2026-07-01T12:43:41.355Z",
+  "updatedAt": "2026-07-01T12:43:51.253Z",
+  "expirationDate": "2026-07-15T12:43:41.457Z",
+  "isForIosSimulator": false
+}
