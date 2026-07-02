@@ -8,6 +8,7 @@ import (
 	"beleg-app/backend/internal/debuglog"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/push"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,6 +18,10 @@ type pushTokenRequest struct {
 	Token    string `json:"token" binding:"required"`
 	Platform string `json:"platform"`
 	AppKind  string `json:"appKind"`
+}
+
+type pushTestRequest struct {
+	Suffix string `json:"suffix"`
 }
 
 type pushTokenSummary struct {
@@ -161,6 +166,78 @@ func RegisterPushToken(c *gin.Context) {
 	})
 	// #endregion
 	respondPushTokens(c, db, korisnik.ID)
+}
+
+func findUserPushTokenForTest(db *gorm.DB, userID uint, suffix string) (models.PushToken, bool) {
+	var rows []models.PushToken
+	if err := db.Where("user_id = ?", userID).Order("updated_at DESC").Find(&rows).Error; err != nil || len(rows) == 0 {
+		return models.PushToken{}, false
+	}
+	suffix = strings.TrimSpace(suffix)
+	if suffix == "" {
+		return rows[0], true
+	}
+	for _, row := range rows {
+		if strings.HasSuffix(row.Token, suffix) {
+			return row, true
+		}
+	}
+	return models.PushToken{}, false
+}
+
+// TestPushToken šalje test push na jedan token ulogovanog korisnika i vraća Expo ticket rezultat.
+func TestPushToken(c *gin.Context) {
+	dbAny, _ := c.Get("db")
+	db := dbAny.(*gorm.DB)
+
+	korisnik, ok := pushTokenKorisnik(c, db)
+	if !ok {
+		return
+	}
+
+	var req pushTestRequest
+	if c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravan zahtev"})
+			return
+		}
+	}
+
+	row, found := findUserPushTokenForTest(db, korisnik.ID, req.Suffix)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Push token nije pronađen"})
+		return
+	}
+
+	results, err := push.SendTestPush(
+		[]models.PushToken{row},
+		"Planiner test",
+		"Ovo je test obavještenje iz Planiner aplikacije.",
+		map[string]string{"test": "true"},
+	)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"ok":    false,
+			"error": err.Error(),
+		})
+		return
+	}
+
+	allOK := len(results) > 0
+	for _, result := range results {
+		if result.TicketStatus != "ok" {
+			allOK = false
+			break
+		}
+	}
+	if len(results) == 0 {
+		allOK = false
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":      allOK,
+		"results": results,
+	})
 }
 
 // DeletePushToken uklanja push token pri logout-u.

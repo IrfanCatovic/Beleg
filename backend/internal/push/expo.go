@@ -41,6 +41,31 @@ type expoResponse struct {
 	Data []expoTicket `json:"data"`
 }
 
+// PushTicketResult is the Expo push ticket outcome for one device token.
+type PushTicketResult struct {
+	Suffix       string `json:"suffix"`
+	Platform     string `json:"platform,omitempty"`
+	AppKind      string `json:"appKind,omitempty"`
+	TicketStatus string `json:"ticketStatus"`
+	TicketID     string `json:"ticketId,omitempty"`
+	Error        string `json:"error,omitempty"`
+	Message      string `json:"message,omitempty"`
+}
+
+type pushTarget struct {
+	token    string
+	platform string
+	appKind  string
+}
+
+func tokenSuffix(tok string) string {
+	tok = strings.TrimSpace(tok)
+	if len(tok) <= 8 {
+		return tok
+	}
+	return tok[len(tok)-8:]
+}
+
 func truncateBody(body string, max int) string {
 	body = strings.TrimSpace(body)
 	if len(body) <= max {
@@ -65,11 +90,15 @@ func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, 
 		return
 	}
 
-	tokenStrings := make([]string, 0, len(tokens))
+	targets := make([]pushTarget, 0, len(tokens))
 	tokenMeta := make([]map[string]string, 0, len(tokens))
 	for _, t := range tokens {
 		if tok := strings.TrimSpace(t.Token); tok != "" {
-			tokenStrings = append(tokenStrings, tok)
+			targets = append(targets, pushTarget{
+				token:    tok,
+				platform: t.Platform,
+				appKind:  t.AppKind,
+			})
 			tokenMeta = append(tokenMeta, map[string]string{
 				"platform": t.Platform,
 				"appKind":  t.AppKind,
@@ -77,23 +106,26 @@ func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, 
 			})
 		}
 	}
-	if len(tokenStrings) == 0 {
+	if len(targets) == 0 {
 		return
 	}
 
 	// #region agent log
 	debuglog.Log("expo.go:SendObavestenjeToUser", "sending push", "D", "pre-fix", map[string]interface{}{
-		"userId":       userID,
+		"userId":        userID,
 		"obavestenjeId": obavestenjeID,
-		"tokenCount":   len(tokenStrings),
-		"tokens":       tokenMeta,
+		"tokenCount":    len(targets),
+		"tokens":        tokenMeta,
 	})
 	// #endregion
 
 	data := map[string]string{
 		"obavestenjeId": fmt.Sprintf("%d", obavestenjeID),
 	}
-	invalid := sendPush(tokenStrings, strings.TrimSpace(title), truncateBody(body, 200), data)
+	_, invalid, err := sendPushToTargets(targets, strings.TrimSpace(title), truncateBody(body, 200), data)
+	if err != nil {
+		return
+	}
 	if len(invalid) > 0 {
 		if err := db.Where("token IN ?", invalid).Delete(&models.PushToken{}).Error; err != nil {
 			log.Printf("push: failed to delete invalid tokens: %v", err)
@@ -101,15 +133,34 @@ func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, 
 	}
 }
 
-func sendPush(tokens []string, title, body string, data map[string]string) []string {
-	if len(tokens) == 0 {
-		return nil
+// SendTestPush šalje test push na zadate tokene i vraća Expo ticket rezultate (bez brisanja tokena).
+func SendTestPush(tokens []models.PushToken, title, body string, data map[string]string) ([]PushTicketResult, error) {
+	targets := make([]pushTarget, 0, len(tokens))
+	for _, t := range tokens {
+		if tok := strings.TrimSpace(t.Token); tok != "" {
+			targets = append(targets, pushTarget{
+				token:    tok,
+				platform: t.Platform,
+				appKind:  t.AppKind,
+			})
+		}
+	}
+	if len(targets) == 0 {
+		return nil, fmt.Errorf("nema validnih push tokena")
+	}
+	results, _, err := sendPushToTargets(targets, title, body, data)
+	return results, err
+}
+
+func sendPushToTargets(targets []pushTarget, title, body string, data map[string]string) ([]PushTicketResult, []string, error) {
+	if len(targets) == 0 {
+		return nil, nil, nil
 	}
 
-	messages := make([]expoMessage, 0, len(tokens))
-	for _, tok := range tokens {
+	messages := make([]expoMessage, 0, len(targets))
+	for _, target := range targets {
 		messages = append(messages, expoMessage{
-			To:        tok,
+			To:        target.token,
 			Title:     title,
 			Body:      body,
 			Data:      data,
@@ -122,13 +173,13 @@ func sendPush(tokens []string, title, body string, data map[string]string) []str
 	payload, err := json.Marshal(messages)
 	if err != nil {
 		log.Printf("push: marshal failed: %v", err)
-		return nil
+		return nil, nil, fmt.Errorf("marshal failed: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, expoPushURL, bytes.NewReader(payload))
 	if err != nil {
 		log.Printf("push: request failed: %v", err)
-		return nil
+		return nil, nil, fmt.Errorf("request failed: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
@@ -137,57 +188,69 @@ func sendPush(tokens []string, title, body string, data map[string]string) []str
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("push: send failed: %v", err)
-		return nil
+		return nil, nil, fmt.Errorf("send failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("push: read response failed: %v", err)
-		return nil
+		return nil, nil, fmt.Errorf("read response failed: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("push: expo returned %d: %s", resp.StatusCode, string(bodyBytes))
-		return nil
+		return nil, nil, fmt.Errorf("expo returned %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var parsed expoResponse
 	if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
 		log.Printf("push: parse response failed: %v", err)
-		return nil
+		return nil, nil, fmt.Errorf("parse response failed: %w", err)
 	}
 
+	results := make([]PushTicketResult, 0, len(targets))
 	var invalid []string
 	for i, ticket := range parsed.Data {
-		if ticket.Status == "ok" {
-			if i < len(tokens) {
-				// #region agent log
-				debuglog.Log("expo.go:sendPush", "ticket ok", "D", "pre-fix", map[string]interface{}{
-					"index":  i,
-					"suffix": debuglog.MaskToken(tokens[i]),
-				})
-				// #endregion
-			}
-			continue
-		}
-		if i >= len(tokens) {
+		if i >= len(targets) {
 			break
 		}
+		target := targets[i]
+		result := PushTicketResult{
+			Suffix:       tokenSuffix(target.token),
+			Platform:     target.platform,
+			AppKind:      target.appKind,
+			TicketStatus: ticket.Status,
+			TicketID:     ticket.ID,
+			Message:      ticket.Message,
+			Error:        ticket.Details.Error,
+		}
+		results = append(results, result)
+
+		if ticket.Status == "ok" {
+			// #region agent log
+			debuglog.Log("expo.go:sendPush", "ticket ok", "D", "pre-fix", map[string]interface{}{
+				"index":  i,
+				"suffix": debuglog.MaskToken(target.token),
+			})
+			// #endregion
+			continue
+		}
+
 		errCode := ticket.Details.Error
 		// #region agent log
 		debuglog.Log("expo.go:sendPush", "ticket error", "D", "pre-fix", map[string]interface{}{
 			"index":   i,
-			"suffix":  debuglog.MaskToken(tokens[i]),
+			"suffix":  debuglog.MaskToken(target.token),
 			"status":  ticket.Status,
 			"message": ticket.Message,
 			"error":   errCode,
 		})
 		// #endregion
 		if errCode == "DeviceNotRegistered" || errCode == "InvalidCredentials" {
-			invalid = append(invalid, tokens[i])
+			invalid = append(invalid, target.token)
 			continue
 		}
 		log.Printf("push: ticket error for token index %d: %s (%s)", i, ticket.Message, errCode)
 	}
-	return invalid
+	return results, invalid, nil
 }
