@@ -27,7 +27,7 @@ func testHandlersPrijavaDB(t *testing.T) *gorm.DB {
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	database.EnsurePrijavaIntegrity(db)
+	database.PostAutoMigrateCreatePrijavaIndexes(db)
 	return db
 }
 

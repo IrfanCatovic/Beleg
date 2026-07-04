@@ -102,6 +102,8 @@ func migrateAndSeed(db *gorm.DB) {
 		seed.RunIfEmpty(db)
 		return
 	}
+	database.PreAutoMigrateCleanupDuplicatePrijave(db)
+
 	err := db.AutoMigrate(
 		&models.Ferrata{},
 		&models.FerrataContact{},
@@ -151,7 +153,7 @@ func migrateAndSeed(db *gorm.DB) {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
 
-	database.EnsurePrijavaIntegrity(db)
+	database.PostAutoMigrateCreatePrijavaIndexes(db)
 
 	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
 	seed.RunIfEmpty(db)

@@ -28,7 +28,7 @@ import {
 } from '../../steps/services/stepsDerived'
 import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
 import { todayKey } from '../services/stepsLocalStore'
-import { StepsSyncDiagnosticsPanel } from '../components/StepsSyncDiagnosticsPanel'
+import { StepsSyncDiagnosticsPanel, SHOW_STEPS_SYNC_DIAGNOSTICS_UI } from '../components/StepsSyncDiagnosticsPanel'
 import { useStepsSyncDiagnostics } from '../../steps/hooks/useStepsSyncDiagnostics'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'Steps'>
@@ -201,15 +201,6 @@ export default function StepsScreen({ navigation }: Props) {
             onOpenSettings={() => void daily.openSettings()}
             onInstallHealthConnect={() => void daily.installHealthConnect()}
           />
-        ) : showConnectedSummary ? (
-          <StepsAccessCard
-            accessStatus={daily.accessStatus}
-            connected
-            stepStatus={daily.stepStatus}
-            userTitle={daily.stepUserTitle}
-            userMessage={daily.stepUserMessage}
-            onRequestAccess={() => {}}
-          />
         ) : null}
 
         {daily.stepStatus === 'no_data' || daily.stepStatus === 'error' ? (
@@ -337,11 +328,13 @@ export default function StepsScreen({ navigation }: Props) {
           </Card>
         )}
 
-        <StepsSyncDiagnosticsPanel
-          report={syncDiagnostics.report}
-          loading={syncDiagnostics.loading}
-          onRefresh={() => void syncDiagnostics.runDiagnostics()}
-        />
+        {SHOW_STEPS_SYNC_DIAGNOSTICS_UI ? (
+          <StepsSyncDiagnosticsPanel
+            report={syncDiagnostics.report}
+            loading={syncDiagnostics.loading}
+            onRefresh={() => void syncDiagnostics.runDiagnostics()}
+          />
+        ) : null}
 
         <Text variant="small" color={colors.textSubtle} style={styles.footnote}>
           Udaljenost i aktivno vrijeme su procjena iz broja koraka (≈). GPS praćenje dolazi u narednoj fazi.
