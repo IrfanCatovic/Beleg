@@ -9,6 +9,7 @@ import { AppTopBar, Button, Loader, Screen, Text } from '../../../components/ui'
 import { useModal } from '../../../context/ModalContext'
 import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
+import { ActivityGpsStatusBanner } from '../components/ActivityGpsStatusBanner'
 import { ActivityLiveStatsBar } from '../components/ActivityLiveStatsBar'
 import { ActivityRouteMap } from '../components/ActivityRouteMap'
 import { ActivitySummaryStats } from '../components/ActivitySummaryStats'
@@ -206,6 +207,9 @@ export default function AdventureScreen({ navigation }: Props) {
             <Text variant="small" color={colors.textMuted} style={styles.timerLabel}>
               {tracker.status === 'paused' ? t('adventurePaused') : t('adventureActive')}
             </Text>
+            {tracker.status === 'active' ? (
+              <ActivityGpsStatusBanner status={tracker.gpsStatus} message={tracker.gpsMessage} />
+            ) : null}
             <ActivityLiveStatsBar
               elapsedSec={tracker.elapsedSec}
               distanceM={tracker.distanceM}

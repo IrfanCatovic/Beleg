@@ -28,6 +28,7 @@ import {
 } from '../services/activityMetrics'
 import { readTodayStepsFromOs, watchLiveStepDelta } from '../services/stepsProvider'
 import { useLocationTrack } from './useLocationTrack'
+import type { GpsTrackStatus } from '../services/adventureLocationTask'
 
 export type TrackerStatus = 'idle' | 'active' | 'paused' | 'finishing'
 
@@ -41,6 +42,8 @@ export interface ActivityTrackerState {
   elevationGainM: number
   routePoints: GPSPoint[]
   error: string | null
+  gpsStatus: GpsTrackStatus
+  gpsMessage: string | null
   loading: boolean
   start: () => Promise<void>
   pause: () => void
@@ -88,7 +91,7 @@ export function useActivityTracker(): ActivityTrackerState {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackingEnabled = status === 'active'
 
-  const { points, error: locError, clear, stop: stopLocation } = useLocationTrack(trackingEnabled)
+  const { points, gpsStatus, gpsMessage, clear, stop: stopLocation } = useLocationTrack(trackingEnabled)
 
   const routePoints = points
 
@@ -218,10 +221,6 @@ export function useActivityTracker(): ActivityTrackerState {
       void uploadPendingPoints(activityId, batch)
     }
   }, [points, activityId, status, uploadPendingPoints])
-
-  useEffect(() => {
-    if (locError) setError(locError)
-  }, [locError])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -423,6 +422,8 @@ export function useActivityTracker(): ActivityTrackerState {
     elevationGainM,
     routePoints,
     error,
+    gpsStatus,
+    gpsMessage,
     loading,
     start,
     pause,
