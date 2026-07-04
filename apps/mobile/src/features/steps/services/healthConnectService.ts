@@ -5,6 +5,7 @@ import {
   extractAggregateCount,
   parseStepCountFromRecord,
 } from './healthConnectRecordUtils'
+import { resolveHealthConnectStepsCount } from './healthConnectStepsResolve'
 
 export const HEALTH_CONNECT_PACKAGE = 'com.google.android.apps.healthdata'
 export const HEALTH_CONNECT_PLAY_STORE =
@@ -178,7 +179,7 @@ export async function readRawStepsSum(
   }
 }
 
-/** Production read: aggregate first, raw fallback second, with detailed status. */
+/** Production read: aggregate + raw, prefer raw when materially higher. */
 export async function readHealthConnectSteps(
   start: Date,
   end: Date,
@@ -237,19 +238,9 @@ export async function readHealthConnectSteps(
       },
     })
     const aggregateSteps = extractAggregateCount(aggResult)
-
-    if (aggregateSteps > 0) {
-      return buildHcResult({
-        steps: aggregateSteps,
-        status: 'ready',
-        source: 'health_connect_aggregate',
-        aggregateSteps,
-        rawStepsTotal: undefined,
-      })
-    }
-
     const raw = await readRawStepsSum(start, end)
-    if (raw.error && raw.sum === 0) {
+
+    if (raw.error && aggregateSteps === 0 && raw.sum === 0) {
       return buildHcResult({
         steps: 0,
         status: 'error',
@@ -260,22 +251,15 @@ export async function readHealthConnectSteps(
       })
     }
 
-    if (raw.sum > 0) {
-      return buildHcResult({
-        steps: raw.sum,
-        status: 'raw_fallback_used',
-        source: 'health_connect_raw',
-        aggregateSteps: 0,
-        rawStepsTotal: raw.sum,
-      })
-    }
+    const resolved = resolveHealthConnectStepsCount(aggregateSteps, raw.sum)
 
     return buildHcResult({
-      steps: 0,
-      status: 'no_data',
-      source: 'health_connect_aggregate',
-      aggregateSteps: 0,
-      rawStepsTotal: 0,
+      steps: resolved.steps,
+      status: resolved.status,
+      source: resolved.source,
+      aggregateSteps,
+      rawStepsTotal: raw.sum,
+      debugMessage: raw.error,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
