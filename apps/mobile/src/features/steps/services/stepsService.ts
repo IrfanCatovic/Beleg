@@ -27,7 +27,7 @@ function resultFromAccessDenied(
   accessStatus: StepsAccessStatus,
   debug?: StepsAccessDebug,
 ): StepsReadResult {
-  const status = accessStatusToStepsReadStatus(accessStatus) ?? 'permission_missing'
+  const status = accessStatusToStepsReadStatus(accessStatus, Platform.OS) ?? 'permission_missing'
   const presentation = buildUserPresentation(status)
   return {
     steps: 0,

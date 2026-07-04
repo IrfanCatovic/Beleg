@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, View } from 'react-native'
 import Constants from 'expo-constants'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -73,9 +73,46 @@ export function StepsSummaryCard({
   const { t } = useTranslation('explore')
   const pct = Math.min(100, progressPercent)
   const isExpoGo = Constants.appOwnership === 'expo'
+  const isIos = Platform.OS === 'ios'
   const accessProblem = isAccessProblem(accessStatus)
   const stepProblem = isStepProblem(stepStatus)
   const showSteps = showHealthySteps(stepStatus) && !accessProblem
+
+  const fallbackMessage = (() => {
+    if (stepUserMessage) return stepUserMessage
+    if (isIos) {
+      if (accessStatus === 'permission_denied') return t('stepsPermissionDeniedBody')
+      if (accessStatus === 'device_unavailable' || stepStatus === 'unsupported_platform') {
+        return t('stepsStatus.unsupported.message')
+      }
+      return t('stepsConnectBody')
+    }
+    if (accessStatus === 'health_connect_update_required') return t('stepsHcUpdateRequired')
+    if (accessStatus === 'device_unavailable') return t('stepsHcUnavailable')
+    return t('stepsConnectBody')
+  })()
+
+  const fallbackActionLabel = (() => {
+    if (stepActionLabel) return stepActionLabel
+    if (isIos) {
+      if (accessStatus === 'permission_denied') return t('stepsOpenPermissions')
+      if (
+        accessStatus === 'permission_needed' ||
+        stepStatus === 'permission_missing'
+      ) {
+        return t('stepsConnectButton')
+      }
+      return undefined
+    }
+    if (
+      accessStatus === 'device_unavailable' ||
+      accessStatus === 'health_connect_update_required'
+    ) {
+      return t('stepsHcInstallButton')
+    }
+    if (accessStatus === 'permission_denied') return t('stepsOpenPermissions')
+    return t('stepsConnectButton')
+  })()
 
   const handleAction = (e?: { stopPropagation?: () => void }) => {
     e?.stopPropagation?.()
@@ -113,26 +150,13 @@ export function StepsSummaryCard({
               <Text variant="label">{stepUserTitle}</Text>
             ) : null}
             <Text variant="small" color={colors.textMuted}>
-              {isExpoGo && accessStatus === 'device_unavailable'
+              {isExpoGo && !isIos && accessStatus === 'device_unavailable'
                 ? t('dailyStepsExpoGoHint')
-                : stepUserMessage ||
-                  (accessStatus === 'health_connect_update_required'
-                    ? t('stepsHcUpdateRequired')
-                    : accessStatus === 'device_unavailable'
-                      ? t('stepsHcUnavailable')
-                      : t('stepsConnectBody'))}
+                : fallbackMessage}
             </Text>
-            {stepActionLabel || onRequestAccess ? (
+            {fallbackActionLabel || onRequestAccess ? (
               <Button
-                title={
-                  stepActionLabel ||
-                  (accessStatus === 'device_unavailable' ||
-                  accessStatus === 'health_connect_update_required'
-                    ? t('stepsHcInstallButton')
-                    : accessStatus === 'permission_denied'
-                      ? t('stepsOpenPermissions')
-                      : t('stepsConnectButton'))
-                }
+                title={fallbackActionLabel ?? t('stepsConnectButton')}
                 variant="secondary"
                 onPress={(e) => handleAction(e)}
               />

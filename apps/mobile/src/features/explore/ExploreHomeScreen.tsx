@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback } from 'react'
@@ -61,14 +61,19 @@ export default function ExploreHomeScreen({ navigation }: Props) {
             stepActionLabel={dailySteps.stepActionLabel}
             stepActionType={dailySteps.stepActionType}
             onRequestAccess={() => {
-              if (
-                dailySteps.accessStatus === 'device_unavailable' ||
-                dailySteps.accessStatus === 'health_connect_update_required'
-              ) {
-                void dailySteps.installHealthConnect()
-              } else {
-                void dailySteps.requestAccess()
+              if (Platform.OS === 'android') {
+                if (
+                  dailySteps.accessStatus === 'device_unavailable' ||
+                  dailySteps.accessStatus === 'health_connect_update_required'
+                ) {
+                  void dailySteps.installHealthConnect()
+                  return
+                }
+              } else if (dailySteps.accessStatus === 'permission_denied') {
+                void dailySteps.openSettings()
+                return
               }
+              void dailySteps.requestAccess()
             }}
             onStepAction={() => void dailySteps.executeStepAction()}
             onPress={() => navigation.navigate('Steps')}

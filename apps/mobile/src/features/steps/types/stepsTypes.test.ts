@@ -18,13 +18,15 @@ describe('stepsTypes', () => {
 })
 
 describe('accessStatusToStepsReadStatus', () => {
-  it('maps access statuses', () => {
-    expect(accessStatusToStepsReadStatus('ready')).toBeNull()
-    expect(accessStatusToStepsReadStatus('permission_needed')).toBe('permission_missing')
-    expect(accessStatusToStepsReadStatus('device_unavailable')).toBe(
+  it('maps access statuses on Android', () => {
+    expect(accessStatusToStepsReadStatus('ready', 'android')).toBeNull()
+    expect(accessStatusToStepsReadStatus('permission_needed', 'android')).toBe(
+      'permission_missing',
+    )
+    expect(accessStatusToStepsReadStatus('device_unavailable', 'android')).toBe(
       'health_connect_unavailable',
     )
-    expect(accessStatusToStepsReadStatus('health_connect_update_required')).toBe(
+    expect(accessStatusToStepsReadStatus('health_connect_update_required', 'android')).toBe(
       'health_connect_update_required',
     )
   })

@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Text } from '../../../components/ui'
@@ -54,7 +54,12 @@ export function StepsAccessCard({
     )
   }
 
-  if (accessStatus === 'device_unavailable' || accessStatus === 'health_connect_update_required') {
+  const isIos = Platform.OS === 'ios'
+
+  if (
+    !isIos &&
+    (accessStatus === 'device_unavailable' || accessStatus === 'health_connect_update_required')
+  ) {
     return (
       <Card style={styles.card}>
         <Text variant="label">{userTitle || t('stepsConnectTitle')}</Text>
@@ -71,6 +76,23 @@ export function StepsAccessCard({
             onPress={onInstallHealthConnect}
           />
         ) : null}
+      </Card>
+    )
+  }
+
+  if (
+    isIos &&
+    (accessStatus === 'device_unavailable' ||
+      stepStatus === 'unsupported_platform' ||
+      stepStatus === 'health_connect_unavailable' ||
+      stepStatus === 'health_connect_update_required')
+  ) {
+    return (
+      <Card style={styles.card}>
+        <Text variant="label">{userTitle || t('stepsStatus.unsupported.title')}</Text>
+        <Text variant="small" color={colors.textMuted} style={styles.body}>
+          {userMessage || t('stepsStatus.unsupported.message')}
+        </Text>
       </Card>
     )
   }

@@ -1,6 +1,5 @@
 import i18n from '../../../i18n'
 import type { StepsReadStatus, StepsUserAction } from '../types/stepsTypes'
-
 export interface StepsUserPresentation {
   userTitle: string
   userMessage: string
@@ -74,17 +73,17 @@ export function buildUserPresentation(status: StepsReadStatus): StepsUserPresent
 
 export function accessStatusToStepsReadStatus(
   accessStatus: string,
-): StepsReadStatus | null {
-  switch (accessStatus) {
+  platform: string,
+): StepsReadStatus | null {  switch (accessStatus) {
     case 'ready':
       return null
     case 'permission_needed':
     case 'permission_denied':
       return 'permission_missing'
     case 'device_unavailable':
-      return 'health_connect_unavailable'
+      return platform === 'ios' ? 'unsupported_platform' : 'health_connect_unavailable'
     case 'health_connect_update_required':
-      return 'health_connect_update_required'
+      return platform === 'ios' ? 'unsupported_platform' : 'health_connect_update_required'
     default:
       return null
   }

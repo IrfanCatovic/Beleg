@@ -40,6 +40,25 @@ function statusTint(status: StepsSyncDiagnosticReport['primaryStatus']) {
 export function StepsSyncDiagnosticsPanel({ report, loading, onRefresh }: Props) {
   const [detailsOpen, setDetailsOpen] = useState(false)
 
+  if (Platform.OS === 'ios') {
+    return (
+      <Card style={styles.card}>
+        <View style={styles.headerRow}>
+          <View style={[styles.iconWrap, { backgroundColor: `${colors.textMuted}18` }]}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.textMuted} />
+          </View>
+          <View style={styles.headerText}>
+            <Text variant="label">Dijagnostika sinhronizacije</Text>
+            <Text variant="small" color={colors.textMuted}>
+              Detaljna Health Connect dijagnostika dostupna je na Android uređajima. Na
+              iPhone-u Planiner koristi sistemski brojač koraka.
+            </Text>
+          </View>
+        </View>
+      </Card>
+    )
+  }
+
   if (Platform.OS !== 'android') return null
 
   const tint = report ? statusTint(report.primaryStatus) : colors.textMuted

@@ -542,6 +542,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   }, [accessStatus])
 
   const installHealthConnect = useCallback(async () => {
+    if (Platform.OS !== 'android') return
     await openHealthConnectInstall()
   }, [])
 
