@@ -5,6 +5,16 @@ import {
   openHealthConnectAppSettings,
   type HealthConnectAvailability,
 } from './healthConnectService'
+import {
+  extractAggregateCount,
+  maxIsoTime,
+  minutesBetween,
+  parseRecordDataOrigin,
+  parseRecordEndTime,
+  parseRecordLastModifiedTime,
+  parseRecordStartTime,
+  parseStepCountFromRecord,
+} from './healthConnectRecordUtils'
 
 export const SAMSUNG_HEALTH_PACKAGES = new Set([
   'com.sec.android.app.shealth',
@@ -23,6 +33,13 @@ export interface HcDebugRawPeriod {
   recordCount: number
   stepSum: number
   origins: HcDebugOriginSummary[]
+  latestRecordStartTime?: string
+  latestRecordEndTime?: string
+  latestRecordLastModifiedTime?: string
+  minutesSinceLatestRecordEnd?: number
+  minutesSinceLatestModification?: number
+  samsungOriginPresent: boolean
+  samsungStepSum: number
 }
 
 export interface HealthConnectDebugReport {
@@ -45,6 +62,7 @@ export interface HealthConnectDebugReport {
     today: number
     week: number
     month: number
+    readAt: string
   }
   aggregateErrors: string[]
   rawRecords: {
@@ -112,12 +130,8 @@ async function ensureDebugInitialized(): Promise<boolean> {
   }
 }
 
-function extractAggregateCount(result: unknown): number {
-  if (!result || typeof result !== 'object') return 0
-  const row = result as Record<string, unknown>
-  const total = row.COUNT_TOTAL ?? row.countTotal ?? row.count
-  const n = Number(total)
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0
+function extractAggregateCountLocal(result: unknown): number {
+  return extractAggregateCount(result)
 }
 
 async function readAggregateForDebug(
@@ -136,7 +150,7 @@ async function readAggregateForDebug(
         endTime: end.toISOString(),
       },
     })
-    return extractAggregateCount(result)
+    return extractAggregateCountLocal(result)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     errors.push(`${label}: ${msg}`)
@@ -145,17 +159,11 @@ async function readAggregateForDebug(
 }
 
 function stepCountFromRecord(record: unknown): number {
-  if (!record || typeof record !== 'object') return 0
-  const count = (record as { count?: number }).count
-  const n = Number(count)
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0
+  return parseStepCountFromRecord(record)
 }
 
 function originFromRecord(record: unknown): string {
-  if (!record || typeof record !== 'object') return 'unknown'
-  const meta = (record as { metadata?: { dataOrigin?: string } }).metadata
-  const origin = meta?.dataOrigin
-  return typeof origin === 'string' && origin.length > 0 ? origin : 'unknown'
+  return parseRecordDataOrigin(record) ?? 'unknown'
 }
 
 function summarizeOrigins(records: unknown[]): HcDebugOriginSummary[] {
@@ -208,12 +216,40 @@ async function readAllStepsRecordsForDebug(
   }
 }
 
-function buildRawPeriod(records: unknown[]): HcDebugRawPeriod {
+function buildRawPeriod(records: unknown[], now: Date): HcDebugRawPeriod {
   const stepSum = records.reduce<number>((sum, r) => sum + stepCountFromRecord(r), 0)
+  const origins = summarizeOrigins(records)
+
+  let latestRecordStartTime: string | undefined
+  let latestRecordEndTime: string | undefined
+  let latestRecordLastModifiedTime: string | undefined
+
+  for (const record of records) {
+    latestRecordStartTime = maxIsoTime(
+      latestRecordStartTime,
+      parseRecordStartTime(record),
+    )
+    latestRecordEndTime = maxIsoTime(latestRecordEndTime, parseRecordEndTime(record))
+    latestRecordLastModifiedTime = maxIsoTime(
+      latestRecordLastModifiedTime,
+      parseRecordLastModifiedTime(record),
+    )
+  }
+
+  const samsungOrigins = origins.filter((o) => o.isSamsungHealth)
+  const samsungStepSum = samsungOrigins.reduce((sum, o) => sum + o.stepSum, 0)
+
   return {
     recordCount: records.length,
     stepSum,
-    origins: summarizeOrigins(records),
+    origins,
+    latestRecordStartTime,
+    latestRecordEndTime,
+    latestRecordLastModifiedTime,
+    minutesSinceLatestRecordEnd: minutesBetween(now, latestRecordEndTime),
+    minutesSinceLatestModification: minutesBetween(now, latestRecordLastModifiedTime),
+    samsungOriginPresent: samsungOrigins.length > 0,
+    samsungStepSum,
   }
 }
 
@@ -303,11 +339,23 @@ export async function runHealthConnectDebugReport(): Promise<HealthConnectDebugR
       timezoneName: timezoneName(),
       localTodayKey: localTodayKey(),
     },
-    aggregate: { today: 0, week: 0, month: 0 },
+    aggregate: { today: 0, week: 0, month: 0, readAt: now.toISOString() },
     aggregateErrors: [],
     rawRecords: {
-      today: { recordCount: 0, stepSum: 0, origins: [] },
-      week: { recordCount: 0, stepSum: 0, origins: [] },
+      today: {
+        recordCount: 0,
+        stepSum: 0,
+        origins: [],
+        samsungOriginPresent: false,
+        samsungStepSum: 0,
+      },
+      week: {
+        recordCount: 0,
+        stepSum: 0,
+        origins: [],
+        samsungOriginPresent: false,
+        samsungStepSum: 0,
+      },
     },
     rawErrors: [],
     lastError: '',
@@ -336,6 +384,7 @@ export async function runHealthConnectDebugReport(): Promise<HealthConnectDebugR
       return { ...base, summary: buildSummary(base) }
     }
 
+    const aggregateReadAt = new Date().toISOString()
     const [aggToday, aggWeek, aggMonth, rawTodayRecords, rawWeekRecords] = await Promise.all([
       readAggregateForDebug(todayStart, now, 'aggregate/today', aggregateErrors),
       readAggregateForDebug(weekStart, now, 'aggregate/week', aggregateErrors),
@@ -344,11 +393,16 @@ export async function runHealthConnectDebugReport(): Promise<HealthConnectDebugR
       readAllStepsRecordsForDebug(weekStart, now, 'raw/week', rawErrors),
     ])
 
-    base.aggregate = { today: aggToday, week: aggWeek, month: aggMonth }
+    base.aggregate = {
+      today: aggToday,
+      week: aggWeek,
+      month: aggMonth,
+      readAt: aggregateReadAt,
+    }
     base.aggregateErrors = aggregateErrors
     base.rawRecords = {
-      today: buildRawPeriod(rawTodayRecords),
-      week: buildRawPeriod(rawWeekRecords),
+      today: buildRawPeriod(rawTodayRecords, now),
+      week: buildRawPeriod(rawWeekRecords, now),
     }
     base.rawErrors = rawErrors
 

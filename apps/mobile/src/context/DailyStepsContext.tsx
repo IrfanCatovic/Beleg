@@ -80,6 +80,10 @@ export interface DailyStepsState {
   accessDebug: StepsAccessDebug | null
   loading: boolean
   error: string | null
+  lastSuccessfulReadAt: string | null
+  lastSyncToBackendAt: string | null
+  lastContextRefreshAt: string | null
+  hydratedBaseline: number
   refresh: () => Promise<void>
   requestAccess: () => Promise<void>
   openSettings: () => Promise<void>
@@ -136,6 +140,10 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   const [accessDebug, setAccessDebug] = useState<StepsAccessDebug | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastSuccessfulReadAt, setLastSuccessfulReadAt] = useState<string | null>(null)
+  const [lastSyncToBackendAt, setLastSyncToBackendAt] = useState<string | null>(null)
+  const [lastContextRefreshAt, setLastContextRefreshAt] = useState<string | null>(null)
+  const [hydratedBaseline, setHydratedBaseline] = useState(0)
 
   const requestingRef = useRef(false)
   const goalRef = useRef(DEFAULT_DAILY_STEP_GOAL)
@@ -147,6 +155,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   const liveBonusRef = useRef(0)
   const lastLiveCumRef = useRef(0)
   const displayStepsRef = useRef(0)
+  const hydratedBaselineRef = useRef(0)
   const lastReadResultRef = useRef<StepsReadResult>(loadingStepsResult())
   const accessStatusRef = useRef<StepsAccessStatus | 'loading'>('loading')
 
@@ -169,6 +178,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       osStepsBaseRef.current = 0
       liveBonusRef.current = 0
       displayStepsRef.current = 0
+      hydratedBaselineRef.current = 0
       lastLiveCumRef.current = 0
       hasReliableOsReadForActiveDayRef.current = false
       stopLiveWatch()
@@ -227,6 +237,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       try {
         const res = await syncDailySteps(client, { date: day, steps })
         await setCachedDailySteps(day, res.steps)
+        setLastSyncToBackendAt(new Date().toISOString())
       } catch {
         // offline
       }
@@ -280,12 +291,14 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       todayKey: day,
       activeDayRef: activeDayRef.current,
       cacheSteps: resolvedSteps,
+      hydratedBaseline: resolvedSteps,
       hasReliableOsRead: hasReliableOsReadForActiveDayRef.current,
     })
 
     goalRef.current = resolvedGoal
     setGoalState(resolvedGoal)
-    // Temporary placeholder until reliable OS read; must not block lower HC value later.
+    hydratedBaselineRef.current = resolvedSteps
+    setHydratedBaseline(resolvedSteps)
     osStepsBaseRef.current = resolvedSteps
     liveBonusRef.current = 0
     displayStepsRef.current = resolvedSteps
@@ -345,18 +358,21 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
         const liveBonusBefore = liveBonusRef.current
         const update = resolveOsStepsBaseUpdate(
           result.steps,
-          osStepsBaseRef.current,
+          Math.max(osStepsBaseRef.current, hydratedBaselineRef.current),
           hasReliableOsReadForActiveDayRef.current,
+          wasNewDay,
         )
         osStepsBaseRef.current = update.base
         if (update.resetLiveBonus) liveBonusRef.current = 0
-        if (update.setDisplayToResult) displayStepsRef.current = result.steps
+        if (update.setDisplayToResult) displayStepsRef.current = update.base
         if (update.markReliable) hasReliableOsReadForActiveDayRef.current = true
+        setLastSuccessfulReadAt(new Date().toISOString())
 
         debugStepsDay('processTodayRead', {
           todayKey: day,
           activeDayRef: activeDayRef.current,
           isNewDay: wasNewDay,
+          hydratedBaseline: hydratedBaselineRef.current,
           resultSteps: result.steps,
           osStepsBaseRef_before: osBaseBefore,
           osStepsBaseRef_after: osStepsBaseRef.current,
@@ -437,6 +453,7 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
   )
 
   const readOsSteps = useCallback(async () => {
+    setLastContextRefreshAt(new Date().toISOString())
     const periods = await getPeriodTotals()
     processTodayRead(periods.today)
     setWeekSteps(periods.week)
@@ -604,6 +621,10 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       accessDebug,
       loading,
       error,
+      lastSuccessfulReadAt,
+      lastSyncToBackendAt,
+      lastContextRefreshAt,
+      hydratedBaseline,
       refresh,
       requestAccess,
       openSettings,
@@ -634,6 +655,10 @@ export function DailyStepsProvider({ children }: { children: ReactNode }) {
       accessDebug,
       loading,
       error,
+      lastSuccessfulReadAt,
+      lastSyncToBackendAt,
+      lastContextRefreshAt,
+      hydratedBaseline,
       refresh,
       requestAccess,
       openSettings,

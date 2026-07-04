@@ -15,15 +15,20 @@ export interface OsStepsBaseUpdate {
   markReliable: boolean
 }
 
-/** First reliable OS read for the active day replaces cache; later reads only increase. */
+/**
+ * First reliable OS read after day rollover may replace a stale base with a lower value.
+ * First reliable OS read on the same day keeps hydrated backend/cache as a floor.
+ */
 export function resolveOsStepsBaseUpdate(
   resultSteps: number,
   currentBase: number,
   hasReliableOsRead: boolean,
+  wasNewDay: boolean,
 ): OsStepsBaseUpdate {
   if (!hasReliableOsRead) {
+    const base = wasNewDay ? resultSteps : Math.max(resultSteps, currentBase)
     return {
-      base: resultSteps,
+      base,
       resetLiveBonus: true,
       setDisplayToResult: true,
       markReliable: true,

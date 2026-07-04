@@ -22,10 +22,14 @@ import {
   computeMonthlyAverage,
   deriveActiveMinutes,
   deriveDistanceKm,
+  mergeTodayIntoDays,
   monthRangeKeys,
+  sumMonthSteps,
 } from '../../steps/services/stepsDerived'
 import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
 import { todayKey } from '../services/stepsLocalStore'
+import { StepsSyncDiagnosticsPanel } from '../components/StepsSyncDiagnosticsPanel'
+import { useStepsSyncDiagnostics } from '../../steps/hooks/useStepsSyncDiagnostics'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'Steps'>
 
@@ -72,6 +76,7 @@ export default function StepsScreen({ navigation }: Props) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const daily = useDailySteps()
+  const syncDiagnostics = useStepsSyncDiagnostics(daily)
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [clubsModalOpen, setClubsModalOpen] = useState(false)
   const monthRange = monthRangeKeys()
@@ -103,23 +108,27 @@ export default function StepsScreen({ navigation }: Props) {
     }, [daily.refresh, queryClient]),
   )
 
+  const today = todayKey()
+  const resolvedTodaySteps = daily.todaySteps
+
   const days = useMemo(() => {
     const fromHistory = historyQuery.data?.days ?? []
-    const map = new Map(fromHistory.map((d) => [d.date, d.steps]))
-    if (selectedDate === todayKey() && daily.todaySteps > (map.get(todayKey()) ?? 0)) {
-      map.set(todayKey(), daily.todaySteps)
-    }
-    return fromHistory.map((d) => ({
+    return mergeTodayIntoDays(fromHistory, today, resolvedTodaySteps).map((d) => ({
       date: d.date,
-      steps: map.get(d.date) ?? d.steps,
+      steps: d.steps,
       dayNum: Number(d.date.slice(-2)),
     }))
-  }, [historyQuery.data, daily.todaySteps, selectedDate])
+  }, [historyQuery.data, resolvedTodaySteps, today])
+
+  const monthTotalSteps = useMemo(() => {
+    if (days.length > 0) return sumMonthSteps(days)
+    return daily.monthSteps
+  }, [days, daily.monthSteps])
 
   const selectedSteps = useMemo(() => {
-    if (selectedDate === todayKey()) return daily.todaySteps
+    if (selectedDate === today) return resolvedTodaySteps
     return days.find((d) => d.date === selectedDate)?.steps ?? 0
-  }, [selectedDate, daily.todaySteps, days])
+  }, [selectedDate, resolvedTodaySteps, today, days])
 
   const monthlyAverage = useMemo(
     () => computeMonthlyAverage(days.map((d) => ({ steps: d.steps }))),
@@ -219,9 +228,9 @@ export default function StepsScreen({ navigation }: Props) {
           daily.todaySteps > 0) ? (
           <StepsPeriodSummary
             periods={{
-              today: daily.todaySteps,
+              today: resolvedTodaySteps,
               week: daily.weekSteps,
-              month: daily.monthSteps,
+              month: monthTotalSteps,
             }}
           />
         ) : null}
@@ -327,6 +336,12 @@ export default function StepsScreen({ navigation }: Props) {
             <Button title="Pridruži se klubu" onPress={goToClub} />
           </Card>
         )}
+
+        <StepsSyncDiagnosticsPanel
+          report={syncDiagnostics.report}
+          loading={syncDiagnostics.loading}
+          onRefresh={() => void syncDiagnostics.runDiagnostics()}
+        />
 
         <Text variant="small" color={colors.textSubtle} style={styles.footnote}>
           Udaljenost i aktivno vrijeme su procjena iz broja koraka (≈). GPS praćenje dolazi u narednoj fazi.

@@ -24,3 +24,17 @@ export function computeMonthlyAverage(days: { steps: number }[]): number {
   const sum = active.reduce((acc, d) => acc + d.steps, 0)
   return Math.round(sum / active.length)
 }
+
+export function mergeTodayIntoDays(
+  days: { date: string; steps: number }[],
+  today: string,
+  resolvedTodaySteps: number,
+): { date: string; steps: number }[] {
+  return days.map((d) =>
+    d.date === today ? { ...d, steps: Math.max(d.steps, resolvedTodaySteps) } : d,
+  )
+}
+
+export function sumMonthSteps(days: { steps: number }[]): number {
+  return days.reduce((acc, d) => acc + d.steps, 0)
+}
