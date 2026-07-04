@@ -201,8 +201,8 @@ func loadActionSignupRequestWithRelations(db *gorm.DB, requestID uint) (*models.
 }
 
 func validateSignupAccess(db *gorm.DB, akcija *models.Akcija, korisnik *models.Korisnik, inviteToken string) error {
-	if akcija.IsCompleted {
-		return errors.New("Akcija je već završena")
+	if err := helpers.ValidateAkcijaSignupOpen(akcija, time.Now()); err != nil {
+		return err
 	}
 	if !akcija.Javna {
 		isClubMember := akcija.KlubID != nil && korisnik.KlubID != nil && *akcija.KlubID == *korisnik.KlubID
@@ -222,48 +222,55 @@ func validateSignupAccess(db *gorm.DB, akcija *models.Akcija, korisnik *models.K
 	return nil
 }
 
-func createPrijavaFromChoices(tx *gorm.DB, akcija models.Akcija, korisnik models.Korisnik, choices prijavaChoicesPayload) (models.Prijava, error) {
-	if akcija.MaxLjudi > 0 {
-		var prijavljenih int64
-		tx.Model(&models.Prijava{}).Where("akcija_id = ? AND status = ?", akcija.ID, "prijavljen").Count(&prijavljenih)
-		if prijavljenih >= int64(akcija.MaxLjudi) {
-			return models.Prijava{}, errors.New("Maksimalan broj prijavljenih je popunjen")
-		}
+func createPrijavaFromChoices(tx *gorm.DB, akcijaID uint, korisnik models.Korisnik, choices prijavaChoicesPayload) (models.Prijava, error) {
+	locked, err := helpers.LockAkcijaForUpdate(tx, akcijaID)
+	if err != nil {
+		return models.Prijava{}, err
 	}
-	var count int64
-	tx.Model(&models.Prijava{}).
-		Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).
-		Count(&count)
-	if count > 0 {
-		return models.Prijava{}, errors.New("Korisnik je već prijavljen za ovu akciju")
+
+	if err := helpers.ValidateAkcijaSignupOpen(locked, time.Now()); err != nil {
+		return models.Prijava{}, err
 	}
+
+	hasPrijava, err := helpers.HasPrijavaForUser(tx, akcijaID, korisnik.ID)
+	if err != nil {
+		return models.Prijava{}, err
+	}
+	if hasPrijava {
+		return models.Prijava{}, helpers.ErrDuplicatePrijava
+	}
+
+	if err := helpers.EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
+		return models.Prijava{}, err
+	}
+
 	choices.SelectedRentItems = normalizeRentItems(choices.SelectedRentItems)
 	if len(choices.SelectedSmestajIDs) > 0 {
 		var n int64
-		tx.Model(&models.AkcijaSmestaj{}).Where("akcija_id = ? AND id IN ?", akcija.ID, choices.SelectedSmestajIDs).Count(&n)
+		tx.Model(&models.AkcijaSmestaj{}).Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedSmestajIDs).Count(&n)
 		if int(n) != len(choices.SelectedSmestajIDs) {
 			return models.Prijava{}, errors.New("Nevažeći ID smeštaja")
 		}
 	}
 	if len(choices.SelectedPrevozIDs) > 0 {
 		var n int64
-		tx.Model(&models.AkcijaPrevoz{}).Where("akcija_id = ? AND id IN ?", akcija.ID, choices.SelectedPrevozIDs).Count(&n)
+		tx.Model(&models.AkcijaPrevoz{}).Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedPrevozIDs).Count(&n)
 		if int(n) != len(choices.SelectedPrevozIDs) {
 			return models.Prijava{}, errors.New("Nevažeći ID prevoza")
 		}
 	}
-	if err := validateRentAvailability(tx, akcija.ID, choices.SelectedRentItems, nil); err != nil {
+	if err := validateRentAvailability(tx, akcijaID, choices.SelectedRentItems, nil); err != nil {
 		return models.Prijava{}, err
 	}
-	if err := validatePrevozCapacity(tx, akcija.ID, choices.SelectedPrevozIDs, nil); err != nil {
+	if err := validatePrevozCapacity(tx, akcijaID, choices.SelectedPrevozIDs, nil); err != nil {
 		return models.Prijava{}, err
 	}
 	prijava := models.Prijava{
-		AkcijaID:   akcija.ID,
+		AkcijaID:   akcijaID,
 		KorisnikID: korisnik.ID,
 	}
 	if err := tx.Create(&prijava).Error; err != nil {
-		return models.Prijava{}, err
+		return models.Prijava{}, helpers.MapCreatePrijavaError(err)
 	}
 	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
 	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
@@ -432,7 +439,7 @@ func RespondToActionSignupRequest(c *gin.Context) {
 		if err := tx.First(&requester, req.RequesterID).Error; err != nil {
 			return err
 		}
-		if _, err := createPrijavaFromChoices(tx, akcija, requester, choices); err != nil {
+		if _, err := createPrijavaFromChoices(tx, uint(akcijaID), requester, choices); err != nil {
 			return err
 		}
 		req.Status = models.ActionSignupRequestAccepted
@@ -447,8 +454,19 @@ func RespondToActionSignupRequest(c *gin.Context) {
 	})
 	if err != nil {
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "popunjen") || strings.Contains(errMsg, "pun") || strings.Contains(errMsg, "Nedovoljno") {
+		if errors.Is(err, helpers.ErrAkcijaCapacityFull) ||
+			strings.Contains(errMsg, "popunjen") ||
+			strings.Contains(errMsg, "popunjena") ||
+			strings.Contains(errMsg, "Nedovoljno") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			return
+		}
+		if errors.Is(err, helpers.ErrDuplicatePrijava) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrSignupClosed) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if errMsg == "Zahtev je već obrađen" {

@@ -46,32 +46,6 @@ func PrijaviNaAkciju(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 		return
 	}
-	if akcija.MaxLjudi > 0 {
-		var prijavljenih int64
-		db.Model(&models.Prijava{}).Where("akcija_id = ? AND status = ?", akcijaID, "prijavljen").Count(&prijavljenih)
-		if prijavljenih >= int64(akcija.MaxLjudi) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Maksimalan broj prijavljenih je popunjen"})
-			return
-		}
-	}
-
-	var count int64
-	db.Model(&models.Prijava{}).
-		Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).
-		Count(&count)
-	if count > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Već ste prijavljeni za ovu akciju"})
-		return
-	}
-
-	var pendingSignup int64
-	db.Model(&models.ActionSignupRequest{}).
-		Where("akcija_id = ? AND requester_id = ? AND status = ?", akcijaID, korisnik.ID, models.ActionSignupRequestPending).
-		Count(&pendingSignup)
-	if pendingSignup > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Već imate zahtev za prijavu na čekanju"})
-		return
-	}
 
 	inviteToken := strings.TrimSpace(c.Query("inviteToken"))
 	if inviteToken == "" {
@@ -96,6 +70,20 @@ func PrijaviNaAkciju(c *gin.Context) {
 
 	var signupReq models.ActionSignupRequest
 	if err := db.Transaction(func(tx *gorm.DB) error {
+		hasPrijava, err := helpers.HasPrijavaForUser(tx, uint(akcijaID), korisnik.ID)
+		if err != nil {
+			return err
+		}
+		if hasPrijava {
+			return helpers.ErrDuplicatePrijava
+		}
+		hasPending, err := helpers.HasPendingSignupRequest(tx, uint(akcijaID), korisnik.ID)
+		if err != nil {
+			return err
+		}
+		if hasPending {
+			return helpers.ErrPendingSignupExists
+		}
 		signupReq = models.ActionSignupRequest{
 			AkcijaID:             uint(akcijaID),
 			RequesterID:          korisnik.ID,
@@ -104,8 +92,19 @@ func PrijaviNaAkciju(c *gin.Context) {
 			SelectedPrevozIDs:    string(prevozJSON),
 			SelectedRentItemsRaw: string(rentJSON),
 		}
-		return tx.Create(&signupReq).Error
+		if err := tx.Create(&signupReq).Error; err != nil {
+			return helpers.MapCreateSignupRequestError(err)
+		}
+		return nil
 	}); err != nil {
+		if errors.Is(err, helpers.ErrDuplicatePrijava) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPendingSignupExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri slanju zahteva", "details": err.Error()})
 		return
 	}

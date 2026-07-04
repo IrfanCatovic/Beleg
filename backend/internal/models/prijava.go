@@ -4,8 +4,8 @@ import "time"
 
 type Prijava struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
-	AkcijaID     uint      `gorm:"index" json:"akcijaId"`
-	KorisnikID   uint      `gorm:"index" json:"korisnikId"`
+	AkcijaID     uint      `gorm:"uniqueIndex:idx_prijave_akcija_korisnik;not null" json:"akcijaId"`
+	KorisnikID   uint      `gorm:"uniqueIndex:idx_prijave_akcija_korisnik;not null" json:"korisnikId"`
 	Status       string    `gorm:"default:'prijavljen'" json:"status"`
 	Platio       bool      `gorm:"default:false" json:"platio"`
 	PrijavljenAt time.Time `gorm:"autoCreateTime" json:"prijavljenAt"`

@@ -4,6 +4,7 @@ import (
 	"beleg-app/backend/internal/config"
 	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/jobs"
+	"beleg-app/backend/internal/database"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
@@ -149,6 +150,8 @@ func migrateAndSeed(db *gorm.DB) {
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
 	}
+
+	database.EnsurePrijavaIntegrity(db)
 
 	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
 	seed.RunIfEmpty(db)

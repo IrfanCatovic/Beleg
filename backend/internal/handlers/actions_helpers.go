@@ -460,7 +460,7 @@ func EnsureGuidePrijava(db *gorm.DB, akcijaID, vodicID uint) error {
 		Platio:     false,
 	}
 	if err := db.Create(&prijava).Error; err != nil {
-		return err
+		return helpers.MapCreatePrijavaError(err)
 	}
 	empty := "[]"
 	izbor := models.PrijavaIzbori{

@@ -39,7 +39,7 @@ func AddMemberToCompletedAction(db *gorm.DB, akcija *models.Akcija, korisnik *mo
 			Status:     "popeo se",
 		}
 		if err := db.Create(&prijava).Error; err != nil {
-			return nil, err
+			return nil, helpers.MapCreatePrijavaError(err)
 		}
 	} else {
 		if prijava.Status == "popeo se" {

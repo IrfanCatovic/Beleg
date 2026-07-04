@@ -92,7 +92,7 @@ func BulkAddMembersToCompletedAction(db *gorm.DB, akcija *models.Akcija, korisni
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				prijava = models.Prijava{AkcijaID: akcija.ID, KorisnikID: korisnik.ID, Status: "popeo se", Platio: true}
 				if err := tx.Create(&prijava).Error; err != nil {
-					return err
+					return helpers.MapCreatePrijavaError(err)
 				}
 				res.Added++
 				newlySummited = true

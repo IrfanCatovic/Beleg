@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
 	"gorm.io/gorm"
@@ -19,12 +20,12 @@ func ensureSignup(tx *gorm.DB, akcijaID, userID uint) error {
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	return tx.Create(&models.Prijava{
+	return helpers.MapCreatePrijavaError(tx.Create(&models.Prijava{
 		AkcijaID:   akcijaID,
 		KorisnikID: userID,
 		Status:     "prijavljen",
 		Platio:     false,
-	}).Error
+	}).Error)
 }
 
 func validateGuideActionOrganizer(akcija *models.Akcija, guideUserID uint) error {

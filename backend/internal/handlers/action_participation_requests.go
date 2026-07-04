@@ -677,7 +677,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 				Platio:     true,
 			}
 			if err := tx.Create(&prijava).Error; err != nil {
-				return err
+				return helpers.MapCreatePrijavaError(err)
 			}
 		} else {
 			return err

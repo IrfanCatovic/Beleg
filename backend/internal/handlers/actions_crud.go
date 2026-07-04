@@ -947,6 +947,11 @@ func UpdateAkcija(c *gin.Context) {
 		return
 	}
 
+	if err := helpers.ValidateMaxLjudiNotBelowActive(db, akcija.ID, akcija.MaxLjudi); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	if tipAkcije == "via_ferrata" && akcija.FerrataID != nil {
 		var ftVia models.Ferrata
 		if err := db.First(&ftVia, *akcija.FerrataID).Error; err == nil {
