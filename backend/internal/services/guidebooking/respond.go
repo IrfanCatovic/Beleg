@@ -1,7 +1,6 @@
 package guidebooking
 
 import (
-	"errors"
 	"strings"
 	"time"
 
@@ -12,20 +11,8 @@ import (
 )
 
 func ensureSignup(tx *gorm.DB, akcijaID, userID uint) error {
-	var existing models.Prijava
-	err := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, userID).First(&existing).Error
-	if err == nil {
-		return nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-	return helpers.MapCreatePrijavaError(tx.Create(&models.Prijava{
-		AkcijaID:   akcijaID,
-		KorisnikID: userID,
-		Status:     "prijavljen",
-		Platio:     false,
-	}).Error)
+	_, err := helpers.CreateConfirmedPrijavaTx(tx, akcijaID, userID, time.Now())
+	return err
 }
 
 func validateGuideActionOrganizer(akcija *models.Akcija, guideUserID uint) error {

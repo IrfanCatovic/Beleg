@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -190,5 +191,63 @@ func TestHasPendingSignupRequest_PartialUnique(t *testing.T) {
 	}
 	if mapped := MapCreateSignupRequestError(err); !errors.Is(mapped, ErrPendingSignupExists) {
 		t.Fatalf("expected ErrPendingSignupExists, got %v", MapCreateSignupRequestError(err))
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_IdempotentAndConcurrent(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Tx", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5}
+	user := models.Korisnik{Username: "u1", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var first models.Prijava
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		first, err = CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+		return err
+	}); err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		second, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+		if err != nil {
+			return err
+		}
+		if second.ID != first.ID {
+			t.Fatalf("expected same prijava id, got %d vs %d", second.ID, first.ID)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("idempotent retry: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = db.Transaction(func(tx *gorm.DB) error {
+				_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+				return err
+			})
+		}(i)
+	}
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent idempotent call failed: %v", err)
+		}
+	}
+	var n int64
+	db.Model(&models.Prijava{}).Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, user.ID).Count(&n)
+	if n != 1 {
+		t.Fatalf("expected exactly one prijava after concurrent calls, got %d", n)
 	}
 }

@@ -21,6 +21,7 @@ var (
 	ErrMaxLjudiBelowActive   = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
 	ErrPendingSignupExists   = errors.New("Već imate zahtev za prijavu na čekanju")
 	ErrAkcijaAlreadyComplete = errors.New("Akcija je već završena")
+	ErrKorisnikNotEligible   = errors.New("Korisnik nije dostupan za prijavu.")
 )
 
 func belgradeLocation() *time.Location {
@@ -140,6 +141,61 @@ func MapCreatePrijavaError(err error) error {
 		return ErrDuplicatePrijava
 	}
 	return err
+}
+
+// CreateConfirmedPrijavaTx kreira potvrđenu prijavu (status "prijavljen") unutar postojeće transakcije.
+// Idempotentno: ako prijava već postoji, vraća postojeći red bez greške.
+func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.Time) (models.Prijava, error) {
+	if korisnikID == 0 {
+		return models.Prijava{}, errors.New("invalid korisnik id")
+	}
+
+	locked, err := LockAkcijaForUpdate(tx, akcijaID)
+	if err != nil {
+		return models.Prijava{}, err
+	}
+
+	if err := ValidateAkcijaSignupOpen(locked, now); err != nil {
+		return models.Prijava{}, err
+	}
+
+	var korisnik models.Korisnik
+	if err := tx.First(&korisnik, korisnikID).Error; err != nil {
+		return models.Prijava{}, err
+	}
+	if strings.EqualFold(strings.TrimSpace(korisnik.Role), "deleted") {
+		return models.Prijava{}, ErrKorisnikNotEligible
+	}
+
+	var existing models.Prijava
+	err = tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&existing).Error
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Prijava{}, err
+	}
+
+	if err := EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
+		return models.Prijava{}, err
+	}
+
+	prijava := models.Prijava{
+		AkcijaID:   akcijaID,
+		KorisnikID: korisnikID,
+		Status:     "prijavljen",
+		Platio:     false,
+	}
+	if err := tx.Create(&prijava).Error; err != nil {
+		if mapped := MapCreatePrijavaError(err); errors.Is(mapped, ErrDuplicatePrijava) {
+			var raceExisting models.Prijava
+			if fetchErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&raceExisting).Error; fetchErr == nil {
+				return raceExisting, nil
+			}
+		}
+		return models.Prijava{}, MapCreatePrijavaError(err)
+	}
+	return prijava, nil
 }
 
 // IsDuplicatePendingSignupDBError detektuje partial unique na pending signup.
