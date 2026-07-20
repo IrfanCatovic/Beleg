@@ -63,6 +63,13 @@ func PrijaviNaAkciju(c *gin.Context) {
 		return
 	}
 
+	// Rani UX guard: ne šalji pending zahtjev ako je akcija već puna.
+	// Ne rezerviše mjesto; race-safe kapacitet ostaje u accept flowu (LockAkcijaForUpdate).
+	if err := helpers.EnsureCapacityAvailable(db, uint(akcijaID), akcija.MaxLjudi); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	choices := parseChoicesFromRequest(c)
 	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
 	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
