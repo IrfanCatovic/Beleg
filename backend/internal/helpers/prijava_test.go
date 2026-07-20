@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -15,7 +16,8 @@ import (
 
 func testPrijavaDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	dsn := "file:" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -31,6 +33,11 @@ func testPrijavaDB(t *testing.T) *gorm.DB {
 	if err := database.PostAutoMigrateCreatePrijavaIndexes(db); err != nil {
 		t.Fatalf("create prijava indexes: %v", err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("db handle: %v", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
 	return db
 }
 
@@ -63,6 +70,138 @@ func TestValidateAkcijaSignupOpen_Completed(t *testing.T) {
 	err := ValidateAkcijaSignupOpen(akcija, time.Now())
 	if !errors.Is(err, ErrAkcijaAlreadyComplete) {
 		t.Fatalf("expected ErrAkcijaAlreadyComplete, got %v", err)
+	}
+}
+
+func TestValidateAkcijaActive_Completed(t *testing.T) {
+	akcija := &models.Akcija{IsCompleted: true, Datum: time.Now().Add(24 * time.Hour)}
+	if err := ValidateAkcijaActive(akcija); !errors.Is(err, ErrAkcijaAlreadyComplete) {
+		t.Fatalf("expected ErrAkcijaAlreadyComplete, got %v", err)
+	}
+}
+
+func TestValidateAkcijaSignupDeadline_DoesNotCheckCompleted(t *testing.T) {
+	// Deadline helper ne smije blokirati zbog IsCompleted — to je lifecycle.
+	akcija := &models.Akcija{IsCompleted: true, Datum: time.Now().Add(24 * time.Hour)}
+	if err := ValidateAkcijaSignupDeadline(akcija, time.Now()); err != nil {
+		t.Fatalf("deadline check should ignore IsCompleted, got %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoSkipsDeadlineMemberDoesNot(t *testing.T) {
+	db := testPrijavaDB(t)
+	pastStart := time.Now().Add(-3 * time.Hour)
+	akcija := models.Akcija{
+		Naziv: "PastStart", Datum: time.Now().Add(48 * time.Hour),
+		StartAt: &pastStart, MaxLjudi: 5,
+	}
+	guide := models.Korisnik{Username: "g", Password: "x"}
+	member := models.Korisnik{Username: "m", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&member).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	}); err != nil {
+		t.Fatalf("guide-auto should allow after deadline: %v", err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, member.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
+		return err
+	})
+	if !errors.Is(err, ErrSignupClosed) {
+		t.Fatalf("member-signup should block after deadline, got %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_CompletedBlocksNewAllowsExisting(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{
+		Naziv: "Done", Datum: time.Now().Add(48 * time.Hour),
+		MaxLjudi: 5, IsCompleted: true,
+	}
+	existingUser := models.Korisnik{Username: "ex", Password: "x"}
+	newUser := models.Korisnik{Username: "nw", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&existingUser).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&newUser).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: existingUser.ID, Status: "prijavljen",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		p, err := CreateConfirmedPrijavaTx(tx, akcija.ID, existingUser.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		if err != nil {
+			return err
+		}
+		if p.KorisnikID != existingUser.ID {
+			t.Fatalf("unexpected prijava: %+v", p)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("existing on completed should be idempotent: %v", err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, newUser.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	})
+	if !errors.Is(err, ErrAkcijaAlreadyComplete) {
+		t.Fatalf("new prijava on completed should fail, got %v", err)
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, newUser.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
+		return err
+	})
+	if !errors.Is(err, ErrAkcijaAlreadyComplete) {
+		t.Fatalf("member signup on completed should fail, got %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoRespectsCapacity(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Full", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 1}
+	filler := models.Korisnik{Username: "fill", Password: "x"}
+	guide := models.Korisnik{Username: "g2", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&filler).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: filler.ID, Status: "prijavljen",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	})
+	if !errors.Is(err, ErrAkcijaCapacityFull) {
+		t.Fatalf("guide-auto must respect capacity, got %v", err)
 	}
 }
 
@@ -208,14 +347,14 @@ func TestCreateConfirmedPrijavaTx_IdempotentAndConcurrent(t *testing.T) {
 	var first models.Prijava
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		var err error
-		first, err = CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+		first, err = CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
 		return err
 	}); err != nil {
 		t.Fatalf("first create: %v", err)
 	}
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		second, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+		second, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
 		if err != nil {
 			return err
 		}
@@ -234,7 +373,7 @@ func TestCreateConfirmedPrijavaTx_IdempotentAndConcurrent(t *testing.T) {
 		go func(idx int) {
 			defer wg.Done()
 			errs[idx] = db.Transaction(func(tx *gorm.DB) error {
-				_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now())
+				_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
 				return err
 			})
 		}(i)

@@ -440,27 +440,25 @@ func computeSaldoForParticipant(db *gorm.DB, akcija models.Akcija, korisnik mode
 }
 
 // EnsureGuidePrijava automatski prijavljuje vodiča na akciju sa praznim izborima (saldo 0 dok ne izabere logistiku).
-func EnsureGuidePrijava(db *gorm.DB, akcijaID, vodicID uint) error {
+// Mora se pozvati unutar iste transakcije kao kreiranje/izmjena akcije.
+func EnsureGuidePrijava(tx *gorm.DB, akcijaID, vodicID uint) error {
 	if vodicID == 0 {
 		return nil
 	}
+	prijava, err := helpers.CreateConfirmedPrijavaTx(tx, akcijaID, vodicID, time.Now(), helpers.ConfirmedPrijavaPolicyGuideAuto)
+	if err != nil {
+		return err
+	}
+	return ensureGuidePrijavaIzbori(tx, prijava)
+}
+
+func ensureGuidePrijavaIzbori(tx *gorm.DB, prijava models.Prijava) error {
 	var count int64
-	if err := db.Model(&models.Prijava{}).
-		Where("akcija_id = ? AND korisnik_id = ?", akcijaID, vodicID).
-		Count(&count).Error; err != nil {
+	if err := tx.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", prijava.ID).Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
 		return nil
-	}
-	prijava := models.Prijava{
-		AkcijaID:   akcijaID,
-		KorisnikID: vodicID,
-		Status:     "prijavljen",
-		Platio:     false,
-	}
-	if err := db.Create(&prijava).Error; err != nil {
-		return helpers.MapCreatePrijavaError(err)
 	}
 	empty := "[]"
 	izbor := models.PrijavaIzbori{
@@ -469,7 +467,7 @@ func EnsureGuidePrijava(db *gorm.DB, akcijaID, vodicID uint) error {
 		SelectedPrevozIDs:    empty,
 		SelectedRentItemsRaw: empty,
 	}
-	return db.Create(&izbor).Error
+	return tx.Create(&izbor).Error
 }
 
 // akcijaSkipsClubFinances: privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.

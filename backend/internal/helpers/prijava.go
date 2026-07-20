@@ -24,6 +24,33 @@ var (
 	ErrKorisnikNotEligible   = errors.New("Korisnik nije dostupan za prijavu.")
 )
 
+// ConfirmedPrijavaPolicy kontroliše koje invarijante CreateConfirmedPrijavaTx primjenjuje.
+// RequireActionActive i ValidateSignupDeadline su namjerno odvojeni:
+// lifecycle akcije (završena) != rok prijave za obične članove (datum/start).
+type ConfirmedPrijavaPolicy struct {
+	RequireActionActive    bool
+	ValidateSignupDeadline bool
+	CheckCapacity          bool
+	RequireActiveUser      bool
+}
+
+// ConfirmedPrijavaPolicyMemberSignup — self-service / guide-booking prijava.
+var ConfirmedPrijavaPolicyMemberSignup = ConfirmedPrijavaPolicy{
+	RequireActionActive:    true,
+	ValidateSignupDeadline: true,
+	CheckCapacity:          true,
+	RequireActiveUser:      true,
+}
+
+// ConfirmedPrijavaPolicyGuideAuto — automatska prijava vodiča pri kreiranju/izmjeni akcije.
+// Preskače rok prijave članova, ali ne dozvoljava novu prijavu na završenoj akciji.
+var ConfirmedPrijavaPolicyGuideAuto = ConfirmedPrijavaPolicy{
+	RequireActionActive:    true,
+	ValidateSignupDeadline: false,
+	CheckCapacity:          true,
+	RequireActiveUser:      true,
+}
+
 func belgradeLocation() *time.Location {
 	loc, err := time.LoadLocation("Europe/Belgrade")
 	if err != nil {
@@ -32,13 +59,23 @@ func belgradeLocation() *time.Location {
 	return loc
 }
 
-// ValidateAkcijaSignupOpen proverava da li je akcija otvorena za novu prijavu (datum/start, ne završena).
-func ValidateAkcijaSignupOpen(akcija *models.Akcija, now time.Time) error {
+// ValidateAkcijaActive proverava lifecycle stanje akcije (nije završena).
+// Otkazani status na akciji trenutno ne postoji u modelu — kada se uvede, dodati ovdje.
+func ValidateAkcijaActive(akcija *models.Akcija) error {
 	if akcija == nil {
 		return ErrSignupClosed
 	}
 	if akcija.IsCompleted {
 		return ErrAkcijaAlreadyComplete
+	}
+	return nil
+}
+
+// ValidateAkcijaSignupDeadline proverava rok prijave za obične članove (start/datum).
+// Ne provjerava IsCompleted — to radi ValidateAkcijaActive.
+func ValidateAkcijaSignupDeadline(akcija *models.Akcija, now time.Time) error {
+	if akcija == nil {
+		return ErrSignupClosed
 	}
 	if akcija.StartAt != nil && now.After(*akcija.StartAt) {
 		return ErrSignupClosed
@@ -54,6 +91,15 @@ func ValidateAkcijaSignupOpen(akcija *models.Akcija, now time.Time) error {
 		}
 	}
 	return nil
+}
+
+// ValidateAkcijaSignupOpen proverava da li je akcija otvorena za novu prijavu člana
+// (aktivna + rok nije istekao). Kompozicija ValidateAkcijaActive + ValidateAkcijaSignupDeadline.
+func ValidateAkcijaSignupOpen(akcija *models.Akcija, now time.Time) error {
+	if err := ValidateAkcijaActive(akcija); err != nil {
+		return err
+	}
+	return ValidateAkcijaSignupDeadline(akcija, now)
 }
 
 // CountActivePrijaveForAkcija broji prijave koje troše kapacitet.
@@ -145,7 +191,7 @@ func MapCreatePrijavaError(err error) error {
 
 // CreateConfirmedPrijavaTx kreira potvrđenu prijavu (status "prijavljen") unutar postojeće transakcije.
 // Idempotentno: ako prijava već postoji, vraća postojeći red bez greške.
-func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.Time) (models.Prijava, error) {
+func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.Time, policy ConfirmedPrijavaPolicy) (models.Prijava, error) {
 	if korisnikID == 0 {
 		return models.Prijava{}, errors.New("invalid korisnik id")
 	}
@@ -155,18 +201,8 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 		return models.Prijava{}, err
 	}
 
-	if err := ValidateAkcijaSignupOpen(locked, now); err != nil {
-		return models.Prijava{}, err
-	}
-
-	var korisnik models.Korisnik
-	if err := tx.First(&korisnik, korisnikID).Error; err != nil {
-		return models.Prijava{}, err
-	}
-	if strings.EqualFold(strings.TrimSpace(korisnik.Role), "deleted") {
-		return models.Prijava{}, ErrKorisnikNotEligible
-	}
-
+	// Idempotentno: postojeća prijava se vraća prije lifecycle/deadline provjera,
+	// tako da već prijavljeni vodič na završenoj akciji ne pravi grešku.
 	var existing models.Prijava
 	err = tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&existing).Error
 	if err == nil {
@@ -176,8 +212,31 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 		return models.Prijava{}, err
 	}
 
-	if err := EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
-		return models.Prijava{}, err
+	if policy.RequireActionActive {
+		if err := ValidateAkcijaActive(locked); err != nil {
+			return models.Prijava{}, err
+		}
+	}
+	if policy.ValidateSignupDeadline {
+		if err := ValidateAkcijaSignupDeadline(locked, now); err != nil {
+			return models.Prijava{}, err
+		}
+	}
+
+	if policy.RequireActiveUser {
+		var korisnik models.Korisnik
+		if err := tx.First(&korisnik, korisnikID).Error; err != nil {
+			return models.Prijava{}, err
+		}
+		if strings.EqualFold(strings.TrimSpace(korisnik.Role), "deleted") {
+			return models.Prijava{}, ErrKorisnikNotEligible
+		}
+	}
+
+	if policy.CheckCapacity {
+		if err := EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
+			return models.Prijava{}, err
+		}
 	}
 
 	prijava := models.Prijava{

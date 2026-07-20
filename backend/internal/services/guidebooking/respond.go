@@ -11,7 +11,7 @@ import (
 )
 
 func ensureSignup(tx *gorm.DB, akcijaID, userID uint) error {
-	_, err := helpers.CreateConfirmedPrijavaTx(tx, akcijaID, userID, time.Now())
+	_, err := helpers.CreateConfirmedPrijavaTx(tx, akcijaID, userID, time.Now(), helpers.ConfirmedPrijavaPolicyMemberSignup)
 	return err
 }
 

@@ -655,17 +655,26 @@ func CreateAkcija(c *gin.Context) {
 		}
 	}
 
-	if err := db.Create(&akcija).Error; err != nil {
-		c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
-		return
-	}
-	if err := syncActionNestedData(db, akcija.ID, c); err != nil {
+	var createErr error
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&akcija).Error; err != nil {
+			createErr = err
+			return err
+		}
+		if err := syncActionNestedData(tx, akcija.ID, c); err != nil {
+			return err
+		}
+		return EnsureGuidePrijava(tx, akcija.ID, akcija.VodicID)
+	}); err != nil {
+		if createErr != nil {
+			c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
+			return
+		}
+		if errors.Is(err, helpers.ErrAkcijaCapacityFull) || errors.Is(err, helpers.ErrKorisnikNotEligible) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := EnsureGuidePrijava(db, akcija.ID, akcija.VodicID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri automatskoj prijavi vodiča"})
 		return
 	}
 
@@ -959,21 +968,30 @@ func UpdateAkcija(c *gin.Context) {
 		}
 	}
 
-	if err := db.Save(&akcija).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
-		return
-	}
-	if err := syncActionNestedDataOnUpdateFromContext(db, akcija.ID, c); err != nil {
+	var saveErr error
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&akcija).Error; err != nil {
+			saveErr = err
+			return err
+		}
+		if err := syncActionNestedDataOnUpdateFromContext(tx, akcija.ID, c); err != nil {
+			return err
+		}
+		return EnsureGuidePrijava(tx, akcija.ID, akcija.VodicID)
+	}); err != nil {
+		if saveErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
+			return
+		}
 		if errors.Is(err, ErrNestedOptionInUse) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, helpers.ErrAkcijaCapacityFull) || errors.Is(err, helpers.ErrKorisnikNotEligible) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := EnsureGuidePrijava(db, akcija.ID, akcija.VodicID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri automatskoj prijavi vodiča"})
 		return
 	}
 
