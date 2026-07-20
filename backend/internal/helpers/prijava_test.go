@@ -27,7 +27,9 @@ func testPrijavaDB(t *testing.T) *gorm.DB {
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	database.PostAutoMigrateCreatePrijavaIndexes(db)
+	if err := database.PostAutoMigrateCreatePrijavaIndexes(db); err != nil {
+		t.Fatalf("create prijava indexes: %v", err)
+	}
 	return db
 }
 

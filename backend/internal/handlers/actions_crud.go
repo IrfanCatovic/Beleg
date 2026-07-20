@@ -963,7 +963,11 @@ func UpdateAkcija(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
 		return
 	}
-	if err := syncActionNestedData(db, akcija.ID, c); err != nil {
+	if err := syncActionNestedDataOnUpdateFromContext(db, akcija.ID, c); err != nil {
+		if errors.Is(err, ErrNestedOptionInUse) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
