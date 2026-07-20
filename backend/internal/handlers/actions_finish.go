@@ -65,8 +65,11 @@ func DodajClanaPopeoSe(c *gin.Context) {
 		switch {
 		case errors.Is(svcErr, actions.ErrMemberNotInClub):
 			c.JSON(http.StatusForbidden, gin.H{"error": svcErr.Error()})
-		case errors.Is(svcErr, actions.ErrMemberAlreadySummited):
+		case errors.Is(svcErr, actions.ErrMemberAlreadySummited),
+			errors.Is(svcErr, helpers.ErrDuplicatePrijava):
 			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
+		case errors.Is(svcErr, actions.ErrActionNotCompleted):
+			c.JSON(http.StatusBadRequest, gin.H{"error": svcErr.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju člana na akciju"})
 		}
