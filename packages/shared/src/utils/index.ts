@@ -45,12 +45,14 @@ export {
   hasLogisticsChoicesFromMember,
   hasLogisticsChoicesFromSelections,
   isActionGuideUser,
+  requiresActionSignupChoices,
 } from './actionPricing'
 export type {
   ActionPriceDisplay,
   ActionPriceDisplayMode,
   ActionPriceTier,
   ActionSelections,
+  ActionSignupOptionsSource,
   HeldSelections,
   UserClubContext,
 } from './actionPricing'

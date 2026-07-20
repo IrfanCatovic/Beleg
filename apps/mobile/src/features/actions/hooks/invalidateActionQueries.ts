@@ -7,6 +7,7 @@ export async function invalidateActionQueries(
 ): Promise<void> {
   await queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
   await queryClient.invalidateQueries({ queryKey: ['akcije'] })
+  await queryClient.invalidateQueries({ queryKey: ['akcije', 'feed'] })
   await queryClient.invalidateQueries({ queryKey: ['moja-prijava', actionId] })
   await queryClient.invalidateQueries({ queryKey: ['akcija', actionId] })
   await queryClient.invalidateQueries({

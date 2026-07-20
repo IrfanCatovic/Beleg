@@ -97,6 +97,28 @@ export function hasLogisticsChoicesFromSelections(selections: ActionSelections):
   return Object.values(selections.selRent).some((qty) => (qty ?? 0) > 0)
 }
 
+/** Polja akcije koja ukazuju da postoje opcije za signup izbor (ne osnovna oprema lista). */
+export type ActionSignupOptionsSource = {
+  smestaj?: readonly unknown[] | null
+  prevoz?: readonly unknown[] | null
+  opremaRent?: readonly unknown[] | null
+}
+
+/**
+ * Da li prijava na akciju treba da prođe kroz choice flow (smeštaj/prevoz/rent)
+ * umjesto praznog quick-join payloada.
+ */
+export function requiresActionSignupChoices(
+  action: ActionSignupOptionsSource | null | undefined,
+): boolean {
+  if (!action) return false
+  return (
+    (action.smestaj?.length ?? 0) > 0 ||
+    (action.prevoz?.length ?? 0) > 0 ||
+    (action.opremaRent?.length ?? 0) > 0
+  )
+}
+
 export function isActionGuideUser(
   akcija: Pick<AkcijaDetail, 'vodicId' | 'vodic'>,
   userId: number | null | undefined,

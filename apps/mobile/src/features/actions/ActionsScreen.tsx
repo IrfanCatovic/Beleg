@@ -29,6 +29,7 @@ import {
 } from '../../utils/actionFilters'
 import { canManageActions } from '../../utils/roles'
 import type { ActionsStackParamList } from '../../navigation/types'
+import { invalidateActionQueries } from './hooks/invalidateActionQueries'
 
 type Props = NativeStackScreenProps<ActionsStackParamList, 'ActionsList'>
 
@@ -139,9 +140,8 @@ export default function ActionsScreen({ navigation }: Props) {
       }
       await otkaziPrijavu(client, action.id)
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['moje-prijave'] })
-      void queryClient.invalidateQueries({ queryKey: ['akcije'] })
+    onSuccess: async (_data, action) => {
+      await invalidateActionQueries(queryClient, action.id)
     },
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Otkazivanje nije uspelo.')),
   })

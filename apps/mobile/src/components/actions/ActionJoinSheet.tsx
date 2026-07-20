@@ -185,7 +185,11 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
               <Button
                 title="Potvrdi prijavu"
                 loading={joinMutation.isPending}
-                onPress={() => joinMutation.mutate()}
+                disabled={joinMutation.isPending}
+                onPress={() => {
+                  if (joinMutation.isPending) return
+                  joinMutation.mutate()
+                }}
               />
             </View>
           </View>

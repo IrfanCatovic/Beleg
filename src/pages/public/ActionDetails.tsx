@@ -59,6 +59,7 @@ export default function ActionDetails() {
   const navigate = useNavigate()
   const inviteToken = (searchParams.get('inviteToken') ?? '').trim()
   const claimRewardRequested = (searchParams.get('claimReward') ?? '').trim() === '1'
+  const focusSignupRequested = (searchParams.get('focusSignup') ?? '').trim() === '1'
 
   const {
     akcija,
@@ -203,6 +204,18 @@ export default function ActionDetails() {
       addedByUsername: akcija.addedBy?.username,
     })
   )
+
+  useEffect(() => {
+    if (!focusSignupRequested || loading || !akcija || akcija.isCompleted) return
+    const el =
+      document.getElementById('action-signup-choices') ??
+      document.getElementById('action-signup-section')
+    if (!el) return
+    const timer = window.setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [focusSignupRequested, loading, akcija?.id, akcija?.isCompleted])
 
   useEffect(() => {
     if (!akcija || !user) return
@@ -1318,7 +1331,7 @@ export default function ActionDetails() {
 
             {/* ROW 2: Logistics */}
             {showLogisticsRow ? (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div id="action-signup-choices" className="grid grid-cols-1 lg:grid-cols-12 gap-6 scroll-mt-24">
                 {showTransportPanel ? (
                   <div
                     className={`bg-white rounded-3xl border border-gray-100 shadow-sm ${
@@ -1457,7 +1470,7 @@ export default function ActionDetails() {
 
             {/* ROW 3: Confirm / Summary */}
             {user && !isLimitedView && !akcija.isCompleted && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
-              <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-r from-white via-emerald-50/80 to-white shadow-md">
+              <div id="action-signup-section" className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-r from-white via-emerald-50/80 to-white shadow-md scroll-mt-24">
                 <div className="px-5 sm:px-7 py-4 border-b border-emerald-100/70 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
                   <h2 className="text-sm sm:text-base font-bold text-emerald-900 tracking-tight">Pregled tvojih izbora i ukupnog zaduženja</h2>

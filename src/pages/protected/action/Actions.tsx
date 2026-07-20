@@ -5,12 +5,14 @@ import { useAuth } from '../../../context/AuthContext'
 import { useModal } from '../../../context/ModalContext'
 import {
   fetchAkcije,
+  fetchAkcijaById,
   fetchMojePrijave,
   fetchPrijaveZaAkciju,
   cancelSignupRequest,
   otkaziPrijavu,
   prijaviNaAkciju,
 } from '../../../services/actions'
+import { requiresActionSignupChoices } from '@beleg/shared'
 import { fetchKlub } from '../../../services/club'
 import { fetchKorisnici } from '../../../services/users'
 import type { AkcijaListItem as Akcija } from '../../../types/akcija'
@@ -63,6 +65,7 @@ export default function Actions() {
   const [prijavljeneAkcije, setPrijavljeneAkcije] = useState<Set<number>>(new Set())
   const [pendingSignupAkcije, setPendingSignupAkcije] = useState<Set<number>>(new Set())
   const [otkaziveAkcije, setOtkaziveAkcije] = useState<Set<number>>(new Set())
+  const [joiningAkcijaId, setJoiningAkcijaId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showAnnualReportModal, setShowAnnualReportModal] = useState(false)
@@ -368,26 +371,51 @@ export default function Actions() {
     }
   }
 
+  const applyMojePrijave = (mojeData: Awaited<ReturnType<typeof fetchMojePrijave>>) => {
+    setPrijavljeneAkcije(new Set(mojeData.prijavljeneAkcije || []))
+    setPendingSignupAkcije(new Set(mojeData.pendingSignupAkcije || []))
+    setOtkaziveAkcije(new Set(mojeData.otkaziveAkcije || []))
+  }
+
   const handlePrijavi = async (akcijaId: number, naziv: string) => {
+    if (joiningAkcijaId != null) return
     const confirmed = await showConfirm(t('confirmJoin', { name: naziv }))
     if (!confirmed) return
 
+    setJoiningAkcijaId(akcijaId)
     try {
-      const response = await prijaviNaAkciju(akcijaId)
-      await showAlert(response.message ?? t('joinSuccess'))
+      const detail = await fetchAkcijaById(akcijaId)
+      if (requiresActionSignupChoices(detail)) {
+        await showAlert(
+          t('signupChoicesRequired', {
+            defaultValue:
+              'Ova akcija ima dodatne opcije. Izaberi prevoz, smeštaj ili opremu prije prijave.',
+          }),
+        )
+        navigate(`/akcije/${akcijaId}?focusSignup=1`)
+        return
+      }
 
-      setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
-      setPendingSignupAkcije(prev => new Set([...prev, akcijaId]))
+      const response = await prijaviNaAkciju(akcijaId, {})
+      await showAlert(response.message ?? t('joinSuccess'))
+      const mojeData = await fetchMojePrijave()
+      applyMojePrijave(mojeData)
     } catch (err: any) {
       const errMsg = err.response?.data?.error
       const status = err?.response?.status
       if (status === 409) {
         await showAlert(t('alreadyJoined'))
-        setPrijavljeneAkcije(prev => new Set([...prev, akcijaId]))
-        setOtkaziveAkcije(prev => new Set([...prev, akcijaId]))
+        try {
+          const mojeData = await fetchMojePrijave()
+          applyMojePrijave(mojeData)
+        } catch {
+          /* ignore refresh failure */
+        }
         return
       }
       await showAlert(typeof errMsg === 'string' ? errMsg : t('joinError'))
+    } finally {
+      setJoiningAkcijaId(null)
     }
   }
 
@@ -405,22 +433,8 @@ export default function Actions() {
         await otkaziPrijavu(akcijaId)
       }
       await showAlert(t('cancelJoinSuccess'))
-
-      setPrijavljeneAkcije(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(akcijaId)
-        return newSet
-      })
-      setPendingSignupAkcije(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(akcijaId)
-        return newSet
-      })
-      setOtkaziveAkcije(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(akcijaId)
-        return newSet
-      })
+      const mojeData = await fetchMojePrijave()
+      applyMojePrijave(mojeData)
     } catch (err: any) {
       await showAlert(err.response?.data?.error || t('cancelJoinError'))
     }
@@ -741,9 +755,10 @@ export default function Actions() {
                       ) : (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrijavi(akcija.id, akcija.naziv) }}
-                          className="w-full py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all"
+                          disabled={joiningAkcijaId === akcija.id}
+                          className="w-full py-2.5 text-center text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 transition-all disabled:opacity-60 disabled:pointer-events-none"
                         >
-                          {t('join')}
+                          {joiningAkcijaId === akcija.id ? '…' : t('join')}
                         </button>
                       )}
                     </div>
