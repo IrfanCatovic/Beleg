@@ -361,21 +361,13 @@ func DeleteAkcija(c *gin.Context) {
 		return
 	}
 
-	var prijavaIDs []uint
-	_ = db.Model(&models.Prijava{}).Where("akcija_id = ?", id).Pluck("id", &prijavaIDs).Error
-	if len(prijavaIDs) > 0 {
-		_ = db.Where("prijava_id IN ?", prijavaIDs).Delete(&models.PrijavaIzbori{}).Error
-	}
-	_ = db.Where("akcija_id = ?", id).Delete(&models.ActionParticipationRequest{}).Error
-	if err := db.Where("akcija_id = ?", id).Delete(&models.Prijava{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju prijava"})
-		return
-	}
-	_ = db.Where("akcija_id = ?", id).Delete(&models.AkcijaSmestaj{}).Error
-	_ = db.Where("akcija_id = ?", id).Delete(&models.AkcijaOpremaRent{}).Error
-	_ = db.Where("akcija_id = ?", id).Delete(&models.AkcijaOprema{}).Error
-	_ = db.Where("akcija_id = ?", id).Delete(&models.AkcijaPrevoz{}).Error
-	if err := db.Delete(&akcija).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		return deleteAkcijaDataTx(tx, uint(id))
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju akcije"})
 		return
 	}

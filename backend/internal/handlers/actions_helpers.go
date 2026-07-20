@@ -497,6 +497,69 @@ func viewerCanAccessPrivateAkcija(db *gorm.DB, akcija *models.Akcija, viewer *mo
 	return viewerIsRegisteredOnAkcija(db, akcija.ID, viewer.ID)
 }
 
+// deleteAkcijaDataTx briše akciju i sve podatke čiji lifecycle direktno pripada toj akciji.
+// Mora se pozvati unutar transakcije. Redoslijed: child → parent.
+func deleteAkcijaDataTx(tx *gorm.DB, akcijaID uint) error {
+	var akcija models.Akcija
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&akcija, akcijaID).Error; err != nil {
+		return err
+	}
+
+	var prijavaIDs []uint
+	if err := tx.Model(&models.Prijava{}).Where("akcija_id = ?", akcijaID).Pluck("id", &prijavaIDs).Error; err != nil {
+		return err
+	}
+	if len(prijavaIDs) > 0 {
+		if err := tx.Where("prijava_id IN ?", prijavaIDs).Delete(&models.PrijavaIzbori{}).Error; err != nil {
+			return err
+		}
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.Prijava{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.ActionSignupRequest{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.ActionInviteLink{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.ActionParticipationRequest{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.GuideActionRating{}).Error; err != nil {
+		return err
+	}
+
+	// Guide-booking zahtjevi ostaju kao istorija; samo se skida veza na obrisanu akciju.
+	if err := tx.Model(&models.FerrataGuideBookingTarget{}).
+		Where("action_id = ?", akcijaID).
+		Update("action_id", nil).Error; err != nil {
+		return err
+	}
+	if err := tx.Model(&models.PeakGuideBookingTarget{}).
+		Where("action_id = ?", akcijaID).
+		Update("action_id", nil).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.AkcijaOpremaRent{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.AkcijaSmestaj{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.AkcijaOprema{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Where("akcija_id = ?", akcijaID).Delete(&models.AkcijaPrevoz{}).Error; err != nil {
+		return err
+	}
+	if err := tx.Delete(&akcija).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // sqlClubOrganizedOnly: klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
 const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
 
