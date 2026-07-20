@@ -624,7 +624,9 @@ func GetMojePrijave(c *gin.Context) {
 	}
 
 	var prijavljene []uint
-	db.Model(&models.Prijava{}).Where("korisnik_id = ?", korisnik.ID).Pluck("akcija_id", &prijavljene)
+	db.Model(&models.Prijava{}).
+		Where("korisnik_id = ? AND status = ?", korisnik.ID, "prijavljen").
+		Pluck("akcija_id", &prijavljene)
 	var pendingSignup []uint
 	db.Model(&models.ActionSignupRequest{}).
 		Where("requester_id = ? AND status = ?", korisnik.ID, models.ActionSignupRequestPending).
