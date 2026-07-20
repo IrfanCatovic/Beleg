@@ -17,6 +17,7 @@ import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
 import { useDailySteps } from '../hooks/useDailySteps'
 import { StepsAccessCard } from '../components/StepsAccessCard'
+import { StepsDiagnosisCard } from '../components/StepsDiagnosisCard'
 import { StepsPeriodSummary } from '../components/StepsPeriodSummary'
 import {
   computeMonthlyAverage,
@@ -28,7 +29,12 @@ import {
 } from '../../steps/services/stepsDerived'
 import { formatDistanceKm, formatSteps } from '../../steps/services/stepsFormat'
 import { todayKey } from '../services/stepsLocalStore'
-import { StepsSyncDiagnosticsPanel, SHOW_STEPS_SYNC_DIAGNOSTICS_UI } from '../components/StepsSyncDiagnosticsPanel'
+import {
+  StepsSyncDiagnosticsPanel,
+  SHOW_STEPS_SYNC_DIAGNOSTICS_UI,
+  SHOW_STEPS_SYNC_DIAGNOSTICS_IN_DEV,
+} from '../components/StepsSyncDiagnosticsPanel'
+import { useStepsDiagnostics } from '../../steps/hooks/useStepsDiagnostics'
 import { useStepsSyncDiagnostics } from '../../steps/hooks/useStepsSyncDiagnostics'
 
 type Props = NativeStackScreenProps<ExploreStackParamList, 'Steps'>
@@ -76,9 +82,26 @@ export default function StepsScreen({ navigation }: Props) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const daily = useDailySteps()
-  const syncDiagnostics = useStepsSyncDiagnostics(daily)
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [clubsModalOpen, setClubsModalOpen] = useState(false)
+  const [manualDiagnosisOpen, setManualDiagnosisOpen] = useState(false)
+
+  const diagnostics = useStepsDiagnostics({
+    accessStatus: daily.accessStatus,
+    stepStatus: daily.stepStatus,
+    todaySteps: daily.todaySteps,
+    onRequestPermission: daily.requestAccess,
+    onOpenSettings: daily.openSettings,
+    onInstallHealthConnect: daily.installHealthConnect,
+    onRefresh: daily.refresh,
+  })
+
+  const showDiagnosisPanel = diagnostics.shouldDiagnoseAuto || manualDiagnosisOpen
+  const showSyncDiagnostics =
+    SHOW_STEPS_SYNC_DIAGNOSTICS_UI ||
+    (__DEV__ && SHOW_STEPS_SYNC_DIAGNOSTICS_IN_DEV && showDiagnosisPanel)
+
+  const syncDiagnostics = useStepsSyncDiagnostics(daily, { enabled: showSyncDiagnostics })
   const monthRange = monthRangeKeys()
 
   const historyQuery = useQuery({
@@ -107,6 +130,34 @@ export default function StepsScreen({ navigation }: Props) {
       })()
     }, [daily.refresh, queryClient]),
   )
+
+  useFocusEffect(
+    useCallback(() => {
+      if (diagnostics.shouldDiagnoseAuto) {
+        void diagnostics.runDiagnosis()
+      }
+    }, [diagnostics.shouldDiagnoseAuto, diagnostics.runDiagnosis]),
+  )
+
+  const openManualDiagnosis = useCallback(() => {
+    setManualDiagnosisOpen(true)
+    void (async () => {
+      await diagnostics.runDiagnosisWithRefresh()
+      if (
+        daily.stepStatus === 'ready' ||
+        daily.stepStatus === 'raw_fallback_used' ||
+        (daily.todaySteps > 0 && daily.accessStatus === 'ready')
+      ) {
+        diagnostics.showConnectedSummary()
+      }
+    })()
+  }, [
+    daily.accessStatus,
+    daily.stepStatus,
+    daily.todaySteps,
+    diagnostics.runDiagnosisWithRefresh,
+    diagnostics.showConnectedSummary,
+  ])
 
   const today = todayKey()
   const resolvedTodaySteps = daily.todaySteps
@@ -167,10 +218,13 @@ export default function StepsScreen({ navigation }: Props) {
   const showStatusBanner =
     needsStepsAccess ||
     daily.stepStatus === 'no_data' ||
-    daily.stepStatus === 'error'
+    daily.stepStatus === 'error' ||
+    daily.stepStatus === 'raw_fallback_used'
 
   const showConnectedSummary =
     daily.stepStatus === 'ready' || daily.stepStatus === 'raw_fallback_used'
+
+  const showLegacyAccessCard = showStatusBanner && !showDiagnosisPanel
 
   const goToClub = () => {
     navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
@@ -189,7 +243,16 @@ export default function StepsScreen({ navigation }: Props) {
     <View style={styles.root}>
       <AppTopBar title="Dnevni koraci" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {showStatusBanner ? (
+        {showDiagnosisPanel ? (
+          <StepsDiagnosisCard
+            diagnosis={diagnostics.diagnosis}
+            loading={diagnostics.loading}
+            onAction={() => void diagnostics.handleAction()}
+            onRetry={() => void diagnostics.runDiagnosisWithRefresh()}
+          />
+        ) : null}
+
+        {showLegacyAccessCard ? (
           <StepsAccessCard
             accessStatus={daily.accessStatus}
             connected={showConnectedSummary}
@@ -203,8 +266,17 @@ export default function StepsScreen({ navigation }: Props) {
           />
         ) : null}
 
+        {!showDiagnosisPanel ? (
+          <Pressable onPress={openManualDiagnosis} style={styles.diagnosisLink} hitSlop={8}>
+            <Ionicons name="help-circle-outline" size={16} color={colors.textMuted} />
+            <Text variant="small" color={colors.textMuted}>
+              Problem sa koracima?
+            </Text>
+          </Pressable>
+        ) : null}
+
         {daily.stepStatus === 'no_data' || daily.stepStatus === 'error' ? (
-          daily.stepActionLabel ? (
+          !showDiagnosisPanel && daily.stepActionLabel ? (
             <Button
               title={daily.stepActionLabel}
               variant="secondary"
@@ -328,7 +400,7 @@ export default function StepsScreen({ navigation }: Props) {
           </Card>
         )}
 
-        {SHOW_STEPS_SYNC_DIAGNOSTICS_UI ? (
+        {showSyncDiagnostics ? (
           <StepsSyncDiagnosticsPanel
             report={syncDiagnostics.report}
             loading={syncDiagnostics.loading}
@@ -383,6 +455,13 @@ export default function StepsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
+  diagnosisLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
   dayPicker: { gap: spacing.sm, paddingVertical: spacing.xs },
   dayPill: {
     minWidth: 56,

@@ -111,7 +111,7 @@ export function StepsDiagnosisCard({ diagnosis, loading, onAction, onRetry }: Pr
             <Pressable onPress={() => setDebugOpen(true)} style={styles.debugTrigger} hitSlop={8}>
               <Ionicons name="bug-outline" size={14} color={colors.textSubtle} />
               <Text variant="small" color={colors.textSubtle}>
-                Debug
+                Debug detalji
               </Text>
             </Pressable>
           ) : null}

@@ -55,9 +55,6 @@ export interface StepsDiagnosis {
   debug?: StepsDiagnosisDebug
 }
 
-const SAMSUNG_HC_HINT =
-  'U Samsung Health aplikaciji otvori Settings > Health Connect, dozvoli dijeljenje koraka, zatim uradi Sync now i vrati se u Planiner.'
-
 function debugFromReport(report: HealthConnectDebugReport): StepsDiagnosisDebug {
   const origins = [
     ...report.rawRecords.today.origins.map((o) => o.packageName),
@@ -78,13 +75,6 @@ function debugFromReport(report: HealthConnectDebugReport): StepsDiagnosisDebug 
     nowIso: report.dateRanges.nowIso,
     lastError: report.lastError || undefined,
   }
-}
-
-function hasSamsungOrigin(report: HealthConnectDebugReport): boolean {
-  return (
-    report.rawRecords.today.origins.some((o) => o.isSamsungHealth) ||
-    report.rawRecords.week.origins.some((o) => o.isSamsungHealth)
-  )
 }
 
 function diagnosisFromHcReport(report: HealthConnectDebugReport): StepsDiagnosis {
@@ -178,7 +168,7 @@ function diagnosisFromHcReport(report: HealthConnectDebugReport): StepsDiagnosis
       status: 'aggregate_empty_raw_available',
       userTitle: 'Koraci pronađeni',
       userMessage:
-        'Koraci su pronađeni, ali ih sistemski zbir trenutno ne vraća. Planiner koristi direktne zapise koraka.',
+        'Koraci su pronađeni, ali ih sistemski zbir trenutno nije vratio. Planiner privremeno koristi direktne zapise koraka.',
       actionLabel: 'Provjeri ponovo',
       actionType: 'refresh',
       fallbackTodaySteps: rawToday,
@@ -198,14 +188,11 @@ function diagnosisFromHcReport(report: HealthConnectDebugReport): StepsDiagnosis
     }
   }
 
-  const samsungHint = hasSamsungOrigin(report)
-    ? ''
-    : ' Provjeri da li je u Samsung Health-u uključeno dijeljenje koraka sa Health Connect-om.'
-
   return {
     status: rawToday === 0 && rawWeek === 0 ? 'source_not_syncing' : 'no_step_data',
     userTitle: 'Nema podataka o koracima',
-    userMessage: `Planiner ima dozvolu, ali Health Connect trenutno nema tvoje korake. Najčešći razlog je da Samsung Health ne šalje korake u Health Connect.${samsungHint} ${SAMSUNG_HC_HINT}`,
+    userMessage:
+      'Planiner ima dozvolu, ali Health Connect trenutno nema tvoje korake. Najčešći razlog je da Samsung Health ne dijeli korake sa Health Connect-om. Provjeri da li je u Samsung Health aplikaciji uključeno dijeljenje koraka sa Health Connect-om, zatim se vrati u Planiner i dodirni „Provjeri ponovo“.',
     actionLabel: 'Otvori Health Connect',
     actionType: 'open_health_connect_settings',
     debug,
@@ -277,106 +264,23 @@ export async function runStepsDiagnosis(options: {
     }
   }
 
-  const { getTodaySteps } = await import('./stepsService')
-  const readResult = await getTodaySteps()
-
-  const baseDiagnosis: StepsDiagnosis = {
-    status: mapReadStatusToDiagnosis(readResult.status),
-    userTitle: readResult.userTitle,
-    userMessage: readResult.userMessage,
-    actionLabel: readResult.actionLabel,
-    actionType: mapUserActionToDiagnosisAction(readResult.actionType),
-    debug: {
-      todayAggregateSteps: readResult.aggregateSteps,
-      todayRawStepsSum: readResult.rawStepsTotal,
-      lastError: readResult.debugMessage,
-    },
-  }
-
   if (Platform.OS === 'ios') {
-    return baseDiagnosis
+    return diagnosisFromIos(options.accessStatus, options.todaySteps)
   }
 
   try {
     const report = await runHealthConnectDebugReport()
-    return {
-      ...baseDiagnosis,
-      debug: {
-        healthConnectAvailable: report.availability === 'available' && report.initialized,
-        readStepsPermissionGranted: report.hasReadStepsPermission,
-        todayAggregateSteps: report.aggregate.today,
-        weekAggregateSteps: report.aggregate.week,
-        monthAggregateSteps: report.aggregate.month,
-        todayRawRecordsCount: report.rawRecords.today.recordCount,
-        todayRawStepsSum: report.rawRecords.today.stepSum,
-        weekRawRecordsCount: report.rawRecords.week.recordCount,
-        weekRawStepsSum: report.rawRecords.week.stepSum,
-        dataOrigins: [
-          ...new Set(
-            [
-              ...report.rawRecords.today.origins.map((o) => o.packageName),
-              ...report.rawRecords.week.origins.map((o) => o.packageName),
-            ].filter((o) => o !== 'unknown'),
-          ),
-        ],
-        todayStartIso: report.dateRanges.todayStartIso,
-        nowIso: report.dateRanges.nowIso,
-        lastError: report.lastError || readResult.debugMessage,
-      },
-    }
+    return diagnosisFromHcReport(report)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     return {
-      ...baseDiagnosis,
       status: 'error',
       userTitle: 'Greška pri dijagnostici',
       userMessage: 'Nije moguće proveriti stanje koraka. Pokušaj ponovo.',
       actionLabel: 'Provjeri ponovo',
       actionType: 'refresh',
-      debug: { ...baseDiagnosis.debug, lastError: msg },
+      debug: { lastError: msg },
     }
-  }
-}
-
-function mapUserActionToDiagnosisAction(
-  action?: import('../types/stepsTypes').StepsUserAction,
-): StepsDiagnosisActionType | undefined {
-  switch (action) {
-    case 'request_permission':
-      return 'request_permission'
-    case 'install_health_connect':
-      return 'open_health_connect'
-    case 'open_health_connect_settings':
-      return 'open_health_connect_settings'
-    case 'refresh':
-      return 'refresh'
-    case 'none':
-      return 'none'
-    default:
-      return undefined
-  }
-}
-
-function mapReadStatusToDiagnosis(
-  status: import('../types/stepsTypes').StepsReadStatus,
-): StepsDiagnosisStatus {
-  switch (status) {
-    case 'ready':
-      return 'connected'
-    case 'raw_fallback_used':
-      return 'aggregate_empty_raw_available'
-    case 'permission_missing':
-      return 'missing_permission'
-    case 'health_connect_unavailable':
-    case 'health_connect_update_required':
-    case 'unsupported_platform':
-      return 'health_connect_unavailable'
-    case 'no_data':
-      return 'no_step_data'
-    case 'error':
-      return 'error'
-    default:
-      return 'error'
   }
 }
 

@@ -1,20 +1,32 @@
-import { useCallback, useRef, useState } from 'react'
-import { Platform } from 'react-native'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { StepsAccessStatus } from '../../activity/services/stepsAccess'
 import type { StepsReadStatus } from '../types/stepsTypes'
-import { runHealthConnectDebugReport } from '../services/healthConnectDebug'
 import type { StepsDiagnosis } from '../services/stepsTroubleshooter'
 import {
   executeStepsDiagnosisAction,
-  type StepsDiagnosisActionType,
+  runStepsDiagnosis,
 } from '../services/stepsTroubleshooter'
+
+const AUTO_DIAGNOSE_STEP_STATUSES: StepsReadStatus[] = [
+  'permission_missing',
+  'health_connect_unavailable',
+  'health_connect_update_required',
+  'no_data',
+  'error',
+  'raw_fallback_used',
+]
+
+const AUTO_DIAGNOSE_ACCESS_STATUSES: StepsAccessStatus[] = [
+  'permission_needed',
+  'permission_denied',
+  'device_unavailable',
+  'health_connect_update_required',
+]
 
 export function useStepsDiagnostics(options: {
   accessStatus: StepsAccessStatus | 'loading'
   stepStatus: StepsReadStatus
-  stepsConnected: boolean
   todaySteps: number
-  stepActionType?: StepsDiagnosisActionType
   onRequestPermission: () => Promise<void>
   onOpenSettings: () => Promise<void>
   onInstallHealthConnect: () => Promise<void>
@@ -23,7 +35,6 @@ export function useStepsDiagnostics(options: {
   const {
     accessStatus,
     stepStatus,
-    stepsConnected,
     todaySteps,
     onRequestPermission,
     onOpenSettings,
@@ -35,59 +46,25 @@ export function useStepsDiagnostics(options: {
   const [loading, setLoading] = useState(false)
   const runningRef = useRef(false)
 
-  const shouldDiagnose =
-    accessStatus !== 'loading' &&
-    (stepStatus === 'error' ||
-      stepStatus === 'no_data' ||
-      stepStatus === 'permission_missing' ||
-      stepStatus === 'health_connect_unavailable' ||
-      stepStatus === 'health_connect_update_required')
+  const shouldDiagnoseAuto = useMemo(() => {
+    if (accessStatus === 'loading' || stepStatus === 'loading') return false
+    if (AUTO_DIAGNOSE_STEP_STATUSES.includes(stepStatus)) return true
+    if (AUTO_DIAGNOSE_ACCESS_STATUSES.includes(accessStatus)) return true
+    return false
+  }, [accessStatus, stepStatus])
 
   const runDiagnosis = useCallback(async () => {
     if (runningRef.current || accessStatus === 'loading') return
-    if (Platform.OS !== 'android') return
     runningRef.current = true
     setLoading(true)
     try {
-      const report = await runHealthConnectDebugReport()
-      setDiagnosis({
-        status:
-          report.hasReadStepsPermission && report.aggregate.today > 0
-            ? 'connected'
-            : report.hasReadStepsPermission && report.rawRecords.today.stepSum > 0
-              ? 'aggregate_empty_raw_available'
-              : 'no_step_data',
-        userTitle: 'Debug — Health Connect',
-        userMessage: report.summary,
-        actionType: 'refresh',
-        debug: {
-          healthConnectAvailable: report.availability === 'available' && report.initialized,
-          readStepsPermissionGranted: report.hasReadStepsPermission,
-          todayAggregateSteps: report.aggregate.today,
-          weekAggregateSteps: report.aggregate.week,
-          monthAggregateSteps: report.aggregate.month,
-          todayRawRecordsCount: report.rawRecords.today.recordCount,
-          todayRawStepsSum: report.rawRecords.today.stepSum,
-          weekRawRecordsCount: report.rawRecords.week.recordCount,
-          weekRawStepsSum: report.rawRecords.week.stepSum,
-          dataOrigins: [
-            ...new Set(
-              [
-                ...report.rawRecords.today.origins.map((o: { packageName: string }) => o.packageName),
-                ...report.rawRecords.week.origins.map((o: { packageName: string }) => o.packageName),
-              ].filter((o: string) => o !== 'unknown'),
-            ),
-          ],
-          todayStartIso: report.dateRanges.todayStartIso,
-          nowIso: report.dateRanges.nowIso,
-          lastError: report.lastError || undefined,
-        },
-      })
+      const next = await runStepsDiagnosis({ accessStatus, todaySteps })
+      setDiagnosis(next)
     } finally {
       setLoading(false)
       runningRef.current = false
     }
-  }, [accessStatus])
+  }, [accessStatus, todaySteps])
 
   const runDiagnosisWithRefresh = useCallback(async () => {
     await onRefresh()
@@ -113,24 +90,22 @@ export function useStepsDiagnostics(options: {
     runDiagnosisWithRefresh,
   ])
 
-  const markConnected = useCallback(() => {
-    if (!stepsConnected || todaySteps <= 0) return
-    if (stepStatus !== 'ready' && stepStatus !== 'raw_fallback_used') return
+  const showConnectedSummary = useCallback(() => {
     setDiagnosis({
       status: 'connected',
       userTitle: 'Koraci su povezani',
       userMessage: 'Koraci su povezani i ažurirani.',
       actionType: 'none',
     })
-  }, [stepsConnected, stepStatus, todaySteps])
+  }, [])
 
   return {
     diagnosis,
     loading,
-    shouldDiagnose,
+    shouldDiagnoseAuto,
     runDiagnosis,
     runDiagnosisWithRefresh,
     handleAction,
-    markConnected,
+    showConnectedSummary,
   }
 }

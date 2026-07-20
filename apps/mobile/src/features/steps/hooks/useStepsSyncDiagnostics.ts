@@ -25,7 +25,11 @@ function buildPlaninerSnapshot(daily: DailyStepsState) {
   }
 }
 
-export function useStepsSyncDiagnostics(daily: DailyStepsState) {
+export function useStepsSyncDiagnostics(
+  daily: DailyStepsState,
+  options?: { enabled?: boolean },
+) {
+  const enabled = options?.enabled ?? true
   const { isLoggedIn } = useAuth()
   const [report, setReport] = useState<StepsSyncDiagnosticReport | null>(null)
   const [loading, setLoading] = useState(false)
@@ -35,6 +39,7 @@ export function useStepsSyncDiagnostics(daily: DailyStepsState) {
   dailyRef.current = daily
 
   const runDiagnostics = useCallback(async () => {
+    if (!enabled) return
     if (Platform.OS !== 'android') return
     if (runningRef.current) return
     runningRef.current = true
@@ -50,16 +55,17 @@ export function useStepsSyncDiagnostics(daily: DailyStepsState) {
       setLoading(false)
       runningRef.current = false
     }
-  }, [isLoggedIn])
+  }, [enabled, isLoggedIn])
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled) return
       void runDiagnostics()
-    }, [runDiagnostics]),
+    }, [enabled, runDiagnostics]),
   )
 
   useEffect(() => {
-    if (Platform.OS !== 'android') return
+    if (!enabled || Platform.OS !== 'android') return
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return
       const now = Date.now()
@@ -68,7 +74,7 @@ export function useStepsSyncDiagnostics(daily: DailyStepsState) {
       void runDiagnostics()
     })
     return () => sub.remove()
-  }, [runDiagnostics])
+  }, [enabled, runDiagnostics])
 
   return {
     report,

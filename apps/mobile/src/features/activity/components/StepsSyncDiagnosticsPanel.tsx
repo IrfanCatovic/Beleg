@@ -6,8 +6,11 @@ import { colors, radius, spacing } from '../../../theme'
 import { formatSteps } from '../../steps/services/stepsFormat'
 import type { StepsSyncDiagnosticReport } from '../../steps/services/stepsSyncDiagnostics'
 
-/** Uključi za dev dijagnostiku sinhronizacije koraka (Health Connect). */
+/** Uključi globalno za production test (npr. privremeno true za OTA test). */
 export const SHOW_STEPS_SYNC_DIAGNOSTICS_UI = false
+
+/** U dev buildu prikaži sync dijagnostiku kad je koraci dijagnostika otvorena. */
+export const SHOW_STEPS_SYNC_DIAGNOSTICS_IN_DEV = true
 
 interface Props {
   report: StepsSyncDiagnosticReport | null
