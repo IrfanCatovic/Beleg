@@ -17,7 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func DodajClanaPopeoSe(c *gin.Context) {
@@ -186,8 +185,19 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 	}
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijava.ID).Error; err != nil {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, prijava.AkcijaID)
+		if err != nil {
 			return err
+		}
+		akcija = *lockedAkcija
+
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, prijava.ID)
+		if err != nil {
+			return err
+		}
+		prijava = *lockedPrijava
+		if prijava.AkcijaID != akcija.ID {
+			return errors.New("Prijava ne pripada ovoj akciji")
 		}
 		if prijava.Platio == req.Platio {
 			return nil

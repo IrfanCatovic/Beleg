@@ -243,6 +243,16 @@ func LockAkcijaForUpdate(tx *gorm.DB, akcijaID uint) (*models.Akcija, error) {
 	return &akcija, nil
 }
 
+// LockPrijavaForUpdate zaključava red prijave unutar transakcije (SELECT FOR UPDATE).
+// Pozivalac mora prethodno zaključati akciju (Akcija → Prijava redoslijed).
+func LockPrijavaForUpdate(tx *gorm.DB, prijavaID uint) (*models.Prijava, error) {
+	var prijava models.Prijava
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijavaID).Error; err != nil {
+		return nil, err
+	}
+	return &prijava, nil
+}
+
 // EnsureCapacityAvailable proverava da li ima slobodnih mesta (maxLjudi=0 → neograničeno).
 func EnsureCapacityAvailable(tx *gorm.DB, akcijaID uint, maxLjudi int) error {
 	if maxLjudi <= 0 {

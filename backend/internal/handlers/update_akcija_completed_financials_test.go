@@ -292,8 +292,8 @@ func TestActiveAction_BasePriceChangeAllowed(t *testing.T) {
 	if reloadAkcijaCenaClan(t, db, akcija.ID) != 50 {
 		t.Fatal("expected new price saved")
 	}
-	if !getPrijavaPlatio(t, db, p.ID) {
-		t.Fatal("Platio must not change in this step")
+	if getPrijavaPlatio(t, db, p.ID) {
+		t.Fatal("Platio must reset when financial snapshot changes")
 	}
 }
 

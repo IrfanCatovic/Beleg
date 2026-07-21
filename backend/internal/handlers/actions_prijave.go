@@ -12,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func PrijaviNaAkciju(c *gin.Context) {
@@ -387,8 +386,25 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 
 	var resultPlatio bool
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijava.ID).Error; err != nil {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, akcija.ID)
+		if err != nil {
 			return err
+		}
+		if lockedAkcija.IsCompleted {
+			return helpers.ErrAkcijaAlreadyComplete
+		}
+		akcija = *lockedAkcija
+
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, prijava.ID)
+		if err != nil {
+			return err
+		}
+		prijava = *lockedPrijava
+		if prijava.AkcijaID != akcija.ID || prijava.KorisnikID != korisnik.ID {
+			return errors.New("Prijava ne pripada ovoj akciji")
+		}
+		if prijava.Status != "prijavljen" {
+			return errors.New("Ne možete menjati izbore nakon što je status potvrđen")
 		}
 
 		exclude := prijava.ID
@@ -435,6 +451,14 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		return tx.Save(oldIzbor).Error
 	}); err != nil {
 		errMsg := err.Error()
+		if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(errMsg, "Ne možete menjati izbore") {
+			c.JSON(http.StatusForbidden, gin.H{"error": errMsg})
+			return
+		}
 		if strings.Contains(errMsg, "rent opreme") || strings.Contains(errMsg, "Nedovoljno dostupne opreme") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 			return

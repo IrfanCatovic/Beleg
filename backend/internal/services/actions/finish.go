@@ -12,6 +12,7 @@ import (
 	"beleg-app/backend/internal/notifications"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type FinishActionInput struct {
@@ -38,6 +39,33 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 	rashodNaAkciji := in.RashodNaAkciji
 
 	err := db.Transaction(func(tx *gorm.DB) error {
+		locked, err := helpers.LockAkcijaForUpdate(tx, akcija.ID)
+		if err != nil {
+			return err
+		}
+		if locked.IsCompleted {
+			return helpers.ErrAkcijaAlreadyComplete
+		}
+		*akcija = *locked
+
+		var prijavaIDs []uint
+		if err := tx.Model(&models.Prijava{}).
+			Where("akcija_id = ? AND platio = ? AND status IN ?", akcija.ID, true, helpers.PrijavaActiveStatuses).
+			Order("id").
+			Pluck("id", &prijavaIDs).Error; err != nil {
+			return err
+		}
+		if len(prijavaIDs) > 0 {
+			var lockedPrijave []models.Prijava
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Preload("Korisnik").
+				Where("id IN ?", prijavaIDs).
+				Order("id").
+				Find(&lockedPrijave).Error; err != nil {
+				return err
+			}
+		}
+
 		akcija.IsCompleted = true
 		if err := tx.Save(akcija).Error; err != nil {
 			return err
@@ -53,7 +81,8 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 
 		var prijave []models.Prijava
 		if err := tx.Preload("Korisnik").
-			Where("akcija_id = ? AND platio = ? AND status IN ?", akcija.ID, true, []string{"prijavljen", "popeo se", "nije uspeo"}).
+			Where("akcija_id = ? AND platio = ? AND status IN ?", akcija.ID, true, helpers.PrijavaActiveStatuses).
+			Order("id").
 			Find(&prijave).Error; err != nil {
 			return err
 		}

@@ -545,15 +545,16 @@ func deleteAkcijaDataTx(tx *gorm.DB, akcijaID uint) error {
 
 // executeUpdateAkcijaTx atomski ažurira akciju, nested podatke i guide prijavu.
 // Za završenu akciju finansijska konfiguracija mora ostati nepromijenjena.
+// Za aktivnu akciju promjena finansijskog snapshot-a resetuje Platio=true prijave.
 func executeUpdateAkcijaTx(tx *gorm.DB, akcija models.Akcija, nestedInput ActionNestedSyncInput) error {
-	var locked models.Akcija
-	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&locked, akcija.ID).Error; err != nil {
+	locked, err := helpers.LockAkcijaForUpdate(tx, akcija.ID)
+	if err != nil {
 		return err
 	}
 	wasCompleted := locked.IsCompleted
 	akcija.IsCompleted = locked.IsCompleted
 
-	oldSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, locked)
+	oldSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, *locked)
 	if err != nil {
 		return err
 	}
@@ -565,17 +566,23 @@ func executeUpdateAkcijaTx(tx *gorm.DB, akcija models.Akcija, nestedInput Action
 		return err
 	}
 
+	var saved models.Akcija
+	if err := tx.First(&saved, akcija.ID).Error; err != nil {
+		return err
+	}
+	newSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, saved)
+	if err != nil {
+		return err
+	}
+	financialChanged := !helpers.ActionFinancialSnapshotsEqual(oldSnapshot, newSnapshot)
+
 	if wasCompleted {
-		var saved models.Akcija
-		if err := tx.First(&saved, akcija.ID).Error; err != nil {
-			return err
-		}
-		newSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, saved)
-		if err != nil {
-			return err
-		}
-		if !helpers.ActionFinancialSnapshotsEqual(oldSnapshot, newSnapshot) {
+		if financialChanged {
 			return helpers.ErrCompletedActionFinancialsImmutable
+		}
+	} else if financialChanged {
+		if _, err := helpers.ResetPaidPrijaveForFinancialChangeTx(tx, akcija.ID); err != nil {
+			return err
 		}
 	}
 

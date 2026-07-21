@@ -325,6 +325,15 @@ func ActionFinancialSnapshotsEqual(a, b ActionFinancialSnapshot) bool {
 	return true
 }
 
+// ResetPaidPrijaveForFinancialChangeTx postavlja Platio=false za sve plaćene prijave
+// aktivne akcije čiji status ulazi u kapacitet/payment praćenje.
+func ResetPaidPrijaveForFinancialChangeTx(tx *gorm.DB, akcijaID uint) (int64, error) {
+	result := tx.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND platio = ? AND status IN ?", akcijaID, true, PrijavaActiveStatuses).
+		Update("platio", false)
+	return result.RowsAffected, result.Error
+}
+
 func ResolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {
 	if actionClubID == nil || *actionClubID == 0 {
 		return fallbackUserID
