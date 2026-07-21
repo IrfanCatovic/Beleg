@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AkcijaDetail } from '@beleg/shared'
+import type { Prijava } from '@beleg/shared'
 import {
   buildChoicesPayload,
   computeLogisticsTotals,
   computeParticipantSaldo,
   effectiveBaseCena,
   effectiveIsClanKluba,
+  getActionCapacityUsedCount,
+  isActionCapacityFull,
   getApiErrorMessage,
 } from '@beleg/shared'
 import {
@@ -31,6 +34,7 @@ function registrationErrorMessage(err: unknown): string {
 export function useActionDetailRegistration(options: {
   actionId: number
   akcija: AkcijaDetail | undefined
+  prijave?: Prijava[]
   user: SessionUser | null
   inviteToken?: string
   mojaPrijavaData: MojaPrijavaResponse | undefined
@@ -42,7 +46,7 @@ export function useActionDetailRegistration(options: {
     opts?: { variant?: 'default' | 'danger'; confirmLabel?: string },
   ) => Promise<boolean>
 }) {
-  const { actionId, akcija, user, inviteToken, mojaPrijavaData, canCancel, showAlert, showConfirm } =
+  const { actionId, akcija, prijave, user, inviteToken, mojaPrijavaData, canCancel, showAlert, showConfirm } =
     options
   const queryClient = useQueryClient()
 
@@ -101,6 +105,10 @@ export function useActionDetailRegistration(options: {
     !!akcija?.isCompleted ||
     (isRegistered && prijava?.status !== 'prijavljen')
 
+  const capacityUsedCount = getActionCapacityUsedCount(akcija ?? {}, prijave)
+  const isCapacityFull =
+    !!akcija && !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+
   const invalidate = useCallback(async () => {
     await invalidateActionQueries(queryClient, actionId, inviteToken)
   }, [queryClient, actionId, inviteToken])
@@ -108,6 +116,9 @@ export function useActionDetailRegistration(options: {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!akcija) throw new Error('Nema akcije')
+      if (!isRegistered && !isPendingSignup && isCapacityFull) {
+        throw new Error('CAPACITY_FULL')
+      }
       if (isPendingSignup && !selectionsDirty) {
         throw new Error('PENDING_ONLY')
       }
@@ -138,6 +149,10 @@ export function useActionDetailRegistration(options: {
     onError: async (err) => {
       if (err instanceof Error && err.message === 'PENDING_ONLY') {
         await showAlert('Info', 'Zahtev za prijavu je na čekanju odobrenja.')
+        return
+      }
+      if (err instanceof Error && err.message === 'CAPACITY_FULL') {
+        await showAlert('Info', registrationErrorMessage(new Error('Akcija je popunjena.')))
         return
       }
       await showAlert('Greška', registrationErrorMessage(err))
@@ -203,6 +218,7 @@ export function useActionDetailRegistration(options: {
     pendingSignup,
     isPendingSignup,
     isRegistered,
+    isCapacityFull,
     isClan,
     baseCena,
     priceTotals,

@@ -6,6 +6,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import {
   buildActionInviteWhatsAppMessage,
   countActivePrijave,
+  getActionRegisteredCount,
+  getActionCapacityUsedCount,
   getApiErrorMessage,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
@@ -136,6 +138,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   const registration = useActionDetailRegistration({
     actionId: id,
     akcija,
+    prijave: membersQuery.data,
     user,
     inviteToken,
     mojaPrijavaData: mojaPrijavaQuery.data,
@@ -334,11 +337,13 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     [akcija.planina, akcija.vrh].filter(Boolean).join(' · ') ||
     akcija.ferrataSnapshot?.lokacija ||
     '—'
-  const memberCount = countActivePrijave(membersQuery.data ?? [])
-  const prevozOccupied = buildPrevozOccupancy(membersQuery.data ?? [])
   const showPriceBanner =
     !!user && (akcija.cenaClan != null || akcija.cenaOstali != null)
   const showMembers = akcija.prikaziListuPrijavljenih !== false && !!user
+  const prijaveForCounts = showMembers ? membersQuery.data : undefined
+  const registeredCount = getActionRegisteredCount(akcija, prijaveForCounts)
+  const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
+  const prevozOccupied = buildPrevozOccupancy(membersQuery.data ?? [])
   const bottomPad = spacing.xxl + 100
 
   return (
@@ -350,7 +355,11 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
           onBack={() => navigation.goBack()}
         />
 
-        <ActionDetailStatsBar akcija={akcija} memberCount={memberCount} />
+        <ActionDetailStatsBar
+          akcija={akcija}
+          registeredCount={registeredCount}
+          capacityUsedCount={capacityUsedCount}
+        />
 
         <View style={styles.body}>
           <ActionDetailMembershipBanner
@@ -490,6 +499,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         isPendingSignup={registration.isPendingSignup}
         isRegistered={registration.isRegistered}
         isCompleted={!!akcija.isCompleted}
+        isCapacityFull={registration.isCapacityFull}
         canCancel={canCancel}
         saving={registration.saveMutation.isPending}
         onSave={() => registration.saveMutation.mutate()}

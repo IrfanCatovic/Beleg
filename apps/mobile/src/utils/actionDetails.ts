@@ -1,5 +1,7 @@
 import type { Prijava } from '@beleg/shared'
 
+export { countActivePrijave } from '@beleg/shared'
+
 export function buildPrevozOccupancy(prijave: Prijava[]): Map<number, number> {
   const map = new Map<number, number>()
   for (const p of prijave) {
@@ -10,8 +12,4 @@ export function buildPrevozOccupancy(prijave: Prijava[]): Map<number, number> {
     }
   }
   return map
-}
-
-export function countActivePrijave(prijave: Prijava[]): number {
-  return prijave.filter((p) => p.status === 'prijavljen').length
 }

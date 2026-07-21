@@ -29,7 +29,14 @@ import {
 import TransportCard from '../../components/action-details/TransportCard'
 import AddTransportPlaceholder from '../../components/action-details/AddTransportPlaceholder'
 import AddTransportModal from '../../components/action-details/AddTransportModal'
-import { computeParticipantSaldo, getActionPriceDisplay, computePERForAkcija } from '@beleg/shared'
+import {
+  computeParticipantSaldo,
+  getActionPriceDisplay,
+  computePERForAkcija,
+  getActionRegisteredCount,
+  getActionCapacityUsedCount,
+  isActionCapacityFull,
+} from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
 import MemberDetailsModal from '../../components/action-details/MemberDetailsModal'
@@ -736,8 +743,11 @@ export default function ActionDetails() {
     Number(user.klubId) === Number(akcija.klubId)
   /** Blagajnik, sekretar, menadžer opreme, itd. mogu da vide modal; admin/vodič i dalje `canManageHost` za tri akcije. */
   const canOpenMemberModal = !!user && canSeePrijave && !isLimitedView && !isHostClubPlainMember
-  const memberCount =
-    user && canSeePrijave && !isLimitedView ? prijave.length : (akcija.prijaveCount ?? 0)
+  const prijaveForCounts = user && canSeePrijave && !isLimitedView ? prijave : undefined
+  const registeredCount = getActionRegisteredCount(akcija, prijaveForCounts)
+  const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
+  const isCapacityFull =
+    !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
@@ -778,7 +788,8 @@ export default function ActionDetails() {
         isFerrataAction={isFerrataAction}
         ferrataDifficultyLabel={ferrataDifficultyLabel}
         ferrataCatalogDuration={ferrataCatalogDuration}
-        memberCount={memberCount}
+        registeredCount={registeredCount}
+        capacityUsedCount={capacityUsedCount}
         effectiveIsClanKluba={effectiveIsClanKluba}
         mojaPrijava={mojaPrijava}
         user={user}
@@ -938,7 +949,7 @@ export default function ActionDetails() {
             )}
             <StatCell
               icon={<svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
-              value={String(memberCount)}
+              value={String(registeredCount)}
               label={t('registered')}
             />
           </div>
@@ -1266,8 +1277,23 @@ export default function ActionDetails() {
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50/80 border border-gray-100">
                       <span className="text-[11px] text-gray-500 font-medium">{t('registeredCountLabel')}</span>
-                      <span className="text-sm font-bold text-gray-900">{memberCount}</span>
+                      <span className="text-sm font-bold text-gray-900">{registeredCount}</span>
                     </div>
+                    {!akcija.isCompleted && akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-violet-50/80 border border-violet-100">
+                        <span className="text-[11px] text-violet-600 font-medium">
+                          {t('seatsLabel', { defaultValue: 'Mesta' })}
+                        </span>
+                        <span className="text-sm font-bold text-violet-700 tabular-nums">
+                          {capacityUsedCount} / {akcija.maxLjudi}
+                        </span>
+                      </div>
+                    )}
+                    {isCapacityFull && !mojaPrijava && !isPendingSignup && (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-rose-50 border border-rose-200">
+                        <span className="text-[11px] text-rose-800 font-bold">{t('registrationFullFriendly')}</span>
+                      </div>
+                    )}
                     {akcija.isCompleted && user && canManageHost && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
                         <span className="text-[11px] text-emerald-600 font-medium">{t('climbedCountLabel')}</span>
@@ -1539,7 +1565,12 @@ export default function ActionDetails() {
                       <button
                         type="button"
                         onClick={handleSavePrijavaOrUpdate}
-                        disabled={savingSelections || (mojaPrijava != null && !selectionsDirty && !isPendingSignup) || isPendingSignup}
+                        disabled={
+                          savingSelections ||
+                          (mojaPrijava != null && !selectionsDirty && !isPendingSignup) ||
+                          isPendingSignup ||
+                          (isCapacityFull && !mojaPrijava && !isPendingSignup)
+                        }
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-extrabold bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1702,7 +1733,7 @@ export default function ActionDetails() {
                     </span>
                   )}
                   <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                    {memberCount}
+                    {registeredCount}
                   </span>
                 </div>
               </div>

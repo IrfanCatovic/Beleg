@@ -12,7 +12,8 @@ export interface ActionDetailsHeaderProps {
   isFerrataAction: boolean
   ferrataDifficultyLabel: string
   ferrataCatalogDuration: string | null
-  memberCount: number
+  registeredCount: number
+  capacityUsedCount: number
   effectiveIsClanKluba: boolean
   mojaPrijava: { status: string } | null | undefined
   user: { username?: string } | null
@@ -27,7 +28,8 @@ export function ActionDetailsHeader({
   isFerrataAction,
   ferrataDifficultyLabel,
   ferrataCatalogDuration,
-  memberCount,
+  registeredCount,
+  capacityUsedCount,
   effectiveIsClanKluba,
   mojaPrijava,
   user,
@@ -346,11 +348,11 @@ export function ActionDetailsHeader({
                       )}
                     </>
                   )}
-                  {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                  {akcija.maxLjudi != null && akcija.maxLjudi > 0 && !akcija.isCompleted && (
                     <HeroMini
                       color="violet"
                       label="Mesta"
-                      value={`${memberCount}/${akcija.maxLjudi}`}
+                      value={`${capacityUsedCount}/${akcija.maxLjudi}`}
                       icon={
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
@@ -413,8 +415,14 @@ export function ActionDetailsHeader({
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">{t('registered', { defaultValue: 'Prijavljeni' })}</p>
                       <p className="text-2xl font-extrabold text-white leading-none mt-0.5">
-                        {memberCount}
-                        {akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                        {registeredCount}
+                        {!akcija.isCompleted && akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                          <span className="text-sm font-bold opacity-70 ml-1">
+                            {' · '}
+                            {t('seatsLabel', { defaultValue: 'Mesta' })} {capacityUsedCount}/{akcija.maxLjudi}
+                          </span>
+                        )}
+                        {akcija.isCompleted && akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
                           <span className="text-sm font-bold opacity-70 ml-1">/ {akcija.maxLjudi}</span>
                         )}
                       </p>

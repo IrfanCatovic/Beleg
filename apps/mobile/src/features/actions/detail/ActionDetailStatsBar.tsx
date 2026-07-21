@@ -7,7 +7,8 @@ import { colors, spacing } from '../../../theme'
 
 interface ActionDetailStatsBarProps {
   akcija: AkcijaDetail
-  memberCount: number
+  registeredCount: number
+  capacityUsedCount: number
 }
 
 type StatCell = {
@@ -16,7 +17,35 @@ type StatCell = {
   value: string
 }
 
-function buildMountainCells(akcija: AkcijaDetail, memberLabel: string): StatCell[] {
+function buildPeopleCells(
+  akcija: AkcijaDetail,
+  registeredCount: number,
+  capacityUsedCount: number,
+): StatCell[] {
+  const cells: StatCell[] = [
+    { icon: 'people-outline', label: 'PRIJAVLJENO', value: String(registeredCount) },
+  ]
+  if (!akcija.isCompleted && akcija.maxLjudi && akcija.maxLjudi > 0) {
+    cells.push({
+      icon: 'ticket-outline',
+      label: 'MESTA',
+      value: `${capacityUsedCount} / ${akcija.maxLjudi}`,
+    })
+  } else if (akcija.isCompleted && akcija.maxLjudi && akcija.maxLjudi > 0) {
+    cells[0] = {
+      icon: 'people-outline',
+      label: 'PRIJAVLJENIH',
+      value: `${registeredCount} / ${akcija.maxLjudi}`,
+    }
+  }
+  return cells
+}
+
+function buildMountainCells(
+  akcija: AkcijaDetail,
+  registeredCount: number,
+  capacityUsedCount: number,
+): StatCell[] {
   const per = computePERForAkcija(akcija)
   const cells: StatCell[] = [
     { icon: 'triangle-outline', label: 'PLANINA', value: akcija.planina || '—' },
@@ -46,26 +75,26 @@ function buildMountainCells(akcija: AkcijaDetail, memberLabel: string): StatCell
       value: `${akcija.visinaVrhM} m`,
     })
   }
-  cells.push({ icon: 'people-outline', label: 'PRIJAVLJENIH', value: memberLabel })
+  cells.push(...buildPeopleCells(akcija, registeredCount, capacityUsedCount))
   return cells
 }
 
-export function ActionDetailStatsBar({ akcija, memberCount }: ActionDetailStatsBarProps) {
+export function ActionDetailStatsBar({
+  akcija,
+  registeredCount,
+  capacityUsedCount,
+}: ActionDetailStatsBarProps) {
   const isFerrata = akcija.tipAkcije === 'via_ferrata'
   const snap = akcija.ferrataSnapshot
-  const memberLabel =
-    akcija.maxLjudi && akcija.maxLjudi > 0
-      ? `${memberCount} / ${akcija.maxLjudi}`
-      : String(memberCount)
 
   const cells: StatCell[] = isFerrata
     ? [
         { icon: 'trail-sign-outline', label: 'FERATA', value: snap?.naziv || akcija.naziv },
         { icon: 'map-outline', label: 'REGION', value: snap?.lokacija || akcija.planina || '—' },
-        { icon: 'people-outline', label: 'PRIJAVLJENO', value: memberLabel },
+        ...buildPeopleCells(akcija, registeredCount, capacityUsedCount),
         { icon: 'fitness-outline', label: 'TEŽINA', value: akcija.tezina || snap?.tezina || '—' },
       ]
-    : buildMountainCells(akcija, memberLabel)
+    : buildMountainCells(akcija, registeredCount, capacityUsedCount)
 
   const cols = 2
   const rows = Math.ceil(cells.length / cols)
@@ -75,7 +104,7 @@ export function ActionDetailStatsBar({ akcija, memberCount }: ActionDetailStatsB
       <View style={styles.grid}>
         {cells.map((c, i) => (
           <View
-            key={c.label}
+            key={`${c.label}-${i}`}
             style={[
               styles.cell,
               i % cols !== cols - 1 && styles.cellBorderRight,

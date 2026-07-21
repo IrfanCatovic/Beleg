@@ -8,6 +8,7 @@ interface ActionDetailBottomBarProps {
   isPendingSignup: boolean
   isRegistered: boolean
   isCompleted: boolean
+  isCapacityFull: boolean
   canCancel: boolean
   saving: boolean
   onSave: () => void
@@ -20,6 +21,7 @@ export function ActionDetailBottomBar({
   isPendingSignup,
   isRegistered,
   isCompleted,
+  isCapacityFull,
   canCancel,
   saving,
   onSave,
@@ -39,7 +41,13 @@ export function ActionDetailBottomBar({
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom + spacing.sm }]}>
       {showPrimary ? (
-        <Button title="Pošalji zahtev za prijavu" loading={saving} onPress={onSave} fullWidth />
+        isCapacityFull ? (
+          <Text variant="small" color={colors.textMuted} style={styles.pending}>
+            Sva mesta su popunjena.
+          </Text>
+        ) : (
+          <Button title="Pošalji zahtev za prijavu" loading={saving} onPress={onSave} fullWidth />
+        )
       ) : null}
       {showSave ? (
         <Button title="Sačuvaj izbore" loading={saving} onPress={onSave} fullWidth />

@@ -9,6 +9,8 @@ import {
   computeParticipantSaldo,
   effectiveBaseCena,
   effectiveIsClanKluba,
+  getActionCapacityUsedCount,
+  isActionCapacityFull,
   getApiErrorMessage,
 } from '@beleg/shared'
 import {
@@ -106,6 +108,12 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
 
   const pending = mojaQuery.data?.signupRequest?.status === 'pending'
   const registered = mojaQuery.data?.prijava?.status === 'prijavljen'
+  const capacityUsedCount = akcija
+    ? getActionCapacityUsedCount(akcija, prijaveQuery.data)
+    : 0
+  const isCapacityFull = akcija
+    ? !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+    : false
 
   if (!visible || !action) return null
 
@@ -128,6 +136,11 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
             <Text color={colors.textMuted}>
               {pending ? 'Već imate zahtev na čekanju.' : 'Već ste prijavljeni.'}
             </Text>
+            <Button title="Zatvori" variant="ghost" onPress={onClose} />
+          </View>
+        ) : isCapacityFull ? (
+          <View style={styles.center}>
+            <Text color={colors.textMuted}>Sva mesta su popunjena.</Text>
             <Button title="Zatvori" variant="ghost" onPress={onClose} />
           </View>
         ) : !akcija ? (

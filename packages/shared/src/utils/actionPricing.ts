@@ -254,6 +254,46 @@ export function filterTrackedPrijave(prijave: Prijava[]): Prijava[] {
   return prijave.filter((p) => p.status !== 'otkazano')
 }
 
+const CAPACITY_PRIJAVA_STATUSES = new Set(['prijavljen', 'popeo se', 'nije uspeo'])
+
 export function countActivePrijave(prijave: Prijava[]): number {
   return prijave.filter((p) => p.status === 'prijavljen').length
+}
+
+export function countCapacityUsedPrijave(prijave: Prijava[]): number {
+  return prijave.filter((p) => CAPACITY_PRIJAVA_STATUSES.has(p.status)).length
+}
+
+export function getActionRegisteredCount(
+  action: Pick<AkcijaDetail, 'prijaveCount'>,
+  prijave?: Prijava[],
+): number {
+  if (typeof action.prijaveCount === 'number' && Number.isFinite(action.prijaveCount)) {
+    return action.prijaveCount
+  }
+  if (prijave) {
+    return countActivePrijave(prijave)
+  }
+  return 0
+}
+
+export function getActionCapacityUsedCount(
+  action: Pick<AkcijaDetail, 'capacityUsedCount' | 'prijaveCount'>,
+  prijave?: Prijava[],
+): number {
+  if (typeof action.capacityUsedCount === 'number' && Number.isFinite(action.capacityUsedCount)) {
+    return action.capacityUsedCount
+  }
+  if (prijave) {
+    return countCapacityUsedPrijave(prijave)
+  }
+  return action.prijaveCount ?? 0
+}
+
+export function isActionCapacityFull(
+  maxLjudi: number | null | undefined,
+  capacityUsedCount: number,
+): boolean {
+  if (maxLjudi == null || maxLjudi <= 0) return false
+  return capacityUsedCount >= maxLjudi
 }
