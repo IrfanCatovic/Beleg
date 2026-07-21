@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func PrijaviNaAkciju(c *gin.Context) {
@@ -375,7 +376,21 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		}
 	}
 	payload.SelectedRentItems = normalizeRentItems(payload.SelectedRentItems)
+	smestajJSON, _ := json.Marshal(payload.SelectedSmestajIDs)
+	prevozJSON, _ := json.Marshal(payload.SelectedPrevozIDs)
+	rentJSON, _ := json.Marshal(payload.SelectedRentItems)
+	newChoicesPayload := helpers.PrijavaIzboriPayload{
+		SelectedSmestajIDs:   string(smestajJSON),
+		SelectedPrevozIDs:    string(prevozJSON),
+		SelectedRentItemsRaw: string(rentJSON),
+	}
+
+	var resultPlatio bool
 	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijava.ID).Error; err != nil {
+			return err
+		}
+
 		exclude := prijava.ID
 		if err := validateRentAvailability(tx, akcija.ID, payload.SelectedRentItems, &exclude); err != nil {
 			return err
@@ -383,27 +398,41 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		if err := validatePrevozCapacity(tx, akcija.ID, payload.SelectedPrevozIDs, &exclude); err != nil {
 			return err
 		}
-		smestajJSON, _ := json.Marshal(payload.SelectedSmestajIDs)
-		prevozJSON, _ := json.Marshal(payload.SelectedPrevozIDs)
-		rentJSON, _ := json.Marshal(payload.SelectedRentItems)
-		var izbor models.PrijavaIzbori
-		err = tx.Where("prijava_id = ?", prijava.ID).First(&izbor).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			izbor = models.PrijavaIzbori{
-				PrijavaID:            prijava.ID,
-				SelectedSmestajIDs:   string(smestajJSON),
-				SelectedPrevozIDs:    string(prevozJSON),
-				SelectedRentItemsRaw: string(rentJSON),
-			}
-			return tx.Create(&izbor).Error
+
+		var oldIzbor *models.PrijavaIzbori
+		var izborRecord models.PrijavaIzbori
+		fetchErr := tx.Where("prijava_id = ?", prijava.ID).First(&izborRecord).Error
+		if fetchErr == nil {
+			oldIzbor = &izborRecord
+		} else if !errors.Is(fetchErr, gorm.ErrRecordNotFound) {
+			return fetchErr
 		}
+
+		resetPlatio, err := helpers.HasFinancialObligationChangedTx(tx, prijava, oldIzbor, newChoicesPayload)
 		if err != nil {
 			return err
 		}
-		izbor.SelectedSmestajIDs = string(smestajJSON)
-		izbor.SelectedPrevozIDs = string(prevozJSON)
-		izbor.SelectedRentItemsRaw = string(rentJSON)
-		return tx.Save(&izbor).Error
+		if resetPlatio {
+			prijava.Platio = false
+			if err := tx.Model(&prijava).Update("platio", false).Error; err != nil {
+				return err
+			}
+		}
+		resultPlatio = prijava.Platio
+
+		if oldIzbor == nil {
+			izbor := models.PrijavaIzbori{
+				PrijavaID:            prijava.ID,
+				SelectedSmestajIDs:   newChoicesPayload.SelectedSmestajIDs,
+				SelectedPrevozIDs:    newChoicesPayload.SelectedPrevozIDs,
+				SelectedRentItemsRaw: newChoicesPayload.SelectedRentItemsRaw,
+			}
+			return tx.Create(&izbor).Error
+		}
+		oldIzbor.SelectedSmestajIDs = newChoicesPayload.SelectedSmestajIDs
+		oldIzbor.SelectedPrevozIDs = newChoicesPayload.SelectedPrevozIDs
+		oldIzbor.SelectedRentItemsRaw = newChoicesPayload.SelectedRentItemsRaw
+		return tx.Save(oldIzbor).Error
 	}); err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "rent opreme") || strings.Contains(errMsg, "Nedovoljno dostupne opreme") {
@@ -417,6 +446,7 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message":            "Izbori sačuvani",
 		"saldo":              saldo,
+		"platio":             resultPlatio,
 		"selectedSmestajIds": payload.SelectedSmestajIDs,
 		"selectedPrevozIds":  payload.SelectedPrevozIDs,
 		"selectedRentItems":  payload.SelectedRentItems,

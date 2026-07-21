@@ -168,7 +168,7 @@ func ReactivateCancelledPrijavaFromChoicesTx(tx *gorm.DB, prijavaID uint, choice
 		return models.Prijava{}, err
 	}
 
-	resetPlatio, err := ShouldResetPlatioForReactivationTx(tx, prijava, oldIzbor, choices)
+	resetPlatio, err := HasFinancialObligationChangedTx(tx, prijava, oldIzbor, choices)
 	if err != nil {
 		return models.Prijava{}, err
 	}

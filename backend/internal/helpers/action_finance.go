@@ -133,9 +133,10 @@ func participantChoicesFromPayload(payload PrijavaIzboriPayload) (ParticipantCho
 	return participantChoicesFromJSON(payload.SelectedSmestajIDs, payload.SelectedPrevozIDs, payload.SelectedRentItemsRaw)
 }
 
-// ShouldResetPlatioForReactivationTx vraća true kada prijava ima Platio=true, ali se finansijska
-// obaveza (saldo) promijenila u odnosu na stare izbore. Koristi centralni ComputeSaldoForParticipant.
-func ShouldResetPlatioForReactivationTx(
+// HasFinancialObligationChangedTx vraća true kada prijava ima Platio=true i finansijska obaveza
+// (saldo) se promijenila u odnosu na stare izbore. Koristi centralni ComputeSaldoForParticipant.
+// Koristi se i pri reaktivaciji otkazane prijave i pri izmjeni izbora potvrđene prijave.
+func HasFinancialObligationChangedTx(
 	tx *gorm.DB,
 	prijava models.Prijava,
 	oldIzbor *models.PrijavaIzbori,

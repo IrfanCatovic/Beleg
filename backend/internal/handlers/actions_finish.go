@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func DodajClanaPopeoSe(c *gin.Context) {
@@ -185,7 +186,7 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 	}
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.First(&prijava, prijava.ID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijava.ID).Error; err != nil {
 			return err
 		}
 		if prijava.Platio == req.Platio {
