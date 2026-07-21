@@ -119,6 +119,10 @@ func addMemberToCompletedActionTx(tx *gorm.DB, akcijaID, korisnikID uint) (model
 		newlySummited = true
 	}
 
+	if _, err := helpers.EnsurePrijavaIzboriTx(tx, prijava.ID); err != nil {
+		return models.Prijava{}, false, err
+	}
+
 	shouldNotify := false
 	if newlySummited && helpers.PrijavaCountsAsClimbedPeak(tx, &akcija, korisnikID) {
 		// korisnik je već zaključan; inkrement na zaključanom redu sprečava lost-update.

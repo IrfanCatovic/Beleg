@@ -26,6 +26,7 @@ func testAddMemberDB(t *testing.T, maxOpen int) *gorm.DB {
 		&models.Korisnik{},
 		&models.Akcija{},
 		&models.Prijava{},
+		&models.PrijavaIzbori{},
 		&models.Obavestenje{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
@@ -101,6 +102,15 @@ func countSummitNotifs(t *testing.T, db *gorm.DB, userID uint) int64 {
 	return n
 }
 
+func countIzbori(t *testing.T, db *gorm.DB, prijavaID uint) int64 {
+	t.Helper()
+	var n int64
+	if err := db.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", prijavaID).Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
 func TestAddMember_NoPrijava_CreatesAndIncrementsStats(t *testing.T) {
 	db := testAddMemberDB(t, 1)
 	akcija, user := seedCompletedActionMember(t, db)
@@ -114,6 +124,9 @@ func TestAddMember_NoPrijava_CreatesAndIncrementsStats(t *testing.T) {
 	}
 	if countPrijave(t, db, akcija.ID, user.ID) != 1 {
 		t.Fatal("expected one prijava")
+	}
+	if countIzbori(t, db, res.Prijava.ID) != 1 {
+		t.Fatal("expected exactly one PrijavaIzbori")
 	}
 	u := reloadUser(t, db, user.ID)
 	if u.BrojPopeoSe != 1 || u.UkupnoKmKorisnik != 10.5 || u.UkupnoMetaraUsponaKorisnik != 800 {
@@ -131,7 +144,8 @@ func TestAddMember_FromPrijavljen_PromotesOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := AddMemberToCompletedAction(db, &akcija, &user); err != nil {
+	res, err := AddMemberToCompletedAction(db, &akcija, &user)
+	if err != nil {
 		t.Fatal(err)
 	}
 	var p models.Prijava
@@ -144,9 +158,68 @@ func TestAddMember_FromPrijavljen_PromotesOnce(t *testing.T) {
 	if countPrijave(t, db, akcija.ID, user.ID) != 1 {
 		t.Fatal("duplicate prijava")
 	}
+	if countIzbori(t, db, res.Prijava.ID) != 1 {
+		t.Fatal("expected PrijavaIzbori after promote")
+	}
 	u := reloadUser(t, db, user.ID)
 	if u.BrojPopeoSe != 1 {
 		t.Fatalf("BrojPopeoSe=%d", u.BrojPopeoSe)
+	}
+}
+
+func TestAddMember_ExistingIzbori_NotDuplicated(t *testing.T) {
+	db := testAddMemberDB(t, 1)
+	akcija, user := seedCompletedActionMember(t, db)
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: user.ID, Status: "prijavljen"}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.PrijavaIzbori{
+		PrijavaID: p.ID, SelectedSmestajIDs: "[1]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := AddMemberToCompletedAction(db, &akcija, &user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if countIzbori(t, db, res.Prijava.ID) != 1 {
+		t.Fatal("must not duplicate PrijavaIzbori")
+	}
+	var izbor models.PrijavaIzbori
+	if err := db.Where("prijava_id = ?", res.Prijava.ID).First(&izbor).Error; err != nil {
+		t.Fatal(err)
+	}
+	if izbor.SelectedSmestajIDs != "[1]" {
+		t.Fatalf("existing choices overwritten: %q", izbor.SelectedSmestajIDs)
+	}
+}
+
+func TestAddMember_IzboriCreateFailure_RollsBack(t *testing.T) {
+	db := testAddMemberDB(t, 1)
+	akcija, user := seedCompletedActionMember(t, db)
+
+	cbName := "fail_izbori_" + strings.ReplaceAll(t.Name(), "/", "_")
+	if err := db.Callback().Create().Before("gorm:before_create").Register(cbName, func(tx *gorm.DB) {
+		if tx.Statement.Schema != nil && tx.Statement.Schema.Table == "prijava_izbori" {
+			_ = tx.AddError(errors.New("forced izbori failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Create().Remove(cbName) })
+
+	_, err := AddMemberToCompletedAction(db, &akcija, &user)
+	if err == nil {
+		t.Fatal("expected izbori failure")
+	}
+	if countPrijave(t, db, akcija.ID, user.ID) != 0 {
+		t.Fatal("prijava must roll back when izbori fail")
+	}
+	u := reloadUser(t, db, user.ID)
+	if u.BrojPopeoSe != 0 {
+		t.Fatal("stats must roll back")
 	}
 }
 

@@ -449,25 +449,8 @@ func EnsureGuidePrijava(tx *gorm.DB, akcijaID, vodicID uint) error {
 	if err != nil {
 		return err
 	}
-	return ensureGuidePrijavaIzbori(tx, prijava)
-}
-
-func ensureGuidePrijavaIzbori(tx *gorm.DB, prijava models.Prijava) error {
-	var count int64
-	if err := tx.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", prijava.ID).Count(&count).Error; err != nil {
-		return err
-	}
-	if count > 0 {
-		return nil
-	}
-	empty := "[]"
-	izbor := models.PrijavaIzbori{
-		PrijavaID:            prijava.ID,
-		SelectedSmestajIDs:   empty,
-		SelectedPrevozIDs:    empty,
-		SelectedRentItemsRaw: empty,
-	}
-	return tx.Create(&izbor).Error
+	_, err = helpers.EnsurePrijavaIzboriTx(tx, prijava.ID)
+	return err
 }
 
 // akcijaSkipsClubFinances: privatna tura vodiča; prijave i uplate se prate kao i inače, ali se ne upisuju u finansije kluba.

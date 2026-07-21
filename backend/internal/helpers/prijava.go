@@ -257,6 +257,57 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 	return prijava, nil
 }
 
+const emptyPrijavaIzboriJSON = "[]"
+
+// IsDuplicatePrijavaIzboriDBError detektuje unique constraint na prijava_izbori.prijava_id.
+func IsDuplicatePrijavaIzboriDBError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unique") &&
+		(strings.Contains(msg, "prijava_izbori") ||
+			strings.Contains(msg, "idx_prijava_izbori_prijava_id") ||
+			(strings.Contains(msg, "prijava_id") && strings.Contains(msg, "izbor")))
+}
+
+// EnsurePrijavaIzboriTx osigurava tačno jedan PrijavaIzbori red za prijavu.
+// Ako red ne postoji, kreira prazan validan zapis (JSON "[]"). Idempotentan.
+// Prima transaction-aware *gorm.DB; ne otvara sopstvenu transakciju.
+func EnsurePrijavaIzboriTx(tx *gorm.DB, prijavaID uint) (models.PrijavaIzbori, error) {
+	if prijavaID == 0 {
+		return models.PrijavaIzbori{}, errors.New("invalid prijava id")
+	}
+	var existing models.PrijavaIzbori
+	err := tx.Where("prijava_id = ?", prijavaID).First(&existing).Error
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.PrijavaIzbori{}, err
+	}
+
+	izbor := models.PrijavaIzbori{
+		PrijavaID:            prijavaID,
+		SelectedSmestajIDs:   emptyPrijavaIzboriJSON,
+		SelectedPrevozIDs:    emptyPrijavaIzboriJSON,
+		SelectedRentItemsRaw: emptyPrijavaIzboriJSON,
+	}
+	if createErr := tx.Create(&izbor).Error; createErr != nil {
+		if IsDuplicatePrijavaIzboriDBError(createErr) {
+			var raced models.PrijavaIzbori
+			if fetchErr := tx.Where("prijava_id = ?", prijavaID).First(&raced).Error; fetchErr == nil {
+				return raced, nil
+			}
+		}
+		return models.PrijavaIzbori{}, createErr
+	}
+	return izbor, nil
+}
+
 // IsDuplicatePendingSignupDBError detektuje partial unique na pending signup.
 func IsDuplicatePendingSignupDBError(err error) bool {
 	if err == nil {

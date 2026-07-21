@@ -501,7 +501,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		req.Akcija = akcija
 		req.TargetUser = target
 		req.RequestedBy = *currentUser
-		reqDTO = buildActionParticipationRequestDTO(db, req)
+		reqDTO = buildActionParticipationRequestDTO(tx, req)
 		createActionParticipationRequestNotification(tx, req)
 		return nil
 	}); err != nil {
@@ -655,7 +655,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			if err := tx.Save(&req).Error; err != nil {
 				return err
 			}
-			responseDTO = buildActionParticipationRequestDTO(db, req)
+			responseDTO = buildActionParticipationRequestDTO(tx, req)
 			return nil
 		}
 
@@ -683,6 +683,10 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			return err
 		}
 
+		if _, err := helpers.EnsurePrijavaIzboriTx(tx, prijava.ID); err != nil {
+			return err
+		}
+
 		if !alreadyPopeoSe && helpers.PrijavaCountsAsClimbedPeak(tx, &req.Akcija, req.TargetUserID) {
 			req.TargetUser.UkupnoKmKorisnik += req.Akcija.UkupnoKmAkcija
 			req.TargetUser.UkupnoMetaraUsponaKorisnik += req.Akcija.UkupnoMetaraUsponaAkcija
@@ -697,7 +701,7 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 		if err := tx.Save(&req).Error; err != nil {
 			return err
 		}
-		responseDTO = buildActionParticipationRequestDTO(db, req)
+		responseDTO = buildActionParticipationRequestDTO(tx, req)
 		return nil
 	})
 	if err != nil {

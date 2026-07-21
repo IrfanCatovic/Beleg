@@ -390,3 +390,105 @@ func TestCreateConfirmedPrijavaTx_IdempotentAndConcurrent(t *testing.T) {
 		t.Fatalf("expected exactly one prijava after concurrent calls, got %d", n)
 	}
 }
+
+func TestEnsurePrijavaIzboriTx_CreatesEmptyOnce(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Izbori", Datum: time.Now().Add(48 * time.Hour)}
+	user := models.Korisnik{Username: "izbor_u", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: user.ID, Status: "prijavljen"}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var first models.PrijavaIzbori
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		izbor, err := EnsurePrijavaIzboriTx(tx, p.ID)
+		first = izbor
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if first.SelectedSmestajIDs != "[]" || first.SelectedPrevozIDs != "[]" || first.SelectedRentItemsRaw != "[]" {
+		t.Fatalf("expected empty arrays, got %+v", first)
+	}
+
+	var second models.PrijavaIzbori
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		izbor, err := EnsurePrijavaIzboriTx(tx, p.ID)
+		second = izbor
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if second.ID != first.ID {
+		t.Fatalf("expected same izbor id, got %d vs %d", second.ID, first.ID)
+	}
+	var n int64
+	db.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", p.ID).Count(&n)
+	if n != 1 {
+		t.Fatalf("expected 1 izbor, got %d", n)
+	}
+}
+
+func TestEnsurePrijavaIzboriTx_PreservesExistingChoices(t *testing.T) {
+	db := testPrijavaDB(t)
+	p := models.Prijava{AkcijaID: 1, KorisnikID: 1, Status: "prijavljen"}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	existing := models.PrijavaIzbori{
+		PrijavaID: p.ID, SelectedSmestajIDs: "[9]", SelectedPrevozIDs: "[2]", SelectedRentItemsRaw: "[]",
+	}
+	if err := db.Create(&existing).Error; err != nil {
+		t.Fatal(err)
+	}
+	var out models.PrijavaIzbori
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		izbor, err := EnsurePrijavaIzboriTx(tx, p.ID)
+		out = izbor
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if out.SelectedSmestajIDs != "[9]" || out.ID != existing.ID {
+		t.Fatalf("must preserve existing: %+v", out)
+	}
+}
+
+func TestEnsurePrijavaIzboriTx_ConcurrentNoDuplicates(t *testing.T) {
+	db := testPrijavaDB(t)
+	p := models.Prijava{AkcijaID: 2, KorisnikID: 2, Status: "prijavljen"}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	errs := make([]error, 6)
+	for i := 0; i < 6; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = db.Transaction(func(tx *gorm.DB) error {
+				_, err := EnsurePrijavaIzboriTx(tx, p.ID)
+				return err
+			})
+		}(i)
+	}
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent ensure failed: %v", err)
+		}
+	}
+	var n int64
+	db.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", p.ID).Count(&n)
+	if n != 1 {
+		t.Fatalf("expected 1 izbor after concurrent ensure, got %d", n)
+	}
+}
