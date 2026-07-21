@@ -391,6 +391,108 @@ func TestCreateConfirmedPrijavaTx_IdempotentAndConcurrent(t *testing.T) {
 	}
 }
 
+func TestHasBlockingPrijavaForUser_ExcludesOtkazano(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Block", Datum: time.Now().Add(48 * time.Hour)}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	userID := uint(42)
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: userID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	has, err := HasBlockingPrijavaForUser(db, akcija.ID, userID)
+	if err != nil || has {
+		t.Fatalf("otkazano must not block signup, has=%v err=%v", has, err)
+	}
+	hasAll, err := HasPrijavaForUser(db, akcija.ID, userID)
+	if err != nil || !hasAll {
+		t.Fatalf("HasPrijavaForUser should still see otkazano row")
+	}
+}
+
+func TestHasBlockingPrijavaForUser_BlocksActiveStatuses(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Active", Datum: time.Now().Add(48 * time.Hour)}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	for i, st := range PrijavaBlockingStatuses {
+		userID := uint(i + 1)
+		if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: userID, Status: st}).Error; err != nil {
+			t.Fatal(err)
+		}
+		has, err := HasBlockingPrijavaForUser(db, akcija.ID, userID)
+		if err != nil || !has {
+			t.Fatalf("status %s should block, has=%v err=%v", st, has, err)
+		}
+	}
+}
+
+func TestReactivateCancelledPrijavaFromChoicesTx_UpdatesStatusAndChoices(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "React", Datum: time.Now().Add(48 * time.Hour)}
+	user := models.Korisnik{Username: "react_u", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: user.ID, Status: "otkazano", Platio: true}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.PrijavaIzbori{
+		PrijavaID: p.ID, SelectedSmestajIDs: "[1]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var out models.Prijava
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		out, err = ReactivateCancelledPrijavaFromChoicesTx(tx, p.ID, PrijavaIzboriPayload{
+			SelectedSmestajIDs: "[2]", SelectedPrevozIDs: "[3]", SelectedRentItemsRaw: "[]",
+		})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if out.ID != p.ID || out.Status != "prijavljen" {
+		t.Fatalf("unexpected prijava: %+v", out)
+	}
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.Platio {
+		t.Fatal("Platio must be preserved")
+	}
+	var izbor models.PrijavaIzbori
+	if err := db.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+		t.Fatal(err)
+	}
+	if izbor.SelectedSmestajIDs != "[2]" || izbor.SelectedPrevozIDs != "[3]" {
+		t.Fatalf("choices not updated: %+v", izbor)
+	}
+}
+
+func TestReactivateCancelledPrijavaFromChoicesTx_RejectsNonOtkazano(t *testing.T) {
+	db := testPrijavaDB(t)
+	p := models.Prijava{AkcijaID: 1, KorisnikID: 1, Status: "prijavljen"}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := ReactivateCancelledPrijavaFromChoicesTx(tx, p.ID, PrijavaIzboriPayload{})
+		return err
+	})
+	if !errors.Is(err, ErrDuplicatePrijava) {
+		t.Fatalf("expected ErrDuplicatePrijava, got %v", err)
+	}
+}
+
 func TestEnsurePrijavaIzboriTx_CreatesEmptyOnce(t *testing.T) {
 	db := testPrijavaDB(t)
 	akcija := models.Akcija{Naziv: "Izbori", Datum: time.Now().Add(48 * time.Hour)}

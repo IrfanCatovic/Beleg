@@ -14,6 +14,9 @@ import (
 // PrijavaActiveStatuses — prijave koje troše kapacitet akcije.
 var PrijavaActiveStatuses = []string{"prijavljen", "popeo se", "nije uspeo"}
 
+// PrijavaBlockingStatuses — postojeća prijava sa ovim statusom blokira novi signup zahtjev.
+var PrijavaBlockingStatuses = []string{"prijavljen", "popeo se", "nije uspeo"}
+
 var (
 	ErrDuplicatePrijava      = errors.New("Već ste prijavljeni na ovu akciju.")
 	ErrAkcijaCapacityFull    = errors.New("Akcija je popunjena.")
@@ -118,6 +121,82 @@ func HasPrijavaForUser(tx *gorm.DB, akcijaID, korisnikID uint) (bool, error) {
 		Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).
 		Count(&n).Error
 	return n > 0, err
+}
+
+// HasBlockingPrijavaForUser vraća true ako korisnik ima prijavu koja blokira novi signup zahtjev.
+// Status "otkazano" ne blokira — korisnik može poslati novi pending zahtjev.
+func HasBlockingPrijavaForUser(tx *gorm.DB, akcijaID, korisnikID uint) (bool, error) {
+	var n int64
+	err := tx.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND korisnik_id = ? AND status IN ?", akcijaID, korisnikID, PrijavaBlockingStatuses).
+		Count(&n).Error
+	return n > 0, err
+}
+
+// PrijavaIzboriPayload — serializovani izbori za upsert pri reaktivaciji ili kreiranju.
+type PrijavaIzboriPayload struct {
+	SelectedSmestajIDs   string
+	SelectedPrevozIDs    string
+	SelectedRentItemsRaw string
+}
+
+// ReactivateCancelledPrijavaFromChoicesTx reaktivira postojeću prijavu sa statusom "otkazano".
+// Pozivalac mora prethodno validirati izbore; helper ne otvara sopstvenu transakciju.
+func ReactivateCancelledPrijavaFromChoicesTx(tx *gorm.DB, prijavaID uint, choices PrijavaIzboriPayload) (models.Prijava, error) {
+	if prijavaID == 0 {
+		return models.Prijava{}, errors.New("invalid prijava id")
+	}
+
+	var prijava models.Prijava
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijavaID).Error; err != nil {
+		return models.Prijava{}, err
+	}
+	if prijava.Status != "otkazano" {
+		return models.Prijava{}, ErrDuplicatePrijava
+	}
+
+	if err := tx.Model(&prijava).Update("status", "prijavljen").Error; err != nil {
+		return models.Prijava{}, err
+	}
+	prijava.Status = "prijavljen"
+
+	var izbor models.PrijavaIzbori
+	err := tx.Where("prijava_id = ?", prijavaID).First(&izbor).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		izbor = models.PrijavaIzbori{
+			PrijavaID:            prijavaID,
+			SelectedSmestajIDs:   choices.SelectedSmestajIDs,
+			SelectedPrevozIDs:    choices.SelectedPrevozIDs,
+			SelectedRentItemsRaw: choices.SelectedRentItemsRaw,
+		}
+		if createErr := tx.Create(&izbor).Error; createErr != nil {
+			if IsDuplicatePrijavaIzboriDBError(createErr) {
+				var raced models.PrijavaIzbori
+				if fetchErr := tx.Where("prijava_id = ?", prijavaID).First(&raced).Error; fetchErr != nil {
+					return models.Prijava{}, fetchErr
+				}
+				raced.SelectedSmestajIDs = choices.SelectedSmestajIDs
+				raced.SelectedPrevozIDs = choices.SelectedPrevozIDs
+				raced.SelectedRentItemsRaw = choices.SelectedRentItemsRaw
+				if saveErr := tx.Save(&raced).Error; saveErr != nil {
+					return models.Prijava{}, saveErr
+				}
+			} else {
+				return models.Prijava{}, createErr
+			}
+		}
+	} else if err != nil {
+		return models.Prijava{}, err
+	} else {
+		izbor.SelectedSmestajIDs = choices.SelectedSmestajIDs
+		izbor.SelectedPrevozIDs = choices.SelectedPrevozIDs
+		izbor.SelectedRentItemsRaw = choices.SelectedRentItemsRaw
+		if err := tx.Save(&izbor).Error; err != nil {
+			return models.Prijava{}, err
+		}
+	}
+
+	return prijava, nil
 }
 
 // HasPendingSignupRequest vraća true ako korisnik ima pending signup za akciju.

@@ -232,18 +232,6 @@ func createPrijavaFromChoices(tx *gorm.DB, akcijaID uint, korisnik models.Korisn
 		return models.Prijava{}, err
 	}
 
-	hasPrijava, err := helpers.HasPrijavaForUser(tx, akcijaID, korisnik.ID)
-	if err != nil {
-		return models.Prijava{}, err
-	}
-	if hasPrijava {
-		return models.Prijava{}, helpers.ErrDuplicatePrijava
-	}
-
-	if err := helpers.EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
-		return models.Prijava{}, err
-	}
-
 	choices.SelectedRentItems = normalizeRentItems(choices.SelectedRentItems)
 	if len(choices.SelectedSmestajIDs) > 0 {
 		var n int64
@@ -265,21 +253,53 @@ func createPrijavaFromChoices(tx *gorm.DB, akcijaID uint, korisnik models.Korisn
 	if err := validatePrevozCapacity(tx, akcijaID, choices.SelectedPrevozIDs, nil); err != nil {
 		return models.Prijava{}, err
 	}
+
+	if err := helpers.EnsureCapacityAvailable(tx, akcijaID, locked.MaxLjudi); err != nil {
+		return models.Prijava{}, err
+	}
+
+	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
+	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
+	rentJSON, _ := json.Marshal(choices.SelectedRentItems)
+	izboriPayload := helpers.PrijavaIzboriPayload{
+		SelectedSmestajIDs:   string(smestajJSON),
+		SelectedPrevozIDs:    string(prevozJSON),
+		SelectedRentItemsRaw: string(rentJSON),
+	}
+
+	var existing models.Prijava
+	err = tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).First(&existing).Error
+	if err == nil {
+		if existing.Status == "otkazano" {
+			return helpers.ReactivateCancelledPrijavaFromChoicesTx(tx, existing.ID, izboriPayload)
+		}
+		return models.Prijava{}, helpers.ErrDuplicatePrijava
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Prijava{}, err
+	}
+
 	prijava := models.Prijava{
 		AkcijaID:   akcijaID,
 		KorisnikID: korisnik.ID,
 	}
 	if err := tx.Create(&prijava).Error; err != nil {
+		if mapped := helpers.MapCreatePrijavaError(err); errors.Is(mapped, helpers.ErrDuplicatePrijava) {
+			var raceExisting models.Prijava
+			if fetchErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).First(&raceExisting).Error; fetchErr == nil {
+				if raceExisting.Status == "otkazano" {
+					return helpers.ReactivateCancelledPrijavaFromChoicesTx(tx, raceExisting.ID, izboriPayload)
+				}
+				return models.Prijava{}, helpers.ErrDuplicatePrijava
+			}
+		}
 		return models.Prijava{}, helpers.MapCreatePrijavaError(err)
 	}
-	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
-	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
-	rentJSON, _ := json.Marshal(choices.SelectedRentItems)
 	izbor := models.PrijavaIzbori{
 		PrijavaID:            prijava.ID,
-		SelectedSmestajIDs:   string(smestajJSON),
-		SelectedPrevozIDs:    string(prevozJSON),
-		SelectedRentItemsRaw: string(rentJSON),
+		SelectedSmestajIDs:   izboriPayload.SelectedSmestajIDs,
+		SelectedPrevozIDs:    izboriPayload.SelectedPrevozIDs,
+		SelectedRentItemsRaw: izboriPayload.SelectedRentItemsRaw,
 	}
 	if err := tx.Create(&izbor).Error; err != nil {
 		return models.Prijava{}, err

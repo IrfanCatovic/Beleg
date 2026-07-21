@@ -31,6 +31,9 @@ func testPrijaviDB(t *testing.T) *gorm.DB {
 		&models.Prijava{},
 		&models.PrijavaIzbori{},
 		&models.ActionSignupRequest{},
+		&models.AkcijaSmestaj{},
+		&models.AkcijaPrevoz{},
+		&models.AkcijaOpremaRent{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}

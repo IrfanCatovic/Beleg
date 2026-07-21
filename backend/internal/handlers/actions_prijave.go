@@ -77,11 +77,11 @@ func PrijaviNaAkciju(c *gin.Context) {
 
 	var signupReq models.ActionSignupRequest
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		hasPrijava, err := helpers.HasPrijavaForUser(tx, uint(akcijaID), korisnik.ID)
+		hasBlocking, err := helpers.HasBlockingPrijavaForUser(tx, uint(akcijaID), korisnik.ID)
 		if err != nil {
 			return err
 		}
-		if hasPrijava {
+		if hasBlocking {
 			return helpers.ErrDuplicatePrijava
 		}
 		hasPending, err := helpers.HasPendingSignupRequest(tx, uint(akcijaID), korisnik.ID)
