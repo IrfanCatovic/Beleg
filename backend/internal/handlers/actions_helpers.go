@@ -543,6 +543,48 @@ func deleteAkcijaDataTx(tx *gorm.DB, akcijaID uint) error {
 	return nil
 }
 
+// executeUpdateAkcijaTx atomski ažurira akciju, nested podatke i guide prijavu.
+// Za završenu akciju finansijska konfiguracija mora ostati nepromijenjena.
+func executeUpdateAkcijaTx(tx *gorm.DB, akcija models.Akcija, nestedInput ActionNestedSyncInput) error {
+	var locked models.Akcija
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&locked, akcija.ID).Error; err != nil {
+		return err
+	}
+	wasCompleted := locked.IsCompleted
+	akcija.IsCompleted = locked.IsCompleted
+
+	oldSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, locked)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Save(&akcija).Error; err != nil {
+		return err
+	}
+	if err := syncActionNestedDataOnUpdate(tx, akcija.ID, nestedInput); err != nil {
+		return err
+	}
+
+	if wasCompleted {
+		var saved models.Akcija
+		if err := tx.First(&saved, akcija.ID).Error; err != nil {
+			return err
+		}
+		newSnapshot, err := helpers.LoadActionFinancialSnapshotTx(tx, akcija.ID, saved)
+		if err != nil {
+			return err
+		}
+		if !helpers.ActionFinancialSnapshotsEqual(oldSnapshot, newSnapshot) {
+			return helpers.ErrCompletedActionFinancialsImmutable
+		}
+	}
+
+	if err := EnsureGuidePrijava(tx, akcija.ID, akcija.VodicID); err != nil {
+		return err
+	}
+	return nil
+}
+
 // sqlClubOrganizedOnly: klupske akcije (isključuje privatne ture vodiča iz kalendara/istorije kluba).
 const sqlClubOrganizedOnly = "(organizator_tip IS NULL OR TRIM(organizator_tip) = '' OR LOWER(TRIM(organizator_tip)) <> 'vodic')"
 

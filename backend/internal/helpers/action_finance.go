@@ -2,13 +2,19 @@ package helpers
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
+	"sort"
 	"strings"
 
 	"beleg-app/backend/internal/models"
 
 	"gorm.io/gorm"
 )
+
+// ErrCompletedActionFinancialsImmutable vraća se kada se pokuša promijeniti finansijsku
+// konfiguraciju akcije koja je već završena.
+var ErrCompletedActionFinancialsImmutable = errors.New("Finansijski podaci završene akcije ne mogu se mijenjati.")
 
 // saldoMoneyEpsilon — ista tolerancija kao u FinishAction (finEps).
 const saldoMoneyEpsilon = 1e-6
@@ -171,6 +177,152 @@ func HasFinancialObligationChangedTx(
 
 func AkcijaSkipsClubFinances(akcija models.Akcija) bool {
 	return strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
+}
+
+// ActionFinancialSmestajEntry opisuje finansijski relevantnu smeštaj opciju.
+type ActionFinancialSmestajEntry struct {
+	Key               string
+	CenaPoOsobiUkupno float64
+}
+
+// ActionFinancialPrevozEntry opisuje finansijski relevantnu prevoz opciju.
+type ActionFinancialPrevozEntry struct {
+	Key         string
+	CenaPoOsobi float64
+}
+
+// ActionFinancialRentEntry opisuje finansijski relevantnu rent opciju.
+type ActionFinancialRentEntry struct {
+	Key        string
+	CenaPoSetu float64
+}
+
+// ActionFinancialSnapshot hvata sva action-side polja koja utiču na ComputeSaldoForParticipant.
+type ActionFinancialSnapshot struct {
+	CenaClan   float64
+	CenaOstali float64
+	Javna      bool
+	VodicID    uint
+	Smestaj    []ActionFinancialSmestajEntry
+	Prevoz     []ActionFinancialPrevozEntry
+	Rent       []ActionFinancialRentEntry
+}
+
+func normalizeFinancialKey(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
+func smestajFinancialKey(naziv string) string {
+	return normalizeFinancialKey(naziv)
+}
+
+func prevozFinancialKey(tip, grupa string) string {
+	return normalizeFinancialKey(tip) + "|" + normalizeFinancialKey(grupa)
+}
+
+func rentFinancialKey(naziv string) string {
+	return normalizeFinancialKey(naziv)
+}
+
+// LoadActionFinancialSnapshotTx učitava finansijski fingerprint akcije iz transaction-aware tx.
+func LoadActionFinancialSnapshotTx(tx *gorm.DB, akcijaID uint, akcija models.Akcija) (ActionFinancialSnapshot, error) {
+	snap := ActionFinancialSnapshot{
+		CenaClan:   akcija.CenaClan,
+		CenaOstali: akcija.CenaOstali,
+		Javna:      akcija.Javna,
+		VodicID:    akcija.VodicID,
+	}
+
+	var smestaj []models.AkcijaSmestaj
+	if err := tx.Where("akcija_id = ?", akcijaID).Find(&smestaj).Error; err != nil {
+		return ActionFinancialSnapshot{}, err
+	}
+	for _, row := range smestaj {
+		snap.Smestaj = append(snap.Smestaj, ActionFinancialSmestajEntry{
+			Key:               smestajFinancialKey(row.Naziv),
+			CenaPoOsobiUkupno: row.CenaPoOsobiUkupno,
+		})
+	}
+	sort.Slice(snap.Smestaj, func(i, j int) bool { return snap.Smestaj[i].Key < snap.Smestaj[j].Key })
+
+	var prevoz []models.AkcijaPrevoz
+	if err := tx.Where("akcija_id = ?", akcijaID).Find(&prevoz).Error; err != nil {
+		return ActionFinancialSnapshot{}, err
+	}
+	for _, row := range prevoz {
+		snap.Prevoz = append(snap.Prevoz, ActionFinancialPrevozEntry{
+			Key:         prevozFinancialKey(row.TipPrevoza, row.NazivGrupe),
+			CenaPoOsobi: row.CenaPoOsobi,
+		})
+	}
+	sort.Slice(snap.Prevoz, func(i, j int) bool { return snap.Prevoz[i].Key < snap.Prevoz[j].Key })
+
+	var rent []models.AkcijaOpremaRent
+	if err := tx.Where("akcija_id = ?", akcijaID).Find(&rent).Error; err != nil {
+		return ActionFinancialSnapshot{}, err
+	}
+	for _, row := range rent {
+		snap.Rent = append(snap.Rent, ActionFinancialRentEntry{
+			Key:        rentFinancialKey(row.NazivOpreme),
+			CenaPoSetu: row.CenaPoSetu,
+		})
+	}
+	sort.Slice(snap.Rent, func(i, j int) bool { return snap.Rent[i].Key < snap.Rent[j].Key })
+
+	return snap, nil
+}
+
+// ActionFinancialSnapshotsEqual poredi dva finansijska fingerprint-a deterministički.
+func ActionFinancialSnapshotsEqual(a, b ActionFinancialSnapshot) bool {
+	aSmestaj := append([]ActionFinancialSmestajEntry(nil), a.Smestaj...)
+	bSmestaj := append([]ActionFinancialSmestajEntry(nil), b.Smestaj...)
+	sort.Slice(aSmestaj, func(i, j int) bool { return aSmestaj[i].Key < aSmestaj[j].Key })
+	sort.Slice(bSmestaj, func(i, j int) bool { return bSmestaj[i].Key < bSmestaj[j].Key })
+
+	aPrevoz := append([]ActionFinancialPrevozEntry(nil), a.Prevoz...)
+	bPrevoz := append([]ActionFinancialPrevozEntry(nil), b.Prevoz...)
+	sort.Slice(aPrevoz, func(i, j int) bool { return aPrevoz[i].Key < aPrevoz[j].Key })
+	sort.Slice(bPrevoz, func(i, j int) bool { return bPrevoz[i].Key < bPrevoz[j].Key })
+
+	aRent := append([]ActionFinancialRentEntry(nil), a.Rent...)
+	bRent := append([]ActionFinancialRentEntry(nil), b.Rent...)
+	sort.Slice(aRent, func(i, j int) bool { return aRent[i].Key < aRent[j].Key })
+	sort.Slice(bRent, func(i, j int) bool { return bRent[i].Key < bRent[j].Key })
+
+	if !SaldoAmountsEqual(a.CenaClan, b.CenaClan) || !SaldoAmountsEqual(a.CenaOstali, b.CenaOstali) {
+		return false
+	}
+	if a.Javna != b.Javna || a.VodicID != b.VodicID {
+		return false
+	}
+	if len(aSmestaj) != len(bSmestaj) {
+		return false
+	}
+	for i := range aSmestaj {
+		if aSmestaj[i].Key != bSmestaj[i].Key ||
+			!SaldoAmountsEqual(aSmestaj[i].CenaPoOsobiUkupno, bSmestaj[i].CenaPoOsobiUkupno) {
+			return false
+		}
+	}
+	if len(aPrevoz) != len(bPrevoz) {
+		return false
+	}
+	for i := range aPrevoz {
+		if aPrevoz[i].Key != bPrevoz[i].Key ||
+			!SaldoAmountsEqual(aPrevoz[i].CenaPoOsobi, bPrevoz[i].CenaPoOsobi) {
+			return false
+		}
+	}
+	if len(aRent) != len(bRent) {
+		return false
+	}
+	for i := range aRent {
+		if aRent[i].Key != bRent[i].Key ||
+			!SaldoAmountsEqual(aRent[i].CenaPoSetu, bRent[i].CenaPoSetu) {
+			return false
+		}
+	}
+	return true
 }
 
 func ResolveFinanceRecorderID(tx *gorm.DB, actionClubID *uint, fallbackUserID uint) uint {

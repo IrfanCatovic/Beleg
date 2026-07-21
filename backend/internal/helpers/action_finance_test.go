@@ -64,3 +64,39 @@ func TestComputeSaldoForParticipant_GuideZeroWithoutChoices(t *testing.T) {
 		t.Fatalf("expected guide saldo 0 without choices, got %v", saldo)
 	}
 }
+
+func TestActionFinancialSnapshotsEqual_OrderIndependent(t *testing.T) {
+	a := ActionFinancialSnapshot{
+		CenaClan: 30, CenaOstali: 40, Javna: true, VodicID: 1,
+		Smestaj: []ActionFinancialSmestajEntry{
+			{Key: "hotel a", CenaPoOsobiUkupno: 30},
+			{Key: "hotel b", CenaPoOsobiUkupno: 20},
+		},
+	}
+	b := ActionFinancialSnapshot{
+		CenaClan: 30, CenaOstali: 40, Javna: true, VodicID: 1,
+		Smestaj: []ActionFinancialSmestajEntry{
+			{Key: "hotel b", CenaPoOsobiUkupno: 20},
+			{Key: "hotel a", CenaPoOsobiUkupno: 30},
+		},
+	}
+	if !ActionFinancialSnapshotsEqual(a, b) {
+		t.Fatal("snapshots with same entries in different order should compare via sorted load, not raw slice")
+	}
+}
+
+func TestActionFinancialSnapshotsEqual_DetectsPriceChange(t *testing.T) {
+	a := ActionFinancialSnapshot{CenaClan: 30, CenaOstali: 40, Javna: true}
+	b := ActionFinancialSnapshot{CenaClan: 50, CenaOstali: 40, Javna: true}
+	if ActionFinancialSnapshotsEqual(a, b) {
+		t.Fatal("expected different snapshots when base price changes")
+	}
+}
+
+func TestActionFinancialSnapshotsEqual_FloatTolerance(t *testing.T) {
+	a := ActionFinancialSnapshot{CenaClan: 30, CenaOstali: 40}
+	b := ActionFinancialSnapshot{CenaClan: 30 + saldoMoneyEpsilon/2, CenaOstali: 40}
+	if !ActionFinancialSnapshotsEqual(a, b) {
+		t.Fatal("expected equal within epsilon")
+	}
+}

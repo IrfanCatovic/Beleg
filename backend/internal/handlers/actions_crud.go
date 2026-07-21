@@ -975,30 +975,23 @@ func UpdateAkcija(c *gin.Context) {
 		}
 	}
 
-	var saveErr error
+	nestedInput := actionNestedSyncInputFromContext(c)
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(&akcija).Error; err != nil {
-			saveErr = err
-			return err
-		}
-		if err := syncActionNestedDataOnUpdateFromContext(tx, akcija.ID, c); err != nil {
-			return err
-		}
-		return EnsureGuidePrijava(tx, akcija.ID, akcija.VodicID)
+		return executeUpdateAkcijaTx(tx, akcija, nestedInput)
 	}); err != nil {
-		if saveErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
-			return
-		}
 		if errors.Is(err, ErrNestedOptionInUse) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrCompletedActionFinancialsImmutable) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, helpers.ErrAkcijaCapacityFull) || errors.Is(err, helpers.ErrKorisnikNotEligible) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju akcije"})
 		return
 	}
 
