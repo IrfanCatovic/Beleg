@@ -11,20 +11,24 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// PrijavaStatusPrijavljen — neriješen status prijave (nema konačan rezultat).
+const PrijavaStatusPrijavljen = "prijavljen"
+
 // PrijavaActiveStatuses — prijave koje troše kapacitet akcije.
-var PrijavaActiveStatuses = []string{"prijavljen", "popeo se", "nije uspeo"}
+var PrijavaActiveStatuses = []string{PrijavaStatusPrijavljen, "popeo se", "nije uspeo"}
 
 // PrijavaBlockingStatuses — postojeća prijava sa ovim statusom blokira novi signup zahtjev.
-var PrijavaBlockingStatuses = []string{"prijavljen", "popeo se", "nije uspeo"}
+var PrijavaBlockingStatuses = []string{PrijavaStatusPrijavljen, "popeo se", "nije uspeo"}
 
 var (
-	ErrDuplicatePrijava      = errors.New("Već ste prijavljeni na ovu akciju.")
-	ErrAkcijaCapacityFull    = errors.New("Akcija je popunjena.")
-	ErrSignupClosed          = errors.New("Prijava na ovu akciju više nije moguća.")
-	ErrMaxLjudiBelowActive   = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
-	ErrPendingSignupExists   = errors.New("Već imate zahtev za prijavu na čekanju")
-	ErrAkcijaAlreadyComplete = errors.New("Akcija je već završena")
-	ErrKorisnikNotEligible   = errors.New("Korisnik nije dostupan za prijavu.")
+	ErrDuplicatePrijava                 = errors.New("Već ste prijavljeni na ovu akciju.")
+	ErrAkcijaCapacityFull               = errors.New("Akcija je popunjena.")
+	ErrSignupClosed                     = errors.New("Prijava na ovu akciju više nije moguća.")
+	ErrMaxLjudiBelowActive              = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
+	ErrPendingSignupExists              = errors.New("Već imate zahtev za prijavu na čekanju")
+	ErrAkcijaAlreadyComplete            = errors.New("Akcija je već završena")
+	ErrKorisnikNotEligible              = errors.New("Korisnik nije dostupan za prijavu.")
+	ErrAkcijaHasUnresolvedParticipants  = errors.New("Akcija se ne može završiti dok svi prijavljeni učesnici nemaju konačan status.")
 )
 
 // ConfirmedPrijavaPolicy kontroliše koje invarijante CreateConfirmedPrijavaTx primjenjuje.
@@ -251,6 +255,32 @@ func LockPrijavaForUpdate(tx *gorm.DB, prijavaID uint) (*models.Prijava, error) 
 		return nil, err
 	}
 	return &prijava, nil
+}
+
+// LockPrijaveForAkcijaForUpdate zaključava sve prijave akcije (ORDER BY id FOR UPDATE).
+// Pozivalac mora prethodno zaključati akciju (Akcija → Prijava redoslijed).
+func LockPrijaveForAkcijaForUpdate(tx *gorm.DB, akcijaID uint) ([]models.Prijava, error) {
+	var prijave []models.Prijava
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("akcija_id = ?", akcijaID).
+		Order("id").
+		Find(&prijave).Error
+	return prijave, err
+}
+
+// EnsureNoUnresolvedParticipantResultsTx odbija finish dok postoji status=prijavljen.
+// Poziva se nakon eventualne guide auto-promotion, nad zaključanim skupom prijava.
+func EnsureNoUnresolvedParticipantResultsTx(tx *gorm.DB, akcijaID uint) error {
+	var n int64
+	if err := tx.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND status = ?", akcijaID, PrijavaStatusPrijavljen).
+		Count(&n).Error; err != nil {
+		return err
+	}
+	if n > 0 {
+		return ErrAkcijaHasUnresolvedParticipants
+	}
+	return nil
 }
 
 // EnsureCapacityAvailable proverava da li ima slobodnih mesta (maxLjudi=0 → neograničeno).

@@ -12,7 +12,6 @@ import (
 	"beleg-app/backend/internal/notifications"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type FinishActionInput struct {
@@ -30,6 +29,7 @@ type FinishActionResult struct {
 }
 
 // FinishAction završava akciju i upisuje finansijski efekat u klub.
+// Redoslijed: lock Akcija → lock sve Prijava → guide promote → unresolved guard → IsCompleted → finansije.
 func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in FinishActionInput) (*FinishActionResult, error) {
 	const finEps = 1e-6
 	importedCount := 0
@@ -48,22 +48,18 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 		}
 		*akcija = *locked
 
-		var prijavaIDs []uint
-		if err := tx.Model(&models.Prijava{}).
-			Where("akcija_id = ? AND platio = ? AND status IN ?", akcija.ID, true, helpers.PrijavaActiveStatuses).
-			Order("id").
-			Pluck("id", &prijavaIDs).Error; err != nil {
+		if _, err := helpers.LockPrijaveForAkcijaForUpdate(tx, akcija.ID); err != nil {
 			return err
 		}
-		if len(prijavaIDs) > 0 {
-			var lockedPrijave []models.Prijava
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Preload("Korisnik").
-				Where("id IN ?", prijavaIDs).
-				Order("id").
-				Find(&lockedPrijave).Error; err != nil {
-				return err
-			}
+
+		// Variant A: vodič klupske ture se prvo auto-promoviše, pa se provjeravaju preostali prijavljen.
+		guidePromoted, err := helpers.PromoteGuidePrijavaToPopeoSeIfEligible(tx, akcija)
+		if err != nil {
+			return err
+		}
+
+		if err := helpers.EnsureNoUnresolvedParticipantResultsTx(tx, akcija.ID); err != nil {
+			return err
 		}
 
 		akcija.IsCompleted = true
@@ -71,10 +67,6 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 			return err
 		}
 
-		guidePromoted, err := helpers.PromoteGuidePrijavaToPopeoSeIfEligible(tx, akcija)
-		if err != nil {
-			return err
-		}
 		if guidePromoted {
 			notifications.NotifySummitReward(tx, akcija.VodicID, *akcija)
 		}

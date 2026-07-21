@@ -339,6 +339,18 @@ func ZavrsiAkciju(c *gin.Context) {
 
 	finishRes, svcErr := actions.FinishAction(db, &akcija, actor, actions.FinishActionInput{RashodNaAkciji: rashodNaAkciji})
 	if svcErr != nil {
+		if errors.Is(svcErr, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
+			return
+		}
+		if errors.Is(svcErr, helpers.ErrAkcijaHasUnresolvedParticipants) {
+			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
+			return
+		}
+		if errors.Is(svcErr, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri završavanju akcije"})
 		return
 	}
@@ -516,58 +528,81 @@ func UpdatePrijavaStatus(c *gin.Context) {
 
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
-	var prijava models.Prijava
-	if err := db.Preload("Akcija").First(&prijava, prijavaID).Error; err != nil {
+	var existing models.Prijava
+	if err := db.Preload("Akcija").First(&existing, prijavaID).Error; err != nil {
 		c.JSON(404, gin.H{"error": "Prijava nije pronađena"})
 		return
 	}
-	if !helpers.CanManageAkcijaEx(c, db, &prijava.Akcija) {
+	if !helpers.CanManageAkcijaEx(c, db, &existing.Akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da menja status prijava"})
 		return
 	}
 
-	wasPopeoSe := prijava.Status == "popeo se"
-	willBePopeoSe := req.Status == "popeo se"
-	countsAsPeak := helpers.PrijavaCountsAsClimbedPeak(db, &prijava.Akcija, prijava.KorisnikID)
-	if wasPopeoSe != willBePopeoSe && countsAsPeak {
-		var korisnik models.Korisnik
-		if err := db.First(&korisnik, prijava.KorisnikID).Error; err != nil {
-			c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-			return
+	var outPrijava models.Prijava
+	err = db.Transaction(func(tx *gorm.DB) error {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, existing.AkcijaID)
+		if err != nil {
+			return err
 		}
-		if willBePopeoSe {
-			korisnik.UkupnoKmKorisnik += prijava.Akcija.UkupnoKmAkcija
-			korisnik.UkupnoMetaraUsponaKorisnik += prijava.Akcija.UkupnoMetaraUsponaAkcija
-			korisnik.BrojPopeoSe += 1
-		} else {
-			korisnik.UkupnoKmKorisnik -= prijava.Akcija.UkupnoKmAkcija
-			korisnik.UkupnoMetaraUsponaKorisnik -= prijava.Akcija.UkupnoMetaraUsponaAkcija
-			korisnik.BrojPopeoSe -= 1
-			if korisnik.UkupnoKmKorisnik < 0 {
-				korisnik.UkupnoKmKorisnik = 0
-			}
-			if korisnik.UkupnoMetaraUsponaKorisnik < 0 {
-				korisnik.UkupnoMetaraUsponaKorisnik = 0
-			}
-			if korisnik.BrojPopeoSe < 0 {
-				korisnik.BrojPopeoSe = 0
-			}
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, existing.ID)
+		if err != nil {
+			return err
 		}
-		if err := db.Save(&korisnik).Error; err != nil {
-			c.JSON(500, gin.H{"error": "Greška pri ažuriranju statistike korisnika"})
-			return
+		if lockedPrijava.AkcijaID != lockedAkcija.ID {
+			return errors.New("Prijava ne pripada ovoj akciji")
 		}
-		if willBePopeoSe {
-			notifications.NotifySummitReward(db, korisnik.ID, prijava.Akcija)
-		}
-	}
 
-	prijava.Status = req.Status
-	if err := db.Save(&prijava).Error; err != nil {
+		wasPopeoSe := lockedPrijava.Status == "popeo se"
+		willBePopeoSe := req.Status == "popeo se"
+		countsAsPeak := helpers.PrijavaCountsAsClimbedPeak(tx, lockedAkcija, lockedPrijava.KorisnikID)
+		if wasPopeoSe != willBePopeoSe && countsAsPeak {
+			var korisnik models.Korisnik
+			if err := tx.First(&korisnik, lockedPrijava.KorisnikID).Error; err != nil {
+				return err
+			}
+			if willBePopeoSe {
+				korisnik.UkupnoKmKorisnik += lockedAkcija.UkupnoKmAkcija
+				korisnik.UkupnoMetaraUsponaKorisnik += lockedAkcija.UkupnoMetaraUsponaAkcija
+				korisnik.BrojPopeoSe += 1
+			} else {
+				korisnik.UkupnoKmKorisnik -= lockedAkcija.UkupnoKmAkcija
+				korisnik.UkupnoMetaraUsponaKorisnik -= lockedAkcija.UkupnoMetaraUsponaAkcija
+				korisnik.BrojPopeoSe -= 1
+				if korisnik.UkupnoKmKorisnik < 0 {
+					korisnik.UkupnoKmKorisnik = 0
+				}
+				if korisnik.UkupnoMetaraUsponaKorisnik < 0 {
+					korisnik.UkupnoMetaraUsponaKorisnik = 0
+				}
+				if korisnik.BrojPopeoSe < 0 {
+					korisnik.BrojPopeoSe = 0
+				}
+			}
+			if err := tx.Save(&korisnik).Error; err != nil {
+				return err
+			}
+			if willBePopeoSe {
+				notifications.NotifySummitReward(tx, korisnik.ID, *lockedAkcija)
+			}
+		}
+
+		lockedPrijava.Status = req.Status
+		if err := tx.Save(lockedPrijava).Error; err != nil {
+			return err
+		}
+		outPrijava = *lockedPrijava
+		outPrijava.Akcija = *lockedAkcija
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"error": "Prijava nije pronađena"})
+			return
+		}
 		c.JSON(500, gin.H{"error": "Greška pri ažuriranju statusa"})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Status ažuriran", "prijava": prijava})
+	c.JSON(200, gin.H{"message": "Status ažuriran", "prijava": outPrijava})
 }
 
 func DeletePrijava(c *gin.Context) {

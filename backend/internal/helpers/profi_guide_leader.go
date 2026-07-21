@@ -55,7 +55,7 @@ func PromoteGuidePrijavaToPopeoSeIfEligible(tx *gorm.DB, akcija *models.Akcija) 
 	if err := tx.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, akcija.VodicID).First(&prijava).Error; err != nil {
 		return false, nil
 	}
-	if prijava.Status != "prijavljen" {
+	if prijava.Status != PrijavaStatusPrijavljen {
 		return false, nil
 	}
 	if !PrijavaCountsAsClimbedPeak(tx, akcija, akcija.VodicID) {

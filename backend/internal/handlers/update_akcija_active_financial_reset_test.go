@@ -285,7 +285,7 @@ func TestConcurrency_UpdateAkcijaThenFinish(t *testing.T) {
 	}
 	actor := seedUser(t, db, "admin_finish")
 	akcija := seedAkcijaFinancialBase(t, db, false)
-	seedPrijavaWithStatusPlatio(t, db, akcija.ID, 40, "prijavljen", true)
+	pReset := seedPrijavaWithStatusPlatio(t, db, akcija.ID, 40, "prijavljen", true)
 	akcija.CenaClan = 50
 	if err := runExecuteUpdateAkcijaTx(t, db, akcija, ActionNestedSyncInput{}); err != nil {
 		t.Fatal(err)
@@ -293,7 +293,11 @@ func TestConcurrency_UpdateAkcijaThenFinish(t *testing.T) {
 	if countPlatioTrue(t, db, akcija.ID) != 0 {
 		t.Fatal("expected reset before finish")
 	}
-	p := seedPrijavaWithStatusPlatio(t, db, akcija.ID, 41, "prijavljen", true)
+	// Resolve result status before finish (new lifecycle guard).
+	if err := db.Model(&pReset).Update("status", "popeo se").Error; err != nil {
+		t.Fatal(err)
+	}
+	p := seedPrijavaWithStatusPlatio(t, db, akcija.ID, 41, "popeo se", true)
 	if err := runMarkPaidTx(t, db, p.ID, true); err != nil {
 		t.Fatal(err)
 	}
