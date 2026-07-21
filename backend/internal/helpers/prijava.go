@@ -35,6 +35,9 @@ type ConfirmedPrijavaPolicy struct {
 	ValidateSignupDeadline bool
 	CheckCapacity          bool
 	RequireActiveUser      bool
+	// ReactivateCancelled: ako postoji prijava sa statusom "otkazano", reaktiviraj je u "prijavljen"
+	// (samo za flowove koji eksplicitno osiguravaju potvrđenog učesnika, npr. guide-auto).
+	ReactivateCancelled bool
 }
 
 // ConfirmedPrijavaPolicyMemberSignup — self-service / guide-booking prijava.
@@ -43,6 +46,7 @@ var ConfirmedPrijavaPolicyMemberSignup = ConfirmedPrijavaPolicy{
 	ValidateSignupDeadline: true,
 	CheckCapacity:          true,
 	RequireActiveUser:      true,
+	ReactivateCancelled:    false,
 }
 
 // ConfirmedPrijavaPolicyGuideAuto — automatska prijava vodiča pri kreiranju/izmjeni akcije.
@@ -52,6 +56,7 @@ var ConfirmedPrijavaPolicyGuideAuto = ConfirmedPrijavaPolicy{
 	ValidateSignupDeadline: false,
 	CheckCapacity:          true,
 	RequireActiveUser:      true,
+	ReactivateCancelled:    true,
 }
 
 func belgradeLocation() *time.Location {
@@ -268,8 +273,29 @@ func MapCreatePrijavaError(err error) error {
 	return err
 }
 
+// reactivateCancelledConfirmedPrijavaTx postavlja status "prijavljen" na zaključanom otkazanom redu.
+// Pozivalac mora prethodno proći policy provjere; ne mijenja izbore ni Platio.
+func reactivateCancelledConfirmedPrijavaTx(tx *gorm.DB, prijavaID uint) (models.Prijava, error) {
+	var prijava models.Prijava
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&prijava, prijavaID).Error; err != nil {
+		return models.Prijava{}, err
+	}
+	if prijava.Status != "otkazano" {
+		if prijava.Status == "prijavljen" || prijava.Status == "popeo se" || prijava.Status == "nije uspeo" {
+			return prijava, nil
+		}
+		return models.Prijava{}, ErrDuplicatePrijava
+	}
+	if err := tx.Model(&prijava).Update("status", "prijavljen").Error; err != nil {
+		return models.Prijava{}, err
+	}
+	prijava.Status = "prijavljen"
+	return prijava, nil
+}
+
 // CreateConfirmedPrijavaTx kreira potvrđenu prijavu (status "prijavljen") unutar postojeće transakcije.
-// Idempotentno: ako prijava već postoji, vraća postojeći red bez greške.
+// Idempotentno: aktivni statusi (prijavljen / popeo se / nije uspeo) vraćaju postojeći red bez greške.
+// Sa ReactivateCancelled: otkazano se reaktivira u prijavljen nakon policy provjera.
 func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.Time, policy ConfirmedPrijavaPolicy) (models.Prijava, error) {
 	if korisnikID == 0 {
 		return models.Prijava{}, errors.New("invalid korisnik id")
@@ -280,15 +306,17 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 		return models.Prijava{}, err
 	}
 
-	// Idempotentno: postojeća prijava se vraća prije lifecycle/deadline provjera,
-	// tako da već prijavljeni vodič na završenoj akciji ne pravi grešku.
 	var existing models.Prijava
-	err = tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&existing).Error
-	if err == nil {
-		return existing, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return models.Prijava{}, err
+	fetchErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&existing).Error
+	if fetchErr == nil {
+		if existing.Status != "otkazano" {
+			return existing, nil
+		}
+		if !policy.ReactivateCancelled {
+			return existing, nil
+		}
+	} else if !errors.Is(fetchErr, gorm.ErrRecordNotFound) {
+		return models.Prijava{}, fetchErr
 	}
 
 	if policy.RequireActionActive {
@@ -318,6 +346,10 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 		}
 	}
 
+	if fetchErr == nil && existing.Status == "otkazano" {
+		return reactivateCancelledConfirmedPrijavaTx(tx, existing.ID)
+	}
+
 	prijava := models.Prijava{
 		AkcijaID:   akcijaID,
 		KorisnikID: korisnikID,
@@ -328,6 +360,9 @@ func CreateConfirmedPrijavaTx(tx *gorm.DB, akcijaID, korisnikID uint, now time.T
 		if mapped := MapCreatePrijavaError(err); errors.Is(mapped, ErrDuplicatePrijava) {
 			var raceExisting models.Prijava
 			if fetchErr := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnikID).First(&raceExisting).Error; fetchErr == nil {
+				if raceExisting.Status == "otkazano" && policy.ReactivateCancelled {
+					return reactivateCancelledConfirmedPrijavaTx(tx, raceExisting.ID)
+				}
 				return raceExisting, nil
 			}
 		}

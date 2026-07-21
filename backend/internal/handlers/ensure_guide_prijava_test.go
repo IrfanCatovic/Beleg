@@ -472,3 +472,123 @@ func TestEnsureGuidePrijava_MaxLjudiZeroUnlimited(t *testing.T) {
 		t.Fatalf("expected 5 members + guide = 6 active prijave, got %d", n)
 	}
 }
+
+func TestEnsureGuidePrijava_ReactivatesOtkazanoGuide(t *testing.T) {
+	db := testGuidePrijavaDB(t)
+	guide1, _ := seedGuideUsers(t, db)
+	future := time.Now().Add(72 * time.Hour)
+	akcija := models.Akcija{Naziv: "ReOtk", Datum: future, VodicID: guide1.ID, MaxLjudi: 5}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide1.ID, Status: "otkazano", Platio: true}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.PrijavaIzbori{
+		PrijavaID: p.ID, SelectedSmestajIDs: "[2]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		return EnsureGuidePrijava(tx, akcija.ID, guide1.ID)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Status != "prijavljen" {
+		t.Fatalf("expected prijavljen, got %s", reloaded.Status)
+	}
+	if !reloaded.Platio {
+		t.Fatal("Platio preserved")
+	}
+	var izbor models.PrijavaIzbori
+	if err := db.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+		t.Fatal(err)
+	}
+	if izbor.SelectedSmestajIDs != "[2]" {
+		t.Fatalf("choices preserved: %s", izbor.SelectedSmestajIDs)
+	}
+	var izborCount int64
+	db.Model(&models.PrijavaIzbori{}).Where("prijava_id = ?", p.ID).Count(&izborCount)
+	if izborCount != 1 {
+		t.Fatalf("expected 1 izbor row, got %d", izborCount)
+	}
+}
+
+func TestEnsureGuidePrijava_GuideChangeReactivatesNewGuideOtkazano(t *testing.T) {
+	db := testGuidePrijavaDB(t)
+	guide1, guide2 := seedGuideUsers(t, db)
+	future := time.Now().Add(72 * time.Hour)
+	akcija := models.Akcija{Naziv: "ChOtk", Datum: future, VodicID: guide1.ID, MaxLjudi: 5}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		return EnsureGuidePrijava(tx, akcija.ID, guide1.ID)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide2.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		akcija.VodicID = guide2.ID
+		if err := tx.Save(&akcija).Error; err != nil {
+			return err
+		}
+		return EnsureGuidePrijava(tx, akcija.ID, guide2.ID)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var prijave []models.Prijava
+	if err := db.Where("akcija_id = ?", akcija.ID).Order("korisnik_id").Find(&prijave).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(prijave) != 2 {
+		t.Fatalf("expected 2 prijave, got %d", len(prijave))
+	}
+	if prijave[0].KorisnikID != guide1.ID || prijave[0].Status != "prijavljen" {
+		t.Fatalf("old guide should remain prijavljen: %+v", prijave[0])
+	}
+	if prijave[1].KorisnikID != guide2.ID || prijave[1].Status != "prijavljen" {
+		t.Fatalf("new guide should be reactivated: %+v", prijave[1])
+	}
+}
+
+func TestEnsureGuidePrijava_OtkazanoRejectsWhenFull(t *testing.T) {
+	db := testGuidePrijavaDB(t)
+	guide1, guide2 := seedGuideUsers(t, db)
+	future := time.Now().Add(72 * time.Hour)
+	akcija := models.Akcija{Naziv: "FullOtk", Datum: future, VodicID: guide2.ID, MaxLjudi: 1}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide1.ID, Status: "prijavljen"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide2.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		return EnsureGuidePrijava(tx, akcija.ID, guide2.ID)
+	})
+	if !errors.Is(err, helpers.ErrAkcijaCapacityFull) {
+		t.Fatalf("expected capacity full, got %v", err)
+	}
+	var p models.Prijava
+	if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, guide2.ID).First(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if p.Status != "otkazano" {
+		t.Fatalf("guide must stay otkazano, got %s", p.Status)
+	}
+}

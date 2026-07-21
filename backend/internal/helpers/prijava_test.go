@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -490,6 +491,279 @@ func TestReactivateCancelledPrijavaFromChoicesTx_RejectsNonOtkazano(t *testing.T
 	})
 	if !errors.Is(err, ErrDuplicatePrijava) {
 		t.Fatalf("expected ErrDuplicatePrijava, got %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_MemberSignupDoesNotReactivateOtkazano(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Mem", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5}
+	user := models.Korisnik{Username: "mem", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: user.ID, Status: "otkazano", Platio: true}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var out models.Prijava
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		out, err = CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now(), ConfirmedPrijavaPolicyMemberSignup)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if out.ID != p.ID || out.Status != "otkazano" {
+		t.Fatalf("member signup must not reactivate otkazano, got %+v", out)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoReactivatesOtkazano(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Guide", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5}
+	guide := models.Korisnik{Username: "g", Password: "x", Role: "vodic"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "otkazano", Platio: true}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.PrijavaIzbori{
+		PrijavaID: p.ID, SelectedSmestajIDs: "[7]", SelectedPrevozIDs: "[3]", SelectedRentItemsRaw: "[]",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var out models.Prijava
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		out, err = CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if out.ID != p.ID || out.Status != "prijavljen" {
+		t.Fatalf("expected reactivated prijava, got %+v", out)
+	}
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.Platio {
+		t.Fatal("Platio must be preserved")
+	}
+	var izbor models.PrijavaIzbori
+	if err := db.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+		t.Fatal(err)
+	}
+	if izbor.SelectedSmestajIDs != "[7]" {
+		t.Fatalf("choices must be preserved, got %s", izbor.SelectedSmestajIDs)
+	}
+	var n int64
+	db.Model(&models.Prijava{}).Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, guide.ID).Count(&n)
+	if n != 1 {
+		t.Fatalf("expected one prijava row, got %d", n)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoIdempotentActiveStatuses(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Idem", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	for i, st := range []string{"prijavljen", "popeo se", "nije uspeo"} {
+		user := models.Korisnik{Username: "u" + strconv.Itoa(i), Password: "x"}
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatal(err)
+		}
+		p := models.Prijava{AkcijaID: akcija.ID, KorisnikID: user.ID, Status: st}
+		if err := db.Create(&p).Error; err != nil {
+			t.Fatal(err)
+		}
+		var out models.Prijava
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			var err error
+			out, err = CreateConfirmedPrijavaTx(tx, akcija.ID, user.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+			return err
+		}); err != nil {
+			t.Fatalf("status %s: %v", st, err)
+		}
+		if out.ID != p.ID || out.Status != st {
+			t.Fatalf("status %s should be idempotent no-op, got %+v", st, out)
+		}
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoOtkazanoRejectsWhenFull(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Full", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 1}
+	guide := models.Korisnik{Username: "gf", Password: "x"}
+	filler := models.Korisnik{Username: "fill", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&filler).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: filler.ID, Status: "prijavljen"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	})
+	if !errors.Is(err, ErrAkcijaCapacityFull) {
+		t.Fatalf("expected capacity full, got %v", err)
+	}
+	var p models.Prijava
+	if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, guide.ID).First(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	if p.Status != "otkazano" {
+		t.Fatalf("prijava must stay otkazano, got %s", p.Status)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoFullCapacityIdempotentPrijavljen(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "FullG", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 1}
+	guide := models.Korisnik{Username: "gfull", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "prijavljen"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	}); err != nil {
+		t.Fatalf("active guide on full action should be idempotent success: %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoOtkazanoRejectsCompletedAction(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Done", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5, IsCompleted: true}
+	guide := models.Korisnik{Username: "gd", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		return err
+	})
+	if !errors.Is(err, ErrAkcijaAlreadyComplete) {
+		t.Fatalf("expected completed error, got %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoOtkazanoPastDeadlineAllowed(t *testing.T) {
+	db := testPrijavaDB(t)
+	pastStart := time.Now().Add(-3 * time.Hour)
+	akcija := models.Akcija{
+		Naziv: "Past", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5, StartAt: &pastStart,
+	}
+	guide := models.Korisnik{Username: "gdl", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		p, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+		if err != nil {
+			return err
+		}
+		if p.Status != "prijavljen" {
+			t.Fatalf("expected prijavljen after reactivation, got %s", p.Status)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("guide-auto should skip deadline: %v", err)
+	}
+}
+
+func TestCreateConfirmedPrijavaTx_GuideAutoConcurrentReactivateOtkazano(t *testing.T) {
+	db := testPrijavaDB(t)
+	akcija := models.Akcija{Naziv: "Race", Datum: time.Now().Add(48 * time.Hour), MaxLjudi: 5}
+	guide := models.Korisnik{Username: "gr", Password: "x"}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&guide).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{AkcijaID: akcija.ID, KorisnikID: guide.ID, Status: "otkazano"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	errs := make([]error, 4)
+	ids := make([]uint, 4)
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = db.Transaction(func(tx *gorm.DB) error {
+				p, err := CreateConfirmedPrijavaTx(tx, akcija.ID, guide.ID, time.Now(), ConfirmedPrijavaPolicyGuideAuto)
+				if err != nil {
+					return err
+				}
+				ids[idx] = p.ID
+				return nil
+			})
+		}(i)
+	}
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent guide reactivate failed: %v", err)
+		}
+	}
+	for _, id := range ids {
+		if id != ids[0] {
+			t.Fatalf("expected same prijava id, got %v", ids)
+		}
+	}
+	var p models.Prijava
+	if err := db.First(&p, ids[0]).Error; err != nil {
+		t.Fatal(err)
+	}
+	if p.Status != "prijavljen" {
+		t.Fatalf("expected prijavljen, got %s", p.Status)
 	}
 }
 
