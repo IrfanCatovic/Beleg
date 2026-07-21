@@ -173,6 +173,13 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 		db.Model(&models.Prijava{}).Where("akcija_id = ? AND status = ?", id, "prijavljen").Count(&prijaveCount)
 		resp["prijaveCount"] = prijaveCount
 
+		capacityUsedCount, err := helpers.CountActivePrijaveForAkcija(db, uint(id))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brojanju prijava"})
+			return
+		}
+		resp["capacityUsedCount"] = capacityUsedCount
+
 		var smestaj []models.AkcijaSmestaj
 		_ = db.Where("akcija_id = ?", akcija.ID).Find(&smestaj).Error
 		var oprema []models.AkcijaOprema

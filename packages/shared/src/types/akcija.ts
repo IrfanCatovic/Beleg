@@ -88,6 +88,8 @@ export interface AkcijaDetail extends AkcijaListItem {
   vodic?: AkcijaVodicRef
   addedBy?: AkcijaVodicRef
   prijaveCount?: number
+  /** Statusi koji troše maxLjudi: prijavljen, popeo se, nije uspeo. */
+  capacityUsedCount?: number
   klubId?: number
   limited?: boolean
   ferrataId?: number
