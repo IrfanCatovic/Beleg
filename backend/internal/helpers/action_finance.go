@@ -1,12 +1,22 @@
 package helpers
 
 import (
+	"encoding/json"
+	"math"
 	"strings"
 
 	"beleg-app/backend/internal/models"
 
 	"gorm.io/gorm"
 )
+
+// saldoMoneyEpsilon — ista tolerancija kao u FinishAction (finEps).
+const saldoMoneyEpsilon = 1e-6
+
+// SaldoAmountsEqual poredi iznose obaveze izračunate kao float64.
+func SaldoAmountsEqual(a, b float64) bool {
+	return math.Abs(a-b) < saldoMoneyEpsilon
+}
 
 // PrijavaRentItem opisuje izabrani rent u prijavi.
 type PrijavaRentItem struct {
@@ -78,6 +88,84 @@ func ComputeSaldoForParticipant(db *gorm.DB, akcija models.Akcija, korisnik mode
 		}
 	}
 	return saldo
+}
+
+func participantChoicesFromJSON(smestajJSON, prevozJSON, rentJSON string) (ParticipantChoices, error) {
+	out := ParticipantChoices{}
+	if err := unmarshalChoiceIDs(smestajJSON, &out.SelectedSmestajIDs); err != nil {
+		return ParticipantChoices{}, err
+	}
+	if err := unmarshalChoiceIDs(prevozJSON, &out.SelectedPrevozIDs); err != nil {
+		return ParticipantChoices{}, err
+	}
+	if err := unmarshalRentItems(rentJSON, &out.SelectedRentItems); err != nil {
+		return ParticipantChoices{}, err
+	}
+	return out, nil
+}
+
+func unmarshalChoiceIDs(raw string, dest *[]uint) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || trimmed == "null" {
+		*dest = nil
+		return nil
+	}
+	return json.Unmarshal([]byte(trimmed), dest)
+}
+
+func unmarshalRentItems(raw string, dest *[]PrijavaRentItem) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || trimmed == "null" {
+		*dest = nil
+		return nil
+	}
+	return json.Unmarshal([]byte(trimmed), dest)
+}
+
+func participantChoicesFromIzbori(izbor *models.PrijavaIzbori) (ParticipantChoices, error) {
+	if izbor == nil {
+		return ParticipantChoices{}, nil
+	}
+	return participantChoicesFromJSON(izbor.SelectedSmestajIDs, izbor.SelectedPrevozIDs, izbor.SelectedRentItemsRaw)
+}
+
+func participantChoicesFromPayload(payload PrijavaIzboriPayload) (ParticipantChoices, error) {
+	return participantChoicesFromJSON(payload.SelectedSmestajIDs, payload.SelectedPrevozIDs, payload.SelectedRentItemsRaw)
+}
+
+// ShouldResetPlatioForReactivationTx vraća true kada prijava ima Platio=true, ali se finansijska
+// obaveza (saldo) promijenila u odnosu na stare izbore. Koristi centralni ComputeSaldoForParticipant.
+func ShouldResetPlatioForReactivationTx(
+	tx *gorm.DB,
+	prijava models.Prijava,
+	oldIzbor *models.PrijavaIzbori,
+	newChoices PrijavaIzboriPayload,
+) (bool, error) {
+	if !prijava.Platio {
+		return false, nil
+	}
+
+	var akcija models.Akcija
+	if err := tx.First(&akcija, prijava.AkcijaID).Error; err != nil {
+		return false, err
+	}
+	var korisnik models.Korisnik
+	if err := tx.First(&korisnik, prijava.KorisnikID).Error; err != nil {
+		return false, err
+	}
+
+	oldChoices, err := participantChoicesFromIzbori(oldIzbor)
+	if err != nil {
+		return false, err
+	}
+	newChoicesParsed, err := participantChoicesFromPayload(newChoices)
+	if err != nil {
+		return false, err
+	}
+
+	oldSaldo := ComputeSaldoForParticipant(tx, akcija, korisnik, oldChoices)
+	newSaldo := ComputeSaldoForParticipant(tx, akcija, korisnik, newChoicesParsed)
+	return !SaldoAmountsEqual(oldSaldo, newSaldo), nil
 }
 
 func AkcijaSkipsClubFinances(akcija models.Akcija) bool {

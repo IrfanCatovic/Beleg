@@ -160,13 +160,34 @@ func ReactivateCancelledPrijavaFromChoicesTx(tx *gorm.DB, prijavaID uint, choice
 		return models.Prijava{}, ErrDuplicatePrijava
 	}
 
-	if err := tx.Model(&prijava).Update("status", "prijavljen").Error; err != nil {
+	var oldIzbor *models.PrijavaIzbori
+	var izborRecord models.PrijavaIzbori
+	if err := tx.Where("prijava_id = ?", prijavaID).First(&izborRecord).Error; err == nil {
+		oldIzbor = &izborRecord
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Prijava{}, err
+	}
+
+	resetPlatio, err := ShouldResetPlatioForReactivationTx(tx, prijava, oldIzbor, choices)
+	if err != nil {
+		return models.Prijava{}, err
+	}
+	newPlatio := prijava.Platio
+	if resetPlatio {
+		newPlatio = false
+	}
+
+	if err := tx.Model(&prijava).Updates(map[string]any{
+		"status": "prijavljen",
+		"platio": newPlatio,
+	}).Error; err != nil {
 		return models.Prijava{}, err
 	}
 	prijava.Status = "prijavljen"
+	prijava.Platio = newPlatio
 
 	var izbor models.PrijavaIzbori
-	err := tx.Where("prijava_id = ?", prijavaID).First(&izbor).Error
+	err = tx.Where("prijava_id = ?", prijavaID).First(&izbor).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		izbor = models.PrijavaIzbori{
 			PrijavaID:            prijavaID,

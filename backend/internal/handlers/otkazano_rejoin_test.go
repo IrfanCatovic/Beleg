@@ -338,7 +338,7 @@ func TestOtkazanoRejoin_RejectsAfterDeadline(t *testing.T) {
 	}
 }
 
-// 12. Platio=true ostaje nakon reaktivacije
+// 12. Platio=true ostaje kada se saldo ne mijenja (isti izbori)
 func TestOtkazanoRejoin_PreservesPlatioOnReactivation(t *testing.T) {
 	db := testPrijaviDB(t)
 	user := seedUser(t, db, "u_pay")
@@ -353,7 +353,85 @@ func TestOtkazanoRejoin_PreservesPlatioOnReactivation(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reloaded.Platio {
-		t.Fatal("Platio must remain true after reactivation")
+		t.Fatal("Platio must remain true after reactivation with unchanged saldo")
+	}
+}
+
+func TestOtkazanoRejoin_ResetsPlatioWhenSaldoIncreases(t *testing.T) {
+	db := testPrijaviDB(t)
+	user := seedUser(t, db, "u_pay_up")
+	akcija := seedOpenAkcija(t, db, 5)
+	cheap := models.AkcijaSmestaj{AkcijaID: akcija.ID, Naziv: "C", CenaPoOsobiUkupno: 30}
+	expensive := models.AkcijaSmestaj{AkcijaID: akcija.ID, Naziv: "E", CenaPoOsobiUkupno: 70}
+	if err := db.Create(&cheap).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&expensive).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := seedOtkazanoPrijava(t, db, akcija.ID, user.ID, true,
+		"["+strconv.FormatUint(uint64(cheap.ID), 10)+"]", "[]")
+
+	_, err := acceptSignupTx(t, db, akcija, user, prijavaChoicesPayload{SelectedSmestajIDs: []uint{expensive.ID}})
+	if err != nil {
+		t.Fatalf("accept: %v", err)
+	}
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Platio {
+		t.Fatal("Platio must be false when saldo increased on rejoin")
+	}
+}
+
+func TestOtkazanoRejoin_ResetsPlatioWhenSaldoDecreases(t *testing.T) {
+	db := testPrijaviDB(t)
+	user := seedUser(t, db, "u_pay_dn")
+	akcija := seedOpenAkcija(t, db, 5)
+	cheap := models.AkcijaSmestaj{AkcijaID: akcija.ID, Naziv: "C", CenaPoOsobiUkupno: 30}
+	expensive := models.AkcijaSmestaj{AkcijaID: akcija.ID, Naziv: "E", CenaPoOsobiUkupno: 70}
+	if err := db.Create(&cheap).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&expensive).Error; err != nil {
+		t.Fatal(err)
+	}
+	p := seedOtkazanoPrijava(t, db, akcija.ID, user.ID, true,
+		"["+strconv.FormatUint(uint64(expensive.ID), 10)+"]", "[]")
+
+	_, err := acceptSignupTx(t, db, akcija, user, prijavaChoicesPayload{SelectedSmestajIDs: []uint{cheap.ID}})
+	if err != nil {
+		t.Fatalf("accept: %v", err)
+	}
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Platio {
+		t.Fatal("Platio must be false when saldo decreased on rejoin")
+	}
+}
+
+func TestOtkazanoRejoin_InvalidChoicesPreservesPlatio(t *testing.T) {
+	db := testPrijaviDB(t)
+	user := seedUser(t, db, "u_inv_pay")
+	akcija := seedOpenAkcija(t, db, 5)
+	p := seedOtkazanoPrijava(t, db, akcija.ID, user.ID, true, "[]", "[]")
+
+	_, err := acceptSignupTx(t, db, akcija, user, prijavaChoicesPayload{SelectedSmestajIDs: []uint{9999}})
+	if err == nil {
+		t.Fatal("expected invalid smestaj error")
+	}
+	var reloaded models.Prijava
+	if err := db.First(&reloaded, p.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if getPrijavaStatus(t, db, p.ID) != "otkazano" {
+		t.Fatal("prijava must stay otkazano")
+	}
+	if !reloaded.Platio {
+		t.Fatal("Platio must remain true when accept fails")
 	}
 }
 

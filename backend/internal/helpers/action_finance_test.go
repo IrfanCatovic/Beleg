@@ -37,6 +37,18 @@ func TestIsActionGuide(t *testing.T) {
 	}
 }
 
+func TestSaldoAmountsEqual(t *testing.T) {
+	if !SaldoAmountsEqual(30, 30) {
+		t.Fatal("expected equal")
+	}
+	if !SaldoAmountsEqual(30, 30+saldoMoneyEpsilon/2) {
+		t.Fatal("expected equal within epsilon")
+	}
+	if SaldoAmountsEqual(30, 30.01) {
+		t.Fatal("expected not equal")
+	}
+}
+
 func TestComputeSaldoForParticipant_GuideZeroWithoutChoices(t *testing.T) {
 	klubID := uint(1)
 	akcija := models.Akcija{
