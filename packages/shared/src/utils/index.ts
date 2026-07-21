@@ -51,6 +51,16 @@ export {
   isActionGuideUser,
   requiresActionSignupChoices,
 } from './actionPricing'
+export {
+  PRIJAVA_BLOCKING_STATUSES,
+  canEditActionSignupChoices,
+  canRequestActionSignup,
+  deriveActionSignupUiState,
+  isBlockingPrijavaStatus,
+  isCancelledPrijavaStatus,
+  isConfirmedPrijavaStatus,
+} from './prijavaStatus'
+export type { ActionSignupEligibilityInput, ActionSignupUiInput, ActionSignupUiState } from './prijavaStatus'
 export type {
   ActionPriceDisplay,
   ActionPriceDisplayMode,

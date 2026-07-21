@@ -26,7 +26,7 @@ import {
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import { Button, ErrorView, Loader, Screen } from '../../components/ui'
+import { Button, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import { buildPrevozOccupancy } from '../../utils/actionDetails'
 import { canApproveSignupRequest, canManageHostAkcija } from '../../utils/canManageAkcija'
@@ -373,6 +373,17 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
           <ActionDetailDescription opis={akcija.opis} />
           <ActionDetailInfo akcija={akcija} />
 
+          {user && !akcija.isCompleted && registration.isPendingSignup ? (
+            <Text variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
+              Zahtev za prijavu je poslat i čeka odobrenje.
+            </Text>
+          ) : null}
+          {user && !akcija.isCompleted && registration.signupUi.showCancelledNotice ? (
+            <Text variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
+              Prethodna prijava je otkazana. Možeš poslati novi zahtev dok su prijave otvorene.
+            </Text>
+          ) : null}
+
           {user && !akcija.isCompleted ? (
             <ActionDetailLogistics
               akcija={akcija}
@@ -499,7 +510,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         isPendingSignup={registration.isPendingSignup}
         isRegistered={registration.isRegistered}
         isCompleted={!!akcija.isCompleted}
-        isCapacityFull={registration.isCapacityFull}
+        signupUi={registration.signupUi}
         canCancel={canCancel}
         saving={registration.saveMutation.isPending}
         onSave={() => registration.saveMutation.mutate()}

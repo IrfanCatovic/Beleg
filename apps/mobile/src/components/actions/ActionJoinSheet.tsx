@@ -12,6 +12,9 @@ import {
   getActionCapacityUsedCount,
   isActionCapacityFull,
   getApiErrorMessage,
+  isBlockingPrijavaStatus,
+  isCancelledPrijavaStatus,
+  isConfirmedPrijavaStatus,
 } from '@beleg/shared'
 import {
   fetchAkcijaById,
@@ -78,8 +81,32 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
       setSelPrevoz(new Set())
       setSelRent({})
       setConfirmStep(false)
+      return
     }
-  }, [visible, actionId])
+    const prijava = mojaQuery.data?.prijava
+    const pending = mojaQuery.data?.signupRequest
+    if (pending?.status === 'pending') {
+      setSelSmestaj(new Set(pending.selectedSmestajIds ?? []))
+      const prev = pending.selectedPrevozIds ?? []
+      setSelPrevoz(prev.length ? new Set([prev[prev.length - 1]]) : new Set())
+      const rent: Record<number, number> = {}
+      for (const it of pending.selectedRentItems ?? []) {
+        if (it.rentId && it.kolicina > 0) rent[it.rentId] = it.kolicina
+      }
+      setSelRent(rent)
+      return
+    }
+    if (isCancelledPrijavaStatus(prijava?.status)) {
+      setSelSmestaj(new Set(prijava?.selectedSmestajIds ?? []))
+      const prev = prijava?.selectedPrevozIds ?? []
+      setSelPrevoz(prev.length ? new Set([prev[prev.length - 1]]) : new Set())
+      const rent: Record<number, number> = {}
+      for (const it of prijava?.selectedRentItems ?? []) {
+        if (it.rentId && it.kolicina > 0) rent[it.rentId] = it.kolicina
+      }
+      setSelRent(rent)
+    }
+  }, [visible, actionId, mojaQuery.data])
 
   const akcija = detailQuery.data
   const currency = klubQuery.data?.valuta || 'RSD'
@@ -107,7 +134,10 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
   })
 
   const pending = mojaQuery.data?.signupRequest?.status === 'pending'
-  const registered = mojaQuery.data?.prijava?.status === 'prijavljen'
+  const prijavaStatus = mojaQuery.data?.prijava?.status
+  const registered = isConfirmedPrijavaStatus(prijavaStatus)
+  const blockingNonCancelled =
+    isBlockingPrijavaStatus(prijavaStatus) && !isCancelledPrijavaStatus(prijavaStatus)
   const capacityUsedCount = akcija
     ? getActionCapacityUsedCount(akcija, prijaveQuery.data)
     : 0
@@ -131,10 +161,14 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
 
         {detailQuery.isLoading ? (
           <Loader />
-        ) : pending || registered ? (
+        ) : pending || registered || blockingNonCancelled ? (
           <View style={styles.center}>
             <Text color={colors.textMuted}>
-              {pending ? 'Već imate zahtev na čekanju.' : 'Već ste prijavljeni.'}
+              {pending
+                ? 'Već imate zahtev na čekanju.'
+                : registered
+                  ? 'Već ste prijavljeni.'
+                  : 'Prijava na ovu akciju više nije dostupna.'}
             </Text>
             <Button title="Zatvori" variant="ghost" onPress={onClose} />
           </View>

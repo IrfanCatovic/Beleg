@@ -11,6 +11,9 @@ import {
   getActionCapacityUsedCount,
   isActionCapacityFull,
   getApiErrorMessage,
+  canEditActionSignupChoices,
+  deriveActionSignupUiState,
+  isConfirmedPrijavaStatus,
 } from '@beleg/shared'
 import {
   cancelSignupRequest,
@@ -58,7 +61,9 @@ export function useActionDetailRegistration(options: {
   const prijava = mojaPrijavaData?.prijava
   const pendingSignup = mojaPrijavaData?.signupRequest
   const isPendingSignup = pendingSignup?.status === 'pending'
-  const isRegistered = prijava?.status === 'prijavljen'
+  const isRegistered = isConfirmedPrijavaStatus(prijava?.status)
+
+  const heldSource = (isPendingSignup ? pendingSignup : null) ?? prijava
 
   const isClan = useMemo(
     () => (akcija && user ? effectiveIsClanKluba(user, akcija) : false),
@@ -85,10 +90,8 @@ export function useActionDetailRegistration(options: {
     return computeParticipantSaldo(akcija, undefined, isClan, selections, { username: user?.username })
   }, [akcija, user?.username, isClan, selections])
 
-  const heldSource = prijava ?? (isPendingSignup ? pendingSignup : null)
-
   useEffect(() => {
-    const source = heldSource
+    const source = (isPendingSignup ? pendingSignup : null) ?? prijava
     if (!source) return
     setSelSmestaj(new Set(source.selectedSmestajIds ?? []))
     const prev = source.selectedPrevozIds ?? []
@@ -101,13 +104,28 @@ export function useActionDetailRegistration(options: {
     setSelectionsDirty(false)
   }, [prijava, pendingSignup, isPendingSignup])
 
-  const logisticsDisabled =
-    !!akcija?.isCompleted ||
-    (isRegistered && prijava?.status !== 'prijavljen')
+  const logisticsDisabled = !canEditActionSignupChoices({
+    isCompleted: akcija?.isCompleted,
+    isPendingSignup,
+    prijavaStatus: prijava?.status,
+  })
 
   const capacityUsedCount = getActionCapacityUsedCount(akcija ?? {}, prijave)
   const isCapacityFull =
     !!akcija && !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+
+  const signupUi = useMemo(
+    () =>
+      deriveActionSignupUiState({
+        prijavaStatus: prijava?.status,
+        isPendingSignup,
+        selectionsDirty,
+        saving: false,
+        isCapacityFull,
+        isCompleted: !!akcija?.isCompleted,
+      }),
+    [prijava?.status, isPendingSignup, selectionsDirty, isCapacityFull, akcija?.isCompleted],
+  )
 
   const invalidate = useCallback(async () => {
     await invalidateActionQueries(queryClient, actionId, inviteToken)
@@ -219,6 +237,7 @@ export function useActionDetailRegistration(options: {
     isPendingSignup,
     isRegistered,
     isCapacityFull,
+    signupUi,
     isClan,
     baseCena,
     priceTotals,

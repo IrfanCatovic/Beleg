@@ -16,6 +16,7 @@ export interface ActionDetailsHeaderProps {
   capacityUsedCount: number
   effectiveIsClanKluba: boolean
   mojaPrijava: { status: string } | null | undefined
+  showRegisteredBadge?: boolean
   user: { username?: string } | null
   onBack: () => void
 }
@@ -31,7 +32,7 @@ export function ActionDetailsHeader({
   registeredCount,
   capacityUsedCount,
   effectiveIsClanKluba,
-  mojaPrijava,
+  showRegisteredBadge = false,
   user,
   onBack,
 }: ActionDetailsHeaderProps) {
@@ -384,7 +385,7 @@ export function ActionDetailsHeader({
                       {effectiveIsClanKluba ? 'Tvoj klub' : 'Gost'}
                     </span>
                   )}
-                  {mojaPrijava && (
+                  {showRegisteredBadge && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white/90 text-emerald-800 backdrop-blur-md border border-white/40 shadow-sm">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Prijavljen

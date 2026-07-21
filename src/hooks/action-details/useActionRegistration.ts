@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
+  canEditActionSignupChoices,
+  isConfirmedPrijavaStatus,
+} from '@beleg/shared'
+import {
   cancelSignupRequest,
   fetchMojaPrijavaZaAkciju,
   otkaziPrijavu,
@@ -88,7 +92,8 @@ export function useActionRegistration({
     const signup = res.signupRequest ?? null
     setMojaPrijava(p)
     setPendingSignup(signup?.status === 'pending' ? signup : null)
-    const source = p ?? (signup?.status === 'pending' ? signup : null)
+    const source =
+      signup?.status === 'pending' ? signup : (p ?? null)
     if (source) {
       applyChoicesToState(source, setSelSmestaj, setSelPrevoz, setSelRent)
       setSelectionsDirty(false)
@@ -214,10 +219,6 @@ export function useActionRegistration({
       await showAlert('Akcija je završena.')
       return
     }
-    if (mojaPrijava && mojaPrijava.status !== 'prijavljen') {
-      await showAlert('Ne možete menjati izbore nakon što je status prijave promenjen.', t('errorTitle'))
-      return
-    }
     if (pendingSignup && !selectionsDirty) {
       await showAlert(t('signupPendingMessage', { defaultValue: 'Zahtev za prijavu je na čekanju odobrenja.' }))
       return
@@ -226,10 +227,7 @@ export function useActionRegistration({
     try {
       const payload = buildChoicesPayload()
       const inviteParams = inviteToken ? { params: { inviteToken } } : undefined
-      if (!mojaPrijava) {
-        await prijaviNaAkciju(id!, payload, inviteParams)
-        await showAlert(t('signupRequestSent', { defaultValue: 'Zahtev za prijavu je poslat na odobrenje.' }))
-      } else {
+      if (isConfirmedPrijavaStatus(mojaPrijava?.status)) {
         try {
           await updateMojaPrijava(id!, payload, inviteParams)
           await showAlert('Izbori su sačuvani.')
@@ -243,6 +241,9 @@ export function useActionRegistration({
             throw err
           }
         }
+      } else {
+        await prijaviNaAkciju(id!, payload, inviteParams)
+        await showAlert(t('signupRequestSent', { defaultValue: 'Zahtev za prijavu je poslat na odobrenje.' }))
       }
       setSelectionsDirty(false)
       await reloadAkcija()
@@ -280,6 +281,7 @@ export function useActionRegistration({
         setSelectionsDirty(false)
         await reloadAkcija()
         await refreshPrijave()
+        await loadRegistrationState()
       } catch (err: unknown) {
         await showAlert(getApiErrorMessage(err, t('cancelJoinError', { defaultValue: 'Greška' })), t('errorTitle'))
       }
@@ -309,12 +311,13 @@ export function useActionRegistration({
   }
 
   const isPendingSignup = !!pendingSignup
-  const isRegistered = !!mojaPrijava && mojaPrijava.status === 'prijavljen'
+  const isRegistered = isConfirmedPrijavaStatus(mojaPrijava?.status)
   const canEditLogistics =
-    !!user &&
-    !akcija?.isCompleted &&
-    (!mojaPrijava || mojaPrijava.status === 'prijavljen') &&
-    !isPendingSignup
+    canEditActionSignupChoices({
+      isCompleted: akcija?.isCompleted,
+      isPendingSignup,
+      prijavaStatus: mojaPrijava?.status,
+    }) && !!user
 
   return {
     mojaPrijava,

@@ -36,6 +36,8 @@ import {
   getActionRegisteredCount,
   getActionCapacityUsedCount,
   isActionCapacityFull,
+  deriveActionSignupUiState,
+  isConfirmedPrijavaStatus,
 } from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
@@ -86,6 +88,7 @@ export default function ActionDetails() {
   const {
     mojaPrijava,
     isPendingSignup,
+    isRegistered,
     canEditLogistics,
     setMojaPrijava,
     selSmestaj,
@@ -728,7 +731,7 @@ export default function ActionDetails() {
   const showAscentM = !isFerrataAction && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0
   const isLimitedView = !!akcija.limited
   const canAddTransport =
-    !!user && !akcija.isCompleted && (canManageHost || mojaPrijava?.status === 'prijavljen')
+    !!user && !akcija.isCompleted && (canManageHost || isRegistered)
   const hasSmestajOprema = !!(
     akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length
   )
@@ -748,6 +751,25 @@ export default function ActionDetails() {
   const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
   const isCapacityFull =
     !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+  const signupUi = useMemo(
+    () =>
+      deriveActionSignupUiState({
+        prijavaStatus: mojaPrijava?.status,
+        isPendingSignup,
+        selectionsDirty,
+        saving: savingSelections,
+        isCapacityFull,
+        isCompleted: akcija.isCompleted,
+      }),
+    [
+      mojaPrijava?.status,
+      isPendingSignup,
+      selectionsDirty,
+      savingSelections,
+      isCapacityFull,
+      akcija.isCompleted,
+    ],
+  )
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
@@ -792,6 +814,7 @@ export default function ActionDetails() {
         capacityUsedCount={capacityUsedCount}
         effectiveIsClanKluba={effectiveIsClanKluba}
         mojaPrijava={mojaPrijava}
+        showRegisteredBadge={signupUi.showRegisteredBadge}
         user={user}
         onBack={() => navigate(-1)}
       />
@@ -1289,7 +1312,7 @@ export default function ActionDetails() {
                         </span>
                       </div>
                     )}
-                    {isCapacityFull && !mojaPrijava && !isPendingSignup && (
+                    {signupUi.showCapacityFullNotice && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-rose-50 border border-rose-200">
                         <span className="text-[11px] text-rose-800 font-bold">{t('registrationFullFriendly')}</span>
                       </div>
@@ -1308,7 +1331,14 @@ export default function ActionDetails() {
                         </span>
                       </div>
                     )}
-                    {mojaPrijava && (
+                    {signupUi.showCancelledNotice && (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-[11px] text-slate-700 font-medium">
+                          Prethodna prijava je otkazana.
+                        </span>
+                      </div>
+                    )}
+                    {mojaPrijava && isConfirmedPrijavaStatus(mojaPrijava.status) && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50 border border-emerald-100">
                         <span className="text-[11px] text-emerald-700 font-bold">Tvoja prijava</span>
                         <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
@@ -1566,10 +1596,7 @@ export default function ActionDetails() {
                         type="button"
                         onClick={handleSavePrijavaOrUpdate}
                         disabled={
-                          savingSelections ||
-                          (mojaPrijava != null && !selectionsDirty && !isPendingSignup) ||
-                          isPendingSignup ||
-                          (isCapacityFull && !mojaPrijava && !isPendingSignup)
+                          signupUi.isSignupPrimaryDisabled
                         }
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-extrabold bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
@@ -1580,13 +1607,15 @@ export default function ActionDetails() {
                           ? 'Čuvam…'
                           : isPendingSignup
                             ? t('signupPendingStatus')
-                            : mojaPrijava
+                            : isRegistered
                               ? selectionsDirty
                                 ? 'Sačuvaj izmene izbora'
                                 : 'Izbori su sačuvani'
-                              : t('sendSignupRequest')}
+                              : signupUi.showCancelledNotice
+                                ? 'Pošalji novi zahtev'
+                                : t('sendSignupRequest')}
                       </button>
-                      {(isPendingSignup || (mojaPrijava && mojaPrijava.status === 'prijavljen')) && (
+                      {(isPendingSignup || isRegistered) && (
                         <button
                           type="button"
                           onClick={handleCancelPrijava}

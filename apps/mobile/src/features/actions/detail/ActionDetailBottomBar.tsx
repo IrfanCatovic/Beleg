@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { ActionSignupUiState } from '@beleg/shared'
 import { Button, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
@@ -8,7 +9,7 @@ interface ActionDetailBottomBarProps {
   isPendingSignup: boolean
   isRegistered: boolean
   isCompleted: boolean
-  isCapacityFull: boolean
+  signupUi: ActionSignupUiState
   canCancel: boolean
   saving: boolean
   onSave: () => void
@@ -21,7 +22,7 @@ export function ActionDetailBottomBar({
   isPendingSignup,
   isRegistered,
   isCompleted,
-  isCapacityFull,
+  signupUi,
   canCancel,
   saving,
   onSave,
@@ -36,17 +37,34 @@ export function ActionDetailBottomBar({
   const showCancelSignup = isPendingSignup
   const showCancelPrijava = isRegistered && canCancel
 
-  if (!showPrimary && !showSave && !showCancelSignup && !showCancelPrijava) return null
+  if (!showPrimary && !showSave && !showCancelSignup && !showCancelPrijava && !signupUi.showCancelledNotice) {
+    return null
+  }
+
+  const primaryLabel = signupUi.showCancelledNotice
+    ? 'Pošalji novi zahtev'
+    : 'Pošalji zahtev za prijavu'
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom + spacing.sm }]}>
+      {signupUi.showCancelledNotice ? (
+        <Text variant="small" color={colors.textMuted} style={styles.notice}>
+          Prethodna prijava je otkazana. Možeš poslati novi zahtev dok su prijave otvorene.
+        </Text>
+      ) : null}
       {showPrimary ? (
-        isCapacityFull ? (
-          <Text variant="small" color={colors.textMuted} style={styles.pending}>
+        signupUi.showCapacityFullNotice ? (
+          <Text variant="small" color={colors.textMuted} style={styles.notice}>
             Sva mesta su popunjena.
           </Text>
         ) : (
-          <Button title="Pošalji zahtev za prijavu" loading={saving} onPress={onSave} fullWidth />
+          <Button
+            title={primaryLabel}
+            loading={saving}
+            disabled={signupUi.isSignupPrimaryDisabled || saving}
+            onPress={onSave}
+            fullWidth
+          />
         )
       ) : null}
       {showSave ? (
@@ -54,7 +72,7 @@ export function ActionDetailBottomBar({
       ) : null}
       {showCancelSignup ? (
         <>
-          <Text variant="small" color={colors.textMuted} style={styles.pending}>
+          <Text variant="small" color={colors.textMuted} style={styles.notice}>
             Zahtev na čekanju odobrenja
           </Text>
           <Button title="Sačuvaj izmene" loading={saving} onPress={onSave} fullWidth />
@@ -86,5 +104,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  pending: { textAlign: 'center' },
+  notice: { textAlign: 'center' },
 })
