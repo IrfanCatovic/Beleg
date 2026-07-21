@@ -119,7 +119,7 @@ func BulkAddClubMembersCompleted(c *gin.Context) {
 		return
 	}
 
-	bulkRes, svcErr := actions.BulkAddMembersToCompletedAction(db, &akcija, uniqueIDs)
+	bulkRes, svcErr := actions.BulkAddMembersToCompletedAction(db, &akcija, req.KorisnikIDs)
 	if svcErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju članova na akciju"})
 		return

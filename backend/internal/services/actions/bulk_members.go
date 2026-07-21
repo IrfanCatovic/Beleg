@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -42,89 +41,76 @@ func UniqueKorisnikIDs(ids []uint) []uint {
 	return uniqueIDs
 }
 
-// BulkAddMembersToCompletedAction dodaje više članova na završenu akciju.
+// BulkAddMembersToCompletedAction dodaje više članova na završenu akciju u jednoj transakciji.
+// Completed-action add/bulk ne koristi maxLjudi kao signup kapacitet.
 func BulkAddMembersToCompletedAction(db *gorm.DB, akcija *models.Akcija, korisnikIDs []uint) (*BulkAddMembersResult, error) {
+	if akcija == nil || akcija.ID == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
 	isGuideAction := strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic"
 	if !isGuideAction && akcija.KlubID == nil {
 		return nil, errors.New("Akcija nema domaći klub")
 	}
 
-	var korisnici []models.Korisnik
-	if err := db.Where("id IN ?", korisnikIDs).Find(&korisnici).Error; err != nil {
-		return nil, err
-	}
-	byID := make(map[uint]models.Korisnik, len(korisnici))
-	for _, k := range korisnici {
-		byID[k.ID] = k
-	}
-
 	res := &BulkAddMembersResult{Processed: len(korisnikIDs)}
 	newlySummitedUserIDs := make([]uint, 0, len(korisnikIDs))
+	seenInPayload := make(map[uint]struct{}, len(korisnikIDs))
+
+	memberOpts := completedMemberApplyOpts{
+		requireClubMember: !isGuideAction,
+		setPlatio:         true,
+	}
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		for _, korisnikID := range korisnikIDs {
-			korisnik, ok := byID[korisnikID]
-			if !ok {
-				res.Skipped++
-				res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "skipped", Reason: "korisnik nije pronađen"})
-				continue
-			}
-			if korisnik.Role == "deleted" {
-				res.Skipped++
-				res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "skipped", Reason: "korisnik je deaktiviran"})
-				continue
-			}
-			if !isGuideAction {
-				if korisnik.KlubID == nil || akcija.KlubID == nil || *korisnik.KlubID != *akcija.KlubID {
-					res.Skipped++
-					res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "skipped", Reason: "korisnik nije član domaćeg kluba"})
-					continue
-				}
-			}
+		lockedAkcija, err := lockCompletedAkcijaTx(tx, akcija.ID)
+		if err != nil {
+			return err
+		}
 
-			var prijava models.Prijava
-			err := tx.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		for _, korisnikID := range korisnikIDs {
+			if korisnikID == 0 {
+				res.Skipped++
+				res.Results = append(res.Results, BulkMemberUserResult{
+					KorisnikID: korisnikID,
+					Status:     "skipped",
+					Reason:     "nevažeći korisnikId",
+				})
+				continue
+			}
+			if _, dup := seenInPayload[korisnikID]; dup {
+				res.Skipped++
+				res.Results = append(res.Results, BulkMemberUserResult{
+					KorisnikID: korisnikID,
+					Status:     "skipped",
+					Reason:     "duplikat u listi",
+				})
+				continue
+			}
+			seenInPayload[korisnikID] = struct{}{}
+
+			result, err := applyCompletedActionMemberTx(tx, &lockedAkcija, korisnikID, memberOpts)
+			if err != nil {
 				return err
 			}
 
-			newlySummited := false
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				prijava = models.Prijava{AkcijaID: akcija.ID, KorisnikID: korisnik.ID, Status: "popeo se", Platio: true}
-				if err := tx.Create(&prijava).Error; err != nil {
-					return helpers.MapCreatePrijavaError(err)
-				}
+			switch result.outcome {
+			case "added":
 				res.Added++
-				newlySummited = true
 				res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "added"})
-			} else {
-				if prijava.Status == "popeo se" {
-					res.Skipped++
-					res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "skipped", Reason: "već označen kao popeo se"})
-					continue
-				}
-				prijava.Status = "popeo se"
-				prijava.Platio = true
-				if err := tx.Save(&prijava).Error; err != nil {
-					return err
-				}
+			case "updated":
 				res.Updated++
-				newlySummited = true
 				res.Results = append(res.Results, BulkMemberUserResult{KorisnikID: korisnikID, Status: "updated"})
+			case "skipped":
+				res.Skipped++
+				res.Results = append(res.Results, BulkMemberUserResult{
+					KorisnikID: korisnikID,
+					Status:     "skipped",
+					Reason:     result.reason,
+				})
 			}
-
-			if newlySummited && helpers.PrijavaCountsAsClimbedPeak(tx, akcija, korisnik.ID) {
-				korisnik.UkupnoKmKorisnik += akcija.UkupnoKmAkcija
-				korisnik.UkupnoMetaraUsponaKorisnik += akcija.UkupnoMetaraUsponaAkcija
-				korisnik.BrojPopeoSe += 1
-				if err := tx.Model(&models.Korisnik{}).Where("id = ?", korisnik.ID).Updates(map[string]any{
-					"ukupno_km_korisnik":            korisnik.UkupnoKmKorisnik,
-					"ukupno_metara_uspona_korisnik": korisnik.UkupnoMetaraUsponaKorisnik,
-					"broj_popeo_se":                 korisnik.BrojPopeoSe,
-				}).Error; err != nil {
-					return err
-				}
-				newlySummitedUserIDs = append(newlySummitedUserIDs, korisnik.ID)
+			if result.shouldNotify {
+				newlySummitedUserIDs = append(newlySummitedUserIDs, korisnikID)
 			}
 		}
 		return nil
