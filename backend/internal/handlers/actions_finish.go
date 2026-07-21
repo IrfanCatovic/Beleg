@@ -382,6 +382,12 @@ func DeleteAkcija(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 			return
 		}
+		if errors.Is(err, helpers.ErrAkcijaHardDeleteCompleted) ||
+			errors.Is(err, helpers.ErrAkcijaHardDeleteHasPrijave) ||
+			errors.Is(err, helpers.ErrAkcijaHardDeleteHasSignupRequests) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju akcije"})
 		return
 	}

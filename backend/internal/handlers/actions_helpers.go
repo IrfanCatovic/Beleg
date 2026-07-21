@@ -487,6 +487,9 @@ func deleteAkcijaDataTx(tx *gorm.DB, akcijaID uint) error {
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&akcija, akcijaID).Error; err != nil {
 		return err
 	}
+	if err := helpers.ValidateAkcijaCanBeHardDeletedTx(tx, &akcija); err != nil {
+		return err
+	}
 
 	var prijavaIDs []uint
 	if err := tx.Model(&models.Prijava{}).Where("akcija_id = ?", akcijaID).Pluck("id", &prijavaIDs).Error; err != nil {

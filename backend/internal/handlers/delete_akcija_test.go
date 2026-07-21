@@ -122,33 +122,6 @@ func TestDeleteAkcija_RemovesAllDirectChildren(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
-	if err := db.Create(&prijava).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&models.PrijavaIzbori{
-		PrijavaID: prijava.ID, SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
-	}).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	for _, st := range []string{
-		models.ActionSignupRequestPending,
-		models.ActionSignupRequestAccepted,
-		models.ActionSignupRequestRejected,
-		models.ActionSignupRequestCancelled,
-	} {
-		u := models.Korisnik{Username: "sr-" + st, Password: "x"}
-		if err := db.Create(&u).Error; err != nil {
-			t.Fatal(err)
-		}
-		if err := db.Create(&models.ActionSignupRequest{
-			AkcijaID: akcija.ID, RequesterID: u.ID, Status: st,
-		}).Error; err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	if err := db.Create(&models.ActionInviteLink{
 		AkcijaID: akcija.ID, TokenHash: "hash-delete-1",
 	}).Error; err != nil {
@@ -195,9 +168,6 @@ func TestDeleteAkcija_RemovesAllDirectChildren(t *testing.T) {
 		model any
 	}{
 		{"akcija", &models.Akcija{}},
-		{"prijava", &models.Prijava{}},
-		{"prijava_izbori", &models.PrijavaIzbori{}},
-		{"signup", &models.ActionSignupRequest{}},
 		{"invite", &models.ActionInviteLink{}},
 		{"participation", &models.ActionParticipationRequest{}},
 		{"smestaj", &models.AkcijaSmestaj{}},
@@ -210,8 +180,6 @@ func TestDeleteAkcija_RemovesAllDirectChildren(t *testing.T) {
 		var n int64
 		q := db.Model(c.model)
 		switch c.model.(type) {
-		case *models.PrijavaIzbori:
-			q = q.Where("prijava_id = ?", prijava.ID)
 		case *models.Akcija:
 			q = q.Where("id = ?", akcija.ID)
 		default:
@@ -249,12 +217,15 @@ func TestDeleteAkcija_SignupWithoutPrijava(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	code, _ := callDeleteAkcija(t, db, akcija.ID, owner.Username, "vodic")
-	if code != http.StatusOK {
-		t.Fatalf("status %d", code)
+	code, body := callDeleteAkcija(t, db, akcija.ID, owner.Username, "vodic")
+	if code != http.StatusConflict {
+		t.Fatalf("status %d body=%v", code, body)
 	}
-	if countWhere(t, db, &models.ActionSignupRequest{}, "akcija_id = ?", akcija.ID) != 0 {
-		t.Fatal("signup request orphan")
+	if countWhere(t, db, &models.Akcija{}, "id = ?", akcija.ID) != 1 {
+		t.Fatal("akcija must remain when signup request exists")
+	}
+	if countWhere(t, db, &models.ActionSignupRequest{}, "akcija_id = ?", akcija.ID) != 1 {
+		t.Fatal("signup request must remain")
 	}
 }
 
@@ -287,11 +258,7 @@ func TestDeleteAkcija_InviteLinksRemoved(t *testing.T) {
 func TestDeleteAkcija_MidFlowFailureRollsBack(t *testing.T) {
 	db := testDeleteAkcijaDB(t)
 	owner := models.Korisnik{Username: "owner5", Password: "x", Role: "vodic"}
-	member := models.Korisnik{Username: "mem5", Password: "x", Role: "clan"}
 	if err := db.Create(&owner).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&member).Error; err != nil {
 		t.Fatal(err)
 	}
 	akcija := models.Akcija{
@@ -299,20 +266,6 @@ func TestDeleteAkcija_MidFlowFailureRollsBack(t *testing.T) {
 		VodicID: owner.ID, AddedByID: owner.ID,
 	}
 	if err := db.Create(&akcija).Error; err != nil {
-		t.Fatal(err)
-	}
-	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
-	if err := db.Create(&prijava).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&models.PrijavaIzbori{
-		PrijavaID: prijava.ID, SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
-	}).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&models.ActionSignupRequest{
-		AkcijaID: akcija.ID, RequesterID: member.ID, Status: models.ActionSignupRequestPending,
-	}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Create(&models.ActionInviteLink{AkcijaID: akcija.ID, TokenHash: "rb-hash"}).Error; err != nil {
@@ -324,7 +277,7 @@ func TestDeleteAkcija_MidFlowFailureRollsBack(t *testing.T) {
 
 	cbName := "force_fail_" + strings.ReplaceAll(t.Name(), "/", "_")
 	if err := db.Callback().Delete().Before("gorm:delete").Register(cbName, func(db *gorm.DB) {
-		if db.Statement != nil && db.Statement.Table == "prijave" {
+		if db.Statement != nil && db.Statement.Table == "akcije" {
 			_ = db.AddError(errors.New("forced mid-delete failure"))
 		}
 	}); err != nil {
@@ -341,15 +294,6 @@ func TestDeleteAkcija_MidFlowFailureRollsBack(t *testing.T) {
 
 	if countWhere(t, db, &models.Akcija{}, "id = ?", akcija.ID) != 1 {
 		t.Fatal("akcija should remain after rollback")
-	}
-	if countWhere(t, db, &models.Prijava{}, "akcija_id = ?", akcija.ID) != 1 {
-		t.Fatal("prijava should remain after rollback")
-	}
-	if countWhere(t, db, &models.PrijavaIzbori{}, "prijava_id = ?", prijava.ID) != 1 {
-		t.Fatal("prijava_izbori should remain after rollback")
-	}
-	if countWhere(t, db, &models.ActionSignupRequest{}, "akcija_id = ?", akcija.ID) != 1 {
-		t.Fatal("signup should remain after rollback")
 	}
 	if countWhere(t, db, &models.ActionInviteLink{}, "akcija_id = ?", akcija.ID) != 1 {
 		t.Fatal("invite should remain after rollback")
@@ -418,15 +362,8 @@ func TestDeleteAkcija_DoesNotTouchOtherAction(t *testing.T) {
 	if err := db.Create(&a2).Error; err != nil {
 		t.Fatal(err)
 	}
-	u1 := models.Korisnik{Username: "u-a1", Password: "x"}
 	u2 := models.Korisnik{Username: "u-a2", Password: "x"}
-	if err := db.Create(&u1).Error; err != nil {
-		t.Fatal(err)
-	}
 	if err := db.Create(&u2).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&models.Prijava{AkcijaID: a1.ID, KorisnikID: u1.ID, Status: "prijavljen"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Create(&models.Prijava{AkcijaID: a2.ID, KorisnikID: u2.ID, Status: "prijavljen"}).Error; err != nil {
