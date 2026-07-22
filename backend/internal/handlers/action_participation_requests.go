@@ -48,13 +48,16 @@ type externalUserCandidateDTO struct {
 
 func buildActionParticipationRequestDTO(db *gorm.DB, req models.ActionParticipationRequest) actionParticipationRequestDTO {
 	actionPayload := gin.H{
-		"id":          req.Akcija.ID,
-		"naziv":       req.Akcija.Naziv,
-		"datum":       req.Akcija.Datum,
-		"planina":     req.Akcija.Planina,
-		"vrh":         req.Akcija.Vrh,
-		"klubId":      req.Akcija.KlubID,
-		"isCompleted": req.Akcija.IsCompleted,
+		"id":                 req.Akcija.ID,
+		"naziv":              req.Akcija.Naziv,
+		"datum":              req.Akcija.Datum,
+		"planina":            req.Akcija.Planina,
+		"vrh":                req.Akcija.Vrh,
+		"klubId":             req.Akcija.KlubID,
+		"isCompleted":        req.Akcija.IsCompleted,
+		"isCancelled":        req.Akcija.IsCancelled,
+		"cancelledAt":        req.Akcija.CancelledAt,
+		"cancellationReason": req.Akcija.CancellationReason,
 	}
 	if req.Akcija.Klub != nil {
 		actionPayload["klubNaziv"] = req.Akcija.Klub.Naziv

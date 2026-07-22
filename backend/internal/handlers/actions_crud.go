@@ -87,16 +87,19 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 
 		if !canSeePrivateDetails {
 			limited := gin.H{
-				"id":          akcija.ID,
-				"naziv":       akcija.Naziv,
-				"planina":     akcija.Planina,
-				"vrh":         akcija.Vrh,
-				"datum":       akcija.Datum,
-				"isCompleted": akcija.IsCompleted,
-				"createdAt":   akcija.CreatedAt,
-				"updatedAt":   akcija.UpdatedAt,
-				"javna":       akcija.Javna,
-				"limited":     true,
+				"id":                 akcija.ID,
+				"naziv":              akcija.Naziv,
+				"planina":            akcija.Planina,
+				"vrh":                akcija.Vrh,
+				"datum":              akcija.Datum,
+				"isCompleted":        akcija.IsCompleted,
+				"isCancelled":        akcija.IsCancelled,
+				"cancelledAt":        akcija.CancelledAt,
+				"cancellationReason": akcija.CancellationReason,
+				"createdAt":          akcija.CreatedAt,
+				"updatedAt":          akcija.UpdatedAt,
+				"javna":              akcija.Javna,
+				"limited":            true,
 			}
 			if akcija.KlubID != nil {
 				limited["klubId"] = *akcija.KlubID
@@ -109,8 +112,10 @@ func GetPublicAkcijaByID(jwtSecret []byte) gin.HandlerFunc {
 			"id": akcija.ID, "naziv": akcija.Naziv, "planina": akcija.Planina, "vrh": akcija.Vrh, "datum": akcija.Datum,
 			"opis": akcija.Opis, "tezina": akcija.Tezina, "slikaUrl": akcija.SlikaURL,
 			"createdAt": akcija.CreatedAt, "updatedAt": akcija.UpdatedAt,
-			"isCompleted": akcija.IsCompleted, "kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
-			"duzinaStazeKm": akcija.UkupnoKmAkcija, "visinaVrhM": akcija.VisinaVrhM, "zimskiUspon": akcija.ZimskiUspon,
+			"isCompleted": akcija.IsCompleted, "isCancelled": akcija.IsCancelled,
+			"cancelledAt": akcija.CancelledAt, "cancellationReason": akcija.CancellationReason,
+			"kumulativniUsponM": akcija.UkupnoMetaraUsponaAkcija,
+			"duzinaStazeKm":     akcija.UkupnoKmAkcija, "visinaVrhM": akcija.VisinaVrhM, "zimskiUspon": akcija.ZimskiUspon,
 			"vodicId":       akcija.VodicID,
 			"drugiVodicIme": akcija.DrugiVodicIme, "addedById": akcija.AddedByID,
 			"javna":                    akcija.Javna,

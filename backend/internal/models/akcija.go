@@ -6,27 +6,32 @@ import (
 )
 
 type Akcija struct {
-	ID                       uint      `gorm:"primaryKey" json:"id"`
-	Naziv                    string    `json:"naziv"`
-	Planina                  string    `json:"planina"` // Ime planine
+	ID      uint   `gorm:"primaryKey" json:"id"`
+	Naziv   string `json:"naziv"`
+	Planina string `json:"planina"` // Ime planine
 	// Tačka na mapi za planinarske akcije (vezivanje hotela/vodiča po lokaciji); za via ferrata često iz kataloga ferate.
-	PlaninaLat *float64 `gorm:"column:planina_lat" json:"planinaLat,omitempty"`
-	PlaninaLng *float64 `gorm:"column:planina_lng" json:"planinaLng,omitempty"`
-	Vrh                      string    `json:"vrh"`
-	Datum                    time.Time `json:"datum"`
-	Opis                     string    `json:"opis,omitempty"`
-	Tezina                   string    `json:"tezina,omitempty"`
-	CreatedAt                time.Time `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt                time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
-	SlikaURL                 string    `json:"slikaUrl,omitempty"`
-	IsCompleted              bool      `gorm:"default:false" json:"isCompleted"`
-	UkupnoMetaraUsponaAkcija int       `json:"kumulativniUsponM"`
-	UkupnoKmAkcija           float64   `json:"duzinaStazeKm"`
-	VisinaVrhM               int       `json:"visinaVrhM"`                                       // Visina vrha u metrima
-	ZimskiUspon              bool      `gorm:"default:false" json:"zimskiUspon"`                 // Da li je akcija zimski uspon
-	VodicID                  uint      `gorm:"default:0" json:"vodicId"`                         // ID korisnika (vodiča) koji vodi akciju
-	DrugiVodicIme            string    `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
-	AddedByID                uint      `gorm:"default:0" json:"addedById"`                       // ID korisnika koji je dodao akciju
+	PlaninaLat  *float64  `gorm:"column:planina_lat" json:"planinaLat,omitempty"`
+	PlaninaLng  *float64  `gorm:"column:planina_lng" json:"planinaLng,omitempty"`
+	Vrh         string    `json:"vrh"`
+	Datum       time.Time `json:"datum"`
+	Opis        string    `json:"opis,omitempty"`
+	Tezina      string    `json:"tezina,omitempty"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
+	SlikaURL    string    `json:"slikaUrl,omitempty"`
+	IsCompleted bool      `gorm:"default:false" json:"isCompleted"`
+	// Cancellation fields are additive read support only in this rollout phase.
+	// No write endpoint or lifecycle guards yet — existing rows default to not cancelled.
+	IsCancelled              bool       `gorm:"not null;default:false;index" json:"isCancelled"`
+	CancelledAt              *time.Time `json:"cancelledAt,omitempty"`
+	CancellationReason       string     `gorm:"type:text;not null;default:''" json:"cancellationReason,omitempty"`
+	UkupnoMetaraUsponaAkcija int        `json:"kumulativniUsponM"`
+	UkupnoKmAkcija           float64    `json:"duzinaStazeKm"`
+	VisinaVrhM               int        `json:"visinaVrhM"`                                       // Visina vrha u metrima
+	ZimskiUspon              bool       `gorm:"default:false" json:"zimskiUspon"`                 // Da li je akcija zimski uspon
+	VodicID                  uint       `gorm:"default:0" json:"vodicId"`                         // ID korisnika (vodiča) koji vodi akciju
+	DrugiVodicIme            string     `gorm:"type:varchar(200)" json:"drugiVodicIme,omitempty"` // Ime drugog vodiča (slobodan unos)
+	AddedByID                uint       `gorm:"default:0" json:"addedById"`                       // ID korisnika koji je dodao akciju
 	// false = samo na profilu člana, ne u listi akcija kluba
 	UIstorijiKluba bool `gorm:"column:u_istoriji_kluba;not null;default:true" json:"uIstorijiKluba"`
 
@@ -43,22 +48,22 @@ type Akcija struct {
 	// OrganizatorTip: klub = akcija kluba (klub_id); vodic = nezavisna tura vodiča (bez kluba, uIstorijiKluba=false).
 	OrganizatorTip string `gorm:"column:organizator_tip;type:varchar(16);not null;default:'klub'" json:"organizatorTip"`
 
-	TipAkcije                string     `gorm:"type:varchar(30);default:'planina'" json:"tipAkcije"`
-	FerrataID                *uint      `gorm:"column:ferrata_id;index" json:"ferrataId,omitempty"`
-	Ferrata                  *Ferrata   `gorm:"foreignKey:FerrataID" json:"-"`
+	TipAkcije                string          `gorm:"type:varchar(30);default:'planina'" json:"tipAkcije"`
+	FerrataID                *uint           `gorm:"column:ferrata_id;index" json:"ferrataId,omitempty"`
+	Ferrata                  *Ferrata        `gorm:"foreignKey:FerrataID" json:"-"`
 	FerrataSnapshotJSON      json.RawMessage `gorm:"column:ferrata_snapshot_json;type:jsonb" json:"ferrataSnapshot,omitempty"`
-	StartAt                  *time.Time `json:"startAt,omitempty"`
-	EndAt                    *time.Time `json:"endAt,omitempty"`
-	TrajanjeSati             float64    `gorm:"default:0" json:"trajanjeSati"`
-	RokPrijava               *time.Time `json:"rokPrijava,omitempty"`
-	MaxLjudi                 int        `gorm:"default:0" json:"maxLjudi"`
-	MestoPolaska             string     `gorm:"type:varchar(255)" json:"mestoPolaska,omitempty"`
-	KontaktTelefon           string     `gorm:"type:varchar(80)" json:"kontaktTelefon,omitempty"`
-	BrojDana                 int        `gorm:"default:1" json:"brojDana"`
-	CenaClan                 float64    `gorm:"default:0" json:"cenaClan"`
-	CenaOstali               float64    `gorm:"default:0" json:"cenaOstali"`
-	PrikaziListuPrijavljenih bool       `gorm:"default:true" json:"prikaziListuPrijavljenih"`
-	OmoguciGrupniChat        bool       `gorm:"default:false" json:"omoguciGrupniChat"`
+	StartAt                  *time.Time      `json:"startAt,omitempty"`
+	EndAt                    *time.Time      `json:"endAt,omitempty"`
+	TrajanjeSati             float64         `gorm:"default:0" json:"trajanjeSati"`
+	RokPrijava               *time.Time      `json:"rokPrijava,omitempty"`
+	MaxLjudi                 int             `gorm:"default:0" json:"maxLjudi"`
+	MestoPolaska             string          `gorm:"type:varchar(255)" json:"mestoPolaska,omitempty"`
+	KontaktTelefon           string          `gorm:"type:varchar(80)" json:"kontaktTelefon,omitempty"`
+	BrojDana                 int             `gorm:"default:1" json:"brojDana"`
+	CenaClan                 float64         `gorm:"default:0" json:"cenaClan"`
+	CenaOstali               float64         `gorm:"default:0" json:"cenaOstali"`
+	PrikaziListuPrijavljenih bool            `gorm:"default:true" json:"prikaziListuPrijavljenih"`
+	OmoguciGrupniChat        bool            `gorm:"default:false" json:"omoguciGrupniChat"`
 }
 
 // TableName specifies the table name for the Akcija model
