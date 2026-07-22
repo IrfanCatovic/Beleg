@@ -21,15 +21,15 @@ var PrijavaActiveStatuses = []string{PrijavaStatusPrijavljen, "popeo se", "nije 
 var PrijavaBlockingStatuses = []string{PrijavaStatusPrijavljen, "popeo se", "nije uspeo"}
 
 var (
-	ErrDuplicatePrijava                 = errors.New("Već ste prijavljeni na ovu akciju.")
-	ErrAkcijaCapacityFull               = errors.New("Akcija je popunjena.")
-	ErrSignupClosed                     = errors.New("Prijava na ovu akciju više nije moguća.")
-	ErrMaxLjudiBelowActive              = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
-	ErrPendingSignupExists              = errors.New("Već imate zahtev za prijavu na čekanju")
-	ErrAkcijaAlreadyComplete            = errors.New("Akcija je već završena")
-	ErrAkcijaCancelled                  = errors.New("Akcija je otkazana i ova radnja više nije dozvoljena.")
-	ErrKorisnikNotEligible              = errors.New("Korisnik nije dostupan za prijavu.")
-	ErrAkcijaHasUnresolvedParticipants  = errors.New("Akcija se ne može završiti dok svi prijavljeni učesnici nemaju konačan status.")
+	ErrDuplicatePrijava                = errors.New("Već ste prijavljeni na ovu akciju.")
+	ErrAkcijaCapacityFull              = errors.New("Akcija je popunjena.")
+	ErrSignupClosed                    = errors.New("Prijava na ovu akciju više nije moguća.")
+	ErrMaxLjudiBelowActive             = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
+	ErrPendingSignupExists             = errors.New("Već imate zahtev za prijavu na čekanju")
+	ErrAkcijaAlreadyComplete           = errors.New("Akcija je već završena")
+	ErrAkcijaCancelled                 = errors.New("Akcija je otkazana i ova radnja više nije dozvoljena.")
+	ErrKorisnikNotEligible             = errors.New("Korisnik nije dostupan za prijavu.")
+	ErrAkcijaHasUnresolvedParticipants = errors.New("Akcija se ne može završiti dok svi prijavljeni učesnici nemaju konačan status.")
 )
 
 // ConfirmedPrijavaPolicy kontroliše koje invarijante CreateConfirmedPrijavaTx primjenjuje.

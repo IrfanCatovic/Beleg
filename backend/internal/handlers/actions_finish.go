@@ -747,9 +747,9 @@ func GetMojePrijave(c *gin.Context) {
 		Pluck("p.akcija_id", &otkazive)
 
 	c.JSON(http.StatusOK, gin.H{
-		"prijavljeneAkcije":    prijavljene,
-		"otkaziveAkcije":       otkazive,
-		"pendingSignupAkcije":  pendingSignup,
+		"prijavljeneAkcije":   prijavljene,
+		"otkaziveAkcije":      otkazive,
+		"pendingSignupAkcije": pendingSignup,
 	})
 }
 
