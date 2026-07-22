@@ -1,10 +1,11 @@
 import { StyleSheet, View } from 'react-native'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AkcijaDetail } from '@beleg/shared'
 import {
   buildActionInviteWhatsAppMessage,
   getApiErrorMessage,
+  isActionLifecycleActive,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
 import { client } from '../../../api/client'
@@ -30,11 +31,19 @@ export function ActionDetailShareRow({
   const [loading, setLoading] = useState(false)
   const [cachedUrl, setCachedUrl] = useState('')
 
+  useEffect(() => {
+    if (!isActionLifecycleActive(akcija)) {
+      setCachedUrl('')
+      setLoading(false)
+    }
+  }, [akcija.id, akcija.isCancelled, akcija.isCompleted])
+
   const canShare =
-    !akcija.isCompleted && (akcija.javna || canManageHost || !!inviteToken?.trim())
+    isActionLifecycleActive(akcija) && (akcija.javna || canManageHost || !!inviteToken?.trim())
   if (!canShare) return null
 
   const handleShare = async () => {
+    if (!isActionLifecycleActive(akcija)) return
     const webBaseUrl = getWebBaseUrl()
     if (!webBaseUrl) {
       onError('Link za deljenje nije dostupan.')

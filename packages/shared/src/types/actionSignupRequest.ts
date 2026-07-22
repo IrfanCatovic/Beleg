@@ -16,6 +16,10 @@ export interface ActionSignupRequestAction {
   datum?: string
   planina?: string
   vrh?: string
+  isCompleted?: boolean
+  isCancelled?: boolean
+  cancelledAt?: string | null
+  cancellationReason?: string
 }
 
 export interface ActionSignupRequest {

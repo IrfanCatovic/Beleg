@@ -216,8 +216,12 @@ export function useActionRegistration({
 
   const handleSavePrijavaOrUpdate = async () => {
     if (!id) return
-    if (akcija?.isCompleted) {
-      await showAlert('Akcija je završena.')
+    if (akcija?.isCompleted || akcija?.isCancelled) {
+      await showAlert(
+        akcija?.isCancelled
+          ? 'Akcija je otkazana.'
+          : 'Akcija je završena.',
+      )
       return
     }
     if (pendingSignup && !selectionsDirty) {
@@ -313,12 +317,14 @@ export function useActionRegistration({
 
   const isPendingSignup = isActivePendingSignup({
     isCompleted: akcija?.isCompleted,
+    isCancelled: akcija?.isCancelled,
     signupRequestStatus: pendingSignup?.status ?? (pendingSignup ? 'pending' : null),
   })
   const isRegistered = isConfirmedPrijavaStatus(mojaPrijava?.status)
   const canEditLogistics =
     canEditActionSignupChoices({
       isCompleted: akcija?.isCompleted,
+      isCancelled: akcija?.isCancelled,
       isPendingSignup,
       prijavaStatus: mojaPrijava?.status,
     }) && !!user

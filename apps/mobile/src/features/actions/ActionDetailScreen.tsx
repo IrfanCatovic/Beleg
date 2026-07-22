@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,8 @@ import {
   getActionRegisteredCount,
   getActionCapacityUsedCount,
   getApiErrorMessage,
+  isActionCancelled,
+  isActionLifecycleActive,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
 import {
@@ -39,6 +41,7 @@ import type {
   ProfileStackParamList,
 } from '../../navigation/types'
 import { ActionDetailHero } from './detail/ActionDetailHero'
+import { ActionCancellationBanner } from './detail/ActionCancellationBanner'
 import { ActionDetailStatsBar } from './detail/ActionDetailStatsBar'
 import { ActionDetailMembershipBanner } from './detail/ActionDetailMembershipBanner'
 import { ActionDetailDescription } from './detail/ActionDetailDescription'
@@ -129,7 +132,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   const signupRequestsQuery = useQuery({
     queryKey: ['signup-requests', id],
     queryFn: () => fetchActionSignupRequests(client, id, 'pending'),
-    enabled: canApprove && !akcija?.isCompleted,
+    enabled: canApprove && isActionLifecycleActive(akcija),
     retry: false,
   })
 
@@ -167,7 +170,10 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     showAlert,
   })
 
-  const externalInvite = useExternalInvite(id, !!(canManageHost && akcija?.isCompleted))
+  const externalInvite = useExternalInvite(
+    id,
+    !!(canManageHost && akcija?.isCompleted && !isActionCancelled(akcija)),
+  )
 
   const addTransportMutation = useMutation({
     mutationFn: (data: Parameters<typeof dodajPrevoz>[2]) => dodajPrevoz(client, id, data),
@@ -179,8 +185,9 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Dodavanje prevoza nije uspelo.')),
   })
 
+  const canMutateActiveAction = isActionLifecycleActive(akcija)
   const canAddTransport =
-    !!user && !akcija?.isCompleted && (canManageHost || registration.isRegistered)
+    !!user && canMutateActiveAction && (canManageHost || registration.isRegistered)
 
   useFocusEffect(
     useCallback(() => {
@@ -191,6 +198,13 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
       }
     }, [user]),
   )
+
+  useEffect(() => {
+    if (isActionCancelled(akcija)) {
+      setShareCachedUrl('')
+      setShareLoading(false)
+    }
+  }, [akcija?.id, akcija?.isCancelled])
 
   const respondSignupMutation = useMutation({
     mutationFn: ({ requestId, action }: { requestId: number; action: 'accept' | 'reject' }) =>
@@ -230,7 +244,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   })
 
   const handleShare = async () => {
-    if (!akcija) return
+    if (!akcija || !isActionLifecycleActive(akcija)) return
     const webBaseUrl = getWebBaseUrl()
     if (!webBaseUrl) {
       await showAlert('Greška', 'Link za deljenje nije dostupan.')
@@ -256,6 +270,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   }
 
   const openFinish = async () => {
+    if (!isActionLifecycleActive(akcija)) return
     const neoznaceni = (membersQuery.data ?? []).filter((p) => p.status === 'prijavljen')
     if (neoznaceni.length > 0) {
       await showAlert('Nedostaju statusi', 'Označite sve članove kao popeo se ili nije uspeo pre završetka.')
@@ -266,6 +281,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   }
 
   const handleDelete = async () => {
+    if (isActionCancelled(akcija)) return
     const ok = await showConfirm('Obriši akciju', 'Da li ste sigurni?', { variant: 'danger', confirmLabel: 'Obriši' })
     if (ok) deleteMutation.mutate()
   }
@@ -346,6 +362,8 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
   const prevozOccupied = buildPrevozOccupancy(membersQuery.data ?? [])
   const bottomPad = spacing.xxl + 100
+  const cancelled = isActionCancelled(akcija)
+  const lifecycleActive = isActionLifecycleActive(akcija)
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
@@ -363,6 +381,8 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         />
 
         <View style={styles.body}>
+          <ActionCancellationBanner akcija={akcija} />
+
           <ActionDetailMembershipBanner
             akcija={akcija}
             isClan={registration.isClan}
@@ -374,18 +394,18 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
           <ActionDetailDescription opis={akcija.opis} />
           <ActionDetailInfo akcija={akcija} />
 
-          {user && !akcija.isCompleted && registration.isPendingSignup ? (
+          {user && lifecycleActive && registration.isPendingSignup ? (
             <Text variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
               Zahtev za prijavu je poslat i čeka odobrenje.
             </Text>
           ) : null}
-          {user && !akcija.isCompleted && registration.signupUi.showCancelledNotice ? (
+          {user && lifecycleActive && registration.signupUi.showCancelledNotice ? (
             <Text variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
               Prethodna prijava je otkazana. Možeš poslati novi zahtev dok su prijave otvorene.
             </Text>
           ) : null}
 
-          {user && !akcija.isCompleted ? (
+          {user && lifecycleActive ? (
             <ActionDetailLogistics
               akcija={akcija}
               selSmestaj={registration.selSmestaj}
@@ -450,7 +470,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             />
           ) : null}
 
-          {canManageHost && akcija.isCompleted ? (
+          {canManageHost && akcija.isCompleted && !cancelled ? (
             <ActionDetailExternalInvite
               state={externalInvite}
               onCancelRequest={(requestId) => {
@@ -460,7 +480,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             />
           ) : null}
 
-          {canApprove ? (
+          {canApprove && lifecycleActive ? (
             <ActionDetailSignupRequests
               requests={signupRequestsQuery.data ?? []}
               akcija={akcija}
@@ -469,7 +489,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             />
           ) : null}
 
-          {canManageHost && !akcija.isCompleted ? (
+          {canManageHost && lifecycleActive ? (
             <ActionDetailPaymentSummary
               paidCount={payments.paidCount}
               totalCount={payments.tracked.length}
@@ -484,7 +504,10 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             akcija={akcija}
             canManageHost={canManageHost}
             onFinish={() => void openFinish()}
-            onEdit={() => navigateToActionEdit(id)}
+            onEdit={() => {
+              if (!lifecycleActive) return
+              navigateToActionEdit(id)
+            }}
             onDelete={() => void handleDelete()}
             onPdfPrePolaska={() => void handlePdfPrePolaska()}
             onPdfZavrsena={() => void handlePdfZavrsena()}
@@ -511,6 +534,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         isPendingSignup={registration.isPendingSignup}
         isRegistered={registration.isRegistered}
         isCompleted={!!akcija.isCompleted}
+        isCancelled={cancelled}
         signupUi={registration.signupUi}
         canCancel={canCancel}
         saving={registration.saveMutation.isPending}
@@ -525,7 +549,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         akcija={akcija}
         currency={currency}
         canManageHost={canManageHost}
-        showPaymentControls={canManageHost && !akcija.isCompleted}
+        showPaymentControls={canManageHost && lifecycleActive}
         loading={
           payments.togglePlatioMutation.isPending ||
           payments.statusMutation.isPending ||
@@ -533,18 +557,18 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         }
         onClose={() => payments.setSelectedMember(null)}
         onTogglePayment={(platio) => {
-          if (!payments.selectedMember) return
+          if (!payments.selectedMember || !lifecycleActive) return
           payments.togglePlatioMutation.mutate({
             prijavaId: payments.selectedMember.id,
             platio,
           })
         }}
         onStatusChange={(status) => {
-          if (!payments.selectedMember) return
+          if (!payments.selectedMember || !lifecycleActive) return
           payments.statusMutation.mutate({ prijavaId: payments.selectedMember.id, status })
         }}
         onRemove={() => {
-          if (payments.selectedMember) void payments.handleRemoveMember(payments.selectedMember)
+          if (payments.selectedMember && lifecycleActive) void payments.handleRemoveMember(payments.selectedMember)
         }}
       />
 

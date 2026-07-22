@@ -1,4 +1,5 @@
 import type { PrijavaStatus } from '../types/prijava'
+import { isActionLifecycleActive } from './actionLifecycle'
 
 /** Statusi koji blokiraju novi signup zahtjev (aktivna ili završena prijava). */
 export const PRIJAVA_BLOCKING_STATUSES: readonly PrijavaStatus[] = [
@@ -29,22 +30,26 @@ export function isConfirmedPrijavaStatus(
 }
 
 /**
- * Aktivni pending signup za UI: nikad na završenoj akciji (zaštita od stale cache-a).
- * Backend/refetch i dalje ostaje source of truth.
+ * Aktivni pending signup za UI: nikad na završenoj ili otkazanoj akciji
+ * (zaštita od stale cache-a). Backend/refetch i dalje ostaje source of truth.
  */
 export function isActivePendingSignup(input: {
   isCompleted?: boolean | null
+  isCancelled?: boolean | null
   signupRequestStatus?: string | null
 }): boolean {
-  return !input.isCompleted && input.signupRequestStatus === 'pending'
+  return (
+    isActionLifecycleActive(input) && input.signupRequestStatus === 'pending'
+  )
 }
 
-/** Cancel-pending na list kartici: ne dozvoli stale pending ID na completed akciji. */
+/** Cancel-pending na list kartici: ne dozvoli stale pending ID na terminalnoj akciji. */
 export function canCancelPendingSignupOnListCard(input: {
   isCompleted?: boolean | null
+  isCancelled?: boolean | null
   hasPendingSignupId?: boolean
 }): boolean {
-  return !input.isCompleted && !!input.hasPendingSignupId
+  return isActionLifecycleActive(input) && !!input.hasPendingSignupId
 }
 
 export interface ActionSignupEligibilityInput {
@@ -52,12 +57,13 @@ export interface ActionSignupEligibilityInput {
   isPendingSignup?: boolean
   isCapacityFull?: boolean
   isCompleted?: boolean
+  isCancelled?: boolean
   isSignupClosed?: boolean
 }
 
 /** Da li korisnik može poslati novi signup zahtjev (bez obzira na izbore). */
 export function canRequestActionSignup(input: ActionSignupEligibilityInput): boolean {
-  if (input.isCompleted || input.isSignupClosed) return false
+  if (!isActionLifecycleActive(input) || input.isSignupClosed) return false
   if (input.isPendingSignup) return false
   if (isBlockingPrijavaStatus(input.prijavaStatus)) return false
   if (input.isCapacityFull) return false
@@ -92,8 +98,10 @@ export function deriveActionSignupUiState(
   const saving = !!input.saving
   const isPendingSignup = !!input.isPendingSignup
   const selectionsDirty = !!input.selectionsDirty
+  const lifecycleActive = isActionLifecycleActive(input)
 
   const isSignupPrimaryDisabled =
+    !lifecycleActive ||
     saving ||
     isPendingSignup ||
     (isRegistered && !selectionsDirty) ||
@@ -101,7 +109,11 @@ export function deriveActionSignupUiState(
     (!isRegistered && !canRequestSignup)
 
   const showCapacityFullNotice =
-    !!input.isCapacityFull && !isPendingSignup && !isRegistered && !isBlockingPrijava
+    lifecycleActive &&
+    !!input.isCapacityFull &&
+    !isPendingSignup &&
+    !isRegistered &&
+    !isBlockingPrijava
 
   return {
     isRegistered,
@@ -110,7 +122,8 @@ export function deriveActionSignupUiState(
     canRequestSignup,
     isSignupPrimaryDisabled,
     showRegisteredBadge: isRegistered,
-    showCancelledNotice: isCancelledPrijava && !isPendingSignup,
+    // Istorijski otkazana prijava: ne nudi rejoin UX na terminalnoj akciji.
+    showCancelledNotice: lifecycleActive && isCancelledPrijava && !isPendingSignup,
     showCapacityFullNotice,
   }
 }
@@ -118,10 +131,11 @@ export function deriveActionSignupUiState(
 /** Da li korisnik može mijenjati logističke izbore prije slanja zahtjeva ili čuvanja. */
 export function canEditActionSignupChoices(input: {
   isCompleted?: boolean
+  isCancelled?: boolean
   isPendingSignup?: boolean
   prijavaStatus?: PrijavaStatus | string | null
 }): boolean {
-  if (input.isCompleted || input.isPendingSignup) return false
+  if (!isActionLifecycleActive(input) || input.isPendingSignup) return false
   const status = input.prijavaStatus
   if (!status) return true
   return isConfirmedPrijavaStatus(status) || isCancelledPrijavaStatus(status)

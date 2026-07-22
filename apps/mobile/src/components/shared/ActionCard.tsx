@@ -1,6 +1,12 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import type { AkcijaListItem } from '@beleg/shared'
-import { computePERForAkcija, formatActionDateShort } from '@beleg/shared'
+import {
+  computePERForAkcija,
+  formatActionDateShort,
+  getActionLifecycleBadge,
+  isActionCancelled,
+  isActionTerminal,
+} from '@beleg/shared'
 import { Badge, Button, Card, Text } from '../ui'
 import { feedBlockStyle } from './feedStyles'
 import { colors, radius, spacing } from '../../theme'
@@ -49,12 +55,16 @@ export function ActionCard({
   onCancel,
   joinLoading,
 }: ActionCardProps) {
-  const isPast = action.isCompleted
+  const lifecycleBadge = getActionLifecycleBadge(action)
+  const isTerminal = isActionTerminal(action)
+  const cancelled = isActionCancelled(action)
   const isGuide = action.organizatorTip === 'vodic'
   const per = computePERForAkcija(action)
   const diff = difficultyStyle(action.tezina, action.tipAkcije)
   const borderColor = isGuide ? '#c4b5fd' : action.javna ? '#fde68a' : colors.border
   const isFeed = variant === 'feed'
+  const showPendingBadge = !!pendingSignup && !cancelled
+  const showSignedUpBadge = !!signedUp && !pendingSignup && !cancelled
 
   const content = (
     <>
@@ -117,13 +127,14 @@ export function ActionCard({
           <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
             <Text style={[styles.diffText, { color: diff.text }]}>{action.tezina || '—'}</Text>
           </View>
-          {pendingSignup ? <Badge label="Na čekanju" tone="warning" /> : null}
-          {signedUp && !pendingSignup ? <Badge label="Prijavljen" tone="brand" /> : null}
-          {isPast ? <Badge label="Završena" tone="muted" /> : null}
+          {showPendingBadge ? <Badge label="Na čekanju" tone="warning" /> : null}
+          {showSignedUpBadge ? <Badge label="Prijavljen" tone="brand" /> : null}
+          {lifecycleBadge === 'cancelled' ? <Badge label="Otkazana" tone="danger" /> : null}
+          {lifecycleBadge === 'completed' ? <Badge label="Završena" tone="muted" /> : null}
         </View>
       </View>
 
-      {!isPast && (onJoin || onCancel) ? (
+      {!isTerminal && (onJoin || onCancel) ? (
         <View style={[styles.actionRow, isFeed && styles.feedPadded]}>
           {pendingSignup && onCancel ? (
             <Button title="Otkaži zahtev" variant="ghost" onPress={onCancel} fullWidth />

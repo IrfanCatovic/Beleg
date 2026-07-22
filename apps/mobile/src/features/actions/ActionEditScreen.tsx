@@ -15,7 +15,7 @@ import { ferrataCatalogFromApiRow } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { AppTopBar, Loader, Screen, Text } from '../../components/ui'
-import { colors, spacing } from '../../theme'
+import { colors } from '../../theme'
 import { canManageHostAkcija } from '../../utils/canManageAkcija'
 import type { ActionsStackParamList } from '../../navigation/types'
 import { ActionWizardForm } from './wizard/ActionWizardForm'
@@ -68,7 +68,7 @@ export default function ActionEditScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!akcija || !user) return
-    if (akcija.isCompleted) {
+    if (akcija.isCompleted || akcija.isCancelled) {
       navigation.replace('ActionDetail', { id })
       return
     }

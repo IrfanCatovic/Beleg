@@ -9,6 +9,7 @@ interface ActionDetailBottomBarProps {
   isPendingSignup: boolean
   isRegistered: boolean
   isCompleted: boolean
+  isCancelled?: boolean
   signupUi: ActionSignupUiState
   canCancel: boolean
   saving: boolean
@@ -22,6 +23,7 @@ export function ActionDetailBottomBar({
   isPendingSignup,
   isRegistered,
   isCompleted,
+  isCancelled = false,
   signupUi,
   canCancel,
   saving,
@@ -30,7 +32,7 @@ export function ActionDetailBottomBar({
   onCancelPrijava,
 }: ActionDetailBottomBarProps) {
   const insets = useSafeAreaInsets()
-  if (!visible || isCompleted) return null
+  if (!visible || isCompleted || isCancelled) return null
 
   const showPrimary = !isRegistered && !isPendingSignup
   const showSave = isRegistered

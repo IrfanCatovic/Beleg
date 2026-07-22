@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native'
 import type { AkcijaDetail } from '@beleg/shared'
-import { Button, Card } from '../../../components/ui'
-import { spacing } from '../../../theme'
+import { isActionCancelled, isActionLifecycleActive } from '@beleg/shared'
+import { Button, Card, Text } from '../../../components/ui'
+import { colors, spacing } from '../../../theme'
 import { SectionHeader } from './SectionHeader'
 
 interface ActionDetailHostPanelProps {
@@ -29,19 +30,32 @@ export function ActionDetailHostPanel({
 }: ActionDetailHostPanelProps) {
   if (!canManageHost) return null
 
+  if (isActionCancelled(akcija)) {
+    return (
+      <Card style={styles.card}>
+        <SectionHeader title="Upravljanje akcijom" />
+        <Text variant="small" color={colors.textMuted}>
+          Akcija je otkazana. Izmene, deljenje i završetak nisu dostupni.
+        </Text>
+      </Card>
+    )
+  }
+
+  const lifecycleActive = isActionLifecycleActive(akcija)
+
   return (
     <Card style={styles.card}>
       <SectionHeader title="Upravljanje akcijom" />
-      {!akcija.isCompleted ? (
+      {lifecycleActive ? (
         <Button title="Podeli na WhatsApp" variant="secondary" onPress={onShare} loading={loading} fullWidth />
       ) : null}
-      {!akcija.isCompleted ? (
+      {lifecycleActive ? (
         <Button title="Završi akciju" onPress={onFinish} loading={loading} fullWidth />
       ) : null}
-      {!akcija.isCompleted ? (
+      {lifecycleActive ? (
         <Button title="Izmeni akciju" variant="secondary" onPress={onEdit} fullWidth />
       ) : null}
-      {!akcija.isCompleted ? (
+      {lifecycleActive ? (
         <Button title="PDF pre polaska" variant="ghost" onPress={onPdfPrePolaska} fullWidth />
       ) : null}
       {akcija.isCompleted ? (

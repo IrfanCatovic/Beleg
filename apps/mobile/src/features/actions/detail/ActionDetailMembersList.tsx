@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import type { AkcijaDetail, Prijava } from '@beleg/shared'
-import { computeClientSaldo } from '@beleg/shared'
+import { computeClientSaldo, isActionLifecycleActive } from '@beleg/shared'
 import { Avatar, Badge, Card, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 import { SectionHeader } from './SectionHeader'
@@ -37,7 +37,7 @@ export function ActionDetailMembersList({
           const name = p.fullName?.trim() || p.korisnik || 'Član'
           const saldo = computeClientSaldo(p, akcija)
           const statusLabel = STATUS_LABELS[p.status] || p.status
-          const paidBorder = canManageHost && !akcija.isCompleted
+          const paidBorder = canManageHost && isActionLifecycleActive(akcija)
 
           return (
             <Pressable

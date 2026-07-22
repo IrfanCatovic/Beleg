@@ -132,6 +132,15 @@ describe('isActivePendingSignup', () => {
   it('hides pending UI when action is completed (stale cache guard)', () => {
     expect(isActivePendingSignup({ isCompleted: true, signupRequestStatus: 'pending' })).toBe(false)
   })
+  it('hides pending UI when action is cancelled (stale cache guard)', () => {
+    expect(
+      isActivePendingSignup({
+        isCompleted: false,
+        isCancelled: true,
+        signupRequestStatus: 'pending',
+      }),
+    ).toBe(false)
+  })
   it('is false for cancelled/accepted/rejected', () => {
     expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'cancelled' })).toBe(false)
     expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'accepted' })).toBe(false)
@@ -150,9 +159,45 @@ describe('canCancelPendingSignupOnListCard', () => {
       canCancelPendingSignupOnListCard({ isCompleted: true, hasPendingSignupId: true }),
     ).toBe(false)
   })
+  it('blocks cancel on cancelled even with stale pending id', () => {
+    expect(
+      canCancelPendingSignupOnListCard({
+        isCompleted: false,
+        isCancelled: true,
+        hasPendingSignupId: true,
+      }),
+    ).toBe(false)
+  })
   it('blocks when not in pending set', () => {
     expect(
       canCancelPendingSignupOnListCard({ isCompleted: false, hasPendingSignupId: false }),
     ).toBe(false)
+  })
+})
+
+describe('canRequestActionSignup cancelled', () => {
+  it('blocks signup on cancelled action', () => {
+    expect(
+      canRequestActionSignup({
+        prijavaStatus: 'otkazano',
+        isCancelled: true,
+        isCompleted: false,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('deriveActionSignupUiState cancelled action', () => {
+  it('does not show rejoin or capacity CTA on cancelled action', () => {
+    const ui = deriveActionSignupUiState({
+      prijavaStatus: 'otkazano',
+      isPendingSignup: false,
+      isCapacityFull: false,
+      isCompleted: false,
+      isCancelled: true,
+    })
+    expect(ui.canRequestSignup).toBe(false)
+    expect(ui.showCancelledNotice).toBe(false)
+    expect(ui.isSignupPrimaryDisabled).toBe(true)
   })
 })

@@ -243,6 +243,9 @@ export interface ActionParticipationRequest {
     klubId?: number | null
     klubNaziv?: string
     isCompleted?: boolean
+    isCancelled?: boolean
+    cancelledAt?: string | null
+    cancellationReason?: string
   }
   targetUser: ExternalUserCandidate
   requestedBy: ExternalUserCandidate

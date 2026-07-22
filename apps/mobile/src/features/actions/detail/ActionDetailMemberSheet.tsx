@@ -1,7 +1,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { AkcijaDetail, Prijava } from '@beleg/shared'
-import { computeClientSaldo } from '@beleg/shared'
+import { computeClientSaldo, isActionLifecycleActive } from '@beleg/shared'
 import { Avatar, Button, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
@@ -38,6 +38,7 @@ export function ActionDetailMemberSheet({
   const name = member.fullName?.trim() || member.korisnik
   const saldo = computeClientSaldo(member, akcija)
   const fmt = (n: number) => `${n.toLocaleString('sr-RS')} ${currency}`
+  const canMutateMember = canManageHost && isActionLifecycleActive(akcija)
 
   const smestajRows = (member.selectedSmestajIds ?? [])
     .map((id) => akcija.smestaj?.find((s) => s.id === id))
@@ -97,18 +98,18 @@ export function ActionDetailMemberSheet({
             </View>
           ) : null}
 
-          {canManageHost && !akcija.isCompleted && member.status === 'prijavljen' ? (
+          {canMutateMember && member.status === 'prijavljen' ? (
             <View style={styles.statusRow}>
               <Button title="Popeo se" loading={loading} onPress={() => onStatusChange('popeo se')} />
               <Button title="Nije uspeo" variant="secondary" loading={loading} onPress={() => onStatusChange('nije uspeo')} />
             </View>
           ) : null}
 
-          {canManageHost && !akcija.isCompleted && (member.status === 'popeo se' || member.status === 'nije uspeo') ? (
+          {canMutateMember && (member.status === 'popeo se' || member.status === 'nije uspeo') ? (
             <Button title="Vrati na prijavljen" variant="ghost" loading={loading} onPress={() => onStatusChange('prijavljen')} fullWidth />
           ) : null}
 
-          {canManageHost && !akcija.isCompleted ? (
+          {canMutateMember ? (
             <Button title="Ukloni člana" variant="secondary" loading={loading} onPress={onRemove} fullWidth />
           ) : null}
         </ScrollView>

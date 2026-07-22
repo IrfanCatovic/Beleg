@@ -1,4 +1,5 @@
 import type { AkcijaListItem } from '@beleg/shared'
+import { excludeCancelledActions, isActionCancelled } from '@beleg/shared'
 
 export type ActionSourceFilter = 'all' | 'club' | 'guide'
 export type VisibilityFilter = 'all' | 'klubske' | 'javne'
@@ -37,12 +38,14 @@ export function isClubListedAkcija(a: AkcijaListItem): boolean {
 }
 
 export function isPublicActiveAkcija(a: AkcijaListItem): boolean {
-  return !!a.javna && !a.isCompleted
+  return !!a.javna && !a.isCompleted && !isActionCancelled(a)
 }
 
 /** Aktivne akcije iz API odgovora koje treba prikazati u listi (klupske + javne vodičke). */
 export function listableAktivneFromApi(aktivne: AkcijaListItem[]): AkcijaListItem[] {
-  return aktivne.filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a))
+  return excludeCancelledActions(
+    aktivne.filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a)),
+  )
 }
 
 export function mergeAkcijeById(...lists: AkcijaListItem[][]): AkcijaListItem[] {

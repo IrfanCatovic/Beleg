@@ -66,6 +66,10 @@ export interface AkcijaListItem {
   zimskiUspon?: boolean
   slikaUrl?: string
   isCompleted: boolean
+  /** Otkazana akcija. Optional zbog starog cache-a / API odgovora. */
+  isCancelled?: boolean
+  cancelledAt?: string | null
+  cancellationReason?: string
   uIstorijiKluba?: boolean
   javna?: boolean
   organizatorTip?: OrganizatorTip

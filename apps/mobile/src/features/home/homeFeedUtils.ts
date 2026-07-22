@@ -1,5 +1,5 @@
 import type { AkcijaListItem, FerrataRow, Korisnik, Post } from '@beleg/shared'
-import { formatActionDateShort as formatSharedActionDateShort } from '@beleg/shared'
+import { formatActionDateShort as formatSharedActionDateShort, isActionCancelled } from '@beleg/shared'
 
 export interface MentionUser {
   id: number
@@ -72,7 +72,7 @@ export function buildFeedItems(
   usersById: Map<number, MentionUser>,
 ): FeedItem[] {
   const actionItems: FeedItem[] = aktivneAkcije
-    .filter((a) => !a.isCompleted)
+    .filter((a) => !a.isCompleted && !isActionCancelled(a))
     .map((action) => {
       const createdAtMs = action.createdAt ? new Date(action.createdAt).getTime() : 0
       return {

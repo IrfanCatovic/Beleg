@@ -13,6 +13,7 @@ import {
   getApiErrorMessage,
   canEditActionSignupChoices,
   deriveActionSignupUiState,
+  isActionCancelled,
   isActivePendingSignup,
   isConfirmedPrijavaStatus,
 } from '@beleg/shared'
@@ -63,6 +64,7 @@ export function useActionDetailRegistration(options: {
   const pendingSignup = mojaPrijavaData?.signupRequest
   const isPendingSignup = isActivePendingSignup({
     isCompleted: akcija?.isCompleted,
+    isCancelled: akcija?.isCancelled,
     signupRequestStatus: pendingSignup?.status,
   })
   const isRegistered = isConfirmedPrijavaStatus(prijava?.status)
@@ -110,13 +112,17 @@ export function useActionDetailRegistration(options: {
 
   const logisticsDisabled = !canEditActionSignupChoices({
     isCompleted: akcija?.isCompleted,
+    isCancelled: akcija?.isCancelled,
     isPendingSignup,
     prijavaStatus: prijava?.status,
   })
 
   const capacityUsedCount = getActionCapacityUsedCount(akcija ?? {}, prijave)
   const isCapacityFull =
-    !!akcija && !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+    !!akcija &&
+    !akcija.isCompleted &&
+    !akcija.isCancelled &&
+    isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
 
   const signupUi = useMemo(
     () =>
@@ -127,8 +133,16 @@ export function useActionDetailRegistration(options: {
         saving: false,
         isCapacityFull,
         isCompleted: !!akcija?.isCompleted,
+        isCancelled: !!akcija?.isCancelled,
       }),
-    [prijava?.status, isPendingSignup, selectionsDirty, isCapacityFull, akcija?.isCompleted],
+    [
+      prijava?.status,
+      isPendingSignup,
+      selectionsDirty,
+      isCapacityFull,
+      akcija?.isCompleted,
+      akcija?.isCancelled,
+    ],
   )
 
   const invalidate = useCallback(async () => {
@@ -138,6 +152,9 @@ export function useActionDetailRegistration(options: {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!akcija) throw new Error('Nema akcije')
+      if (isActionCancelled(akcija) || akcija.isCompleted) {
+        throw new Error('ACTION_TERMINAL')
+      }
       if (!isRegistered && !isPendingSignup && isCapacityFull) {
         throw new Error('CAPACITY_FULL')
       }
@@ -169,6 +186,10 @@ export function useActionDetailRegistration(options: {
       )
     },
     onError: async (err) => {
+      if (err instanceof Error && err.message === 'ACTION_TERMINAL') {
+        await showAlert('Info', 'Akcija nije dostupna za prijave.')
+        return
+      }
       if (err instanceof Error && err.message === 'PENDING_ONLY') {
         await showAlert('Info', 'Zahtev za prijavu je na čekanju odobrenja.')
         return
@@ -208,7 +229,7 @@ export function useActionDetailRegistration(options: {
   const markDirty = useCallback(() => setSelectionsDirty(true), [])
 
   const handleCancelSignup = useCallback(async () => {
-    if (!akcija) return
+    if (!akcija || isActionCancelled(akcija) || akcija.isCompleted) return
     const ok = await showConfirm(
       'Otkaži zahtev',
       `Otkazati zahtev za prijavu na „${akcija.naziv}"?`,
@@ -218,7 +239,7 @@ export function useActionDetailRegistration(options: {
   }, [akcija, showConfirm, cancelSignupMutation])
 
   const handleCancelPrijava = useCallback(async () => {
-    if (!akcija || !canCancel) return
+    if (!akcija || !canCancel || isActionCancelled(akcija) || akcija.isCompleted) return
     const ok = await showConfirm(
       'Otkaži prijavu',
       `Da li ste sigurni da želite da otkažete prijavu na „${akcija.naziv}"?`,

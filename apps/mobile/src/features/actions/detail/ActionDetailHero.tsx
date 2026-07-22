@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { computePERForAkcija, formatActionDate } from '@beleg/shared'
+import { computePERForAkcija, formatActionDate, getActionLifecycleBadge } from '@beleg/shared'
 import type { AkcijaDetail } from '@beleg/shared'
 import { Badge, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
@@ -13,6 +13,7 @@ interface ActionDetailHeroProps {
 
 export function ActionDetailHero({ akcija, locationSubtitle, onBack }: ActionDetailHeroProps) {
   const isFerrata = akcija.tipAkcije === 'via_ferrata'
+  const lifecycleBadge = getActionLifecycleBadge(akcija)
   const dateLabel = formatActionDate(akcija.datum)
   const actionPer = !isFerrata ? computePERForAkcija(akcija) : 0
   const statsParts: string[] = []
@@ -58,8 +59,9 @@ export function ActionDetailHero({ akcija, locationSubtitle, onBack }: ActionDet
           {isFerrata ? <Badge label="Via ferrata" tone="warning" /> : null}
           {akcija.zimskiUspon ? <Badge label="Zimski" tone="muted" /> : null}
           {akcija.javna ? <Badge label="Javna" tone="warning" /> : null}
-          {akcija.isCompleted ? <Badge label="Završena" tone="muted" /> : null}
-          {!akcija.isCompleted ? <Badge label="Aktivna" tone="brand" /> : null}
+          {lifecycleBadge === 'cancelled' ? <Badge label="Otkazana" tone="danger" /> : null}
+          {lifecycleBadge === 'completed' ? <Badge label="Završena" tone="muted" /> : null}
+          {lifecycleBadge == null ? <Badge label="Aktivna" tone="brand" /> : null}
         </View>
         <Text style={styles.title}>{akcija.naziv}</Text>
         <View style={styles.locationRow}>

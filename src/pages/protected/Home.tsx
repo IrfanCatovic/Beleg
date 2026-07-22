@@ -339,7 +339,7 @@ export default function Home() {
 
   const feedItems = useMemo<FeedItem[]>(() => {
     const actionItems: FeedItem[] = aktivneAkcije
-      .filter((a) => !a.isCompleted)
+      .filter((a) => !a.isCompleted && !a.isCancelled)
       .map((action) => {
         const createdAtMs = action.createdAt ? new Date(action.createdAt).getTime() : 0
         return {

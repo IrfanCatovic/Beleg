@@ -38,6 +38,9 @@ import {
   isActionCapacityFull,
   deriveActionSignupUiState,
   isConfirmedPrijavaStatus,
+  isActionCancelled,
+  isActionLifecycleActive,
+  getActionLifecycleBadge,
 } from '@beleg/shared'
 import AccommodationCard from '../../components/action-details/AccommodationCard'
 import EquipmentItem from '../../components/action-details/EquipmentItem'
@@ -49,6 +52,7 @@ import type { Prijava } from '../../types/prijava'
 import { PRIJAVA_STATUS_STYLE, singlePrevozIdSet } from '../../components/action-details/actionDetailsUtils'
 import { StatCell, InfoRow } from '../../components/action-details/actionDetailsUi'
 import { ActionDetailsHeader } from '../../components/action-details/ActionDetailsHeader'
+import { ActionCancellationBanner } from '../../components/action-details/ActionCancellationBanner'
 import { useActionDetailsData } from '../../hooks/action-details/useActionDetailsData'
 import { useActionRegistration } from '../../hooks/action-details/useActionRegistration'
 import { useExternalUserSearch } from '../../hooks/action-details/useExternalUserSearch'
@@ -128,7 +132,8 @@ export default function ActionDetails() {
       vodicUsername: akcija.vodic?.username,
       addedByUsername: akcija.addedBy?.username,
     }) &&
-    akcija.isCompleted
+    akcija.isCompleted &&
+    !isActionCancelled(akcija)
   )
 
   const externalUserSearch = useExternalUserSearch({
@@ -185,7 +190,7 @@ export default function ActionDetails() {
       vodicId: akcija.vodicId,
       vodicUsername: akcija.vodic?.username,
       addedByUsername: akcija.addedBy?.username,
-    }) || !akcija.isCompleted) {
+    }) || !akcija.isCompleted || isActionCancelled(akcija)) {
       setSelectedMemberId('')
     }
   }, [user, akcija])
@@ -205,7 +210,7 @@ export default function ActionDetails() {
   const canApproveSignup = !!(
     user &&
     akcija &&
-    !akcija.isCompleted &&
+    isActionLifecycleActive(akcija) &&
     canApproveSignupRequest(user, {
       klubId: akcija.klubId,
       organizatorTip: akcija.organizatorTip,
@@ -216,7 +221,7 @@ export default function ActionDetails() {
   )
 
   useEffect(() => {
-    if (!focusSignupRequested || loading || !akcija || akcija.isCompleted) return
+    if (!focusSignupRequested || loading || !akcija || !isActionLifecycleActive(akcija)) return
     const el =
       document.getElementById('action-signup-choices') ??
       document.getElementById('action-signup-section')
@@ -225,7 +230,7 @@ export default function ActionDetails() {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 120)
     return () => window.clearTimeout(timer)
-  }, [focusSignupRequested, loading, akcija?.id, akcija?.isCompleted])
+  }, [focusSignupRequested, loading, akcija?.id, akcija?.isCompleted, akcija?.isCancelled])
 
   useEffect(() => {
     if (!akcija || !user) return
@@ -745,8 +750,11 @@ export default function ActionDetails() {
   const showTrailKm = !isFerrataAction && akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0
   const showAscentM = !isFerrataAction && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0
   const isLimitedView = !!akcija.limited
+  const isCancelled = isActionCancelled(akcija)
+  const canMutateActiveAction = isActionLifecycleActive(akcija)
+  const lifecycleBadge = getActionLifecycleBadge(akcija)
   const canAddTransport =
-    !!user && !akcija.isCompleted && (canManageHost || isRegistered)
+    !!user && canMutateActiveAction && (canManageHost || isRegistered)
   const hasSmestajOprema = !!(
     akcija.smestaj?.length || akcija.opremaRent?.length || akcija.oprema?.length
   )
@@ -765,7 +773,7 @@ export default function ActionDetails() {
   const registeredCount = getActionRegisteredCount(akcija, prijaveForCounts)
   const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
   const isCapacityFull =
-    !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+    canMutateActiveAction && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
   const signupUi = useMemo(
     () =>
       deriveActionSignupUiState({
@@ -775,6 +783,7 @@ export default function ActionDetails() {
         saving: savingSelections,
         isCapacityFull,
         isCompleted: akcija.isCompleted,
+        isCancelled: akcija.isCancelled,
       }),
     [
       mojaPrijava?.status,
@@ -783,6 +792,7 @@ export default function ActionDetails() {
       savingSelections,
       isCapacityFull,
       akcija.isCompleted,
+      akcija.isCancelled,
     ],
   )
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
@@ -833,6 +843,7 @@ export default function ActionDetails() {
         user={user}
         onBack={() => navigate(-1)}
       />
+      <ActionCancellationBanner akcija={akcija} t={t} />
       {canShareActionInvite && !isLimitedView && (
         <ActionInviteShareCard
           akcija={akcija}
@@ -1287,7 +1298,23 @@ export default function ActionDetails() {
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex items-center gap-3">
-                    {akcija.isCompleted ? (
+                    {lifecycleBadge === 'cancelled' ? (
+                      <>
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-wide text-rose-800">
+                            {t('cancelled', { defaultValue: 'Otkazana' })}
+                          </p>
+                          <p className="text-[11px] text-rose-600/80">
+                            {t('cancelledHint', { defaultValue: 'Akcija je otkazana. Istorijski podaci ostaju dostupni.' })}
+                          </p>
+                        </div>
+                      </>
+                    ) : lifecycleBadge === 'completed' ? (
                       <>
                         <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
                           <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1317,7 +1344,7 @@ export default function ActionDetails() {
                       <span className="text-[11px] text-gray-500 font-medium">{t('registeredCountLabel')}</span>
                       <span className="text-sm font-bold text-gray-900">{registeredCount}</span>
                     </div>
-                    {!akcija.isCompleted && akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
+                    {!canMutateActiveAction ? null : akcija.maxLjudi != null && akcija.maxLjudi > 0 && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-violet-50/80 border border-violet-100">
                         <span className="text-[11px] text-violet-600 font-medium">
                           {t('seatsLabel', { defaultValue: 'Mesta' })}
@@ -1332,7 +1359,7 @@ export default function ActionDetails() {
                         <span className="text-[11px] text-rose-800 font-bold">{t('registrationFullFriendly')}</span>
                       </div>
                     )}
-                    {akcija.isCompleted && user && canManageHost && (
+                    {akcija.isCompleted && !isCancelled && user && canManageHost && (
                       <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
                         <span className="text-[11px] text-emerald-600 font-medium">{t('climbedCountLabel')}</span>
                         <span className="text-sm font-bold text-emerald-700">{uspesnoPopeli.length}</span>
@@ -1463,7 +1490,7 @@ export default function ActionDetails() {
                                   vodicUsername: akcija.vodic?.username,
                                   addedByUsername: akcija.addedBy?.username,
                                 }) &&
-                                !akcija.isCompleted
+                                canMutateActiveAction
                               }
                               onRequestDelete={() => handleDeletePrevoz({ id: p.id, nazivGrupe: p.nazivGrupe })}
                             />
@@ -1540,7 +1567,7 @@ export default function ActionDetails() {
             ) : null}
 
             {/* ROW 3: Confirm / Summary */}
-            {user && !isLimitedView && !akcija.isCompleted && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
+            {user && !isLimitedView && canMutateActiveAction && (akcija.cenaClan != null || akcija.cenaOstali != null) && (
               <div id="action-signup-section" className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-r from-white via-emerald-50/80 to-white shadow-md scroll-mt-24">
                 <div className="px-5 sm:px-7 py-4 border-b border-emerald-100/70 flex items-center gap-2.5">
                   <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-500 to-teal-600" />
@@ -1726,7 +1753,7 @@ export default function ActionDetails() {
                   <h2 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">{t('registeredMembers')}</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  {canManageHost && canSeePrijave && !isLimitedView && prijave.length > 0 && (
+                  {canManageHost && canSeePrijave && !isLimitedView && canMutateActiveAction && prijave.length > 0 && (
                     <>
                       {!bulkPaymentMode ? (
                         <button
@@ -1914,7 +1941,7 @@ export default function ActionDetails() {
                               )}
                             </div>
                           </div>
-                          {canManageHost && !akcija.isCompleted && p.status === 'prijavljen' && (
+                          {canManageHost && canMutateActiveAction && p.status === 'prijavljen' && (
                             <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => handleUpdateStatus(p.id, 'popeo se')}
@@ -1932,7 +1959,7 @@ export default function ActionDetails() {
                               </button>
                             </div>
                           )}
-                          {canManageHost && !akcija.isCompleted && (p.status === 'popeo se' || p.status === 'nije uspeo') && (
+                          {canManageHost && canMutateActiveAction && (p.status === 'popeo se' || p.status === 'nije uspeo') && (
                             <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => handleUpdateStatus(p.id, 'prijavljen')}
@@ -1945,7 +1972,7 @@ export default function ActionDetails() {
                               </button>
                             </div>
                           )}
-                          {canManageHost && (
+                          {canManageHost && canMutateActiveAction && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -1971,6 +1998,13 @@ export default function ActionDetails() {
                         <p className="text-sm text-gray-700 mt-0.5">
                           Plaćeno članova: <span className="font-bold text-emerald-700">{paidCount}</span> / {paymentTrackedPrijave.length}
                         </p>
+                        {isCancelled ? (
+                          <p className="text-[11px] text-rose-700/80 mt-1">
+                            {t('cancelledPaymentsNote', {
+                              defaultValue: 'Evidentirane uplate nisu automatski refundirane.',
+                            })}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="text-left sm:text-right">
                         <p className="text-xs font-semibold text-gray-500">Ukupno plaćeno</p>
@@ -1985,7 +2019,7 @@ export default function ActionDetails() {
                   </div>
                 )}
 
-                {user && canSeePrijave && canManageHost && akcija.isCompleted && !isLimitedView && (
+                {user && canSeePrijave && canManageHost && akcija.isCompleted && !isCancelled && !isLimitedView && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-2.5">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                       Dodaj clana koji se uspesno popeo
@@ -2024,7 +2058,7 @@ export default function ActionDetails() {
                   </div>
                 )}
 
-                {user && canSeePrijave && canManageHost && akcija.isCompleted && !isLimitedView && (
+                {user && canSeePrijave && canManageHost && akcija.isCompleted && !isCancelled && !isLimitedView && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
@@ -2252,14 +2286,14 @@ export default function ActionDetails() {
                   </div>
                 )}
 
-                {canManageHost && !isLimitedView && (
+                {canManageHost && !isLimitedView && !isCancelled && (
                   <div className="lg:order-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
                       <div className="w-1 h-5 rounded-full bg-gradient-to-b from-amber-400 to-orange-500" />
                       <h3 className="text-sm font-bold text-gray-900 tracking-tight">{t('managementTitle')}</h3>
                     </div>
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {!akcija.isCompleted && (
+                      {canMutateActiveAction && (
                         <button
                           onClick={openFinishFinanceModal}
                           className="sm:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-300 shadow-sm shadow-emerald-200/50 transition-all"
@@ -2268,6 +2302,7 @@ export default function ActionDetails() {
                           {t('finishAction')}
                         </button>
                       )}
+                      {!isCancelled && (
                       <button
                         onClick={handleEdit}
                         className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
@@ -2275,7 +2310,8 @@ export default function ActionDetails() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         {t('editAction')}
                       </button>
-                      {!akcija.isCompleted ? (
+                      )}
+                      {canMutateActiveAction ? (
                         <button
                           onClick={handlePrintPrePolaska}
                           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
@@ -2283,7 +2319,7 @@ export default function ActionDetails() {
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                           {t('printPdf')}
                         </button>
-                      ) : (
+                      ) : akcija.isCompleted && !isCancelled ? (
                         <>
                           <button
                             onClick={handlePrintPrePolaska}
@@ -2300,7 +2336,8 @@ export default function ActionDetails() {
                             {t('printCompleted')}
                           </button>
                         </>
-                      )}
+                      ) : null}
+                      {!isCancelled && (
                       <button
                         onClick={handleDelete}
                         className="sm:col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all"
@@ -2308,6 +2345,7 @@ export default function ActionDetails() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         {t('deleteAction')}
                       </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2342,7 +2380,7 @@ export default function ActionDetails() {
             baseCenaOstali={akcija.cenaOstali ?? 0}
             javna={!!akcija.javna}
             statusLabel={memberModal ? prijavaStatusLabel(memberModal.status, t) : ''}
-            showPaymentControls={canManageHost && !akcija.isCompleted}
+            showPaymentControls={canManageHost && canMutateActiveAction}
             onTogglePayment={memberModal ? async (next) => handleTogglePaymentStatus(memberModal.id, next) : undefined}
           />
 

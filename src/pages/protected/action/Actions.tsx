@@ -12,7 +12,7 @@ import {
   otkaziPrijavu,
   prijaviNaAkciju,
 } from '../../../services/actions'
-import { canCancelPendingSignupOnListCard, requiresActionSignupChoices } from '@beleg/shared'
+import { canCancelPendingSignupOnListCard, excludeCancelledActions, getActionLifecycleBadge, requiresActionSignupChoices } from '@beleg/shared'
 import { fetchKlub } from '../../../services/club'
 import { fetchKorisnici } from '../../../services/users'
 import type { AkcijaListItem as Akcija } from '../../../types/akcija'
@@ -45,11 +45,11 @@ function isClubListedAkcija(a: Akcija): boolean {
 }
 
 function isPublicActiveAkcija(a: Akcija): boolean {
-  return !!a.javna && !a.isCompleted
+  return !!a.javna && !a.isCompleted && !a.isCancelled
 }
 
 function listableAktivneFromApi(aktivne: Akcija[]): Akcija[] {
-  return aktivne.filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a))
+  return excludeCancelledActions(aktivne).filter((a) => isClubListedAkcija(a) || isPublicActiveAkcija(a))
 }
 
 export default function Actions() {
@@ -149,19 +149,23 @@ export default function Actions() {
   }
 
   const combinedAktivne = useMemo(() => {
-    if (actionSourceFilter === 'guide') return mergeAkcijeById(vodeneAktivne, mojePrivatneAktivne)
-    if (actionSourceFilter === 'all') {
-      return mergeAkcijeById(clubAktivne, vodeneAktivne, mojePrivatneAktivne)
-    }
-    return mergeAkcijeById(clubAktivne, mojePrivatneAktivne)
+    const merged =
+      actionSourceFilter === 'guide'
+        ? mergeAkcijeById(vodeneAktivne, mojePrivatneAktivne)
+        : actionSourceFilter === 'all'
+          ? mergeAkcijeById(clubAktivne, vodeneAktivne, mojePrivatneAktivne)
+          : mergeAkcijeById(clubAktivne, mojePrivatneAktivne)
+    return excludeCancelledActions(merged)
   }, [actionSourceFilter, clubAktivne, vodeneAktivne, mojePrivatneAktivne])
 
   const combinedZavrsene = useMemo(() => {
-    if (actionSourceFilter === 'guide') return mergeAkcijeById(vodeneZavrsene, mojePrivatneZavrsene)
-    if (actionSourceFilter === 'all') {
-      return mergeAkcijeById(clubZavrsene, vodeneZavrsene, mojePrivatneZavrsene)
-    }
-    return mergeAkcijeById(clubZavrsene, mojePrivatneZavrsene)
+    const merged =
+      actionSourceFilter === 'guide'
+        ? mergeAkcijeById(vodeneZavrsene, mojePrivatneZavrsene)
+        : actionSourceFilter === 'all'
+          ? mergeAkcijeById(clubZavrsene, vodeneZavrsene, mojePrivatneZavrsene)
+          : mergeAkcijeById(clubZavrsene, mojePrivatneZavrsene)
+    return excludeCancelledActions(merged)
   }, [actionSourceFilter, clubZavrsene, vodeneZavrsene, mojePrivatneZavrsene])
 
   const filteredAktivne = useMemo(
@@ -423,9 +427,10 @@ export default function Actions() {
     const akcijaRow = [...aktivneAkcije, ...zavrseneAkcije].find((a) => a.id === akcijaId)
     const isPending = canCancelPendingSignupOnListCard({
       isCompleted: akcijaRow?.isCompleted,
+      isCancelled: akcijaRow?.isCancelled,
       hasPendingSignupId: pendingSignupAkcije.has(akcijaId),
     })
-    if (akcijaRow?.isCompleted) return
+    if (akcijaRow?.isCompleted || akcijaRow?.isCancelled) return
 
     const confirmed = await showConfirm(
       isPending ? t('confirmCancelSignupRequest', { defaultValue: 'Otkazati zahtev za prijavu?' }) : t('confirmCancelJoin', { name: naziv }),
@@ -734,20 +739,31 @@ export default function Actions() {
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
                           {difficultyBadge.label}
                         </span>
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${akcija.organizatorTip === 'vodic' ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-600'}`}>
-                          {t('active')}
-                        </span>
+                        {getActionLifecycleBadge(akcija) === 'cancelled' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700">
+                            {t('cancelled', { defaultValue: 'Otkazana' })}
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${akcija.organizatorTip === 'vodic' ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {t('active')}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Action button at bottom */}
                     <div className="border-t border-gray-100">
-                      {akcija.isCompleted ? (
+                      {getActionLifecycleBadge(akcija) === 'cancelled' ? (
+                        <div className="w-full py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-rose-700 bg-rose-50">
+                          {t('cancelled', { defaultValue: 'Otkazana' })}
+                        </div>
+                      ) : akcija.isCompleted ? (
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">
                           {t('actionCompleted')}
                         </div>
                       ) : canCancelPendingSignupOnListCard({
                           isCompleted: akcija.isCompleted,
+                          isCancelled: akcija.isCancelled,
                           hasPendingSignupId: pendingSignupAkcije.has(akcija.id),
                         }) || otkaziveAkcije.has(akcija.id) ? (
                         <button
@@ -756,6 +772,7 @@ export default function Actions() {
                         >
                           {canCancelPendingSignupOnListCard({
                             isCompleted: akcija.isCompleted,
+                            isCancelled: akcija.isCancelled,
                             hasPendingSignupId: pendingSignupAkcije.has(akcija.id),
                           })
                             ? t('cancelSignupRequest', { defaultValue: 'Otkaži zahtev' })
@@ -967,15 +984,23 @@ export default function Actions() {
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${difficultyBadge.bg} ${difficultyBadge.text}`}>
                           {difficultyBadge.label}
                         </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
-                          {t('completed')}
-                        </span>
+                        {getActionLifecycleBadge(akcija) === 'cancelled' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700">
+                            {t('cancelled', { defaultValue: 'Otkazana' })}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
+                            {t('completed')}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <div className="border-t border-gray-100">
                       <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50/80">
-                        {t('actionCompleted')}
+                        {getActionLifecycleBadge(akcija) === 'cancelled'
+                          ? t('cancelled', { defaultValue: 'Otkazana' })
+                          : t('actionCompleted')}
                       </div>
                     </div>
                   </Link>

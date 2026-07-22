@@ -4,6 +4,8 @@ import {
   buildActionInviteWhatsAppMessage,
   buildActionShareUrl,
   encodeWhatsAppShareMessage,
+  isActionCancelled,
+  isActionLifecycleActive,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
 import api from '../../services/api'
@@ -329,7 +331,7 @@ export function useActionShare({
 
   const canShareActionInvite =
     !!akcija &&
-    !akcija.isCompleted &&
+    isActionLifecycleActive(akcija) &&
     (!!akcija.javna || canManageHost || !!inviteToken)
 
   const clearActionShareCache = () => {
@@ -338,6 +340,13 @@ export function useActionShare({
     setActionShareError('')
     setActionShareLoading(false)
   }
+
+  useEffect(() => {
+    if (isActionCancelled(akcija)) {
+      clearActionShareCache()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [akcija?.id, akcija?.isCancelled])
 
   const handleFerrataBadgeDownload = async () => {
     if (!akcija) return

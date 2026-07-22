@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { AkcijaListItem } from '@beleg/shared'
+import { getActionLifecycleBadge } from '@beleg/shared'
 import { Avatar, Card, Text } from '../../components/ui'
 import { FeedAspectImage } from '../../components/shared/FeedAspectImage'
 import { feedBlockStyle, feedContentPadding } from '../../components/shared/feedStyles'
@@ -28,6 +29,7 @@ export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: F
   const badgeLabel = isGuideAction ? t('badgeGuide') : isKlub ? t('badgeClub') : t('badgePublic')
   const diff = action.tezina ? difficultyBadgeStyle(action.tezina, action.tipAkcije) : null
   const isFeed = variant === 'feed'
+  const lifecycleBadge = getActionLifecycleBadge(action)
 
   const content = (
     <>
@@ -97,6 +99,20 @@ export function FeedActionCard({ action, addedBy, variant = 'card', onPress }: F
             <View style={[styles.metaChip, { backgroundColor: diff.bg }]}>
               <Text variant="small" style={{ color: diff.text, fontWeight: '600' }}>
                 {diff.label}
+              </Text>
+            </View>
+          ) : null}
+          {lifecycleBadge === 'cancelled' ? (
+            <View style={[styles.metaChip, styles.cancelledChip]}>
+              <Text variant="small" style={styles.cancelledText}>
+                OTKAZANA
+              </Text>
+            </View>
+          ) : null}
+          {lifecycleBadge === 'completed' ? (
+            <View style={[styles.metaChip, styles.completedChip]}>
+              <Text variant="small" style={styles.completedText}>
+                ZAVRŠENA
               </Text>
             </View>
           ) : null}
@@ -172,5 +188,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radius.sm,
   },
+  cancelledChip: { backgroundColor: colors.dangerBg },
+  cancelledText: { color: colors.danger, fontWeight: '700' },
+  completedChip: { backgroundColor: colors.surfaceAlt },
+  completedText: { color: colors.textMuted, fontWeight: '700' },
   opis: { color: colors.text },
 })

@@ -22,6 +22,16 @@ export {
   RANK_NAMES,
 } from './ranking'
 export type { AkcijaZaRanking, RankResult, TezinaKategorija, Tura } from './ranking'
+export {
+  excludeCancelledActions,
+  formatActionCancelledAt,
+  getActionLifecycleBadge,
+  getCancellationReasonDisplay,
+  isActionCancelled,
+  isActionLifecycleActive,
+  isActionTerminal,
+} from './actionLifecycle'
+export type { ActionLifecycleBadge, ActionLifecycleFields } from './actionLifecycle'
 export { formatActionDate, formatActionDateShort, parseLocalDate } from './dateFormat'
 export { dateFromHHMM, formatHHMM, isValidHHMM, parseHHMM } from './timeFormat'
 export {

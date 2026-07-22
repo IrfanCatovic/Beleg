@@ -1,5 +1,5 @@
 ﻿import type { TFunction } from 'i18next'
-import { computePERForAkcija } from '@beleg/shared'
+import { computePERForAkcija, isActionCancelled } from '@beleg/shared'
 import type { Akcija } from '../../types/akcija'
 import { AkcijaImageOrFallback } from '../AkcijaImageFallback'
 import { HeroMini } from './actionDetailsUi'
@@ -37,6 +37,7 @@ export function ActionDetailsHeader({
   onBack,
 }: ActionDetailsHeaderProps) {
   const snap = akcija.ferrataSnapshot
+  const cancelled = isActionCancelled(akcija)
   const showFerrataDifficulty = isFerrataAction && !!ferrataDifficultyLabel
   const showTrailKm = !isFerrataAction && akcija.duzinaStazeKm != null && akcija.duzinaStazeKm > 0
   const showAscentM = !isFerrataAction && akcija.kumulativniUsponM != null && akcija.kumulativniUsponM > 0
@@ -65,7 +66,7 @@ export function ActionDetailsHeader({
 
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
           <div className="max-w-6xl mx-auto">
-            {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
+            {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted || cancelled) && (
               <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
                 {isFerrataAction && (
                   <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-orange-500/85 text-white backdrop-blur-sm border border-orange-400/30">
@@ -82,11 +83,15 @@ export function ActionDetailsHeader({
                     {t('public')}
                   </span>
                 )}
-                {akcija.isCompleted && (
+                {cancelled ? (
+                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-500/85 text-white backdrop-blur-sm border border-rose-400/30">
+                    {t('cancelled', { defaultValue: 'Otkazana' })}
+                  </span>
+                ) : akcija.isCompleted ? (
                   <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm border border-white/10">
                     {t('completed')}
                   </span>
-                )}
+                ) : null}
               </div>
             )}
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight drop-shadow-lg leading-tight max-w-3xl">
@@ -135,7 +140,7 @@ export function ActionDetailsHeader({
                   {t('back')}
                 </button>
 
-                {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted) && (
+                {(isFerrataAction || akcija.zimskiUspon || akcija.javna || akcija.isCompleted || cancelled) && (
                   <div className="flex flex-wrap items-center gap-2">
                     {isFerrataAction && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">
@@ -161,14 +166,18 @@ export function ActionDetailsHeader({
                         {t('public')}
                       </span>
                     )}
-                    {akcija.isCompleted && (
+                    {cancelled ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                        {t('cancelled', { defaultValue: 'Otkazana' })}
+                      </span>
+                    ) : akcija.isCompleted ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         {t('completed')}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 )}
 

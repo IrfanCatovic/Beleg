@@ -76,4 +76,29 @@ describe('registration status (shared web/mobile)', () => {
     })
     expect(ui.canRequestSignup).toBe(false)
   })
+
+  it('cancelled action blocks signup and rejoin notice', () => {
+    const ui = deriveActionSignupUiState({
+      prijavaStatus: 'otkazano',
+      isPendingSignup: false,
+      isCapacityFull: false,
+      isCompleted: false,
+      isCancelled: true,
+    })
+    expect(ui.canRequestSignup).toBe(false)
+    expect(ui.showCancelledNotice).toBe(false)
+    expect(ui.isSignupPrimaryDisabled).toBe(true)
+  })
+
+  it('cancelled + completed prefers cancelled lifecycle (no signup)', () => {
+    const ui = deriveActionSignupUiState({
+      prijavaStatus: null,
+      isPendingSignup: false,
+      isCapacityFull: false,
+      isCompleted: true,
+      isCancelled: true,
+    })
+    expect(ui.canRequestSignup).toBe(false)
+    expect(ui.showCapacityFullNotice).toBe(false)
+  })
 })

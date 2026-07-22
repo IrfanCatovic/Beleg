@@ -15,6 +15,8 @@ import {
   isBlockingPrijavaStatus,
   isCancelledPrijavaStatus,
   isConfirmedPrijavaStatus,
+  isActionCancelled,
+  isActionLifecycleActive,
 } from '@beleg/shared'
 import {
   fetchAkcijaById,
@@ -122,6 +124,7 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!akcija || !actionId) throw new Error('Nema akcije')
+      if (!isActionLifecycleActive(akcija)) throw new Error('ACTION_TERMINAL')
       const payload = buildChoicesPayload(akcija, selections)
       return prijaviNaAkciju(client, actionId, payload)
     },
@@ -130,7 +133,13 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
       onSuccess()
       onClose()
     },
-    onError: (err) => onError(getApiErrorMessage(err, 'Prijava nije uspela.')),
+    onError: (err) => {
+      if (err instanceof Error && err.message === 'ACTION_TERMINAL') {
+        onError('Akcija nije dostupna za prijave.')
+        return
+      }
+      onError(getApiErrorMessage(err, 'Prijava nije uspela.'))
+    },
   })
 
   const pending = mojaQuery.data?.signupRequest?.status === 'pending'
@@ -142,8 +151,9 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
     ? getActionCapacityUsedCount(akcija, prijaveQuery.data)
     : 0
   const isCapacityFull = akcija
-    ? !akcija.isCompleted && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
+    ? isActionLifecycleActive(akcija) && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
     : false
+  const actionCancelled = isActionCancelled(akcija) || isActionCancelled(action)
 
   if (!visible || !action) return null
 
@@ -161,6 +171,13 @@ export function ActionJoinSheet({ action, visible, onClose, onSuccess, onError }
 
         {detailQuery.isLoading ? (
           <Loader />
+        ) : actionCancelled || akcija?.isCompleted ? (
+          <View style={styles.center}>
+            <Text color={colors.textMuted}>
+              {actionCancelled ? 'Akcija je otkazana.' : 'Akcija je završena.'}
+            </Text>
+            <Button title="Zatvori" variant="ghost" onPress={onClose} />
+          </View>
         ) : pending || registered || blockingNonCancelled ? (
           <View style={styles.center}>
             <Text color={colors.textMuted}>
