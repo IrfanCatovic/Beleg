@@ -399,14 +399,14 @@ func TestCancelSignup_WithFinish_BothOrders(t *testing.T) {
 		if _, err := actions.FinishAction(db, &akcija, vodic, actions.FinishActionInput{}); err != nil {
 			t.Fatalf("finish: %v", err)
 		}
-		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestPending {
-			t.Fatal("finish must leave pending (no bulk terminalize yet)")
+		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
+			t.Fatal("finish cancels pending")
 		}
-		if code, _ := callCancelSignupCapture(t, db, akcija.ID, requester.Username); code != http.StatusOK {
-			t.Fatal(code)
+		if code, _ := callCancelSignupCapture(t, db, akcija.ID, requester.Username); code != http.StatusBadRequest {
+			t.Fatalf("cancel after finish expected bad request, got %d", code)
 		}
 		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
-			t.Fatal("cancelled after finish")
+			t.Fatal("stays cancelled")
 		}
 	})
 }

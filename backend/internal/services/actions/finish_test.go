@@ -28,6 +28,7 @@ func testFinishDB(t *testing.T) *gorm.DB {
 		&models.Prijava{},
 		&models.PrijavaIzbori{},
 		&models.ActionSignupRequest{},
+		&models.ActionInviteLink{},
 		&models.Transakcija{},
 		&models.Obavestenje{},
 	); err != nil {
@@ -315,7 +316,7 @@ func TestFinishAction_GuideAlreadyPopeoSe(t *testing.T) {
 	}
 }
 
-func TestFinishAction_PendingSignupDoesNotBlock(t *testing.T) {
+func TestFinishAction_PendingSignupCancelledOnFinish(t *testing.T) {
 	db := testFinishDB(t)
 	actor := seedFinishActor(t, db, "fin_pending")
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
@@ -325,6 +326,7 @@ func TestFinishAction_PendingSignupDoesNotBlock(t *testing.T) {
 	}
 	if err := db.Create(&models.ActionSignupRequest{
 		AkcijaID: akcija.ID, RequesterID: reqUser.ID, Status: models.ActionSignupRequestPending,
+		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
 	}).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -340,8 +342,14 @@ func TestFinishAction_PendingSignupDoesNotBlock(t *testing.T) {
 	if err := db.Where("akcija_id = ?", akcija.ID).First(&req).Error; err != nil {
 		t.Fatal(err)
 	}
-	if req.Status != models.ActionSignupRequestPending {
-		t.Fatalf("pending request must remain, got %s", req.Status)
+	if req.Status != models.ActionSignupRequestCancelled {
+		t.Fatalf("pending must become cancelled, got %s", req.Status)
+	}
+	if req.RespondedAt == nil {
+		t.Fatal("RespondedAt must be set")
+	}
+	if req.ReviewedByID != nil {
+		t.Fatal("ReviewedByID must stay nil")
 	}
 }
 

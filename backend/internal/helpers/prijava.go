@@ -238,6 +238,26 @@ func HasPendingSignupRequest(tx *gorm.DB, akcijaID, requesterID uint) (bool, err
 	return n > 0, err
 }
 
+// CancelPendingSignupRequestsForFinishedActionTx bulk-zatvara pending signup requestove
+// kada se akcija završava. Ne otvara transakciju i ne šalje notifikacije.
+//
+// Semantičko ograničenje: status cancelled + ReviewedByID=nil + RespondedAt!=nil
+// ne razlikuje korisnički cancel od sistemskog finish cancel-a (nema reason/source polja).
+func CancelPendingSignupRequestsForFinishedActionTx(
+	tx *gorm.DB,
+	akcijaID uint,
+	respondedAt time.Time,
+) (int64, error) {
+	res := tx.Model(&models.ActionSignupRequest{}).
+		Where("akcija_id = ? AND status = ?", akcijaID, models.ActionSignupRequestPending).
+		Updates(map[string]any{
+			"status":         models.ActionSignupRequestCancelled,
+			"responded_at":   respondedAt,
+			"reviewed_by_id": nil,
+		})
+	return res.RowsAffected, res.Error
+}
+
 // LockAkcijaForUpdate zaključava red akcije unutar transakcije (SELECT FOR UPDATE).
 func LockAkcijaForUpdate(tx *gorm.DB, akcijaID uint) (*models.Akcija, error) {
 	var akcija models.Akcija

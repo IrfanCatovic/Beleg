@@ -298,7 +298,7 @@ func TestCreatePendingSignup_FinishFirst_LifecycleNoPending(t *testing.T) {
 	}
 }
 
-func TestCreatePendingSignup_SignupFirst_FinishLeavesPending(t *testing.T) {
+func TestCreatePendingSignup_SignupFirst_FinishCancelsPending(t *testing.T) {
 	db := testRespondSignupDB(t)
 	vodic := seedRespondApprover(t, db, "vod_cp12")
 	user := seedRespondRequester(t, db, "req_cp12")
@@ -310,8 +310,15 @@ func TestCreatePendingSignup_SignupFirst_FinishLeavesPending(t *testing.T) {
 	if _, err := actions.FinishAction(db, &akcija, vodic, actions.FinishActionInput{}); err != nil {
 		t.Fatalf("finish: %v", err)
 	}
-	if countPendingSignups(t, db, akcija.ID) != 1 {
-		t.Fatal("pending remains until finish cleanup (next step)")
+	if countPendingSignups(t, db, akcija.ID) != 0 {
+		t.Fatal("pending must be cancelled by finish")
+	}
+	var req models.ActionSignupRequest
+	if err := db.Where("akcija_id = ? AND requester_id = ?", akcija.ID, user.ID).First(&req).Error; err != nil {
+		t.Fatal(err)
+	}
+	if req.Status != models.ActionSignupRequestCancelled {
+		t.Fatalf("status=%s", req.Status)
 	}
 	var a models.Akcija
 	if err := db.First(&a, akcija.ID).Error; err != nil || !a.IsCompleted {

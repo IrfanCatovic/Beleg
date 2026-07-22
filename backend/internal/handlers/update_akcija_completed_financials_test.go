@@ -28,6 +28,8 @@ func testUpdateAkcijaDB(t *testing.T) *gorm.DB {
 		&models.Akcija{},
 		&models.Prijava{},
 		&models.PrijavaIzbori{},
+		&models.ActionSignupRequest{},
+		&models.ActionInviteLink{},
 		&models.AkcijaSmestaj{},
 		&models.AkcijaPrevoz{},
 		&models.AkcijaOprema{},

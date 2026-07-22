@@ -34,6 +34,7 @@ func testFinishHandlerDB(t *testing.T) *gorm.DB {
 		&models.Prijava{},
 		&models.PrijavaIzbori{},
 		&models.ActionSignupRequest{},
+		&models.ActionInviteLink{},
 		&models.Transakcija{},
 		&models.Obavestenje{},
 	); err != nil {

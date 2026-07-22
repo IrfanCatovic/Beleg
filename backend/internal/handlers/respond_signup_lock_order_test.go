@@ -581,17 +581,17 @@ func TestRespondSignup_FinishThenAccept_LifecyclePending(t *testing.T) {
 	if _, err := actions.FinishAction(db, &akcija, vodic, actions.FinishActionInput{}); err != nil {
 		t.Fatalf("finish: %v", err)
 	}
-	// Finish još ne terminalizuje pending signup requestove.
-	if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestPending {
-		t.Fatal("finish must leave pending request pending")
+	// Finish terminalizuje pending → cancelled.
+	if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
+		t.Fatal("finish must cancel pending request")
 	}
 
 	code, body := callRespondSignup(t, db, akcija.ID, req.ID, vodic, "accept")
-	if code != http.StatusBadRequest {
+	if code != http.StatusConflict {
 		t.Fatalf("status=%d body=%v", code, body)
 	}
-	if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestPending {
-		t.Fatal("accept after finish keeps pending")
+	if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
+		t.Fatal("accept after finish keeps cancelled")
 	}
 }
 
@@ -621,11 +621,14 @@ func TestRespondSignup_RejectAndFinish_BothOrders(t *testing.T) {
 		if _, err := actions.FinishAction(db, &akcija, vodic, actions.FinishActionInput{}); err != nil {
 			t.Fatalf("finish: %v", err)
 		}
-		if code, _ := callRespondSignup(t, db, akcija.ID, req.ID, vodic, "reject"); code != http.StatusOK {
-			t.Fatalf("reject after finish %d", code)
+		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
+			t.Fatal("finish cancels pending")
 		}
-		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestRejected {
-			t.Fatal("rejected")
+		if code, _ := callRespondSignup(t, db, akcija.ID, req.ID, vodic, "reject"); code != http.StatusConflict {
+			t.Fatalf("reject after finish expected conflict, got %d", code)
+		}
+		if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
+			t.Fatal("stays cancelled")
 		}
 	})
 }

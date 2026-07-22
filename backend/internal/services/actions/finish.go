@@ -29,7 +29,8 @@ type FinishActionResult struct {
 }
 
 // FinishAction završava akciju i upisuje finansijski efekat u klub.
-// Redoslijed: lock Akcija → lock sve Prijava → guide promote → unresolved guard → IsCompleted → finansije.
+// Redoslijed: lock Akcija → cancel pending signup → revoke invites → lock Prijava
+// → guide promote → unresolved guard → IsCompleted → finansije.
 func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in FinishActionInput) (*FinishActionResult, error) {
 	const finEps = 1e-6
 	importedCount := 0
@@ -47,6 +48,15 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 			return helpers.ErrAkcijaAlreadyComplete
 		}
 		*akcija = *locked
+
+		finishedAt := time.Now()
+
+		if _, err := helpers.CancelPendingSignupRequestsForFinishedActionTx(tx, akcija.ID, finishedAt); err != nil {
+			return err
+		}
+		if _, err := helpers.RevokeActiveActionInviteLinksTx(tx, akcija.ID, finishedAt); err != nil {
+			return err
+		}
 
 		if _, err := helpers.LockPrijaveForAkcijaForUpdate(tx, akcija.ID); err != nil {
 			return err
@@ -117,7 +127,7 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 				Tip:        "uplata",
 				Iznos:      neto,
 				Opis:       fmt.Sprintf("Prihod sa akcije: %s", naziv),
-				Datum:      time.Now(),
+				Datum:      finishedAt,
 				KorisnikID: recorderID,
 			}).Error
 		}
@@ -126,7 +136,7 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 			Tip:        "isplata",
 			Iznos:      -math.Abs(neto),
 			Opis:       fmt.Sprintf("Rashod sa akcije: %s", naziv),
-			Datum:      time.Now(),
+			Datum:      finishedAt,
 			KorisnikID: recorderID,
 		}).Error
 	})
