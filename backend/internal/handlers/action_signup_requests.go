@@ -241,25 +241,7 @@ func createPrijavaFromChoicesWithLockedAkcija(tx *gorm.DB, locked *models.Akcija
 		return models.Prijava{}, err
 	}
 
-	choices.SelectedRentItems = normalizeRentItems(choices.SelectedRentItems)
-	if len(choices.SelectedSmestajIDs) > 0 {
-		var n int64
-		tx.Model(&models.AkcijaSmestaj{}).Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedSmestajIDs).Count(&n)
-		if int(n) != len(choices.SelectedSmestajIDs) {
-			return models.Prijava{}, errors.New("Nevažeći ID smeštaja")
-		}
-	}
-	if len(choices.SelectedPrevozIDs) > 0 {
-		var n int64
-		tx.Model(&models.AkcijaPrevoz{}).Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedPrevozIDs).Count(&n)
-		if int(n) != len(choices.SelectedPrevozIDs) {
-			return models.Prijava{}, errors.New("Nevažeći ID prevoza")
-		}
-	}
-	if err := validateRentAvailability(tx, akcijaID, choices.SelectedRentItems, nil); err != nil {
-		return models.Prijava{}, err
-	}
-	if err := validatePrevozCapacity(tx, akcijaID, choices.SelectedPrevozIDs, nil); err != nil {
+	if err := validatePrijavaChoicesTx(tx, akcijaID, &choices, nil); err != nil {
 		return models.Prijava{}, err
 	}
 

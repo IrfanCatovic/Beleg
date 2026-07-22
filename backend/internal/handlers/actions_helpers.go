@@ -139,6 +139,41 @@ func loadPrevozOccupancyByAction(db *gorm.DB, akcijaID uint, excludePrijavaID *u
 	return occupied, nil
 }
 
+// validatePrijavaChoicesTx provjerava da izbori pripadaju akciji i da su dostupni.
+// Mutira choices.SelectedRentItems (normalize). Ne otvara transakciju.
+func validatePrijavaChoicesTx(tx *gorm.DB, akcijaID uint, choices *prijavaChoicesPayload, excludePrijavaID *uint) error {
+	if choices == nil {
+		return nil
+	}
+	choices.SelectedRentItems = normalizeRentItems(choices.SelectedRentItems)
+	if len(choices.SelectedSmestajIDs) > 0 {
+		var n int64
+		if err := tx.Model(&models.AkcijaSmestaj{}).
+			Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedSmestajIDs).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if int(n) != len(choices.SelectedSmestajIDs) {
+			return errors.New("Nevažeći ID smeštaja")
+		}
+	}
+	if len(choices.SelectedPrevozIDs) > 0 {
+		var n int64
+		if err := tx.Model(&models.AkcijaPrevoz{}).
+			Where("akcija_id = ? AND id IN ?", akcijaID, choices.SelectedPrevozIDs).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if int(n) != len(choices.SelectedPrevozIDs) {
+			return errors.New("Nevažeći ID prevoza")
+		}
+	}
+	if err := validateRentAvailability(tx, akcijaID, choices.SelectedRentItems, excludePrijavaID); err != nil {
+		return err
+	}
+	return validatePrevozCapacity(tx, akcijaID, choices.SelectedPrevozIDs, excludePrijavaID)
+}
+
 func validatePrevozCapacity(db *gorm.DB, akcijaID uint, prevozIDs []uint, excludePrijavaID *uint) error {
 	if len(prevozIDs) == 0 {
 		return nil

@@ -37,13 +37,10 @@ func PrijaviNaAkciju(c *gin.Context) {
 		return
 	}
 
-	var akcija models.Akcija
-	if err := db.First(&akcija, akcijaID).Error; err != nil {
+	// Rani read samo za jeftin 404; konačne odluke su nad zaključanom akcijom.
+	var earlyAkcija models.Akcija
+	if err := db.First(&earlyAkcija, akcijaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
-		return
-	}
-	if akcija.IsCompleted {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 		return
 	}
 
@@ -54,56 +51,29 @@ func PrijaviNaAkciju(c *gin.Context) {
 	if inviteToken == "" {
 		inviteToken = strings.TrimSpace(c.PostForm("inviteToken"))
 	}
-	if err := validateSignupAccess(db, &akcija, &korisnik, inviteToken); err != nil {
-		if strings.Contains(err.Error(), "invite") || strings.Contains(err.Error(), "član") {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Rani UX guard: ne šalji pending zahtjev ako je akcija već puna.
-	// Ne rezerviše mjesto; race-safe kapacitet ostaje u accept flowu (LockAkcijaForUpdate).
-	if err := helpers.EnsureCapacityAvailable(db, uint(akcijaID), akcija.MaxLjudi); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	choices := parseChoicesFromRequest(c)
-	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
-	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
-	rentJSON, _ := json.Marshal(choices.SelectedRentItems)
 
 	var signupReq models.ActionSignupRequest
+	var lockedAkcija *models.Akcija
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		hasBlocking, err := helpers.HasBlockingPrijavaForUser(tx, uint(akcijaID), korisnik.ID)
+		locked, err := helpers.LockAkcijaForUpdate(tx, uint(akcijaID))
 		if err != nil {
 			return err
 		}
-		if hasBlocking {
-			return helpers.ErrDuplicatePrijava
+		lockedAkcija = locked
+
+		if err := validateSignupAccess(tx, locked, &korisnik, inviteToken); err != nil {
+			return err
 		}
-		hasPending, err := helpers.HasPendingSignupRequest(tx, uint(akcijaID), korisnik.ID)
+
+		created, err := createPendingActionSignupRequestTx(tx, locked, &korisnik, choices)
 		if err != nil {
 			return err
 		}
-		if hasPending {
-			return helpers.ErrPendingSignupExists
-		}
-		signupReq = models.ActionSignupRequest{
-			AkcijaID:             uint(akcijaID),
-			RequesterID:          korisnik.ID,
-			Status:               models.ActionSignupRequestPending,
-			SelectedSmestajIDs:   string(smestajJSON),
-			SelectedPrevozIDs:    string(prevozJSON),
-			SelectedRentItemsRaw: string(rentJSON),
-		}
-		if err := tx.Create(&signupReq).Error; err != nil {
-			return helpers.MapCreateSignupRequestError(err)
-		}
+		signupReq = *created
 		return nil
 	}); err != nil {
+		errMsg := err.Error()
 		if errors.Is(err, helpers.ErrDuplicatePrijava) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -112,15 +82,44 @@ func PrijaviNaAkciju(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri slanju zahteva", "details": err.Error()})
+		if errors.Is(err, helpers.ErrAkcijaCapacityFull) ||
+			strings.Contains(errMsg, "popunjen") ||
+			strings.Contains(errMsg, "popunjena") ||
+			strings.Contains(errMsg, "Nedovoljno") ||
+			strings.Contains(errMsg, "Nevažeći") ||
+			strings.Contains(errMsg, "pun") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			return
+		}
+		if errors.Is(err, helpers.ErrSignupClosed) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(errMsg, "invite") || strings.Contains(errMsg, "član") {
+			c.JSON(http.StatusForbidden, gin.H{"error": errMsg})
+			return
+		}
+		if strings.Contains(errMsg, "Rok za prijavu") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri slanju zahteva", "details": errMsg})
 		return
 	}
 
-	signupReq.Akcija = akcija
+	akcijaForResp := earlyAkcija
+	if lockedAkcija != nil {
+		akcijaForResp = *lockedAkcija
+	}
+	signupReq.Akcija = akcijaForResp
 	signupReq.Requester = korisnik
 	createSignupRequestNotification(db, signupReq)
 
-	saldo := computeSaldoForChoices(db, akcija, korisnik, choices)
+	saldo := computeSaldoForChoices(db, akcijaForResp, korisnik, choices)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "Zahtev za prijavu je poslat na odobrenje.",
@@ -128,6 +127,60 @@ func PrijaviNaAkciju(c *gin.Context) {
 		"signupRequest": gin.H{"id": signupReq.ID, "status": signupReq.Status},
 		"saldo":         saldo,
 	})
+}
+
+// createPendingActionSignupRequestTx kreira pending signup uz već zaključanu akciju.
+// Ne otvara novu transakciju, ne zaključava ponovo akciju, ne šalje notifikacije.
+func createPendingActionSignupRequestTx(
+	tx *gorm.DB,
+	lockedAkcija *models.Akcija,
+	requester *models.Korisnik,
+	choices prijavaChoicesPayload,
+) (*models.ActionSignupRequest, error) {
+	if lockedAkcija == nil || requester == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	akcijaID := lockedAkcija.ID
+
+	hasBlocking, err := helpers.HasBlockingPrijavaForUser(tx, akcijaID, requester.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasBlocking {
+		return nil, helpers.ErrDuplicatePrijava
+	}
+	hasPending, err := helpers.HasPendingSignupRequest(tx, akcijaID, requester.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasPending {
+		return nil, helpers.ErrPendingSignupExists
+	}
+
+	// Rani capacity guard; pending ne rezerviše mjesto — konačni guard je u acceptu.
+	if err := helpers.EnsureCapacityAvailable(tx, akcijaID, lockedAkcija.MaxLjudi); err != nil {
+		return nil, err
+	}
+
+	if err := validatePrijavaChoicesTx(tx, akcijaID, &choices, nil); err != nil {
+		return nil, err
+	}
+
+	smestajJSON, _ := json.Marshal(choices.SelectedSmestajIDs)
+	prevozJSON, _ := json.Marshal(choices.SelectedPrevozIDs)
+	rentJSON, _ := json.Marshal(choices.SelectedRentItems)
+	signupReq := models.ActionSignupRequest{
+		AkcijaID:             akcijaID,
+		RequesterID:          requester.ID,
+		Status:               models.ActionSignupRequestPending,
+		SelectedSmestajIDs:   string(smestajJSON),
+		SelectedPrevozIDs:    string(prevozJSON),
+		SelectedRentItemsRaw: string(rentJSON),
+	}
+	if err := tx.Create(&signupReq).Error; err != nil {
+		return nil, helpers.MapCreateSignupRequestError(err)
+	}
+	return &signupReq, nil
 }
 
 func GetMojaPrijavaZaAkciju(c *gin.Context) {
