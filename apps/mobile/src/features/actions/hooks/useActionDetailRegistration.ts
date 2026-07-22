@@ -13,6 +13,7 @@ import {
   getApiErrorMessage,
   canEditActionSignupChoices,
   deriveActionSignupUiState,
+  isActivePendingSignup,
   isConfirmedPrijavaStatus,
 } from '@beleg/shared'
 import {
@@ -60,7 +61,10 @@ export function useActionDetailRegistration(options: {
 
   const prijava = mojaPrijavaData?.prijava
   const pendingSignup = mojaPrijavaData?.signupRequest
-  const isPendingSignup = pendingSignup?.status === 'pending'
+  const isPendingSignup = isActivePendingSignup({
+    isCompleted: akcija?.isCompleted,
+    signupRequestStatus: pendingSignup?.status,
+  })
   const isRegistered = isConfirmedPrijavaStatus(prijava?.status)
 
   const heldSource = (isPendingSignup ? pendingSignup : null) ?? prijava

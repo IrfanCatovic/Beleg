@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   canEditActionSignupChoices,
+  isActivePendingSignup,
   isConfirmedPrijavaStatus,
 } from '@beleg/shared'
 import {
@@ -310,7 +311,10 @@ export function useActionRegistration({
     }
   }
 
-  const isPendingSignup = !!pendingSignup
+  const isPendingSignup = isActivePendingSignup({
+    isCompleted: akcija?.isCompleted,
+    signupRequestStatus: pendingSignup?.status ?? (pendingSignup ? 'pending' : null),
+  })
   const isRegistered = isConfirmedPrijavaStatus(mojaPrijava?.status)
   const canEditLogistics =
     canEditActionSignupChoices({

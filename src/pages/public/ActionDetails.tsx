@@ -267,6 +267,7 @@ export default function ActionDetails() {
     signupRequestsLoading,
     respondingSignupId,
     respondToSignupRequest,
+    refreshSignupRequests,
   } = useActionSignupRequests({
     actionId: id,
     enabled: canApproveSignup,
@@ -321,6 +322,7 @@ export default function ActionDetails() {
     copyActionShareLink,
     shareActionViaWhatsApp,
     canShareActionInvite,
+    clearActionShareCache,
     handleFerrataBadgeDownload,
     handleSummitPngDownload,
   } = useActionShare({
@@ -672,6 +674,19 @@ export default function ActionDetails() {
     const updated = res?.akcija
     if (updated) setAkcija(updated)
     else setAkcija((prev) => (prev ? { ...prev, isCompleted: true } : null))
+
+    // Finish je uspio na backendu; post-finish refresh je best-effort (ne pokreće drugi finish).
+    clearActionShareCache()
+    try {
+      await Promise.all([
+        reloadAkcija(),
+        refreshPrijave(),
+        refreshRegistrationState(),
+        refreshSignupRequests(),
+      ])
+    } catch {
+      /* ignore auxiliary refetch failures */
+    }
 
     let body: string
     if (akcija?.organizatorTip === 'vodic') {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canCancelPendingSignupOnListCard,
   canRequestActionSignup,
   deriveActionSignupUiState,
+  isActivePendingSignup,
   isBlockingPrijavaStatus,
   isCancelledPrijavaStatus,
 } from './prijavaStatus'
@@ -120,5 +122,37 @@ describe('deriveActionSignupUiState', () => {
       isCompleted: false,
     })
     expect(ui.isSignupPrimaryDisabled).toBe(false)
+  })
+})
+
+describe('isActivePendingSignup', () => {
+  it('is true only for pending on active action', () => {
+    expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'pending' })).toBe(true)
+  })
+  it('hides pending UI when action is completed (stale cache guard)', () => {
+    expect(isActivePendingSignup({ isCompleted: true, signupRequestStatus: 'pending' })).toBe(false)
+  })
+  it('is false for cancelled/accepted/rejected', () => {
+    expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'cancelled' })).toBe(false)
+    expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'accepted' })).toBe(false)
+    expect(isActivePendingSignup({ isCompleted: false, signupRequestStatus: 'rejected' })).toBe(false)
+  })
+})
+
+describe('canCancelPendingSignupOnListCard', () => {
+  it('allows cancel on active pending', () => {
+    expect(
+      canCancelPendingSignupOnListCard({ isCompleted: false, hasPendingSignupId: true }),
+    ).toBe(true)
+  })
+  it('blocks cancel on completed even with stale pending id', () => {
+    expect(
+      canCancelPendingSignupOnListCard({ isCompleted: true, hasPendingSignupId: true }),
+    ).toBe(false)
+  })
+  it('blocks when not in pending set', () => {
+    expect(
+      canCancelPendingSignupOnListCard({ isCompleted: false, hasPendingSignupId: false }),
+    ).toBe(false)
   })
 })

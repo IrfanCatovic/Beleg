@@ -1,7 +1,7 @@
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import type { AkcijaDetail } from '@beleg/shared'
-import { Button, Card, Text } from '../../../components/ui'
-import { colors, spacing } from '../../../theme'
+import { Button, Card } from '../../../components/ui'
+import { spacing } from '../../../theme'
 import { SectionHeader } from './SectionHeader'
 
 interface ActionDetailHostPanelProps {
@@ -32,7 +32,9 @@ export function ActionDetailHostPanel({
   return (
     <Card style={styles.card}>
       <SectionHeader title="Upravljanje akcijom" />
-      <Button title="Podeli na WhatsApp" variant="secondary" onPress={onShare} loading={loading} fullWidth />
+      {!akcija.isCompleted ? (
+        <Button title="Podeli na WhatsApp" variant="secondary" onPress={onShare} loading={loading} fullWidth />
+      ) : null}
       {!akcija.isCompleted ? (
         <Button title="Završi akciju" onPress={onFinish} loading={loading} fullWidth />
       ) : null}

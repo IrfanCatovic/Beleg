@@ -28,6 +28,25 @@ export function isConfirmedPrijavaStatus(
   return status === 'prijavljen'
 }
 
+/**
+ * Aktivni pending signup za UI: nikad na završenoj akciji (zaštita od stale cache-a).
+ * Backend/refetch i dalje ostaje source of truth.
+ */
+export function isActivePendingSignup(input: {
+  isCompleted?: boolean | null
+  signupRequestStatus?: string | null
+}): boolean {
+  return !input.isCompleted && input.signupRequestStatus === 'pending'
+}
+
+/** Cancel-pending na list kartici: ne dozvoli stale pending ID na completed akciji. */
+export function canCancelPendingSignupOnListCard(input: {
+  isCompleted?: boolean | null
+  hasPendingSignupId?: boolean
+}): boolean {
+  return !input.isCompleted && !!input.hasPendingSignupId
+}
+
 export interface ActionSignupEligibilityInput {
   prijavaStatus?: PrijavaStatus | string | null
   isPendingSignup?: boolean

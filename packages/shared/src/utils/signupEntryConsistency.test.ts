@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { requiresActionSignupChoices } from './actionPricing'
 
 /**
@@ -37,13 +37,7 @@ describe('web quick-join decision', () => {
 
 describe('mobile invalidate includes feed key', () => {
   it('documents expected query keys including akcije/feed', () => {
-    const keys: Array<readonly unknown[]> = []
-    const queryClient = {
-      invalidateQueries: vi.fn(async (opts: { queryKey: readonly unknown[] }) => {
-        keys.push(opts.queryKey)
-      }),
-    }
-    // Mirror invalidateActionQueries list (keep in sync with the mobile helper).
+    // Keep in sync with apps/mobile/.../invalidateActionQueries.ts actionInvalidationKeys.
     const expected = [
       ['moje-prijave'],
       ['akcije'],
@@ -54,10 +48,9 @@ describe('mobile invalidate includes feed key', () => {
       ['akcija', 7, 'prijave'],
       ['signup-requests', 7],
     ]
-    for (const queryKey of expected) {
-      void queryClient.invalidateQueries({ queryKey })
-    }
-    expect(keys).toEqual(expected)
-    expect(keys.some((k) => k[0] === 'akcije' && k[1] === 'feed')).toBe(true)
+    expect(expected.some((k) => k[0] === 'akcije' && k[1] === 'feed')).toBe(true)
+    expect(expected.some((k) => k[0] === 'moje-prijave')).toBe(true)
+    expect(expected.some((k) => k[0] === 'signup-requests')).toBe(true)
+    expect(expected.some((k) => k[0] === 'moja-prijava')).toBe(true)
   })
 })

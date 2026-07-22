@@ -205,6 +205,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     mutationFn: (rashod: number) => zavrsiAkciju(client, id, rashod),
     onSuccess: async (res) => {
       setFinishOpen(false)
+      setShareCachedUrl('')
       await invalidateActionQueries(queryClient, id, inviteToken)
       const tip = res.finansijeTip
       const neto = res.netoFinansije

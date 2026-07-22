@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AkcijaListItem } from '@beleg/shared'
-import { getApiErrorMessage } from '@beleg/shared'
+import { canCancelPendingSignupOnListCard, getApiErrorMessage } from '@beleg/shared'
 import { fetchAkcije, fetchMojePrijave, cancelSignupRequest, otkaziPrijavu } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -134,9 +134,16 @@ export default function ActionsScreen({ navigation }: Props) {
 
   const cancelMutation = useMutation({
     mutationFn: async (action: AkcijaListItem) => {
-      if (pendingSignup.has(action.id)) {
+      const canCancelPending = canCancelPendingSignupOnListCard({
+        isCompleted: action.isCompleted,
+        hasPendingSignupId: pendingSignup.has(action.id),
+      })
+      if (canCancelPending) {
         await cancelSignupRequest(client, action.id)
         return
+      }
+      if (action.isCompleted) {
+        throw new Error('Akcija je završena.')
       }
       await otkaziPrijavu(client, action.id)
     },
@@ -151,7 +158,13 @@ export default function ActionsScreen({ navigation }: Props) {
   }
 
   const handleCancel = async (action: AkcijaListItem) => {
-    const isPending = pendingSignup.has(action.id)
+    const isPending = canCancelPendingSignupOnListCard({
+      isCompleted: action.isCompleted,
+      hasPendingSignupId: pendingSignup.has(action.id),
+    })
+    if (action.isCompleted && pendingSignup.has(action.id)) {
+      return
+    }
     const ok = await showConfirm(
       isPending ? 'Otkaži zahtev' : 'Otkaži prijavu',
       isPending
@@ -299,27 +312,32 @@ export default function ActionsScreen({ navigation }: Props) {
           ) : null
         }
         ListEmptyComponent={<EmptyState title="Nema akcija" message="Pokušaj drugačije filtere." />}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const showPending = canCancelPendingSignupOnListCard({
+            isCompleted: item.isCompleted,
+            hasPendingSignupId: pendingSignup.has(item.id),
+          })
+          const showCancel =
+            !item.isCompleted &&
+            (cancellable.has(item.id) || showPending)
+          return (
           <ActionCard
             variant="feed"
             action={item}
             signedUp={signedUp.has(item.id)}
-            pendingSignup={pendingSignup.has(item.id)}
-            cancellable={cancellable.has(item.id) || pendingSignup.has(item.id)}
+            pendingSignup={showPending}
+            cancellable={showCancel}
             joinLoading={joinAction?.id === item.id}
             onPress={() => navigation.navigate('ActionDetail', { id: item.id })}
             onJoin={
-              !item.isCompleted && !signedUp.has(item.id) && !pendingSignup.has(item.id)
+              !item.isCompleted && !signedUp.has(item.id) && !showPending
                 ? () => void handleJoin(item)
                 : undefined
             }
-            onCancel={
-              cancellable.has(item.id) || pendingSignup.has(item.id)
-                ? () => void handleCancel(item)
-                : undefined
-            }
+            onCancel={showCancel ? () => void handleCancel(item) : undefined}
           />
-        )}
+          )
+        }}
       />
     </View>
   )

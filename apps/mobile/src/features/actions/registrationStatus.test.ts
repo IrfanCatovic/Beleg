@@ -66,4 +66,14 @@ describe('registration status (shared web/mobile)', () => {
     expect(ui.canRequestSignup).toBe(false)
     expect(ui.isSignupPrimaryDisabled).toBe(true)
   })
+
+  it('completed action blocks signup even without pending flag', () => {
+    const ui = deriveActionSignupUiState({
+      prijavaStatus: null,
+      isPendingSignup: false,
+      isCapacityFull: false,
+      isCompleted: true,
+    })
+    expect(ui.canRequestSignup).toBe(false)
+  })
 })

@@ -12,7 +12,7 @@ import {
   otkaziPrijavu,
   prijaviNaAkciju,
 } from '../../../services/actions'
-import { requiresActionSignupChoices } from '@beleg/shared'
+import { canCancelPendingSignupOnListCard, requiresActionSignupChoices } from '@beleg/shared'
 import { fetchKlub } from '../../../services/club'
 import { fetchKorisnici } from '../../../services/users'
 import type { AkcijaListItem as Akcija } from '../../../types/akcija'
@@ -420,7 +420,13 @@ export default function Actions() {
   }
 
   const handleOtkaziPrijavu = async (akcijaId: number, naziv: string) => {
-    const isPending = pendingSignupAkcije.has(akcijaId)
+    const akcijaRow = [...aktivneAkcije, ...zavrseneAkcije].find((a) => a.id === akcijaId)
+    const isPending = canCancelPendingSignupOnListCard({
+      isCompleted: akcijaRow?.isCompleted,
+      hasPendingSignupId: pendingSignupAkcije.has(akcijaId),
+    })
+    if (akcijaRow?.isCompleted) return
+
     const confirmed = await showConfirm(
       isPending ? t('confirmCancelSignupRequest', { defaultValue: 'Otkazati zahtev za prijavu?' }) : t('confirmCancelJoin', { name: naziv }),
     )
@@ -740,12 +746,20 @@ export default function Actions() {
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-gray-400 bg-gray-50">
                           {t('actionCompleted')}
                         </div>
-                      ) : pendingSignupAkcije.has(akcija.id) || otkaziveAkcije.has(akcija.id) ? (
+                      ) : canCancelPendingSignupOnListCard({
+                          isCompleted: akcija.isCompleted,
+                          hasPendingSignupId: pendingSignupAkcije.has(akcija.id),
+                        }) || otkaziveAkcije.has(akcija.id) ? (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOtkaziPrijavu(akcija.id, akcija.naziv) }}
                           className="w-full py-2.5 text-center text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 transition-colors"
                         >
-                          {pendingSignupAkcije.has(akcija.id) ? t('cancelSignupRequest', { defaultValue: 'Otkaži zahtev' }) : t('cancelJoin')}
+                          {canCancelPendingSignupOnListCard({
+                            isCompleted: akcija.isCompleted,
+                            hasPendingSignupId: pendingSignupAkcije.has(akcija.id),
+                          })
+                            ? t('cancelSignupRequest', { defaultValue: 'Otkaži zahtev' })
+                            : t('cancelJoin')}
                         </button>
                       ) : prijavljeneAkcije.has(akcija.id) ? (
                         <div className="w-full py-2.5 text-center text-xs font-semibold text-emerald-600 bg-emerald-50 flex items-center justify-center gap-1">

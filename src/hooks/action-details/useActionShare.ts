@@ -332,6 +332,13 @@ export function useActionShare({
     !akcija.isCompleted &&
     (!!akcija.javna || canManageHost || !!inviteToken)
 
+  const clearActionShareCache = () => {
+    setActionShareUrl('')
+    setActionShareCopied(false)
+    setActionShareError('')
+    setActionShareLoading(false)
+  }
+
   const handleFerrataBadgeDownload = async () => {
     if (!akcija) return
     try {
@@ -412,6 +419,7 @@ export function useActionShare({
     copyActionShareLink,
     shareActionViaWhatsApp,
     canShareActionInvite,
+    clearActionShareCache,
     handleFerrataBadgeDownload,
     handleSummitPngDownload,
     ensureShareUrl,

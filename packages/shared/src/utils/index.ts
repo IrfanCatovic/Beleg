@@ -53,9 +53,11 @@ export {
 } from './actionPricing'
 export {
   PRIJAVA_BLOCKING_STATUSES,
+  canCancelPendingSignupOnListCard,
   canEditActionSignupChoices,
   canRequestActionSignup,
   deriveActionSignupUiState,
+  isActivePendingSignup,
   isBlockingPrijavaStatus,
   isCancelledPrijavaStatus,
   isConfirmedPrijavaStatus,
