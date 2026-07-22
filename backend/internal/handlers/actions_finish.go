@@ -45,6 +45,10 @@ func DodajClanaPopeoSe(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da dodaje članove na ovu akciju"})
 		return
 	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if !akcija.IsCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Član se ovde može dodati tek kada je akcija završena"})
 		return
@@ -63,6 +67,8 @@ func DodajClanaPopeoSe(c *gin.Context) {
 	result, svcErr := actions.AddMemberToCompletedAction(db, &akcija, &korisnik)
 	if svcErr != nil {
 		switch {
+		case errors.Is(svcErr, helpers.ErrAkcijaCancelled):
+			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
 		case errors.Is(svcErr, actions.ErrMemberNotInClub):
 			c.JSON(http.StatusForbidden, gin.H{"error": svcErr.Error()})
 		case errors.Is(svcErr, actions.ErrMemberAlreadySummited),
@@ -114,6 +120,10 @@ func BulkAddClubMembersCompleted(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da dodaje članove na ovu akciju"})
 		return
 	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if !akcija.IsCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Članovi se ovde mogu dodati tek kada je akcija završena"})
 		return
@@ -121,6 +131,10 @@ func BulkAddClubMembersCompleted(c *gin.Context) {
 
 	bulkRes, svcErr := actions.BulkAddMembersToCompletedAction(db, &akcija, req.KorisnikIDs)
 	if svcErr != nil {
+		if errors.Is(svcErr, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju članova na akciju"})
 		return
 	}
@@ -170,6 +184,10 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 
 	// Nakon završetka akcije dozvoljavamo samo naknadnu potvrdu uplate (false -> true).
 	// Povrat sa true -> false bi razvezao finansijsku evidenciju koja je već importovana.
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if akcija.IsCompleted && prijava.Platio && !req.Platio {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Za završenu akciju nije dozvoljeno vraćanje uplate na neplaćeno"})
 		return
@@ -188,6 +206,9 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, prijava.AkcijaID)
 		if err != nil {
 			return err
+		}
+		if lockedAkcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
 		}
 		akcija = *lockedAkcija
 
@@ -261,6 +282,10 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		}
 		return nil
 	}); err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju uplate"})
 		return
 	}
@@ -316,6 +341,10 @@ func ZavrsiAkciju(c *gin.Context) {
 		return
 	}
 
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if akcija.IsCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 		return
@@ -339,6 +368,10 @@ func ZavrsiAkciju(c *gin.Context) {
 
 	finishRes, svcErr := actions.FinishAction(db, &akcija, actor, actions.FinishActionInput{RashodNaAkciji: rashodNaAkciji})
 	if svcErr != nil {
+		if errors.Is(svcErr, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
+			return
+		}
 		if errors.Is(svcErr, helpers.ErrAkcijaAlreadyComplete) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 			return
@@ -394,7 +427,8 @@ func DeleteAkcija(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 			return
 		}
-		if errors.Is(err, helpers.ErrAkcijaHardDeleteCompleted) ||
+		if errors.Is(err, helpers.ErrAkcijaHardDeleteCancelled) ||
+			errors.Is(err, helpers.ErrAkcijaHardDeleteCompleted) ||
 			errors.Is(err, helpers.ErrAkcijaHardDeleteHasPrijave) ||
 			errors.Is(err, helpers.ErrAkcijaHardDeleteHasSignupRequests) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -434,16 +468,23 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Niste bili prijavljeni na ovu akciju"})
 		return
 	}
+
+	var akcija models.Akcija
+	if err := db.First(&akcija, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+		return
+	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
+
 	if prijava.Status != "prijavljen" {
-		var akcija models.Akcija
-		if err := db.Select("id", "organizator_tip", "vodic_id", "is_completed").First(&akcija, id).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
-			return
-		}
 		isOwnActiveGuideAction :=
 			strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic" &&
 				akcija.VodicID == korisnik.ID &&
-				!akcija.IsCompleted
+				!akcija.IsCompleted &&
+				!akcija.IsCancelled
 		if !isOwnActiveGuideAction {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh"})
 			return
@@ -544,6 +585,9 @@ func UpdatePrijavaStatus(c *gin.Context) {
 		if err != nil {
 			return err
 		}
+		if lockedAkcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
 		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, existing.ID)
 		if err != nil {
 			return err
@@ -595,6 +639,10 @@ func UpdatePrijavaStatus(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{"error": "Prijava nije pronađena"})
 			return
@@ -622,6 +670,10 @@ func DeletePrijava(c *gin.Context) {
 	}
 	if !helpers.CanManageAkcijaEx(c, db, &prijava.Akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da ukloni člana sa akcije"})
+		return
+	}
+	if prijava.Akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
 		return
 	}
 
@@ -683,10 +735,12 @@ func GetMojePrijave(c *gin.Context) {
 		Joins("JOIN akcije AS a ON a.id = p.akcija_id").
 		Where("p.korisnik_id = ?", korisnik.ID).
 		Where(
-			"p.status = ? OR (LOWER(TRIM(a.organizator_tip)) = ? AND a.vodic_id = ? AND a.is_completed = ?)",
+			"(p.status = ? AND a.is_cancelled = ?) OR (LOWER(TRIM(a.organizator_tip)) = ? AND a.vodic_id = ? AND a.is_completed = ? AND a.is_cancelled = ?)",
 			"prijavljen",
+			false,
 			"vodic",
 			korisnik.ID,
+			false,
 			false,
 		).
 		Distinct().

@@ -520,6 +520,10 @@ func RespondToActionSignupRequest(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, errSignupRequestAlreadyProcessed) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return

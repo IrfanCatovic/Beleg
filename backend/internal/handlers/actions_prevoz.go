@@ -36,7 +36,11 @@ func DodajPrevozZaAkciju(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
-	if akcija.IsCompleted {
+	if err := helpers.ValidateAkcijaActive(&akcija); err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
 		return
 	}
@@ -147,7 +151,11 @@ func ObrisiPrevozZaAkciju(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba može obrisati prevoz"})
 		return
 	}
-	if akcija.IsCompleted {
+	if err := helpers.ValidateAkcijaActive(&akcija); err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
 		return
 	}

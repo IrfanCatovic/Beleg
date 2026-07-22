@@ -42,6 +42,9 @@ func lockCompletedAkcijaTx(tx *gorm.DB, akcijaID uint) (models.Akcija, error) {
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&akcija, akcijaID).Error; err != nil {
 		return models.Akcija{}, err
 	}
+	if akcija.IsCancelled {
+		return models.Akcija{}, helpers.ErrAkcijaCancelled
+	}
 	if !akcija.IsCompleted {
 		return models.Akcija{}, ErrActionNotCompleted
 	}

@@ -589,6 +589,9 @@ func executeUpdateAkcijaTx(tx *gorm.DB, akcija models.Akcija, nestedInput Action
 	if err != nil {
 		return err
 	}
+	if locked.IsCancelled {
+		return helpers.ErrAkcijaCancelled
+	}
 	wasCompleted := locked.IsCompleted
 	// Preserve lifecycle flags from the locked row — clients cannot set them via update form.
 	akcija.IsCompleted = locked.IsCompleted

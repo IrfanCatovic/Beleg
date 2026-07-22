@@ -77,10 +77,51 @@ func TestValidateAkcijaSignupOpen_Completed(t *testing.T) {
 	}
 }
 
+func TestValidateAkcijaActive_Cancelled(t *testing.T) {
+	akcija := &models.Akcija{IsCancelled: true, Datum: time.Now().Add(24 * time.Hour)}
+	if err := ValidateAkcijaActive(akcija); !errors.Is(err, ErrAkcijaCancelled) {
+		t.Fatalf("expected ErrAkcijaCancelled, got %v", err)
+	}
+	if !IsAkcijaTerminal(akcija) {
+		t.Fatal("cancelled must be terminal")
+	}
+}
+
+func TestValidateAkcijaActive_Active(t *testing.T) {
+	akcija := &models.Akcija{Datum: time.Now().Add(24 * time.Hour)}
+	if err := ValidateAkcijaActive(akcija); err != nil {
+		t.Fatalf("active must pass: %v", err)
+	}
+	if IsAkcijaTerminal(akcija) {
+		t.Fatal("active must not be terminal")
+	}
+}
+
+func TestValidateAkcijaActive_CompletedAndCancelledPrefersCancelled(t *testing.T) {
+	akcija := &models.Akcija{IsCompleted: true, IsCancelled: true, Datum: time.Now().Add(24 * time.Hour)}
+	if err := ValidateAkcijaActive(akcija); !errors.Is(err, ErrAkcijaCancelled) {
+		t.Fatalf("expected ErrAkcijaCancelled for contradictory state, got %v", err)
+	}
+	if !IsAkcijaTerminal(akcija) {
+		t.Fatal("contradictory state must be terminal")
+	}
+}
+
 func TestValidateAkcijaActive_Completed(t *testing.T) {
 	akcija := &models.Akcija{IsCompleted: true, Datum: time.Now().Add(24 * time.Hour)}
 	if err := ValidateAkcijaActive(akcija); !errors.Is(err, ErrAkcijaAlreadyComplete) {
 		t.Fatalf("expected ErrAkcijaAlreadyComplete, got %v", err)
+	}
+	if !IsAkcijaTerminal(akcija) {
+		t.Fatal("completed must be terminal")
+	}
+}
+
+func TestValidateAkcijaSignupOpen_Cancelled(t *testing.T) {
+	akcija := &models.Akcija{IsCancelled: true, Datum: time.Now().Add(24 * time.Hour)}
+	err := ValidateAkcijaSignupOpen(akcija, time.Now())
+	if !errors.Is(err, ErrAkcijaCancelled) {
+		t.Fatalf("expected ErrAkcijaCancelled, got %v", err)
 	}
 }
 

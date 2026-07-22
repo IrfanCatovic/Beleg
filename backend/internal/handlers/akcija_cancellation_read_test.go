@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/database"
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/services/actions"
 
@@ -172,14 +174,10 @@ func TestGetPublicAkcijaByID_LimitedIncludesCancellationLifecycle(t *testing.T) 
 
 func TestGetAkcije_ListIncludesCancellationFields(t *testing.T) {
 	db := testCancellationReadDB(t)
-	at := time.Date(2026, 7, 19, 8, 0, 0, 0, time.UTC)
 	akcija := models.Akcija{
-		Naziv:              "List cancelled",
-		Datum:              time.Now().Add(48 * time.Hour),
-		Javna:              true,
-		IsCancelled:        true,
-		CancelledAt:        &at,
-		CancellationReason: "Vrijeme",
+		Naziv: "List active",
+		Datum: time.Now().Add(48 * time.Hour),
+		Javna: true,
 	}
 	if err := db.Create(&akcija).Error; err != nil {
 		t.Fatal(err)
@@ -209,7 +207,7 @@ func TestGetAkcije_ListIncludesCancellationFields(t *testing.T) {
 	if !ok {
 		t.Fatalf("aktivne[0] type %T", aktivne[0])
 	}
-	assertCancellationFields(t, row, true, "Vrijeme", &at)
+	assertCancellationFields(t, row, false, "", nil)
 }
 
 func TestCreateAkcija_JSONHasIsCancelledFalse(t *testing.T) {
@@ -241,7 +239,7 @@ func TestCreateAkcija_JSONHasIsCancelledFalse(t *testing.T) {
 	assertCancellationFields(t, akcijaObj, false, "", nil)
 }
 
-func TestExecuteUpdateAkcijaTx_PreservesCancellationFields(t *testing.T) {
+func TestExecuteUpdateAkcijaTx_CancelledBlocked(t *testing.T) {
 	db := testCancellationReadDB(t)
 	at := time.Date(2026, 7, 18, 11, 0, 0, 0, time.UTC)
 	akcija := models.Akcija{
@@ -259,34 +257,28 @@ func TestExecuteUpdateAkcijaTx_PreservesCancellationFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Simulate a buggy caller trying to clear/change cancellation via update payload.
 	mutated := akcija
 	mutated.Naziv = "Renamed"
 	mutated.IsCancelled = false
 	mutated.CancelledAt = nil
 	mutated.CancellationReason = "hacked"
 
-	if err := db.Transaction(func(tx *gorm.DB) error {
+	err := db.Transaction(func(tx *gorm.DB) error {
 		return executeUpdateAkcijaTx(tx, mutated, ActionNestedSyncInput{})
-	}); err != nil {
-		t.Fatal(err)
+	})
+	if !errors.Is(err, helpers.ErrAkcijaCancelled) {
+		t.Fatalf("expected ErrAkcijaCancelled, got %v", err)
 	}
 
 	var saved models.Akcija
 	if err := db.First(&saved, akcija.ID).Error; err != nil {
 		t.Fatal(err)
 	}
-	if saved.Naziv != "Renamed" {
-		t.Fatalf("naziv=%q want Renamed", saved.Naziv)
+	if saved.Naziv != "Keep cancel" {
+		t.Fatalf("naziv must stay unchanged, got %q", saved.Naziv)
 	}
-	if !saved.IsCancelled {
-		t.Fatal("IsCancelled must stay true")
-	}
-	if saved.CancelledAt == nil || saved.CancelledAt.Unix() != at.Unix() {
-		t.Fatalf("CancelledAt changed: %v", saved.CancelledAt)
-	}
-	if saved.CancellationReason != "Original reason" {
-		t.Fatalf("CancellationReason=%q", saved.CancellationReason)
+	if !saved.IsCancelled || saved.CancellationReason != "Original reason" {
+		t.Fatalf("cancellation fields must stay: %+v", saved)
 	}
 }
 
@@ -347,13 +339,17 @@ func TestUpdateAkcija_FormCancellationFieldsIgnored(t *testing.T) {
 
 	UpdateAkcija(c)
 
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
 	var saved models.Akcija
 	if err := db.First(&saved, akcija.ID).Error; err != nil {
 		t.Fatal(err)
 	}
 	if !saved.IsCancelled || saved.CancellationReason != "Keep me" {
-		t.Fatalf("form must not change cancellation: cancelled=%v reason=%q status=%d body=%s",
-			saved.IsCancelled, saved.CancellationReason, rec.Code, rec.Body.String())
+		t.Fatalf("form must not change cancellation: cancelled=%v reason=%q",
+			saved.IsCancelled, saved.CancellationReason)
 	}
 	if saved.CancelledAt == nil || saved.CancelledAt.Unix() != at.Unix() {
 		t.Fatalf("CancelledAt must stay: %v", saved.CancelledAt)

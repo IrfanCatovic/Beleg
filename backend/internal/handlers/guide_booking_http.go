@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/services/guidebooking"
 
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,14 @@ func writeFerrataAcceptError(c *gin.Context, err error, conflict *guidebooking.A
 	}
 	if errors.Is(err, guidebooking.ErrActionNotOwned) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Akciju može povezati samo vodič koji je kreirao akciju."})
+		return true
+	}
+	if errors.Is(err, helpers.ErrAkcijaCancelled) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return true
+	}
+	if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return true
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,6 +91,14 @@ func writePeakAcceptError(c *gin.Context, err error, conflict *guidebooking.Acce
 	}
 	if errors.Is(err, guidebooking.ErrActionNotOwned) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Akciju može povezati samo vodič koji je kreirao akciju."})
+		return true
+	}
+	if errors.Is(err, helpers.ErrAkcijaCancelled) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return true
+	}
+	if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return true
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {

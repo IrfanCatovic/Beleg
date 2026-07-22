@@ -44,6 +44,9 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 		if err != nil {
 			return err
 		}
+		if locked.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
 		if locked.IsCompleted {
 			return helpers.ErrAkcijaAlreadyComplete
 		}

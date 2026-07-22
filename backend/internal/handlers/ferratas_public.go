@@ -34,8 +34,8 @@ func ListFerratas(c *gin.Context) {
 	for i := range rows {
 		var cnt int64
 		db.Model(&models.Akcija{}).
-			Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-				rows[i].ID, "via_ferrata", true, false).
+			Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND is_cancelled = ? AND start_at IS NOT NULL AND start_at > NOW()",
+				rows[i].ID, "via_ferrata", true, false, false).
 			Count(&cnt)
 		out = append(out, ferrataToMap(&rows[i], cnt))
 	}
@@ -57,8 +57,8 @@ func GetFerrataBySlug(c *gin.Context) {
 	}
 	var cnt int64
 	db.Model(&models.Akcija{}).
-		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-			f.ID, "via_ferrata", true, false).
+		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND is_cancelled = ? AND start_at IS NOT NULL AND start_at > NOW()",
+			f.ID, "via_ferrata", true, false, false).
 		Count(&cnt)
 	c.JSON(http.StatusOK, gin.H{"ferrata": ferrataToMap(&f, cnt)})
 }
@@ -114,8 +114,8 @@ func GetFerrataUpcomingActions(c *gin.Context) {
 
 	var akcije []models.Akcija
 	if err := db.Preload("Klub").
-		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND start_at IS NOT NULL AND start_at > NOW()",
-			id, "via_ferrata", true, false).
+		Where("ferrata_id = ? AND tip_akcije = ? AND javna = ? AND is_completed = ? AND is_cancelled = ? AND start_at IS NOT NULL AND start_at > NOW()",
+			id, "via_ferrata", true, false, false).
 		Order("start_at ASC").
 		Find(&akcije).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju akcija"})

@@ -81,6 +81,10 @@ func CreateOrRegenerateActionInviteLink(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invite link je predviđen za klupske akcije"})
 		return
 	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da menjate invite link za ovu akciju"})
 		return

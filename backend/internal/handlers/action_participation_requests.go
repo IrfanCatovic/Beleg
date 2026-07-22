@@ -173,6 +173,10 @@ func SearchEligibleExternalUsers(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da pretražuje korisnike"})
 		return
 	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
+		return
+	}
 	if !akcija.IsCompleted {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Spoljni korisnici mogu se dodavati tek kada je akcija završena"})
 		return
@@ -273,6 +277,10 @@ func SearchEligibleClubMembers(c *gin.Context) {
 	}
 	if !helpers.CanManageAkcija(c, db, akcija.KlubID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da pretražuje članove"})
+		return
+	}
+	if akcija.IsCancelled {
+		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
 		return
 	}
 	if !akcija.IsCompleted {
@@ -460,6 +468,9 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		if !helpers.CanManageAkcija(c, tx, akcija.KlubID) {
 			return errActionParticipationForbidden
 		}
+		if akcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
 		if !akcija.IsCompleted {
 			return errActionParticipationNotCompleted
 		}
@@ -517,6 +528,8 @@ func CreateActionParticipationRequest(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Zahtev za ovog korisnika je već poslat i čeka potvrdu"})
 		case errors.Is(err, errActionParticipationSelfRequest):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete slati zahtev sami sebi"})
+		case errors.Is(err, helpers.ErrAkcijaCancelled):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		case errors.Is(err, errActionParticipationNotCompleted):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Zahtev se može slati samo za završenu akciju"})
 		case errors.Is(err, errActionParticipationForbidden):
@@ -647,6 +660,9 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 		if req.Status != models.ActionParticipationRequestPending {
 			return errActionParticipationAlreadyHandled
 		}
+		if req.Akcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
 		if !req.Akcija.IsCompleted {
 			return errActionParticipationNotCompleted
 		}
@@ -715,6 +731,8 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da odgovorite na ovaj zahtev"})
 		case errors.Is(err, errActionParticipationAlreadyHandled):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Ovaj zahtev je već obrađen"})
+		case errors.Is(err, helpers.ErrAkcijaCancelled):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		case errors.Is(err, errActionParticipationNotCompleted):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija više nije u stanju za potvrdu učešća"})
 		default:

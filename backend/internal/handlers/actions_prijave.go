@@ -95,6 +95,10 @@ func PrijaviNaAkciju(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		if strings.Contains(errMsg, "invite") || strings.Contains(errMsg, "član") {
 			c.JSON(http.StatusForbidden, gin.H{"error": errMsg})
 			return
@@ -392,7 +396,11 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
-	if akcija.IsCompleted {
+	if err := helpers.ValidateAkcijaActive(&akcija); err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je već završena"})
 		return
 	}
@@ -443,8 +451,8 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		if err != nil {
 			return err
 		}
-		if lockedAkcija.IsCompleted {
-			return helpers.ErrAkcijaAlreadyComplete
+		if err := helpers.ValidateAkcijaActive(lockedAkcija); err != nil {
+			return err
 		}
 		akcija = *lockedAkcija
 
@@ -504,6 +512,10 @@ func UpdateMojaPrijavaIzbori(c *gin.Context) {
 		return tx.Save(oldIzbor).Error
 	}); err != nil {
 		errMsg := err.Error()
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

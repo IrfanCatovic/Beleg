@@ -27,6 +27,7 @@ var (
 	ErrMaxLjudiBelowActive              = errors.New("Kapacitet ne može biti manji od trenutnog broja prijavljenih učesnika.")
 	ErrPendingSignupExists              = errors.New("Već imate zahtev za prijavu na čekanju")
 	ErrAkcijaAlreadyComplete            = errors.New("Akcija je već završena")
+	ErrAkcijaCancelled                  = errors.New("Akcija je otkazana i ova radnja više nije dozvoljena.")
 	ErrKorisnikNotEligible              = errors.New("Korisnik nije dostupan za prijavu.")
 	ErrAkcijaHasUnresolvedParticipants  = errors.New("Akcija se ne može završiti dok svi prijavljeni učesnici nemaju konačan status.")
 )
@@ -71,11 +72,19 @@ func belgradeLocation() *time.Location {
 	return loc
 }
 
-// ValidateAkcijaActive proverava lifecycle stanje akcije (nije završena).
-// Otkazani status na akciji trenutno ne postoji u modelu — kada se uvede, dodati ovdje.
+// IsAkcijaTerminal vraća true ako je akcija završena ili otkazana (nema active mutacija).
+func IsAkcijaTerminal(akcija *models.Akcija) bool {
+	return akcija != nil && (akcija.IsCompleted || akcija.IsCancelled)
+}
+
+// ValidateAkcijaActive proverava da akcija nije u terminalnom lifecycle stanju.
+// Prioritet: cancelled pa completed (kontradiktoran red i dalje blokira active mutacije).
 func ValidateAkcijaActive(akcija *models.Akcija) error {
 	if akcija == nil {
 		return ErrSignupClosed
+	}
+	if akcija.IsCancelled {
+		return ErrAkcijaCancelled
 	}
 	if akcija.IsCompleted {
 		return ErrAkcijaAlreadyComplete

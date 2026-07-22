@@ -182,7 +182,7 @@ func GetPublicKorisnikVodio(c *gin.Context) {
 
 	var vodeneAkcije []models.Akcija
 	var allLed []models.Akcija
-	if err := db.Where("vodic_id = ? AND is_completed = ?", korisnik.ID, true).
+	if err := db.Where("vodic_id = ? AND is_completed = ? AND is_cancelled = ?", korisnik.ID, true, false).
 		Order("datum DESC").
 		Find(&allLed).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju vođenih akcija"})

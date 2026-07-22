@@ -245,8 +245,8 @@ func GetAkcije(c *gin.Context) {
 	}
 	if clubID == 0 {
 		var aktivne []models.Akcija
-		where := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
-		if err := gormDb.Preload("Klub").Where(where, false, true, true).Find(&aktivne).Error; err != nil {
+		where := "is_completed = ? AND is_cancelled = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
+		if err := gormDb.Preload("Klub").Where(where, false, false, true, true).Find(&aktivne).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 			return
 		}
@@ -265,8 +265,8 @@ func GetAkcije(c *gin.Context) {
 
 	if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
 		var aktivne []models.Akcija
-		where := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
-		if err := gormDb.Preload("Klub").Where(where, false, true, true).Find(&aktivne).Error; err != nil {
+		where := "is_completed = ? AND is_cancelled = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND javna = ?"
+		if err := gormDb.Preload("Klub").Where(where, false, false, true, true).Find(&aktivne).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 			return
 		}
@@ -285,13 +285,13 @@ func GetAkcije(c *gin.Context) {
 
 	var aktivne []models.Akcija
 	var zavrsene []models.Akcija
-	aktivneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND ((klub_id = ? AND " + sqlClubOrganizedOnly + ") OR javna = ?)"
-	if err := gormDb.Preload("Klub").Where(aktivneWhere, false, true, clubID, true).Find(&aktivne).Error; err != nil {
+	aktivneWhere := "is_completed = ? AND is_cancelled = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND ((klub_id = ? AND " + sqlClubOrganizedOnly + ") OR javna = ?)"
+	if err := gormDb.Preload("Klub").Where(aktivneWhere, false, false, true, clubID, true).Find(&aktivne).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju aktivnih akcija"})
 		return
 	}
-	zavrseneWhere := "is_completed = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND klub_id = ? AND " + sqlClubOrganizedOnly
-	if err := gormDb.Preload("Klub").Where(zavrseneWhere, true, true, clubID).Find(&zavrsene).Error; err != nil {
+	zavrseneWhere := "is_completed = ? AND is_cancelled = ? AND (u_istoriji_kluba IS NULL OR u_istoriji_kluba = ?) AND klub_id = ? AND " + sqlClubOrganizedOnly
+	if err := gormDb.Preload("Klub").Where(zavrseneWhere, true, false, true, clubID).Find(&zavrsene).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju završenih akcija"})
 		return
 	}
@@ -334,8 +334,8 @@ func appendGuideOwnedAkcije(db *gorm.DB, c *gin.Context, resp gin.H) {
 	}
 	guideBase := "organizator_tip = ? AND vodic_id = ?"
 	var vodeneAktivne, vodeneZavrsene []models.Akcija
-	_ = db.Where(guideBase+" AND is_completed = ?", "vodic", viewer.ID, false).Order("datum DESC").Find(&vodeneAktivne).Error
-	_ = db.Where(guideBase+" AND is_completed = ?", "vodic", viewer.ID, true).Order("datum DESC").Find(&vodeneZavrsene).Error
+	_ = db.Where(guideBase+" AND is_completed = ? AND is_cancelled = ?", "vodic", viewer.ID, false, false).Order("datum DESC").Find(&vodeneAktivne).Error
+	_ = db.Where(guideBase+" AND is_completed = ? AND is_cancelled = ?", "vodic", viewer.ID, true, false).Order("datum DESC").Find(&vodeneZavrsene).Error
 	resp["vodeneAktivne"] = vodeneAktivne
 	resp["vodeneZavrsene"] = vodeneZavrsene
 }
@@ -360,7 +360,7 @@ func appendMyPrivateAkcije(db *gorm.DB, c *gin.Context, resp gin.H) {
 		Pluck("akcija_id", &prijavaAkcijaIDs)
 
 	loadPrivate := func(completed bool) []models.Akcija {
-		q := db.Where("javna = ? AND is_completed = ?", false, completed)
+		q := db.Where("javna = ? AND is_completed = ? AND is_cancelled = ?", false, completed, false)
 		if len(prijavaAkcijaIDs) > 0 {
 			q = q.Where("vodic_id = ? OR id IN ?", viewer.ID, prijavaAkcijaIDs)
 		} else {
@@ -682,6 +682,10 @@ func CreateAkcija(c *gin.Context) {
 			c.JSON(500, gin.H{"error": "Greška pri čuvanju akcije"})
 			return
 		}
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, helpers.ErrAkcijaCapacityFull) || errors.Is(err, helpers.ErrKorisnikNotEligible) || errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -986,6 +990,10 @@ func UpdateAkcija(c *gin.Context) {
 	}); err != nil {
 		if errors.Is(err, ErrNestedOptionInUse) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, helpers.ErrCompletedActionFinancialsImmutable) {
