@@ -717,18 +717,15 @@ func TestRespondSignup_RejectNotifiesAfterCommit(t *testing.T) {
 	}
 }
 
-// CancelMojActionSignupRequest još nema SELECT FOR UPDATE u istom Akcija→SignupRequest
-// redoslijedu. Ovaj test dokumentuje postojeći rizik cancel ↔ accept/reject:
-// cancel može pročitati pending bez row locka dok respond drži lockove, ili obrnuto
-// na Postgresu. Ne tretira cijeli signup lifecycle kao potpuno race-safe.
-func TestRespondSignup_CancelRaceRiskDocumented(t *testing.T) {
+// Cancel i accept/reject dijele Akcija → SignupRequest lock order; cancel-then-accept
+// mora dati conflict bez prijave.
+func TestRespondSignup_CancelThenAccept_Conflict(t *testing.T) {
 	db := testRespondSignupDB(t)
 	vodic := seedRespondApprover(t, db, "vod_cancel")
 	requester := seedRespondRequester(t, db, "req_cancel")
 	akcija := seedRespondAkcija(t, db, vodic)
 	req := seedPendingSignup(t, db, akcija.ID, requester.ID, "[]", "[]", "[]")
 
-	// Sequential: cancel pobjedi ako stigne prije respond-a.
 	if code := callCancelSignup(t, db, akcija.ID, requester.Username); code != http.StatusOK {
 		t.Fatalf("cancel %d", code)
 	}
@@ -738,6 +735,9 @@ func TestRespondSignup_CancelRaceRiskDocumented(t *testing.T) {
 	}
 	if reloadSignupRequest(t, db, req.ID).Status != models.ActionSignupRequestCancelled {
 		t.Fatal("cancelled")
+	}
+	if countPrijaveForUser(t, db, akcija.ID, requester.ID) != 0 {
+		t.Fatal("no prijava")
 	}
 }
 

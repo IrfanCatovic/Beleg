@@ -564,6 +564,9 @@ func RespondToActionSignupRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": msg})
 }
 
+// errCancelSignupNotActive: nema aktivnog pending zahteva (postojeća API semantika, nije idempotentno).
+var errCancelSignupNotActive = errors.New("Nemate aktivan zahtev za prijavu na ovu akciju")
+
 func CancelMojActionSignupRequest(c *gin.Context) {
 	db := DB(c)
 	akcijaID, err := strconv.Atoi(c.Param("id"))
@@ -581,19 +584,62 @@ func CancelMojActionSignupRequest(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
-	var req models.ActionSignupRequest
-	if err := db.Where("akcija_id = ? AND requester_id = ? AND status = ?", akcijaID, korisnik.ID, models.ActionSignupRequestPending).
-		First(&req).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nemate aktivan zahtev za prijavu na ovu akciju"})
+
+	// Preliminary read: id + akcija_id radi lock ordera — nije autoritativan.
+	var lookup struct {
+		ID       uint
+		AkcijaID uint
+	}
+	if err := db.Model(&models.ActionSignupRequest{}).
+		Select("id", "akcija_id").
+		Where("akcija_id = ? AND requester_id = ? AND status = ?", akcijaID, korisnik.ID, models.ActionSignupRequestPending).
+		Take(&lookup).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errCancelSignupNotActive.Error()})
 		return
 	}
-	now := time.Now()
-	req.Status = models.ActionSignupRequestCancelled
-	req.RespondedAt = &now
-	if err := db.Save(&req).Error; err != nil {
+	if lookup.ID == 0 || lookup.AkcijaID != uint(akcijaID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errCancelSignupNotActive.Error()})
+		return
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, lookup.AkcijaID)
+		if err != nil {
+			return err
+		}
+		req, err := helpers.LockActionSignupRequestForUpdate(tx, lookup.ID)
+		if err != nil {
+			return err
+		}
+		if req.AkcijaID != lockedAkcija.ID || req.AkcijaID != uint(akcijaID) {
+			return errCancelSignupNotActive
+		}
+		if req.RequesterID != korisnik.ID {
+			return errCancelSignupNotActive
+		}
+		if req.Status != models.ActionSignupRequestPending {
+			return errCancelSignupNotActive
+		}
+
+		now := time.Now()
+		req.Status = models.ActionSignupRequestCancelled
+		req.RespondedAt = &now
+		// ReviewedByID ostaje kako je bilo (za pending tipično nil); ne postavlja se reviewer.
+		return tx.Save(req).Error
+	})
+	if err != nil {
+		if errors.Is(err, errCancelSignupNotActive) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija ili zahtev nije pronađen"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju zahteva"})
 		return
 	}
+	// Cancel ne šalje notifikaciju (postojeća semantika).
 	c.JSON(http.StatusOK, gin.H{"message": "Zahtev za prijavu je otkazan"})
 }
 
