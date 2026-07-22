@@ -14,7 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type actionSignupRequestDTO struct {
@@ -227,6 +226,16 @@ func createPrijavaFromChoices(tx *gorm.DB, akcijaID uint, korisnik models.Korisn
 	if err != nil {
 		return models.Prijava{}, err
 	}
+	return createPrijavaFromChoicesWithLockedAkcija(tx, locked, korisnik, choices)
+}
+
+// createPrijavaFromChoicesWithLockedAkcija koristi već zaključanu akciju (Akcija → … redoslijed).
+// Ne zaključava ponovo akciju i ne otvara novu transakciju.
+func createPrijavaFromChoicesWithLockedAkcija(tx *gorm.DB, locked *models.Akcija, korisnik models.Korisnik, choices prijavaChoicesPayload) (models.Prijava, error) {
+	if locked == nil {
+		return models.Prijava{}, gorm.ErrRecordNotFound
+	}
+	akcijaID := locked.ID
 
 	if err := helpers.ValidateAkcijaSignupOpen(locked, time.Now()); err != nil {
 		return models.Prijava{}, err
@@ -268,7 +277,7 @@ func createPrijavaFromChoices(tx *gorm.DB, akcijaID uint, korisnik models.Korisn
 	}
 
 	var existing models.Prijava
-	err = tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).First(&existing).Error
+	err := tx.Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).First(&existing).Error
 	if err == nil {
 		if existing.Status == "otkazano" {
 			return helpers.ReactivateCancelledPrijavaFromChoicesTx(tx, existing.ID, izboriPayload)
@@ -390,6 +399,9 @@ func GetActionSignupRequestByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"request": buildActionSignupRequestDTO(db, *req, true)})
 }
 
+var errSignupRequestAlreadyProcessed = errors.New("Zahtev je već obrađen")
+var errSignupRespondForbidden = errors.New("signup respond forbidden")
+
 func RespondToActionSignupRequest(c *gin.Context) {
 	db := DB(c)
 	akcijaID, err := strconv.Atoi(c.Param("id"))
@@ -420,36 +432,73 @@ func RespondToActionSignupRequest(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
-	var akcija models.Akcija
-	if err := db.First(&akcija, akcijaID).Error; err != nil {
+
+	// Preliminary read: samo akcija_id radi prvog action locka — nije autoritativan.
+	var lookup struct {
+		AkcijaID uint
+	}
+	if err := db.Model(&models.ActionSignupRequest{}).
+		Select("akcija_id").
+		Where("id = ?", requestID).
+		Take(&lookup).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju zahteva"})
+		return
+	}
+	if lookup.AkcijaID == 0 || lookup.AkcijaID != uint(akcijaID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen"})
+		return
+	}
+
+	// Rani authorization (optimization); konačna odluka je nakon lockova.
+	var earlyAkcija models.Akcija
+	if err := db.First(&earlyAkcija, lookup.AkcijaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
-	if !canApproveSignupRequest(c, db, &akcija) {
+	if !canApproveSignupRequest(c, db, &earlyAkcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate dozvolu da odgovorite na zahtev"})
 		return
 	}
+
 	var respondedReq *models.ActionSignupRequest
 	err = db.Transaction(func(tx *gorm.DB) error {
-		var req models.ActionSignupRequest
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Preload("Requester").
-			Where("id = ? AND akcija_id = ?", requestID, akcijaID).
-			First(&req).Error; err != nil {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, lookup.AkcijaID)
+		if err != nil {
 			return err
 		}
-		if req.Status != models.ActionSignupRequestPending {
-			return errors.New("Zahtev je već obrađen")
+		req, err := helpers.LockActionSignupRequestForUpdate(tx, uint(requestID))
+		if err != nil {
+			return err
 		}
+		if req.AkcijaID != lockedAkcija.ID || req.AkcijaID != uint(akcijaID) {
+			return gorm.ErrRecordNotFound
+		}
+		if req.Status != models.ActionSignupRequestPending {
+			return errSignupRequestAlreadyProcessed
+		}
+		if !canApproveSignupRequest(c, tx, lockedAkcija) {
+			return errSignupRespondForbidden
+		}
+
 		now := time.Now()
 		reviewerID := reviewer.ID
 		if action == "reject" {
 			req.Status = models.ActionSignupRequestRejected
 			req.ReviewedByID = &reviewerID
 			req.RespondedAt = &now
-			return tx.Save(&req).Error
+			if err := tx.Save(req).Error; err != nil {
+				return err
+			}
+			req.Akcija = *lockedAkcija
+			respondedReq = req
+			return nil
 		}
-		smestaj, prevoz, rent := parseSignupChoices(&req)
+
+		smestaj, prevoz, rent := parseSignupChoices(req)
 		choices := prijavaChoicesPayload{
 			SelectedSmestajIDs: smestaj,
 			SelectedPrevozIDs:  prevoz,
@@ -459,17 +508,17 @@ func RespondToActionSignupRequest(c *gin.Context) {
 		if err := tx.First(&requester, req.RequesterID).Error; err != nil {
 			return err
 		}
-		if _, err := createPrijavaFromChoices(tx, uint(akcijaID), requester, choices); err != nil {
+		if _, err := createPrijavaFromChoicesWithLockedAkcija(tx, lockedAkcija, requester, choices); err != nil {
 			return err
 		}
 		req.Status = models.ActionSignupRequestAccepted
 		req.ReviewedByID = &reviewerID
 		req.RespondedAt = &now
-		if err := tx.Save(&req).Error; err != nil {
+		if err := tx.Save(req).Error; err != nil {
 			return err
 		}
-		req.Akcija = akcija
-		respondedReq = &req
+		req.Akcija = *lockedAkcija
+		respondedReq = req
 		return nil
 	})
 	if err != nil {
@@ -489,8 +538,12 @@ func RespondToActionSignupRequest(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if errMsg == "Zahtev je već obrađen" {
-			c.JSON(http.StatusConflict, gin.H{"error": errMsg})
+		if errors.Is(err, errSignupRequestAlreadyProcessed) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, errSignupRespondForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Nemate dozvolu da odgovorite na zahtev"})
 			return
 		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -500,6 +553,7 @@ func RespondToActionSignupRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri obradi zahteva", "details": errMsg})
 		return
 	}
+	// Notifikacije tek nakon uspješnog commita (accepted i rejected).
 	if respondedReq != nil {
 		notifySignupRequestResponded(db, *respondedReq, action == "accept")
 	}
