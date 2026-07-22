@@ -530,7 +530,7 @@ func TestCancelPendingSignupHelper_RowsAffected(t *testing.T) {
 	seedFinishSignup(t, db, akcija.ID, actor.ID, models.ActionSignupRequestAccepted)
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		n, err := helpers.CancelPendingSignupRequestsForFinishedActionTx(tx, akcija.ID, time.Now())
+		n, err := helpers.CancelPendingSignupRequestsForActionTx(tx, akcija.ID, time.Now())
 		if err != nil {
 			return err
 		}

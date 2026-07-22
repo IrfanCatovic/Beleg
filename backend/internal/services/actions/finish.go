@@ -54,7 +54,7 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 
 		finishedAt := time.Now()
 
-		if _, err := helpers.CancelPendingSignupRequestsForFinishedActionTx(tx, akcija.ID, finishedAt); err != nil {
+		if _, err := helpers.CancelPendingSignupRequestsForActionTx(tx, akcija.ID, finishedAt); err != nil {
 			return err
 		}
 		if _, err := helpers.RevokeActiveActionInviteLinksTx(tx, akcija.ID, finishedAt); err != nil {

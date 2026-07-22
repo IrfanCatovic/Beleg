@@ -400,6 +400,82 @@ func ZavrsiAkciju(c *gin.Context) {
 	})
 }
 
+func OtkaziAkciju(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
+		return
+	}
+
+	db := DB(c)
+	if _, ok := AuthUser(c); !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	var req actions.CancelActionRequest
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći JSON (očekuje se npr. {\"reason\": \"...\"})"})
+		return
+	}
+
+	trimmed, err := actions.NormalizeCancelReason(req.Reason)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Rani auth check (optimization); konačna odluka je nad zaključanom akcijom u service TX.
+	var early models.Akcija
+	if err := db.First(&early, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju akcije"})
+		return
+	}
+	if !helpers.CanManageAkcijaEx(c, db, &early) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da otkažete ovu akciju"})
+		return
+	}
+
+	cancelled, svcErr := actions.CancelAction(db, uint(id), trimmed, func(tx *gorm.DB, locked *models.Akcija) error {
+		if !helpers.CanManageAkcijaEx(c, tx, locked) {
+			return actions.ErrCancelUnauthorized
+		}
+		return nil
+	})
+	if svcErr != nil {
+		if errors.Is(svcErr, actions.ErrCancelReasonInvalid) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": svcErr.Error()})
+			return
+		}
+		if errors.Is(svcErr, actions.ErrCancelUnauthorized) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da otkažete ovu akciju"})
+			return
+		}
+		if errors.Is(svcErr, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		if errors.Is(svcErr, helpers.ErrAkcijaAlreadyCancelled) ||
+			errors.Is(svcErr, helpers.ErrAkcijaAlreadyComplete) ||
+			errors.Is(svcErr, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": svcErr.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju akcije"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Akcija je uspešno otkazana.",
+		"akcija":  cancelled,
+	})
+}
+
 func DeleteAkcija(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)

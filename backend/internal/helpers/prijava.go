@@ -28,6 +28,7 @@ var (
 	ErrPendingSignupExists             = errors.New("Već imate zahtev za prijavu na čekanju")
 	ErrAkcijaAlreadyComplete           = errors.New("Akcija je već završena")
 	ErrAkcijaCancelled                 = errors.New("Akcija je otkazana i ova radnja više nije dozvoljena.")
+	ErrAkcijaAlreadyCancelled          = errors.New("Akcija je već otkazana.")
 	ErrKorisnikNotEligible             = errors.New("Korisnik nije dostupan za prijavu.")
 	ErrAkcijaHasUnresolvedParticipants = errors.New("Akcija se ne može završiti dok svi prijavljeni učesnici nemaju konačan status.")
 )
@@ -247,12 +248,12 @@ func HasPendingSignupRequest(tx *gorm.DB, akcijaID, requesterID uint) (bool, err
 	return n > 0, err
 }
 
-// CancelPendingSignupRequestsForFinishedActionTx bulk-zatvara pending signup requestove
-// kada se akcija završava. Ne otvara transakciju i ne šalje notifikacije.
+// CancelPendingSignupRequestsForActionTx bulk-zatvara pending signup requestove
+// za lifecycle događaje akcije (finish ili cancel). Ne otvara transakciju i ne šalje notifikacije.
 //
 // Semantičko ograničenje: status cancelled + ReviewedByID=nil + RespondedAt!=nil
-// ne razlikuje korisnički cancel od sistemskog finish cancel-a (nema reason/source polja).
-func CancelPendingSignupRequestsForFinishedActionTx(
+// ne razlikuje korisnički cancel od sistemskog finish/action cancel-a (nema reason/source polja).
+func CancelPendingSignupRequestsForActionTx(
 	tx *gorm.DB,
 	akcijaID uint,
 	respondedAt time.Time,
