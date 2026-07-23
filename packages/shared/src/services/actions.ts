@@ -358,3 +358,23 @@ export async function zavrsiAkciju(
   const res = await client.post<ZavrsiAkcijaResponse>(`/api/akcije/${akcijaId}/zavrsi`, { rashodNaAkciji })
   return res.data
 }
+
+export interface CancelActionRequest {
+  reason: string
+}
+
+export interface CancelActionResponse {
+  message: string
+  akcija: AkcijaDetail
+}
+
+export async function cancelAction(
+  client: AxiosInstance,
+  actionId: number | string,
+  request: CancelActionRequest,
+): Promise<CancelActionResponse> {
+  const res = await client.post<CancelActionResponse>(`/api/akcije/${actionId}/otkazi`, {
+    reason: request.reason,
+  })
+  return res.data
+}

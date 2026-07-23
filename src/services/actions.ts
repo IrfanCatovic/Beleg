@@ -5,6 +5,7 @@ import {
   addClubMembersCompleted as addClubMembersCompletedShared,
   cancelParticipationRequest as cancelParticipationRequestShared,
   cancelSignupRequest as cancelSignupRequestShared,
+  cancelAction as cancelActionShared,
   createAkcija as createAkcijaShared,
   createParticipationRequest as createParticipationRequestShared,
   deleteAkcija as deleteAkcijaShared,
@@ -37,6 +38,8 @@ import {
   type ActionParticipationRequest as SharedActionParticipationRequest,
   type ExternalUserCandidate as SharedExternalUserCandidate,
   type ZavrsiAkcijaResponse as SharedZavrsiAkcijaResponse,
+  type CancelActionRequest as SharedCancelActionRequest,
+  type CancelActionResponse as SharedCancelActionResponse,
 } from '@beleg/shared/services'
 
 export interface AkcijeListResponse {
@@ -96,6 +99,8 @@ export interface ActionSignupRequest {
 export type ActionParticipationRequest = SharedActionParticipationRequest
 export type ExternalUserCandidate = SharedExternalUserCandidate
 export type ZavrsiAkcijaResponse = SharedZavrsiAkcijaResponse
+export type CancelActionRequest = SharedCancelActionRequest
+export type CancelActionResponse = SharedCancelActionResponse
 
 export interface PrijaviNaAkcijuResponse {
   message?: string
@@ -227,6 +232,10 @@ export async function fetchEligibleExternalUsers(
 
 export async function zavrsiAkciju(akcijaId: number | string, rashodNaAkciji: number) {
   return zavrsiAkcijuShared(api, akcijaId, rashodNaAkciji)
+}
+
+export async function cancelAction(akcijaId: number | string, request: CancelActionRequest) {
+  return cancelActionShared(api, akcijaId, request)
 }
 
 export async function regenerateAkcijaInviteLink(akcijaId: number | string) {
