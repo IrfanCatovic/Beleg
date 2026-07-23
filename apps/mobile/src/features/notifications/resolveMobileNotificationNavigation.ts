@@ -85,3 +85,24 @@ export function shouldInvalidateActionQueriesForPush(data: Record<string, unknow
   if (!isActionCancelledNotificationType(parsed.type) && !parsed.isCancelled) return null
   return parsed.actionId
 }
+
+/** Stable key used to skip duplicate cold-start + response listener navigations. */
+export function buildMobileNotificationNavigationKey(
+  target: MobileNotificationNavTarget,
+  data?: Record<string, unknown> | null,
+): string | null {
+  if (target.screen === 'ActionDetail') {
+    return `action:${target.actionId}:${data?.obavestenjeId ?? ''}`
+  }
+  if (target.screen === 'NotificationDetail') {
+    return `notif:${target.obavestenjeId}`
+  }
+  return null
+}
+
+export function shouldSkipDuplicateNotificationNavigation(
+  previousKey: string | null,
+  nextKey: string | null,
+): boolean {
+  return nextKey != null && nextKey === previousKey
+}

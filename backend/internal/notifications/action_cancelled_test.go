@@ -123,3 +123,41 @@ func TestNotifyActionCancelled_Batch500(t *testing.T) {
 		t.Fatalf("count=%d", count)
 	}
 }
+
+func TestNotifyActionCancelled_InsertFailureNoPanic(t *testing.T) {
+	db := testNotifyDB(t)
+	u := models.Korisnik{Username: "ins_fail", Password: "x"}
+	if err := db.Create(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrator().DropTable(&models.Obavestenje{}); err != nil {
+		t.Fatal(err)
+	}
+	// Must not panic; insert failure is best-effort.
+	NotifyActionCancelled(db, &models.Akcija{
+		ID: 3, Naziv: "X", CancellationReason: "fail insert",
+	}, []uint{u.ID})
+}
+
+func TestNotifyActionCancelled_NoPushTokensKeepsInAppRows(t *testing.T) {
+	db := testNotifyDB(t)
+	u := models.Korisnik{Username: "no_push", Password: "x"}
+	if err := db.Create(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+	NotifyActionCancelled(db, &models.Akcija{
+		ID: 4, Naziv: "Bez pusha", CancellationReason: "Nema tokena",
+	}, []uint{u.ID})
+	var count int64
+	if err := db.Model(&models.Obavestenje{}).Where("user_id = ?", u.ID).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("in-app must remain after push no-op, count=%d", count)
+	}
+	var tokens int64
+	db.Model(&models.PushToken{}).Where("user_id = ?", u.ID).Count(&tokens)
+	if tokens != 0 {
+		t.Fatal("test setup expects no tokens")
+	}
+}

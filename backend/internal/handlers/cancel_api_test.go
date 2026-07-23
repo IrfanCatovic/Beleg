@@ -582,3 +582,97 @@ func TestOtkaziAkciju_ParallelOnlyOneNotificationFanOut(t *testing.T) {
 		t.Fatalf("notif count=%d", count)
 	}
 }
+
+func TestOtkaziAkciju_NotifyInsertFailure_Still200AndCancelled(t *testing.T) {
+	db := testFinishHandlerDB(t)
+	owner := models.Korisnik{Username: "otk_insfail", Password: "x", Role: "vodic"}
+	if err := db.Create(&owner).Error; err != nil {
+		t.Fatal(err)
+	}
+	akcija := models.Akcija{
+		Naziv: "Insert fail", Datum: time.Now().Add(48 * time.Hour),
+		VodicID: owner.ID, AddedByID: owner.ID, OrganizatorTip: "vodic",
+	}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	member := models.Korisnik{Username: "otk_insfail_m", Password: "x", Role: "clan"}
+	if err := db.Create(&member).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Drop notifications table so post-commit NotifyActionCancelled insert fails.
+	if err := db.Migrator().DropTable(&models.Obavestenje{}); err != nil {
+		t.Fatal(err)
+	}
+
+	code, body := callOtkaziAkciju(t, db, akcija.ID, owner.Username, "vodic", map[string]string{
+		"reason": "Insert fail test",
+	})
+	if code != http.StatusOK {
+		t.Fatalf("status %d body=%v", code, body)
+	}
+	var reloaded models.Akcija
+	if err := db.First(&reloaded, akcija.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.IsCancelled {
+		t.Fatal("cancellation must remain after notify insert failure")
+	}
+	if reloaded.CancellationReason != "Insert fail test" {
+		t.Fatalf("reason=%q", reloaded.CancellationReason)
+	}
+}
+
+func TestOtkaziAkciju_Unauthorized_NoNotifications(t *testing.T) {
+	db := testFinishHandlerDB(t)
+	owner := models.Korisnik{Username: "otk_rb_own", Password: "x", Role: "vodic"}
+	if err := db.Create(&owner).Error; err != nil {
+		t.Fatal(err)
+	}
+	stranger := models.Korisnik{Username: "otk_rb_str", Password: "x", Role: "clan"}
+	if err := db.Create(&stranger).Error; err != nil {
+		t.Fatal(err)
+	}
+	akcija := models.Akcija{
+		Naziv: "Rollback notif", Datum: time.Now().Add(48 * time.Hour),
+		VodicID: owner.ID, AddedByID: owner.ID, OrganizatorTip: "vodic",
+	}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	member := models.Korisnik{Username: "otk_rb_m", Password: "x", Role: "clan"}
+	if err := db.Create(&member).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "nije uspeo",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	code, _ := callOtkaziAkciju(t, db, akcija.ID, stranger.Username, "clan", map[string]string{
+		"reason": "Nema prava xx",
+	})
+	if code != http.StatusForbidden {
+		t.Fatalf("status %d", code)
+	}
+	var count int64
+	if err := db.Model(&models.Obavestenje{}).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("rollback/unauthorized must not notify, count=%d", count)
+	}
+	var reloaded models.Akcija
+	if err := db.First(&reloaded, akcija.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.IsCancelled {
+		t.Fatal("must stay active")
+	}
+}

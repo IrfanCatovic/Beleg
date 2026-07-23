@@ -13,6 +13,8 @@ import { invalidateActionQueries } from '../features/actions/hooks/invalidateAct
 import {
   resolveMobileNotificationNavigation,
   shouldInvalidateActionQueriesForPush,
+  buildMobileNotificationNavigationKey,
+  shouldSkipDuplicateNotificationNavigation,
 } from '../features/notifications/resolveMobileNotificationNavigation'
 import { resolvePushAppKind } from '../utils/resolveAppKind'
 
@@ -56,13 +58,8 @@ function parseObavestenjeId(data: Record<string, unknown> | undefined): number |
 
 function handleNotificationNavigation(data: Record<string, unknown> | undefined, handledKey: string | null): string | null {
   const target = resolveMobileNotificationNavigation({ pushData: data })
-  const key =
-    target.screen === 'ActionDetail'
-      ? `action:${target.actionId}:${data?.obavestenjeId ?? ''}`
-      : target.screen === 'NotificationDetail'
-        ? `notif:${target.obavestenjeId}`
-        : null
-  if (key && key === handledKey) {
+  const key = buildMobileNotificationNavigationKey(target, data)
+  if (shouldSkipDuplicateNotificationNavigation(handledKey, key)) {
     return handledKey
   }
   if (target.screen === 'ActionDetail') {
@@ -77,7 +74,7 @@ function handleNotificationNavigation(data: Record<string, unknown> | undefined,
   const legacyId = parseObavestenjeId(data)
   if (legacyId != null) {
     const legacyKey = `notif:${legacyId}`
-    if (legacyKey === handledKey) return handledKey
+    if (shouldSkipDuplicateNotificationNavigation(handledKey, legacyKey)) return handledKey
     navigateToNotificationDetail(legacyId)
     return legacyKey
   }

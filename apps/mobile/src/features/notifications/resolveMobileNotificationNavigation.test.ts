@@ -3,6 +3,8 @@ import {
   parsePushNotificationData,
   resolveMobileNotificationNavigation,
   shouldInvalidateActionQueriesForPush,
+  buildMobileNotificationNavigationKey,
+  shouldSkipDuplicateNotificationNavigation,
 } from './resolveMobileNotificationNavigation'
 
 describe('resolveMobileNotificationNavigation', () => {
@@ -71,5 +73,20 @@ describe('resolveMobileNotificationNavigation', () => {
         pushData: { obavestenjeId: '4' },
       }),
     ).toEqual({ screen: 'NotificationDetail', obavestenjeId: 4 })
+  })
+
+  it('duplicate navigation guard skips same cold-start + response key', () => {
+    const data = {
+      obavestenjeId: '9',
+      type: 'action_cancelled',
+      akcijaId: '20',
+      isCancelled: 'true',
+    }
+    const target = resolveMobileNotificationNavigation({ pushData: data })
+    const key = buildMobileNotificationNavigationKey(target, data)
+    expect(key).toBe('action:20:9')
+    expect(shouldSkipDuplicateNotificationNavigation(null, key)).toBe(false)
+    expect(shouldSkipDuplicateNotificationNavigation(key, key)).toBe(true)
+    expect(shouldSkipDuplicateNotificationNavigation(key, 'action:21:9')).toBe(false)
   })
 })
