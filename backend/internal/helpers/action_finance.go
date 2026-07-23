@@ -16,6 +16,13 @@ import (
 // konfiguraciju akcije koja je već završena.
 var ErrCompletedActionFinancialsImmutable = errors.New("Finansijski podaci završene akcije ne mogu se mijenjati.")
 
+// ErrCompletedActionPaymentCannotBeUnset vraća se kada se pokuša poništiti
+// evidentiranu uplatu (Platio true→false) na završenoj akciji.
+var ErrCompletedActionPaymentCannotBeUnset = errors.New("Evidentirana uplata na završenoj akciji ne može biti poništena.")
+
+// ErrPrijavaAkcijaMismatch vraća se kada zaključana prijava ne pripada zaključanoj akciji.
+var ErrPrijavaAkcijaMismatch = errors.New("Prijava ne pripada ovoj akciji")
+
 // saldoMoneyEpsilon — ista tolerancija kao u FinishAction (finEps).
 const saldoMoneyEpsilon = 1e-6
 

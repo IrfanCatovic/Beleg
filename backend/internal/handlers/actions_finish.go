@@ -170,6 +170,7 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
 		return
 	}
+	// Authorization ostaje pre-TX (postojeći P2 dug iz audita — nije u scope-u ovog fixa).
 	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemaš pravo da menjaš status uplate"})
 		return
@@ -182,27 +183,9 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		return
 	}
 
-	// Nakon završetka akcije dozvoljavamo samo naknadnu potvrdu uplate (false -> true).
-	// Povrat sa true -> false bi razvezao finansijsku evidenciju koja je već importovana.
-	if akcija.IsCancelled {
-		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
-		return
-	}
-	if akcija.IsCompleted && prijava.Platio && !req.Platio {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Za završenu akciju nije dozvoljeno vraćanje uplate na neplaćeno"})
-		return
-	}
-
-	alreadyPaid := prijava.Platio
-	if alreadyPaid == req.Platio {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Status uplate je ažuriran",
-			"platio":  prijava.Platio,
-		})
-		return
-	}
-
+	var resultPlatio bool
 	if err := db.Transaction(func(tx *gorm.DB) error {
+		// Autoritativni redoslijed: Akcija → Prijava.
 		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, prijava.AkcijaID)
 		if err != nil {
 			return err
@@ -210,27 +193,40 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 		if lockedAkcija.IsCancelled {
 			return helpers.ErrAkcijaCancelled
 		}
-		akcija = *lockedAkcija
 
 		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, prijava.ID)
 		if err != nil {
 			return err
 		}
-		prijava = *lockedPrijava
-		if prijava.AkcijaID != akcija.ID {
-			return errors.New("Prijava ne pripada ovoj akciji")
+		if lockedPrijava.AkcijaID != lockedAkcija.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
 		}
-		if prijava.Platio == req.Platio {
+
+		currentPaid := lockedPrijava.Platio
+		requestedPaid := req.Platio
+		isUnpayTransition := currentPaid && !requestedPaid
+		if lockedAkcija.IsCompleted && isUnpayTransition {
+			return helpers.ErrCompletedActionPaymentCannotBeUnset
+		}
+
+		resultPlatio = currentPaid
+		if currentPaid == requestedPaid {
+			// Idempotentno — bez Save-a.
 			return nil
 		}
-		prijava.Platio = req.Platio
-		if err := tx.Save(&prijava).Error; err != nil {
+
+		lockedPrijava.Platio = requestedPaid
+		if err := tx.Save(lockedPrijava).Error; err != nil {
 			return err
 		}
+		resultPlatio = requestedPaid
+		akcija = *lockedAkcija
+		prijava = *lockedPrijava
 
 		// Ako je akcija završena i sad je član označen kao plaćen,
 		// odmah upisujemo pojedinačnu uplatu u finansije (ne za privatne ture vodiča).
-		if akcija.IsCompleted && !alreadyPaid && req.Platio && !akcijaSkipsClubFinances(akcija) {
+		// Koristi locked currentPaid (prije update-a), ne stale pre-read.
+		if lockedAkcija.IsCompleted && !currentPaid && requestedPaid && !akcijaSkipsClubFinances(*lockedAkcija) {
 			username, exists := c.Get("username")
 			if !exists {
 				return errors.New("Niste ulogovani")
@@ -241,7 +237,7 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 			}
 
 			var prijavaWithUser models.Prijava
-			if err := tx.Preload("Korisnik").First(&prijavaWithUser, prijava.ID).Error; err != nil {
+			if err := tx.Preload("Korisnik").First(&prijavaWithUser, lockedPrijava.ID).Error; err != nil {
 				return err
 			}
 
@@ -249,17 +245,17 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 			selPrevoz := []uint{}
 			selRent := []prijavaRentItem{}
 			var izbor models.PrijavaIzbori
-			if err := tx.Where("prijava_id = ?", prijava.ID).First(&izbor).Error; err == nil {
+			if err := tx.Where("prijava_id = ?", lockedPrijava.ID).First(&izbor).Error; err == nil {
 				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
 				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
 				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
 			}
 
-			saldo := computeSaldoForParticipant(tx, akcija, prijavaWithUser.Korisnik, selSmestaj, selPrevoz, selRent)
+			saldo := computeSaldoForParticipant(tx, *lockedAkcija, prijavaWithUser.Korisnik, selSmestaj, selPrevoz, selRent)
 
 			if saldo > 0 {
-				recorderID := resolveFinanceRecorderID(tx, akcija.KlubID, actor.ID)
-				opis := fmt.Sprintf("Prihod akcije: %s (dopuna prijava #%d)", strings.TrimSpace(akcija.Naziv), prijava.ID)
+				recorderID := resolveFinanceRecorderID(tx, lockedAkcija.KlubID, actor.ID)
+				opis := fmt.Sprintf("Prihod akcije: %s (dopuna prijava #%d)", strings.TrimSpace(lockedAkcija.Naziv), lockedPrijava.ID)
 
 				var existing int64
 				if err := tx.Model(&models.Transakcija{}).
@@ -286,13 +282,25 @@ func UpdatePrijavaPlatioStatus(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, helpers.ErrCompletedActionPaymentCannotBeUnset) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Prijava ili akcija nije pronađena"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri ažuriranju uplate"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Status uplate je ažuriran",
-		"platio":  req.Platio,
+		"platio":  resultPlatio,
 	})
 }
 
