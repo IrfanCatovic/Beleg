@@ -4,13 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"beleg-app/backend/internal/testdb"
+
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
 func testAkcijaCancellationDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(testdb.MemoryDSN(t, "models")), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}

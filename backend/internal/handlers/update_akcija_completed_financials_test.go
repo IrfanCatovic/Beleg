@@ -3,12 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"beleg-app/backend/internal/database"
+	"beleg-app/backend/internal/testdb"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
@@ -18,7 +18,7 @@ import (
 
 func testUpdateAkcijaDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "file:" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
+	dsn := testdb.MemoryDSN(t, "handlers")
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)

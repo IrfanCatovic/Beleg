@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/database"
+	"beleg-app/backend/internal/testdb"
 	"beleg-app/backend/internal/models"
 
 	"github.com/glebarez/sqlite"
@@ -17,7 +18,7 @@ import (
 
 func testAddMemberDB(t *testing.T, maxOpen int) *gorm.DB {
 	t.Helper()
-	dsn := "file:" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
+	dsn := testdb.MemoryDSN(t, "actions")
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)

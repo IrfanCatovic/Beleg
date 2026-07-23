@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"beleg-app/backend/internal/testdb"
 	"beleg-app/backend/internal/models"
 
 	"github.com/glebarez/sqlite"
@@ -14,7 +15,7 @@ import (
 
 func testNotifyDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "file:notify_" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
+	dsn := testdb.MemoryDSN(t, "notifications")
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)

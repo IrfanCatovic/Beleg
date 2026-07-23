@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/database"
+	"beleg-app/backend/internal/testdb"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/services/actions"
@@ -23,7 +24,7 @@ import (
 
 func testCancellationReadDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(testdb.MemoryDSN(t, "handlers")), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}

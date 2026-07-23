@@ -2,11 +2,13 @@ package guidebooking
 
 import (
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"beleg-app/backend/internal/database"
+	"beleg-app/backend/internal/testdb"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 
@@ -24,9 +26,13 @@ type ferrataAcceptFixture struct {
 	target    models.FerrataGuideBookingTarget
 }
 
+// testGuideBookingDB otvara izolovanu shared-memory SQLite bazu.
+// Ne koristi ":memory:" — svaka pool konekcija bi dobila praznu bazu
+// (no such table) čim concurrent TX otvori drugu konekciju.
 func testGuideBookingDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	dsn := testdb.MemoryDSN(t, "guidebooking")
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -37,12 +43,19 @@ func testGuideBookingDB(t *testing.T) *gorm.DB {
 		&models.Ferrata{},
 		&models.FerrataGuideBookingRequest{},
 		&models.FerrataGuideBookingTarget{},
+		&models.Obavestenje{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	if err := database.PostAutoMigrateCreatePrijavaIndexes(db); err != nil {
 		t.Fatalf("create prijava indexes: %v", err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Default 1: serial TX. Concurrent testovi podižu na 2+ (shared cache).
+	sqlDB.SetMaxOpenConns(1)
 	return db
 }
 
@@ -262,6 +275,12 @@ func TestAcceptFerrata_CompletedActionRollsBack(t *testing.T) {
 
 func TestAcceptFerrata_ConcurrentAcceptSingleOutcome(t *testing.T) {
 	f := setupFerrataAcceptFixture(t, nil)
+	sqlDB, err := f.db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Shared-memory DSN: dvije konekcije vide istu shemu (za razliku od ":memory:").
+	sqlDB.SetMaxOpenConns(2)
 
 	var wg sync.WaitGroup
 	errs := make([]error, 2)
@@ -279,6 +298,11 @@ func TestAcceptFerrata_ConcurrentAcceptSingleOutcome(t *testing.T) {
 	for _, err := range errs {
 		if err == nil {
 			successes++
+			continue
+		}
+		// "no such table" bi značilo da konekcija vidi praznu bazu — to nije validan concurrency ishod.
+		if strings.Contains(err.Error(), "no such table") {
+			t.Fatalf("connection isolation failure (empty :memory: pool?): %v (errs=%v)", err, errs)
 		}
 	}
 	if successes != 1 {
@@ -287,6 +311,61 @@ func TestAcceptFerrata_ConcurrentAcceptSingleOutcome(t *testing.T) {
 
 	if n := countPrijave(t, f.db, f.akcija.ID); n != 2 {
 		t.Fatalf("expected at most one accept creating 2 prijave, got %d prijave", n)
+	}
+}
+
+// TestGuideBookingDB_SharedMemoryVisibleAcrossConnections regresira flake:
+// sqlite.Open(":memory:") + MaxOpenConns>1 → druga konekcija dobija praznu bazu.
+func TestGuideBookingDB_SharedMemoryVisibleAcrossConnections(t *testing.T) {
+	db := testGuideBookingDB(t)
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB.SetMaxOpenConns(2)
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			errs[idx] = db.Transaction(func(tx *gorm.DB) error {
+				var n int64
+				if err := tx.Model(&models.Prijava{}).Count(&n).Error; err != nil {
+					return err
+				}
+				if err := tx.Model(&models.Akcija{}).Count(&n).Error; err != nil {
+					return err
+				}
+				return nil
+			})
+		}(i)
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("conn %d must see migrated schema on shared-memory DSN: %v", i, err)
+		}
+	}
+}
+
+// TestGuideBookingDB_DSNIsolatedFromSiblingHandle potvrđuje da dva setupa
+// ne dijele redove (jedinstveni DSN po pozivu).
+func TestGuideBookingDB_DSNIsolatedFromSiblingHandle(t *testing.T) {
+	db1 := testGuideBookingDB(t)
+	db2 := testGuideBookingDB(t)
+
+	u := models.Korisnik{Username: "iso_user", Password: "x", Role: "clan"}
+	if err := db1.Create(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+	var n int64
+	if err := db2.Model(&models.Korisnik{}).Where("username = ?", "iso_user").Count(&n).Error; err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Fatalf("sibling DB must not see rows from other DSN, got count=%d", n)
 	}
 }
 
