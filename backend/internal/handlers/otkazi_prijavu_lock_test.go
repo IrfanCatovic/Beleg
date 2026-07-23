@@ -156,19 +156,27 @@ func TestOtkaziPrijavu_ActiveOwnPrijavljen_Success(t *testing.T) {
 	}
 }
 
-func TestOtkaziPrijavu_PaidActive_HardDeletes_ExistingSemantics(t *testing.T) {
-	// Dokumentovano: nema Platio guard-a — paid self-cancel i dalje hard-delete-uje.
+func TestOtkaziPrijavu_PaidActive_Conflict(t *testing.T) {
 	db := testFinishHandlerDB(t)
 	owner := seedSelfCancelHost(t, db, "sc_paid_h")
 	akcija := seedSelfCancelAkcija(t, db, owner)
 	user, p := seedSelfCancelMemberPrijava(t, db, akcija.ID, "sc_paid_m", "prijavljen", true)
 
-	code := callOtkaziPrijavu(t, db, akcija.ID, user.Username)
-	if code != http.StatusOK {
-		t.Fatalf("status %d — paid active self-cancel must still succeed", code)
+	code, body := callOtkaziPrijavuWithBody(t, db, akcija.ID, user.Username)
+	if code != http.StatusConflict {
+		t.Fatalf("status %d body=%v want 409", code, body)
 	}
-	if countPrijaveByID(t, db, p.ID) != 0 {
-		t.Fatal("paid prijava hard-deleted (existing semantics)")
+	if body["error"] != helpers.ErrPaidPrijavaCannotBeSelfCancelled.Error() {
+		t.Fatalf("error=%v", body["error"])
+	}
+	if countPrijaveByID(t, db, p.ID) != 1 {
+		t.Fatal("paid prijava must remain")
+	}
+	if countIzboriForPrijava(t, db, p.ID) != 1 {
+		t.Fatal("izbori must remain")
+	}
+	if !getPrijavaPlatio(t, db, p.ID) {
+		t.Fatal("Platio must stay true")
 	}
 }
 

@@ -587,8 +587,6 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 		}
 
 		// Status guard nad locked stanjem.
-		// Napomena (postojeća semantika): nema Platio guard-a — paid self-cancel
-		// aktivne prijave i dalje hard-delete-uje prijavu (finansijski rizik, van ovog P1 fixa).
 		if lockedPrijava.Status != "prijavljen" {
 			isOwnActiveGuideAction :=
 				strings.TrimSpace(strings.ToLower(lockedAkcija.OrganizatorTip)) == "vodic" &&
@@ -598,6 +596,11 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 			if !isOwnActiveGuideAction {
 				return errSelfCancelStatusForbidden
 			}
+		}
+
+		// Paid guard: samo locked Platio (ne preliminary). Prioritet: lifecycle → status → paid.
+		if lockedPrijava.Platio {
+			return helpers.ErrPaidPrijavaCannotBeSelfCancelled
 		}
 
 		if err := tx.Delete(lockedPrijava).Error; err != nil {
@@ -617,6 +620,10 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPaidPrijavaCannotBeSelfCancelled) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -793,6 +800,10 @@ func UpdatePrijavaStatus(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Status ažuriran", "prijava": outPrijava})
 }
 
+// DeletePrijava — host uklanjanje učesnika.
+// Napomena (P1 follow-up, van ovog fixa): plaćena prijava (Platio=true) i dalje može biti
+// hard-delete-ovana ovdje bez paid guard-a / lock ordera; riješiti zajedno sa race-safe
+// host delete flowom, ne automatski kopirati self-cancel paid pravilo bez analize.
 func DeletePrijava(c *gin.Context) {
 	idStr := c.Param("id")
 	prijavaID, err := strconv.Atoi(idStr)

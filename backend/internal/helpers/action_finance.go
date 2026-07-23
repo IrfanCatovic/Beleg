@@ -23,6 +23,12 @@ var ErrCompletedActionPaymentCannotBeUnset = errors.New("Evidentirana uplata na 
 // ErrPrijavaAkcijaMismatch vraća se kada zaključana prijava ne pripada zaključanoj akciji.
 var ErrPrijavaAkcijaMismatch = errors.New("Prijava ne pripada ovoj akciji")
 
+// ErrPaidPrijavaCannotBeSelfCancelled blokira self-cancel kada locked Prijava.Platio=true.
+// Platio je trenutno jedini trag evidentirane uplate; hard-delete bi ga uklonio bez refunda.
+var ErrPaidPrijavaCannotBeSelfCancelled = errors.New(
+	"Prijava sa evidentiranom uplatom ne može biti otkazana. Kontaktirajte organizatora radi provjere uplate i eventualnog povrata novca.",
+)
+
 // saldoMoneyEpsilon — ista tolerancija kao u FinishAction (finEps).
 const saldoMoneyEpsilon = 1e-6
 
