@@ -309,6 +309,16 @@ func LockActionSignupRequestForUpdate(tx *gorm.DB, requestID uint) (*models.Acti
 	return &req, nil
 }
 
+// LockActionParticipationRequestForUpdate zaključava participation request (SELECT FOR UPDATE).
+// Pozivalac mora prethodno zaključati akciju (Akcija → ActionParticipationRequest).
+func LockActionParticipationRequestForUpdate(tx *gorm.DB, requestID uint) (*models.ActionParticipationRequest, error) {
+	var req models.ActionParticipationRequest
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&req, requestID).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
 // LockPrijaveForAkcijaForUpdate zaključava sve prijave akcije (ORDER BY id FOR UPDATE).
 // Pozivalac mora prethodno zaključati akciju (Akcija → Prijava redoslijed).
 func LockPrijaveForAkcijaForUpdate(tx *gorm.DB, akcijaID uint) ([]models.Prijava, error) {

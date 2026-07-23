@@ -640,87 +640,153 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 		return
 	}
 
+	// Preliminary read: samo id + akcija_id radi prvog action locka — nije autoritativan.
+	var lookup struct {
+		ID       uint
+		AkcijaID uint
+	}
+	if err := db.Model(&models.ActionParticipationRequest{}).
+		Select("id", "akcija_id").
+		Where("id = ?", requestID).
+		Take(&lookup).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju zahteva"})
+		return
+	}
+	if lookup.ID == 0 || lookup.AkcijaID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen"})
+		return
+	}
+
 	var responseDTO actionParticipationRequestDTO
 	err = db.Transaction(func(tx *gorm.DB) error {
-		var req models.ActionParticipationRequest
-		if err := tx.
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Preload("Akcija").
-			Preload("Akcija.Klub").
-			Preload("TargetUser").
-			Preload("TargetUser.Klub").
-			Preload("RequestedBy").
-			Preload("RequestedBy.Klub").
-			First(&req, requestID).Error; err != nil {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, lookup.AkcijaID)
+		if err != nil {
 			return err
 		}
-		if req.TargetUserID != currentUser.ID {
-			return errActionParticipationForbidden
-		}
-		if req.Status != models.ActionParticipationRequestPending {
-			return errActionParticipationAlreadyHandled
-		}
-		if req.Akcija.IsCancelled {
+		// Lifecycle nad zaključanom akcijom; cancellation ima prioritet nad completed.
+		if lockedAkcija.IsCancelled {
 			return helpers.ErrAkcijaCancelled
 		}
-		if !req.Akcija.IsCompleted {
+		if !lockedAkcija.IsCompleted {
 			return errActionParticipationNotCompleted
+		}
+
+		lockedReq, err := helpers.LockActionParticipationRequestForUpdate(tx, lookup.ID)
+		if err != nil {
+			return err
+		}
+		if lockedReq.AkcijaID != lockedAkcija.ID {
+			return gorm.ErrRecordNotFound
+		}
+		if lockedReq.TargetUserID != currentUser.ID {
+			return errActionParticipationForbidden
+		}
+		if lockedReq.Status != models.ActionParticipationRequestPending {
+			return errActionParticipationAlreadyHandled
 		}
 
 		now := time.Now()
 		if decision == "reject" {
-			req.Status = models.ActionParticipationRequestRejected
-			req.RespondedAt = &now
-			if err := tx.Save(&req).Error; err != nil {
+			lockedReq.Status = models.ActionParticipationRequestRejected
+			lockedReq.RespondedAt = &now
+			if err := tx.Save(lockedReq).Error; err != nil {
 				return err
 			}
-			responseDTO = buildActionParticipationRequestDTO(tx, req)
+			reloaded, loadErr := loadActionParticipationRequestWithRelations(tx, lockedReq.ID)
+			if loadErr != nil {
+				return loadErr
+			}
+			responseDTO = buildActionParticipationRequestDTO(tx, *reloaded)
 			return nil
 		}
 
-		var prijava models.Prijava
-		err := tx.Where("akcija_id = ? AND korisnik_id = ?", req.AkcijaID, req.TargetUserID).First(&prijava).Error
+		var existing models.Prijava
+		findErr := tx.Where("akcija_id = ? AND korisnik_id = ?", lockedAkcija.ID, lockedReq.TargetUserID).
+			First(&existing).Error
 		alreadyPopeoSe := false
-		if err == nil {
-			alreadyPopeoSe = prijava.Status == "popeo se"
-			prijava.Status = "popeo se"
-			prijava.Platio = true
-			if err := tx.Save(&prijava).Error; err != nil {
+		var prijava models.Prijava
+		if findErr == nil {
+			lockedPrijava, lockErr := helpers.LockPrijavaForUpdate(tx, existing.ID)
+			if lockErr != nil {
+				return lockErr
+			}
+			if lockedPrijava.AkcijaID != lockedAkcija.ID || lockedPrijava.KorisnikID != lockedReq.TargetUserID {
+				return helpers.ErrPrijavaAkcijaMismatch
+			}
+			alreadyPopeoSe = lockedPrijava.Status == "popeo se"
+			lockedPrijava.Status = "popeo se"
+			lockedPrijava.Platio = true
+			if err := tx.Save(lockedPrijava).Error; err != nil {
 				return err
 			}
-		} else if err == gorm.ErrRecordNotFound {
+			prijava = *lockedPrijava
+		} else if errors.Is(findErr, gorm.ErrRecordNotFound) {
 			prijava = models.Prijava{
-				AkcijaID:   req.AkcijaID,
-				KorisnikID: req.TargetUserID,
+				AkcijaID:   lockedAkcija.ID,
+				KorisnikID: lockedReq.TargetUserID,
 				Status:     "popeo se",
 				Platio:     true,
 			}
 			if err := tx.Create(&prijava).Error; err != nil {
-				return helpers.MapCreatePrijavaError(err)
+				if helpers.IsDuplicatePrijavaDBError(err) {
+					var raced models.Prijava
+					if fetchErr := tx.Where("akcija_id = ? AND korisnik_id = ?", lockedAkcija.ID, lockedReq.TargetUserID).
+						First(&raced).Error; fetchErr != nil {
+						return helpers.MapCreatePrijavaError(err)
+					}
+					lockedPrijava, lockErr := helpers.LockPrijavaForUpdate(tx, raced.ID)
+					if lockErr != nil {
+						return lockErr
+					}
+					if lockedPrijava.AkcijaID != lockedAkcija.ID || lockedPrijava.KorisnikID != lockedReq.TargetUserID {
+						return helpers.ErrPrijavaAkcijaMismatch
+					}
+					alreadyPopeoSe = lockedPrijava.Status == "popeo se"
+					lockedPrijava.Status = "popeo se"
+					lockedPrijava.Platio = true
+					if saveErr := tx.Save(lockedPrijava).Error; saveErr != nil {
+						return saveErr
+					}
+					prijava = *lockedPrijava
+				} else {
+					return helpers.MapCreatePrijavaError(err)
+				}
 			}
 		} else {
-			return err
+			return findErr
 		}
 
 		if _, err := helpers.EnsurePrijavaIzboriTx(tx, prijava.ID); err != nil {
 			return err
 		}
 
-		if !alreadyPopeoSe && helpers.PrijavaCountsAsClimbedPeak(tx, &req.Akcija, req.TargetUserID) {
-			req.TargetUser.UkupnoKmKorisnik += req.Akcija.UkupnoKmAkcija
-			req.TargetUser.UkupnoMetaraUsponaKorisnik += req.Akcija.UkupnoMetaraUsponaAkcija
-			req.TargetUser.BrojPopeoSe += 1
-			if err := tx.Save(&req.TargetUser).Error; err != nil {
+		var targetUser models.Korisnik
+		if err := tx.First(&targetUser, lockedReq.TargetUserID).Error; err != nil {
+			return err
+		}
+		if !alreadyPopeoSe && helpers.PrijavaCountsAsClimbedPeak(tx, lockedAkcija, lockedReq.TargetUserID) {
+			targetUser.UkupnoKmKorisnik += lockedAkcija.UkupnoKmAkcija
+			targetUser.UkupnoMetaraUsponaKorisnik += lockedAkcija.UkupnoMetaraUsponaAkcija
+			targetUser.BrojPopeoSe += 1
+			if err := tx.Save(&targetUser).Error; err != nil {
 				return err
 			}
 		}
 
-		req.Status = models.ActionParticipationRequestAccepted
-		req.RespondedAt = &now
-		if err := tx.Save(&req).Error; err != nil {
+		lockedReq.Status = models.ActionParticipationRequestAccepted
+		lockedReq.RespondedAt = &now
+		if err := tx.Save(lockedReq).Error; err != nil {
 			return err
 		}
-		responseDTO = buildActionParticipationRequestDTO(tx, req)
+		reloaded, loadErr := loadActionParticipationRequestWithRelations(tx, lockedReq.ID)
+		if loadErr != nil {
+			return loadErr
+		}
+		responseDTO = buildActionParticipationRequestDTO(tx, *reloaded)
 		return nil
 	})
 	if err != nil {
@@ -735,6 +801,10 @@ func RespondToActionParticipationRequest(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		case errors.Is(err, errActionParticipationNotCompleted):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija više nije u stanju za potvrdu učešća"})
+		case errors.Is(err, helpers.ErrDuplicatePrijava):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		case errors.Is(err, helpers.ErrPrijavaAkcijaMismatch):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri obradi zahteva"})
 		}
