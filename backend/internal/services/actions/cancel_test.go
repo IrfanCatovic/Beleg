@@ -57,10 +57,11 @@ func TestCancelAction_ActiveEmpty_Success(t *testing.T) {
 	actor := seedFinishActor(t, db, "cancel_ok")
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
 
-	out, err := CancelAction(db, akcija.ID, "  Loši uslovi  ", allowCancel)
+	result, err := CancelAction(db, akcija.ID, "  Loši uslovi  ", actor.ID, allowCancel)
 	if err != nil {
 		t.Fatal(err)
 	}
+	out := result.Akcija
 	if !out.IsCancelled || out.IsCompleted {
 		t.Fatalf("cancelled=%v completed=%v", out.IsCancelled, out.IsCompleted)
 	}
@@ -80,12 +81,12 @@ func TestCancelAction_UnicodeReason(t *testing.T) {
 	db := testFinishDB(t)
 	actor := seedFinishActor(t, db, "cancel_uni")
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
-	out, err := CancelAction(db, akcija.ID, "žđš", allowCancel)
+	result, err := CancelAction(db, akcija.ID, "žđš", actor.ID, allowCancel)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.CancellationReason != "žđš" {
-		t.Fatalf("reason=%q", out.CancellationReason)
+	if result.Akcija.CancellationReason != "žđš" {
+		t.Fatalf("reason=%q", result.Akcija.CancellationReason)
 	}
 }
 
@@ -95,7 +96,7 @@ func TestCancelAction_InvalidReasons(t *testing.T) {
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
 
 	for _, reason := range []string{"", "  ", "ab", "šč", string(make([]rune, 501))} {
-		_, err := CancelAction(db, akcija.ID, reason, allowCancel)
+		_, err := CancelAction(db, akcija.ID, reason, actor.ID, allowCancel)
 		if !errors.Is(err, ErrCancelReasonInvalid) {
 			t.Fatalf("reason %q: err=%v", reason, err)
 		}
@@ -117,7 +118,7 @@ func TestCancelAction_Unauthorized(t *testing.T) {
 	req := seedFinishSignup(t, db, akcija.ID, u.ID, models.ActionSignupRequestPending)
 	inv := seedFinishInvite(t, db, akcija.ID, "hash-unauth", nil, nil)
 
-	_, err := CancelAction(db, akcija.ID, "Validan razlog", func(tx *gorm.DB, locked *models.Akcija) error {
+	_, err := CancelAction(db, akcija.ID, "Validan razlog", actor.ID, func(tx *gorm.DB, locked *models.Akcija) error {
 		return ErrCancelUnauthorized
 	})
 	if !errors.Is(err, ErrCancelUnauthorized) {
@@ -137,7 +138,7 @@ func TestCancelAction_Unauthorized(t *testing.T) {
 
 func TestCancelAction_NotFound(t *testing.T) {
 	db := testFinishDB(t)
-	_, err := CancelAction(db, 999999, "Validan razlog", allowCancel)
+	_, err := CancelAction(db, 999999, "Validan razlog", 0, allowCancel)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("err=%v", err)
 	}
@@ -157,7 +158,7 @@ func TestCancelAction_Completed(t *testing.T) {
 	req := seedFinishSignup(t, db, akcija.ID, u.ID, models.ActionSignupRequestPending)
 	inv := seedFinishInvite(t, db, akcija.ID, "hash-done", nil, nil)
 
-	_, err := CancelAction(db, akcija.ID, "Validan razlog", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Validan razlog", actor.ID, allowCancel)
 	if !errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
 		t.Fatalf("err=%v", err)
 	}
@@ -177,11 +178,12 @@ func TestCancelAction_AlreadyCancelled(t *testing.T) {
 	db := testFinishDB(t)
 	actor := seedFinishActor(t, db, "cancel_again")
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
-	first, err := CancelAction(db, akcija.ID, "Prvi razlog ok", allowCancel)
+	result, err := CancelAction(db, akcija.ID, "Prvi razlog ok", actor.ID, allowCancel)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = CancelAction(db, akcija.ID, "Drugi razlog ok", allowCancel)
+	first := result.Akcija
+	_, err = CancelAction(db, akcija.ID, "Drugi razlog ok", actor.ID, allowCancel)
 	if !errors.Is(err, helpers.ErrAkcijaAlreadyCancelled) {
 		t.Fatalf("err=%v", err)
 	}
@@ -205,7 +207,7 @@ func TestCancelAction_ContradictoryPrefersAlreadyCancelled(t *testing.T) {
 		a.CancelledAt = &now
 		a.CancellationReason = "Stari razlog"
 	})
-	_, err := CancelAction(db, akcija.ID, "Novi razlog xx", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Novi razlog xx", actor.ID, allowCancel)
 	if !errors.Is(err, helpers.ErrAkcijaAlreadyCancelled) {
 		t.Fatalf("err=%v", err)
 	}
@@ -243,10 +245,11 @@ func TestCancelAction_SignupCleanup(t *testing.T) {
 		termIDs[i] = seedFinishSignup(t, db, akcija.ID, u.ID, st).ID
 	}
 
-	out, err := CancelAction(db, akcija.ID, "Cleanup razlog", allowCancel)
+	result, err := CancelAction(db, akcija.ID, "Cleanup razlog", actor.ID, allowCancel)
 	if err != nil {
 		t.Fatal(err)
 	}
+	out := result.Akcija
 	for _, id := range pendingIDs {
 		got := reloadSignup(t, db, id)
 		if got.Status != models.ActionSignupRequestCancelled {
@@ -291,7 +294,7 @@ func TestCancelAction_ManyPending_SingleBulk(t *testing.T) {
 		seedFinishSignup(t, db, akcija.ID, u.ID, models.ActionSignupRequestPending)
 	}
 
-	if _, err := CancelAction(db, akcija.ID, "Masovni cleanup", allowCancel); err != nil {
+	if _, err := CancelAction(db, akcija.ID, "Masovni cleanup", actor.ID, allowCancel); err != nil {
 		t.Fatal(err)
 	}
 	if atomic.LoadInt32(&updates) != 1 {
@@ -329,10 +332,11 @@ func TestCancelAction_InviteCleanup(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Update().Remove(cbName) })
 
-	out, err := CancelAction(db, akcija.ID, "Invite cleanup", allowCancel)
+	result, err := CancelAction(db, akcija.ID, "Invite cleanup", actor.ID, allowCancel)
 	if err != nil {
 		t.Fatal(err)
 	}
+	out := result.Akcija
 	if atomic.LoadInt32(&inviteUpdates) != 1 {
 		t.Fatalf("expected 1 invite bulk update, got %d", inviteUpdates)
 	}
@@ -377,7 +381,7 @@ func TestCancelAction_PrijaveAndFinanceUntouched(t *testing.T) {
 	}
 	beforeTx := countTransakcije(t, db)
 
-	if _, err := CancelAction(db, akcija.ID, "Bez diranja prijava", allowCancel); err != nil {
+	if _, err := CancelAction(db, akcija.ID, "Bez diranja prijava", actor.ID, allowCancel); err != nil {
 		t.Fatal(err)
 	}
 
@@ -428,7 +432,7 @@ func TestCancelAction_SignupCleanupError_Rollback(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Update().Remove(cbName) })
 
-	_, err := CancelAction(db, akcija.ID, "Rollback signup", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Rollback signup", actor.ID, allowCancel)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
@@ -465,7 +469,7 @@ func TestCancelAction_InviteRevokeError_Rollback(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Update().Remove(cbName) })
 
-	_, err := CancelAction(db, akcija.ID, "Rollback invite", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Rollback invite", actor.ID, allowCancel)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
@@ -499,7 +503,7 @@ func TestCancelAction_ActionUpdateError_Rollback(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Update().Remove(cbName) })
 
-	_, err := CancelAction(db, akcija.ID, "Rollback action", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Rollback action", actor.ID, allowCancel)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
@@ -529,7 +533,7 @@ func TestCancelAction_ParallelCancels(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func() {
 			defer wg.Done()
-			_, err := CancelAction(db, akcija.ID, "Paralelni cancel", allowCancel)
+			_, err := CancelAction(db, akcija.ID, "Paralelni cancel", actor.ID, allowCancel)
 			mu.Lock()
 			results = append(results, err)
 			mu.Unlock()
@@ -560,7 +564,7 @@ func TestCancelAction_ThenFinishConflict(t *testing.T) {
 	db := testFinishDB(t)
 	actor := seedFinishActor(t, db, "cancel_then_fin")
 	akcija := seedFinishAkcija(t, db, actor, func(a *models.Akcija) { a.VodicID = 0 })
-	if _, err := CancelAction(db, akcija.ID, "Prvo cancel", allowCancel); err != nil {
+	if _, err := CancelAction(db, akcija.ID, "Prvo cancel", actor.ID, allowCancel); err != nil {
 		t.Fatal(err)
 	}
 	_, err := FinishAction(db, &akcija, actor, FinishActionInput{})
@@ -579,7 +583,7 @@ func TestFinishAction_ThenCancelConflict(t *testing.T) {
 	if _, err := FinishAction(db, &akcija, actor, FinishActionInput{}); err != nil {
 		t.Fatal(err)
 	}
-	_, err := CancelAction(db, akcija.ID, "Posle finish", allowCancel)
+	_, err := CancelAction(db, akcija.ID, "Posle finish", actor.ID, allowCancel)
 	if !errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
 		t.Fatalf("err=%v", err)
 	}
@@ -618,7 +622,7 @@ func TestCancelAction_AcceptThenCancel_KeepsAccepted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := CancelAction(db, akcija.ID, "Posle accept", allowCancel); err != nil {
+	if _, err := CancelAction(db, akcija.ID, "Posle accept", actor.ID, allowCancel); err != nil {
 		t.Fatal(err)
 	}
 	if reloadSignup(t, db, req.ID).Status != models.ActionSignupRequestAccepted {
@@ -641,7 +645,7 @@ func TestCancelAction_CancelThenAccept_NoPrijava(t *testing.T) {
 	}
 	req := seedFinishSignup(t, db, akcija.ID, u.ID, models.ActionSignupRequestPending)
 
-	if _, err := CancelAction(db, akcija.ID, "Prije accept", allowCancel); err != nil {
+	if _, err := CancelAction(db, akcija.ID, "Prije accept", actor.ID, allowCancel); err != nil {
 		t.Fatal(err)
 	}
 

@@ -409,7 +409,8 @@ func OtkaziAkciju(c *gin.Context) {
 	}
 
 	db := DB(c)
-	if _, ok := AuthUser(c); !ok {
+	actor, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
 		return
 	}
@@ -441,7 +442,7 @@ func OtkaziAkciju(c *gin.Context) {
 		return
 	}
 
-	cancelled, svcErr := actions.CancelAction(db, uint(id), trimmed, func(tx *gorm.DB, locked *models.Akcija) error {
+	result, svcErr := actions.CancelAction(db, uint(id), trimmed, actor.ID, func(tx *gorm.DB, locked *models.Akcija) error {
 		if !helpers.CanManageAkcijaEx(c, tx, locked) {
 			return actions.ErrCancelUnauthorized
 		}
@@ -470,9 +471,14 @@ func OtkaziAkciju(c *gin.Context) {
 		return
 	}
 
+	// Best-effort fan-out nakon uspješnog commita; greške ne mijenjaju HTTP 200.
+	if result != nil && result.Akcija != nil {
+		notifications.NotifyActionCancelled(db, result.Akcija, result.RecipientUserIDs)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Akcija je uspešno otkazana.",
-		"akcija":  cancelled,
+		"akcija":  result.Akcija,
 	})
 }
 

@@ -76,6 +76,12 @@ func truncateBody(body string, max int) string {
 
 // SendObavestenjeToUser šalje push obaveštenje na sve registrovane uređaje korisnika.
 func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, body string) {
+	SendObavestenjeToUserWithData(db, userID, obavestenjeID, title, body, nil)
+}
+
+// SendObavestenjeToUserWithData kao SendObavestenjeToUser uz dodatni string data payload (Android/iOS Expo).
+// Uvek uključuje obavestenjeId; extra ključevi se merge-uju (bez logovanja tokena).
+func SendObavestenjeToUserWithData(db *gorm.DB, userID uint, obavestenjeID uint, title, body string, extra map[string]string) {
 	if userID == 0 || obavestenjeID == 0 {
 		return
 	}
@@ -122,8 +128,15 @@ func SendObavestenjeToUser(db *gorm.DB, userID uint, obavestenjeID uint, title, 
 	data := map[string]string{
 		"obavestenjeId": fmt.Sprintf("%d", obavestenjeID),
 	}
+	for k, v := range extra {
+		if strings.TrimSpace(k) == "" {
+			continue
+		}
+		data[k] = v
+	}
 	_, invalid, err := sendPushToTargets(targets, strings.TrimSpace(title), truncateBody(body, 200), data)
 	if err != nil {
+		log.Printf("push: send failed userId=%d obavestenjeId=%d: %v", userID, obavestenjeID, err)
 		return
 	}
 	if len(invalid) > 0 {

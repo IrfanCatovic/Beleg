@@ -1,7 +1,7 @@
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { getApiErrorMessage } from '@beleg/shared'
+import { getApiErrorMessage, isActionCancelledNotificationType } from '@beleg/shared'
 import {
   acceptFollowRequest,
   fetchFollowRequestsPending,
@@ -17,6 +17,8 @@ import { useModal } from '../../context/ModalContext'
 import { Button, Card, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
+import { invalidateActionQueries } from '../actions/hooks/invalidateActionQueries'
+import { resolveMobileNotificationNavigation } from './resolveMobileNotificationNavigation'
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationsList'>
 
@@ -167,6 +169,19 @@ export default function NotificationsScreen({ navigation }: Props) {
               if (!item.readAt) {
                 await markObavestenjeRead(client, item.id)
                 void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
+              }
+              const target = resolveMobileNotificationNavigation({
+                type: item.type,
+                link: item.link,
+                metadata: item.metadata,
+                obavestenjeId: item.id,
+              })
+              if (target.screen === 'ActionDetail') {
+                if (isActionCancelledNotificationType(item.type)) {
+                  void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
+                }
+                navigation.navigate('ActionDetail', { id: target.actionId })
+                return
               }
               navigation.navigate('NotificationDetail', { id: item.id })
             }}

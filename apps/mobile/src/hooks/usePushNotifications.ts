@@ -7,7 +7,13 @@ import Constants from 'expo-constants'
 import { registerPushToken, unregisterPushToken } from '@beleg/shared/services'
 import { client } from '../api/client'
 import { agentDebugLog } from '../lib/agentDebugLog'
-import { navigateToNotificationDetail } from '../navigation/navigationRef'
+import { queryClient } from '../lib/queryClient'
+import { navigateToActionDetail, navigateToNotificationDetail } from '../navigation/navigationRef'
+import { invalidateActionQueries } from '../features/actions/hooks/invalidateActionQueries'
+import {
+  resolveMobileNotificationNavigation,
+  shouldInvalidateActionQueriesForPush,
+} from '../features/notifications/resolveMobileNotificationNavigation'
 import { resolvePushAppKind } from '../utils/resolveAppKind'
 
 // #region agent log
@@ -46,6 +52,36 @@ function parseObavestenjeId(data: Record<string, unknown> | undefined): number |
     if (!Number.isNaN(id) && id > 0) return id
   }
   return null
+}
+
+function handleNotificationNavigation(data: Record<string, unknown> | undefined, handledKey: string | null): string | null {
+  const target = resolveMobileNotificationNavigation({ pushData: data })
+  const key =
+    target.screen === 'ActionDetail'
+      ? `action:${target.actionId}:${data?.obavestenjeId ?? ''}`
+      : target.screen === 'NotificationDetail'
+        ? `notif:${target.obavestenjeId}`
+        : null
+  if (key && key === handledKey) {
+    return handledKey
+  }
+  if (target.screen === 'ActionDetail') {
+    void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
+    navigateToActionDetail(target.actionId)
+    return key
+  }
+  if (target.screen === 'NotificationDetail') {
+    navigateToNotificationDetail(target.obavestenjeId)
+    return key
+  }
+  const legacyId = parseObavestenjeId(data)
+  if (legacyId != null) {
+    const legacyKey = `notif:${legacyId}`
+    if (legacyKey === handledKey) return handledKey
+    navigateToNotificationDetail(legacyId)
+    return legacyKey
+  }
+  return handledKey
 }
 
 async function ensureAndroidChannel(): Promise<void> {
@@ -105,17 +141,25 @@ async function ensurePushPermissions(): Promise<boolean> {
 
 export function usePushNotifications(isLoggedIn: boolean) {
   const tokenRef = useRef<string | null>(null)
+  const lastHandledNavKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const id = parseObavestenjeId(
-        response.notification.request.content.data as Record<string, unknown> | undefined,
-      )
-      if (id != null) navigateToNotificationDetail(id)
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined
+      lastHandledNavKeyRef.current = handleNotificationNavigation(data, lastHandledNavKeyRef.current)
+    })
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as Record<string, unknown> | undefined
+      const actionId = shouldInvalidateActionQueriesForPush(data)
+      if (actionId != null) {
+        void invalidateActionQueries(queryClient, actionId).catch(() => {})
+      }
     })
 
     return () => {
       responseSub.remove()
+      receivedSub.remove()
     }
   }, [])
 
@@ -123,10 +167,8 @@ export function usePushNotifications(isLoggedIn: boolean) {
     if (!isLoggedIn) return
     void Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return
-      const id = parseObavestenjeId(
-        response.notification.request.content.data as Record<string, unknown> | undefined,
-      )
-      if (id != null) navigateToNotificationDetail(id)
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined
+      lastHandledNavKeyRef.current = handleNotificationNavigation(data, lastHandledNavKeyRef.current)
     })
   }, [isLoggedIn])
 

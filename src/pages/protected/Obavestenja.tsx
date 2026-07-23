@@ -79,7 +79,10 @@ export default function Obavestenja() {
         setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
       }).catch(() => {})
     }
-    if ((n.type === 'akcija' || n.type === 'summit_reward') && n.link?.trim()) {
+    if (
+      (n.type === 'akcija' || n.type === 'summit_reward' || n.type === 'action_cancelled') &&
+      n.link?.trim()
+    ) {
       navigate(n.link.trim())
       return
     }

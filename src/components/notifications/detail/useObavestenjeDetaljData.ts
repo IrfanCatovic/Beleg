@@ -91,7 +91,7 @@ export function useObavestenjeDetaljData({
           await markObavestenjeRead(Number(id)).catch(() => {})
         }
 
-        if (n.type === 'akcija' && n.link?.trim()) {
+        if ((n.type === 'akcija' || n.type === 'action_cancelled') && n.link?.trim()) {
           navigate(n.link.trim(), { replace: true })
           return
         }

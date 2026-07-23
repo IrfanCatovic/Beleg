@@ -84,7 +84,10 @@ export function AppNotificationsPanel({
       void markObavestenjeRead(n.id).then(() => onUnreadCountChange((c) => Math.max(0, c - 1)))
     }
     onClose()
-    if ((n.type === 'akcija' || n.type === 'summit_reward') && n.link?.trim()) {
+    if (
+      (n.type === 'akcija' || n.type === 'summit_reward' || n.type === 'action_cancelled') &&
+      n.link?.trim()
+    ) {
       navigate(n.link.trim())
       return
     }

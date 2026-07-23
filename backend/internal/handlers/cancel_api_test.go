@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -420,5 +421,164 @@ func TestOtkaziAkciju_DetailStillAvailable(t *testing.T) {
 	}
 	if body["cancellationReason"] != "Za detail" {
 		t.Fatalf("reason=%v", body["cancellationReason"])
+	}
+}
+
+func TestOtkaziAkciju_NotifiesRecipientsWithoutExposingIDs(t *testing.T) {
+	db := testFinishHandlerDB(t)
+	owner := models.Korisnik{Username: "otk_notif", Password: "x", Role: "vodic"}
+	if err := db.Create(&owner).Error; err != nil {
+		t.Fatal(err)
+	}
+	akcija := models.Akcija{
+		Naziv: "Notif akcija", Datum: time.Now().Add(48 * time.Hour),
+		VodicID: owner.ID, AddedByID: owner.ID, OrganizatorTip: "vodic",
+	}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	member := models.Korisnik{Username: "otk_mem", Password: "x", Role: "clan"}
+	if err := db.Create(&member).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	pending := models.Korisnik{Username: "otk_pend", Password: "x", Role: "clan"}
+	if err := db.Create(&pending).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.ActionSignupRequest{
+		AkcijaID: akcija.ID, RequesterID: pending.ID, Status: models.ActionSignupRequestPending,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Actor as participant must not receive notification.
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: owner.ID, Status: "prijavljen",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	code, body := callOtkaziAkciju(t, db, akcija.ID, owner.Username, "vodic", map[string]string{
+		"reason": "Obavjestenje test",
+	})
+	if code != http.StatusOK {
+		t.Fatalf("status %d body=%v", code, body)
+	}
+	if _, exists := body["recipientUserIds"]; exists {
+		t.Fatal("recipient IDs must not be in HTTP response")
+	}
+	if _, exists := body["recipients"]; exists {
+		t.Fatal("recipients must not be in HTTP response")
+	}
+
+	var notifs []models.Obavestenje
+	if err := db.Where("type = ?", models.ObavestenjeTipActionCancelled).Find(&notifs).Error; err != nil {
+		t.Fatal(err)
+	}
+	if len(notifs) != 2 {
+		t.Fatalf("notif count=%d want 2 body=%v", len(notifs), notifs)
+	}
+	gotUsers := map[uint]bool{}
+	for _, n := range notifs {
+		gotUsers[n.UserID] = true
+		if n.Title != "Akcija otkazana" {
+			t.Fatalf("title=%q", n.Title)
+		}
+		if n.Link != fmt.Sprintf("/akcije/%d", akcija.ID) {
+			t.Fatalf("link=%q", n.Link)
+		}
+	}
+	if !gotUsers[member.ID] || !gotUsers[pending.ID] || gotUsers[owner.ID] {
+		t.Fatalf("users=%v", gotUsers)
+	}
+}
+
+func TestOtkaziAkciju_NoRecipientsNoNotifications(t *testing.T) {
+	db := testFinishHandlerDB(t)
+	owner := models.Korisnik{Username: "otk_empty", Password: "x", Role: "vodic"}
+	if err := db.Create(&owner).Error; err != nil {
+		t.Fatal(err)
+	}
+	akcija := models.Akcija{
+		Naziv: "Prazna", Datum: time.Now().Add(48 * time.Hour),
+		VodicID: owner.ID, AddedByID: owner.ID, OrganizatorTip: "vodic",
+	}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	code, _ := callOtkaziAkciju(t, db, akcija.ID, owner.Username, "vodic", map[string]string{
+		"reason": "Nema primalaca",
+	})
+	if code != http.StatusOK {
+		t.Fatalf("status %d", code)
+	}
+	var count int64
+	if err := db.Model(&models.Obavestenje{}).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("count=%d", count)
+	}
+}
+
+func TestOtkaziAkciju_ParallelOnlyOneNotificationFanOut(t *testing.T) {
+	db := testFinishHandlerDB(t)
+	owner := models.Korisnik{Username: "otk_par_n", Password: "x", Role: "vodic"}
+	if err := db.Create(&owner).Error; err != nil {
+		t.Fatal(err)
+	}
+	akcija := models.Akcija{
+		Naziv: "Paralel", Datum: time.Now().Add(48 * time.Hour),
+		VodicID: owner.ID, AddedByID: owner.ID, OrganizatorTip: "vodic",
+	}
+	if err := db.Create(&akcija).Error; err != nil {
+		t.Fatal(err)
+	}
+	member := models.Korisnik{Username: "otk_par_m", Password: "x", Role: "clan"}
+	if err := db.Create(&member).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&models.Prijava{
+		AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "popeo se",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	codes := make([]int, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			code, _ := callOtkaziAkciju(t, db, akcija.ID, owner.Username, "vodic", map[string]string{
+				"reason": "Paralelni otkaz",
+			})
+			codes[idx] = code
+		}(i)
+	}
+	wg.Wait()
+
+	okCount := 0
+	for _, c := range codes {
+		if c == http.StatusOK {
+			okCount++
+		}
+	}
+	if okCount != 1 {
+		t.Fatalf("okCount=%d codes=%v", okCount, codes)
+	}
+	var count int64
+	if err := db.Model(&models.Obavestenje{}).
+		Where("type = ? AND user_id = ?", models.ObavestenjeTipActionCancelled, member.ID).
+		Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("notif count=%d", count)
 	}
 }
