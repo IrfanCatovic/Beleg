@@ -158,6 +158,59 @@ func participantChoicesFromIzbori(izbor *models.PrijavaIzbori) (ParticipantChoic
 	return participantChoicesFromJSON(izbor.SelectedSmestajIDs, izbor.SelectedPrevozIDs, izbor.SelectedRentItemsRaw)
 }
 
+// ParticipantChoicesFromIzbori parsira izbore iz PrijavaIzbori reda.
+func ParticipantChoicesFromIzbori(izbor *models.PrijavaIzbori) (ParticipantChoices, error) {
+	return participantChoicesFromIzbori(izbor)
+}
+
+// ChoiceIDsContain vraća true ako slice sadrži id.
+func ChoiceIDsContain(ids []uint, id uint) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveChoiceID uklanja id iz slice-a (zadržava redoslijed ostalih).
+func RemoveChoiceID(ids []uint, id uint) ([]uint, bool) {
+	out := make([]uint, 0, len(ids))
+	removed := false
+	for _, v := range ids {
+		if v == id {
+			removed = true
+			continue
+		}
+		out = append(out, v)
+	}
+	return out, removed
+}
+
+// UnsetPlatioIfObligationChangedTx postavlja Platio=false samo kada je prijava plaćena
+// i before/after obaveza (centralni saldo kalkulator) se razlikuju.
+func UnsetPlatioIfObligationChangedTx(
+	tx *gorm.DB,
+	akcija models.Akcija,
+	prijava *models.Prijava,
+	korisnik models.Korisnik,
+	before, after ParticipantChoices,
+) error {
+	if prijava == nil || !prijava.Platio {
+		return nil
+	}
+	beforeSaldo := ComputeSaldoForParticipant(tx, akcija, korisnik, before)
+	afterSaldo := ComputeSaldoForParticipant(tx, akcija, korisnik, after)
+	if SaldoAmountsEqual(beforeSaldo, afterSaldo) {
+		return nil
+	}
+	if err := tx.Model(prijava).Update("platio", false).Error; err != nil {
+		return err
+	}
+	prijava.Platio = false
+	return nil
+}
+
 func participantChoicesFromPayload(payload PrijavaIzboriPayload) (ParticipantChoices, error) {
 	return participantChoicesFromJSON(payload.SelectedSmestajIDs, payload.SelectedPrevozIDs, payload.SelectedRentItemsRaw)
 }

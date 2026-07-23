@@ -11,8 +11,39 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
+func mapPrevozLifecycleError(c *gin.Context, err error) bool {
+	if errors.Is(err, helpers.ErrAkcijaCancelled) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return true
+	}
+	if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return true
+	}
+	return false
+}
+
+func canAddPrevozOnLockedAction(c *gin.Context, tx *gorm.DB, locked *models.Akcija, actorID uint) (bool, error) {
+	if helpers.CanManageAkcijaEx(c, tx, locked) {
+		return true, nil
+	}
+	var count int64
+	if err := tx.Model(&models.Prijava{}).
+		Where("akcija_id = ? AND korisnik_id = ? AND status = ?", locked.ID, actorID, "prijavljen").
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+var errPrevozAddForbidden = errors.New("Samo prijavljeni članovi mogu dodati novi prevoz")
+var errPrevozDeleteForbidden = errors.New("Samo organizator kluba može obrisati prevoz")
+
+// DodajPrevozZaAkciju — čisti insert nove prevoz opcije (nije upsert).
+// Lock: Akcija → (opciono Prijava → PrijavaIzbori pri join).
 func DodajPrevozZaAkciju(c *gin.Context) {
 	idStr := c.Param("id")
 	akcijaID, err := strconv.Atoi(idStr)
@@ -30,28 +61,6 @@ func DodajPrevozZaAkciju(c *gin.Context) {
 	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(username)).First(&korisnik).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
-	}
-	var akcija models.Akcija
-	if err := db.First(&akcija, akcijaID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
-		return
-	}
-	if err := helpers.ValidateAkcijaActive(&akcija); err != nil {
-		if errors.Is(err, helpers.ErrAkcijaCancelled) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
-		return
-	}
-	isHost := helpers.CanManageAkcijaEx(c, db, &akcija)
-	if !isHost {
-		var count int64
-		db.Model(&models.Prijava{}).Where("akcija_id = ? AND korisnik_id = ? AND status = ?", akcija.ID, korisnik.ID, "prijavljen").Count(&count)
-		if count == 0 {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Samo prijavljeni članovi mogu dodati novi prevoz"})
-			return
-		}
 	}
 
 	var req struct {
@@ -82,51 +91,118 @@ func DodajPrevozZaAkciju(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cena ne sme biti negativna"})
 		return
 	}
-	row := models.AkcijaPrevoz{
-		AkcijaID:    akcija.ID,
-		TipPrevoza:  tip,
-		NazivGrupe:  naziv,
-		Kapacitet:   req.Kapacitet,
-		CenaPoOsobi: req.CenaPoOsobi,
-	}
-	if err := db.Create(&row).Error; err != nil {
+
+	var row models.AkcijaPrevoz
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, uint(akcijaID))
+		if err != nil {
+			return err
+		}
+		if err := helpers.ValidateAkcijaActive(lockedAkcija); err != nil {
+			return err
+		}
+		allowed, err := canAddPrevozOnLockedAction(c, tx, lockedAkcija, korisnik.ID)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return errPrevozAddForbidden
+		}
+
+		row = models.AkcijaPrevoz{
+			AkcijaID:    lockedAkcija.ID,
+			TipPrevoza:  tip,
+			NazivGrupe:  naziv,
+			Kapacitet:   req.Kapacitet,
+			CenaPoOsobi: req.CenaPoOsobi,
+		}
+		if err := tx.Create(&row).Error; err != nil {
+			return err
+		}
+
+		if !req.Join {
+			// Čisti insert bez postojećih izbora — nema Platio resetovanja.
+			return nil
+		}
+
+		var prijava models.Prijava
+		if err := tx.Where("akcija_id = ? AND korisnik_id = ?", lockedAkcija.ID, korisnik.ID).First(&prijava).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
+			return err
+		}
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, prijava.ID)
+		if err != nil {
+			return err
+		}
+		if lockedPrijava.AkcijaID != lockedAkcija.ID || lockedPrijava.KorisnikID != korisnik.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
+		}
+
+		var beforeChoices helpers.ParticipantChoices
+		lockedIzbor, izborErr := helpers.LockPrijavaIzboriForUpdate(tx, lockedPrijava.ID)
+		if izborErr == nil {
+			beforeChoices, err = helpers.ParticipantChoicesFromIzbori(lockedIzbor)
+			if err != nil {
+				return err
+			}
+		} else if !errors.Is(izborErr, gorm.ErrRecordNotFound) {
+			return izborErr
+		} else {
+			lockedIzbor = nil
+		}
+
+		afterChoices := beforeChoices
+		afterChoices.SelectedPrevozIDs = append(append([]uint(nil), beforeChoices.SelectedPrevozIDs...), row.ID)
+
+		smJSON, _ := json.Marshal(afterChoices.SelectedSmestajIDs)
+		prJSON, _ := json.Marshal(afterChoices.SelectedPrevozIDs)
+		reJSON, _ := json.Marshal(afterChoices.SelectedRentItems)
+
+		if lockedIzbor == nil {
+			izbor := models.PrijavaIzbori{
+				PrijavaID:            lockedPrijava.ID,
+				SelectedSmestajIDs:   string(smJSON),
+				SelectedPrevozIDs:    string(prJSON),
+				SelectedRentItemsRaw: string(reJSON),
+			}
+			if err := tx.Create(&izbor).Error; err != nil {
+				return err
+			}
+		} else {
+			lockedIzbor.SelectedPrevozIDs = string(prJSON)
+			if err := tx.Save(lockedIzbor).Error; err != nil {
+				return err
+			}
+		}
+
+		return helpers.UnsetPlatioIfObligationChangedTx(tx, *lockedAkcija, lockedPrijava, korisnik, beforeChoices, afterChoices)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+			return
+		}
+		if errors.Is(err, errPrevozAddForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		if mapPrevozLifecycleError(c, err) {
+			return
+		}
+		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju prevoza"})
 		return
 	}
 
-	if req.Join {
-		var prijava models.Prijava
-		if err := db.Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, korisnik.ID).First(&prijava).Error; err == nil {
-			var izbor models.PrijavaIzbori
-			selSmestaj := []uint{}
-			selPrevoz := []uint{}
-			selRent := []prijavaRentItem{}
-			if err := db.Where("prijava_id = ?", prijava.ID).First(&izbor).Error; err == nil {
-				_ = json.Unmarshal([]byte(izbor.SelectedSmestajIDs), &selSmestaj)
-				_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &selPrevoz)
-				_ = json.Unmarshal([]byte(izbor.SelectedRentItemsRaw), &selRent)
-			}
-			selPrevoz = append(selPrevoz, row.ID)
-			smJSON, _ := json.Marshal(selSmestaj)
-			prJSON, _ := json.Marshal(selPrevoz)
-			reJSON, _ := json.Marshal(selRent)
-			if izbor.ID == 0 {
-				izbor = models.PrijavaIzbori{
-					PrijavaID:            prijava.ID,
-					SelectedSmestajIDs:   string(smJSON),
-					SelectedPrevozIDs:    string(prJSON),
-					SelectedRentItemsRaw: string(reJSON),
-				}
-				_ = db.Create(&izbor).Error
-			} else {
-				izbor.SelectedPrevozIDs = string(prJSON)
-				_ = db.Save(&izbor).Error
-			}
-		}
-	}
-	c.JSON(200, gin.H{"message": "Prevoz dodat", "prevoz": row})
+	c.JSON(http.StatusOK, gin.H{"message": "Prevoz dodat", "prevoz": row})
 }
 
+// ObrisiPrevozZaAkciju — host brisanje prevoz opcije sa strip izbora i Platio delta resetom.
+// Lock: Akcija → Prevoz → pogođene Prijave → PrijavaIzbori.
 func ObrisiPrevozZaAkciju(c *gin.Context) {
 	akcijaID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -142,74 +218,174 @@ func ObrisiPrevozZaAkciju(c *gin.Context) {
 
 	db := DB(c)
 
-	var akcija models.Akcija
-	if err := db.First(&akcija, akcijaID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
-		return
-	}
-	if !helpers.CanManageAkcijaEx(c, db, &akcija) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba može obrisati prevoz"})
-		return
-	}
-	if err := helpers.ValidateAkcijaActive(&akcija); err != nil {
-		if errors.Is(err, helpers.ErrAkcijaCancelled) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Akcija je završena"})
-		return
-	}
-
-	var prev models.AkcijaPrevoz
-	if err := db.Where("id = ? AND akcija_id = ?", prevozID, akcija.ID).First(&prev).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Prevoz nije pronađen"})
-		return
-	}
-
-	err = db.Transaction(func(tx *gorm.DB) error {
-		var prijave []models.Prijava
-		if err := tx.Where("akcija_id = ?", akcija.ID).Find(&prijave).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, uint(akcijaID))
+		if err != nil {
 			return err
 		}
-		for _, p := range prijave {
-			var izbor models.PrijavaIzbori
-			if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+		if !helpers.CanManageAkcijaEx(c, tx, lockedAkcija) {
+			return errPrevozDeleteForbidden
+		}
+		if err := helpers.ValidateAkcijaActive(lockedAkcija); err != nil {
+			return err
+		}
+
+		var prev models.AkcijaPrevoz
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND akcija_id = ?", prevozID, lockedAkcija.ID).
+			First(&prev).Error; err != nil {
+			return err
+		}
+		if prev.AkcijaID != lockedAkcija.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
+		}
+
+		affected, err := findPrijaveSelectingPrevozTx(tx, lockedAkcija.ID, prevozID)
+		if err != nil {
+			return err
+		}
+
+		type affectedState struct {
+			prijava     *models.Prijava
+			korisnik    models.Korisnik
+			before      helpers.ParticipantChoices
+			beforeSaldo float64
+			izbor       *models.PrijavaIzbori
+		}
+		states := make([]affectedState, 0, len(affected))
+
+		for _, p := range affected {
+			lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, p.ID)
+			if err != nil {
+				return err
+			}
+			if lockedPrijava.AkcijaID != lockedAkcija.ID {
+				return helpers.ErrPrijavaAkcijaMismatch
+			}
+			lockedIzbor, err := helpers.LockPrijavaIzboriForUpdate(tx, lockedPrijava.ID)
+			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					continue
 				}
 				return err
 			}
-			var sel []uint
-			_ = json.Unmarshal([]byte(izbor.SelectedPrevozIDs), &sel)
-			newSel := make([]uint, 0, len(sel))
-			removed := false
-			for _, id := range sel {
-				if id == prevozID {
-					removed = true
-					continue
-				}
-				newSel = append(newSel, id)
+			before, err := helpers.ParticipantChoicesFromIzbori(lockedIzbor)
+			if err != nil {
+				return err
 			}
+			if !helpers.ChoiceIDsContain(before.SelectedPrevozIDs, prevozID) {
+				continue
+			}
+			var korisnik models.Korisnik
+			if err := tx.First(&korisnik, lockedPrijava.KorisnikID).Error; err != nil {
+				return err
+			}
+			// Before saldo dok prevoz red još postoji (kalkulator čita cijene iz DB).
+			beforeSaldo := helpers.ComputeSaldoForParticipant(tx, *lockedAkcija, korisnik, before)
+			states = append(states, affectedState{
+				prijava:     lockedPrijava,
+				korisnik:    korisnik,
+				before:      before,
+				beforeSaldo: beforeSaldo,
+				izbor:       lockedIzbor,
+			})
+		}
+
+		for _, st := range states {
+			newSel, removed := helpers.RemoveChoiceID(st.before.SelectedPrevozIDs, prevozID)
 			if !removed {
 				continue
 			}
 			prJSON, _ := json.Marshal(newSel)
-			izbor.SelectedPrevozIDs = string(prJSON)
-			if err := tx.Save(&izbor).Error; err != nil {
+			st.izbor.SelectedPrevozIDs = string(prJSON)
+			if err := tx.Save(st.izbor).Error; err != nil {
 				return err
 			}
 		}
+
 		if err := tx.Delete(&models.AkcijaPrevoz{}, prev.ID).Error; err != nil {
 			return err
 		}
+
+		for _, st := range states {
+			after, err := helpers.ParticipantChoicesFromIzbori(st.izbor)
+			if err != nil {
+				return err
+			}
+			if !containsActivePrijavaStatus(st.prijava.Status) || !st.prijava.Platio {
+				continue
+			}
+			afterSaldo := helpers.ComputeSaldoForParticipant(tx, *lockedAkcija, st.korisnik, after)
+			if helpers.SaldoAmountsEqual(st.beforeSaldo, afterSaldo) {
+				continue
+			}
+			if err := tx.Model(st.prijava).Update("platio", false).Error; err != nil {
+				return err
+			}
+			st.prijava.Platio = false
+		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			var akcija models.Akcija
+			if db.First(&akcija, akcijaID).Error != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
+				return
+			}
+			c.JSON(http.StatusNotFound, gin.H{"error": "Prevoz nije pronađen"})
+			return
+		}
+		if errors.Is(err, errPrevozDeleteForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		if mapPrevozLifecycleError(c, err) {
+			return
+		}
+		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju prevoza"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Prevoz obrisan"})
+}
+
+func containsActivePrijavaStatus(status string) bool {
+	for _, s := range helpers.PrijavaActiveStatuses {
+		if s == status {
+			return true
+		}
+	}
+	return false
+}
+
+// findPrijaveSelectingPrevozTx vraća prijave akcije (ORDER BY id) koje u izborima imaju prevozID.
+func findPrijaveSelectingPrevozTx(tx *gorm.DB, akcijaID, prevozID uint) ([]models.Prijava, error) {
+	var prijave []models.Prijava
+	if err := tx.Where("akcija_id = ?", akcijaID).Order("id").Find(&prijave).Error; err != nil {
+		return nil, err
+	}
+	out := make([]models.Prijava, 0)
+	for _, p := range prijave {
+		var izbor models.PrijavaIzbori
+		if err := tx.Where("prijava_id = ?", p.ID).First(&izbor).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return nil, err
+		}
+		choices, err := helpers.ParticipantChoicesFromIzbori(&izbor)
+		if err != nil {
+			return nil, err
+		}
+		if helpers.ChoiceIDsContain(choices.SelectedPrevozIDs, prevozID) {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }
 
 func GetPrevozPrijave(c *gin.Context) {
