@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native'
 import type { AkcijaDetail } from '@beleg/shared'
-import { isActionCancelled, isActionLifecycleActive } from '@beleg/shared'
+import { canShowCancelActionButton, isActionCancelled, isActionLifecycleActive } from '@beleg/shared'
 import { Button, Card, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 import { SectionHeader } from './SectionHeader'
@@ -9,6 +9,7 @@ interface ActionDetailHostPanelProps {
   akcija: AkcijaDetail
   canManageHost: boolean
   onFinish: () => void
+  onCancelAction: () => void
   onEdit: () => void
   onDelete: () => void
   onPdfPrePolaska: () => void
@@ -21,6 +22,7 @@ export function ActionDetailHostPanel({
   akcija,
   canManageHost,
   onFinish,
+  onCancelAction,
   onEdit,
   onDelete,
   onPdfPrePolaska,
@@ -42,6 +44,13 @@ export function ActionDetailHostPanel({
   }
 
   const lifecycleActive = isActionLifecycleActive(akcija)
+  const showCancel = canShowCancelActionButton({
+    canManageAction: canManageHost,
+    actionLoaded: true,
+    isCompleted: akcija.isCompleted,
+    isCancelled: akcija.isCancelled,
+    isLimitedView: !!akcija.limited,
+  })
 
   return (
     <Card style={styles.card}>
@@ -51,6 +60,16 @@ export function ActionDetailHostPanel({
       ) : null}
       {lifecycleActive ? (
         <Button title="Završi akciju" onPress={onFinish} loading={loading} fullWidth />
+      ) : null}
+      {showCancel ? (
+        <Button
+          title="Otkaži akciju"
+          variant="danger"
+          onPress={onCancelAction}
+          loading={loading}
+          fullWidth
+          accessibilityHint="Otvara dijalog za otkazivanje akcije"
+        />
       ) : null}
       {lifecycleActive ? (
         <Button title="Izmeni akciju" variant="secondary" onPress={onEdit} fullWidth />

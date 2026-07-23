@@ -6,14 +6,19 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import {
   buildActionInviteWhatsAppMessage,
   countActivePrijave,
+  countConfirmedParticipants,
+  countPaidPrijave,
+  countPendingSignupRequests,
   getActionRegisteredCount,
   getActionCapacityUsedCount,
   getApiErrorMessage,
   isActionCancelled,
   isActionLifecycleActive,
+  mapCancelActionHttpError,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
 import {
+  cancelAction,
   deleteAkcija,
   fetchActionSignupRequests,
   fetchAkcijaById,
@@ -57,6 +62,7 @@ import { ActionDetailPaymentSummary } from './detail/ActionDetailPaymentSummary'
 import { ActionDetailHostPanel } from './detail/ActionDetailHostPanel'
 import { ActionDetailBottomBar } from './detail/ActionDetailBottomBar'
 import { ActionDetailFinishModal } from './detail/ActionDetailFinishModal'
+import { CancelActionModal } from './detail/CancelActionModal'
 import { GuideRatingModal } from './detail/GuideRatingModal'
 import { ActionDetailInfo } from './detail/ActionDetailInfo'
 import { useActionDetailRegistration } from './hooks/useActionDetailRegistration'
@@ -81,6 +87,9 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
 
   const [finishOpen, setFinishOpen] = useState(false)
   const [finishError, setFinishError] = useState('')
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelError, setCancelError] = useState('')
+  const [cancelFormKey, setCancelFormKey] = useState(0)
   const [shareLoading, setShareLoading] = useState(false)
   const [shareCachedUrl, setShareCachedUrl] = useState('')
   const [addTransportOpen, setAddTransportOpen] = useState(false)
@@ -203,8 +212,12 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     if (isActionCancelled(akcija)) {
       setShareCachedUrl('')
       setShareLoading(false)
+      if (cancelOpen) {
+        setCancelOpen(false)
+        setCancelError('')
+      }
     }
-  }, [akcija?.id, akcija?.isCancelled])
+  }, [akcija?.id, akcija?.isCancelled, cancelOpen])
 
   const respondSignupMutation = useMutation({
     mutationFn: ({ requestId, action }: { requestId: number; action: 'accept' | 'reject' }) =>
@@ -232,6 +245,40 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
       }
     },
     onError: (err) => setFinishError(getApiErrorMessage(err, 'Završetak nije uspeo.')),
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: (reason: string) => cancelAction(client, id, { reason }),
+    onSuccess: async (res) => {
+      if (res.akcija) {
+        queryClient.setQueryData(['akcija', id, inviteToken ?? ''], res.akcija)
+        queryClient.setQueryData(['akcija', id], res.akcija)
+      }
+      setCancelOpen(false)
+      setCancelError('')
+      setShareCachedUrl('')
+      try {
+        await invalidateActionQueries(queryClient, id, inviteToken)
+      } catch {
+        /* best-effort; response.akcija already applied */
+      }
+      await showAlert('Uspeh', res.message || 'Akcija je uspešno otkazana.')
+    },
+    onError: async (err) => {
+      const mapped = mapCancelActionHttpError(err)
+      setCancelError(mapped.message)
+      if (mapped.shouldReload) {
+        try {
+          await invalidateActionQueries(queryClient, id, inviteToken)
+        } catch {
+          /* ignore */
+        }
+      }
+      if (mapped.kind === 'already_cancelled') {
+        setCancelOpen(false)
+        await showAlert('Info', mapped.message)
+      }
+    },
   })
 
   const deleteMutation = useMutation({
@@ -278,6 +325,18 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
     }
     setFinishError('')
     setFinishOpen(true)
+  }
+
+  const openCancel = () => {
+    if (!isActionLifecycleActive(akcija) || !!akcija?.limited) return
+    setCancelError('')
+    setCancelFormKey((k) => k + 1)
+    setCancelOpen(true)
+  }
+
+  const handleConfirmCancel = (trimmedReason: string) => {
+    if (!isActionLifecycleActive(akcija) || cancelMutation.isPending) return
+    cancelMutation.mutate(trimmedReason)
   }
 
   const handleDelete = async () => {
@@ -364,6 +423,15 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
   const bottomPad = spacing.xxl + 100
   const cancelled = isActionCancelled(akcija)
   const lifecycleActive = isActionLifecycleActive(akcija)
+  const cancelConfirmedCount = countConfirmedParticipants(
+    membersQuery.data,
+    membersQuery.isSuccess,
+  )
+  const cancelPaidCount = countPaidPrijave(membersQuery.data, membersQuery.isSuccess)
+  const cancelPendingCount = countPendingSignupRequests(
+    signupRequestsQuery.data,
+    signupRequestsQuery.isSuccess,
+  )
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
@@ -504,6 +572,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             akcija={akcija}
             canManageHost={canManageHost}
             onFinish={() => void openFinish()}
+            onCancelAction={openCancel}
             onEdit={() => {
               if (!lifecycleActive) return
               navigateToActionEdit(id)
@@ -512,7 +581,7 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             onPdfPrePolaska={() => void handlePdfPrePolaska()}
             onPdfZavrsena={() => void handlePdfZavrsena()}
             onShare={() => void handleShare()}
-            loading={deleteMutation.isPending || shareLoading}
+            loading={deleteMutation.isPending || shareLoading || cancelMutation.isPending}
           />
 
           {guideRatings.canShowGuideRatingPrompt ? (
@@ -581,6 +650,25 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         error={finishError}
         onClose={() => setFinishOpen(false)}
         onConfirm={(rashod) => finishMutation.mutate(rashod)}
+      />
+
+      <CancelActionModal
+        key={cancelFormKey}
+        visible={cancelOpen}
+        confirmedCount={cancelConfirmedCount}
+        pendingCount={cancelPendingCount}
+        paidCount={cancelPaidCount}
+        isCompleted={akcija.isCompleted}
+        isCancelled={akcija.isCancelled}
+        loading={cancelMutation.isPending}
+        error={cancelError}
+        onClose={() => {
+          if (!cancelMutation.isPending) {
+            setCancelOpen(false)
+            setCancelError('')
+          }
+        }}
+        onConfirm={handleConfirmCancel}
       />
 
       <GuideRatingModal
