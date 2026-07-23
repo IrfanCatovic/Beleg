@@ -532,7 +532,7 @@ func DeleteAkcija(c *gin.Context) {
 
 func OtkaziPrijavuNaAkciju(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	akcijaID, err := strconv.Atoi(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID akcije"})
 		return
@@ -553,40 +553,90 @@ func OtkaziPrijavuNaAkciju(c *gin.Context) {
 		return
 	}
 
-	var prijava models.Prijava
-	if err := db.Where("akcija_id = ? AND korisnik_id = ?", id, korisnik.ID).First(&prijava).Error; err != nil {
+	// Preliminary read: samo id/akcija_id radi lock redoslijeda (nije autoritativan).
+	var probe models.Prijava
+	if err := db.Select("id", "akcija_id").
+		Where("akcija_id = ? AND korisnik_id = ?", akcijaID, korisnik.ID).
+		First(&probe).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Niste bili prijavljeni na ovu akciju"})
 		return
 	}
 
-	var akcija models.Akcija
-	if err := db.First(&akcija, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Akcija nije pronađena"})
-		return
-	}
-	if akcija.IsCancelled {
-		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
-		return
-	}
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		// Autoritativni redoslijed: Akcija → Prijava.
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, uint(akcijaID))
+		if err != nil {
+			return err
+		}
+		if lockedAkcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
+		if lockedAkcija.IsCompleted {
+			return helpers.ErrAkcijaAlreadyComplete
+		}
 
-	if prijava.Status != "prijavljen" {
-		isOwnActiveGuideAction :=
-			strings.TrimSpace(strings.ToLower(akcija.OrganizatorTip)) == "vodic" &&
-				akcija.VodicID == korisnik.ID &&
-				!akcija.IsCompleted &&
-				!akcija.IsCancelled
-		if !isOwnActiveGuideAction {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh"})
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, probe.ID)
+		if err != nil {
+			return err
+		}
+		if lockedPrijava.AkcijaID != lockedAkcija.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
+		}
+		if lockedPrijava.KorisnikID != korisnik.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
+		}
+
+		// Status guard nad locked stanjem.
+		// Napomena (postojeća semantika): nema Platio guard-a — paid self-cancel
+		// aktivne prijave i dalje hard-delete-uje prijavu (finansijski rizik, van ovog P1 fixa).
+		if lockedPrijava.Status != "prijavljen" {
+			isOwnActiveGuideAction :=
+				strings.TrimSpace(strings.ToLower(lockedAkcija.OrganizatorTip)) == "vodic" &&
+					lockedAkcija.VodicID == korisnik.ID &&
+					!lockedAkcija.IsCompleted &&
+					!lockedAkcija.IsCancelled
+			if !isOwnActiveGuideAction {
+				return errSelfCancelStatusForbidden
+			}
+		}
+
+		if err := tx.Delete(lockedPrijava).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("prijava_id = ?", lockedPrijava.ID).Delete(&models.PrijavaIzbori{}).Error; err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
-	}
-	if err := db.Delete(&prijava).Error; err != nil {
+		if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, errSelfCancelStatusForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Niste bili prijavljeni na ovu akciju"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otkazivanju"})
 		return
 	}
-	_ = db.Where("prijava_id = ?", prijava.ID).Delete(&models.PrijavaIzbori{}).Error
+
 	c.JSON(http.StatusOK, gin.H{"message": "Uspešno ste otkazali prijavu"})
 }
+
+// errSelfCancelStatusForbidden — postojeća Forbidden poruka za nedozvoljen status self-cancela.
+var errSelfCancelStatusForbidden = errors.New("Ne možete otkazati prijavu nakon što vam je admin potvrdio uspeh ili neuspeh")
 
 func GetMojePopeoSe(c *gin.Context) {
 	username, exists := c.Get("username")
