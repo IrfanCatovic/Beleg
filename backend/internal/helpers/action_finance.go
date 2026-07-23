@@ -29,6 +29,16 @@ var ErrPaidPrijavaCannotBeSelfCancelled = errors.New(
 	"Prijava sa evidentiranom uplatom ne može biti otkazana. Kontaktirajte organizatora radi provjere uplate i eventualnog povrata novca.",
 )
 
+// ErrPaidPrijavaCannotBeDeleted blokira host DeletePrijava kada locked Prijava.Platio=true.
+var ErrPaidPrijavaCannotBeDeleted = errors.New(
+	"Prijava sa evidentiranom uplatom ne može biti uklonjena. Prvo provjerite uplatu i dogovorite eventualni povrat novca.",
+)
+
+// ErrHostDeletePrijavaStatusForbidden blokira host hard-delete terminalne/istorijske prijave.
+var ErrHostDeletePrijavaStatusForbidden = errors.New(
+	"Učesnik sa potvrđenim ili istorijskim statusom ne može biti uklonjen sa akcije.",
+)
+
 // saldoMoneyEpsilon — ista tolerancija kao u FinishAction (finEps).
 const saldoMoneyEpsilon = 1e-6
 

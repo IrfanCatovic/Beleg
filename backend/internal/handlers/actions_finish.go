@@ -800,10 +800,8 @@ func UpdatePrijavaStatus(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Status ažuriran", "prijava": outPrijava})
 }
 
-// DeletePrijava — host uklanjanje učesnika.
-// Napomena (P1 follow-up, van ovog fixa): plaćena prijava (Platio=true) i dalje može biti
-// hard-delete-ovana ovdje bez paid guard-a / lock ordera; riješiti zajedno sa race-safe
-// host delete flowom, ne automatski kopirati self-cancel paid pravilo bez analize.
+// DeletePrijava — host uklanjanje potvrđenog učesnika.
+// Autoritativni redoslijed: Lock Akcija → auth/lifecycle → Lock Prijava → relation/status/paid → delete.
 func DeletePrijava(c *gin.Context) {
 	idStr := c.Param("id")
 	prijavaID, err := strconv.Atoi(idStr)
@@ -814,44 +812,87 @@ func DeletePrijava(c *gin.Context) {
 
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
-	var prijava models.Prijava
-	if err := db.Preload("Akcija").First(&prijava, prijavaID).Error; err != nil {
+
+	// Preliminary read: samo id/akcija_id radi lock redoslijeda (nije autoritativan).
+	var probe models.Prijava
+	if err := db.Select("id", "akcija_id").First(&probe, prijavaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
 		return
 	}
-	if !helpers.CanManageAkcijaEx(c, db, &prijava.Akcija) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Samo organizator kluba domaćina može da ukloni člana sa akcije"})
-		return
-	}
-	if prijava.Akcija.IsCancelled {
-		c.JSON(http.StatusConflict, gin.H{"error": helpers.ErrAkcijaCancelled.Error()})
-		return
-	}
 
-	if prijava.Status == "popeo se" && helpers.PrijavaCountsAsClimbedPeak(db, &prijava.Akcija, prijava.KorisnikID) {
-		var korisnik models.Korisnik
-		if err := db.First(&korisnik, prijava.KorisnikID).Error; err == nil {
-			korisnik.UkupnoKmKorisnik -= prijava.Akcija.UkupnoKmAkcija
-			korisnik.UkupnoMetaraUsponaKorisnik -= prijava.Akcija.UkupnoMetaraUsponaAkcija
-			korisnik.BrojPopeoSe -= 1
-			if korisnik.UkupnoKmKorisnik < 0 {
-				korisnik.UkupnoKmKorisnik = 0
-			}
-			if korisnik.UkupnoMetaraUsponaKorisnik < 0 {
-				korisnik.UkupnoMetaraUsponaKorisnik = 0
-			}
-			if korisnik.BrojPopeoSe < 0 {
-				korisnik.BrojPopeoSe = 0
-			}
-			db.Save(&korisnik)
+	errUnauthorized := errors.New("Samo organizator kluba domaćina može da ukloni člana sa akcije")
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, probe.AkcijaID)
+		if err != nil {
+			return err
 		}
-	}
+		if !helpers.CanManageAkcijaEx(c, tx, lockedAkcija) {
+			return errUnauthorized
+		}
+		if lockedAkcija.IsCancelled {
+			return helpers.ErrAkcijaCancelled
+		}
+		if lockedAkcija.IsCompleted {
+			return helpers.ErrAkcijaAlreadyComplete
+		}
 
-	if err := db.Delete(&prijava).Error; err != nil {
+		lockedPrijava, err := helpers.LockPrijavaForUpdate(tx, probe.ID)
+		if err != nil {
+			return err
+		}
+		if lockedPrijava.AkcijaID != lockedAkcija.ID {
+			return helpers.ErrPrijavaAkcijaMismatch
+		}
+
+		// Samo aktivna prijavljen prijava — terminalna istorija ostaje.
+		if lockedPrijava.Status != "prijavljen" {
+			return helpers.ErrHostDeletePrijavaStatusForbidden
+		}
+		if lockedPrijava.Platio {
+			return helpers.ErrPaidPrijavaCannotBeDeleted
+		}
+
+		if err := tx.Where("prijava_id = ?", lockedPrijava.ID).Delete(&models.PrijavaIzbori{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(lockedPrijava).Error; err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if errors.Is(err, errUnauthorized) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrAkcijaCancelled) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrAkcijaAlreadyComplete) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPrijavaAkcijaMismatch) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrHostDeletePrijavaStatusForbidden) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, helpers.ErrPaidPrijavaCannotBeDeleted) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Prijava nije pronađena"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju člana sa akcije"})
 		return
 	}
-	_ = db.Where("prijava_id = ?", prijava.ID).Delete(&models.PrijavaIzbori{}).Error
+
 	c.JSON(http.StatusOK, gin.H{"message": "Član je uklonjen sa akcije"})
 }
 
