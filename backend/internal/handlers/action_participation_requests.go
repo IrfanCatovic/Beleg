@@ -6,6 +6,7 @@ import (
 	"beleg-app/backend/internal/notifications"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -130,6 +131,7 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 		"hostClubName":      clubName,
 	}
 	metaBytes, _ := json.Marshal(metaMap)
+	// In-app insert pa push (NotifyUsers); greške su best-effort i ne smiju vratiti domain TX.
 	notifications.NotifyUsers(
 		db,
 		[]uint{req.TargetUserID},
@@ -139,6 +141,23 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 		"",
 		string(metaBytes),
 	)
+}
+
+// participationCreateNotify je post-commit notifikacija; testovi mogu override-ovati.
+var participationCreateNotify = func(db *gorm.DB, req models.ActionParticipationRequest) {
+	createActionParticipationRequestNotification(db, req)
+}
+
+func notifyParticipationRequestCreatedBestEffort(db *gorm.DB, req models.ActionParticipationRequest) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf(
+				"participation notify panic phase=notify requestId=%d akcijaId=%d recipientUserId=%d: %v",
+				req.ID, req.AkcijaID, req.TargetUserID, r,
+			)
+		}
+	}()
+	participationCreateNotify(db, req)
 }
 
 func loadActionParticipationRequestWithRelations(db *gorm.DB, requestID uint) (*models.ActionParticipationRequest, error) {
@@ -460,6 +479,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 	}
 
 	var reqDTO actionParticipationRequestDTO
+	var createdReq models.ActionParticipationRequest
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		var akcija models.Akcija
 		if err := tx.Preload("Klub").Clauses(clause.Locking{Strength: "UPDATE"}).First(&akcija, actionID).Error; err != nil {
@@ -516,7 +536,7 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		req.TargetUser = target
 		req.RequestedBy = *currentUser
 		reqDTO = buildActionParticipationRequestDTO(tx, req)
-		createActionParticipationRequestNotification(tx, req)
+		createdReq = req
 		return nil
 	}); err != nil {
 		switch {
@@ -539,6 +559,9 @@ func CreateActionParticipationRequest(c *gin.Context) {
 		}
 		return
 	}
+
+	// Best-effort fan-out tek nakon uspješnog domain commita.
+	notifyParticipationRequestCreatedBestEffort(db, createdReq)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Zahtev je poslat",
