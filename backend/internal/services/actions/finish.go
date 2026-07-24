@@ -3,7 +3,9 @@ package actions
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -18,19 +20,75 @@ type FinishActionInput struct {
 	RashodNaAkciji float64
 }
 
+// SummitRewardNotification — post-commit fan-out za korisnika koji je u FinishAction
+// stvarno dobio summit reward domain efekat (trenutno: guide auto-promote).
+type SummitRewardNotification struct {
+	RecipientUserID uint
+}
+
 type FinishActionResult struct {
-	Akcija         models.Akcija
-	ImportedUplate int
-	ImportedIznos  float64
-	PrihodUkupan   float64
-	RashodNaAkciji float64
-	NetoFinansije  float64
-	FinansijeTip   string
+	Akcija                    models.Akcija
+	ImportedUplate            int
+	ImportedIznos             float64
+	PrihodUkupan              float64
+	RashodNaAkciji            float64
+	NetoFinansije             float64
+	FinansijeTip              string
+	SummitRewardNotifications []SummitRewardNotification
+}
+
+// summitRewardNotify je post-commit helper; testovi mogu override-ovati.
+var summitRewardNotify = func(db *gorm.DB, userID uint, akcija models.Akcija) {
+	notifications.NotifySummitReward(db, userID, akcija)
+}
+
+func notifySummitRewardsBestEffort(db *gorm.DB, akcija models.Akcija, items []SummitRewardNotification) {
+	if len(items) == 0 {
+		return
+	}
+	// Deduplikacija po recipientu (jedan notification po useru i akciji).
+	seen := make(map[uint]struct{}, len(items))
+	recipients := make([]uint, 0, len(items))
+	for _, it := range items {
+		if it.RecipientUserID == 0 {
+			continue
+		}
+		if _, ok := seen[it.RecipientUserID]; ok {
+			continue
+		}
+		seen[it.RecipientUserID] = struct{}{}
+		recipients = append(recipients, it.RecipientUserID)
+	}
+	sort.Slice(recipients, func(i, j int) bool { return recipients[i] < recipients[j] })
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf(
+				"summit reward notify panic phase=notify akcijaId=%d recipientCount=%d: %v",
+				akcija.ID, len(recipients), r,
+			)
+		}
+	}()
+
+	for _, uid := range recipients {
+		func(userID uint) {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf(
+						"summit reward notify panic phase=notify akcijaId=%d recipientUserId=%d: %v",
+						akcija.ID, userID, r,
+					)
+				}
+			}()
+			summitRewardNotify(db, userID, akcija)
+		}(uid)
+	}
 }
 
 // FinishAction završava akciju i upisuje finansijski efekat u klub.
 // Redoslijed: lock Akcija → cancel pending signup → revoke invites → lock Prijava
-// → guide promote → unresolved guard → IsCompleted → finansije.
+// → guide promote → unresolved guard → IsCompleted → finansije → commit
+// → summit reward notification (best-effort).
 func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in FinishActionInput) (*FinishActionResult, error) {
 	const finEps = 1e-6
 	importedCount := 0
@@ -38,6 +96,7 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 	finansijeTip := "nista"
 	netoFinansije := 0.0
 	rashodNaAkciji := in.RashodNaAkciji
+	var summitNotifs []SummitRewardNotification
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		locked, err := helpers.LockAkcijaForUpdate(tx, akcija.ID)
@@ -80,8 +139,9 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 			return err
 		}
 
-		if guidePromoted {
-			notifications.NotifySummitReward(tx, akcija.VodicID, *akcija)
+		// Snapshot samo kada je reward domain efekat stvarno izvršen u ovoj TX.
+		if guidePromoted && akcija.VodicID != 0 {
+			summitNotifs = append(summitNotifs, SummitRewardNotification{RecipientUserID: akcija.VodicID})
 		}
 
 		var prijave []models.Prijava
@@ -147,13 +207,16 @@ func FinishAction(db *gorm.DB, akcija *models.Akcija, actor models.Korisnik, in 
 		return nil, err
 	}
 
+	notifySummitRewardsBestEffort(db, *akcija, summitNotifs)
+
 	return &FinishActionResult{
-		Akcija:         *akcija,
-		ImportedUplate: importedCount,
-		ImportedIznos:  prihodUkupan,
-		PrihodUkupan:   prihodUkupan,
-		RashodNaAkciji: rashodNaAkciji,
-		NetoFinansije:  netoFinansije,
-		FinansijeTip:   finansijeTip,
+		Akcija:                    *akcija,
+		ImportedUplate:            importedCount,
+		ImportedIznos:             prihodUkupan,
+		PrihodUkupan:              prihodUkupan,
+		RashodNaAkciji:            rashodNaAkciji,
+		NetoFinansije:             netoFinansije,
+		FinansijeTip:              finansijeTip,
+		SummitRewardNotifications: summitNotifs,
 	}, nil
 }
