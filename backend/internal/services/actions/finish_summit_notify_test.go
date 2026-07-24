@@ -470,3 +470,129 @@ func TestFinishAction_UsesUniqueMemoryDSN(t *testing.T) {
 		t.Fatal("sibling DSN isolation")
 	}
 }
+
+func TestNotifySummitRewardsBestEffort_MultipleRecipientsDedupAndOrder(t *testing.T) {
+	db := testFinishDB(t)
+	akcija := models.Akcija{ID: 42, Naziv: "Multi"}
+
+	var got []uint
+	setSummitRewardNotifyForTest(t, func(_ *gorm.DB, userID uint, a models.Akcija) {
+		if a.ID != akcija.ID {
+			t.Errorf("akcija.ID=%d", a.ID)
+		}
+		got = append(got, userID)
+	})
+
+	notifySummitRewardsBestEffort(db, akcija, []SummitRewardNotification{
+		{RecipientUserID: 30},
+		{RecipientUserID: 10},
+		{RecipientUserID: 30}, // duplikat
+		{RecipientUserID: 0},  // skip
+		{RecipientUserID: 20},
+	})
+
+	want := []uint{10, 20, 30}
+	if len(got) != len(want) {
+		t.Fatalf("got=%v want=%v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got=%v want=%v", got, want)
+		}
+	}
+}
+
+func TestNotifySummitRewardsBestEffort_OneRecipientPanicContinues(t *testing.T) {
+	db := testFinishDB(t)
+	akcija := models.Akcija{ID: 7, Naziv: "Partial"}
+
+	var okCalls int32
+	setSummitRewardNotifyForTest(t, func(_ *gorm.DB, userID uint, _ models.Akcija) {
+		if userID == 1 {
+			panic("forced recipient failure")
+		}
+		atomic.AddInt32(&okCalls, 1)
+	})
+
+	notifySummitRewardsBestEffort(db, akcija, []SummitRewardNotification{
+		{RecipientUserID: 1},
+		{RecipientUserID: 2},
+	})
+	if atomic.LoadInt32(&okCalls) != 1 {
+		t.Fatalf("second recipient must still run, okCalls=%d", okCalls)
+	}
+}
+
+func TestFinishAction_GuideStatsError_RollbackNoNotify(t *testing.T) {
+	db := testFinishDB(t)
+	guide, akcija := seedClubGuideFinish(t, db, "staterr")
+
+	var notifyCalls int32
+	setSummitRewardNotifyForTest(t, func(*gorm.DB, uint, models.Akcija) {
+		atomic.AddInt32(&notifyCalls, 1)
+	})
+
+	cbName := "fail_guide_stats_" + strings.ReplaceAll(t.Name(), "/", "_")
+	if err := db.Callback().Update().Before("gorm:before_update").Register(cbName, func(tx *gorm.DB) {
+		if tx.Statement == nil || tx.Statement.Table != "korisnici" {
+			return
+		}
+		if dest, ok := tx.Statement.Dest.(*models.Korisnik); ok && dest != nil && dest.BrojPopeoSe > 0 {
+			_ = tx.AddError(errors.New("forced guide stats failure"))
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(cbName) })
+
+	_, err := FinishAction(db, &akcija, guide, FinishActionInput{})
+	if err == nil {
+		t.Fatal("expected stats failure")
+	}
+	if atomic.LoadInt32(&notifyCalls) != 0 {
+		t.Fatal("no notify after reward/stats rollback")
+	}
+	var a models.Akcija
+	_ = db.First(&a, akcija.ID)
+	if a.IsCompleted {
+		t.Fatal("must not complete")
+	}
+	if reloadUser(t, db, guide.ID).BrojPopeoSe != 0 {
+		t.Fatal("stats must not stick")
+	}
+}
+
+func TestFinishAction_PushFailureAfterInApp_StillSuccess(t *testing.T) {
+	db := testFinishDB(t)
+	guide, akcija := seedClubGuideFinish(t, db, "pushfail")
+
+	setSummitRewardNotifyForTest(t, func(gdb *gorm.DB, userID uint, a models.Akcija) {
+		// Mimic NotifyUsers: in-app insert succeeds, push phase fails without aborting finish.
+		n := models.Obavestenje{
+			UserID: userID,
+			Type:   models.ObavestenjeTipSummitReward,
+			Title:  "Čestitamo!",
+			Body:   fmt.Sprintf("Uspešno ste popeli akciju %s", a.Naziv),
+			Link:   fmt.Sprintf("/akcije/%d?claimReward=1", a.ID),
+		}
+		if err := gdb.Create(&n).Error; err != nil {
+			t.Errorf("in-app insert: %v", err)
+			return
+		}
+		_ = errors.New("forced push send failure")
+	})
+
+	res, err := FinishAction(db, &akcija, guide, FinishActionInput{})
+	if err != nil {
+		t.Fatalf("finish must succeed despite push failure: %v", err)
+	}
+	if !res.Akcija.IsCompleted {
+		t.Fatal("completed")
+	}
+	if countSummitNotifsForUser(t, db, guide.ID) != 1 {
+		t.Fatal("in-app row must remain after push failure")
+	}
+	if reloadUser(t, db, guide.ID).BrojPopeoSe != 1 {
+		t.Fatal("stats remain")
+	}
+}
