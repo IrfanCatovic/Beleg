@@ -197,6 +197,50 @@ func DeleteKorisnikByAdmin(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Korisnik je obrisan"})
 }
 
+func loadKorisniciBlockSet(db *gorm.DB, currentUserID uint) map[uint]struct{} {
+	var blocks []models.Block
+	_ = db.Where("blocker_id = ? OR blocked_id = ?", currentUserID, currentUserID).Find(&blocks).Error
+	blockedSet := map[uint]struct{}{}
+	for _, b := range blocks {
+		if b.BlockerID == currentUserID {
+			blockedSet[b.BlockedID] = struct{}{}
+		} else if b.BlockedID == currentUserID {
+			blockedSet[b.BlockerID] = struct{}{}
+		}
+	}
+	return blockedSet
+}
+
+func mapKorisniciToPublicDTOs(db *gorm.DB, rows []models.Korisnik, currentUserID uint, blockedSet map[uint]struct{}, excludeSelf bool) []PublicUserDTO {
+	candidateIDs := make([]uint, 0, len(rows))
+	for i := range rows {
+		if excludeSelf && rows[i].ID == currentUserID {
+			continue
+		}
+		if rows[i].ID != currentUserID {
+			if _, blocked := blockedSet[rows[i].ID]; blocked {
+				continue
+			}
+		}
+		candidateIDs = append(candidateIDs, rows[i].ID)
+	}
+	profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, candidateIDs)
+
+	out := make([]PublicUserDTO, 0, len(candidateIDs))
+	for i := range rows {
+		if excludeSelf && rows[i].ID == currentUserID {
+			continue
+		}
+		if rows[i].ID != currentUserID {
+			if _, blocked := blockedSet[rows[i].ID]; blocked {
+				continue
+			}
+		}
+		out = append(out, BuildPublicUserDTO(rows[i], profiSet[rows[i].ID]))
+	}
+	return out
+}
+
 func GetKorisnici(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
@@ -208,80 +252,27 @@ func GetKorisnici(c *gin.Context) {
 		return
 	}
 
+	blockedSet := loadKorisniciBlockSet(db, currentUser.ID)
+
 	// Global search treba da radi i bez izabranog kluba.
 	// Koristi se za pronalazak korisnika (profil/follow) preko header pretrage.
 	if strings.EqualFold(strings.TrimSpace(c.Query("scope")), "global") {
-		type PublicUserDTO struct {
-			ID           uint   `json:"id"`
-			Username     string `json:"username"`
-			FullName     string `json:"fullName,omitempty"`
-			AvatarURL    string `json:"avatar_url,omitempty"`
-			Role         string `json:"role"`
-			KlubID       *uint  `json:"klubId,omitempty"`
-			KlubNaziv    string `json:"klubNaziv,omitempty"`
-			KlubLogoURL  string `json:"klubLogoUrl,omitempty"`
-			IsProfiGuide bool   `json:"isProfiGuide,omitempty"`
-		}
-
-		var blocks []models.Block
-		_ = db.Where("blocker_id = ? OR blocked_id = ?", currentUser.ID, currentUser.ID).Find(&blocks).Error
-		blockedSet := map[uint]struct{}{}
-		for _, b := range blocks {
-			if b.BlockerID == currentUser.ID {
-				blockedSet[b.BlockedID] = struct{}{}
-			} else if b.BlockedID == currentUser.ID {
-				blockedSet[b.BlockerID] = struct{}{}
-			}
-		}
-
 		var all []models.Korisnik
 		if err := db.Preload("Klub").Where("role <> ?", "deleted").Find(&all).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Greška pri učitavanju korisnika"})
 			return
 		}
-
-		out := make([]PublicUserDTO, 0, len(all))
-		candidateIDs := make([]uint, 0, len(all))
-		for i := range all {
-			if all[i].ID == currentUser.ID {
-				continue
-			}
-			if _, blocked := blockedSet[all[i].ID]; blocked {
-				continue
-			}
-			candidateIDs = append(candidateIDs, all[i].ID)
-		}
-		profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, candidateIDs)
-		for i := range all {
-			if all[i].ID == currentUser.ID {
-				continue
-			}
-			if _, blocked := blockedSet[all[i].ID]; blocked {
-				continue
-			}
-			dto := PublicUserDTO{
-				ID: all[i].ID, Username: all[i].Username, FullName: all[i].FullName,
-				AvatarURL: all[i].AvatarURL, Role: all[i].Role, KlubID: all[i].KlubID,
-				IsProfiGuide: profiSet[all[i].ID],
-			}
-			if all[i].Klub != nil {
-				dto.KlubNaziv = all[i].Klub.Naziv
-				dto.KlubLogoURL = all[i].Klub.LogoURL
-			}
-			out = append(out, dto)
-		}
-
-		c.JSON(200, gin.H{"korisnici": out})
+		c.JSON(200, gin.H{"korisnici": mapKorisniciToPublicDTOs(db, all, currentUser.ID, blockedSet, true)})
 		return
 	}
 
 	clubID, ok := helpers.GetEffectiveClubID(c, db)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "korisnici": []models.Korisnik{}})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Izaberite klub na stranici Klubovi.", "korisnici": []PublicUserDTO{}})
 		return
 	}
 	if clubID == 0 {
-		c.JSON(200, gin.H{"korisnici": []models.Korisnik{}})
+		c.JSON(200, gin.H{"korisnici": []PublicUserDTO{}})
 		return
 	}
 
@@ -291,32 +282,8 @@ func GetKorisnici(c *gin.Context) {
 		return
 	}
 
-	var blocks []models.Block
-	_ = db.Where("blocker_id = ? OR blocked_id = ?", currentUser.ID, currentUser.ID).Find(&blocks).Error
-	blockedSet := map[uint]struct{}{}
-	for _, b := range blocks {
-		if b.BlockerID == currentUser.ID {
-			blockedSet[b.BlockedID] = struct{}{}
-		} else if b.BlockedID == currentUser.ID {
-			blockedSet[b.BlockerID] = struct{}{}
-		}
-	}
-
-	filtered := make([]models.Korisnik, 0, len(korisnici))
-	for i := range korisnici {
-		if korisnici[i].ID != currentUser.ID {
-			if _, blocked := blockedSet[korisnici[i].ID]; blocked {
-				continue
-			}
-		}
-		if korisnici[i].Klub != nil {
-			korisnici[i].KlubNaziv = korisnici[i].Klub.Naziv
-			korisnici[i].KlubLogoURL = korisnici[i].Klub.LogoURL
-		}
-		filtered = append(filtered, korisnici[i])
-	}
-	helpers.ApplyProfiGuideFlagsToKorisnici(db, filtered)
-	c.JSON(200, gin.H{"korisnici": filtered})
+	// Club roster: uključuje trenutnog korisnika (postojeće ponašanje); i dalje filter blockova.
+	c.JSON(200, gin.H{"korisnici": mapKorisniciToPublicDTOs(db, korisnici, currentUser.ID, blockedSet, false)})
 }
 
 func GetKorisnikInfo(c *gin.Context) {
