@@ -21,16 +21,14 @@ import {
 import { syncAvatarAfterSuccessfulUpload } from './syncAvatarAfterSuccessfulUpload'
 import { fetchUserFollowingList, fetchUserFollowersList } from '../../services/follows'
 import { useAuth } from '../../context/AuthContext'
-import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
-import FollowControls from '../../components/buttons/FollowControls'
-import BlockUserButton from '../../components/buttons/BlockUserButton'
 import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
-import { getRoleLabel, getRoleStyle, hasVisibleRole } from '../../utils/roleUtils'
-import { generateMemberPdf, type MemberPdfData } from '../../utils/generateMemberPdf'
 import { formatDate } from '../../utils/dateUtils'
 import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { ProfileActionGrid } from '../../components/profile/ProfileActionGrid'
-import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
+import { ProfilePassportShortcut } from '../../components/profile/ProfilePassportShortcut'
+import { buildPassportKpis } from '../../utils/profilePassportKpis'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
   id: number
@@ -115,8 +113,6 @@ export default function UserProfile() {
   const [coverUploading, setCoverUploading] = useState(false)
   const [avatarUpdating, setAvatarUpdating] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
-  const [mobileActionsAnchor, setMobileActionsAnchor] = useState({ top: 68, left: 0 })
 
   const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
   const [blockedEither, setBlockedEither] = useState(false)
@@ -246,20 +242,32 @@ export default function UserProfile() {
   const isOwn = currentUser?.username === korisnik?.username
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
-  const showRoleBadge = !!korisnik && hasVisibleRole(korisnik.role) && (korisnik.role === 'superadmin' || !!korisnik.klubNaziv)
   const sameClub = !!currentUser && typeof currentUser.klubId === 'number' && typeof korisnik?.klubId === 'number' && currentUser.klubId === korisnik.klubId
-  const isSuperadmin = currentUser?.role === 'superadmin'
-  const isClubAdminOrSecretary = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
-  const canSeeMobileActionsMenu = !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub) || canShowFollowControls || canShowBlockControls
   const showProfiGuideBadge = !!korisnik?.isProfiGuide
   const showGuidedActionsTab = showProfiGuideBadge || vodeneAkcije.length > 0
+  const passportKpis = buildPassportKpis(stats, i18n.language)
   const guideRatingSummary: GuideRatingSummary = korisnik?.guideRatingSummary ?? {
     prosecnaOcena: 0,
     brojOcena: 0,
     brojKomentara: 0,
   }
+  const headerActions =
+    korisnik != null ? (
+      <ProfileHeaderActions
+        isOwn={!!isOwn}
+        userId={korisnik.id}
+        currentUser={currentUser}
+        korisnikForPdf={korisnik as unknown as import('../../utils/generateMemberPdf').MemberPdfData}
+        clubName={korisnik.klubNaziv || ''}
+        canShowFollow={canShowFollowControls}
+        canShowBlock={canShowBlockControls}
+        blockedEither={blockedEither}
+        onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+        onFollowStatusChange={fetchFollowCounts}
+      />
+    ) : null
 
   useEffect(() => {
     if (!isOwn || !currentUser) {
@@ -281,7 +289,6 @@ export default function UserProfile() {
 
   const coverInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
-  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null)
 
   const openFollowModal = async (mode: 'following' | 'followers') => {
     if (!korisnik?.id || !currentUser) return
@@ -416,16 +423,6 @@ export default function UserProfile() {
     setPositioning(false)
   }
 
-  const updateMobileActionsAnchor = useCallback(() => {
-    const el = mobileMenuButtonRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    setMobileActionsAnchor({
-      top: rect.bottom + 8,
-      left: rect.left + rect.width / 18,
-    })
-  }, [])
-
   useEffect(() => {
     if (!positioning) return
     const prev = document.body.style.overflow
@@ -448,17 +445,6 @@ export default function UserProfile() {
       document.body.style.overflow = prev
     }
   }, [avatarLightboxOpen])
-
-  useEffect(() => {
-    if (!mobileActionsOpen) return
-    updateMobileActionsAnchor()
-    window.addEventListener('resize', updateMobileActionsAnchor)
-    window.addEventListener('scroll', updateMobileActionsAnchor, true)
-    return () => {
-      window.removeEventListener('resize', updateMobileActionsAnchor)
-      window.removeEventListener('scroll', updateMobileActionsAnchor, true)
-    }
-  }, [mobileActionsOpen, updateMobileActionsAnchor])
 
   /* ── loading / error ── */
   if (loading) return (
@@ -484,7 +470,7 @@ export default function UserProfile() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
 
       {/* ══════════ COVER ══════════ */}
-      <div className="relative h-56 sm:h-44 md:h-64 lg:h-80 xl:h-96 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2">
+      <div className="relative h-40 sm:h-44 md:h-52 lg:h-64 xl:h-72 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2">
         {hasCover ? (
           <img
             src={korisnik.cover_image_url}
@@ -497,53 +483,6 @@ export default function UserProfile() {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-emerald-900/80 to-teal-800" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
-
-        {/* Gornji desni ugao: mobilni meni (3 tačke) + desktop akcije */}
-        <div className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-[260] flex flex-row-reverse items-center gap-2 flex-wrap justify-end pointer-events-auto max-w-[calc(100vw-5rem)]">
-          <div className="hidden sm:flex">
-            <ProfileActionButtons
-              inline
-              userId={String(korisnik.id)}
-              isOwnProfile={!!isOwn}
-              currentUser={currentUser}
-              onPrintClick={() =>
-                generateMemberPdf({
-                  ...(korisnik as unknown as MemberPdfData),
-                  clubName: korisnik.klubNaziv || '',
-                })
-              }
-            >
-              {canShowFollowControls && (
-                <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
-              )}
-              {canShowBlockControls && (
-                <BlockUserButton
-                  targetId={korisnik.id}
-                  onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
-                />
-              )}
-            </ProfileActionButtons>
-          </div>
-          {canSeeMobileActionsMenu && (
-            <div className="relative sm:hidden z-[270]">
-            <button
-              ref={mobileMenuButtonRef}
-              type="button"
-              onClick={() => {
-                if (!mobileActionsOpen) updateMobileActionsAnchor()
-                setMobileActionsOpen((v) => !v)
-              }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-transform duration-200 active:scale-95"
-              aria-label={mobileActionsOpen ? t('close') : 'Otvori meni akcija'}
-              aria-expanded={mobileActionsOpen}
-            >
-              <span className={`inline-flex transition-transform duration-200 ${mobileActionsOpen ? 'rotate-90' : ''}`}>
-                {mobileActionsOpen ? <XMarkIcon className="h-6 w-6" /> : <EllipsisHorizontalIcon className="h-6 w-6" />}
-              </span>
-            </button>
-            </div>
-          )}
-        </div>
 
         {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
         {isOwn && !positioning && (
@@ -561,7 +500,7 @@ export default function UserProfile() {
               disabled={coverUploading}
               title={hasCover ? t('cover.replace') : t('cover.add')}
               aria-label={hasCover ? t('cover.replace') : t('cover.add')}
-              className="absolute top-4 left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
+              className="absolute top-4 left-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
             >
               {coverUploading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
@@ -653,50 +592,6 @@ export default function UserProfile() {
           </div>
         )}
       </div>
-
-      {/* Mobilni dropdown akcija — van cover div-a (cover ima transform pa lomi position:fixed) */}
-      {mobileActionsOpen && canSeeMobileActionsMenu && (
-        <div className="sm:hidden fixed inset-0 z-[290]">
-          <button
-            type="button"
-            className="absolute inset-0 bg-transparent"
-            aria-label={t('close')}
-            onClick={() => setMobileActionsOpen(false)}
-          />
-          <div
-            className="absolute mobile-actions-dropdown"
-            style={{ top: mobileActionsAnchor.top, left: mobileActionsAnchor.left, transform: 'translateX(calc(-60% - 58px))' }}
-            onClick={() => window.setTimeout(() => setMobileActionsOpen(false), 0)}
-          >
-            <ProfileActionButtons
-              inline
-              userId={String(korisnik.id)}
-              isOwnProfile={!!isOwn}
-              currentUser={currentUser}
-              onPrintClick={() =>
-                generateMemberPdf({
-                  ...(korisnik as unknown as MemberPdfData),
-                  clubName: korisnik.klubNaziv || '',
-                })
-              }
-              direction="column"
-              actionOrder={['print', 'info', 'settings']}
-              actionClassName="!bg-emerald-600 !text-white hover:!bg-emerald-700 hover:!text-white ring-2 ring-white/40 shadow-xl"
-              className=""
-            >
-              {canShowFollowControls && (
-                <FollowControls targetId={korisnik.id} hidden={blockedEither} onStatusChange={fetchFollowCounts} />
-              )}
-              {canShowBlockControls && (
-                <BlockUserButton
-                  targetId={korisnik.id}
-                  onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
-                />
-              )}
-            </ProfileActionButtons>
-          </div>
-        </div>
-      )}
 
       {/* Mobilni: donji sheet — van cover div-a da fixed radi (cover ima transform) */}
       {positioning && isOwn && (
@@ -851,14 +746,6 @@ export default function UserProfile() {
                     <span className="truncate">{t('memberSince')} {formatDate(korisnik.createdAt)}</span>
                   </div>
                 </div>
-
-                {showRoleBadge && (
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
-                      {getRoleLabel(korisnik.role)}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* contact pills */}
@@ -907,6 +794,7 @@ export default function UserProfile() {
               {isOwn && myGuideProfile !== undefined && (
                 <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
               )}
+              <div className="mt-3">{headerActions}</div>
             </div>
 
             {/* desktop/tablet layout (existing) */}
@@ -949,11 +837,6 @@ export default function UserProfile() {
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
-                    {showRoleBadge && (
-                      <span className={`inline-flex items-center px-2 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide uppercase ring-1 ring-inset ring-black/5 ${getRoleStyle(korisnik.role)}`}>
-                        {getRoleLabel(korisnik.role)}
-                      </span>
-                    )}
                     {korisnik.klubNaziv && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
                         {korisnik.klubLogoUrl ? (
@@ -998,6 +881,7 @@ export default function UserProfile() {
                 {isOwn && myGuideProfile !== undefined && (
                   <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} className="mt-3" />
                 )}
+                <div className="mt-3">{headerActions}</div>
               </div>
 
               {showProfiGuideBadge && (
@@ -1062,11 +946,33 @@ export default function UserProfile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <StatCell value={stats.ukupnoMetaraUspona.toLocaleString(i18n.language)} unit="m" label={t('ascent')} accent="text-emerald-500" />
-            <StatCell value={stats.ukupnoKm.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} unit="km" label={t('trail')} accent="text-sky-500" />
-            <StatCell value={String(stats.brojPopeoSe)} label={t('climbedCount')} accent="text-amber-500" />
+          <div className="grid grid-cols-3 divide-x divide-gray-100" data-testid="profile-passport-kpis">
+            <StatCell
+              value={passportKpis.summits.value}
+              label={t('climbedCount')}
+              accent="text-amber-500"
+              ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
+            />
+            <StatCell
+              value={passportKpis.km.value}
+              unit="km"
+              label={t('trail')}
+              accent="text-sky-500"
+              ariaLabel={`${passportKpis.km.value} km ${t('trail')}`}
+            />
+            <StatCell
+              value={passportKpis.ascent.value}
+              unit="m"
+              label={t('ascent')}
+              accent="text-emerald-500"
+              ariaLabel={`${passportKpis.ascent.value} m ${t('ascent')}`}
+            />
           </div>
+          {isOwn ? (
+            <div className="py-3 sm:py-4">
+              <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1264,10 +1170,22 @@ function GuideOwnProfileCta({
   return null
 }
 
-function StatCell({ value, unit, label, accent }: { value: string; unit?: string; label: string; accent: string }) {
+function StatCell({
+  value,
+  unit,
+  label,
+  accent,
+  ariaLabel,
+}: {
+  value: string
+  unit?: string
+  label: string
+  accent: string
+  ariaLabel?: string
+}) {
   return (
-    <div className="flex flex-col items-center py-4">
-      <span className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight leading-none">
+    <div className="flex flex-col items-center py-4" role="group" aria-label={ariaLabel || `${value}${unit ? ` ${unit}` : ''} ${label}`}>
+      <span className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight leading-none tabular-nums">
         {value}
         {unit && <span className={`text-xs font-semibold ${accent} ml-0.5`}>{unit}</span>}
       </span>
