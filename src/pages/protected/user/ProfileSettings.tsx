@@ -1,25 +1,49 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { fetchKorisnikById, patchKorisnik } from '../../../services/users'
 import { fetchMeProfile, updateMe, resendEmailVerification } from '../../../services/auth'
+import { getMyGuideProfile } from '../../../services/guideProfiles'
 import { computeProfileIncomplete } from '@beleg/shared'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import DatePartsSelect from '../../../components/DatePartsSelect'
 import Loader from '../../../components/Loader'
+import { ProfileCompletionCard } from '../../../components/profile/ProfileCompletionCard'
+import { ProfilePrivacySection } from '../../../components/profile/ProfilePrivacySection'
+import { ProfileGuideSettingsBlock } from '../../../components/profile/ProfileGuideSettingsBlock'
 import { dateToYMD } from '../../../utils/dateUtils'
 import {
+  computeProfileCompletion,
+  hasMembershipDocsFilled,
+} from '../../../utils/profileCompletion'
+import {
+  PRIVACY_COPY,
+  buildGuideSettingsBlock,
+  mapGuideProfileToCompletionStatus,
+  publicProfilePath,
+  type GuideSettingsStatus,
+} from '../../../utils/profileSettingsModel'
+import {
   UserCircleIcon,
-  IdentificationIcon,
   PhoneIcon,
   DocumentTextIcon,
   ClipboardDocumentListIcon,
   KeyIcon,
   ArrowLeftIcon,
   PencilSquareIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from '@heroicons/react/24/outline'
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const response = (err as { response?: { data?: { error?: string } } }).response
+    if (response?.data?.error) return response.data.error
+  }
+  return fallback
+}
 
 const dateOnly = (s: string | undefined): string => {
   if (!s) return ''
@@ -45,6 +69,56 @@ const initialForm = {
   napomene: '',
 }
 
+function PasswordInput({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  describedBy,
+}: {
+  id: string
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  autoComplete?: string
+  describedBy?: string
+}) {
+  const [visible, setVisible] = useState(false)
+  const labelClass = 'block text-xs font-medium text-gray-500 mb-1'
+  const inputClass =
+    'w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClass}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          aria-describedby={describedBy}
+        />
+        <button
+          type="button"
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-800"
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+        >
+          {visible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ProfileSettings() {
   const { t } = useTranslation('profileSettings')
   const { id } = useParams<{ id: string }>()
@@ -63,9 +137,17 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
   const [targetUsername, setTargetUsername] = useState('')
   const [emailVerified, setEmailVerified] = useState(false)
+  const [klubNaziv, setKlubNaziv] = useState('')
+  const [hasCover, setHasCover] = useState(false)
+  const [hasAvatarRemote, setHasAvatarRemote] = useState(false)
+  const [guideStatus, setGuideStatus] = useState<GuideSettingsStatus>('none')
+  const [resendingEmail, setResendingEmail] = useState(false)
+  const [baseline, setBaseline] = useState('')
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const submitLockRef = useRef(false)
 
   const isAdminEdit = !!id && (user?.role === 'superadmin' || user?.role === 'admin')
   const canEditAdminFields = user?.role === 'superadmin' || user?.role === 'admin'
@@ -76,17 +158,15 @@ export default function ProfileSettings() {
       navigate('/home', { replace: true })
       return
     }
-    // Samo admin/superadmin mogu pristupiti /profil/podesavanja/:id
     if (id && user?.role !== 'superadmin' && user?.role !== 'admin') {
       navigate('/profil/podesavanja', { replace: true })
       return
     }
 
-    // Admin/superadmin uređuju drugog korisnika
     if (isAdminEdit) {
       const fetchUser = async () => {
         try {
-          const k = await fetchKorisnikById(Number(id)) as {
+          const k = (await fetchKorisnikById(Number(id))) as {
             username?: string
             role?: string
             izrecene_disciplinske_kazne?: string
@@ -102,8 +182,8 @@ export default function ProfileSettings() {
           })
           setRole(k.role || '')
           setTargetUsername(k.username || '')
-        } catch (err: any) {
-          setError(err.response?.data?.error || t('loadProfileError'))
+        } catch (err: unknown) {
+          setError(getErrorMessage(err, t('loadProfileError')))
         } finally {
           setLoading(false)
         }
@@ -112,7 +192,6 @@ export default function ProfileSettings() {
       return
     }
 
-    // Uobičajeno: korisnik menja svoj profil
     const fetchMe = async () => {
       try {
         const k = (await fetchMeProfile()) as (Awaited<ReturnType<typeof fetchMeProfile>> & {
@@ -127,12 +206,16 @@ export default function ProfileSettings() {
           izrecene_disciplinske_kazne?: string
           izbor_u_organe_sportskog_udruzenja?: string
           napomene?: string
+          klubNaziv?: string
+          klubId?: number | null
+          cover_image_url?: string
+          avatar_url?: string
         }) | null
         if (!k) {
           setError(t('loadProfileError'))
           return
         }
-        setForm({
+        const nextForm = {
           username: k.username || '',
           fullName: k.fullName || '',
           imeRoditelja: k.ime_roditelja || '',
@@ -149,19 +232,30 @@ export default function ProfileSettings() {
           izreceneDisciplinskeKazne: k.izrecene_disciplinske_kazne || '',
           izborUOrganeSportskogUdruzenja: k.izbor_u_organe_sportskog_udruzenja || '',
           napomene: k.napomene || '',
-        })
+        }
+        setForm(nextForm)
         setRole(k.role || '')
         setEmailVerified(!!k.email_verified_at)
+        setKlubNaziv(k.klubNaziv || '')
+        setHasCover(!!k.cover_image_url)
+        setHasAvatarRemote(!!k.avatar_url)
         if (k.avatar_url) setAvatarPreview(k.avatar_url)
-      } catch (err: any) {
-        setError(err.response?.data?.error || t('loadProfileError'))
+        setBaseline(JSON.stringify(nextForm))
+        try {
+          const gp = await getMyGuideProfile()
+          setGuideStatus(mapGuideProfileToCompletionStatus(gp))
+        } catch {
+          setGuideStatus('none')
+        }
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, t('loadProfileError')))
       } finally {
         setLoading(false)
       }
     }
 
     fetchMe()
-  }, [isLoggedIn, navigate, id, isAdminEdit])
+  }, [isLoggedIn, navigate, id, isAdminEdit, t, user?.role])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -198,22 +292,74 @@ export default function ProfileSettings() {
     setAvatarActionsOpen(false)
   }
 
+  const hasAvatar = (!!avatarPreview || hasAvatarRemote) && !removeAvatar
+
+  const completionInput = useMemo(
+    () => ({
+      fullName: form.fullName,
+      username: form.username,
+      email: form.email,
+      emailVerified,
+      hasAvatar,
+      hasCover,
+      hasClub: !!klubNaziv.trim(),
+      hasMembershipDocs: hasMembershipDocsFilled({
+        legitimacija: form.brojPlaninarskeLegitimacije,
+        markica: form.brojPlaninarskeMarkice,
+        licniDokument: form.brojLicnogDokumenta,
+      }),
+      guideStatus,
+    }),
+    [form, emailVerified, hasAvatar, hasCover, klubNaziv, guideStatus],
+  )
+
+  const completion = useMemo(() => computeProfileCompletion(completionInput), [completionInput])
+  const guideBlock = useMemo(() => buildGuideSettingsBlock(guideStatus), [guideStatus])
+  const publicPath = publicProfilePath(form.username)
+
+  const isDirty = useMemo(() => {
+    if (isAdminEdit) return true
+    if (!baseline) return false
+    if (JSON.stringify(form) !== baseline) return true
+    if (newPassword || confirmPassword || currentPassword) return true
+    if (avatarFile || removeAvatar) return true
+    return false
+  }, [isAdminEdit, baseline, form, newPassword, confirmPassword, currentPassword, avatarFile, removeAvatar])
+
+  const handleResendEmail = async () => {
+    const email = form.email.trim().toLowerCase()
+    if (!email || resendingEmail) return
+    setResendingEmail(true)
+    setError('')
+    setStatusMessage('')
+    try {
+      await resendEmailVerification(email)
+      setStatusMessage('Potvrda je poslata na vaš email.')
+      setTimeout(() => setStatusMessage(''), 3000)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('saveProfileError')))
+    } finally {
+      setResendingEmail(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (saving || submitLockRef.current) return
+    submitLockRef.current = true
     setError('')
     setSuccess(false)
+    setStatusMessage('')
     setSaving(true)
 
     try {
       if (isAdminEdit) {
         if (newPassword !== confirmPassword) {
           setError(t('passwordMismatch'))
-          setSaving(false)
           return
         }
         if (newPassword && newPassword.length < 8) {
           setError(t('passwordTooShort'))
-          setSaving(false)
           return
         }
         const body: Record<string, string> = {}
@@ -233,32 +379,26 @@ export default function ProfileSettings() {
 
       if (newPassword !== confirmPassword) {
         setError(t('passwordMismatch'))
-        setSaving(false)
         return
       }
       if (!form.email.trim()) {
         setError('Email je obavezan da biste nastavili korišćenje aplikacije.')
-        setSaving(false)
         return
       }
       if (!form.pol.trim()) {
         setError('Pol je obavezan da biste nastavili korišćenje aplikacije.')
-        setSaving(false)
         return
       }
       if (!form.datumRodjenja) {
         setError('Datum rođenja je obavezan da biste nastavili korišćenje aplikacije.')
-        setSaving(false)
         return
       }
       if (newPassword && newPassword.length < 8) {
         setError(t('passwordTooShort'))
-        setSaving(false)
         return
       }
       if (newPassword && !currentPassword.trim()) {
         setError(t('currentPasswordRequired'))
-        setSaving(false)
         return
       }
 
@@ -288,7 +428,7 @@ export default function ProfileSettings() {
         formData.append('napomene', form.napomene.trim())
       }
 
-      const res = await updateMe(formData) as {
+      const res = (await updateMe(formData)) as {
         role?: string
         user?: { username: string; fullName: string; avatar_url?: string; klubId?: number }
         token?: string
@@ -305,12 +445,20 @@ export default function ProfileSettings() {
       const me = await fetchMeProfile()
       const verifiedNow = !!me?.email_verified_at
       setEmailVerified(verifiedNow)
-
+      if (me?.avatar_url) {
+        setAvatarPreview(me.avatar_url)
+        setHasAvatarRemote(true)
+      } else if (removeAvatar) {
+        setHasAvatarRemote(false)
+      }
+      setAvatarFile(null)
+      setRemoveAvatar(false)
+      setBaseline(JSON.stringify(form))
       setNewPassword('')
       setConfirmPassword('')
       setCurrentPassword('')
       setSuccess(true)
-      // Svježi incompleteness (ne stale mustCompleteProfile): promjena emaila resetuje verified → prompt.
+
       const needsEmailVerification =
         !isAdminEdit && !!me && computeProfileIncomplete(me) && !verifiedNow
       if (needsEmailVerification) {
@@ -333,10 +481,12 @@ export default function ProfileSettings() {
         return
       }
       setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('saveProfileError'))
+    } catch (err: unknown) {
+      setSuccess(false)
+      setError(getErrorMessage(err, t('saveProfileError')))
     } finally {
       setSaving(false)
+      submitLockRef.current = false
     }
   }
 
@@ -350,14 +500,23 @@ export default function ProfileSettings() {
   if (loading) return <Loader />
 
   const backTo = isAdminEdit
-    ? (targetUsername ? `/korisnik/${targetUsername}` : id ? `/users/${id}` : '/users')
-    : (form.username ? `/korisnik/${form.username}` : user?.username ? `/korisnik/${user.username}` : '/home')
+    ? targetUsername
+      ? `/korisnik/${targetUsername}`
+      : id
+        ? `/users/${id}`
+        : '/users'
+    : form.username
+      ? `/korisnik/${form.username}`
+      : user?.username
+        ? `/korisnik/${user.username}`
+        : '/home'
+
+  const saveDisabled = saving || (!isAdminEdit && !isDirty)
 
   return (
     <div className="min-h-[60vh] bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero */}
       <div className="border-b border-gray-200/80 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link
@@ -369,7 +528,6 @@ export default function ProfileSettings() {
               </Link>
               <div className="h-14 w-px bg-gray-200 hidden sm:block" />
               <div className="flex items-center gap-4">
-                {/* Profilna slika – hover: potamni + ikonica olovke, klik otvara izbor fajla (samo za sopstveni profil) */}
                 {!isAdminEdit ? (
                   <>
                     <input
@@ -422,7 +580,9 @@ export default function ProfileSettings() {
                 <button
                   type="submit"
                   form="profile-settings-form"
-                  disabled={saving}
+                  disabled={saveDisabled}
+                  aria-busy={saving}
+                  aria-label={saving ? t('saving') : t('saveChanges')}
                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
                 >
                   {saving ? t('saving') : t('saveChanges')}
@@ -439,284 +599,524 @@ export default function ProfileSettings() {
         </div>
       </div>
 
-      {success && (
-        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800">
+      <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6 lg:px-8" aria-live="polite" aria-atomic="true">
+        {success && (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
             {t('savedRedirecting')}
           </div>
-        </div>
-      )}
-      {error && (
-        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">{error}</div>
-        </div>
-      )}
+        )}
+        {statusMessage && !success ? (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
+            {statusMessage}
+          </div>
+        ) : null}
+        {error && (
+          <div className="mt-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700" role="alert">
+            {error}
+          </div>
+        )}
+      </div>
       {mustCompleteProfile && (
-        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6 lg:px-8">
           <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
             <p>
               Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
-              {!emailVerified && ' Nakon čuvanja, verifikacioni email će biti automatski poslat i bićete preusmereni na potvrdu emaila.'}
+              {!emailVerified &&
+                ' Nakon čuvanja, verifikacioni email će biti automatski poslat i bićete preusmereni na potvrdu emaila.'}
             </p>
           </div>
         </div>
       )}
 
-      <form id="profile-settings-form" onSubmit={handleSubmit} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Admin edit: uloga + disciplinske + opcioni reset lozinke (samo superadmin efektivno prolazi backend proveru) */}
-          {isAdminEdit ? (
-            <div className="space-y-6">
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                      <div className="flex items-center gap-2">
-                        <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">{t('role')}</h2>
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      <Dropdown aria-label={t('role')} options={[{ value: 'clan', label: t('roles.clan') }, { value: 'admin', label: t('roles.admin') }, { value: 'vodic', label: t('roles.vodic') }, { value: 'blagajnik', label: t('roles.blagajnik') }, { value: 'sekretar', label: t('roles.sekretar') }, { value: 'menadzer-opreme', label: t('roles.menadzerOpreme') }]} value={role} onChange={setRole} fullWidth />
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                      <div className="flex items-center gap-2">
-                        <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
-                      </div>
-                    </div>
-                    <div className="p-5 space-y-4">
-                      <div>
-                        <label className={labelClass}>{t('disciplinary')}</label>
-                        <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} className={inputClass} />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('selectionBodies')}</label>
-                        <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} className={inputClass} />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('notes')}</label>
-                        <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} className={inputClass} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                    <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                      <div className="flex items-center gap-2">
-                        <KeyIcon className="h-5 w-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">{t('leaveEmptyIfNoChange')}</p>
-                    </div>
-                    <div className="p-5 space-y-4">
-                      <div>
-                        <label className={labelClass}>{t('newPassword')}</label>
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} autoComplete="new-password" />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('repeatPassword')}</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} autoComplete="new-password" />
-                      </div>
-                    </div>
-                  </div>
-              <div className="flex gap-3">
-                <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                  {saving ? t('saving') : t('saveChanges')}
-                </button>
-                <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  {t('cancel')}
-                </Link>
+      <form
+        id="profile-settings-form"
+        onSubmit={handleSubmit}
+        className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8"
+      >
+        {isAdminEdit ? (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                <div className="flex items-center gap-2">
+                  <UserCircleIcon className="h-5 w-5 text-emerald-600" />
+                  <h2 className="text-base font-semibold text-gray-900">{t('role')}</h2>
+                </div>
+              </div>
+              <div className="p-5">
+                <Dropdown
+                  aria-label={t('role')}
+                  options={[
+                    { value: 'clan', label: t('roles.clan') },
+                    { value: 'admin', label: t('roles.admin') },
+                    { value: 'vodic', label: t('roles.vodic') },
+                    { value: 'blagajnik', label: t('roles.blagajnik') },
+                    { value: 'sekretar', label: t('roles.sekretar') },
+                    { value: 'menadzer-opreme', label: t('roles.menadzerOpreme') },
+                  ]}
+                  value={role}
+                  onChange={setRole}
+                  fullWidth
+                />
               </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* Nalog */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">{t('account')}</h2>
-                  </div>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className={labelClass}>{t('username')}</label>
-                    <input name="username" value={form.username} onChange={handleChange} required className={inputClass} placeholder={t('usernameUnique')} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('role')}</label>
-                    <input value={role} readOnly disabled className={disabledInputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('currentPassword')}</label>
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className={inputClass}
-                      placeholder={t('currentPasswordHint')}
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('newPasswordLeaveEmpty')}</label>
-                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClass} placeholder={t('min8')} minLength={8} autoComplete="new-password" />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('repeatPassword')}</label>
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} placeholder={t('repeatPassword')} autoComplete="new-password" />
-                  </div>
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                <div className="flex items-center gap-2">
+                  <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
+                  <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
                 </div>
               </div>
-
-              {/* Lični podaci */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <IdentificationIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">{t('personalData')}</h2>
-                  </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className={labelClass}>{t('disciplinary')}</label>
+                  <textarea
+                    name="izreceneDisciplinskeKazne"
+                    value={form.izreceneDisciplinskeKazne}
+                    onChange={handleChange}
+                    rows={3}
+                    className={inputClass}
+                  />
                 </div>
-                <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>{t('fullName')}</label>
-                      <input name="fullName" value={form.fullName} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('parentName')}</label>
-                      <input name="imeRoditelja" value={form.imeRoditelja} onChange={handleChange} className={inputClass} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>{t('gender')}</label>
-                      <Dropdown aria-label={t('gender')} options={[{ value: '', label: t('selectOption') }, { value: 'M', label: t('genderMale') }, { value: 'Ž', label: t('genderFemale') }]} value={form.pol} onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))} fullWidth />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('birthDate')}</label>
-                      <DatePartsSelect
-                        ariaLabel={t('birthDate')}
-                        value={form.datumRodjenja}
-                        onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
-                        placeholderDay={t('day')}
-                        placeholderMonth={t('month')}
-                        placeholderYear={t('year')}
-                        minYear={1900}
-                        maxYear={new Date().getFullYear()}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('citizenship')}</label>
-                    <input name="drzavljanstvo" value={form.drzavljanstvo} onChange={handleChange} className={inputClass} />
-                  </div>
+                <div>
+                  <label className={labelClass}>{t('selectionBodies')}</label>
+                  <textarea
+                    name="izborUOrganeSportskogUdruzenja"
+                    value={form.izborUOrganeSportskogUdruzenja}
+                    onChange={handleChange}
+                    rows={3}
+                    className={inputClass}
+                  />
                 </div>
-              </div>
-
-              {/* Kontakt */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <PhoneIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">{t('contact')}</h2>
-                  </div>
+                <div>
+                  <label className={labelClass}>{t('notes')}</label>
+                  <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} className={inputClass} />
                 </div>
-                <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>{t('email')}</label>
-                      <input name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} required />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('phone')}</label>
-                      <input name="telefon" value={form.telefon} onChange={handleChange} className={inputClass} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('address')}</label>
-                    <input name="adresa" value={form.adresa} onChange={handleChange} className={inputClass} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dokumenti i planinarski */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">{t('documentsAndHiking')}</h2>
-                  </div>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>{t('idDocumentNumber')}</label>
-                      <input name="brojLicnogDokumenta" value={form.brojLicnogDokumenta} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('hikingCardNumber')}</label>
-                      <input name="brojPlaninarskeLegitimacije" value={form.brojPlaninarskeLegitimacije} onChange={handleChange} className={inputClass} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>{t('hikingBadgeNumber')}</label>
-                      <input name="brojPlaninarskeMarkice" value={form.brojPlaninarskeMarkice} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>{t('membershipDate')}</label>
-                      <CalendarDropdown
-                        value={form.datumUclanjenja}
-                        onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
-                        placeholder={t('chooseDate')}
-                        fullWidth
-                        aria-label={t('membershipDate')}
-                        minDate="1900-01-01"
-                        maxDate={dateToYMD(new Date())}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Disciplinske, napomene */}
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible lg:col-span-2">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
-                  <div className="flex items-center gap-2">
-                    <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                    <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
-                  </div>
-                  {!canEditAdminFields && <p className="mt-1 text-xs text-gray-500">{t('adminOnlyFields')}</p>}
-                </div>
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className={labelClass}>{t('disciplinary')}</label>
-                    <textarea name="izreceneDisciplinskeKazne" value={form.izreceneDisciplinskeKazne} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('selectionBodies')}</label>
-                    <textarea name="izborUOrganeSportskogUdruzenja" value={form.izborUOrganeSportskogUdruzenja} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t('notes')}</label>
-                    <textarea name="napomene" value={form.napomene} onChange={handleChange} rows={3} readOnly={!canEditAdminFields} disabled={!canEditAdminFields} className={canEditAdminFields ? inputClass : disabledInputClass} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 lg:col-span-2 sm:hidden">
-                <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-                  {saving ? t('saving') : t('saveChanges')}
-                </button>
-                <Link to={backTo} className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  {t('cancel')}
-                </Link>
               </div>
             </div>
-          )}
-        </form>
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+                <div className="flex items-center gap-2">
+                  <KeyIcon className="h-5 w-5 text-emerald-600" />
+                  <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">{t('leaveEmptyIfNoChange')}</p>
+              </div>
+              <div className="p-5 space-y-4">
+                <PasswordInput
+                  id="admin-new-password"
+                  label={t('newPassword')}
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  placeholder={t('min8')}
+                  autoComplete="new-password"
+                />
+                <PasswordInput
+                  id="admin-confirm-password"
+                  label={t('repeatPassword')}
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  placeholder={t('repeatPassword')}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {saving ? t('saving') : t('saveChanges')}
+              </button>
+              <Link
+                to={backTo}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                {t('cancel')}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <ProfileCompletionCard input={completionInput} result={completion} />
+
+            <ProfilePrivacySection
+              id="public-profile"
+              title="Javni profil"
+              badge={PRIVACY_COPY.publicBadge}
+              description={PRIVACY_COPY.publicHint}
+              icon={<UserCircleIcon className="h-5 w-5 text-emerald-600" />}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="fullName" className={labelClass}>
+                    {t('fullName')}
+                  </label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    value={form.fullName}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="username" className={labelClass}>
+                    {t('username')}
+                  </label>
+                  <input
+                    id="username"
+                    name="username"
+                    value={form.username}
+                    onChange={handleChange}
+                    required
+                    className={inputClass}
+                    placeholder={t('usernameUnique')}
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Profilna fotografija se menja preko dugmeta na slici iznad. Cover fotografija se uređuje na javnom
+                profilu.
+              </p>
+              {publicPath ? (
+                <Link
+                  to={publicPath}
+                  className="inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                >
+                  {PRIVACY_COPY.publicProfileLink}
+                </Link>
+              ) : null}
+            </ProfilePrivacySection>
+
+            <ProfilePrivacySection
+              id="private-contact"
+              title="Kontakt i lični podaci"
+              badge={PRIVACY_COPY.privateBadge}
+              description={PRIVACY_COPY.privateHint}
+              icon={<PhoneIcon className="h-5 w-5 text-emerald-600" />}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className={labelClass}>
+                    {t('email')}
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    className={inputClass}
+                    required
+                    autoComplete="email"
+                    inputMode="email"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="telefon" className={labelClass}>
+                    {t('phone')}
+                  </label>
+                  <input
+                    id="telefon"
+                    name="telefon"
+                    value={form.telefon}
+                    onChange={handleChange}
+                    className={inputClass}
+                    autoComplete="tel"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="adresa" className={labelClass}>
+                  {t('address')}
+                </label>
+                <input id="adresa" name="adresa" value={form.adresa} onChange={handleChange} className={inputClass} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="imeRoditelja" className={labelClass}>
+                    {t('parentName')}
+                  </label>
+                  <input
+                    id="imeRoditelja"
+                    name="imeRoditelja"
+                    value={form.imeRoditelja}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass} id="gender-label">
+                    {t('gender')}
+                  </label>
+                  <Dropdown
+                    aria-label={t('gender')}
+                    options={[
+                      { value: '', label: t('selectOption') },
+                      { value: 'M', label: t('genderMale') },
+                      { value: 'Ž', label: t('genderFemale') },
+                    ]}
+                    value={form.pol}
+                    onChange={(v) => setForm((prev) => ({ ...prev, pol: v }))}
+                    fullWidth
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>{t('birthDate')}</label>
+                  <DatePartsSelect
+                    ariaLabel={t('birthDate')}
+                    value={form.datumRodjenja}
+                    onChange={(v) => setForm((prev) => ({ ...prev, datumRodjenja: v }))}
+                    placeholderDay={t('day')}
+                    placeholderMonth={t('month')}
+                    placeholderYear={t('year')}
+                    minYear={1900}
+                    maxYear={new Date().getFullYear()}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="drzavljanstvo" className={labelClass}>
+                    {t('citizenship')}
+                  </label>
+                  <input
+                    id="drzavljanstvo"
+                    name="drzavljanstvo"
+                    value={form.drzavljanstvo}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </ProfilePrivacySection>
+
+            <ProfilePrivacySection
+              id="membership-docs"
+              title="Planinarsko članstvo i dokumentacija"
+              badge={PRIVACY_COPY.clubBadge}
+              description={PRIVACY_COPY.clubHint}
+              icon={<DocumentTextIcon className="h-5 w-5 text-emerald-600" />}
+            >
+              <div>
+                <label htmlFor="klub" className={labelClass}>
+                  Planinarski klub
+                </label>
+                <input
+                  id="klub"
+                  value={klubNaziv || 'Niste povezani sa klubom'}
+                  readOnly
+                  disabled
+                  className={disabledInputClass}
+                  aria-describedby="klub-hint"
+                />
+                <p id="klub-hint" className="mt-1 text-xs text-gray-500">
+                  {PRIVACY_COPY.clubManagedHint}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="brojPlaninarskeLegitimacije" className={labelClass}>
+                    {t('hikingCardNumber')}
+                  </label>
+                  <input
+                    id="brojPlaninarskeLegitimacije"
+                    name="brojPlaninarskeLegitimacije"
+                    value={form.brojPlaninarskeLegitimacije}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="brojPlaninarskeMarkice" className={labelClass}>
+                    {t('hikingBadgeNumber')}
+                  </label>
+                  <input
+                    id="brojPlaninarskeMarkice"
+                    name="brojPlaninarskeMarkice"
+                    value={form.brojPlaninarskeMarkice}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="brojLicnogDokumenta" className={labelClass}>
+                    {t('idDocumentNumber')}
+                  </label>
+                  <input
+                    id="brojLicnogDokumenta"
+                    name="brojLicnogDokumenta"
+                    value={form.brojLicnogDokumenta}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('membershipDate')}</label>
+                  <CalendarDropdown
+                    value={form.datumUclanjenja}
+                    onChange={(v) => setForm((prev) => ({ ...prev, datumUclanjenja: v }))}
+                    placeholder={t('chooseDate')}
+                    fullWidth
+                    aria-label={t('membershipDate')}
+                    minDate="1900-01-01"
+                    maxDate={dateToYMD(new Date())}
+                  />
+                </div>
+              </div>
+              <div className="space-y-4 border-t border-gray-100 pt-4">
+                <div className="flex items-center gap-2">
+                  <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-sm font-semibold text-gray-900">{t('disciplineNotesTitle')}</h3>
+                </div>
+                {!canEditAdminFields && (
+                  <p className="text-xs text-gray-500" id="discipline-admin-hint">
+                    {t('adminOnlyFields')} {PRIVACY_COPY.clubManagedHint}
+                  </p>
+                )}
+                <div>
+                  <label htmlFor="izreceneDisciplinskeKazne" className={labelClass}>
+                    {t('disciplinary')}
+                  </label>
+                  <textarea
+                    id="izreceneDisciplinskeKazne"
+                    name="izreceneDisciplinskeKazne"
+                    value={form.izreceneDisciplinskeKazne}
+                    onChange={handleChange}
+                    rows={3}
+                    readOnly={!canEditAdminFields}
+                    disabled={!canEditAdminFields}
+                    aria-describedby={!canEditAdminFields ? 'discipline-admin-hint' : undefined}
+                    className={canEditAdminFields ? inputClass : disabledInputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="izborUOrganeSportskogUdruzenja" className={labelClass}>
+                    {t('selectionBodies')}
+                  </label>
+                  <textarea
+                    id="izborUOrganeSportskogUdruzenja"
+                    name="izborUOrganeSportskogUdruzenja"
+                    value={form.izborUOrganeSportskogUdruzenja}
+                    onChange={handleChange}
+                    rows={3}
+                    readOnly={!canEditAdminFields}
+                    disabled={!canEditAdminFields}
+                    className={canEditAdminFields ? inputClass : disabledInputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="napomene" className={labelClass}>
+                    {t('notes')}
+                  </label>
+                  <textarea
+                    id="napomene"
+                    name="napomene"
+                    value={form.napomene}
+                    onChange={handleChange}
+                    rows={3}
+                    readOnly={!canEditAdminFields}
+                    disabled={!canEditAdminFields}
+                    className={canEditAdminFields ? inputClass : disabledInputClass}
+                  />
+                </div>
+              </div>
+            </ProfilePrivacySection>
+
+            {guideBlock ? <ProfileGuideSettingsBlock model={guideBlock} /> : null}
+
+            <ProfilePrivacySection
+              id="account-security"
+              title="Nalog i sigurnost"
+              icon={<KeyIcon className="h-5 w-5 text-emerald-600" />}
+            >
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1">Status potvrde emaila</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
+                      emailVerified
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                    }`}
+                  >
+                    {emailVerified ? 'Email je potvrđen' : 'Email nije potvrđen'}
+                  </span>
+                  {!emailVerified && form.email.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleResendEmail()}
+                      disabled={resendingEmail || saving}
+                      className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
+                    >
+                      {resendingEmail ? 'Šaljem…' : 'Pošalji ponovo potvrdu'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <div>
+                <label htmlFor="role-ro" className={labelClass}>
+                  {t('role')}
+                </label>
+                <input id="role-ro" value={role} readOnly disabled className={disabledInputClass} />
+              </div>
+              <PasswordInput
+                id="current-password"
+                label={t('currentPassword')}
+                value={currentPassword}
+                onChange={setCurrentPassword}
+                placeholder={t('currentPasswordHint')}
+                autoComplete="current-password"
+              />
+              <PasswordInput
+                id="new-password"
+                label={t('newPasswordLeaveEmpty')}
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder={t('min8')}
+                autoComplete="new-password"
+              />
+              <PasswordInput
+                id="confirm-password"
+                label={t('repeatPassword')}
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder={t('repeatPassword')}
+                autoComplete="new-password"
+              />
+            </ProfilePrivacySection>
+
+            <div className="flex flex-wrap gap-3 sticky bottom-3 z-10 rounded-xl bg-white/95 p-2 shadow-sm border border-gray-100 sm:static sm:bg-transparent sm:border-0 sm:shadow-none sm:p-0">
+              <button
+                type="submit"
+                disabled={saveDisabled}
+                aria-busy={saving}
+                aria-label={saving ? t('saving') : t('saveChanges')}
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {saving ? t('saving') : t('saveChanges')}
+              </button>
+              <Link
+                to={backTo}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                {t('cancel')}
+              </Link>
+            </div>
+          </div>
+        )}
+      </form>
+
       {!isAdminEdit && avatarActionsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="text-base font-semibold text-gray-900">Promena profilne slike</h3>
