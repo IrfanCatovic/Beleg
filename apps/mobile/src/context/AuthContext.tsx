@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -16,6 +17,7 @@ import {
   type SessionUser,
 } from '@beleg/shared'
 import { client, setAuthToken, setUnauthorizedHandler } from '../api/client'
+import { clearAuthenticatedUserQueryState, cancelAuthenticatedUserQueries } from '../lib/clearAuthenticatedUserQueryState'
 import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
 import { mobileStorage } from '../storage/mobileStorage'
 
@@ -38,21 +40,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const logoutInFlightRef = useRef(false)
 
   const clearAuthState = useCallback(async () => {
+    // Auth UI/state prvo — RootNavigator odmah prelazi na AuthStack (nema back na protected).
     setIsLoggedIn(false)
     setUser(null)
-    await mobileStorage.removeItem(USER_STORAGE_KEY)
-    await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
-    await mobileStorage.removeItem(REMEMBER_ME_KEY)
-    await clearSuperadminClubStorage()
-    await setAuthToken(null)
+    try {
+      await mobileStorage.removeItem(USER_STORAGE_KEY)
+      await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
+      await mobileStorage.removeItem(REMEMBER_ME_KEY)
+      await clearSuperadminClubStorage()
+      await setAuthToken(null)
+    } catch {
+      // storage greška ne smije ostaviti korisnika vizuelno ulogovanim
+      try {
+        await setAuthToken(null)
+      } catch {
+        // ignore
+      }
+    }
+    try {
+      await clearAuthenticatedUserQueryState()
+    } catch {
+      // best-effort cache clear
+    }
   }, [])
 
   const logout = useCallback(async () => {
-    await logoutApi(client)
-    await clearAuthState()
+    if (logoutInFlightRef.current) return
+    logoutInFlightRef.current = true
+    try {
+      // Samo cancel dok je session još aktivan — clear() tek u clearAuthState poslije unmounta.
+      try {
+        await cancelAuthenticatedUserQueries()
+      } catch {
+        // ignore
+      }
+      try {
+        await logoutApi(client)
+      } catch {
+        // server logout nije kritičan — lokalni session mora nestati
+      }
+      await clearAuthState()
+    } finally {
+      logoutInFlightRef.current = false
+    }
   }, [clearAuthState])
+
 
   const refreshUser = useCallback(async () => {
     try {
