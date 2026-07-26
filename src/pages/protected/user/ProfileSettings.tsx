@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import { fetchKorisnikById, patchKorisnik } from '../../../services/users'
 import { fetchMeProfile, updateMe, resendEmailVerification } from '../../../services/auth'
+import { computeProfileIncomplete } from '@beleg/shared'
 import Dropdown from '../../../components/Dropdown'
 import CalendarDropdown from '../../../components/CalendarDropdown'
 import DatePartsSelect from '../../../components/DatePartsSelect'
@@ -309,7 +310,10 @@ export default function ProfileSettings() {
       setConfirmPassword('')
       setCurrentPassword('')
       setSuccess(true)
-      if (mustCompleteProfile && !verifiedNow) {
+      // Svježi incompleteness (ne stale mustCompleteProfile): promjena emaila resetuje verified → prompt.
+      const needsEmailVerification =
+        !isAdminEdit && !!me && computeProfileIncomplete(me) && !verifiedNow
+      if (needsEmailVerification) {
         const email = form.email.trim().toLowerCase()
         if (email) {
           try {

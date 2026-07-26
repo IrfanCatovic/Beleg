@@ -274,10 +274,25 @@ func VerifyEmail(c *gin.Context) {
 
 	now := time.Now()
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.Korisnik{}).
-			Where("id = ? AND email_verified_at IS NULL", row.UserID).
-			Update("email_verified_at", now).Error; err != nil {
+		var user models.Korisnik
+		if err := tx.Select("id", "email", "email_verified_at").First(&user, row.UserID).Error; err != nil {
 			return err
+		}
+		// Token nije vezan za email u šemi; UpdateMe briše aktivne tokene pri promjeni adrese.
+		// Dodatna zaštita: ne potvrđuj ako je korisnik u međuvremenu već verified drugim putem.
+		if user.EmailVerifiedAt != nil {
+			if err := tx.Model(&models.EmailVerificationToken{}).
+				Where("id = ? AND used_at IS NULL", row.ID).
+				Update("used_at", now).Error; err != nil {
+				return err
+			}
+			return nil
+		}
+		res := tx.Model(&models.Korisnik{}).
+			Where("id = ? AND email_verified_at IS NULL", row.UserID).
+			Update("email_verified_at", now)
+		if res.Error != nil {
+			return res.Error
 		}
 		if err := tx.Model(&models.EmailVerificationToken{}).
 			Where("id = ?", row.ID).

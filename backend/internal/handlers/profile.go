@@ -128,14 +128,12 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Neispravna email adresa"})
 			return
 		}
-		if newEmailNorm != "" && newEmailNorm != currentEmailNorm && helpers.IsNonEmptyEmailTaken(db, newEmailNorm, korisnik.ID) {
+		emailChanged := newEmailNorm != currentEmailNorm
+		if emailChanged && helpers.IsNonEmptyEmailTaken(db, newEmailNorm, korisnik.ID) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email adresa je već u upotrebi"})
 			return
 		}
-		emailToStore := strings.TrimSpace(email)
-		if emailToStore != "" {
-			emailToStore = strings.ToLower(emailToStore)
-		}
+		emailToStore := newEmailNorm
 		brojLicnogDokumenta := post("brojLicnogDokumenta")
 		brojPlaninarskeLegitimacije := post("brojPlaninarskeLegitimacije")
 		brojPlaninarskeMarkice := post("brojPlaninarskeMarkice")
@@ -282,6 +280,10 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		if wantsPasswordChange {
 			updates["password"] = hashedPassword
 		}
+		if emailChanged {
+			// Nova adresa ne nasljeđuje verified status; stari verification tokeni se invalidiraju u TX ispod.
+			updates["email_verified_at"] = nil
+		}
 		if isAdmin {
 			updates["izrecene_disciplinske_kazne"] = izreceneDisciplinskeKazne
 			updates["izbor_u_organe_sportskog_udruzenja"] = izborUOrganeSportskogUdruzenja
@@ -313,7 +315,19 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 				updates["cover_position_y_mobile"] = pos
 			}
 		}
-		if err := db.Model(&korisnik).Updates(updates).Error; err != nil {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Model(&korisnik).Updates(updates).Error; err != nil {
+				return err
+			}
+			if emailChanged {
+				// Tokeni su vezani samo za user ID (bez emaila) — obriši aktivne da stari link ne potvrdi novu adresu.
+				if err := tx.Where("user_id = ? AND used_at IS NULL", korisnik.ID).
+					Delete(&models.EmailVerificationToken{}).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
 			return
 		}
