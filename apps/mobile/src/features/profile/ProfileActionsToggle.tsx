@@ -4,8 +4,8 @@ import { colors, radius, spacing } from '../../theme'
 
 interface ProfileActionsToggleProps {
   tab: 'climbed' | 'guided'
-  climbedCount: number
-  guidedCount: number
+  climbedCount: number | null
+  guidedCount: number | null
   onChange: (tab: 'climbed' | 'guided') => void
 }
 
@@ -18,28 +18,44 @@ export function ProfileActionsToggle({
   const isClimbed = tab === 'climbed'
 
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} accessibilityRole="tablist">
       <View style={[styles.slider, isClimbed ? styles.sliderLeft : styles.sliderRight]} />
-      <Pressable style={styles.tab} onPress={() => onChange('climbed')}>
+      <Pressable
+        style={styles.tab}
+        onPress={() => onChange('climbed')}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isClimbed }}
+        accessibilityLabel={`Osvojene${climbedCount != null ? `, ${climbedCount}` : ''}`}
+      >
         <Text variant="label" color={isClimbed ? '#065f46' : colors.textMuted}>
           Osvojene
         </Text>
-        <View style={[styles.badge, isClimbed ? styles.badgeActive : styles.badgeIdle]}>
-          <Text variant="small" color={isClimbed ? colors.white : colors.textMuted}>
-            {climbedCount}
-          </Text>
-        </View>
+        {climbedCount != null ? (
+          <View style={[styles.badge, isClimbed ? styles.badgeActive : styles.badgeIdle]}>
+            <Text variant="small" color={isClimbed ? colors.white : colors.textMuted}>
+              {climbedCount}
+            </Text>
+          </View>
+        ) : null}
       </Pressable>
       <View style={styles.divider} />
-      <Pressable style={styles.tab} onPress={() => onChange('guided')}>
+      <Pressable
+        style={styles.tab}
+        onPress={() => onChange('guided')}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: !isClimbed }}
+        accessibilityLabel={`Vođene ture${guidedCount != null ? `, ${guidedCount}` : ''}`}
+      >
         <Text variant="label" color={!isClimbed ? '#5b21b6' : colors.textMuted}>
           Vođene ture
         </Text>
-        <View style={[styles.badge, !isClimbed ? styles.badgeGuided : styles.badgeIdle]}>
-          <Text variant="small" color={!isClimbed ? colors.white : colors.textMuted}>
-            {guidedCount}
-          </Text>
-        </View>
+        {guidedCount != null ? (
+          <View style={[styles.badge, !isClimbed ? styles.badgeGuided : styles.badgeIdle]}>
+            <Text variant="small" color={!isClimbed ? colors.white : colors.textMuted}>
+              {guidedCount}
+            </Text>
+          </View>
+        ) : null}
       </Pressable>
     </View>
   )
@@ -73,6 +89,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: 4,
     zIndex: 1,
+    minHeight: 44,
   },
   divider: {
     width: 1,

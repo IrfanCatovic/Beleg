@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
@@ -31,7 +31,7 @@ import { client } from '../../api/client'
 import { appendImageToFormData, prepareImagePickerAssetForUpload } from '../../lib/imageUpload'
 import { useAuth } from '../../context/AuthContext'
 import { useModal } from '../../context/ModalContext'
-import { Avatar, Button, ErrorView, Loader, Screen, Text } from '../../components/ui'
+import { Avatar, Button, EmptyState, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, radius, spacing } from '../../theme'
 import { computeProfileRank } from '../../utils/profileRank'
 import {
@@ -46,6 +46,15 @@ import {
   shouldShowOwnerPassportShortcut,
   shouldShowOwnerStepsCard,
 } from './profilePassportHeaderModel'
+import {
+  getClimbedEmptyCopy,
+  getGuidedEmptyCopy,
+  getHistoryErrorCopy,
+  getNoClubOwnCopy,
+  getStatsErrorCopy,
+  shouldShowGuidedActionsTab,
+} from './profileEmptyStates'
+import { createRefreshGuard, runProfilePullToRefresh } from './profileRefresh'
 import type {
   ActionsStackParamList,
   ExploreStackParamList,
@@ -94,6 +103,8 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [localCoverUrl, setLocalCoverUrl] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const refreshGuardRef = useRef(createRefreshGuard())
 
   const routeNames = (navigation.getState()?.routeNames ?? []) as string[]
   const inProfileStack = routeNames.includes('ProfileSettings')
@@ -318,8 +329,6 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     )
   }, [popeoQuery.data, statsQuery.data, vodioQuery.data])
 
-  const displayedActions = actionsTab === 'guided' ? (vodioQuery.data ?? []) : (popeoQuery.data ?? [])
-
   const openFollowModal = async (mode: 'following' | 'followers') => {
     if (!targetId) return
     setFollowModal(mode)
@@ -348,6 +357,45 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       params: { id: actionId },
     })
   }
+
+  const goFindActions = () => {
+    navigation.getParent()?.navigate('ActionsTab', { screen: 'ActionsList' })
+  }
+
+  const onPullToRefresh = useCallback(() => {
+    void refreshGuardRef.current.run(async () => {
+      setRefreshing(true)
+      try {
+        const isOwnProfile = me?.username === profileQuery.data?.username
+        await runProfilePullToRefresh(isOwnProfile ? 'own' : 'public', {
+          refetchProfile: () => profileQuery.refetch(),
+          refetchStats: () => statsQuery.refetch(),
+          refetchClimbed: () => popeoQuery.refetch(),
+          refetchGuided: () => vodioQuery.refetch(),
+          refetchFollowCounts: targetId ? () => followQuery.refetch() : undefined,
+          refetchFollowStatus:
+            targetId && !isOwnProfile ? () => followStatusQuery.refetch() : undefined,
+          refetchBlockStatus:
+            targetId && !isOwnProfile ? () => blockStatusQuery.refetch() : undefined,
+          refreshDailySteps: isOwnProfile ? () => dailySteps.refresh() : undefined,
+        })
+      } finally {
+        setRefreshing(false)
+      }
+    })
+  }, [
+    me?.username,
+    profileQuery,
+    statsQuery,
+    popeoQuery,
+    vodioQuery,
+    followQuery,
+    followStatusQuery,
+    blockStatusQuery,
+    targetId,
+    dailySteps,
+  ])
+
 
   const goUserProfile = (username: string) => {
     setFollowModal(null)
@@ -380,10 +428,19 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
   const isMe = me?.username === korisnik.username
   const isProfiGuide = !!korisnik.isProfiGuide
-  const showGuidedActionsTab = isProfiGuide || (vodioQuery.data?.length ?? 0) > 0
+  const showGuidedActionsTab = shouldShowGuidedActionsTab({
+    isProfiGuide,
+    guidedCount: vodioQuery.data?.length ?? 0,
+  })
   const followStatus = followStatusQuery.data
   const blockedByTarget = blockStatusQuery.data?.blockedByTarget
   const stats = statsQuery.data
+  const statsPending = statsQuery.isLoading || (statsQuery.isFetching && !stats)
+  const statsFailed = statsQuery.isError && !stats
+  const climbedPending = popeoQuery.isLoading || (popeoQuery.isFetching && !popeoQuery.data)
+  const climbedFailed = popeoQuery.isError && !popeoQuery.data
+  const guidedPending = vodioQuery.isLoading || (vodioQuery.isFetching && !vodioQuery.data)
+  const guidedFailed = vodioQuery.isError && !vodioQuery.data
   const canOpenSettings = isMe && inProfileStack
   const showOwnerMenu = canOpenSettings
   const showPublicOverflowMenu = !isMe && !blockedByTarget
@@ -437,6 +494,9 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       <ScrollView
         contentContainerStyle={styles.scroll}
         onScrollBeginDrag={dismissImageFocus}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onPullToRefresh} tintColor={colors.brand} />
+        }
       >
         <Pressable style={styles.coverWrap} onPress={handleCoverPress} disabled={!isMe || coverUploading}>
           {displayCoverUrl ? (
@@ -542,6 +602,10 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                 </Text>
               </View>
             </Pressable>
+          ) : isMe ? (
+            <Text variant="small" color={colors.textMuted} style={styles.noClubText}>
+              {getNoClubOwnCopy()}
+            </Text>
           ) : null}
 
           {ownerPrimaryLabel ? (
@@ -618,24 +682,46 @@ export default function UserProfileScreen({ route, navigation }: Props) {
               </View>
 
               <View style={styles.metricsRow} accessibilityRole="summary">
-                <MetricCell
-                  value={formatPassportSummits(stats?.brojPopeoSe)}
-                  label="OSVOJENO"
-                  accent="#f59e0b"
-                  accessibilityLabel={`${formatPassportSummits(stats?.brojPopeoSe)} osvojeno`}
-                />
-                <MetricCell
-                  value={`${formatPassportKm(stats?.ukupnoKm)} km`}
-                  label="KILOMETRI"
-                  accent="#0ea5e9"
-                  accessibilityLabel={`${formatPassportKm(stats?.ukupnoKm)} kilometara`}
-                />
-                <MetricCell
-                  value={`${formatPassportAscentM(stats?.ukupnoMetaraUspona)} m`}
-                  label="USPON"
-                  accent={colors.brand}
-                  accessibilityLabel={`${formatPassportAscentM(stats?.ukupnoMetaraUspona)} metara uspona`}
-                />
+                {statsFailed ? (
+                  <View style={styles.sectionErrorWrap}>
+                    <Text variant="small" color={colors.textMuted} style={styles.sectionErrorText}>
+                      {getStatsErrorCopy()}
+                    </Text>
+                    <Button
+                      title="Pokušaj ponovo"
+                      variant="secondary"
+                      onPress={() => void statsQuery.refetch()}
+                      accessibilityLabel="Pokušaj ponovo učitati statistiku"
+                    />
+                  </View>
+                ) : statsPending ? (
+                  <>
+                    <MetricSkeleton />
+                    <MetricSkeleton />
+                    <MetricSkeleton />
+                  </>
+                ) : (
+                  <>
+                    <MetricCell
+                      value={formatPassportSummits(stats?.brojPopeoSe)}
+                      label="OSVOJENO"
+                      accent="#f59e0b"
+                      accessibilityLabel={`${formatPassportSummits(stats?.brojPopeoSe)} osvojeno`}
+                    />
+                    <MetricCell
+                      value={`${formatPassportKm(stats?.ukupnoKm)} km`}
+                      label="KILOMETRI"
+                      accent="#0ea5e9"
+                      accessibilityLabel={`${formatPassportKm(stats?.ukupnoKm)} kilometara`}
+                    />
+                    <MetricCell
+                      value={`${formatPassportAscentM(stats?.ukupnoMetaraUspona)} m`}
+                      label="USPON"
+                      accent={colors.brand}
+                      accessibilityLabel={`${formatPassportAscentM(stats?.ukupnoMetaraUspona)} metara uspona`}
+                    />
+                  </>
+                )}
               </View>
 
               {showPassportShortcut ? (
@@ -678,19 +764,71 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                 <View style={styles.toggleWrap}>
                   <ProfileActionsToggle
                     tab={actionsTab}
-                    climbedCount={popeoQuery.data?.length ?? 0}
-                    guidedCount={vodioQuery.data?.length ?? 0}
+                    climbedCount={climbedPending || climbedFailed ? null : (popeoQuery.data?.length ?? 0)}
+                    guidedCount={guidedPending || guidedFailed ? null : (vodioQuery.data?.length ?? 0)}
                     onChange={setActionsTab}
                   />
                 </View>
               ) : null}
 
-              <ProfileActionGrid
-                actions={displayedActions}
-                onPressAction={goAction}
-                fullWidth
-                mode={actionsTab === 'guided' ? 'guided' : 'climbed'}
-              />
+              {(() => {
+                const showingGuided = showGuidedActionsTab && actionsTab === 'guided'
+                const pending = showingGuided ? guidedPending : climbedPending
+                const failed = showingGuided ? guidedFailed : climbedFailed
+                const data = showingGuided ? (vodioQuery.data ?? []) : (popeoQuery.data ?? [])
+                const hasCached = data.length > 0
+
+                if (failed && !hasCached) {
+                  return (
+                    <View style={styles.sectionErrorWrap}>
+                      <Text variant="small" color={colors.textMuted} style={styles.sectionErrorText}>
+                        {getHistoryErrorCopy()}
+                      </Text>
+                      <Button
+                        title="Pokušaj ponovo"
+                        variant="secondary"
+                        onPress={() =>
+                          void (showingGuided ? vodioQuery.refetch() : popeoQuery.refetch())
+                        }
+                        accessibilityLabel="Pokušaj ponovo učitati planinarsku istoriju"
+                      />
+                    </View>
+                  )
+                }
+
+                if (pending && !hasCached) {
+                  return (
+                    <View style={styles.actionsSkeleton} accessibilityRole="progressbar">
+                      <ActivityIndicator color={colors.brand} />
+                      <Text variant="small" color={colors.textMuted}>
+                        Učitavanje istorije…
+                      </Text>
+                    </View>
+                  )
+                }
+
+                if (data.length === 0) {
+                  const copy = showingGuided ? getGuidedEmptyCopy(isMe) : getClimbedEmptyCopy(isMe)
+                  return (
+                    <EmptyState
+                      icon="images-outline"
+                      title={copy.title}
+                      message={copy.body || undefined}
+                      actionLabel={copy.ctaLabel ?? undefined}
+                      onAction={copy.ctaLabel ? goFindActions : undefined}
+                    />
+                  )
+                }
+
+                return (
+                  <ProfileActionGrid
+                    actions={data}
+                    onPressAction={goAction}
+                    fullWidth
+                    mode={showingGuided ? 'guided' : 'climbed'}
+                  />
+                )
+              })()}
             </View>
           </Pressable>
         )}
@@ -792,6 +930,15 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         </>
       ) : null}
     </Screen>
+  )
+}
+
+function MetricSkeleton() {
+  return (
+    <View style={styles.metricCell} accessibilityRole="progressbar">
+      <View style={styles.metricSkeletonValue} />
+      <View style={styles.metricSkeletonLabel} />
+    </View>
   )
 }
 
@@ -934,6 +1081,7 @@ const styles = StyleSheet.create({
   profiIcon: { marginLeft: 4 },
   memberSinceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   clubRow: { marginTop: spacing.sm },
+  noClubText: { marginTop: spacing.sm },
   clubBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1003,6 +1151,33 @@ const styles = StyleSheet.create({
   metricCell: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: 2 },
   metricValue: { fontWeight: '800', fontSize: 13, textAlign: 'center' },
   metricLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, marginTop: 4, textAlign: 'center' },
+  metricSkeletonValue: {
+    width: 40,
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: colors.border,
+  },
+  metricSkeletonLabel: {
+    width: 52,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.border,
+    marginTop: 6,
+  },
+  sectionErrorWrap: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sectionErrorText: { textAlign: 'center' },
+  actionsSkeleton: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   passportShortcut: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,

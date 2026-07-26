@@ -24,10 +24,16 @@ import { useAuth } from '../../context/AuthContext'
 import FollowListModal, { type FollowListUser } from '../../components/modals/FollowListModal'
 import { formatDate } from '../../utils/dateUtils'
 import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
-import { ProfileActionGrid } from '../../components/profile/ProfileActionGrid'
+import { ProfileActionGrid, ProfileActionGridSkeleton } from '../../components/profile/ProfileActionGrid'
 import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
 import { ProfilePassportShortcut } from '../../components/profile/ProfilePassportShortcut'
+import {
+  ProfileActionsEmpty,
+  ProfileSectionError,
+  ProfileStatsSkeleton,
+} from '../../components/profile/ProfileSectionStates'
 import { buildPassportKpis } from '../../utils/profilePassportKpis'
+import { shouldShowGuidedActionsTab } from '../../utils/profileEmptyStates'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -100,9 +106,15 @@ export default function UserProfile() {
   const [akcije, setAkcije] = useState<UspesnaAkcija[]>([])
   const [vodeneAkcije, setVodeneAkcije] = useState<UspesnaAkcija[]>([])
   const [profileActionsTab, setProfileActionsTab] = useState<'climbed' | 'guided'>('climbed')
-  const [stats, setStats] = useState({ ukupnoKm: 0, ukupnoMetaraUspona: 0, brojPopeoSe: 0 })
+  const [stats, setStats] = useState<{ ukupnoKm: number; ukupnoMetaraUspona: number; brojPopeoSe: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [statsError, setStatsError] = useState(false)
+  const [akcijeLoading, setAkcijeLoading] = useState(false)
+  const [akcijeError, setAkcijeError] = useState(false)
+  const [vodeneLoading, setVodeneLoading] = useState(false)
+  const [vodeneError, setVodeneError] = useState(false)
   const [avatarFail, setAvatarFail] = useState(false)
   const [top30, setTop30] = useState<number | null>(null)
   const isMdUp = useIsMdUpForCover()
@@ -127,10 +139,10 @@ export default function UserProfile() {
       computeRank({
         uspesneAkcije: akcije,
         vodeneAkcije: vodeneAkcije,
-        ukupnoKm: stats.ukupnoKm,
-        ukupnoMetaraUspona: stats.ukupnoMetaraUspona,
+        ukupnoKm: stats?.ukupnoKm ?? 0,
+        ukupnoMetaraUspona: stats?.ukupnoMetaraUspona ?? 0,
       }),
-    [akcije, vodeneAkcije, stats.ukupnoKm, stats.ukupnoMetaraUspona],
+    [akcije, vodeneAkcije, stats?.ukupnoKm, stats?.ukupnoMetaraUspona],
   )
 
   const fetchFollowCounts = useCallback(async () => {
@@ -143,44 +155,85 @@ export default function UserProfile() {
     }
   }, [korisnik?.id])
 
+  const loadStats = useCallback(async (idOrUsername: string) => {
+    setStatsLoading(true)
+    setStatsError(false)
+    try {
+      const statsData = await fetchKorisnikStatistika(idOrUsername)
+      setStats(statsData)
+    } catch {
+      setStatsError(true)
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [])
+
+  const loadAkcije = useCallback(async (idOrUsername: string) => {
+    setAkcijeLoading(true)
+    setAkcijeError(false)
+    try {
+      const akcijeData = await fetchKorisnikPopeoSe(idOrUsername)
+      setAkcije(akcijeData as UspesnaAkcija[])
+    } catch {
+      setAkcijeError(true)
+    } finally {
+      setAkcijeLoading(false)
+    }
+  }, [])
+
+  const loadVodene = useCallback(async (idOrUsername: string) => {
+    setVodeneLoading(true)
+    setVodeneError(false)
+    try {
+      const vodeneData = await fetchKorisnikVodio(idOrUsername)
+      setVodeneAkcije((vodeneData as UspesnaAkcija[]) ?? [])
+    } catch {
+      setVodeneError(true)
+    } finally {
+      setVodeneLoading(false)
+    }
+  }, [])
+
+  const loadProfile = useCallback(async () => {
+    const idOrUsername = id ?? username
+    setLoading(true)
+    setError('')
+    setStats(null)
+    setAkcije([])
+    setVodeneAkcije([])
+    setStatsError(false)
+    setAkcijeError(false)
+    setVodeneError(false)
+    setProfileActionsTab('climbed')
+    try {
+      if (!idOrUsername) {
+        setError(t('notFound'))
+        setLoading(false)
+        return
+      }
+
+      const k = (await fetchKorisnikByIdOrUsername(idOrUsername)) as Korisnik
+      setKorisnik(k)
+      if (!username && k.username) navigate(`/korisnik/${k.username}`, { replace: true })
+      setLoading(false)
+
+      void loadStats(idOrUsername)
+      void loadAkcije(idOrUsername)
+      void loadVodene(idOrUsername)
+    } catch (e: unknown) {
+      const apiErr =
+        e && typeof e === 'object' && 'response' in e
+          ? (e as { response?: { data?: { error?: string }; status?: number } }).response
+          : undefined
+      setError(apiErr?.data?.error || (apiErr?.status === 404 ? t('notFound') : t('loadError')))
+      setLoading(false)
+    }
+  }, [id, username, navigate, t, loadStats, loadAkcije, loadVodene])
+
   /* ── data fetching ── */
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const idOrUsername = id ?? username
-        if (!idOrUsername) { setError(t('notFound')); setLoading(false); return }
-
-        const k = await fetchKorisnikByIdOrUsername(idOrUsername) as Korisnik
-        setKorisnik(k)
-        if (!username && k.username) navigate(`/korisnik/${k.username}`, { replace: true })
-
-        const guidedReq = fetchKorisnikVodio(idOrUsername)
-
-        const [statsData, akcijeData, vodeneData] = await Promise.all([
-          fetchKorisnikStatistika(idOrUsername),
-          fetchKorisnikPopeoSe(idOrUsername),
-          guidedReq,
-        ])
-        if (cancelled) return
-
-        setStats(statsData)
-        setAkcije(akcijeData as UspesnaAkcija[])
-        setVodeneAkcije((vodeneData as UspesnaAkcija[]) ?? [])
-        setProfileActionsTab('climbed')
-        // #region agent log
-        fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'22881b'},body:JSON.stringify({sessionId:'22881b',location:'UserProfil.tsx:fetch',message:'profile data loaded',data:{userId:k.id,username:k.username,akcijeCount:(akcijeData as UspesnaAkcija[]).length,stats:statsData},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-      } catch (e: any) {
-        if (!cancelled) setError(e.response?.data?.error || t('loadError'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [id, username, navigate])
+    void loadProfile()
+  }, [loadProfile])
 
   useEffect(() => { setAvatarFail(false) }, [id, username])
 
@@ -246,8 +299,12 @@ export default function UserProfile() {
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
   const showProfiGuideBadge = !!korisnik?.isProfiGuide
-  const showGuidedActionsTab = showProfiGuideBadge || vodeneAkcije.length > 0
-  const passportKpis = buildPassportKpis(stats, i18n.language)
+  const showGuidedActionsTab = shouldShowGuidedActionsTab({
+    isProfiGuide: showProfiGuideBadge,
+    guidedCount: vodeneAkcije.length,
+  })
+  const passportKpis = buildPassportKpis(stats ?? {}, i18n.language)
+  const idOrUsernameKey = String(id ?? username ?? korisnik?.username ?? '')
   const guideRatingSummary: GuideRatingSummary = korisnik?.guideRatingSummary ?? {
     prosecnaOcena: 0,
     brojOcena: 0,
@@ -766,10 +823,10 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {(korisnik.klubNaziv || showProfiGuideBadge) && (
+              {(korisnik.klubNaziv || showProfiGuideBadge || (isOwn && !korisnik.klubNaziv)) && (
                 <div className="mt-2.5 flex items-center justify-between gap-2 min-w-0">
                   <div className="min-w-0 flex-1">
-                    {korisnik.klubNaziv && (
+                    {korisnik.klubNaziv ? (
                       <span className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
                         {korisnik.klubLogoUrl ? (
                           <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 shrink-0 rounded-sm object-cover" />
@@ -780,7 +837,9 @@ export default function UserProfile() {
                         )}
                         <span className="truncate">{korisnik.klubNaziv}</span>
                       </span>
-                    )}
+                    ) : isOwn ? (
+                      <p className="text-[11px] text-gray-400 font-medium">{t('noClubOwn')}</p>
+                    ) : null}
                   </div>
                   {showProfiGuideBadge && (
                     <ProfiGuideRatingChip
@@ -849,6 +908,9 @@ export default function UserProfile() {
                         {korisnik.klubNaziv}
                       </span>
                     )}
+                    {isOwn && !korisnik.klubNaziv ? (
+                      <span className="text-[11px] text-gray-400 font-medium">{t('noClubOwn')}</span>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-0.5">
@@ -947,26 +1009,47 @@ export default function UserProfile() {
           </div>
 
           <div className="grid grid-cols-3 divide-x divide-gray-100" data-testid="profile-passport-kpis">
-            <StatCell
-              value={passportKpis.summits.value}
-              label={t('climbedCount')}
-              accent="text-amber-500"
-              ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
-            />
-            <StatCell
-              value={passportKpis.km.value}
-              unit="km"
-              label={t('trail')}
-              accent="text-sky-500"
-              ariaLabel={`${passportKpis.km.value} km ${t('trail')}`}
-            />
-            <StatCell
-              value={passportKpis.ascent.value}
-              unit="m"
-              label={t('ascent')}
-              accent="text-emerald-500"
-              ariaLabel={`${passportKpis.ascent.value} m ${t('ascent')}`}
-            />
+            {statsError && !stats ? (
+              <div
+                className="col-span-3 flex flex-col items-center justify-center gap-2 py-6 px-4 text-center"
+                role="alert"
+                data-testid="profile-stats-error"
+              >
+                <p className="text-sm text-gray-500">{t('statsUnavailable')}</p>
+                <button
+                  type="button"
+                  onClick={() => idOrUsernameKey && void loadStats(idOrUsernameKey)}
+                  className="min-h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-emerald-700 hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {t('retry')}
+                </button>
+              </div>
+            ) : statsLoading && !stats ? (
+              <ProfileStatsSkeleton />
+            ) : (
+              <>
+                <StatCell
+                  value={passportKpis.summits.value}
+                  label={t('climbedCount')}
+                  accent="text-amber-500"
+                  ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
+                />
+                <StatCell
+                  value={passportKpis.km.value}
+                  unit="km"
+                  label={t('trail')}
+                  accent="text-sky-500"
+                  ariaLabel={`${passportKpis.km.value} km ${t('trail')}`}
+                />
+                <StatCell
+                  value={passportKpis.ascent.value}
+                  unit="m"
+                  label={t('ascent')}
+                  accent="text-emerald-500"
+                  ariaLabel={`${passportKpis.ascent.value} m ${t('ascent')}`}
+                />
+              </>
+            )}
           </div>
           {isOwn ? (
             <div className="py-3 sm:py-4">
@@ -983,8 +1066,8 @@ export default function UserProfile() {
             <div className="mb-6 sm:mb-7">
               <ProfileActionsToggle
                 tab={profileActionsTab}
-                climbedCount={akcije.length}
-                guidedCount={vodeneAkcije.length}
+                climbedCount={akcijeError || akcijeLoading ? null : akcije.length}
+                guidedCount={vodeneError || vodeneLoading ? null : vodeneAkcije.length}
                 climbedLabel={t('actionsTabClimbed')}
                 guidedLabel={t('actionsTabGuided')}
                 onChange={setProfileActionsTab}
@@ -994,7 +1077,7 @@ export default function UserProfile() {
             <div className="flex items-center gap-2.5 mb-6">
               <div className="w-1 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-teal-600" />
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{t('completedActions')}</h2>
-              {akcije.length > 0 && (
+              {!akcijeLoading && !akcijeError && akcije.length > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                   {akcije.length}
                 </span>
@@ -1003,35 +1086,70 @@ export default function UserProfile() {
           )}
         </div>
 
-        {showGuidedActionsTab ? (
-          profileActionsTab === 'guided' ? (
-            vodeneAkcije.length === 0 ? (
-              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
-                <ProfileActionsEmpty message={t('noGuidedTours')} />
-              </div>
-            ) : (
-              <div className="pb-8 sm:pb-10">
-                <ProfileActionGrid actions={vodeneAkcije} mode="guided" />
-              </div>
+        <div className="pb-8 sm:pb-10" role="tabpanel">
+          {(() => {
+            const showingGuided = showGuidedActionsTab && profileActionsTab === 'guided'
+            const sectionLoading = showingGuided ? vodeneLoading : akcijeLoading
+            const sectionError = showingGuided ? vodeneError : akcijeError
+            const sectionData = showingGuided ? vodeneAkcije : akcije
+            const hasCached = sectionData.length > 0
+
+            if (sectionError && !hasCached) {
+              return (
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" data-testid="profile-history-error">
+                  <ProfileSectionError
+                    message={t('historyUnavailable')}
+                    retryLabel={t('retry')}
+                    onRetry={() => {
+                      if (!idOrUsernameKey) return
+                      if (showingGuided) void loadVodene(idOrUsernameKey)
+                      else void loadAkcije(idOrUsernameKey)
+                    }}
+                  />
+                </div>
+              )
+            }
+
+            if (sectionLoading && !hasCached) {
+              return (
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <ProfileActionGridSkeleton />
+                </div>
+              )
+            }
+
+            if (sectionData.length === 0) {
+              if (showingGuided) {
+                return (
+                  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <ProfileActionsEmpty
+                      title={isOwn ? t('noGuidedTours') : t('noGuidedToursPublic')}
+                      body={isOwn ? t('noGuidedToursBody') : undefined}
+                    />
+                  </div>
+                )
+              }
+              return (
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <ProfileActionsEmpty
+                    title={isOwn ? t('noCompletedActions') : t('noCompletedActionsPublic')}
+                    body={isOwn ? t('noCompletedActionsBody') : undefined}
+                    ctaLabel={isOwn ? t('findAction') : undefined}
+                    ctaTo={isOwn ? '/akcije' : undefined}
+                  />
+                </div>
+              )
+            }
+
+            return (
+              <ProfileActionGrid
+                actions={sectionData}
+                mode={showingGuided ? 'guided' : 'climbed'}
+                ariaLabel={t('actionsHistoryAria')}
+              />
             )
-          ) : akcije.length === 0 ? (
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
-              <ProfileActionsEmpty message={t('noCompletedActions')} />
-            </div>
-          ) : (
-            <div className="pb-8 sm:pb-10">
-              <ProfileActionGrid actions={akcije} mode="climbed" />
-            </div>
-          )
-        ) : akcije.length === 0 ? (
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-10">
-            <ProfileActionsEmpty message={t('noCompletedActions')} />
-          </div>
-        ) : (
-          <div className="pb-8 sm:pb-10">
-            <ProfileActionGrid actions={akcije} mode="climbed" />
-          </div>
-        )}
+          })()}
+        </div>
       </div>
 
       {/* Puna veličina profilne slike */}
@@ -1203,8 +1321,8 @@ function ProfileActionsToggle({
   onChange,
 }: {
   tab: 'climbed' | 'guided'
-  climbedCount: number
-  guidedCount: number
+  climbedCount: number | null
+  guidedCount: number | null
   climbedLabel: string
   guidedLabel: string
   onChange: (tab: 'climbed' | 'guided') => void
@@ -1232,18 +1350,20 @@ function ProfileActionsToggle({
           role="tab"
           aria-selected={isClimbed}
           onClick={() => onChange('climbed')}
-          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors sm:min-h-[56px] sm:flex-row sm:gap-2 ${
+          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset sm:min-h-[56px] sm:flex-row sm:gap-2 ${
             isClimbed ? 'text-emerald-900' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           <span className="text-xs font-bold tracking-tight sm:text-sm">{climbedLabel}</span>
-          <span
-            className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
-              isClimbed ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {climbedCount}
-          </span>
+          {climbedCount != null ? (
+            <span
+              className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
+                isClimbed ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {climbedCount}
+            </span>
+          ) : null}
         </button>
 
         <div className="pointer-events-none absolute left-1/2 top-3 bottom-3 z-[2] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gray-200 to-transparent" aria-hidden />
@@ -1253,33 +1373,22 @@ function ProfileActionsToggle({
           role="tab"
           aria-selected={!isClimbed}
           onClick={() => onChange('guided')}
-          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors sm:min-h-[56px] sm:flex-row sm:gap-2 ${
+          className={`relative z-[1] flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-3 py-2.5 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-inset sm:min-h-[56px] sm:flex-row sm:gap-2 ${
             !isClimbed ? 'text-violet-900' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           <span className="text-xs font-bold tracking-tight sm:text-sm">{guidedLabel}</span>
-          <span
-            className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
-              !isClimbed ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {guidedCount}
-          </span>
+          {guidedCount != null ? (
+            <span
+              className={`inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums sm:text-[11px] ${
+                !isClimbed ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {guidedCount}
+            </span>
+          ) : null}
         </button>
       </div>
-    </div>
-  )
-}
-
-function ProfileActionsEmpty({ message }: { message: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-12 sm:p-16 text-center max-w-xl mx-auto">
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-50 mb-4">
-        <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 6v12.75c0 1.243 1.007 2.25 2.25 2.25z" />
-        </svg>
-      </div>
-      <p className="text-sm text-gray-400">{message}</p>
     </div>
   )
 }
