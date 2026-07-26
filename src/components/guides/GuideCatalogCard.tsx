@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import {
   LanguageIcon,
   MapPinIcon,
-  PhoneIcon,
   StarIcon,
   UserIcon,
 } from '@heroicons/react/24/outline'
@@ -13,11 +12,6 @@ import {
   formatGuideRating,
   guideDisplayName,
 } from '../ferrate/GuideNearbyCard'
-
-function telHref(phone: string): string {
-  const digits = phone.replace(/[^\d+]/g, '')
-  return digits ? `tel:${digits}` : `tel:${phone.trim()}`
-}
 
 function formatLocation(g: GuideNearbyPublic): string {
   const parts = [g.grad, g.region, g.drzava].map((x) => (x ?? '').trim()).filter(Boolean)
@@ -34,7 +28,6 @@ export function GuideCatalogCard({
   const name = guideDisplayName(g)
   const username = g.user?.username?.trim()
   const avatar = g.user?.avatarUrl?.trim()
-  const phone = g.user?.telefon?.trim()
   const location = formatLocation(g)
   const tourTypes = (g.tourTypes ?? []).slice(0, 5)
   const jezici = (g.jezici ?? []).filter(Boolean).slice(0, 4)
@@ -125,23 +118,13 @@ export function GuideCatalogCard({
         </p>
       )}
 
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3 mt-4">
-        {phone ? (
-          <a
-            href={telHref(phone)}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-emerald-700"
-          >
-            <PhoneIcon className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="truncate">{phone}</span>
-          </a>
-        ) : (
-          <span className="text-xs text-gray-400">{tGuide('catalog.noContact')}</span>
-        )}
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
-          {tGuide('catalog.contact')}
-        </span>
-      </div>
+      {profileTo && (
+        <div className="mt-auto border-t border-gray-100 pt-3 mt-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
+            {tGuide('catalog.viewProfile')}
+          </span>
+        </div>
+      )}
     </article>
   )
 

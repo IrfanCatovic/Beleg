@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
-import { MapPinIcon, PhoneIcon, UserIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, UserIcon } from '@heroicons/react/24/outline'
 import { StarIcon } from '@heroicons/react/24/solid'
 import type { TFunction } from 'i18next'
 import type { GuideNearbyPublic } from '../../services/guidesPublic'
@@ -22,11 +22,6 @@ export function guideDisplayName(g: GuideNearbyPublic): string {
   return (g.user?.fullName || g.naslov || g.user?.username || '').trim() || '—'
 }
 
-function telHref(phone: string): string {
-  const digits = phone.replace(/[^\d+]/g, '')
-  return digits ? `tel:${digits}` : `tel:${phone.trim()}`
-}
-
 export function GuideNearbyCard({
   guide: g,
   t,
@@ -46,7 +41,6 @@ export function GuideNearbyCard({
   const km = formatGuideDistanceKm(g.distanceKm)
   const username = g.user?.username
   const avatar = g.user?.avatarUrl?.trim()
-  const phone = g.user?.telefon?.trim()
   const tourTypes = (g.tourTypes ?? []).slice(0, 4)
   const hasRating = (g.brojOcena ?? 0) > 0
   const toursCount = g.brojVodjenihTura ?? 0
@@ -105,17 +99,6 @@ export function GuideNearbyCard({
             <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
               {tourTypes.map((tt) => tGuide(`tourTypes.${tt}` as never)).join(' • ')}
             </p>
-          )}
-
-          {phone && (
-            <a
-              href={telHref(phone)}
-              onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-emerald-700"
-            >
-              <PhoneIcon className="h-3.5 w-3.5 shrink-0 text-gray-500" aria-hidden />
-              <span className="truncate">{phone}</span>
-            </a>
           )}
         </div>
 

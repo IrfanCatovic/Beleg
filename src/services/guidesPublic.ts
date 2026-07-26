@@ -20,7 +20,6 @@ export type GuideNearbyPublic = {
     username: string
     fullName: string
     avatarUrl?: string
-    telefon?: string
   }
 }
 

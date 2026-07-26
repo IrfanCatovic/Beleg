@@ -182,7 +182,8 @@ func guideProfileToDTO(gp *models.GuideProfile, k *models.Korisnik, tourTypes []
 			"email":     k.Email,
 			"avatarUrl": k.AvatarURL,
 		}
-		if forOwner || gp.Status == models.GuideStatusApproved {
+		// Kontakt samo za owner ili admin DTO — ne za javni listing.
+		if forOwner || includeAdmin {
 			userDTO["telefon"] = k.Telefon
 		}
 		resp["user"] = userDTO

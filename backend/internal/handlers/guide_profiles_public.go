@@ -43,12 +43,12 @@ func guideNearbyToPublicDTO(gp *models.GuideProfile, k *models.Korisnik, tourTyp
 		resp["baseLng"] = *gp.BaseLng
 	}
 	if k != nil {
+		// Public nested user: bez telefona/emaila/privatnih polja.
 		resp["user"] = gin.H{
 			"id":        k.ID,
 			"username":  k.Username,
 			"fullName":  k.FullName,
 			"avatarUrl": k.AvatarURL,
-			"telefon":   k.Telefon,
 		}
 	}
 	return resp
