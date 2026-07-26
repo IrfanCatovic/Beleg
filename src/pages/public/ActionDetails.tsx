@@ -1,4 +1,4 @@
-﻿import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
+﻿import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -75,6 +75,7 @@ export default function ActionDetails() {
   const { t, i18n } = useTranslation('actionDetails')
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
   const navigate = useNavigate()
@@ -242,41 +243,6 @@ export default function ActionDetails() {
     }, 120)
     return () => window.clearTimeout(timer)
   }, [focusSignupRequested, loading, akcija?.id, akcija?.isCompleted, akcija?.isCancelled])
-
-  useEffect(() => {
-    if (!akcija || !user) return
-    const neoznaceni = prijave.filter((p) => p.status === 'prijavljen').length
-    // #region agent log
-    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0764c5' },
-      body: JSON.stringify({
-        sessionId: '0764c5',
-        location: 'ActionDetails.tsx:action-permissions',
-        message: 'action detail permission snapshot',
-        hypothesisId: 'A-E',
-        data: {
-          actionId: akcija.id,
-          limited: !!akcija.limited,
-          isCompleted: !!akcija.isCompleted,
-          canManageHost,
-          canSeePrijave,
-          canApproveSignup,
-          organizatorTip: akcija.organizatorTip ?? null,
-          vodicId: akcija.vodicId ?? null,
-          addedById: akcija.addedById ?? null,
-          vodicUsername: akcija.vodic?.username ?? null,
-          addedByUsername: akcija.addedBy?.username ?? null,
-          userRole: user.role,
-          userUsername: user.username,
-          prijaveCount: prijave.length,
-          neoznaceniPrijave: neoznaceni,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
-  }, [akcija, user, canManageHost, canSeePrijave, canApproveSignup, prijave])
 
   const {
     signupRequests,
@@ -662,20 +628,6 @@ export default function ActionDetails() {
 
   const openFinishFinanceModal = () => {
     const neoznaceni = prijave.filter((p) => p.status === 'prijavljen')
-    // #region agent log
-    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0764c5' },
-      body: JSON.stringify({
-        sessionId: '0764c5',
-        location: 'ActionDetails.tsx:openFinishFinanceModal',
-        message: 'finish clicked',
-        hypothesisId: 'E',
-        data: { neoznaceni: neoznaceni.length, canManageHost, isLimitedView: !!akcija?.limited },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     if (neoznaceni.length > 0) {
       void showAlert(t('finishNeedStatuses'), t('markAllMembers'))
       return
@@ -837,27 +789,15 @@ export default function ActionDetails() {
   const capacityUsedCount = getActionCapacityUsedCount(akcija, prijaveForCounts)
   const isCapacityFull =
     canMutateActiveAction && isActionCapacityFull(akcija.maxLjudi, capacityUsedCount)
-  const signupUi = useMemo(
-    () =>
-      deriveActionSignupUiState({
-        prijavaStatus: mojaPrijava?.status,
-        isPendingSignup,
-        selectionsDirty,
-        saving: savingSelections,
-        isCapacityFull,
-        isCompleted: akcija.isCompleted,
-        isCancelled: akcija.isCancelled,
-      }),
-    [
-      mojaPrijava?.status,
-      isPendingSignup,
-      selectionsDirty,
-      savingSelections,
-      isCapacityFull,
-      akcija.isCompleted,
-      akcija.isCancelled,
-    ],
-  )
+  const signupUi = deriveActionSignupUiState({
+    prijavaStatus: mojaPrijava?.status,
+    isPendingSignup,
+    selectionsDirty,
+    saving: savingSelections,
+    isCapacityFull,
+    isCompleted: akcija.isCompleted,
+    isCancelled: akcija.isCancelled,
+  })
   const paidCount = paymentTrackedPrijave.filter((p) => !!p.platio).length
   const paidTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.platio ? p.saldo ?? 0 : 0), 0)
   const expectedTotal = paymentTrackedPrijave.reduce((acc, p) => acc + (p.saldo ?? 0), 0)
