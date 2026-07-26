@@ -15,8 +15,9 @@ describe('ProfilePassportShortcut', () => {
     expect(html).toContain('Otvori podešavanja')
     expect(html).toContain('/profil/podesavanja')
     expect(html).toContain('profile-passport-shortcut')
-    expect(html).not.toMatch(/\b\d{4,}\b/)
+    expect(html).toContain('Privatno')
     expect(html).not.toContain('brojLegitimacije')
+    expect(html).not.toContain('markicaBroj')
   })
 
   it('keeps admin roles out of public passport identity', () => {

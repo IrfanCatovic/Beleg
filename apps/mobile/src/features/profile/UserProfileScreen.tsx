@@ -55,6 +55,15 @@ import {
   shouldShowGuidedActionsTab,
 } from './profileEmptyStates'
 import { createRefreshGuard, runProfilePullToRefresh } from './profileRefresh'
+import {
+  buildGuideExperienceA11yLabel,
+  CLUB_MEMBER_SUBTITLE,
+  getGuideRatingPresentation,
+  PLANINER_RANK_HINT,
+  PLANINER_RANK_LABEL,
+  PRIVATE_PASSPORT_BADGE,
+  readGuideRatingSummary,
+} from './profileIdentity'
 import type {
   ActionsStackParamList,
   ExploreStackParamList,
@@ -573,7 +582,12 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   {korisnik.fullName || korisnik.username}
                 </Text>
                 {isProfiGuide ? (
-                  <Ionicons name="shield-checkmark" size={18} color={colors.brand} style={styles.profiIcon} />
+                  <View style={styles.profiBadge} accessibilityLabel="Profi vodič">
+                    <Ionicons name="shield-checkmark" size={14} color={colors.brand} />
+                    <Text variant="small" style={styles.profiBadgeText}>
+                      Profi vodič
+                    </Text>
+                  </View>
                 ) : null}
               </View>
               <Text color={colors.textMuted} numberOfLines={1}>
@@ -590,16 +604,40 @@ export default function UserProfileScreen({ route, navigation }: Props) {
           </View>
 
           {korisnik.klubNaziv ? (
-            <Pressable style={styles.clubRow} onPress={dismissImageFocus}>
+            <Pressable
+              style={styles.clubRow}
+              onPress={() => {
+                dismissImageFocus()
+                if (isMe) {
+                  navigation.getParent()?.navigate('ClubTab', { screen: 'ClubHome' })
+                }
+              }}
+              disabled={!isMe}
+              accessibilityRole={isMe ? 'button' : 'text'}
+              accessibilityLabel={
+                isMe
+                  ? `Otvori klub ${korisnik.klubNaziv}`
+                  : `Logo kluba ${korisnik.klubNaziv}`
+              }
+            >
               <View style={styles.clubBadge}>
                 {korisnik.klubLogoUrl ? (
-                  <Image source={{ uri: korisnik.klubLogoUrl }} style={styles.clubLogo} />
+                  <Image
+                    source={{ uri: korisnik.klubLogoUrl }}
+                    style={styles.clubLogo}
+                    accessibilityLabel={`Logo kluba ${korisnik.klubNaziv}`}
+                  />
                 ) : (
                   <Ionicons name="business-outline" size={12} color="#7c3aed" />
                 )}
-                <Text variant="small" style={styles.clubText} numberOfLines={1}>
-                  {korisnik.klubNaziv}
-                </Text>
+                <View style={styles.clubTextCol}>
+                  <Text variant="small" style={styles.clubText} numberOfLines={1}>
+                    {korisnik.klubNaziv}
+                  </Text>
+                  <Text variant="small" style={styles.clubSubtext} numberOfLines={1}>
+                    {CLUB_MEMBER_SUBTITLE}
+                  </Text>
+                </View>
               </View>
             </Pressable>
           ) : isMe ? (
@@ -654,14 +692,22 @@ export default function UserProfileScreen({ route, navigation }: Props) {
           <Pressable onPress={dismissImageFocus}>
             <View style={styles.statsSection}>
               <View style={styles.rankCard}>
-                <View style={[styles.rankBadge, { backgroundColor: rank.boja }]}>
-                  <Text variant="label" style={{ color: rankTextColor }}>
-                    {rank.naziv}
+                <View
+                  style={[styles.rankBadge, { backgroundColor: rank.boja }]}
+                  accessibilityLabel={`${PLANINER_RANK_LABEL}. ${PLANINER_RANK_HINT}`}
+                >
+                  <Text variant="small" style={{ color: rankTextColor, opacity: 0.9 }}>
+                    {PLANINER_RANK_LABEL}
                   </Text>
-                  <View style={styles.rankDivider} />
-                  <Text variant="label" style={{ color: rankTextColor }}>
-                    {rank.per} PER
-                  </Text>
+                  <View style={styles.rankNameRow}>
+                    <Text variant="label" style={{ color: rankTextColor }}>
+                      {rank.naziv}
+                    </Text>
+                    <View style={styles.rankDivider} />
+                    <Text variant="label" style={{ color: rankTextColor }}>
+                      {rank.per} PER
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.followPanel}>
@@ -729,11 +775,19 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   style={styles.passportShortcut}
                   onPress={openSettings}
                   accessibilityRole="button"
-                  accessibilityLabel="Planinarska legitimacija i članski podaci, otvori podešavanja"
+                  accessibilityLabel="Planinarska legitimacija i članski podaci, privatno, otvori podešavanja"
                 >
-                  <Text variant="label" style={styles.passportTitle}>
-                    Planinarska legitimacija i članski podaci
-                  </Text>
+                  <View style={styles.passportTitleRow}>
+                    <Text variant="label" style={styles.passportTitle}>
+                      Planinarska legitimacija i članski podaci
+                    </Text>
+                    <View style={styles.privateBadge} accessibilityLabel={PRIVATE_PASSPORT_BADGE}>
+                      <Ionicons name="lock-closed-outline" size={12} color="#065f46" />
+                      <Text variant="small" style={styles.privateBadgeText}>
+                        {PRIVATE_PASSPORT_BADGE}
+                      </Text>
+                    </View>
+                  </View>
                   <Text variant="small" color={colors.textMuted} style={styles.passportBody}>
                     Legitimacija, markica i privatni članski podaci dostupni su samo vama i ovlašćenom klubu.
                   </Text>
@@ -741,6 +795,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                     Otvori podešavanja
                   </Text>
                 </Pressable>
+              ) : null}
+
+              {isProfiGuide ? (
+                <GuideExperienceCard
+                  summary={readGuideRatingSummary(korisnik)}
+                  guidedCount={vodioQuery.data?.length ?? 0}
+                />
               ) : null}
 
               {showStepsCard ? (
@@ -933,6 +994,56 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   )
 }
 
+function GuideExperienceCard({
+  summary,
+  guidedCount,
+}: {
+  summary: ReturnType<typeof readGuideRatingSummary>
+  guidedCount: number
+}) {
+  const presentation = getGuideRatingPresentation(summary ?? undefined)
+  const a11y = buildGuideExperienceA11yLabel({
+    hasRatings: presentation.hasRatings,
+    averageLabel: presentation.averageLabel,
+    reviewCount: presentation.reviewCount,
+    guidedCount,
+  })
+
+  return (
+    <View
+      style={styles.guideCard}
+      accessibilityRole="summary"
+      accessibilityLabel={a11y}
+    >
+      <Text variant="label" style={styles.guideCardTitle}>
+        Vodičko iskustvo
+      </Text>
+      <View style={styles.guideCardRow}>
+        <Ionicons name="star" size={16} color="#f59e0b" />
+        {presentation.hasRatings && presentation.averageLabel ? (
+          <Text variant="title" style={styles.guideRatingValue}>
+            {presentation.averageLabel}
+          </Text>
+        ) : (
+          <Text variant="small" color={colors.textMuted}>
+            {presentation.emptyLabel}
+          </Text>
+        )}
+      </View>
+      {presentation.hasRatings ? (
+        <Text variant="small" color={colors.textMuted}>
+          {presentation.reviewCount} recenzija
+        </Text>
+      ) : null}
+      {guidedCount > 0 ? (
+        <Text variant="small" color={colors.textMuted}>
+          {guidedCount} vođenih tura
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
 function MetricSkeleton() {
   return (
     <View style={styles.metricCell} accessibilityRole="progressbar">
@@ -1076,9 +1187,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   identityText: { flex: 1, paddingTop: 44, gap: 2 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   name: { fontSize: 18, lineHeight: 22 },
-  profiIcon: { marginLeft: 4 },
+  profiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  profiBadgeText: { color: '#065f46', fontWeight: '800', fontSize: 10 },
   memberSinceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   clubRow: { marginTop: spacing.sm },
   noClubText: { marginTop: spacing.sm },
@@ -1086,17 +1208,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 6,
+    gap: 8,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: radius.sm,
     backgroundColor: '#f5f3ff',
     borderWidth: 1,
     borderColor: '#ddd6fe',
     maxWidth: '100%',
+    minHeight: 44,
   },
-  clubLogo: { width: 14, height: 14, borderRadius: 2 },
-  clubText: { color: '#6d28d9', fontWeight: '800', fontSize: 10, flexShrink: 1 },
+  clubLogo: { width: 16, height: 16, borderRadius: 2 },
+  clubTextCol: { flexShrink: 1, minWidth: 0 },
+  clubText: { color: '#6d28d9', fontWeight: '800', fontSize: 11 },
+  clubSubtext: { color: '#7c3aed', fontSize: 10, marginTop: 1 },
   primaryActionsRow: { marginTop: spacing.md, minHeight: 44 },
   becomeGuideRow: { marginTop: spacing.md },
   blocked: { padding: spacing.xl, alignItems: 'center' },
@@ -1119,13 +1244,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   rankBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.lg,
-    gap: spacing.sm,
+    gap: 2,
     flexShrink: 1,
+  },
+  rankNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   rankDivider: {
     width: 1,
@@ -1189,9 +1317,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#ecfdf5',
     gap: 4,
   },
-  passportTitle: { color: '#064e3b', fontWeight: '800' },
+  passportTitleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  passportTitle: { color: '#064e3b', fontWeight: '800', flexShrink: 1 },
+  privateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  privateBadgeText: { color: '#065f46', fontWeight: '800', fontSize: 10 },
   passportBody: { lineHeight: 18 },
   passportCta: { marginTop: 6, color: colors.brand, fontWeight: '800' },
+  guideCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    backgroundColor: colors.white,
+    gap: 4,
+  },
+  guideCardTitle: { color: '#065f46', fontWeight: '800', letterSpacing: 0.6, fontSize: 10 },
+  guideCardRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  guideRatingValue: { fontSize: 18 },
   stepsCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,

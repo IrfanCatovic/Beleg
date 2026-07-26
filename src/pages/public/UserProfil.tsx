@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
-import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
 import type { GuideRatingSummary } from '../../services/guideRatings'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +26,8 @@ import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { ProfileActionGrid, ProfileActionGridSkeleton } from '../../components/profile/ProfileActionGrid'
 import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
 import { ProfilePassportShortcut } from '../../components/profile/ProfilePassportShortcut'
+import { ProfileClubIdentity } from '../../components/profile/ProfileClubIdentity'
+import { ProfileGuideExperience } from '../../components/profile/ProfileGuideExperience'
 import {
   ProfileActionsEmpty,
   ProfileSectionError,
@@ -34,6 +35,12 @@ import {
 } from '../../components/profile/ProfileSectionStates'
 import { buildPassportKpis } from '../../utils/profilePassportKpis'
 import { shouldShowGuidedActionsTab } from '../../utils/profileEmptyStates'
+import {
+  PLANINER_RANK_HINT,
+  PLANINER_RANK_LABEL,
+  resolveSameClub,
+  shouldShowPublicContactPills,
+} from '../../utils/profileIdentity'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -295,9 +302,16 @@ export default function UserProfile() {
   const isOwn = currentUser?.username === korisnik?.username
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
-  const sameClub = !!currentUser && typeof currentUser.klubId === 'number' && typeof korisnik?.klubId === 'number' && currentUser.klubId === korisnik.klubId
+  const sameClub = resolveSameClub({
+    viewerKlubId: currentUser?.klubId,
+    profileKlubId: korisnik?.klubId,
+  })
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
+  const showContactPills = shouldShowPublicContactPills({
+    email: korisnik?.email,
+    telefon: korisnik?.telefon,
+  })
   const showProfiGuideBadge = !!korisnik?.isProfiGuide
   const showGuidedActionsTab = shouldShowGuidedActionsTab({
     isProfiGuide: showProfiGuideBadge,
@@ -805,8 +819,8 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              {/* contact pills */}
-              {currentUser && (korisnik.email || korisnik.telefon) && (
+              {/* contact pills — samo kad public/own payload stvarno ima vrijednosti */}
+              {showContactPills && (
                 <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
                   {korisnik.email && (
                     <a href={`mailto:${korisnik.email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
@@ -823,31 +837,15 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {(korisnik.klubNaziv || showProfiGuideBadge || (isOwn && !korisnik.klubNaziv)) && (
-                <div className="mt-2.5 flex items-center justify-between gap-2 min-w-0">
-                  <div className="min-w-0 flex-1">
-                    {korisnik.klubNaziv ? (
-                      <span className="inline-flex max-w-full items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
-                        {korisnik.klubLogoUrl ? (
-                          <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 shrink-0 rounded-sm object-cover" />
-                        ) : (
-                          <svg className="w-3 h-3 shrink-0 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                          </svg>
-                        )}
-                        <span className="truncate">{korisnik.klubNaziv}</span>
-                      </span>
-                    ) : isOwn ? (
-                      <p className="text-[11px] text-gray-400 font-medium">{t('noClubOwn')}</p>
-                    ) : null}
-                  </div>
-                  {showProfiGuideBadge && (
-                    <ProfiGuideRatingChip
-                      username={korisnik.username}
-                      summary={guideRatingSummary}
-                      className="shrink-0"
-                    />
-                  )}
+              {(korisnik.klubNaziv || (isOwn && !korisnik.klubNaziv)) && (
+                <div className="mt-2.5 min-w-0">
+                  <ProfileClubIdentity
+                    klubNaziv={korisnik.klubNaziv}
+                    klubLogoUrl={korisnik.klubLogoUrl}
+                    isAuthenticated={!!currentUser}
+                    isOwn={!!isOwn}
+                    noClubOwnLabel={t('noClubOwn')}
+                  />
                 </div>
               )}
               {isOwn && myGuideProfile !== undefined && (
@@ -896,21 +894,16 @@ export default function UserProfile() {
 
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-0.5">
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
-                    {korisnik.klubNaziv && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-lg text-[10px] font-extrabold tracking-wide bg-violet-50 text-violet-700 border border-violet-100">
-                        {korisnik.klubLogoUrl ? (
-                          <img src={korisnik.klubLogoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
-                        ) : (
-                          <svg className="w-3 h-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                          </svg>
-                        )}
-                        {korisnik.klubNaziv}
-                      </span>
-                    )}
-                    {isOwn && !korisnik.klubNaziv ? (
-                      <span className="text-[11px] text-gray-400 font-medium">{t('noClubOwn')}</span>
-                    ) : null}
+                  </div>
+
+                  <div className="mt-1.5">
+                    <ProfileClubIdentity
+                      klubNaziv={korisnik.klubNaziv}
+                      klubLogoUrl={korisnik.klubLogoUrl}
+                      isAuthenticated={!!currentUser}
+                      isOwn={!!isOwn}
+                      noClubOwnLabel={t('noClubOwn')}
+                    />
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-0.5">
@@ -923,8 +916,7 @@ export default function UserProfile() {
                   </div>
                 </div>
 
-                {/* contact pills */}
-                {currentUser && (korisnik.email || korisnik.telefon) && (
+                {showContactPills && (
                   <div className="flex flex-wrap items-center justify-start gap-2 mt-2.5">
                     {korisnik.email && (
                       <a href={`mailto:${korisnik.email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
@@ -945,12 +937,6 @@ export default function UserProfile() {
                 )}
                 <div className="mt-3">{headerActions}</div>
               </div>
-
-              {showProfiGuideBadge && (
-                <div className="hidden sm:flex shrink-0 self-center pb-1">
-                  <ProfiGuideRatingChip username={korisnik.username} summary={guideRatingSummary} />
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -964,13 +950,20 @@ export default function UserProfile() {
             <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/70 shadow-[0_10px_30px_rgba(15,23,42,0.06)] px-3 sm:px-4 py-2.5">
               <div className="flex items-center justify-between gap-2.5">
                 <div
-                  className="relative inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 overflow-hidden"
+                  className="relative inline-flex flex-col gap-0.5 rounded-xl px-3.5 py-2.5 overflow-hidden max-w-full"
                   style={{ backgroundColor: rank.boja, color: rankColor }}
+                  title={PLANINER_RANK_HINT}
+                  aria-label={`${PLANINER_RANK_LABEL}. ${PLANINER_RANK_HINT}`}
+                  data-testid="profile-planiner-rank"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-
-                  <span className="relative text-xs sm:text-sm font-extrabold tracking-wide">{formatRankDisplayName(rank, top30)}</span>
-                  <span className="relative pl-2 ml-1 border-l border-white/25 text-[11px] sm:text-xs font-extrabold tabular-nums">{rank.per} PER</span>
+                  <span className="relative text-[9px] font-bold uppercase tracking-[0.14em] opacity-90">
+                    {PLANINER_RANK_LABEL}
+                  </span>
+                  <div className="relative inline-flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-extrabold tracking-wide">{formatRankDisplayName(rank, top30)}</span>
+                    <span className="pl-2 ml-1 border-l border-white/25 text-[11px] sm:text-xs font-extrabold tabular-nums">{rank.per} PER</span>
+                  </div>
                 </div>
 
                 {currentUser ? (
@@ -1054,6 +1047,16 @@ export default function UserProfile() {
           {isOwn ? (
             <div className="py-3 sm:py-4">
               <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
+            </div>
+          ) : null}
+          {showProfiGuideBadge ? (
+            <div className="pb-3 sm:pb-4">
+              <ProfileGuideExperience
+                username={korisnik.username}
+                summary={guideRatingSummary}
+                guidedCount={vodeneAkcije.length}
+                reviewsHref={`/korisnik/${encodeURIComponent(korisnik.username)}/recenzije`}
+              />
             </div>
           ) : null}
         </div>

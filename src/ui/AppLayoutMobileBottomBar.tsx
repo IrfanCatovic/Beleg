@@ -4,6 +4,7 @@ import type { User } from '../context/AuthContext'
 import type { ObavestenjeItem } from '../types/obavestenje'
 import { formatRelativeTime } from '../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
+import { resolveMobileBottomBarProfileHref } from '../utils/profileIdentity'
 
 export interface AppLayoutMobileBottomBarProps {
   user: User | null
@@ -118,7 +119,7 @@ export function AppLayoutMobileBottomBar({
             <div className="flex-1 flex justify-center">
               <button
                 type="button"
-                onClick={() => navigate(user ? `/korisnik/${user.username}` : '/profil')}
+                onClick={() => navigate(resolveMobileBottomBarProfileHref({ username: user?.username }))}
                 className="flex flex-col items-center justify-center"
                 aria-label={t('profile')}
               >
