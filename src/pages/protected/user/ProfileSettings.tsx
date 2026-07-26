@@ -53,6 +53,7 @@ export default function ProfileSettings() {
   const [role, setRole] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [removeAvatar, setRemoveAvatar] = useState(false)
@@ -254,6 +255,11 @@ export default function ProfileSettings() {
         setSaving(false)
         return
       }
+      if (newPassword && !currentPassword.trim()) {
+        setError(t('currentPasswordRequired'))
+        setSaving(false)
+        return
+      }
 
       const formData = new FormData()
       formData.append('username', form.username.trim().toLowerCase())
@@ -269,7 +275,10 @@ export default function ProfileSettings() {
       formData.append('brojPlaninarskeMarkice', form.brojPlaninarskeMarkice.trim())
       if (form.datumRodjenja) formData.append('datumRodjenja', form.datumRodjenja)
       if (form.datumUclanjenja) formData.append('datumUclanjenja', form.datumUclanjenja)
-      if (newPassword) formData.append('newPassword', newPassword)
+      if (newPassword) {
+        formData.append('newPassword', newPassword)
+        formData.append('currentPassword', currentPassword)
+      }
       if (avatarFile) formData.append('avatar', avatarFile)
       if (removeAvatar) formData.append('removeAvatar', '1')
       if (canEditAdminFields) {
@@ -296,6 +305,9 @@ export default function ProfileSettings() {
       const verifiedNow = !!me?.email_verified_at
       setEmailVerified(verifiedNow)
 
+      setNewPassword('')
+      setConfirmPassword('')
+      setCurrentPassword('')
       setSuccess(true)
       if (mustCompleteProfile && !verifiedNow) {
         const email = form.email.trim().toLowerCase()
@@ -529,6 +541,17 @@ export default function ProfileSettings() {
                   <div>
                     <label className={labelClass}>{t('role')}</label>
                     <input value={role} readOnly disabled className={disabledInputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t('currentPassword')}</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className={inputClass}
+                      placeholder={t('currentPasswordHint')}
+                      autoComplete="current-password"
+                    />
                   </div>
                   <div>
                     <label className={labelClass}>{t('newPasswordLeaveEmpty')}</label>

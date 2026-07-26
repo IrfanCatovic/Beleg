@@ -62,9 +62,26 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 		roleVal, _ := c.Get("role")
 		isAdmin := roleVal == "admin" || roleVal == "superadmin"
 
-		if newPassword := post("newPassword"); newPassword != "" {
+		// Nova lozinka: isti TrimSpace kao ranije; currentPassword se ne trimuje radi tačnog bcrypt compare.
+		newPassword := post("newPassword")
+		currentPassword := c.PostForm("currentPassword")
+		wantsPasswordChange := newPassword != ""
+		var hashedPassword string
+		if wantsPasswordChange {
+			if strings.TrimSpace(currentPassword) == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Unesite trenutnu lozinku da biste postavili novu."})
+				return
+			}
+			if err := bcrypt.CompareHashAndPassword([]byte(korisnik.Password), []byte(currentPassword)); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Trenutna lozinka nije ispravna."})
+				return
+			}
 			if len(newPassword) < 8 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka mora imati najmanje 8 karaktera"})
+				return
+			}
+			if len(newPassword) > 72 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Lozinka je predugačka"})
 				return
 			}
 			hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
@@ -72,10 +89,7 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
 				return
 			}
-			if err := db.Model(&korisnik).Update("password", string(hashed)).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju lozinke"})
-				return
-			}
+			hashedPassword = string(hashed)
 		}
 
 		newUsername := post("username")
@@ -264,6 +278,9 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			"broj_planinarske_markice":      brojPlaninarskeMarkice,
 			"datum_rodjenja":                datumRodjenja,
 			"datum_uclanjenja":              datumUclanjenja,
+		}
+		if wantsPasswordChange {
+			updates["password"] = hashedPassword
 		}
 		if isAdmin {
 			updates["izrecene_disciplinske_kazne"] = izreceneDisciplinskeKazne

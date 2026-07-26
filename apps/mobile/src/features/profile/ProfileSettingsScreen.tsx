@@ -27,6 +27,7 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
   const [role, setRole] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [imeRoditelja, setImeRoditelja] = useState('')
   const [pol, setPol] = useState('')
@@ -72,6 +73,9 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
       if (newPassword && newPassword.length < 8) {
         throw new Error('Lozinka mora imati najmanje 8 karaktera.')
       }
+      if (newPassword && !currentPassword.trim()) {
+        throw new Error('Unesite trenutnu lozinku da biste postavili novu.')
+      }
 
       const fd = new FormData()
       fd.append('username', username.trim().toLowerCase())
@@ -87,11 +91,17 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
       fd.append('brojPlaninarskeMarkice', brojPlaninarskeMarkice.trim())
       if (datumRodjenja) fd.append('datumRodjenja', datumRodjenja)
       if (datumUclanjenja) fd.append('datumUclanjenja', datumUclanjenja)
-      if (newPassword) fd.append('newPassword', newPassword)
+      if (newPassword) {
+        fd.append('newPassword', newPassword)
+        fd.append('currentPassword', currentPassword)
+      }
 
       return updateMe(client, fd)
     },
     onSuccess: async () => {
+      setNewPassword('')
+      setConfirmPassword('')
+      setCurrentPassword('')
       await refreshUser()
       await showAlert('Sačuvano', 'Profil je ažuriran.')
       navigation.goBack()
@@ -123,11 +133,22 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
         <Input label="Korisničko ime" value={username} onChangeText={setUsername} autoCapitalize="none" />
         <Input label="Uloga" value={role} editable={false} />
         <Input
+          label="Trenutna lozinka"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+          placeholder="Obavezna samo ako menjate lozinku"
+          textContentType="password"
+          autoComplete="current-password"
+        />
+        <Input
           label="Nova lozinka (ostavite prazno ako ne menjate)"
           value={newPassword}
           onChangeText={setNewPassword}
           secureTextEntry
           placeholder="Min. 8 karaktera"
+          textContentType="newPassword"
+          autoComplete="password-new"
         />
         <Input
           label="Ponovite lozinku"
@@ -135,6 +156,8 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
           onChangeText={setConfirmPassword}
           secureTextEntry
           placeholder="Ponovite lozinku"
+          textContentType="newPassword"
+          autoComplete="password-new"
         />
       </SettingsSection>
 
