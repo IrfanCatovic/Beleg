@@ -18,6 +18,7 @@ import {
   updateMyCover,
   updateMyAvatar,
 } from '../../services/users'
+import { syncAvatarAfterSuccessfulUpload } from './syncAvatarAfterSuccessfulUpload'
 import { fetchUserFollowingList, fetchUserFollowersList } from '../../services/follows'
 import { useAuth } from '../../context/AuthContext'
 import ProfileActionButtons from '../../components/buttons/ProfileActionButtons'
@@ -94,7 +95,7 @@ export default function UserProfile() {
   const { t, i18n } = useTranslation('userProfile')
   const { t: tGuide } = useTranslation('guideProfiles')
   const { id, username } = useParams<{ id?: string; username?: string }>()
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, refreshUser } = useAuth()
   const navigate = useNavigate()
 
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null)
@@ -357,19 +358,23 @@ export default function UserProfile() {
 
   const handleAvatarImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !isOwn) return
+    if (!file || !isOwn || avatarUpdating) return
     if (!file.type.startsWith('image/')) return
     setAvatarUpdating(true)
     try {
       const formData = new FormData()
       formData.append('avatar', file)
       const res = await updateMyAvatar(formData)
-      const avatarUrl = res.avatar_url
-      if (avatarUrl) {
-        setKorisnik((k) => (k ? { ...k, avatar_url: avatarUrl } : null))
-      }
+      await syncAvatarAfterSuccessfulUpload({
+        avatarUrl: res.avatar_url,
+        applyLocalAvatar: (url) => {
+          setKorisnik((k) => (k ? { ...k, avatar_url: url } : null))
+          setAvatarFail(false)
+        },
+        refreshUser,
+      })
     } catch {
-      /* ignore */
+      /* upload failed — keep previous avatar; do not refresh AuthContext */
     } finally {
       setAvatarUpdating(false)
       e.target.value = ''
@@ -377,16 +382,25 @@ export default function UserProfile() {
   }
 
   const handleRemoveAvatar = async () => {
-    if (!isOwn || !korisnik?.avatar_url) return
+    if (!isOwn || !korisnik?.avatar_url || avatarUpdating) return
     setAvatarUpdating(true)
     try {
       const formData = new FormData()
       formData.append('removeAvatar', '1')
       await updateMyAvatar(formData)
-      setKorisnik((k) => (k ? { ...k, avatar_url: '' } : null))
-      setAvatarLightboxOpen(false)
+      await syncAvatarAfterSuccessfulUpload({
+        avatarUrl: undefined,
+        removed: true,
+        applyLocalAvatar: () => undefined,
+        clearLocalAvatar: () => {
+          setKorisnik((k) => (k ? { ...k, avatar_url: '' } : null))
+          setAvatarLightboxOpen(false)
+          setAvatarFail(false)
+        },
+        refreshUser,
+      })
     } catch {
-      /* ignore */
+      /* remove failed — keep previous avatar; do not refresh AuthContext */
     } finally {
       setAvatarUpdating(false)
     }
