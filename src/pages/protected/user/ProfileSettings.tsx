@@ -25,6 +25,7 @@ import {
   publicProfilePath,
   type GuideSettingsStatus,
 } from '../../../utils/profileSettingsModel'
+import { applyWebSettingsAuthRefresh } from '../../../utils/profileSettingsIntegration'
 import {
   UserCircleIcon,
   PhoneIcon,
@@ -441,7 +442,7 @@ export default function ProfileSettings() {
           token: typeof res.token === 'string' ? res.token : undefined,
         })
       }
-      await refreshUser()
+      await applyWebSettingsAuthRefresh({ refreshUser })
       const me = await fetchMeProfile()
       const verifiedNow = !!me?.email_verified_at
       setEmailVerified(verifiedNow)
@@ -450,6 +451,7 @@ export default function ProfileSettings() {
         setHasAvatarRemote(true)
       } else if (removeAvatar) {
         setHasAvatarRemote(false)
+        setAvatarPreview('')
       }
       setAvatarFile(null)
       setRemoveAvatar(false)
@@ -480,7 +482,15 @@ export default function ProfileSettings() {
         )
         return
       }
-      setTimeout(() => navigate(`/korisnik/${form.username}`, { replace: true }), 1500)
+      const nextUsername = form.username.trim()
+      setTimeout(
+        () =>
+          navigate(`/korisnik/${encodeURIComponent(nextUsername)}`, {
+            replace: true,
+            state: { refreshProfile: true },
+          }),
+        1500,
+      )
     } catch (err: unknown) {
       setSuccess(false)
       setError(getErrorMessage(err, t('saveProfileError')))

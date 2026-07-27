@@ -46,6 +46,7 @@ export default function AddPastAction() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const tipAkcije = searchParams.get('tip') === 'via_ferrata' ? 'via_ferrata' : 'planina'
+  const profileHref = user?.username ? `/korisnik/${encodeURIComponent(user.username)}` : '/home'
   const [korisnici, setKorisnici] = useState<Korisnik[]>([])
   const [vodici, setVodici] = useState<Korisnik[]>([])
   const [zavrseneAkcije, setZavrseneAkcije] = useState<Akcija[]>([])
@@ -397,7 +398,7 @@ export default function AddPastAction() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
-          <BackButton to="/profil" />
+          <BackButton to={profileHref} />
           <div className="flex-1 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 mb-1">
               {t('past.badge')}
@@ -905,7 +906,7 @@ export default function AddPastAction() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/profil')}
+                onClick={() => navigate(profileHref)}
                 className="inline-flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all"
               >
                 {t('common.cancel')}

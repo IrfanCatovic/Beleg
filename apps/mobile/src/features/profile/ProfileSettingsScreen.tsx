@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { getApiErrorMessage } from '@beleg/shared'
 import { fetchMeProfile, getMyGuideProfile, updateMe } from '@beleg/shared/services'
@@ -29,6 +29,7 @@ import {
   buildGuideSettingsBlock,
   mapGuideProfileToCompletionStatus,
 } from './profileSettingsModel'
+import { invalidateOwnProfileAfterSettingsSave, profileKeys } from './profileKeys'
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileSettings'>
 
@@ -40,7 +41,9 @@ function dateOnly(s?: string | null): string {
 export default function ProfileSettingsScreen({ navigation }: Props) {
   const { refreshUser } = useAuth()
   const { showAlert } = useModal()
+  const queryClient = useQueryClient()
   const submitLockRef = useRef(false)
+  const loadedUsernameRef = useRef('')
 
   const [username, setUsername] = useState('')
   const [role, setRole] = useState('')
@@ -69,12 +72,12 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
   const [resendingEmail, setResendingEmail] = useState(false)
 
   const profileQuery = useQuery({
-    queryKey: ['me-profile'],
+    queryKey: profileKeys.me(),
     queryFn: () => fetchMeProfile(client),
   })
 
   const guideQuery = useQuery({
-    queryKey: ['my-guide-profile'],
+    queryKey: profileKeys.myGuide(),
     queryFn: () => getMyGuideProfile(client),
   })
 
@@ -99,6 +102,7 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
     setEmailVerified(!!k.email_verified_at)
     setHasAvatar(!!k.avatar_url)
     setHasCover(!!k.cover_image_url)
+    loadedUsernameRef.current = k.username ?? ''
     setBaseline(
       JSON.stringify({
         username: k.username ?? '',
@@ -251,7 +255,13 @@ export default function ProfileSettingsScreen({ navigation }: Props) {
         }),
       )
       await refreshUser()
-      await profileQuery.refetch()
+      await invalidateOwnProfileAfterSettingsSave(queryClient, {
+        previousUsername: loadedUsernameRef.current,
+        nextUsername: username.trim(),
+        invalidateMeProfile: true,
+        invalidateGuide: false,
+      })
+      loadedUsernameRef.current = username.trim()
       await showAlert('Sačuvano', 'Profil je ažuriran.')
     },
     onError: (err) => {

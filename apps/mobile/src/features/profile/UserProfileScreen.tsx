@@ -55,6 +55,8 @@ import {
   shouldShowGuidedActionsTab,
 } from './profileEmptyStates'
 import { createRefreshGuard, runProfilePullToRefresh } from './profileRefresh'
+import { isOwnProfile } from './profileOwnership'
+import { profileKeys } from './profileKeys'
 import {
   buildGuideExperienceA11yLabel,
   CLUB_MEMBER_SUBTITLE,
@@ -115,12 +117,22 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const refreshGuardRef = useRef(createRefreshGuard())
 
+  useEffect(() => {
+    setLocalAvatarUrl(null)
+    setLocalCoverUrl(null)
+    setActionsTab('climbed')
+    setAvatarFocus(false)
+    setCoverFocus(false)
+    setMenuOpen(false)
+    setFollowModal(null)
+  }, [idOrUsername])
+
   const routeNames = (navigation.getState()?.routeNames ?? []) as string[]
   const inProfileStack = routeNames.includes('ProfileSettings')
   const profileNavigation = navigation as NativeStackNavigationProp<ProfileStackParamList, 'UserProfile'>
 
   const profileQuery = useQuery({
-    queryKey: ['korisnik', idOrUsername],
+    queryKey: profileKeys.detail(idOrUsername),
     queryFn: () => fetchKorisnikByIdOrUsername(client, idOrUsername),
     enabled: !!idOrUsername,
   })
@@ -128,44 +140,57 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const targetId = profileQuery.data?.id
 
   const statsQuery = useQuery({
-    queryKey: ['korisnik', idOrUsername, 'statistika'],
+    queryKey: profileKeys.stats(idOrUsername),
     queryFn: () => fetchKorisnikStatistika(client, idOrUsername),
     enabled: !!idOrUsername,
   })
 
   const popeoQuery = useQuery({
-    queryKey: ['korisnik', idOrUsername, 'popeo-se'],
+    queryKey: profileKeys.climbed(idOrUsername),
     queryFn: () => fetchKorisnikPopeoSe(client, idOrUsername),
     enabled: !!idOrUsername,
   })
 
   const vodioQuery = useQuery({
-    queryKey: ['korisnik', idOrUsername, 'vodio'],
+    queryKey: profileKeys.guided(idOrUsername),
     queryFn: () => fetchKorisnikVodio(client, idOrUsername),
     enabled: !!idOrUsername,
   })
 
   const followQuery = useQuery({
-    queryKey: ['follows', targetId, 'counts'],
+    queryKey: targetId != null ? profileKeys.followCounts(targetId) : (['follows', 'idle'] as const),
     queryFn: () => fetchFollowCounts(client, targetId!),
     enabled: !!targetId,
   })
 
   const followStatusQuery = useQuery({
-    queryKey: ['follows', targetId, 'status'],
+    queryKey: targetId != null ? profileKeys.followStatus(targetId) : (['follows', 'idle', 'status'] as const),
     queryFn: () => fetchFollowStatus(client, targetId!),
-    enabled: !!targetId && me?.username !== profileQuery.data?.username,
+    enabled:
+      !!targetId &&
+      !isOwnProfile({
+        viewerUsername: me?.username,
+        profileUsername: profileQuery.data?.username,
+        profileId: profileQuery.data?.id,
+      }),
   })
 
   const blockStatusQuery = useQuery({
-    queryKey: ['blocks', targetId, 'status'],
+    queryKey: targetId != null ? profileKeys.blockStatus(targetId) : (['blocks', 'idle', 'status'] as const),
     queryFn: () => fetchBlockStatus(client, targetId!),
-    enabled: !!targetId && me?.username !== profileQuery.data?.username,
+    enabled:
+      !!targetId &&
+      !isOwnProfile({
+        viewerUsername: me?.username,
+        profileUsername: profileQuery.data?.username,
+        profileId: profileQuery.data?.id,
+      }),
   })
 
   const invalidateSocial = () => {
-    void queryClient.invalidateQueries({ queryKey: ['follows', targetId] })
-    void queryClient.invalidateQueries({ queryKey: ['blocks', targetId] })
+    if (!targetId) return
+    void queryClient.invalidateQueries({ queryKey: profileKeys.followRoot(targetId) })
+    void queryClient.invalidateQueries({ queryKey: profileKeys.blockRoot(targetId) })
   }
 
   const followMutation = useMutation({
@@ -195,13 +220,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   })
 
   const invalidateProfile = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['korisnik', idOrUsername] })
+    void queryClient.invalidateQueries({ queryKey: profileKeys.detail(idOrUsername) })
     void refreshUser()
   }, [queryClient, idOrUsername, refreshUser])
 
   const patchProfileCache = useCallback(
     (patch: Partial<Korisnik>) => {
-      queryClient.setQueryData<Korisnik>(['korisnik', idOrUsername], (old) =>
+      queryClient.setQueryData<Korisnik>(profileKeys.detail(idOrUsername), (old) =>
         old ? { ...old, ...patch } : old,
       )
     },
@@ -375,18 +400,22 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     void refreshGuardRef.current.run(async () => {
       setRefreshing(true)
       try {
-        const isOwnProfile = me?.username === profileQuery.data?.username
-        await runProfilePullToRefresh(isOwnProfile ? 'own' : 'public', {
+        const isOwnProfileView = isOwnProfile({
+          viewerUsername: me?.username,
+          profileUsername: profileQuery.data?.username,
+          profileId: profileQuery.data?.id,
+        })
+        await runProfilePullToRefresh(isOwnProfileView ? 'own' : 'public', {
           refetchProfile: () => profileQuery.refetch(),
           refetchStats: () => statsQuery.refetch(),
           refetchClimbed: () => popeoQuery.refetch(),
           refetchGuided: () => vodioQuery.refetch(),
           refetchFollowCounts: targetId ? () => followQuery.refetch() : undefined,
           refetchFollowStatus:
-            targetId && !isOwnProfile ? () => followStatusQuery.refetch() : undefined,
+            targetId && !isOwnProfileView ? () => followStatusQuery.refetch() : undefined,
           refetchBlockStatus:
-            targetId && !isOwnProfile ? () => blockStatusQuery.refetch() : undefined,
-          refreshDailySteps: isOwnProfile ? () => dailySteps.refresh() : undefined,
+            targetId && !isOwnProfileView ? () => blockStatusQuery.refetch() : undefined,
+          refreshDailySteps: isOwnProfileView ? () => dailySteps.refresh() : undefined,
         })
       } finally {
         setRefreshing(false)
@@ -435,7 +464,11 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     )
   }
 
-  const isMe = me?.username === korisnik.username
+  const isMe = isOwnProfile({
+    viewerUsername: me?.username,
+    profileUsername: korisnik.username,
+    profileId: korisnik.id,
+  })
   const isProfiGuide = !!korisnik.isProfiGuide
   const showGuidedActionsTab = shouldShowGuidedActionsTab({
     isProfiGuide,

@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { getMyGuideProfile, type GuideProfile } from '../../services/guideProfiles'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import type { GuideRatingSummary } from '../../services/guideRatings'
@@ -41,6 +41,8 @@ import {
   resolveSameClub,
   shouldShowPublicContactPills,
 } from '../../utils/profileIdentity'
+import { isOwnProfile } from '../../utils/profileOwnership'
+import { mergeOwnProfileFromSession } from '../../utils/profileSettingsIntegration'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
@@ -108,6 +110,7 @@ export default function UserProfile() {
   const { id, username } = useParams<{ id?: string; username?: string }>()
   const { user: currentUser, refreshUser } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null)
   const [akcije, setAkcije] = useState<UspesnaAkcija[]>([])
@@ -242,6 +245,13 @@ export default function UserProfile() {
     void loadProfile()
   }, [loadProfile])
 
+  useEffect(() => {
+    const st = location.state as { refreshProfile?: boolean } | null
+    if (!st?.refreshProfile) return
+    void loadProfile()
+    navigate(location.pathname, { replace: true, state: {} })
+  }, [location.state, location.pathname, loadProfile, navigate])
+
   useEffect(() => { setAvatarFail(false) }, [id, username])
 
   useEffect(() => {
@@ -299,7 +309,19 @@ export default function UserProfile() {
   }, [korisnik])
 
   /* ── derived ── */
-  const isOwn = currentUser?.username === korisnik?.username
+  const isOwn = isOwnProfile({
+    viewerUsername: currentUser?.username,
+    profileUsername: korisnik?.username,
+    profileId: korisnik?.id,
+  })
+
+  useEffect(() => {
+    if (!isOwn || !currentUser) return
+    setKorisnik((prev) => mergeOwnProfileFromSession(prev, currentUser, true))
+    // Sync only session-visible fields; full currentUser object identity changes often.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional field deps
+  }, [isOwn, currentUser?.username, currentUser?.fullName, currentUser?.avatarUrl])
+
   const hasCover = !!korisnik?.cover_image_url
   const initial = (korisnik?.fullName || korisnik?.username || '?').charAt(0).toUpperCase()
   const sameClub = resolveSameClub({

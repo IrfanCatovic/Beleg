@@ -1,8 +1,6 @@
 /** Tri glavna KPI-ja Planinarskog pasoša — isti redoslijed na web i mobile. */
 export type PassportKpiKey = 'summits' | 'km' | 'ascent'
 
-export const PASSPORT_KPI_ORDER: PassportKpiKey[] = ['summits', 'km', 'ascent']
-
 export function safeNumber(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n) || n < 0) return 0
