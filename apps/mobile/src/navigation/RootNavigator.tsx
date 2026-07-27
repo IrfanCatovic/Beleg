@@ -24,7 +24,7 @@ const navTheme = {
 
 export function RootNavigator() {
   const { isLoggedIn, authLoading } = useAuth()
-  usePushNotifications(isLoggedIn)
+  usePushNotifications(isLoggedIn, authLoading)
   const pendingConsumedRef = useRef(false)
 
   useEffect(() => {

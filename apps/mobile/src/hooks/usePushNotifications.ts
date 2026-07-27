@@ -8,14 +8,25 @@ import { registerPushToken, unregisterPushToken } from '@beleg/shared/services'
 import { client } from '../api/client'
 import { agentDebugLog } from '../lib/agentDebugLog'
 import { queryClient } from '../lib/queryClient'
-import { navigateToActionDetail, navigateToNotificationDetail } from '../navigation/navigationRef'
+import {
+  navigatePendingNotificationTarget,
+  navigationRef,
+} from '../navigation/navigationRef'
 import { invalidateActionQueries } from '../features/actions/hooks/invalidateActionQueries'
 import {
-  resolveMobileNotificationNavigation,
   shouldInvalidateActionQueriesForPush,
-  buildMobileNotificationNavigationKey,
-  shouldSkipDuplicateNotificationNavigation,
 } from '../features/notifications/resolveMobileNotificationNavigation'
+import { decidePushNotificationResponse } from '../features/notifications/decidePushNotificationResponse'
+import {
+  applyPushNotificationDecision,
+  consumePendingNotificationAfterAuth,
+} from '../features/notifications/applyPushNotificationDecision'
+import {
+  clearPendingNotificationTarget,
+  readPendingNotificationTarget,
+  savePendingNotificationTarget,
+  type PendingNotificationTarget,
+} from '../features/notifications/pendingNotificationTarget'
 import { resolvePushAppKind } from '../utils/resolveAppKind'
 
 // #region agent log
@@ -46,39 +57,13 @@ Notifications.setNotificationHandler({
   }),
 })
 
-function parseObavestenjeId(data: Record<string, unknown> | undefined): number | null {
-  const raw = data?.obavestenjeId
-  if (typeof raw === 'number' && raw > 0) return raw
-  if (typeof raw === 'string') {
-    const id = parseInt(raw, 10)
-    if (!Number.isNaN(id) && id > 0) return id
+function tryNavigateTarget(target: PendingNotificationTarget): boolean {
+  if (!navigationRef.isReady()) return false
+  try {
+    return navigatePendingNotificationTarget(target)
+  } catch {
+    return false
   }
-  return null
-}
-
-function handleNotificationNavigation(data: Record<string, unknown> | undefined, handledKey: string | null): string | null {
-  const target = resolveMobileNotificationNavigation({ pushData: data })
-  const key = buildMobileNotificationNavigationKey(target, data)
-  if (shouldSkipDuplicateNotificationNavigation(handledKey, key)) {
-    return handledKey
-  }
-  if (target.screen === 'ActionDetail') {
-    void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
-    navigateToActionDetail(target.actionId)
-    return key
-  }
-  if (target.screen === 'NotificationDetail') {
-    navigateToNotificationDetail(target.obavestenjeId)
-    return key
-  }
-  const legacyId = parseObavestenjeId(data)
-  if (legacyId != null) {
-    const legacyKey = `notif:${legacyId}`
-    if (shouldSkipDuplicateNotificationNavigation(handledKey, legacyKey)) return handledKey
-    navigateToNotificationDetail(legacyId)
-    return legacyKey
-  }
-  return handledKey
 }
 
 async function ensureAndroidChannel(): Promise<void> {
@@ -136,14 +121,45 @@ async function ensurePushPermissions(): Promise<boolean> {
   return status === 'granted'
 }
 
-export function usePushNotifications(isLoggedIn: boolean) {
+export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
   const tokenRef = useRef<string | null>(null)
-  const lastHandledNavKeyRef = useRef<string | null>(null)
+  /** Only set after a successful authenticated navigation — never on save-pending. */
+  const lastSuccessfulNavKeyRef = useRef<string | null>(null)
+  const isLoggedInRef = useRef(isLoggedIn)
+  const pendingConsumeInFlightRef = useRef(false)
+  /** Cold-start getLastNotificationResponseAsync must run once per JS session. */
+  const coldStartHandledRef = useRef(false)
 
   useEffect(() => {
+    isLoggedInRef.current = isLoggedIn
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    const applyDecision = (data: Record<string, unknown> | undefined) => {
+      const decision = decidePushNotificationResponse({
+        isLoggedIn: isLoggedInRef.current,
+        pushData: data,
+        lastSuccessfulDedupeKey: lastSuccessfulNavKeyRef.current,
+      })
+
+      if (decision.action === 'navigate' && decision.target.kind === 'action-detail') {
+        void invalidateActionQueries(queryClient, decision.target.actionId).catch(() => {})
+      }
+
+      void applyPushNotificationDecision({
+        decision,
+        tryNavigate: tryNavigateTarget,
+        savePending: savePendingNotificationTarget,
+        clearPending: clearPendingNotificationTarget,
+        onNavigated: (key) => {
+          lastSuccessfulNavKeyRef.current = key
+        },
+      })
+    }
+
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      lastHandledNavKeyRef.current = handleNotificationNavigation(data, lastHandledNavKeyRef.current)
+      applyDecision(data)
     })
 
     const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
@@ -160,14 +176,93 @@ export function usePushNotifications(isLoggedIn: boolean) {
     }
   }, [])
 
+  // After auth settles: cold-start response once, then consume pending when logged in.
   useEffect(() => {
-    if (!isLoggedIn) return
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (!response) return
-      const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      lastHandledNavKeyRef.current = handleNotificationNavigation(data, lastHandledNavKeyRef.current)
-    })
-  }, [isLoggedIn])
+    if (authLoading) {
+      return
+    }
+    if (!isLoggedIn) {
+      lastSuccessfulNavKeyRef.current = null
+    }
+
+    let cancelled = false
+
+    const applyFromPushData = async (data: Record<string, unknown> | undefined) => {
+      const decision = decidePushNotificationResponse({
+        isLoggedIn: isLoggedInRef.current,
+        pushData: data,
+        lastSuccessfulDedupeKey: lastSuccessfulNavKeyRef.current,
+      })
+      if (decision.action === 'navigate' && decision.target.kind === 'action-detail') {
+        void invalidateActionQueries(queryClient, decision.target.actionId).catch(() => {})
+      }
+      await applyPushNotificationDecision({
+        decision,
+        tryNavigate: tryNavigateTarget,
+        savePending: savePendingNotificationTarget,
+        clearPending: clearPendingNotificationTarget,
+        onNavigated: (key) => {
+          lastSuccessfulNavKeyRef.current = key
+        },
+      })
+    }
+
+    const attemptConsume = async (): Promise<boolean> => {
+      if (cancelled || !isLoggedInRef.current) return true
+      const result = await consumePendingNotificationAfterAuth({
+        readPending: readPendingNotificationTarget,
+        clearPending: clearPendingNotificationTarget,
+        tryNavigate: tryNavigateTarget,
+        lastSuccessfulDedupeKey: lastSuccessfulNavKeyRef.current,
+        onNavigated: (key) => {
+          lastSuccessfulNavKeyRef.current = key
+        },
+        onBeforeNavigate: (target) => {
+          if (target.kind === 'action-detail') {
+            void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
+          }
+        },
+      })
+      return result !== 'not-ready' && result !== 'navigate-failed'
+    }
+
+    void (async () => {
+      if (pendingConsumeInFlightRef.current) return
+      pendingConsumeInFlightRef.current = true
+      try {
+        if (!coldStartHandledRef.current) {
+          coldStartHandledRef.current = true
+          const response = await Notifications.getLastNotificationResponseAsync()
+          if (!cancelled && response) {
+            const data = response.notification.request.content.data as
+              | Record<string, unknown>
+              | undefined
+            await applyFromPushData(data)
+          }
+          try {
+            await Notifications.clearLastNotificationResponseAsync()
+          } catch {
+            // ignore — once-ref still prevents re-ingest after logout
+          }
+        }
+
+        if (cancelled || !isLoggedInRef.current) return
+
+        const done = await attemptConsume()
+        if (done || cancelled) return
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 400))
+        if (cancelled || !isLoggedInRef.current) return
+        await attemptConsume()
+      } finally {
+        pendingConsumeInFlightRef.current = false
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isLoggedIn, authLoading])
 
   useEffect(() => {
     if (!isLoggedIn) {

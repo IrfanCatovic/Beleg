@@ -21,6 +21,7 @@ import { clearAuthenticatedUserQueryState } from '../lib/clearAuthenticatedUserQ
 import { finishClearAuthSideEffects, performMobileLogout } from '../lib/performMobileLogout'
 import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
 import { mobileStorage } from '../storage/mobileStorage'
+import { clearPendingNotificationTarget } from '../features/notifications/pendingNotificationTarget'
 
 const REMEMBER_ME_KEY = 'remember_me'
 
@@ -45,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAuthState = useCallback(async () => {
     // Auth UI/state prvo — RootNavigator odmah prelazi na AuthStack (nema back na protected).
+    // Does NOT clear pending push target: session restore / initial logged-out must not
+    // wipe a destination saved from a cold-start or logged-out tap.
     setIsLoggedIn(false)
     setUser(null)
     await finishClearAuthSideEffects({
@@ -66,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
+    // Explicit logout only: drop unconsumed push destination so it cannot open on another account.
+    // Does not clear URL pending deep-link (separate flow).
+    await clearPendingNotificationTarget()
     await performMobileLogout({
       inFlight: logoutInFlightRef,
       logoutApi: () => logoutApi(client),
@@ -164,7 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      void clearAuthState()
+      // Forced session end: same account-boundary rule as explicit logout for push pending.
+      void clearPendingNotificationTarget().then(() => clearAuthState())
     })
     return () => setUnauthorizedHandler(null)
   }, [clearAuthState])
