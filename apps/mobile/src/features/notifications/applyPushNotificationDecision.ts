@@ -9,6 +9,18 @@ export type ApplyPushDecisionResult =
   | 'saved-pending'
   | 'navigated'
   | 'deferred-pending'
+  | 'persist-failed'
+
+/**
+ * Only clear Expo's last notification response after the cold-start decision was
+ * safely applied. A failed pending persist must leave the native response intact.
+ */
+export function shouldClearNativeLastNotificationResponse(
+  result: ApplyPushDecisionResult | null,
+): boolean {
+  if (result == null) return true
+  return result !== 'persist-failed'
+}
 
 /**
  * Apply a pure push decision: save pending, navigate+dedupe, or defer when nav not ready.
@@ -27,8 +39,8 @@ export async function applyPushNotificationDecision(opts: {
   }
 
   if (decision.action === 'save-pending') {
-    await opts.savePending(decision.target)
-    return 'saved-pending'
+    const saved = await opts.savePending(decision.target)
+    return saved ? 'saved-pending' : 'persist-failed'
   }
 
   const target = decision.target
@@ -45,8 +57,8 @@ export async function applyPushNotificationDecision(opts: {
     return 'navigated'
   }
 
-  await opts.savePending(target)
-  return 'deferred-pending'
+  const saved = await opts.savePending(target)
+  return saved ? 'deferred-pending' : 'persist-failed'
 }
 
 export type ConsumePendingResult =

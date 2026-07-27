@@ -20,6 +20,8 @@ import { decidePushNotificationResponse } from '../features/notifications/decide
 import {
   applyPushNotificationDecision,
   consumePendingNotificationAfterAuth,
+  shouldClearNativeLastNotificationResponse,
+  type ApplyPushDecisionResult,
 } from '../features/notifications/applyPushNotificationDecision'
 import {
   clearPendingNotificationTarget,
@@ -126,8 +128,7 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
   /** Only set after a successful authenticated navigation — never on save-pending. */
   const lastSuccessfulNavKeyRef = useRef<string | null>(null)
   const isLoggedInRef = useRef(isLoggedIn)
-  const pendingConsumeInFlightRef = useRef(false)
-  /** Cold-start getLastNotificationResponseAsync must run once per JS session. */
+  /** Cold-start getLastNotificationResponseAsync must complete safely once per JS session. */
   const coldStartHandledRef = useRef(false)
 
   useEffect(() => {
@@ -176,7 +177,7 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
     }
   }, [])
 
-  // After auth settles: cold-start response once, then consume pending when logged in.
+  // After auth settles: cold-start response once (only after safe apply), then consume pending.
   useEffect(() => {
     if (authLoading) {
       return
@@ -186,8 +187,12 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
     }
 
     let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    let settleRetryWait: (() => void) | undefined
 
-    const applyFromPushData = async (data: Record<string, unknown> | undefined) => {
+    const applyFromPushData = async (
+      data: Record<string, unknown> | undefined,
+    ): Promise<ApplyPushDecisionResult> => {
       const decision = decidePushNotificationResponse({
         isLoggedIn: isLoggedInRef.current,
         pushData: data,
@@ -196,7 +201,7 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
       if (decision.action === 'navigate' && decision.target.kind === 'action-detail') {
         void invalidateActionQueries(queryClient, decision.target.actionId).catch(() => {})
       }
-      await applyPushNotificationDecision({
+      return applyPushNotificationDecision({
         decision,
         tryNavigate: tryNavigateTarget,
         savePending: savePendingNotificationTarget,
@@ -227,40 +232,46 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
     }
 
     void (async () => {
-      if (pendingConsumeInFlightRef.current) return
-      pendingConsumeInFlightRef.current = true
-      try {
-        if (!coldStartHandledRef.current) {
+      if (!coldStartHandledRef.current) {
+        const response = await Notifications.getLastNotificationResponseAsync()
+        let applyResult: ApplyPushDecisionResult | null = null
+        if (!cancelled && response) {
+          const data = response.notification.request.content.data as
+            | Record<string, unknown>
+            | undefined
+          applyResult = await applyFromPushData(data)
+        }
+        if (cancelled) return
+        if (shouldClearNativeLastNotificationResponse(applyResult)) {
           coldStartHandledRef.current = true
-          const response = await Notifications.getLastNotificationResponseAsync()
-          if (!cancelled && response) {
-            const data = response.notification.request.content.data as
-              | Record<string, unknown>
-              | undefined
-            await applyFromPushData(data)
-          }
           try {
             await Notifications.clearLastNotificationResponseAsync()
           } catch {
-            // ignore — once-ref still prevents re-ingest after logout
+            // ignore — once-ref still prevents re-ingest after a safe apply
           }
         }
-
-        if (cancelled || !isLoggedInRef.current) return
-
-        const done = await attemptConsume()
-        if (done || cancelled) return
-
-        await new Promise<void>((resolve) => setTimeout(resolve, 400))
-        if (cancelled || !isLoggedInRef.current) return
-        await attemptConsume()
-      } finally {
-        pendingConsumeInFlightRef.current = false
+        // persist-failed: keep native last response + allow a later auth cycle to retry
       }
+
+      if (cancelled || !isLoggedInRef.current) return
+
+      const done = await attemptConsume()
+      if (done || cancelled) return
+
+      await new Promise<void>((resolve) => {
+        settleRetryWait = resolve
+        retryTimer = setTimeout(resolve, 400)
+      })
+      settleRetryWait = undefined
+      retryTimer = undefined
+      if (cancelled || !isLoggedInRef.current) return
+      await attemptConsume()
     })()
 
     return () => {
       cancelled = true
+      if (retryTimer != null) clearTimeout(retryTimer)
+      settleRetryWait?.()
     }
   }, [isLoggedIn, authLoading])
 

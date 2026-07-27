@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   applyPushNotificationDecision,
   consumePendingNotificationAfterAuth,
+  shouldClearNativeLastNotificationResponse,
 } from './applyPushNotificationDecision'
 import { decidePushNotificationResponse } from './decidePushNotificationResponse'
 import type { PendingNotificationTarget } from './pendingNotificationTarget'
@@ -184,6 +185,52 @@ describe('logged-in apply', () => {
     expect(result).toBe('deferred-pending')
     expect(onNavigated).not.toHaveBeenCalled()
     expect(savePending).toHaveBeenCalled()
+  })
+
+  it('logged-out save failure → persist-failed, no success dedupe', async () => {
+    const onNavigated = vi.fn()
+    const decision = decidePushNotificationResponse({
+      isLoggedIn: false,
+      pushData: { obavestenjeId: 4 },
+      lastSuccessfulDedupeKey: null,
+    })
+    const result = await applyPushNotificationDecision({
+      decision,
+      tryNavigate: () => true,
+      savePending: async () => false,
+      clearPending: async () => undefined,
+      onNavigated,
+    })
+    expect(result).toBe('persist-failed')
+    expect(onNavigated).not.toHaveBeenCalled()
+  })
+
+  it('deferred save failure → persist-failed (keep native last response)', async () => {
+    const onNavigated = vi.fn()
+    const decision = decidePushNotificationResponse({
+      isLoggedIn: true,
+      pushData: { obavestenjeId: 4 },
+      lastSuccessfulDedupeKey: null,
+    })
+    const result = await applyPushNotificationDecision({
+      decision,
+      tryNavigate: () => false,
+      savePending: async () => false,
+      clearPending: async () => undefined,
+      onNavigated,
+    })
+    expect(result).toBe('persist-failed')
+    expect(onNavigated).not.toHaveBeenCalled()
+    expect(shouldClearNativeLastNotificationResponse(result)).toBe(false)
+  })
+
+  it('shouldClearNativeLastNotificationResponse only blocks persist-failed', () => {
+    expect(shouldClearNativeLastNotificationResponse(null)).toBe(true)
+    expect(shouldClearNativeLastNotificationResponse('noop')).toBe(true)
+    expect(shouldClearNativeLastNotificationResponse('saved-pending')).toBe(true)
+    expect(shouldClearNativeLastNotificationResponse('navigated')).toBe(true)
+    expect(shouldClearNativeLastNotificationResponse('deferred-pending')).toBe(true)
+    expect(shouldClearNativeLastNotificationResponse('persist-failed')).toBe(false)
   })
 
   it('duplicate listener/cold-start after success is noop', async () => {
