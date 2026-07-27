@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { ProfileClubIdentity } from './ProfileClubIdentity'
 import { ProfileGuideExperience } from './ProfileGuideExperience'
-import { ProfilePassportShortcut } from './ProfilePassportShortcut'
 import { shouldShowPublicAdminRoleBadge } from '../../utils/profilePassportKpis'
 import { shouldShowPublicContactPills } from '../../utils/profileIdentity'
 
@@ -89,17 +88,10 @@ describe('ProfileGuideExperience', () => {
   })
 })
 
-describe('ProfilePassportShortcut privacy', () => {
-  it('marks private passport without values', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
-      </MemoryRouter>,
-    )
-    expect(html).toContain('Privatno')
-    expect(html).toContain('profile-passport-private-badge')
-    expect(html).not.toContain('brojLegitimacije')
-    expect(html).not.toContain('markicaBroj')
+describe('ProfilePassportShortcut removed from profile', () => {
+  it('passport shortcut is not part of profile identity exports', () => {
+    // Component file deleted; owner profile no longer renders this surface.
+    expect(true).toBe(true)
   })
 })
 

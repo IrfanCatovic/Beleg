@@ -39,7 +39,13 @@ import {
   formatPassportKm,
   formatPassportSummits,
 } from '../../utils/profilePassportKpis'
-import { shouldShowOwnerPassportShortcut } from './profilePassportHeaderModel'
+import { useDailySteps } from '../../context/DailyStepsContext'
+import { formatCompactSteps } from './formatCompactSteps'
+import {
+  getOwnerPrimaryCtaLabel,
+  getPublicPrimaryCtaLabel,
+  shouldShowOwnerStepsCard,
+} from './profilePassportHeaderModel'
 import {
   getClimbedEmptyCopy,
   getGuidedEmptyCopy,
@@ -56,7 +62,6 @@ import {
   getGuideRatingPresentation,
   PLANINER_RANK_HINT,
   PLANINER_RANK_LABEL,
-  PRIVATE_PASSPORT_BADGE,
   readGuideRatingSummary,
 } from './profileIdentity'
 import type {
@@ -89,6 +94,7 @@ function formatMemberSince(createdAt?: string): string {
 export default function UserProfileScreen({ route, navigation }: Props) {
   const { user: me, refreshUser, logout } = useAuth()
   const { showConfirm, showAlert } = useModal()
+  const dailySteps = useDailySteps()
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
   const idOrUsername = route.params.username || String(route.params.id ?? '')
@@ -484,7 +490,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   else if (followStatus?.outgoing === 'pending') followLabel = 'Otkaži zahtev'
   else if (followStatus?.incoming === 'pending') followLabel = 'Prihvati zahtev'
 
-  const showPassportShortcut = shouldShowOwnerPassportShortcut(isMe, canOpenSettings)
+  const ownerPrimaryLabel = getOwnerPrimaryCtaLabel(canOpenSettings)
+  const publicPrimaryLabel = getPublicPrimaryCtaLabel({
+    isMe,
+    blockedByTarget: !!blockedByTarget,
+    followLabel,
+  })
+  const showStepsCard = shouldShowOwnerStepsCard(isMe)
 
   const openSettings = () => {
     if (!canOpenSettings) return
@@ -660,6 +672,17 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </Text>
           ) : null}
 
+          {ownerPrimaryLabel ? (
+            <View style={styles.primaryActionsRow}>
+              <Button
+                title={ownerPrimaryLabel}
+                onPress={openSettings}
+                fullWidth
+                accessibilityLabel="Uredi profil"
+              />
+            </View>
+          ) : null}
+
           {isMe && !isProfiGuide && inProfileStack ? (
             <View style={styles.becomeGuideRow}>
               <Button
@@ -672,30 +695,14 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </View>
           ) : null}
 
-          {!isMe && !blockedByTarget ? (
-            <View style={styles.socialRow}>
+          {publicPrimaryLabel ? (
+            <View style={styles.primaryActionsRow}>
               <Button
-                title={followLabel}
+                title={publicPrimaryLabel}
                 onPress={() => followMutation.mutate()}
                 loading={followMutation.isPending}
                 fullWidth
-                accessibilityLabel={followLabel}
-              />
-              <Button
-                title={blockStatusQuery.data?.blockedByMe ? 'Odblokiraj' : 'Blokiraj'}
-                variant="secondary"
-                onPress={async () => {
-                  if (!blockStatusQuery.data?.blockedByMe) {
-                    const ok = await showConfirm('Blokiraj korisnika', 'Da li ste sigurni?')
-                    if (!ok) return
-                  }
-                  blockMutation.mutate()
-                }}
-                loading={blockMutation.isPending}
-                fullWidth
-                accessibilityLabel={
-                  blockStatusQuery.data?.blockedByMe ? 'Odblokiraj korisnika' : 'Blokiraj korisnika'
-                }
+                accessibilityLabel={publicPrimaryLabel}
               />
             </View>
           ) : null}
@@ -796,31 +803,19 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                 )}
               </View>
 
-              {showPassportShortcut ? (
-                <Pressable
-                  style={styles.passportShortcut}
-                  onPress={openSettings}
-                  accessibilityRole="button"
-                  accessibilityLabel="Planinarska legitimacija i članski podaci, privatno, otvori podešavanja"
+              {showStepsCard ? (
+                <View
+                  style={styles.stepsCard}
+                  accessibilityRole="summary"
+                  accessibilityLabel={`Današnja aktivnost, ${formatCompactSteps(dailySteps.todaySteps)} koraka`}
                 >
-                  <View style={styles.passportTitleRow}>
-                    <Text variant="label" style={styles.passportTitle}>
-                      Planinarska legitimacija i članski podaci
-                    </Text>
-                    <View style={styles.privateBadge} accessibilityLabel={PRIVATE_PASSPORT_BADGE}>
-                      <Ionicons name="lock-closed-outline" size={12} color="#065f46" />
-                      <Text variant="small" style={styles.privateBadgeText}>
-                        {PRIVATE_PASSPORT_BADGE}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text variant="small" color={colors.textMuted} style={styles.passportBody}>
-                    Legitimacija, markica i privatni članski podaci dostupni su samo vama i ovlašćenom klubu.
+                  <Text variant="label" style={styles.stepsTitle}>
+                    Današnja aktivnost
                   </Text>
-                  <Text variant="label" style={styles.passportCta}>
-                    Otvori podešavanja
+                  <Text variant="title" style={styles.stepsValue}>
+                    {formatCompactSteps(dailySteps.todaySteps)} koraka
                   </Text>
-                </Pressable>
+                </View>
               ) : null}
             </View>
 
@@ -910,43 +905,29 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)}>
-          <View
-            style={[
-              styles.coverMenuDropdown,
-              { top: insets.top + spacing.sm + 44 + 8, right: spacing.md },
-            ]}
-          >
+          <Pressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
             {showOwnerMenu ? (
-              <>
-                <Pressable
-                  style={styles.coverMenuCircle}
-                  onPress={() => {
-                    setMenuOpen(false)
-                    openSettings()
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Podešavanja"
-                >
-                  <Ionicons name="settings-outline" size={22} color={colors.white} />
-                </Pressable>
-                <Pressable
-                  style={[styles.coverMenuCircle, styles.coverMenuCircleDanger]}
-                  onPress={async () => {
-                    setMenuOpen(false)
-                    const ok = await showConfirm('Odjava', 'Da li želite da se odjavite?')
-                    if (ok) await logout()
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Odjavi me"
-                >
-                  <Ionicons name="log-out-outline" size={22} color={colors.white} />
-                </Pressable>
-              </>
+              <Pressable
+                style={styles.menuItem}
+                onPress={async () => {
+                  setMenuOpen(false)
+                  const ok = await showConfirm('Odjava', 'Da li želite da se odjavite?')
+                  if (ok) await logout()
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Odjavi me"
+              >
+                <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+                <Text variant="body" color={colors.danger}>
+                  Odjavi me
+                </Text>
+              </Pressable>
             ) : null}
             {showPublicOverflowMenu ? (
               <Pressable
-                style={[styles.coverMenuCircle, styles.coverMenuCircleDanger]}
+                style={styles.menuItem}
                 onPress={async () => {
+                  if (blockMutation.isPending) return
                   setMenuOpen(false)
                   if (!blockStatusQuery.data?.blockedByMe) {
                     const ok = await showConfirm('Blokiraj korisnika', 'Da li ste sigurni?')
@@ -954,6 +935,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   }
                   blockMutation.mutate()
                 }}
+                disabled={blockMutation.isPending}
                 accessibilityRole="button"
                 accessibilityLabel={
                   blockStatusQuery.data?.blockedByMe ? 'Odblokiraj korisnika' : 'Blokiraj korisnika'
@@ -961,12 +943,15 @@ export default function UserProfileScreen({ route, navigation }: Props) {
               >
                 <Ionicons
                   name={blockStatusQuery.data?.blockedByMe ? 'lock-open-outline' : 'ban-outline'}
-                  size={22}
-                  color={colors.white}
+                  size={20}
+                  color={colors.danger}
                 />
+                <Text variant="body" color={colors.danger}>
+                  {blockStatusQuery.data?.blockedByMe ? 'Odblokiraj korisnika' : 'Blokiraj korisnika'}
+                </Text>
               </Pressable>
             ) : null}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1130,30 +1115,25 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
   },
-  coverMenuDropdown: {
-    position: 'absolute',
-    alignItems: 'flex-end',
-    gap: spacing.sm,
+  menuSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.xs,
   },
-  coverMenuCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.brand,
+  menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.45)',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  coverMenuCircleDanger: {
-    backgroundColor: colors.danger,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    minHeight: 44,
   },
   clubGuideRow: {
     flexDirection: 'row',
@@ -1177,7 +1157,6 @@ const styles = StyleSheet.create({
   guideChipSegment: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   guideChipDivider: { width: 1, height: 16, backgroundColor: colors.border },
   guideChipValue: { fontWeight: '800', color: colors.text },
-  socialRow: { marginTop: spacing.md, gap: spacing.sm },
   headerCard: {
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,

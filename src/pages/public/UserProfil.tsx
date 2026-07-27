@@ -25,11 +25,8 @@ import { formatDate } from '../../utils/dateUtils'
 import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { ProfileActionGrid, ProfileActionGridSkeleton } from '../../components/profile/ProfileActionGrid'
 import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
-import { ProfilePassportShortcut } from '../../components/profile/ProfilePassportShortcut'
 import { ProfileClubIdentity } from '../../components/profile/ProfileClubIdentity'
 import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
-import FollowControls from '../../components/buttons/FollowControls'
-import BlockUserButton from '../../components/buttons/BlockUserButton'
 import type { MemberPdfData } from '../../utils/generateMemberPdf'
 import {
   ProfileActionsEmpty,
@@ -333,10 +330,6 @@ export default function UserProfile() {
   })
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
-  const isSuperadmin = currentUser?.role === 'superadmin'
-  const isClubAdminOrSecretary = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
-  const canSeeCoverActionsMenu =
-    !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub)
   const showContactPills = shouldShowPublicContactPills({
     email: korisnik?.email,
     telefon: korisnik?.telefon,
@@ -353,41 +346,20 @@ export default function UserProfile() {
     brojOcena: 0,
     brojKomentara: 0,
   }
-  const coverActionsMenu =
+  const renderHeaderActions = () =>
     korisnik != null ? (
       <ProfileHeaderActions
-        visible={canSeeCoverActionsMenu}
         isOwn={!!isOwn}
         userId={korisnik.id}
         currentUser={currentUser}
         korisnikForPdf={korisnik as unknown as MemberPdfData}
         clubName={korisnik.klubNaziv || ''}
+        canShowFollow={canShowFollowControls}
+        canShowBlock={canShowBlockControls}
+        blockedEither={blockedEither}
+        onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+        onFollowStatusChange={fetchFollowCounts}
       />
-    ) : null
-
-  const publicSocialActions =
-    korisnik != null &&
-    !isOwn &&
-    currentUser &&
-    !blockedEither &&
-    (canShowFollowControls || canShowBlockControls) ? (
-      <div className="mt-3 flex w-full flex-col gap-2">
-        {canShowFollowControls ? (
-          <div className="w-full [&_button]:w-full [&_a]:w-full">
-            <FollowControls
-              targetId={korisnik.id}
-              hidden={blockedEither}
-              onStatusChange={fetchFollowCounts}
-            />
-          </div>
-        ) : null}
-        {canShowBlockControls ? (
-          <BlockUserButton
-            targetId={korisnik.id}
-            onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
-          />
-        ) : null}
-      </div>
     ) : null
 
   useEffect(() => {
@@ -604,8 +576,6 @@ export default function UserProfile() {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-emerald-900/80 to-teal-800" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
-
-        {coverActionsMenu}
 
         {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
         {isOwn && !positioning && (
@@ -914,7 +884,7 @@ export default function UserProfile() {
               {isOwn && myGuideProfile !== undefined && (
                 <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
               )}
-              {publicSocialActions}
+              <div className="mt-3">{renderHeaderActions()}</div>
             </div>
 
             {/* desktop/tablet layout (existing) */}
@@ -1005,7 +975,7 @@ export default function UserProfile() {
                 {isOwn && myGuideProfile !== undefined && (
                   <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} className="mt-3" />
                 )}
-                {publicSocialActions}
+                <div className="mt-3">{renderHeaderActions()}</div>
               </div>
             </div>
           </div>
@@ -1114,11 +1084,6 @@ export default function UserProfile() {
               </>
             )}
           </div>
-          {isOwn ? (
-            <div className="py-3 sm:py-4">
-              <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
-            </div>
-          ) : null}
         </div>
       </div>
 

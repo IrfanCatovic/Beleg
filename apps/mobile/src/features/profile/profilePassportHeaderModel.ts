@@ -1,24 +1,25 @@
 /** Pravila Faze A — Planinarski pasoš header (testabilno bez RN rendera). */
 
-export const PASSPORT_PUBLIC_KPI_LABELS = ['USPON', 'STAZA', 'OSVOJENIH', 'KORACI'] as const
+export const PASSPORT_PUBLIC_KPI_LABELS = ['OSVOJENO', 'KILOMETRI', 'USPON'] as const
 
+/** Passport shortcut removed from owner profile — always false. */
 export function shouldShowOwnerPassportShortcut(isMe: boolean, canOpenSettings: boolean): boolean {
-  return isMe && canOpenSettings
-}
-
-export function shouldShowOwnerStepsCard(isMe: boolean): boolean {
   void isMe
+  void canOpenSettings
   return false
 }
 
-/** Koraci su javni KPI u header metrics redu (4. kolona). */
+export function shouldShowOwnerStepsCard(isMe: boolean): boolean {
+  return isMe
+}
+
+/** Daily steps are not a public header KPI. */
 export function isStepsPublicHeaderKpi(): boolean {
-  return true
+  return false
 }
 
 export function getOwnerPrimaryCtaLabel(canOpenSettings: boolean): string | null {
-  void canOpenSettings
-  return null
+  return canOpenSettings ? 'Uredi profil' : null
 }
 
 export function getPublicPrimaryCtaLabel(opts: {

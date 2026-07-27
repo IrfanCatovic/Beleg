@@ -1,67 +1,79 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { EllipsisHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
 import ProfileActionButtons from '../buttons/ProfileActionButtons'
+import FollowControls from '../buttons/FollowControls'
+import BlockUserButton from '../buttons/BlockUserButton'
 import type { MemberPdfData } from '../../utils/generateMemberPdf'
 import { generateMemberPdf } from '../../utils/generateMemberPdf'
 
-export const PROFILE_OVERFLOW_ACTION_ORDER = ['settings', 'info', 'print'] as const
-
-const COVER_ACTION_CLASS =
-  '!w-11 !h-11 !min-w-[2.75rem] !min-h-[2.75rem] !p-0 !justify-center !rounded-full !bg-emerald-600 !text-white hover:!bg-emerald-700 hover:!text-white ring-2 ring-white/40 shadow-xl'
+/** Owner: bez settings (Uredi profil je primarna). Public/admin: settings → info → print → block. */
+export const PROFILE_OWNER_OVERFLOW_ACTION_ORDER = ['info', 'print'] as const
+export const PROFILE_PUBLIC_OVERFLOW_ACTION_ORDER = ['settings', 'info', 'print'] as const
+/** @deprecated use PROFILE_PUBLIC_OVERFLOW_ACTION_ORDER */
+export const PROFILE_OVERFLOW_ACTION_ORDER = PROFILE_PUBLIC_OVERFLOW_ACTION_ORDER
 
 type CurrentUser = { role: string; username: string } | null
 
-/** Tri tačkice na coveru — dropdown sa kružnim akcijama (settings/info/print). */
+/**
+ * Primarna akcija + overflow (info/print[/settings] + block na tuđem profilu).
+ * Owner: Uredi profil; settings nije u overflow (duplikat).
+ */
 export function ProfileHeaderActions({
   isOwn,
   userId,
   currentUser,
   korisnikForPdf,
   clubName,
-  visible,
+  canShowFollow,
+  canShowBlock,
+  blockedEither,
+  onBlockChange,
+  onFollowStatusChange,
 }: {
   isOwn: boolean
   userId: string | number
   currentUser: CurrentUser
   korisnikForPdf: MemberPdfData
   clubName: string
-  visible: boolean
+  canShowFollow: boolean
+  canShowBlock: boolean
+  blockedEither: boolean
+  onBlockChange: (byMe: boolean, byThem: boolean) => void
+  onFollowStatusChange: () => void
 }) {
   const [open, setOpen] = useState(false)
   const menuId = useId()
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const [menuPos, setMenuPos] = useState({ top: 68, right: 16 })
+  const rootRef = useRef<HTMLDivElement>(null)
+  const settingsHref = isOwn ? '/profil/podesavanja' : `/profil/podesavanja/${userId}`
 
-  const updateMenuPos = useCallback(() => {
-    const el = buttonRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 8, right: Math.max(12, window.innerWidth - rect.right) })
-  }, [])
+  const overflowOrder = isOwn
+    ? [...PROFILE_OWNER_OVERFLOW_ACTION_ORDER]
+    : [...PROFILE_PUBLIC_OVERFLOW_ACTION_ORDER]
+
+  const canSeeOverflowActions =
+    !!currentUser &&
+    (isOwn ||
+      currentUser.role === 'admin' ||
+      currentUser.role === 'superadmin' ||
+      currentUser.role === 'sekretar' ||
+      canShowBlock)
 
   useEffect(() => {
     if (!open) return
-    updateMenuPos()
     const onDoc = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (buttonRef.current?.contains(target)) return
-      setOpen(false)
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
-    window.addEventListener('resize', updateMenuPos)
-    window.addEventListener('scroll', updateMenuPos, true)
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
     return () => {
-      window.removeEventListener('resize', updateMenuPos)
-      window.removeEventListener('scroll', updateMenuPos, true)
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open, updateMenuPos])
+  }, [open])
 
   const print = () =>
     generateMemberPdf({
@@ -69,65 +81,79 @@ export function ProfileHeaderActions({
       clubName: clubName || '',
     })
 
-  if (!visible) return null
-
   return (
-    <>
-      <div
-        className="absolute top-4 right-3 sm:top-3 sm:right-6 md:top-6 md:right-12 z-[260] pointer-events-auto"
-        data-testid="profile-header-actions"
-      >
-        <button
-          ref={buttonRef}
-          type="button"
-          aria-label={open ? 'Zatvori meni akcija' : 'Otvori meni akcija'}
-          aria-expanded={open}
-          aria-controls={menuId}
-          data-testid="profile-actions-overflow"
-          onClick={() => {
-            if (!open) updateMenuPos()
-            setOpen((v) => !v)
-          }}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-transform duration-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+    <div className="flex flex-wrap items-center gap-2" data-testid="profile-header-actions" ref={rootRef}>
+      {isOwn ? (
+        <Link
+          to={settingsHref}
+          data-testid="profile-edit-primary"
+          className="inline-flex items-center justify-center min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors"
         >
-          <span className={`inline-flex transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
-            {open ? <XMarkIcon className="h-6 w-6" aria-hidden /> : <EllipsisHorizontalIcon className="h-6 w-6" aria-hidden />}
-          </span>
-        </button>
-      </div>
+          Uredi profil
+        </Link>
+      ) : canShowFollow ? (
+        <div data-testid="profile-follow-primary" className="min-h-11 flex items-center">
+          <FollowControls
+            targetId={Number(userId)}
+            hidden={blockedEither}
+            onStatusChange={onFollowStatusChange}
+          />
+        </div>
+      ) : null}
 
-      {open
-        ? createPortal(
-            <div className="fixed inset-0 z-[290]" role="presentation">
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/15"
-                aria-label="Zatvori meni akcija"
-                onClick={() => setOpen(false)}
+      {canSeeOverflowActions ? (
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Više akcija na profilu"
+            aria-expanded={open}
+            aria-controls={menuId}
+            data-testid="profile-actions-overflow"
+            data-overflow-order={overflowOrder.join(',')}
+            data-can-block={canShowBlock && !isOwn ? 'true' : 'false'}
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors"
+          >
+            <EllipsisHorizontalIcon className="h-6 w-6" aria-hidden />
+          </button>
+          {open ? (
+            <div
+              id={menuId}
+              role="menu"
+              className="absolute right-0 z-40 mt-2 min-w-[12.5rem] rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+              data-testid="profile-actions-overflow-menu"
+            >
+              <ProfileActionButtons
+                inline
+                direction="column"
+                userId={userId}
+                isOwnProfile={isOwn}
+                currentUser={currentUser}
+                onPrintClick={print}
+                actionOrder={overflowOrder}
+                actionClassName="!w-full !justify-start"
+                className="!gap-1"
               />
-              <div
-                id={menuId}
-                role="menu"
-                className="fixed mobile-actions-dropdown flex flex-col items-end gap-2 z-[300]"
-                style={{ top: menuPos.top, right: menuPos.right }}
-                onClick={() => window.setTimeout(() => setOpen(false), 0)}
-              >
-                <ProfileActionButtons
-                  inline
-                  direction="column"
-                  userId={userId}
-                  isOwnProfile={isOwn}
-                  currentUser={currentUser}
-                  onPrintClick={print}
-                  actionOrder={[...PROFILE_OVERFLOW_ACTION_ORDER]}
-                  actionClassName={COVER_ACTION_CLASS}
-                  className="!gap-2.5"
-                />
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
+              {canShowBlock && !isOwn ? (
+                <div
+                  className="mt-1 border-t border-gray-100 pt-1"
+                  role="none"
+                  data-testid="profile-overflow-block"
+                >
+                  <BlockUserButton
+                    targetId={Number(userId)}
+                    variant="menuItem"
+                    onBlockChange={(byMe, byThem) => {
+                      onBlockChange(byMe, byThem)
+                      setOpen(false)
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   )
 }

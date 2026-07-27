@@ -12,32 +12,28 @@ import {
 import { shouldShowPublicAdminRoleBadge } from '../../utils/profilePassportKpis'
 
 describe('profilePassportHeaderModel', () => {
-  it('owner no longer has Uredi profil primary CTA', () => {
-    expect(getOwnerPrimaryCtaLabel(true)).toBeNull()
+  it('owner has Uredi profil when settings available', () => {
+    expect(getOwnerPrimaryCtaLabel(true)).toBe('Uredi profil')
     expect(getOwnerPrimaryCtaLabel(false)).toBeNull()
   })
 
-  it('owner sees passport shortcut only with settings access', () => {
-    expect(shouldShowOwnerPassportShortcut(true, true)).toBe(true)
+  it('never shows passport shortcut on profile', () => {
+    expect(shouldShowOwnerPassportShortcut(true, true)).toBe(false)
     expect(shouldShowOwnerPassportShortcut(true, false)).toBe(false)
     expect(shouldShowOwnerPassportShortcut(false, true)).toBe(false)
   })
 
-  it('public profile has no owner shortcut', () => {
-    expect(shouldShowOwnerPassportShortcut(false, false)).toBe(false)
+  it('exposes three public KPIs in passport order', () => {
+    expect([...PASSPORT_PUBLIC_KPI_LABELS]).toEqual(['OSVOJENO', 'KILOMETRI', 'USPON'])
+    expect(PASSPORT_PUBLIC_KPI_LABELS).toHaveLength(3)
   })
 
-  it('exposes four public KPIs in legacy order', () => {
-    expect([...PASSPORT_PUBLIC_KPI_LABELS]).toEqual(['USPON', 'STAZA', 'OSVOJENIH', 'KORACI'])
-    expect(PASSPORT_PUBLIC_KPI_LABELS).toHaveLength(4)
+  it('does not treat daily steps as public header KPI', () => {
+    expect(isStepsPublicHeaderKpi()).toBe(false)
   })
 
-  it('treats steps as public header KPI', () => {
-    expect(isStepsPublicHeaderKpi()).toBe(true)
-  })
-
-  it('does not show separate owner steps card', () => {
-    expect(shouldShowOwnerStepsCard(true)).toBe(false)
+  it('keeps owner steps card available', () => {
+    expect(shouldShowOwnerStepsCard(true)).toBe(true)
     expect(shouldShowOwnerStepsCard(false)).toBe(false)
   })
 
@@ -45,9 +41,6 @@ describe('profilePassportHeaderModel', () => {
     expect(
       getPublicPrimaryCtaLabel({ isMe: false, blockedByTarget: false, followLabel: 'Zaprati' }),
     ).toBe('Zaprati')
-    expect(
-      getPublicPrimaryCtaLabel({ isMe: false, blockedByTarget: false, followLabel: 'Pratiš' }),
-    ).toBe('Pratiš')
     expect(
       getPublicPrimaryCtaLabel({ isMe: true, blockedByTarget: false, followLabel: 'Zaprati' }),
     ).toBeNull()
@@ -66,16 +59,12 @@ describe('profilePassportHeaderModel', () => {
     expect(labels.back).toBe('Nazad')
     expect(labels.menu).toBe('Meni profila')
     expect(labels.editProfile).toBe('Uredi profil')
-    expect(labels.passportShortcut).toContain('podešavanja')
-    expect(labels.kpis.summits).toContain('osvojeno')
     expect(labels.steps).toContain('koraka')
   })
 
-  it('handles long name and club without throwing', () => {
+  it('handles long name without throwing', () => {
     const longName = 'A'.repeat(120)
-    const longClub = 'Planinarsko društvo '.repeat(8)
     expect(safeDisplayText(longName).length).toBe(120)
-    expect(safeDisplayText(longClub).length).toBeGreaterThan(40)
     expect(safeDisplayText(undefined, '—')).toBe('—')
   })
 

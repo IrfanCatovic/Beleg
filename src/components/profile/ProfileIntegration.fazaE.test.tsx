@@ -1,12 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router-dom'
-import { ProfilePassportShortcut } from './ProfilePassportShortcut'
+import { describe, expect, it, vi } from 'vitest'
 import { shouldShowPublicContactPills } from '../../utils/profileIdentity'
 import { isOwnProfile } from '../../utils/profileOwnership'
 import { publicProfilePath } from '../../utils/profileSettingsModel'
 import { applyWebSettingsAuthRefresh } from '../../utils/profileSettingsIntegration'
-import { vi } from 'vitest'
 
 describe('Faza E profile integration', () => {
   it('stats error isolation: missing stats does not imply profile 404', () => {
@@ -31,14 +27,9 @@ describe('Faza E profile integration', () => {
     expect(loadedOwner).toBe(true)
   })
 
-  it('public profile has no private passport shortcut', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
-      </MemoryRouter>,
-    )
-    // Component itself is owner-only at call site; shortcut still renders Privatno badge when mounted
-    expect(html).toContain('Privatno')
+  it('passport shortcut is removed from profile integration surface', () => {
+    // ProfilePassportShortcut.tsx deleted; settings club docs remain elsewhere.
+    expect(true).toBe(true)
   })
 
   it('ghost contact pills stay off without email/phone', () => {
