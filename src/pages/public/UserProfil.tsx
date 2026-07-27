@@ -27,7 +27,10 @@ import { ProfileActionGrid, ProfileActionGridSkeleton } from '../../components/p
 import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
 import { ProfilePassportShortcut } from '../../components/profile/ProfilePassportShortcut'
 import { ProfileClubIdentity } from '../../components/profile/ProfileClubIdentity'
-import { ProfileGuideExperience } from '../../components/profile/ProfileGuideExperience'
+import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
+import FollowControls from '../../components/buttons/FollowControls'
+import BlockUserButton from '../../components/buttons/BlockUserButton'
+import type { MemberPdfData } from '../../utils/generateMemberPdf'
 import {
   ProfileActionsEmpty,
   ProfileSectionError,
@@ -330,6 +333,10 @@ export default function UserProfile() {
   })
   const canShowFollowControls = !!currentUser && !isOwn && !sameClub
   const canShowBlockControls = !!currentUser && !isOwn
+  const isSuperadmin = currentUser?.role === 'superadmin'
+  const isClubAdminOrSecretary = currentUser?.role === 'admin' || currentUser?.role === 'sekretar'
+  const canSeeCoverActionsMenu =
+    !!isOwn || !!isSuperadmin || (!!isClubAdminOrSecretary && sameClub)
   const showContactPills = shouldShowPublicContactPills({
     email: korisnik?.email,
     telefon: korisnik?.telefon,
@@ -346,20 +353,37 @@ export default function UserProfile() {
     brojOcena: 0,
     brojKomentara: 0,
   }
-  const headerActions =
+  const coverActionsMenu =
     korisnik != null ? (
       <ProfileHeaderActions
+        visible={canSeeCoverActionsMenu}
         isOwn={!!isOwn}
         userId={korisnik.id}
         currentUser={currentUser}
-        korisnikForPdf={korisnik as unknown as import('../../utils/generateMemberPdf').MemberPdfData}
+        korisnikForPdf={korisnik as unknown as MemberPdfData}
         clubName={korisnik.klubNaziv || ''}
-        canShowFollow={canShowFollowControls}
-        canShowBlock={canShowBlockControls}
-        blockedEither={blockedEither}
-        onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
-        onFollowStatusChange={fetchFollowCounts}
       />
+    ) : null
+
+  const publicSocialActions =
+    !isOwn && currentUser && !blockedEither && (canShowFollowControls || canShowBlockControls) ? (
+      <div className="mt-3 flex w-full flex-col gap-2">
+        {canShowFollowControls ? (
+          <div className="w-full [&_button]:w-full [&_a]:w-full">
+            <FollowControls
+              targetId={korisnik!.id}
+              hidden={blockedEither}
+              onStatusChange={fetchFollowCounts}
+            />
+          </div>
+        ) : null}
+        {canShowBlockControls ? (
+          <BlockUserButton
+            targetId={korisnik!.id}
+            onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
+          />
+        ) : null}
+      </div>
     ) : null
 
   useEffect(() => {
@@ -563,7 +587,7 @@ export default function UserProfile() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
 
       {/* ══════════ COVER ══════════ */}
-      <div className="relative h-40 sm:h-44 md:h-52 lg:h-64 xl:h-72 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2">
+      <div className="relative h-56 sm:h-44 md:h-64 lg:h-80 xl:h-96 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2">
         {hasCover ? (
           <img
             src={korisnik.cover_image_url}
@@ -576,6 +600,8 @@ export default function UserProfile() {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-emerald-900/80 to-teal-800" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+
+        {coverActionsMenu}
 
         {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
         {isOwn && !positioning && (
@@ -859,21 +885,32 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {(korisnik.klubNaziv || (isOwn && !korisnik.klubNaziv)) && (
-                <div className="mt-2.5 min-w-0">
-                  <ProfileClubIdentity
-                    klubNaziv={korisnik.klubNaziv}
-                    klubLogoUrl={korisnik.klubLogoUrl}
-                    isAuthenticated={!!currentUser}
-                    isOwn={!!isOwn}
-                    noClubOwnLabel={t('noClubOwn')}
-                  />
+              {(korisnik.klubNaziv || (isOwn && !korisnik.klubNaziv) || showProfiGuideBadge) && (
+                <div className="mt-2.5 flex items-center justify-between gap-2 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    {(korisnik.klubNaziv || (isOwn && !korisnik.klubNaziv)) && (
+                      <ProfileClubIdentity
+                        klubNaziv={korisnik.klubNaziv}
+                        klubLogoUrl={korisnik.klubLogoUrl}
+                        isAuthenticated={!!currentUser}
+                        isOwn={!!isOwn}
+                        noClubOwnLabel={t('noClubOwn')}
+                      />
+                    )}
+                  </div>
+                  {showProfiGuideBadge ? (
+                    <ProfiGuideRatingChip
+                      username={korisnik.username}
+                      summary={guideRatingSummary}
+                      className="shrink-0"
+                    />
+                  ) : null}
                 </div>
               )}
               {isOwn && myGuideProfile !== undefined && (
                 <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
               )}
-              <div className="mt-3">{headerActions}</div>
+              {publicSocialActions}
             </div>
 
             {/* desktop/tablet layout (existing) */}
@@ -918,7 +955,7 @@ export default function UserProfile() {
                     <span className="text-[13px] text-gray-400 font-semibold">@{korisnik.username}</span>
                   </div>
 
-                  <div className="mt-1.5">
+                  <div className="mt-1.5 flex items-end justify-between gap-3 min-w-0">
                     <ProfileClubIdentity
                       klubNaziv={korisnik.klubNaziv}
                       klubLogoUrl={korisnik.klubLogoUrl}
@@ -926,6 +963,13 @@ export default function UserProfile() {
                       isOwn={!!isOwn}
                       noClubOwnLabel={t('noClubOwn')}
                     />
+                    {showProfiGuideBadge ? (
+                      <ProfiGuideRatingChip
+                        username={korisnik.username}
+                        summary={guideRatingSummary}
+                        className="shrink-0"
+                      />
+                    ) : null}
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-0.5">
@@ -957,7 +1001,7 @@ export default function UserProfile() {
                 {isOwn && myGuideProfile !== undefined && (
                   <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} className="mt-3" />
                 )}
-                <div className="mt-3">{headerActions}</div>
+                {publicSocialActions}
               </div>
             </div>
           </div>
@@ -1044,10 +1088,11 @@ export default function UserProfile() {
             ) : (
               <>
                 <StatCell
-                  value={passportKpis.summits.value}
-                  label={t('climbedCount')}
-                  accent="text-amber-500"
-                  ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
+                  value={passportKpis.ascent.value}
+                  unit="m"
+                  label={t('ascent')}
+                  accent="text-emerald-500"
+                  ariaLabel={`${passportKpis.ascent.value} m ${t('ascent')}`}
                 />
                 <StatCell
                   value={passportKpis.km.value}
@@ -1057,11 +1102,10 @@ export default function UserProfile() {
                   ariaLabel={`${passportKpis.km.value} km ${t('trail')}`}
                 />
                 <StatCell
-                  value={passportKpis.ascent.value}
-                  unit="m"
-                  label={t('ascent')}
-                  accent="text-emerald-500"
-                  ariaLabel={`${passportKpis.ascent.value} m ${t('ascent')}`}
+                  value={passportKpis.summits.value}
+                  label={t('climbedCount')}
+                  accent="text-amber-500"
+                  ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
                 />
               </>
             )}
@@ -1069,16 +1113,6 @@ export default function UserProfile() {
           {isOwn ? (
             <div className="py-3 sm:py-4">
               <ProfilePassportShortcut settingsHref="/profil/podesavanja" />
-            </div>
-          ) : null}
-          {showProfiGuideBadge ? (
-            <div className="pb-3 sm:pb-4">
-              <ProfileGuideExperience
-                username={korisnik.username}
-                summary={guideRatingSummary}
-                guidedCount={vodeneAkcije.length}
-                reviewsHref={`/korisnik/${encodeURIComponent(korisnik.username)}/recenzije`}
-              />
             </div>
           ) : null}
         </div>

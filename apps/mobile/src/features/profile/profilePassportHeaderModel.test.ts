@@ -12,8 +12,8 @@ import {
 import { shouldShowPublicAdminRoleBadge } from '../../utils/profilePassportKpis'
 
 describe('profilePassportHeaderModel', () => {
-  it('owner has visible Uredi profil when settings available', () => {
-    expect(getOwnerPrimaryCtaLabel(true)).toBe('Uredi profil')
+  it('owner no longer has Uredi profil primary CTA', () => {
+    expect(getOwnerPrimaryCtaLabel(true)).toBeNull()
     expect(getOwnerPrimaryCtaLabel(false)).toBeNull()
   })
 
@@ -27,17 +27,17 @@ describe('profilePassportHeaderModel', () => {
     expect(shouldShowOwnerPassportShortcut(false, false)).toBe(false)
   })
 
-  it('exposes exactly three public KPIs in order', () => {
-    expect([...PASSPORT_PUBLIC_KPI_LABELS]).toEqual(['OSVOJENO', 'KILOMETRI', 'USPON'])
-    expect(PASSPORT_PUBLIC_KPI_LABELS).toHaveLength(3)
+  it('exposes four public KPIs in legacy order', () => {
+    expect([...PASSPORT_PUBLIC_KPI_LABELS]).toEqual(['USPON', 'STAZA', 'OSVOJENIH', 'KORACI'])
+    expect(PASSPORT_PUBLIC_KPI_LABELS).toHaveLength(4)
   })
 
-  it('does not treat steps as a fourth public KPI', () => {
-    expect(isStepsPublicHeaderKpi()).toBe(false)
+  it('treats steps as public header KPI', () => {
+    expect(isStepsPublicHeaderKpi()).toBe(true)
   })
 
-  it('keeps owner steps card available', () => {
-    expect(shouldShowOwnerStepsCard(true)).toBe(true)
+  it('does not show separate owner steps card', () => {
+    expect(shouldShowOwnerStepsCard(true)).toBe(false)
     expect(shouldShowOwnerStepsCard(false)).toBe(false)
   })
 

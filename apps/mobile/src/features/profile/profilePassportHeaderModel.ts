@@ -1,22 +1,24 @@
 /** Pravila Faze A — Planinarski pasoš header (testabilno bez RN rendera). */
 
-export const PASSPORT_PUBLIC_KPI_LABELS = ['OSVOJENO', 'KILOMETRI', 'USPON'] as const
+export const PASSPORT_PUBLIC_KPI_LABELS = ['USPON', 'STAZA', 'OSVOJENIH', 'KORACI'] as const
 
 export function shouldShowOwnerPassportShortcut(isMe: boolean, canOpenSettings: boolean): boolean {
   return isMe && canOpenSettings
 }
 
 export function shouldShowOwnerStepsCard(isMe: boolean): boolean {
-  return isMe
-}
-
-/** Koraci nisu javni KPI u headeru. */
-export function isStepsPublicHeaderKpi(): boolean {
+  void isMe
   return false
 }
 
+/** Koraci su javni KPI u header metrics redu (4. kolona). */
+export function isStepsPublicHeaderKpi(): boolean {
+  return true
+}
+
 export function getOwnerPrimaryCtaLabel(canOpenSettings: boolean): string | null {
-  return canOpenSettings ? 'Uredi profil' : null
+  void canOpenSettings
+  return null
 }
 
 export function getPublicPrimaryCtaLabel(opts: {
