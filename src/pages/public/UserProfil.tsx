@@ -366,12 +366,16 @@ export default function UserProfile() {
     ) : null
 
   const publicSocialActions =
-    !isOwn && currentUser && !blockedEither && (canShowFollowControls || canShowBlockControls) ? (
+    korisnik != null &&
+    !isOwn &&
+    currentUser &&
+    !blockedEither &&
+    (canShowFollowControls || canShowBlockControls) ? (
       <div className="mt-3 flex w-full flex-col gap-2">
         {canShowFollowControls ? (
           <div className="w-full [&_button]:w-full [&_a]:w-full">
             <FollowControls
-              targetId={korisnik!.id}
+              targetId={korisnik.id}
               hidden={blockedEither}
               onStatusChange={fetchFollowCounts}
             />
@@ -379,7 +383,7 @@ export default function UserProfile() {
         ) : null}
         {canShowBlockControls ? (
           <BlockUserButton
-            targetId={korisnik!.id}
+            targetId={korisnik.id}
             onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
           />
         ) : null}
