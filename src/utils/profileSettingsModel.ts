@@ -1,13 +1,15 @@
-import type { GuideProfileStatus } from '../services/guideProfiles'
-import type { ProfileCompletionInput } from './profileCompletion'
+import type { GuideProfileStatus } from '../services/guideProfiles';
+import type { ProfileCompletionInput } from './profileCompletion';
 
-export type GuideSettingsStatus = NonNullable<ProfileCompletionInput['guideStatus']>
+export type GuideSettingsStatus = NonNullable<
+  ProfileCompletionInput['guideStatus']
+>;
 
 export function mapGuideProfileToCompletionStatus(
-  profile: { status: GuideProfileStatus } | null | undefined,
+  profile: { status: GuideProfileStatus } | null | undefined
 ): GuideSettingsStatus {
-  if (!profile) return 'none'
-  return profile.status
+  if (!profile) return 'none';
+  return profile.status;
 }
 
 export type GuideSettingsBlockModel =
@@ -15,43 +17,44 @@ export type GuideSettingsBlockModel =
   | { kind: 'pending'; message: string }
   | { kind: 'approved'; message: string }
   | { kind: 'rejected'; message: string; ctaLabel: string; href: string }
-  | { kind: 'suspended'; message: string }
+  | { kind: 'suspended'; message: string };
 
 export function buildGuideSettingsBlock(
-  status: GuideSettingsStatus,
+  status: GuideSettingsStatus
 ): GuideSettingsBlockModel | null {
-  if (status === 'non-guide') return null
+  if (status === 'non-guide') return null;
   if (status === 'none') {
     return {
       kind: 'apply',
       ctaLabel: 'Postani Profi vodič',
       href: '/profil/postani-vodic',
-    }
+    };
   }
   if (status === 'pending') {
     return {
       kind: 'pending',
       message: 'Zahtjev za vodički profil je na provjeri.',
-    }
+    };
   }
   if (status === 'approved') {
     return {
       kind: 'approved',
       message: 'Vodički profil je aktivan.',
-    }
+    };
   }
   if (status === 'rejected') {
     return {
       kind: 'rejected',
-      message: 'Zahtjev za vodički profil je odbijen. Možete poslati novi zahtjev.',
+      message:
+        'Zahtjev za vodički profil je odbijen. Možete poslati novi zahtjev.',
       ctaLabel: 'Pošalji ponovo',
       href: '/profil/postani-vodic',
-    }
+    };
   }
   return {
     kind: 'suspended',
     message: 'Vodički profil je privremeno suspendovan.',
-  }
+  };
 }
 
 export const PROFILE_SETTINGS_SECTION_ORDER = [
@@ -61,9 +64,10 @@ export const PROFILE_SETTINGS_SECTION_ORDER = [
   'membership',
   'guide',
   'account',
-] as const
+] as const;
 
-export type ProfileSettingsSectionId = (typeof PROFILE_SETTINGS_SECTION_ORDER)[number]
+export type ProfileSettingsSectionId =
+  (typeof PROFILE_SETTINGS_SECTION_ORDER)[number];
 
 export const PROFILE_SETTINGS_FIELD_GROUPS = {
   public: ['fullName', 'username', 'avatar', 'publicProfileLink'] as const,
@@ -91,11 +95,12 @@ export const PROFILE_SETTINGS_FIELD_GROUPS = {
     'newPassword',
     'confirmPassword',
   ] as const,
-}
+};
 
 export const PRIVACY_COPY = {
   publicBadge: 'Javno',
-  publicHint: 'Ove informacije prikazuju se na vašem javnom Planinarskom pasošu.',
+  publicHint:
+    'Ove informacije prikazuju se na vašem javnom Planinarskom pasošu.',
   privateBadge: 'Privatno',
   privateHint:
     'Ovi podaci nisu javno prikazani. Dostupni su vama i ovlašćenim osobama kada su potrebni za članstvo ili administraciju.',
@@ -104,10 +109,10 @@ export const PRIVACY_COPY = {
     'Legitimacija, markica i dokumentacija služe za evidenciju članstva i nisu prikazane na javnom profilu.',
   clubManagedHint: 'Ovaj podatak uređuje ovlašćena osoba kluba.',
   publicProfileLink: 'Pogledaj javni profil',
-} as const
+} as const;
 
 export function publicProfilePath(username?: string | null): string | null {
-  const u = typeof username === 'string' ? username.trim() : ''
-  if (!u) return null
-  return `/korisnik/${encodeURIComponent(u)}`
+  const u = typeof username === 'string' ? username.trim() : '';
+  if (!u) return null;
+  return `/korisnik/${encodeURIComponent(u)}`;
 }
