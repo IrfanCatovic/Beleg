@@ -190,13 +190,13 @@ describe('resolveNotificationNavigationTarget', () => {
     ).toEqual({ kind: 'profile', username: 'marko' })
   })
 
-  it('targetUserId → profile with stable id', () => {
+  it('targetUserId → profile with stable id only', () => {
     expect(
       resolveNotificationNavigationTarget({
         type: 'follow',
         metadata: { targetUserId: 42, targetUsername: 'ana' },
       }),
-    ).toEqual({ kind: 'profile', userId: 42, username: 'ana' })
+    ).toEqual({ kind: 'profile', userId: 42 })
     expect(buildWebNotificationPath({ kind: 'profile', userId: 42 })).toBe('/users/42')
   })
 
@@ -207,7 +207,7 @@ describe('resolveNotificationNavigationTarget', () => {
         link: '/korisnik/old-name',
         metadata: { targetUserId: 9, targetUsername: 'old-name' },
       }),
-    ).toEqual({ kind: 'profile', userId: 9, username: 'old-name' })
+    ).toEqual({ kind: 'profile', userId: 9 })
     expect(
       buildWebNotificationPath({
         kind: 'profile',
@@ -224,7 +224,7 @@ describe('resolveNotificationNavigationTarget', () => {
         link: '/korisnik/old-name',
         metadata: { targetUserId: 15, targetUsername: 'old-name' },
       }),
-    ).toEqual({ kind: 'profile', userId: 15, username: 'old-name' })
+    ).toEqual({ kind: 'profile', userId: 15 })
   })
 
   it('profile with only username still works', () => {

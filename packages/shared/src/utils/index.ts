@@ -6,6 +6,7 @@ export {
   isActionCancelledNotificationType,
   parseCanonicalNotificationLink,
   parseMetadata,
+  resolveLegacyProfileIdentity,
   resolveNotificationNavigationTarget,
   resolveObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'

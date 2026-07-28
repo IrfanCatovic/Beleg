@@ -46,6 +46,47 @@ describe('resolveWebNotificationPath', () => {
     ).toBe('/users/12')
   })
 
+  it('legacy follow requesterId → /users/:id', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 8,
+        type: 'follow',
+        link: '/korisnik/stale',
+        metadata: JSON.stringify({
+          followId: 1,
+          requesterId: 42,
+          requesterUsername: 'stale',
+        }),
+      }),
+    ).toBe('/users/42')
+  })
+
+  it('legacy follow accepted targetId → /users/:id', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 9,
+        type: 'follow',
+        link: '',
+        metadata: JSON.stringify({
+          followId: 2,
+          targetId: 55,
+          targetUsername: 'old-accepter',
+        }),
+      }),
+    ).toBe('/users/55')
+  })
+
+  it('username-only follow → username route', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 4,
+        type: 'follow',
+        link: '',
+        metadata: JSON.stringify({ followId: 1, requesterUsername: 'ana' }),
+      }),
+    ).toBe('/korisnik/ana')
+  })
+
   it('stale username with valid id still uses id route', () => {
     expect(
       resolveWebNotificationPath({
@@ -66,6 +107,17 @@ describe('resolveWebNotificationPath', () => {
         metadata: JSON.stringify({ followId: 1, requesterUsername: 'ana' }),
       }),
     ).toBe('/korisnik/ana')
+  })
+
+  it('post with postId stays home path', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 20,
+        type: 'post',
+        link: '/home',
+        metadata: JSON.stringify({ postId: 99, actorUserId: 42 }),
+      }),
+    ).toBe('/home?postId=99')
   })
 
   it('empty-link participation → action', () => {

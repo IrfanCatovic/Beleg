@@ -37,6 +37,22 @@ describe('navigateMobileNotificationTarget', () => {
     })
   })
 
+  it('legacy follow semantic with requesterId → UserProfile { id }', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    const { resolveNotificationNavigationTarget } = await import('@beleg/shared')
+    const semantic = resolveNotificationNavigationTarget({
+      type: 'follow',
+      link: '/korisnik/old',
+      metadata: { followId: 1, requesterId: 42, requesterUsername: 'old' },
+    })
+    expect(semantic).toEqual({ kind: 'profile', userId: 42 })
+    expect(navigateMobileNotificationTarget(semantic)).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'UserProfile',
+      params: { id: 42 },
+    })
+  })
+
   it('profile target → UserProfile username when no id', async () => {
     const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
     expect(navigateMobileNotificationTarget({ kind: 'profile', username: 'ana' })).toBe(true)

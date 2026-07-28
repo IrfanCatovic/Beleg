@@ -63,7 +63,7 @@ const ACTION_METADATA_TYPES = new Set([
 
 const INTERNAL_HOSTS = new Set(['www.planiner.com', 'planiner.com', 'planiner.app'])
 
-export function parseMetadata(raw: ObavestenjeNavigationInput['metadata']): Record<string, unknown> {
+export function parseMetadata(raw: unknown): Record<string, unknown> {
   if (raw == null) return {}
   if (typeof raw === 'object' && !Array.isArray(raw)) return raw as Record<string, unknown>
   if (typeof raw !== 'string' || !raw.trim()) return {}
@@ -79,9 +79,12 @@ export function parseMetadata(raw: ObavestenjeNavigationInput['metadata']): Reco
 }
 
 function positiveId(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.trunc(value)
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value
   if (typeof value === 'string' && value.trim()) {
-    const n = Number.parseInt(value, 10)
+    const trimmed = value.trim()
+    // Reject decimals / non-digit strings; numeric strings like "42" remain valid.
+    if (!/^\d+$/.test(trimmed)) return null
+    const n = Number.parseInt(trimmed, 10)
     if (!Number.isNaN(n) && n > 0) return n
   }
   return null
@@ -219,24 +222,71 @@ function resolveProfileFromMetadata(
   type: string,
   meta: Record<string, unknown>,
 ): NotificationNavigationTarget | null {
-  let userId = positiveId(meta.targetUserId)
-  let username = trimString(meta.targetUsername)
+  const identity = resolveLegacyProfileIdentity(type, meta)
+  if (!identity) return null
+  const target: ProfileNotificationTarget = { kind: 'profile' }
+  // Prefer stable ID alone so adapters never prefer a stale username over id.
+  if (identity.userId != null) {
+    target.userId = identity.userId
+    return target
+  }
+  if (identity.username) {
+    target.username = identity.username
+    return target
+  }
+  return null
+}
 
-  if (type === 'follow') {
-    if (userId == null) {
-      userId = positiveId(meta.requesterId) ?? positiveId(meta.targetId)
-    }
-    if (!username) {
-      username = trimString(meta.requesterUsername) ?? trimString(meta.targetUsername)
-    }
+/**
+ * Type-aware recovery of profile identity from notification metadata.
+ * Pure: no API, no throw. Only proven legacy fields for profile destinations.
+ *
+ * Follow request (historical): requesterId / requesterUsername
+ * Follow accepted (historical): targetId / targetUsername
+ * Canonical (P1B+): targetUserId / targetUsername always win first.
+ */
+export function resolveLegacyProfileIdentity(
+  notificationType: string | undefined,
+  metadata: unknown,
+): { userId?: number; username?: string } | null {
+  const type = (notificationType ?? '').trim()
+  const meta = parseMetadata(metadata)
+
+  const canonicalId = positiveId(meta.targetUserId)
+  const canonicalUsername = trimString(meta.targetUsername)
+
+  if (canonicalId != null) {
+    return { userId: canonicalId }
   }
 
-  if (userId == null && !username) return null
-  const target: ProfileNotificationTarget = { kind: 'profile' }
-  if (userId != null) target.userId = userId
-  if (username) target.username = username
-  if (target.userId == null && !target.username) return null
-  return target
+  if (type === 'follow') {
+    // Follow request shape: open the requester (not the recipient).
+    const requesterId = positiveId(meta.requesterId)
+    if (requesterId != null) {
+      const username =
+        trimString(meta.requesterUsername) ?? canonicalUsername ?? undefined
+      return username ? { userId: requesterId, username } : { userId: requesterId }
+    }
+    // Follow accepted shape: open the accepter (follow targetId).
+    const accepterId = positiveId(meta.targetId)
+    if (accepterId != null) {
+      const username =
+        trimString(meta.targetUsername) ?? canonicalUsername ?? undefined
+      return username ? { userId: accepterId, username } : { userId: accepterId }
+    }
+    const username =
+      trimString(meta.requesterUsername) ??
+      trimString(meta.targetUsername) ??
+      canonicalUsername
+    if (username) return { username }
+    return null
+  }
+
+  // Non-follow types: only canonical targetUserId/targetUsername.
+  // Do not treat requesterId/actorUserId/userId as primary profile targets —
+  // those notifications navigate to action/home/detail first.
+  if (canonicalUsername) return { username: canonicalUsername }
+  return null
 }
 
 function resolveTypeMetadataTarget(
