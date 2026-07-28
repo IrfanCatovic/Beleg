@@ -163,7 +163,10 @@ export function parseCanonicalNotificationLink(link: string): NotificationNaviga
   if (pathname === '/vodici') return { kind: 'guides' }
   if (pathname === '/zadaci') return { kind: 'tasks' }
   if (pathname === '/finansije') return { kind: 'finances' }
-  if (pathname === '/home') return { kind: 'home' }
+  if (pathname === '/home') {
+    const postId = positiveId(searchParams.get('postId'))
+    return postId != null ? { kind: 'home', postId } : { kind: 'home' }
+  }
 
   const detailMatch = pathname.match(/^\/obavestenja\/(\d+)$/)
   if (detailMatch) {
@@ -320,7 +323,7 @@ export function buildWebNotificationPath(target: NotificationNavigationTarget): 
     case 'finances':
       return '/finansije'
     case 'home':
-      return '/home'
+      return target.postId != null ? `/home?postId=${target.postId}` : '/home'
     case 'notification-detail':
       return `/obavestenja/${target.notificationId}`
     case 'none':

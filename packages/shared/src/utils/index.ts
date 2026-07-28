@@ -16,6 +16,16 @@ export type {
   ObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'
 export {
+  decideFeedPostFocus,
+  findPostIndexById,
+  insertOrMovePostIntoFeedPages,
+  insertOrMovePostIntoList,
+  normalizeFeedPostId,
+  prefersReducedMotion,
+  scrollPostElementIntoView,
+} from './feedPostFocus'
+export type { FeedPostFetchStatus, FeedPostFocusDecision } from './feedPostFocus'
+export {
   CANCEL_ACTION_REASON_ERROR,
   normalizeCancelActionReason,
 } from './cancelActionReason'

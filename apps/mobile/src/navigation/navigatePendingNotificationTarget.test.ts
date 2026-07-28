@@ -63,6 +63,21 @@ describe('navigatePendingNotificationTarget', () => {
     })
   })
 
+  it('feed-post → HomeTab / Feed with postId', async () => {
+    const { navigatePendingNotificationTarget } = await import('./navigationRef')
+    expect(
+      navigatePendingNotificationTarget({
+        kind: 'feed-post',
+        postId: 42,
+        dedupeKey: 'feed:42:3',
+      }),
+    ).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'Feed',
+      params: { postId: 42 },
+    })
+  })
+
   it('returns false when navigator not ready', async () => {
     isReady.mockReturnValue(false)
     const { navigatePendingNotificationTarget } = await import('./navigationRef')

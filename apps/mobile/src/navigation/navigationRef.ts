@@ -63,6 +63,15 @@ export function navigateFromDeepLinkUrl(url: string): boolean {
   return navigateToActionDetail(parsed.id, parsed.inviteToken)
 }
 
+export function navigateToFeed(postId?: number): boolean {
+  if (!navigationRef.isReady()) return false
+  navigationRef.navigate('HomeTab', {
+    screen: 'Feed',
+    params: postId != null && postId > 0 ? { postId } : undefined,
+  })
+  return true
+}
+
 /** Navigate a pending push target. Returns false if navigator not ready. */
 export function navigatePendingNotificationTarget(target: PendingNotificationTarget): boolean {
   if (target.kind === 'notification-detail') {
@@ -74,6 +83,9 @@ export function navigatePendingNotificationTarget(target: PendingNotificationTar
       target.inviteToken,
       target.claimReward === true,
     )
+  }
+  if (target.kind === 'feed-post') {
+    return navigateToFeed(target.postId)
   }
   return false
 }

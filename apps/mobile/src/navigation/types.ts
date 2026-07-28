@@ -7,7 +7,7 @@ export type ActionDetailParams = {
 }
 
 export type HomeStackParamList = {
-  Feed: undefined
+  Feed: { postId?: number } | undefined
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
   FerrataDetail: { slug: string }

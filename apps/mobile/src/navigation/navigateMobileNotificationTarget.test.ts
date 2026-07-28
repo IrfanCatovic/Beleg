@@ -46,6 +46,35 @@ describe('navigateMobileNotificationTarget', () => {
     })
   })
 
+  it('home without postId → Feed', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'home' })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'Feed',
+      params: undefined,
+    })
+  })
+
+  it('home + postId → Feed with postId', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'home', postId: 42 })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'Feed',
+      params: { postId: 42 },
+    })
+  })
+
+  it('invalid home postId omitted', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'home', postId: 0 as unknown as number })).toBe(
+      true,
+    )
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'Feed',
+      params: undefined,
+    })
+  })
+
   it('unsupported club name → NotificationDetail fallback', async () => {
     const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
     expect(

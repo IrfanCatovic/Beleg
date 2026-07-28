@@ -114,31 +114,8 @@ type UpdatePostRequest struct {
 	ImageURL *string `json:"imageUrl"`
 }
 
-func GetPosts(c *gin.Context) {
-	db := DB(c)
-
-	currentUser, ok := AuthUser(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-
-	limit := 30
-	offset := 0
-	if l := c.Query("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 50 {
-			limit = n
-		}
-	}
-	if o := c.Query("offset"); o != "" {
-		if n, err := strconv.Atoi(o); err == nil && n >= 0 {
-			offset = n
-		}
-	}
-
-	// Feed je kombinacija:
-	// 1) svih članova istog kluba (ako korisnik ima klub)
-	// 2) svih korisnika koje currentUser prati (follows.status = "accepted")
+// feedAllowedAuthorIDs mirrors GetPosts visibility: self ∪ club members ∪ accepted follows.
+func feedAllowedAuthorIDs(db *gorm.DB, currentUser models.Korisnik) []uint {
 	allowedUserIDSet := map[uint]struct{}{
 		currentUser.ID: {},
 	}
@@ -166,6 +143,56 @@ func GetPosts(c *gin.Context) {
 	for id := range allowedUserIDSet {
 		allowedUserIDs = append(allowedUserIDs, id)
 	}
+	return allowedUserIDs
+}
+
+func authorInFeedAllowList(allowed []uint, authorID uint) bool {
+	for _, id := range allowed {
+		if id == authorID {
+			return true
+		}
+	}
+	return false
+}
+
+// canViewerAccessFeedPost applies the same access rules as the feed list (+ block).
+// Hidden / private / blocked posts return false without distinguishing the reason.
+func canViewerAccessFeedPost(db *gorm.DB, viewer models.Korisnik, authorID uint) bool {
+	if authorID == 0 {
+		return false
+	}
+	if isBlockedEitherDirection(db, viewer.ID, authorID) {
+		return false
+	}
+	return authorInFeedAllowList(feedAllowedAuthorIDs(db, viewer), authorID)
+}
+
+func GetPosts(c *gin.Context) {
+	db := DB(c)
+
+	currentUser, ok := AuthUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
+	limit := 30
+	offset := 0
+	if l := c.Query("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 50 {
+			limit = n
+		}
+	}
+	if o := c.Query("offset"); o != "" {
+		if n, err := strconv.Atoi(o); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	// Feed je kombinacija:
+	// 1) svih članova istog kluba (ako korisnik ima klub)
+	// 2) svih korisnika koje currentUser prati (follows.status = "accepted")
+	allowedUserIDs := feedAllowedAuthorIDs(db, currentUser)
 
 	var total int64
 	db.Model(&models.Post{}).Where("user_id IN ?", allowedUserIDs).Count(&total)
@@ -334,6 +361,12 @@ func GetPost(c *gin.Context) {
 			return tx.Select("id, naziv, logo_url")
 		}).
 		First(&post, postID).Error; err != nil {
+		// Uniform 404 — do not leak existence of private/deleted posts.
+		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		return
+	}
+
+	if !canViewerAccessFeedPost(db, currentUser, post.UserID) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
 		return
 	}

@@ -7,6 +7,7 @@ import {
 
 export type MobileNotificationNavTarget =
   | { screen: 'ActionDetail'; actionId: number; claimReward?: boolean }
+  | { screen: 'Feed'; postId: number }
   | { screen: 'NotificationDetail'; obavestenjeId: number }
   | { screen: 'none' }
 
@@ -74,6 +75,9 @@ export function semanticToMobileNavTarget(
       ...(semantic.claimReward ? { claimReward: true as const } : {}),
     }
   }
+  if (semantic.kind === 'home' && semantic.postId != null && semantic.postId > 0) {
+    return { screen: 'Feed', postId: semantic.postId }
+  }
   const detailId =
     semantic.kind === 'notification-detail'
       ? semantic.notificationId
@@ -123,6 +127,9 @@ export function buildMobileNotificationNavigationKey(
 ): string | null {
   if (target.screen === 'ActionDetail') {
     return `action:${target.actionId}:${data?.obavestenjeId ?? ''}`
+  }
+  if (target.screen === 'Feed') {
+    return `feed:${target.postId}:${data?.obavestenjeId ?? ''}`
   }
   if (target.screen === 'NotificationDetail') {
     return `notif:${target.obavestenjeId}`

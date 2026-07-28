@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -39,6 +39,7 @@ import {
   type HomeListItem,
   type MentionUser,
 } from './homeFeedUtils'
+import { useFeedPostFocus } from './useFeedPostFocus'
 
 const PAGE = 15
 
@@ -52,11 +53,12 @@ function homeListKey(item: HomeListItem, index: number): string {
   return `item-${index}`
 }
 
-export default function HomeScreen({ navigation }: Props) {
+export default function HomeScreen({ navigation, route }: Props) {
   const queryClient = useQueryClient()
   const { showAlert } = useModal()
   const { user } = useAuth()
   const { t } = useTranslation('home')
+  const listRef = useRef<FlatList<HomeListItem>>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [composer, setComposer] = useState('')
   const [imageUri, setImageUri] = useState<string | null>(null)
@@ -166,6 +168,17 @@ export default function HomeScreen({ navigation }: Props) {
 
   const isLoading = postsQuery.isLoading
   const isError = postsQuery.isError
+  const listReady = !postsQuery.isLoading && !postsQuery.isError
+
+  const feedFocus = useFeedPostFocus({
+    postIdParam: route.params?.postId,
+    listReady,
+    homeListItems,
+    queryClient,
+    navigation,
+    listRef,
+  })
+
   const isRefetching =
     postsQuery.isRefetching ||
     akcijeQuery.isRefetching ||
@@ -237,7 +250,7 @@ export default function HomeScreen({ navigation }: Props) {
   )
 
   const renderListItem = useCallback(
-    ({ item, index }: { item: HomeListItem; index: number }) => {
+    ({ item }: { item: HomeListItem; index: number }) => {
       if (item.kind === 'suggested') {
         return <HomeSuggestedUsersRow users={item.users} onPressUser={navigateToUser} />
       }
@@ -318,6 +331,7 @@ export default function HomeScreen({ navigation }: Props) {
       {topBar}
 
       <FlatList
+        ref={listRef}
         data={homeListItems}
         keyExtractor={(item, index) => homeListKey(item, index)}
         contentContainerStyle={styles.list}
@@ -326,6 +340,7 @@ export default function HomeScreen({ navigation }: Props) {
           if (postsQuery.hasNextPage && !postsQuery.isFetchingNextPage) void postsQuery.fetchNextPage()
         }}
         onEndReachedThreshold={0.4}
+        onScrollToIndexFailed={feedFocus.onScrollToIndexFailed}
         ListEmptyComponent={
           <EmptyState title={t('noPostsTitle')} message={t('noPostsDesc')} />
         }

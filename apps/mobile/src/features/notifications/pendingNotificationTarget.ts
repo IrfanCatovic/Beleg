@@ -21,6 +21,11 @@ type PendingNotificationTargetBase =
       claimReward?: boolean
       dedupeKey: string
     }
+  | {
+      kind: 'feed-post'
+      postId: number
+      dedupeKey: string
+    }
 
 export type PendingNotificationTarget = PendingNotificationTargetBase & {
   savedAt?: number
@@ -48,6 +53,15 @@ export function buildPendingNotificationTarget(
     }
   }
 
+  if (resolved.screen === 'Feed') {
+    if (!isPositiveInt(resolved.postId)) return null
+    return {
+      kind: 'feed-post',
+      postId: resolved.postId,
+      dedupeKey,
+    }
+  }
+
   if (resolved.screen === 'NotificationDetail') {
     if (!isPositiveInt(resolved.obavestenjeId)) return null
     return {
@@ -69,6 +83,9 @@ export function isValidPendingNotificationTarget(
 
   if (v.kind === 'notification-detail') {
     return isPositiveInt(v.notificationId)
+  }
+  if (v.kind === 'feed-post') {
+    return isPositiveInt(v.postId)
   }
   if (v.kind === 'action-detail') {
     if (!isPositiveInt(v.actionId)) return false

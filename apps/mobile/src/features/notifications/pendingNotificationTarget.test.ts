@@ -249,4 +249,23 @@ describe('pendingNotificationTarget storage', () => {
     expect(loaded).toMatchObject({ kind: 'action-detail', actionId: 4 })
     expect(loaded && 'claimReward' in loaded ? (loaded as { claimReward?: boolean }).claimReward : undefined).toBeUndefined()
   })
+
+  it('post push pending serializes feed-post', async () => {
+    const target = buildPendingNotificationTarget({
+      type: 'post',
+      postId: 42,
+      obavestenjeId: 9,
+    })
+    expect(target).toEqual({
+      kind: 'feed-post',
+      postId: 42,
+      dedupeKey: 'feed:42:9',
+    })
+    await savePendingNotificationTarget(target!)
+    expect(await readPendingNotificationTarget()).toMatchObject({
+      kind: 'feed-post',
+      postId: 42,
+      dedupeKey: 'feed:42:9',
+    })
+  })
 })

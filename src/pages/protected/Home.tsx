@@ -16,6 +16,7 @@ import { userHasClubContext } from '../../utils/clubContext'
 import PostCard, { type Post, type MentionUser } from '../../components/PostCard'
 import FollowControls from '../../components/buttons/FollowControls'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
+import { useWebFeedPostFocus } from '../../hooks/useWebFeedPostFocus'
 
 interface Statistika {
   ukupnoKm: number
@@ -93,6 +94,12 @@ export default function Home() {
   const [discoverUsers, setDiscoverUsers] = useState<DiscoverUser[]>([])
 
   const hasMore = posts.length < total
+
+  useWebFeedPostFocus({
+    posts,
+    setPosts,
+    listReady: isLoggedIn && !loadingPosts,
+  })
 
   const openLightbox = useCallback((src: string) => setLightboxSrc(src), [])
   const closeLightbox = useCallback(() => setLightboxSrc(null), [])
@@ -668,16 +675,17 @@ export default function Home() {
                     )
                   }
                   return (
-                    <PostCard
-                      key={item.post.id}
-                      post={item.post}
-                      currentUsername={user?.username}
-                      currentRole={user?.role}
-                      onDelete={handleDeletePost}
-                      onUpdate={handleUpdatePost}
-                      onOpenImage={openLightbox}
-                      mentionUsers={mentionUsers}
-                    />
+                    <div key={item.post.id} data-post-id={item.post.id}>
+                      <PostCard
+                        post={item.post}
+                        currentUsername={user?.username}
+                        currentRole={user?.role}
+                        onDelete={handleDeletePost}
+                        onUpdate={handleUpdatePost}
+                        onOpenImage={openLightbox}
+                        mentionUsers={mentionUsers}
+                      />
+                    </div>
                   )
                 })}
               </div>

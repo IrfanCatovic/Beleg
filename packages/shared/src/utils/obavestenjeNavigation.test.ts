@@ -282,6 +282,17 @@ describe('resolveNotificationNavigationTarget', () => {
     ).toEqual({ kind: 'home', postId: 99 })
   })
 
+  it('home without postId → /home; with postId → query', () => {
+    expect(buildWebNotificationPath({ kind: 'home' })).toBe('/home')
+    expect(buildWebNotificationPath({ kind: 'home', postId: 42 })).toBe('/home?postId=42')
+    expect(parseCanonicalNotificationLink('/home?postId=42')).toEqual({
+      kind: 'home',
+      postId: 42,
+    })
+    expect(parseCanonicalNotificationLink('/home?postId=0')).toEqual({ kind: 'home' })
+    expect(parseCanonicalNotificationLink('/home?postId=bad')).toEqual({ kind: 'home' })
+  })
+
   it('metadata action wins over malformed link', () => {
     expect(
       resolveNotificationNavigationTarget({

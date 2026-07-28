@@ -50,8 +50,17 @@ export function navigateMobileNotificationTarget(
       return (
         navigateTabScreen('ClubTab', 'Finance') || navigateTabScreen('ProfileTab', 'Finance')
       )
-    case 'home':
-      return navigateTabScreen('HomeTab', 'Feed')
+    case 'home': {
+      const postId =
+        typeof target.postId === 'number' && Number.isFinite(target.postId) && target.postId > 0
+          ? Math.trunc(target.postId)
+          : undefined
+      return navigateTabScreen(
+        'HomeTab',
+        'Feed',
+        postId != null ? { postId } : undefined,
+      )
+    }
     case 'notification-detail':
       return navigateTabScreen('HomeTab', 'NotificationDetail', { id: target.notificationId })
     case 'club':

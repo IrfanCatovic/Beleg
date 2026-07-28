@@ -35,7 +35,10 @@ export function LinkedPostSection({
         mentionUsers={mentionUsers}
       />
       <div className="mt-3 text-center">
-        <Link to="/home" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+        <Link
+          to={`/home?postId=${post.id}`}
+          className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+        >
           {t('notificationDetails:openFullFeed')}
         </Link>
       </div>

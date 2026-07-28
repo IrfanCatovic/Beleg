@@ -64,6 +64,16 @@ describe('resolveSemanticNotificationTarget (mobile)', () => {
     ).toEqual({ screen: 'ActionDetail', actionId: 9, claimReward: true })
   })
 
+  it('post home + postId maps to Feed', () => {
+    expect(
+      resolveMobileNotificationNavigation({
+        type: 'post',
+        metadata: { postId: 42 },
+        obavestenjeId: 7,
+      }),
+    ).toEqual({ screen: 'Feed', postId: 42 })
+  })
+
   it('ordinary action without claimReward omits the flag', () => {
     expect(
       semanticToMobileNavTarget({ kind: 'action', actionId: 4 }, 1),
