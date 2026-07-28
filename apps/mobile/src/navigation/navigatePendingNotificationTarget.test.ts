@@ -47,6 +47,22 @@ describe('navigatePendingNotificationTarget', () => {
     })
   })
 
+  it('action-detail with claimReward → ActionDetail claim param', async () => {
+    const { navigatePendingNotificationTarget } = await import('./navigationRef')
+    expect(
+      navigatePendingNotificationTarget({
+        kind: 'action-detail',
+        actionId: 8,
+        claimReward: true,
+        dedupeKey: 'action:8:1',
+      }),
+    ).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ActionsTab', {
+      screen: 'ActionDetail',
+      params: { id: 8, claimReward: true },
+    })
+  })
+
   it('returns false when navigator not ready', async () => {
     isReady.mockReturnValue(false)
     const { navigatePendingNotificationTarget } = await import('./navigationRef')

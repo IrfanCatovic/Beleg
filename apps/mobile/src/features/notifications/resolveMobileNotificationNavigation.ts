@@ -6,7 +6,7 @@ import {
 } from '@beleg/shared'
 
 export type MobileNotificationNavTarget =
-  | { screen: 'ActionDetail'; actionId: number }
+  | { screen: 'ActionDetail'; actionId: number; claimReward?: boolean }
   | { screen: 'NotificationDetail'; obavestenjeId: number }
   | { screen: 'none' }
 
@@ -67,8 +67,12 @@ export function semanticToMobileNavTarget(
   semantic: NotificationNavigationTarget,
   obavestenjeId?: number | null,
 ): MobileNotificationNavTarget {
-  if (semantic.kind === 'action' && !semantic.claimReward) {
-    return { screen: 'ActionDetail', actionId: semantic.actionId }
+  if (semantic.kind === 'action') {
+    return {
+      screen: 'ActionDetail',
+      actionId: semantic.actionId,
+      ...(semantic.claimReward ? { claimReward: true as const } : {}),
+    }
   }
   const detailId =
     semantic.kind === 'notification-detail'

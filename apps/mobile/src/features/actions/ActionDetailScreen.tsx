@@ -72,6 +72,10 @@ import { useGuideRatings } from './hooks/useGuideRatings'
 import { invalidateActionQueries } from './hooks/invalidateActionQueries'
 import { getWebBaseUrl } from '../../utils/webBaseUrl'
 import { navigateToActionEdit } from '../../navigation/navigationRef'
+import { ActionDetailSummitCard } from './components/ActionDetailSummitCard'
+import { SummitShareModal } from './components/SummitShareModal'
+import { useSummitShare } from './hooks/useSummitShare'
+import { summitModalKey } from './utils/summitModalKey'
 
 type Props =
   | NativeStackScreenProps<ActionsStackParamList, 'ActionDetail'>
@@ -80,7 +84,7 @@ type Props =
   | NativeStackScreenProps<ExploreStackParamList, 'ActionDetail'>
 
 export default function ActionDetailScreen({ route, navigation }: Props) {
-  const { id, inviteToken } = route.params
+  const { id, inviteToken, claimReward } = route.params
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const { showConfirm, showAlert } = useModal()
@@ -177,6 +181,16 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
       ? (mojaPrijavaQuery.data?.prijava ?? null)
       : undefined,
     showAlert,
+  })
+
+  const summitShare = useSummitShare({
+    isLoggedIn: !!user,
+    akcija,
+    akcijaLoaded: detailQuery.isSuccess || detailQuery.isError,
+    participationStatus: mojaPrijavaQuery.data?.prijava?.status,
+    participationLoaded: !user || mojaPrijavaQuery.isSuccess || mojaPrijavaQuery.isError,
+    claimRewardParam: claimReward === true,
+    navigation,
   })
 
   const externalInvite = useExternalInvite(
@@ -538,6 +552,10 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
             />
           ) : null}
 
+          {summitShare.showCard ? (
+            <ActionDetailSummitCard onSharePress={summitShare.openManual} />
+          ) : null}
+
           {canManageHost && akcija.isCompleted && !cancelled ? (
             <ActionDetailExternalInvite
               state={externalInvite}
@@ -687,6 +705,16 @@ export default function ActionDetailScreen({ route, navigation }: Props) {
         onClose={() => setAddTransportOpen(false)}
         onSubmit={(data) => addTransportMutation.mutate(data)}
       />
+
+          {summitShare.modalOpen && akcija ? (
+        <SummitShareModal
+          key={summitModalKey(akcija.id, summitShare.openCount)}
+          visible={summitShare.modalOpen}
+          akcija={akcija}
+          initialStep={summitShare.initialStep}
+          onClose={summitShare.closeModal}
+        />
+      ) : null}
     </Screen>
   )
 }

@@ -4,6 +4,7 @@ import {
   resolveMobileNotificationNavigation,
 } from './resolveMobileNotificationNavigation'
 import { normalizeSavedAt } from '../../navigation/pendingNavigationSelection'
+import { normalizeClaimRewardFlag } from '../actions/utils/summitShareData'
 
 export const PENDING_NOTIFICATION_TARGET_KEY = 'pending_notification_target'
 
@@ -17,6 +18,7 @@ type PendingNotificationTargetBase =
       kind: 'action-detail'
       actionId: number
       inviteToken?: string
+      claimReward?: boolean
       dedupeKey: string
     }
 
@@ -42,6 +44,7 @@ export function buildPendingNotificationTarget(
       kind: 'action-detail',
       actionId: resolved.actionId,
       dedupeKey,
+      ...(resolved.claimReward ? { claimReward: true as const } : {}),
     }
   }
 
@@ -70,6 +73,10 @@ export function isValidPendingNotificationTarget(
   if (v.kind === 'action-detail') {
     if (!isPositiveInt(v.actionId)) return false
     if (v.inviteToken != null && typeof v.inviteToken !== 'string') return false
+    // claimReward may be absent, true, or malformed (ignored on read) — do not reject whole target
+    if (v.claimReward != null && typeof v.claimReward !== 'boolean') {
+      // still valid target; normalizeClaimRewardFlag will strip on read
+    }
     return true
   }
   return false
@@ -79,10 +86,22 @@ export async function savePendingNotificationTarget(
   target: PendingNotificationTarget,
 ): Promise<boolean> {
   if (!isValidPendingNotificationTarget(target)) return false
-  const toStore: PendingNotificationTarget = {
-    ...target,
-    savedAt: Date.now(),
-  }
+  const claimReward =
+    target.kind === 'action-detail' ? normalizeClaimRewardFlag(target.claimReward) : undefined
+  const toStore: PendingNotificationTarget =
+    target.kind === 'action-detail'
+      ? {
+          kind: 'action-detail',
+          actionId: target.actionId,
+          dedupeKey: target.dedupeKey,
+          ...(target.inviteToken ? { inviteToken: target.inviteToken } : {}),
+          ...(claimReward ? { claimReward: true } : {}),
+          savedAt: Date.now(),
+        }
+      : {
+          ...target,
+          savedAt: Date.now(),
+        }
   try {
     await AsyncStorage.setItem(PENDING_NOTIFICATION_TARGET_KEY, JSON.stringify(toStore))
     return true
@@ -106,11 +125,21 @@ export async function readPendingNotificationTarget(): Promise<PendingNotificati
       await AsyncStorage.removeItem(PENDING_NOTIFICATION_TARGET_KEY)
       return null
     }
-    const withSavedAt: PendingNotificationTarget = {
-      ...parsed,
-      savedAt: normalizeSavedAt((parsed as PendingNotificationTarget).savedAt),
+    if (parsed.kind === 'action-detail') {
+      const claimReward = normalizeClaimRewardFlag(parsed.claimReward)
+      return {
+        kind: 'action-detail',
+        actionId: parsed.actionId,
+        dedupeKey: parsed.dedupeKey,
+        ...(parsed.inviteToken ? { inviteToken: parsed.inviteToken } : {}),
+        ...(claimReward ? { claimReward: true } : {}),
+        savedAt: normalizeSavedAt(parsed.savedAt),
+      }
     }
-    return withSavedAt
+    return {
+      ...parsed,
+      savedAt: normalizeSavedAt(parsed.savedAt),
+    }
   } catch {
     return null
   }

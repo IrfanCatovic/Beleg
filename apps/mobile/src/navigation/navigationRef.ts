@@ -14,11 +14,19 @@ export function navigateToNotificationDetail(id: number): boolean {
   return true
 }
 
-export function navigateToActionDetail(id: number, inviteToken?: string): boolean {
+export function navigateToActionDetail(
+  id: number,
+  inviteToken?: string,
+  claimReward?: boolean,
+): boolean {
   if (!navigationRef.isReady()) return false
   navigationRef.navigate('ActionsTab', {
     screen: 'ActionDetail',
-    params: { id, inviteToken },
+    params: {
+      id,
+      ...(inviteToken ? { inviteToken } : {}),
+      ...(claimReward === true ? { claimReward: true } : {}),
+    },
   })
   return true
 }
@@ -61,7 +69,11 @@ export function navigatePendingNotificationTarget(target: PendingNotificationTar
     return navigateToNotificationDetail(target.notificationId)
   }
   if (target.kind === 'action-detail') {
-    return navigateToActionDetail(target.actionId, target.inviteToken)
+    return navigateToActionDetail(
+      target.actionId,
+      target.inviteToken,
+      target.claimReward === true,
+    )
   }
   return false
 }

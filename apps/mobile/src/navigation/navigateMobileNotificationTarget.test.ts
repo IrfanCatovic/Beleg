@@ -57,15 +57,36 @@ describe('navigateMobileNotificationTarget', () => {
     })
   })
 
-  it('claimReward action → detail fallback (route unsupported)', async () => {
+  it('claimReward action → ActionDetail with claimReward', async () => {
     const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
     expect(
       navigateMobileNotificationTarget({ kind: 'action', actionId: 3, claimReward: true }, 9),
     ).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ActionsTab', {
+      screen: 'ActionDetail',
+      params: { id: 3, claimReward: true },
+    })
+  })
+
+  it('invalid action falls through to NotificationDetail when id given', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'none' }, 9)).toBe(true)
     expect(navigate).toHaveBeenCalledWith('HomeTab', {
       screen: 'NotificationDetail',
       params: { id: 9 },
     })
+  })
+
+  it('tasks/finances/club/profile are not regressed', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'tasks' })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ClubTab', { screen: 'Tasks', params: undefined })
+    navigate.mockClear()
+    expect(navigateMobileNotificationTarget({ kind: 'finances' })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ClubTab', { screen: 'Finance', params: undefined })
+    navigate.mockClear()
+    expect(navigateMobileNotificationTarget({ kind: 'own-club' })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ClubTab', { screen: 'ClubHome', params: undefined })
   })
 
   it('none with notification id → detail fallback', async () => {

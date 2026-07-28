@@ -20,11 +20,13 @@ export function navigateMobileNotificationTarget(
   notificationId?: number,
 ): boolean {
   switch (target.kind) {
-    case 'action':
-      if (!target.claimReward) {
-        return navigateTabScreen('ActionsTab', 'ActionDetail', { id: target.actionId })
-      }
-      break
+    case 'action': {
+      const params =
+        target.claimReward === true
+          ? { id: target.actionId, claimReward: true as const }
+          : { id: target.actionId }
+      return navigateTabScreen('ActionsTab', 'ActionDetail', params)
+    }
     case 'profile': {
       const params =
         target.userId != null ? { id: target.userId } : { username: target.username! }

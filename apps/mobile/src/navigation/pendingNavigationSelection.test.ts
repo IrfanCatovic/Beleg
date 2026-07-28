@@ -69,6 +69,32 @@ describe('selectPendingNavigation', () => {
     expect(selectPendingNavigation(null, null)).toBeNull()
   })
 
+  it('newer reward push keeps claimReward when selected', () => {
+    const rewardPush: PendingNotificationTarget = {
+      kind: 'action-detail',
+      actionId: 10,
+      claimReward: true,
+      dedupeKey: 'action:10:1',
+      savedAt: 200,
+    }
+    const result = selectPendingNavigation(url(100), rewardPush)
+    expect(result?.selected.source).toBe('push')
+    expect(result?.selected.target).toMatchObject({ claimReward: true, actionId: 10 })
+  })
+
+  it('newer URL supersedes reward push (push is superseded)', () => {
+    const rewardPush: PendingNotificationTarget = {
+      kind: 'action-detail',
+      actionId: 10,
+      claimReward: true,
+      dedupeKey: 'action:10:1',
+      savedAt: 100,
+    }
+    const result = selectPendingNavigation(url(300), rewardPush)
+    expect(result?.selected.source).toBe('url')
+    expect(result?.superseded[0]?.target).toMatchObject({ claimReward: true })
+  })
+
   it('does not mutate input objects', () => {
     const u = url(10)
     const p = push(20)

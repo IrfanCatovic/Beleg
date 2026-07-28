@@ -200,4 +200,53 @@ describe('pendingNotificationTarget storage', () => {
       dedupeKey: 'notif:5',
     })
   })
+
+  it('summit_reward pending serializes claimReward true', async () => {
+    const target = buildPendingNotificationTarget({
+      type: 'summit_reward',
+      akcijaId: 21,
+      obavestenjeId: 3,
+    })
+    expect(target).toEqual({
+      kind: 'action-detail',
+      actionId: 21,
+      claimReward: true,
+      dedupeKey: 'action:21:3',
+    })
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-28T15:00:00.000Z'))
+    await savePendingNotificationTarget(target!)
+    const loaded = await readPendingNotificationTarget()
+    expect(loaded).toMatchObject({
+      kind: 'action-detail',
+      actionId: 21,
+      claimReward: true,
+      dedupeKey: 'action:21:3',
+      savedAt: Date.parse('2026-07-28T15:00:00.000Z'),
+    })
+    vi.useRealTimers()
+  })
+
+  it('legacy action-detail without claimReward remains valid', async () => {
+    mem[PENDING_NOTIFICATION_TARGET_KEY] = JSON.stringify({
+      kind: 'action-detail',
+      actionId: 4,
+      dedupeKey: 'action:4:',
+    })
+    const loaded = await readPendingNotificationTarget()
+    expect(loaded).toMatchObject({ kind: 'action-detail', actionId: 4, savedAt: 0 })
+    expect(loaded && 'claimReward' in loaded ? loaded.claimReward : undefined).toBeUndefined()
+  })
+
+  it('string "true" claimReward is not treated as boolean true', async () => {
+    mem[PENDING_NOTIFICATION_TARGET_KEY] = JSON.stringify({
+      kind: 'action-detail',
+      actionId: 4,
+      claimReward: 'true',
+      dedupeKey: 'action:4:',
+    })
+    const loaded = await readPendingNotificationTarget()
+    expect(loaded).toMatchObject({ kind: 'action-detail', actionId: 4 })
+    expect(loaded && 'claimReward' in loaded ? (loaded as { claimReward?: boolean }).claimReward : undefined).toBeUndefined()
+  })
 })

@@ -47,6 +47,7 @@ import { useTaskActions } from '../tasks/useTaskActions'
 import { guideBookingLabels } from '../../utils/guideBookingLabels'
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
+import { actionDetailParamsFromNotification } from './actionDetailParamsFromNotification'
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationDetail'>
 
@@ -590,7 +591,15 @@ export default function NotificationDetailScreen({ route, navigation }: Props) {
             <Button
               title="Pogledaj akciju"
               variant="secondary"
-              onPress={() => navigation.navigate('ActionDetail', { id: actionId })}
+              onPress={() =>
+                navigation.navigate(
+                  'ActionDetail',
+                  actionDetailParamsFromNotification({
+                    actionId,
+                    type: item.type,
+                  }),
+                )
+              }
             />
           </Card>
         ) : null}

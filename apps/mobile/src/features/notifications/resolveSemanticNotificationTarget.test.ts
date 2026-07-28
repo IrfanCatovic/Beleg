@@ -51,13 +51,22 @@ describe('resolveSemanticNotificationTarget (mobile)', () => {
     expect(parsePushNotificationData({ obavestenjeId: 'x' }).obavestenjeId).toBeNull()
   })
 
-  it('summit reward with claimReward maps to notification detail for pending', () => {
+  it('summit reward with claimReward maps to ActionDetail', () => {
     expect(
       resolveMobileNotificationNavigation({
         type: 'summit_reward',
         metadata: { akcijaId: 9 },
         obavestenjeId: 2,
       }),
-    ).toEqual({ screen: 'NotificationDetail', obavestenjeId: 2 })
+    ).toEqual({ screen: 'ActionDetail', actionId: 9, claimReward: true })
+    expect(
+      semanticToMobileNavTarget({ kind: 'action', actionId: 9, claimReward: true }, 2),
+    ).toEqual({ screen: 'ActionDetail', actionId: 9, claimReward: true })
+  })
+
+  it('ordinary action without claimReward omits the flag', () => {
+    expect(
+      semanticToMobileNavTarget({ kind: 'action', actionId: 4 }, 1),
+    ).toEqual({ screen: 'ActionDetail', actionId: 4 })
   })
 })
