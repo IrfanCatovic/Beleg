@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   NOTIFICATION_TYPE_ACTION_CANCELLED,
+  buildWebNotificationPath,
   getNotificationActionId,
   isActionCancelledNotificationType,
+  parseCanonicalNotificationLink,
+  resolveNotificationNavigationTarget,
   resolveObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'
 
-describe('obavestenjeNavigation', () => {
+describe('obavestenjeNavigation (legacy)', () => {
   it('exposes action_cancelled as known type string', () => {
     expect(NOTIFICATION_TYPE_ACTION_CANCELLED).toBe('action_cancelled')
     expect(isActionCancelledNotificationType('action_cancelled')).toBe(true)
@@ -50,15 +53,209 @@ describe('obavestenjeNavigation', () => {
       }),
     ).toEqual({ kind: 'action', actionId: 7, path: '/akcije/7' })
   })
+})
 
-  it('treats title/body as opaque plain text (no HTML parsing)', () => {
-    const body = '„Komovi” je otkazana. Razlog: <b>loše</b>'
-    expect(body.includes('<b>')).toBe(true)
-    // Navigation helper must not interpret body — only type/meta/link.
-    const target = resolveObavestenjeNavigationTarget({
-      type: 'action_cancelled',
-      metadata: { akcijaId: 1 },
+describe('resolveNotificationNavigationTarget', () => {
+  it('/akcije/12 → action 12', () => {
+    expect(
+      resolveNotificationNavigationTarget({ type: 'akcija', link: '/akcije/12' }),
+    ).toEqual({ kind: 'action', actionId: 12 })
+    expect(buildWebNotificationPath({ kind: 'action', actionId: 12 })).toBe('/akcije/12')
+  })
+
+  it('/akcije/12?claimReward=1 → action + claimReward', () => {
+    expect(
+      resolveNotificationNavigationTarget({ type: 'summit_reward', link: '/akcije/12?claimReward=1' }),
+    ).toEqual({ kind: 'action', actionId: 12, claimReward: true })
+    expect(
+      buildWebNotificationPath({ kind: 'action', actionId: 12, claimReward: true }),
+    ).toBe('/akcije/12?claimReward=1')
+  })
+
+  it('akcijaId string "12" → action 12', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_participation_request',
+        metadata: { akcijaId: '12' },
+      }),
+    ).toEqual({ kind: 'action', actionId: 12 })
+  })
+
+  it('actionId=12 fallback → action 12', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_signup_request',
+        metadata: { actionId: 12 },
+      }),
+    ).toEqual({ kind: 'action', actionId: 12 })
+  })
+
+  it('completed/cancelled → same action destination', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_cancelled',
+        metadata: { akcijaId: 5, isCancelled: true },
+      }),
+    ).toEqual({ kind: 'action', actionId: 5 })
+  })
+
+  it('/korisnik/amar → profile amar', () => {
+    expect(
+      resolveNotificationNavigationTarget({ type: 'follow', link: '/korisnik/amar' }),
+    ).toEqual({ kind: 'profile', username: 'amar' })
+    expect(buildWebNotificationPath({ kind: 'profile', username: 'amar' })).toBe('/korisnik/amar')
+  })
+
+  it('encoded username decodes safely', () => {
+    expect(parseCanonicalNotificationLink('/korisnik/Demo%20user')).toEqual({
+      kind: 'profile',
+      username: 'Demo user',
     })
-    expect(target.kind).toBe('action')
+  })
+
+  it('malformed encoded username does not throw', () => {
+    expect(parseCanonicalNotificationLink('/korisnik/%E0%A4%A')).toBeNull()
+    expect(() =>
+      resolveNotificationNavigationTarget({ link: '/korisnik/%E0%A4%A', notificationId: 1 }),
+    ).not.toThrow()
+  })
+
+  it('static routes', () => {
+    expect(parseCanonicalNotificationLink('/klub')).toEqual({ kind: 'own-club' })
+    expect(parseCanonicalNotificationLink('/klubovi/Demo%20klub')).toEqual({
+      kind: 'club',
+      clubName: 'Demo klub',
+    })
+    expect(parseCanonicalNotificationLink('/vodici')).toEqual({ kind: 'guides' })
+    expect(parseCanonicalNotificationLink('/zadaci')).toEqual({ kind: 'tasks' })
+    expect(parseCanonicalNotificationLink('/finansije')).toEqual({ kind: 'finances' })
+    expect(parseCanonicalNotificationLink('/home')).toEqual({ kind: 'home' })
+    expect(parseCanonicalNotificationLink('/obavestenja/25')).toEqual({
+      kind: 'notification-detail',
+      notificationId: 25,
+    })
+  })
+
+  it('external URL → invalid/fallback to detail when id known', () => {
+    expect(parseCanonicalNotificationLink('https://evil.com/akcije/1')).toBeNull()
+    expect(
+      resolveNotificationNavigationTarget({
+        link: 'https://evil.com/akcije/1',
+        notificationId: 3,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 3 })
+  })
+
+  it('dead paths → invalid/fallback', () => {
+    expect(parseCanonicalNotificationLink('/akcija/12')).toBeNull()
+    expect(parseCanonicalNotificationLink('/actions/12')).toBeNull()
+    expect(parseCanonicalNotificationLink('/profil')).toBeNull()
+    expect(parseCanonicalNotificationLink('/profile/ana')).toBeNull()
+    expect(parseCanonicalNotificationLink('/user/12')).toBeNull()
+    expect(parseCanonicalNotificationLink('/guides/1')).toBeNull()
+    expect(
+      resolveNotificationNavigationTarget({ link: '/akcija/12', notificationId: 8 }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 8 })
+  })
+
+  it('empty link + participation meta → action', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_participation_request',
+        link: '',
+        metadata: { akcijaId: 33, requestId: 1 },
+        notificationId: 9,
+      }),
+    ).toEqual({ kind: 'action', actionId: 33 })
+  })
+
+  it('empty link + valid follow requester → profile', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        link: '',
+        metadata: { followId: 1, requesterUsername: 'ana' },
+        notificationId: 2,
+      }),
+    ).toEqual({ kind: 'profile', username: 'ana' })
+  })
+
+  it('empty link + follow accepted targetUsername → profile', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        link: '',
+        metadata: { followId: 1, targetUsername: 'marko' },
+      }),
+    ).toEqual({ kind: 'profile', username: 'marko' })
+  })
+
+  it('empty link without metadata + notification ID → detail', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'broadcast',
+        link: '',
+        notificationId: 44,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 44 })
+  })
+
+  it('malformed payload → none', () => {
+    expect(resolveNotificationNavigationTarget({ type: null, link: null })).toEqual({ kind: 'none' })
+  })
+
+  it('does not throw for nullish/wrong types', () => {
+    expect(() => resolveNotificationNavigationTarget({})).not.toThrow()
+    expect(() => resolveNotificationNavigationTarget({ metadata: 42 as unknown as string })).not.toThrow()
+  })
+
+  it('metadata wins over empty/wrong link for post mention (postId → home)', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'post',
+        link: '/korisnik/recipient',
+        metadata: { postId: 99 },
+        notificationId: 5,
+      }),
+    ).toEqual({ kind: 'home', postId: 99 })
+  })
+
+  it('metadata action wins over malformed link', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_cancelled',
+        link: '/akcija/bad',
+        metadata: { akcijaId: 7 },
+        notificationId: 1,
+      }),
+    ).toEqual({ kind: 'action', actionId: 7 })
+  })
+
+  it('guide booking without action id → detail fallback', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'guide_booking_request',
+        link: '',
+        metadata: { bookingRequestId: 3 },
+        notificationId: 12,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 12 })
+  })
+
+  it('rejects 0, negative, NaN ids', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'akcija',
+        link: '/akcije/0',
+        notificationId: 1,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 1 })
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'action_cancelled',
+        metadata: { akcijaId: -1 },
+        notificationId: 2,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 2 })
   })
 })

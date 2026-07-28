@@ -12,8 +12,11 @@ import {
   navigatePendingNotificationTarget,
   navigationRef,
 } from '../navigation/navigationRef'
+import { navigateMobileNotificationTarget } from '../navigation/navigateMobileNotificationTarget'
 import { invalidateActionQueries } from '../features/actions/hooks/invalidateActionQueries'
 import {
+  parsePushNotificationData,
+  resolveSemanticNotificationTarget,
   shouldInvalidateActionQueriesForPush,
 } from '../features/notifications/resolveMobileNotificationNavigation'
 import { decidePushNotificationResponse } from '../features/notifications/decidePushNotificationResponse'
@@ -59,7 +62,19 @@ Notifications.setNotificationHandler({
   }),
 })
 
-function tryNavigateTarget(target: PendingNotificationTarget): boolean {
+function tryNavigateTarget(
+  target: PendingNotificationTarget,
+  pushData?: Record<string, unknown>,
+): boolean {
+  if (pushData) {
+    const semantic = resolveSemanticNotificationTarget({ pushData })
+    const obavestenjeId =
+      parsePushNotificationData(pushData).obavestenjeId ??
+      (target.kind === 'notification-detail' ? target.notificationId : undefined)
+    if (navigateMobileNotificationTarget(semantic, obavestenjeId ?? undefined)) {
+      return true
+    }
+  }
   if (!navigationRef.isReady()) return false
   try {
     return navigatePendingNotificationTarget(target)
@@ -149,7 +164,7 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
 
       void applyPushNotificationDecision({
         decision,
-        tryNavigate: tryNavigateTarget,
+        tryNavigate: (target) => tryNavigateTarget(target, data),
         savePending: savePendingNotificationTarget,
         clearPending: clearPendingNotificationTarget,
         onNavigated: (key) => {
@@ -203,7 +218,7 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
       }
       return applyPushNotificationDecision({
         decision,
-        tryNavigate: tryNavigateTarget,
+        tryNavigate: (target) => tryNavigateTarget(target, data),
         savePending: savePendingNotificationTarget,
         clearPending: clearPendingNotificationTarget,
         onNavigated: (key) => {

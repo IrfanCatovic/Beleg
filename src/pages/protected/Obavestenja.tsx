@@ -17,6 +17,7 @@ import type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } fro
 import { formatRelativeTime, formatDateTime } from '../../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../../utils/obavestenjeIconClass'
 import { TrashIcon } from '@heroicons/react/24/outline'
+import { resolveWebNotificationPath } from '../../utils/notificationNavigation'
 import { useTranslation } from 'react-i18next'
 
 export default function Obavestenja() {
@@ -79,11 +80,9 @@ export default function Obavestenja() {
         setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)))
       }).catch(() => {})
     }
-    if (
-      (n.type === 'akcija' || n.type === 'summit_reward' || n.type === 'action_cancelled') &&
-      n.link?.trim()
-    ) {
-      navigate(n.link.trim())
+    const path = resolveWebNotificationPath(n)
+    if (path) {
+      navigate(path)
       return
     }
     navigate(`/obavestenja/${n.id}`)

@@ -1,7 +1,8 @@
 import {
   getNotificationActionId,
   isActionCancelledNotificationType,
-  resolveObavestenjeNavigationTarget,
+  resolveNotificationNavigationTarget,
+  type NotificationNavigationTarget,
 } from '@beleg/shared'
 
 export type MobileNotificationNavTarget =
@@ -45,9 +46,42 @@ export function parsePushNotificationData(
   }
 }
 
+export function resolveSemanticNotificationTarget(input: {
+  type?: string | null
+  link?: string | null
+  metadata?: string | null | Record<string, unknown>
+  obavestenjeId?: number | null
+  pushData?: Record<string, unknown> | null
+}): NotificationNavigationTarget {
+  const push = parsePushNotificationData(input.pushData)
+  return resolveNotificationNavigationTarget({
+    type: input.type ?? push.type,
+    link: input.link,
+    metadata: input.metadata ?? input.pushData ?? undefined,
+    notificationId: input.obavestenjeId ?? push.obavestenjeId,
+  })
+}
+
+/** P0-compatible screen target for push pending + dedupe keys. */
+export function semanticToMobileNavTarget(
+  semantic: NotificationNavigationTarget,
+  obavestenjeId?: number | null,
+): MobileNotificationNavTarget {
+  if (semantic.kind === 'action' && !semantic.claimReward) {
+    return { screen: 'ActionDetail', actionId: semantic.actionId }
+  }
+  const detailId =
+    semantic.kind === 'notification-detail'
+      ? semantic.notificationId
+      : obavestenjeId ?? null
+  if (detailId != null) {
+    return { screen: 'NotificationDetail', obavestenjeId: detailId }
+  }
+  return { screen: 'none' }
+}
+
 /**
- * Central resolver for push tap / cold-start / in-app list.
- * Prefer ActionDetail for action_cancelled; otherwise NotificationDetail when id known.
+ * Central resolver for push tap / cold-start / in-app list (P0-compatible shape).
  */
 export function resolveMobileNotificationNavigation(input: {
   type?: string | null
@@ -57,27 +91,19 @@ export function resolveMobileNotificationNavigation(input: {
   pushData?: Record<string, unknown> | null
 }): MobileNotificationNavTarget {
   const push = parsePushNotificationData(input.pushData)
-  const type = (input.type ?? push.type ?? '').trim()
   const obavestenjeId = input.obavestenjeId ?? push.obavestenjeId
 
-  if (isActionCancelledNotificationType(type) || (push.isCancelled && push.actionId != null)) {
-    const shared = resolveObavestenjeNavigationTarget({
-      type: type || 'action_cancelled',
-      link: input.link,
-      metadata: input.metadata ?? input.pushData ?? undefined,
-    })
-    if (shared.kind === 'action') {
-      return { screen: 'ActionDetail', actionId: shared.actionId }
-    }
+  if (isActionCancelledNotificationType(input.type ?? push.type) || (push.isCancelled && push.actionId != null)) {
+    const semantic = resolveSemanticNotificationTarget(input)
+    const mapped = semanticToMobileNavTarget(semantic, obavestenjeId)
+    if (mapped.screen !== 'none') return mapped
     if (push.actionId != null) {
       return { screen: 'ActionDetail', actionId: push.actionId }
     }
   }
 
-  if (obavestenjeId != null) {
-    return { screen: 'NotificationDetail', obavestenjeId }
-  }
-  return { screen: 'none' }
+  const semantic = resolveSemanticNotificationTarget(input)
+  return semanticToMobileNavTarget(semantic, obavestenjeId)
 }
 
 export function shouldInvalidateActionQueriesForPush(data: Record<string, unknown> | undefined | null): number | null {
@@ -98,6 +124,16 @@ export function buildMobileNotificationNavigationKey(
     return `notif:${target.obavestenjeId}`
   }
   return null
+}
+
+export function buildSemanticNavigationDedupeKey(
+  semantic: NotificationNavigationTarget,
+  obavestenjeId?: number | null,
+): string | null {
+  const mapped = semanticToMobileNavTarget(semantic, obavestenjeId)
+  return buildMobileNotificationNavigationKey(mapped, {
+    obavestenjeId: obavestenjeId ?? undefined,
+  })
 }
 
 export function shouldSkipDuplicateNotificationNavigation(

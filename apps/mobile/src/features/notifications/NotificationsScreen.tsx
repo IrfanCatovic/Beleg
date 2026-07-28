@@ -18,7 +18,10 @@ import { Button, Card, EmptyState, ErrorView, Loader, Screen, Text } from '../..
 import { colors, spacing } from '../../theme'
 import type { HomeStackParamList } from '../../navigation/types'
 import { invalidateActionQueries } from '../actions/hooks/invalidateActionQueries'
-import { resolveMobileNotificationNavigation } from './resolveMobileNotificationNavigation'
+import { navigateMobileNotificationTarget } from '../../navigation/navigateMobileNotificationTarget'
+import {
+  resolveSemanticNotificationTarget,
+} from './resolveMobileNotificationNavigation'
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NotificationsList'>
 
@@ -170,17 +173,20 @@ export default function NotificationsScreen({ navigation }: Props) {
                 await markObavestenjeRead(client, item.id)
                 void queryClient.invalidateQueries({ queryKey: ['obavestenja'] })
               }
-              const target = resolveMobileNotificationNavigation({
+              const semantic = resolveSemanticNotificationTarget({
                 type: item.type,
                 link: item.link,
                 metadata: item.metadata,
                 obavestenjeId: item.id,
               })
-              if (target.screen === 'ActionDetail') {
-                if (isActionCancelledNotificationType(item.type)) {
-                  void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
+              if (navigateMobileNotificationTarget(semantic, item.id)) {
+                if (
+                  semantic.kind === 'action' &&
+                  !semantic.claimReward &&
+                  isActionCancelledNotificationType(item.type)
+                ) {
+                  void invalidateActionQueries(queryClient, semantic.actionId).catch(() => {})
                 }
-                navigation.navigate('ActionDetail', { id: target.actionId })
                 return
               }
               navigation.navigate('NotificationDetail', { id: item.id })

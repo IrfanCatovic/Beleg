@@ -1,12 +1,17 @@
 export { getApiErrorMessage } from './apiError'
 export {
   NOTIFICATION_TYPE_ACTION_CANCELLED,
+  buildWebNotificationPath,
   getNotificationActionId,
   isActionCancelledNotificationType,
+  parseCanonicalNotificationLink,
+  parseMetadata,
+  resolveNotificationNavigationTarget,
   resolveObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'
 export type {
   KnownNotificationType,
+  NotificationNavigationTarget,
   ObavestenjeNavigationInput,
   ObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'

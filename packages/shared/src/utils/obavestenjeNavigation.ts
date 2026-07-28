@@ -1,5 +1,5 @@
 /**
- * Shared notification type helpers + navigation targets.
+ * Shared notification type helpers + canonical navigation targets.
  * Additive: unknown types remain safe strings for older clients.
  */
 
@@ -24,15 +24,40 @@ export interface ObavestenjeNavigationInput {
   type?: string | null
   link?: string | null
   metadata?: string | null | Record<string, unknown>
+  notificationId?: number | null
 }
 
+/** Canonical semantic navigation target (platform-agnostic). */
+export type NotificationNavigationTarget =
+  | { kind: 'action'; actionId: number; claimReward?: boolean }
+  | { kind: 'profile'; username: string }
+  | { kind: 'own-club' }
+  | { kind: 'club'; clubName: string }
+  | { kind: 'guides' }
+  | { kind: 'tasks' }
+  | { kind: 'finances' }
+  | { kind: 'home'; postId?: number }
+  | { kind: 'notification-detail'; notificationId: number }
+  | { kind: 'none' }
+
+/** @deprecated Prefer NotificationNavigationTarget — kept for older call sites. */
 export type ObavestenjeNavigationTarget =
   | { kind: 'action'; actionId: number; path: string }
   | { kind: 'link'; path: string }
   | { kind: 'detail'; path: null }
   | { kind: 'none' }
 
-function parseMetadata(raw: ObavestenjeNavigationInput['metadata']): Record<string, unknown> {
+const ACTION_METADATA_TYPES = new Set([
+  NOTIFICATION_TYPE_ACTION_CANCELLED,
+  'summit_reward',
+  'action_signup_request',
+  'action_participation_request',
+  'akcija',
+])
+
+const INTERNAL_HOSTS = new Set(['www.planiner.com', 'planiner.com', 'planiner.app'])
+
+export function parseMetadata(raw: ObavestenjeNavigationInput['metadata']): Record<string, unknown> {
   if (raw == null) return {}
   if (typeof raw === 'object' && !Array.isArray(raw)) return raw as Record<string, unknown>
   if (typeof raw !== 'string' || !raw.trim()) return {}
@@ -56,45 +81,252 @@ function positiveId(value: unknown): number | null {
   return null
 }
 
+function trimString(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function decodePathSegment(segment: string): string | null {
+  try {
+    return trimString(decodeURIComponent(segment))
+  } catch {
+    return null
+  }
+}
+
+function normalizeLinkUrl(link: string): { pathname: string; searchParams: URLSearchParams } | null {
+  const trimmed = link.trim()
+  if (!trimmed) return null
+  try {
+    let url: URL
+    if (trimmed.startsWith('/')) {
+      url = new URL(trimmed, 'https://www.planiner.com')
+    } else if (/^planiner:\/\//i.test(trimmed)) {
+      url = new URL(trimmed.replace(/^planiner:\/\//i, 'https://planiner.app/'))
+    } else if (/^https?:\/\//i.test(trimmed)) {
+      url = new URL(trimmed)
+      if (!INTERNAL_HOSTS.has(url.hostname.toLowerCase())) return null
+    } else {
+      return null
+    }
+    const pathname = url.pathname.replace(/\/$/, '') || '/'
+    return { pathname, searchParams: url.searchParams }
+  } catch {
+    return null
+  }
+}
+
+/** Parse a known internal notification link into a semantic target. */
+export function parseCanonicalNotificationLink(link: string): NotificationNavigationTarget | null {
+  const parsed = normalizeLinkUrl(link)
+  if (!parsed) return null
+  const { pathname, searchParams } = parsed
+
+  const actionMatch = pathname.match(/^\/akcije\/(\d+)$/)
+  if (actionMatch) {
+    const actionId = positiveId(actionMatch[1])
+    if (actionId == null) return null
+    const claimReward = ['1', 'true'].includes((searchParams.get('claimReward') ?? '').trim().toLowerCase())
+    return { kind: 'action', actionId, claimReward: claimReward || undefined }
+  }
+
+  const profileMatch = pathname.match(/^\/korisnik\/([^/]+)$/)
+  if (profileMatch) {
+    const username = decodePathSegment(profileMatch[1])
+    if (!username) return null
+    return { kind: 'profile', username }
+  }
+
+  if (pathname === '/klub') return { kind: 'own-club' }
+
+  const clubMatch = pathname.match(/^\/klubovi\/([^/]+)$/)
+  if (clubMatch) {
+    const clubName = decodePathSegment(clubMatch[1])
+    if (!clubName) return null
+    return { kind: 'club', clubName }
+  }
+
+  if (pathname === '/vodici') return { kind: 'guides' }
+  if (pathname === '/zadaci') return { kind: 'tasks' }
+  if (pathname === '/finansije') return { kind: 'finances' }
+  if (pathname === '/home') return { kind: 'home' }
+
+  const detailMatch = pathname.match(/^\/obavestenja\/(\d+)$/)
+  if (detailMatch) {
+    const notificationId = positiveId(detailMatch[1])
+    if (notificationId == null) return null
+    return { kind: 'notification-detail', notificationId }
+  }
+
+  return null
+}
+
 /** Canonical action id from metadata (akcijaId preferred; actionId fallback). */
 export function getNotificationActionId(meta: Record<string, unknown>): number | null {
   return positiveId(meta.akcijaId) ?? positiveId(meta.actionId)
 }
 
+function resolveActionFromMetadata(
+  type: string,
+  meta: Record<string, unknown>,
+): NotificationNavigationTarget | null {
+  const actionId = getNotificationActionId(meta)
+  if (actionId == null) return null
+
+  const isCancelled =
+    type === NOTIFICATION_TYPE_ACTION_CANCELLED ||
+    meta.isCancelled === true ||
+    meta.isCancelled === 'true' ||
+    meta.isCancelled === '1'
+
+  if (isCancelled) {
+    return { kind: 'action', actionId }
+  }
+
+  if (type === 'summit_reward') {
+    return { kind: 'action', actionId, claimReward: true }
+  }
+
+  if (ACTION_METADATA_TYPES.has(type)) {
+    return { kind: 'action', actionId }
+  }
+
+  if (type === 'guide_booking_request') {
+    return { kind: 'action', actionId }
+  }
+
+  return null
+}
+
+function resolveFollowProfileFromMetadata(
+  type: string,
+  meta: Record<string, unknown>,
+): NotificationNavigationTarget | null {
+  if (type !== 'follow') return null
+  const requester = trimString(meta.requesterUsername)
+  if (requester) return { kind: 'profile', username: requester }
+  const target = trimString(meta.targetUsername)
+  if (target) return { kind: 'profile', username: target }
+  return null
+}
+
+function resolveTypeMetadataTarget(
+  type: string,
+  meta: Record<string, unknown>,
+): NotificationNavigationTarget | null {
+  const action = resolveActionFromMetadata(type, meta)
+  if (action) return action
+
+  const follow = resolveFollowProfileFromMetadata(type, meta)
+  if (follow) return follow
+
+  const postId = positiveId(meta.postId)
+  if (type === 'post' && postId != null) {
+    return { kind: 'home', postId }
+  }
+
+  if (type === 'zadatak') {
+    return { kind: 'tasks' }
+  }
+
+  if (type === 'uplata') {
+    return { kind: 'finances' }
+  }
+
+  if (type === 'subskripcija') {
+    return { kind: 'home' }
+  }
+
+  return null
+}
+
 /**
- * Resolves where a notification click should navigate.
- * `action_cancelled` → action detail when action id is known; otherwise safe detail fallback.
+ * Canonical resolver: metadata → link → notification detail → none.
+ * Never throws; never navigates.
+ */
+export function resolveNotificationNavigationTarget(
+  input: ObavestenjeNavigationInput,
+): NotificationNavigationTarget {
+  const type = (input.type ?? '').trim()
+  const link = (input.link ?? '').trim()
+  const meta = parseMetadata(input.metadata)
+  const notificationId = positiveId(input.notificationId)
+
+  const fromMeta = resolveTypeMetadataTarget(type, meta)
+  if (fromMeta) return fromMeta
+
+  if (link) {
+    const fromLink = parseCanonicalNotificationLink(link)
+    if (fromLink) {
+      if (fromLink.kind === 'home' && positiveId(meta.postId) != null) {
+        return { kind: 'home', postId: positiveId(meta.postId)! }
+      }
+      return fromLink
+    }
+  }
+
+  if (notificationId != null) {
+    return { kind: 'notification-detail', notificationId }
+  }
+
+  return { kind: 'none' }
+}
+
+/** Build a web router path from a semantic target (null when none). */
+export function buildWebNotificationPath(target: NotificationNavigationTarget): string | null {
+  switch (target.kind) {
+    case 'action': {
+      const base = `/akcije/${target.actionId}`
+      return target.claimReward ? `${base}?claimReward=1` : base
+    }
+    case 'profile':
+      return `/korisnik/${encodeURIComponent(target.username)}`
+    case 'own-club':
+      return '/klub'
+    case 'club':
+      return `/klubovi/${encodeURIComponent(target.clubName)}`
+    case 'guides':
+      return '/vodici'
+    case 'tasks':
+      return '/zadaci'
+    case 'finances':
+      return '/finansije'
+    case 'home':
+      return '/home'
+    case 'notification-detail':
+      return `/obavestenja/${target.notificationId}`
+    case 'none':
+      return null
+    default:
+      return null
+  }
+}
+
+function mapSemanticToLegacy(target: NotificationNavigationTarget): ObavestenjeNavigationTarget {
+  if (target.kind === 'action') {
+    const path = buildWebNotificationPath(target)!
+    return { kind: 'action', actionId: target.actionId, path }
+  }
+  if (target.kind === 'notification-detail') {
+    return { kind: 'detail', path: null }
+  }
+  if (target.kind === 'none') {
+    return { kind: 'detail', path: null }
+  }
+  const path = buildWebNotificationPath(target)
+  if (path) return { kind: 'link', path }
+  return { kind: 'detail', path: null }
+}
+
+/**
+ * Legacy wrapper — prefer resolveNotificationNavigationTarget + buildWebNotificationPath.
  */
 export function resolveObavestenjeNavigationTarget(
   input: ObavestenjeNavigationInput,
 ): ObavestenjeNavigationTarget {
-  const type = (input.type ?? '').trim()
-  const link = (input.link ?? '').trim()
-  const meta = parseMetadata(input.metadata)
-  const actionId = getNotificationActionId(meta)
-
-  if (type === NOTIFICATION_TYPE_ACTION_CANCELLED) {
-    if (actionId != null) {
-      return { kind: 'action', actionId, path: `/akcije/${actionId}` }
-    }
-    if (link.startsWith('/akcije/')) {
-      const fromLink = positiveId(link.split('/')[2]?.split('?')[0])
-      if (fromLink != null) {
-        return { kind: 'action', actionId: fromLink, path: `/akcije/${fromLink}` }
-      }
-    }
-    return { kind: 'detail', path: null }
-  }
-
-  if ((type === 'akcija' || type === 'summit_reward') && link) {
-    return { kind: 'link', path: link }
-  }
-
-  if (link) {
-    return { kind: 'link', path: link }
-  }
-
-  return { kind: 'detail', path: null }
+  const semantic = resolveNotificationNavigationTarget(input)
+  return mapSemanticToLegacy(semantic)
 }
 
 export function isActionCancelledNotificationType(type: string | null | undefined): boolean {

@@ -4,6 +4,7 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import GlobalSearchPanel from '../components/GlobalSearchPanel'
+import { resolveWebNotificationPath } from '../utils/notificationNavigation'
 import { markObavestenjeRead } from '../services/obavestenja'
 import { userHasClubContext } from '../utils/clubContext'
 import {
@@ -116,11 +117,9 @@ export default function AppLayout() {
       void markObavestenjeRead(n.id).then(() => setUnreadCount((c) => Math.max(0, c - 1)))
     }
     setIsNotificationsOpen(false)
-    if (
-      (n.type === 'akcija' || n.type === 'summit_reward' || n.type === 'action_cancelled') &&
-      n.link?.trim()
-    ) {
-      navigate(n.link.trim())
+    const path = resolveWebNotificationPath(n)
+    if (path) {
+      navigate(path)
       return
     }
     navigate(`/obavestenja/${n.id}`)

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import { formatRelativeTime } from '../utils/dateUtils'
 import { obavestenjeBellIconClass } from '../utils/obavestenjeIconClass'
+import { resolveWebNotificationPath } from '../utils/notificationNavigation'
 import { markObavestenjeRead } from '../services/obavestenja'
 import type { ObavestenjeItem } from '../types/obavestenje'
 import { iconBtnClass } from './appLayoutStyles'
@@ -84,11 +85,9 @@ export function AppNotificationsPanel({
       void markObavestenjeRead(n.id).then(() => onUnreadCountChange((c) => Math.max(0, c - 1)))
     }
     onClose()
-    if (
-      (n.type === 'akcija' || n.type === 'summit_reward' || n.type === 'action_cancelled') &&
-      n.link?.trim()
-    ) {
-      navigate(n.link.trim())
+    const path = resolveWebNotificationPath(n)
+    if (path) {
+      navigate(path)
       return
     }
     navigate(`/obavestenja/${n.id}`)
