@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MutableRefObject } from 'react'
 import { AppState, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Device from 'expo-device'
@@ -22,13 +22,11 @@ import {
 import { decidePushNotificationResponse } from '../features/notifications/decidePushNotificationResponse'
 import {
   applyPushNotificationDecision,
-  consumePendingNotificationAfterAuth,
   shouldClearNativeLastNotificationResponse,
   type ApplyPushDecisionResult,
 } from '../features/notifications/applyPushNotificationDecision'
 import {
   clearPendingNotificationTarget,
-  readPendingNotificationTarget,
   savePendingNotificationTarget,
   type PendingNotificationTarget,
 } from '../features/notifications/pendingNotificationTarget'
@@ -138,10 +136,17 @@ async function ensurePushPermissions(): Promise<boolean> {
   return status === 'granted'
 }
 
-export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
+export function usePushNotifications(
+  isLoggedIn: boolean,
+  authLoading = false,
+  coordinator?: {
+    lastSuccessfulPushDedupeKeyRef: MutableRefObject<string | null>
+    onAuthSettled: () => Promise<unknown>
+  },
+) {
   const tokenRef = useRef<string | null>(null)
-  /** Only set after a successful authenticated navigation — never on save-pending. */
-  const lastSuccessfulNavKeyRef = useRef<string | null>(null)
+  const fallbackDedupeRef = useRef<string | null>(null)
+  const lastSuccessfulNavKeyRef = coordinator?.lastSuccessfulPushDedupeKeyRef ?? fallbackDedupeRef
   const isLoggedInRef = useRef(isLoggedIn)
   /** Cold-start getLastNotificationResponseAsync must complete safely once per JS session. */
   const coldStartHandledRef = useRef(false)
@@ -190,20 +195,15 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
       responseSub.remove()
       receivedSub.remove()
     }
-  }, [])
+  }, [lastSuccessfulNavKeyRef])
 
-  // After auth settles: cold-start response once (only after safe apply), then consume pending.
+  // After auth settles: cold-start response once (only after safe apply), then coordinator consume.
   useEffect(() => {
     if (authLoading) {
       return
     }
-    if (!isLoggedIn) {
-      lastSuccessfulNavKeyRef.current = null
-    }
 
     let cancelled = false
-    let retryTimer: ReturnType<typeof setTimeout> | undefined
-    let settleRetryWait: (() => void) | undefined
 
     const applyFromPushData = async (
       data: Record<string, unknown> | undefined,
@@ -225,25 +225,6 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
           lastSuccessfulNavKeyRef.current = key
         },
       })
-    }
-
-    const attemptConsume = async (): Promise<boolean> => {
-      if (cancelled || !isLoggedInRef.current) return true
-      const result = await consumePendingNotificationAfterAuth({
-        readPending: readPendingNotificationTarget,
-        clearPending: clearPendingNotificationTarget,
-        tryNavigate: tryNavigateTarget,
-        lastSuccessfulDedupeKey: lastSuccessfulNavKeyRef.current,
-        onNavigated: (key) => {
-          lastSuccessfulNavKeyRef.current = key
-        },
-        onBeforeNavigate: (target) => {
-          if (target.kind === 'action-detail') {
-            void invalidateActionQueries(queryClient, target.actionId).catch(() => {})
-          }
-        },
-      })
-      return result !== 'not-ready' && result !== 'navigate-failed'
     }
 
     void (async () => {
@@ -269,26 +250,13 @@ export function usePushNotifications(isLoggedIn: boolean, authLoading = false) {
       }
 
       if (cancelled || !isLoggedInRef.current) return
-
-      const done = await attemptConsume()
-      if (done || cancelled) return
-
-      await new Promise<void>((resolve) => {
-        settleRetryWait = resolve
-        retryTimer = setTimeout(resolve, 400)
-      })
-      settleRetryWait = undefined
-      retryTimer = undefined
-      if (cancelled || !isLoggedInRef.current) return
-      await attemptConsume()
+      await coordinator?.onAuthSettled()
     })()
 
     return () => {
       cancelled = true
-      if (retryTimer != null) clearTimeout(retryTimer)
-      settleRetryWait?.()
     }
-  }, [isLoggedIn, authLoading])
+  }, [isLoggedIn, authLoading, coordinator, lastSuccessfulNavKeyRef])
 
   useEffect(() => {
     if (!isLoggedIn) {

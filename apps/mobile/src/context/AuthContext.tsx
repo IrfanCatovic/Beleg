@@ -21,7 +21,7 @@ import { clearAuthenticatedUserQueryState } from '../lib/clearAuthenticatedUserQ
 import { finishClearAuthSideEffects, performMobileLogout } from '../lib/performMobileLogout'
 import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
 import { mobileStorage } from '../storage/mobileStorage'
-import { clearPendingNotificationTarget } from '../features/notifications/pendingNotificationTarget'
+import { clearPendingNavigationOnSessionEnd } from '../navigation/consumePendingNavigation'
 
 const REMEMBER_ME_KEY = 'remember_me'
 
@@ -69,9 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    // Explicit logout only: drop unconsumed push destination so it cannot open on another account.
-    // Does not clear URL pending deep-link (separate flow).
-    await clearPendingNotificationTarget()
+    await clearPendingNavigationOnSessionEnd()
     await performMobileLogout({
       inFlight: logoutInFlightRef,
       logoutApi: () => logoutApi(client),
@@ -170,8 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      // Forced session end: same account-boundary rule as explicit logout for push pending.
-      void clearPendingNotificationTarget().then(() => clearAuthState())
+      void clearPendingNavigationOnSessionEnd().then(() => clearAuthState())
     })
     return () => setUnauthorizedHandler(null)
   }, [clearAuthState])

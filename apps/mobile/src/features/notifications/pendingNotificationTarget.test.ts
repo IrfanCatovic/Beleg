@@ -106,9 +106,17 @@ describe('pendingNotificationTarget storage', () => {
       obavestenjeId: 7,
     })
     expect(target).not.toBeNull()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-28T12:00:00.000Z'))
     expect(await savePendingNotificationTarget(target!)).toBe(true)
     const loaded = await readPendingNotificationTarget()
-    expect(loaded).toEqual(target)
+    expect(loaded).toMatchObject({
+      kind: 'notification-detail',
+      notificationId: 7,
+      dedupeKey: 'notif:7',
+    })
+    expect(loaded?.savedAt).toBe(Date.parse('2026-07-28T12:00:00.000Z'))
+    vi.useRealTimers()
     const raw = await AsyncStorage.getItem(PENDING_NOTIFICATION_TARGET_KEY)
     expect(raw).not.toContain('token')
     expect(raw).not.toContain('"body"')
@@ -145,7 +153,11 @@ describe('pendingNotificationTarget storage', () => {
   it('consume reads and clears', async () => {
     const target = buildPendingNotificationTarget({ obavestenjeId: 11 })!
     await savePendingNotificationTarget(target)
-    expect(await consumePendingNotificationTarget()).toEqual(target)
+    expect(await consumePendingNotificationTarget()).toMatchObject({
+      kind: 'notification-detail',
+      notificationId: 11,
+      dedupeKey: 'notif:11',
+    })
     expect(await readPendingNotificationTarget()).toBeNull()
   })
 
@@ -154,11 +166,38 @@ describe('pendingNotificationTarget storage', () => {
     await expect(clearPendingNotificationTarget()).resolves.toBeUndefined()
   })
 
+  it('legacy stored target without savedAt → savedAt 0', async () => {
+    mem[PENDING_NOTIFICATION_TARGET_KEY] = JSON.stringify({
+      kind: 'notification-detail',
+      notificationId: 3,
+      dedupeKey: 'notif:3',
+    })
+    const loaded = await readPendingNotificationTarget()
+    expect(loaded?.savedAt).toBe(0)
+  })
+
+  it('re-save on new tap refreshes savedAt', async () => {
+    const target = buildPendingNotificationTarget({ obavestenjeId: 5 })!
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-28T10:00:00.000Z'))
+    await savePendingNotificationTarget(target)
+    const first = (await readPendingNotificationTarget())!.savedAt!
+    vi.setSystemTime(new Date('2026-07-28T11:00:00.000Z'))
+    await savePendingNotificationTarget(target)
+    const second = (await readPendingNotificationTarget())!.savedAt!
+    expect(second).toBeGreaterThan(first)
+    vi.useRealTimers()
+  })
+
   it('two saves of same notification overwrite with one pending', async () => {
     const a = buildPendingNotificationTarget({ obavestenjeId: 5 })!
     const b = buildPendingNotificationTarget({ obavestenjeId: 5 })!
     await savePendingNotificationTarget(a)
     await savePendingNotificationTarget(b)
-    expect(await readPendingNotificationTarget()).toEqual(b)
+    expect(await readPendingNotificationTarget()).toMatchObject({
+      kind: 'notification-detail',
+      notificationId: 5,
+      dedupeKey: 'notif:5',
+    })
   })
 })

@@ -3,10 +3,11 @@ import {
   buildMobileNotificationNavigationKey,
   resolveMobileNotificationNavigation,
 } from './resolveMobileNotificationNavigation'
+import { normalizeSavedAt } from '../../navigation/pendingNavigationSelection'
 
 export const PENDING_NOTIFICATION_TARGET_KEY = 'pending_notification_target'
 
-export type PendingNotificationTarget =
+type PendingNotificationTargetBase =
   | {
       kind: 'notification-detail'
       notificationId: number
@@ -18,6 +19,10 @@ export type PendingNotificationTarget =
       inviteToken?: string
       dedupeKey: string
     }
+
+export type PendingNotificationTarget = PendingNotificationTargetBase & {
+  savedAt?: number
+}
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0
@@ -74,8 +79,12 @@ export async function savePendingNotificationTarget(
   target: PendingNotificationTarget,
 ): Promise<boolean> {
   if (!isValidPendingNotificationTarget(target)) return false
+  const toStore: PendingNotificationTarget = {
+    ...target,
+    savedAt: Date.now(),
+  }
   try {
-    await AsyncStorage.setItem(PENDING_NOTIFICATION_TARGET_KEY, JSON.stringify(target))
+    await AsyncStorage.setItem(PENDING_NOTIFICATION_TARGET_KEY, JSON.stringify(toStore))
     return true
   } catch {
     return false
@@ -97,7 +106,11 @@ export async function readPendingNotificationTarget(): Promise<PendingNotificati
       await AsyncStorage.removeItem(PENDING_NOTIFICATION_TARGET_KEY)
       return null
     }
-    return parsed
+    const withSavedAt: PendingNotificationTarget = {
+      ...parsed,
+      savedAt: normalizeSavedAt((parsed as PendingNotificationTarget).savedAt),
+    }
+    return withSavedAt
   } catch {
     return null
   }
