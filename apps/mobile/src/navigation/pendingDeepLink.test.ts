@@ -95,4 +95,23 @@ describe('pendingDeepLink savedAt', () => {
     const second = (await readPendingDeepLink())!.savedAt
     expect(second).toBeGreaterThan(first)
   })
+
+  it('logged-out reward URL preserves claimReward query and savedAt', async () => {
+    const rewardUrl = 'planiner://akcije/42?claimReward=1&inviteToken=tok'
+    await savePendingDeepLink(rewardUrl)
+    const record = await readPendingDeepLink()
+    expect(record?.url).toBe(rewardUrl)
+    expect(record?.url).toContain('claimReward=1')
+    expect(record?.url).toContain('inviteToken=tok')
+    expect(record?.savedAt).toBe(Date.parse('2026-07-28T12:00:00.000Z'))
+  })
+
+  it('invalid stored reward-looking URL is cleared without crash', async () => {
+    mem[PENDING_DEEP_LINK_KEY] = JSON.stringify({
+      url: 'planiner://akcije/0?claimReward=1',
+      savedAt: 1,
+    })
+    expect(await readPendingDeepLink()).toBeNull()
+    expect(mem[PENDING_DEEP_LINK_KEY]).toBeUndefined()
+  })
 })

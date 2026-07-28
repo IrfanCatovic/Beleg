@@ -60,7 +60,7 @@ export function navigateToActionDetailFromExplore(id: number): boolean {
 export function navigateFromDeepLinkUrl(url: string): boolean {
   const parsed = parseActionDeepLink(url)
   if (!parsed) return false
-  return navigateToActionDetail(parsed.id, parsed.inviteToken)
+  return navigateToActionDetail(parsed.id, parsed.inviteToken, parsed.claimReward === true)
 }
 
 export function navigateToFeed(postId?: number): boolean {

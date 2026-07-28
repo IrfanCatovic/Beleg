@@ -148,6 +148,50 @@ describe('consumePendingNavigation', () => {
     expect(tryNavigatePush).not.toHaveBeenCalled()
   })
 
+  it('newer reward URL beats older push; push has no success dedupe', async () => {
+    const tryNavigateUrl = vi.fn(() => true)
+    const onPushNavigated = vi.fn()
+    let pushCleared = false
+    await consumePendingNavigation(
+      baseOpts({
+        readUrlPending: async () => ({
+          url: 'planiner://akcije/42?claimReward=1',
+          savedAt: 400,
+        }),
+        readPushPending: async () => ({ ...pushTarget, savedAt: 100 }),
+        clearPushPending: async () => {
+          pushCleared = true
+        },
+        tryNavigateUrl,
+        onPushNavigated,
+      }),
+    )
+    expect(tryNavigateUrl).toHaveBeenCalledWith('planiner://akcije/42?claimReward=1')
+    expect(onPushNavigated).not.toHaveBeenCalled()
+    expect(pushCleared).toBe(true)
+  })
+
+  it('older reward URL loses to newer push', async () => {
+    const tryNavigateUrl = vi.fn(() => true)
+    const tryNavigatePush = vi.fn(() => true)
+    const onPushNavigated = vi.fn()
+    await consumePendingNavigation(
+      baseOpts({
+        readUrlPending: async () => ({
+          url: 'planiner://akcije/42?claimReward=1',
+          savedAt: 50,
+        }),
+        readPushPending: async () => ({ ...pushTarget, savedAt: 200 }),
+        tryNavigateUrl,
+        tryNavigatePush,
+        onPushNavigated,
+      }),
+    )
+    expect(tryNavigatePush).toHaveBeenCalledTimes(1)
+    expect(tryNavigateUrl).not.toHaveBeenCalled()
+    expect(onPushNavigated).toHaveBeenCalledWith('notif:4')
+  })
+
   it('newer push → push navigation + success dedupe', async () => {
     const onPushNavigated = vi.fn()
     const tryNavigatePush = vi.fn(() => true)

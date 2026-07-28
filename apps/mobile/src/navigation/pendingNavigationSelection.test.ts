@@ -95,6 +95,17 @@ describe('selectPendingNavigation', () => {
     expect(result?.superseded[0]?.target).toMatchObject({ claimReward: true })
   })
 
+  it('newer reward URL beats older push in selection', () => {
+    const rewardUrl = {
+      url: 'planiner://akcije/42?claimReward=1',
+      savedAt: 400,
+    }
+    const result = selectPendingNavigation(rewardUrl, push(100))
+    expect(result?.selected.source).toBe('url')
+    expect(result?.selected.target).toEqual(rewardUrl)
+    expect(result?.superseded[0]?.source).toBe('push')
+  })
+
   it('does not mutate input objects', () => {
     const u = url(10)
     const p = push(20)
