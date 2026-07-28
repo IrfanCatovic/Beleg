@@ -1,7 +1,6 @@
 package guidebooking
 
 import (
-	"encoding/json"
 	"strings"
 
 	"beleg-app/backend/internal/models"
@@ -18,15 +17,15 @@ func NotifyFerrataTargets(db *gorm.DB, req models.FerrataGuideBookingRequest, ta
 	body := requesterName + " traži vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
 
 	metaBase := map[string]any{
-		"bookingKind":        "ferrata",
-		"bookingRequestId":   req.ID,
-		"ferrataId":          req.FerrataID,
-		"ferrataNaziv":       ferrataName,
-		"requesterId":        req.RequesterID,
-		"requesterUsername":  req.Requester.Username,
-		"requesterFullName":  req.Requester.FullName,
-		"desiredDate":        req.DesiredDate.Format("2006-01-02"),
-		"numberOfPeople":     req.NumberOfPeople,
+		"bookingKind":       "ferrata",
+		"bookingRequestId":  req.ID,
+		"ferrataId":         req.FerrataID,
+		"ferrataNaziv":      ferrataName,
+		"requesterId":       req.RequesterID,
+		"requesterUsername": req.Requester.Username,
+		"requesterFullName": req.Requester.FullName,
+		"desiredDate":       req.DesiredDate.Format("2006-01-02"),
+		"numberOfPeople":    req.NumberOfPeople,
 	}
 
 	seen := map[uint]bool{}
@@ -37,8 +36,7 @@ func NotifyFerrataTargets(db *gorm.DB, req models.FerrataGuideBookingRequest, ta
 		seen[t.GuideUserID] = true
 		meta := metaBase
 		meta["guideProfileId"] = t.GuideProfileID
-		metaBytes, _ := json.Marshal(meta)
-		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", notifications.MarshalMetadata(meta))
 	}
 }
 
@@ -50,15 +48,15 @@ func NotifyPeakTargets(db *gorm.DB, req models.PeakGuideBookingRequest, targets 
 	body := requesterName + " traži vođenje na vrh \"" + peakName + "\" za datum " + dateStr + "."
 
 	metaBase := map[string]any{
-		"bookingKind":        "peak",
-		"bookingRequestId":   req.ID,
-		"peakId":             req.PeakID,
-		"peakNaziv":          peakName,
-		"requesterId":        req.RequesterID,
-		"requesterUsername":  req.Requester.Username,
-		"requesterFullName":  req.Requester.FullName,
-		"desiredDate":        req.DesiredDate.Format("2006-01-02"),
-		"numberOfPeople":     req.NumberOfPeople,
+		"bookingKind":       "peak",
+		"bookingRequestId":  req.ID,
+		"peakId":            req.PeakID,
+		"peakNaziv":         peakName,
+		"requesterId":       req.RequesterID,
+		"requesterUsername": req.Requester.Username,
+		"requesterFullName": req.Requester.FullName,
+		"desiredDate":       req.DesiredDate.Format("2006-01-02"),
+		"numberOfPeople":    req.NumberOfPeople,
 	}
 
 	seen := map[uint]bool{}
@@ -69,8 +67,7 @@ func NotifyPeakTargets(db *gorm.DB, req models.PeakGuideBookingRequest, targets 
 		seen[t.GuideUserID] = true
 		meta := metaBase
 		meta["guideProfileId"] = t.GuideProfileID
-		metaBytes, _ := json.Marshal(meta)
-		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+		notifications.NotifyUsers(db, []uint{t.GuideUserID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", notifications.MarshalMetadata(meta))
 	}
 }
 
@@ -88,8 +85,7 @@ func NotifyFerrataRequesterRejected(db *gorm.DB, req models.FerrataGuideBookingR
 		"guideUserId":      target.GuideUserID,
 		"status":           models.GuideBookingTargetStatusRejected,
 	}
-	metaBytes, _ := json.Marshal(meta)
-	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", notifications.MarshalMetadata(meta))
 }
 
 func NotifyFerrataRequesterFulfilled(db *gorm.DB, req models.FerrataGuideBookingRequest, guide models.Korisnik, actionID uint) {
@@ -98,17 +94,23 @@ func NotifyFerrataRequesterFulfilled(db *gorm.DB, req models.FerrataGuideBooking
 	dateStr := req.DesiredDate.Format("02.01.2006")
 	title := "Akcija je kreirana za vaš zahtev"
 	body := guideName + " je kreirao akciju za vođenje na ferati \"" + ferrataName + "\" za datum " + dateStr + "."
-	meta := map[string]any{
+	meta := notifications.ActionNotificationMetadata(actionID, map[string]any{
 		"bookingKind":      "ferrata",
 		"bookingRequestId": req.ID,
 		"ferrataId":        req.FerrataID,
 		"ferrataNaziv":     ferrataName,
 		"guideUserId":      guide.ID,
-		"actionId":         actionID,
 		"status":           models.GuideBookingTargetStatusAccepted,
-	}
-	metaBytes, _ := json.Marshal(meta)
-	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+	})
+	notifications.NotifyUsers(
+		db,
+		[]uint{req.RequesterID},
+		models.ObavestenjeTipGuideBookingRequest,
+		title,
+		body,
+		notifications.BuildActionNotificationLink(actionID, false),
+		notifications.MarshalMetadata(meta),
+	)
 }
 
 func NotifyPeakRequesterRejected(db *gorm.DB, req models.PeakGuideBookingRequest, target models.PeakGuideBookingTarget, guide models.Korisnik) {
@@ -125,8 +127,7 @@ func NotifyPeakRequesterRejected(db *gorm.DB, req models.PeakGuideBookingRequest
 		"guideUserId":      target.GuideUserID,
 		"status":           models.GuideBookingTargetStatusRejected,
 	}
-	metaBytes, _ := json.Marshal(meta)
-	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", notifications.MarshalMetadata(meta))
 }
 
 func NotifyPeakRequesterFulfilled(db *gorm.DB, req models.PeakGuideBookingRequest, guide models.Korisnik, actionID uint) {
@@ -135,17 +136,23 @@ func NotifyPeakRequesterFulfilled(db *gorm.DB, req models.PeakGuideBookingReques
 	dateStr := req.DesiredDate.Format("02.01.2006")
 	title := "Akcija je kreirana za vaš zahtev"
 	body := guideName + " je kreirao akciju za vođenje na vrh \"" + peakName + "\" za datum " + dateStr + "."
-	meta := map[string]any{
+	meta := notifications.ActionNotificationMetadata(actionID, map[string]any{
 		"bookingKind":      "peak",
 		"bookingRequestId": req.ID,
 		"peakId":           req.PeakID,
 		"peakNaziv":        peakName,
 		"guideUserId":      guide.ID,
-		"actionId":         actionID,
 		"status":           models.GuideBookingTargetStatusAccepted,
-	}
-	metaBytes, _ := json.Marshal(meta)
-	notifications.NotifyUsers(db, []uint{req.RequesterID}, models.ObavestenjeTipGuideBookingRequest, title, body, "", string(metaBytes))
+	})
+	notifications.NotifyUsers(
+		db,
+		[]uint{req.RequesterID},
+		models.ObavestenjeTipGuideBookingRequest,
+		title,
+		body,
+		notifications.BuildActionNotificationLink(actionID, false),
+		notifications.MarshalMetadata(meta),
+	)
 }
 
 func displayName(fullName, username, fallback string) string {

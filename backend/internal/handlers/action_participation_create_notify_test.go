@@ -176,6 +176,10 @@ func TestParticipationCreate_Success_NotifiesOnce(t *testing.T) {
 	if !strings.Contains(n.Metadata, `"requestId"`) || !strings.Contains(n.Metadata, `"akcijaId"`) {
 		t.Fatalf("metadata=%q", n.Metadata)
 	}
+	wantLink := "/akcije/" + strconv.FormatUint(uint64(f.akcija.ID), 10)
+	if n.Link != wantLink {
+		t.Fatalf("link=%q want %q", n.Link, wantLink)
+	}
 }
 
 func TestParticipationCreate_NotifySeesCommittedRequest(t *testing.T) {

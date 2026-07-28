@@ -26,7 +26,18 @@ describe('navigateMobileNotificationTarget', () => {
     })
   })
 
-  it('profile target → UserProfile', async () => {
+  it('profile target with id → UserProfile id only', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(
+      navigateMobileNotificationTarget({ kind: 'profile', userId: 42, username: 'stale' }),
+    ).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'UserProfile',
+      params: { id: 42 },
+    })
+  })
+
+  it('profile target → UserProfile username when no id', async () => {
     const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
     expect(navigateMobileNotificationTarget({ kind: 'profile', username: 'ana' })).toBe(true)
     expect(navigate).toHaveBeenCalledWith('HomeTab', {

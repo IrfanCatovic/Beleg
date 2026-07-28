@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"beleg-app/backend/internal/helpers"
-	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -91,15 +91,15 @@ func notifyMentionsFromContent(db *gorm.DB, mentionUsernames []string, sender mo
 		}
 		uidSeen[u.ID] = struct{}{}
 
-		meta := fmt.Sprintf(`{"postId":%d}`, postID)
+		meta := notifications.PostNotificationMetadata(postID, sender.ID, sender.Username, nil)
 		notifications.NotifyUsers(
 			db,
 			[]uint{u.ID},
 			models.ObavestenjeTipPost,
 			"Označen si",
 			fmt.Sprintf("%s te je označio/la: %s", senderName, snippet),
-			fmt.Sprintf("/korisnik/%s", u.Username),
-			meta,
+			notifications.BuildHomeNotificationLink(),
+			notifications.MarshalMetadata(meta),
 		)
 	}
 }
@@ -289,7 +289,7 @@ func GetPosts(c *gin.Context) {
 			}
 		}
 		out = append(out, PostDTO{
-			ID:            p.ID,
+			ID:           p.ID,
 			Content:      p.Content,
 			ImageURL:     p.ImageURL,
 			CreatedAt:    p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -542,10 +542,10 @@ func CreatePost(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"post": gin.H{
-		"id":        post.ID,
-		"content":   post.Content,
-		"imageUrl":  post.ImageURL,
-		"createdAt": post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"id":           post.ID,
+		"content":      post.Content,
+		"imageUrl":     post.ImageURL,
+		"createdAt":    post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		"likeCount":    int64(0),
 		"commentCount": int64(0),
 		"myLiked":      false,
@@ -658,10 +658,10 @@ func UpdatePost(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"post": gin.H{
-		"id":           post.ID,
-		"content":      post.Content,
-		"imageUrl":     post.ImageURL,
-		"createdAt":    post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		"id":        post.ID,
+		"content":   post.Content,
+		"imageUrl":  post.ImageURL,
+		"createdAt": post.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		"user": gin.H{
 			"id":        post.User.ID,
 			"username":  post.User.Username,

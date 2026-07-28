@@ -25,14 +25,17 @@ export function navigateMobileNotificationTarget(
         return navigateTabScreen('ActionsTab', 'ActionDetail', { id: target.actionId })
       }
       break
-    case 'profile':
+    case 'profile': {
+      const params =
+        target.userId != null ? { id: target.userId } : { username: target.username! }
       return (
-        navigateTabScreen('HomeTab', 'UserProfile', { username: target.username }) ||
-        navigateTabScreen('ActionsTab', 'UserProfile', { username: target.username }) ||
-        navigateTabScreen('ExploreTab', 'UserProfile', { username: target.username }) ||
-        navigateTabScreen('ClubTab', 'UserProfile', { username: target.username }) ||
-        navigateTabScreen('ProfileTab', 'UserProfile', { username: target.username })
+        navigateTabScreen('HomeTab', 'UserProfile', params) ||
+        navigateTabScreen('ActionsTab', 'UserProfile', params) ||
+        navigateTabScreen('ExploreTab', 'UserProfile', params) ||
+        navigateTabScreen('ClubTab', 'UserProfile', params) ||
+        navigateTabScreen('ProfileTab', 'UserProfile', params)
       )
+    }
     case 'own-club':
       return navigateTabScreen('ClubTab', 'ClubHome')
     case 'guides':

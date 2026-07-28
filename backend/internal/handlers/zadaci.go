@@ -200,7 +200,7 @@ func CreateZadatak(c *gin.Context) {
 	} else {
 		db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Where("role IN ?", zadatak.AllowedRoles).Pluck("id", &recipientIDs)
 	}
-	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, "/zadaci", fmt.Sprintf(`{"zadatakId":%d}`, zadatak.ID))
+	notifications.NotifyUsers(db, recipientIDs, models.ObavestenjeTipZadatak, "Novi zadatak", zadatak.Naziv, notifications.BuildTasksNotificationLink(), fmt.Sprintf(`{"zadatakId":%d}`, zadatak.ID))
 	c.JSON(http.StatusCreated, gin.H{"zadatak": buildZadatakResponse(zadatak)})
 }
 

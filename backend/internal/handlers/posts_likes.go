@@ -15,7 +15,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type ToggleLikeResponse struct {
 	Liked     bool  `json:"liked"`
 	LikeCount int64 `json:"likeCount"`
@@ -90,14 +89,15 @@ func TogglePostLike(c *gin.Context) {
 		if likerName == "" {
 			likerName = korisnik.Username
 		}
+		meta := notifications.PostNotificationMetadata(uint(postID), korisnik.ID, korisnik.Username, nil)
 		notifications.NotifyUsers(
 			db,
 			[]uint{post.UserID},
 			models.ObavestenjeTipPost,
 			"Novi lajk na vašoj objavi",
 			fmt.Sprintf("%s je lajkovao/la vašu objavu.", likerName),
-			"/home",
-			fmt.Sprintf(`{"postId":%d}`, postID),
+			notifications.BuildHomeNotificationLink(),
+			notifications.MarshalMetadata(meta),
 		)
 	}
 

@@ -141,15 +141,20 @@ func CreateFollowRequestHandler(c *gin.Context) {
 	if requesterName == "" {
 		requesterName = currentUser.Username
 	}
-	meta := fmt.Sprintf(`{"followId":%d,"requesterId":%d,"requesterUsername":%q,"requesterFullName":%q}`, f.ID, currentUser.ID, currentUser.Username, currentUser.FullName)
+	meta := notifications.ProfileNotificationMetadata(currentUser.ID, currentUser.Username, map[string]any{
+		"followId":          f.ID,
+		"requesterId":       currentUser.ID,
+		"requesterUsername": currentUser.Username,
+		"requesterFullName": currentUser.FullName,
+	})
 	notifications.NotifyUsers(
 		db,
 		[]uint{target.ID},
 		models.ObavestenjeTipFollow,
 		"Novi zahtev za praćenje",
 		fmt.Sprintf("%s želi da te zaprati.", requesterName),
-		"",
-		meta,
+		notifications.BuildProfileNotificationLink(currentUser.Username),
+		notifications.MarshalMetadata(meta),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{"follow": f})
@@ -194,15 +199,20 @@ func AcceptFollowRequestHandler(c *gin.Context) {
 	if targetName == "" {
 		targetName = currentUser.Username
 	}
-	meta := fmt.Sprintf(`{"followId":%d,"targetId":%d,"targetUsername":%q,"targetFullName":%q}`, f.ID, currentUser.ID, currentUser.Username, currentUser.FullName)
+	meta := notifications.ProfileNotificationMetadata(currentUser.ID, currentUser.Username, map[string]any{
+		"followId":       f.ID,
+		"targetId":       currentUser.ID,
+		"targetUsername": currentUser.Username,
+		"targetFullName": currentUser.FullName,
+	})
 	notifications.NotifyUsers(
 		db,
 		[]uint{f.RequesterID},
 		models.ObavestenjeTipFollow,
 		"Zahtev prihvaćen",
 		fmt.Sprintf("%s je prihvatio/la tvoj zahtev za praćenje.", targetName),
-		"",
-		meta,
+		notifications.BuildProfileNotificationLink(currentUser.Username),
+		notifications.MarshalMetadata(meta),
 	)
 
 	c.JSON(http.StatusOK, gin.H{"follow": f})
@@ -458,8 +468,8 @@ func GetFollowStatusHandler(c *gin.Context) {
 }
 
 type PendingFollowRequestDTO struct {
-	FollowID   uint `json:"followId"`
-	Requester  struct {
+	FollowID  uint `json:"followId"`
+	Requester struct {
 		ID           uint   `json:"id"`
 		Username     string `json:"username"`
 		FullName     string `json:"fullName"`
@@ -528,8 +538,8 @@ func GetPendingIncomingFollowRequestsHandler(c *gin.Context) {
 		}
 
 		dto := PendingFollowRequestDTO{
-			FollowID:   f.ID,
-			CreatedAt:  f.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			FollowID:  f.ID,
+			CreatedAt: f.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			Requester: struct {
 				ID           uint   `json:"id"`
 				Username     string `json:"username"`
@@ -710,4 +720,3 @@ func GetFollowersListHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }
-

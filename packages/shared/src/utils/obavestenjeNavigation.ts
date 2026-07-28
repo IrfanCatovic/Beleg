@@ -28,9 +28,15 @@ export interface ObavestenjeNavigationInput {
 }
 
 /** Canonical semantic navigation target (platform-agnostic). */
+export type ProfileNotificationTarget = {
+  kind: 'profile'
+  userId?: number
+  username?: string
+}
+
 export type NotificationNavigationTarget =
   | { kind: 'action'; actionId: number; claimReward?: boolean }
-  | { kind: 'profile'; username: string }
+  | ProfileNotificationTarget
   | { kind: 'own-club' }
   | { kind: 'club'; clubName: string }
   | { kind: 'guides' }
@@ -138,6 +144,13 @@ export function parseCanonicalNotificationLink(link: string): NotificationNaviga
     return { kind: 'profile', username }
   }
 
+  const userIdRouteMatch = pathname.match(/^\/users\/(\d+)$/)
+  if (userIdRouteMatch) {
+    const userId = positiveId(userIdRouteMatch[1])
+    if (userId == null) return null
+    return { kind: 'profile', userId }
+  }
+
   if (pathname === '/klub') return { kind: 'own-club' }
 
   const clubMatch = pathname.match(/^\/klubovi\/([^/]+)$/)
@@ -199,16 +212,28 @@ function resolveActionFromMetadata(
   return null
 }
 
-function resolveFollowProfileFromMetadata(
+function resolveProfileFromMetadata(
   type: string,
   meta: Record<string, unknown>,
 ): NotificationNavigationTarget | null {
-  if (type !== 'follow') return null
-  const requester = trimString(meta.requesterUsername)
-  if (requester) return { kind: 'profile', username: requester }
-  const target = trimString(meta.targetUsername)
-  if (target) return { kind: 'profile', username: target }
-  return null
+  let userId = positiveId(meta.targetUserId)
+  let username = trimString(meta.targetUsername)
+
+  if (type === 'follow') {
+    if (userId == null) {
+      userId = positiveId(meta.requesterId) ?? positiveId(meta.targetId)
+    }
+    if (!username) {
+      username = trimString(meta.requesterUsername) ?? trimString(meta.targetUsername)
+    }
+  }
+
+  if (userId == null && !username) return null
+  const target: ProfileNotificationTarget = { kind: 'profile' }
+  if (userId != null) target.userId = userId
+  if (username) target.username = username
+  if (target.userId == null && !target.username) return null
+  return target
 }
 
 function resolveTypeMetadataTarget(
@@ -218,8 +243,8 @@ function resolveTypeMetadataTarget(
   const action = resolveActionFromMetadata(type, meta)
   if (action) return action
 
-  const follow = resolveFollowProfileFromMetadata(type, meta)
-  if (follow) return follow
+  const profile = resolveProfileFromMetadata(type, meta)
+  if (profile) return profile
 
   const postId = positiveId(meta.postId)
   if (type === 'post' && postId != null) {
@@ -281,7 +306,9 @@ export function buildWebNotificationPath(target: NotificationNavigationTarget): 
       return target.claimReward ? `${base}?claimReward=1` : base
     }
     case 'profile':
-      return `/korisnik/${encodeURIComponent(target.username)}`
+      if (target.userId != null) return `/users/${target.userId}`
+      if (target.username) return `/korisnik/${encodeURIComponent(target.username)}`
+      return null
     case 'own-club':
       return '/klub'
     case 'club':

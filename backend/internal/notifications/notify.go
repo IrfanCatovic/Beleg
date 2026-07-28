@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -34,7 +33,7 @@ func NotifyUsers(db *gorm.DB, userIDs []uint, notifType, title, body, link, meta
 			continue // best-effort: ne prekidamo glavni tok
 		}
 
-		push.SendObavestenjeToUser(db, uid, n.ID, title, body)
+		push.SendObavestenjeToUserWithData(db, uid, n.ID, title, body, PushDataExtra(notifType, metadata))
 	}
 }
 
@@ -48,20 +47,16 @@ func NotifySummitReward(db *gorm.DB, userID uint, akcija models.Akcija) {
 	}
 	title := "Čestitamo!"
 	body := fmt.Sprintf("Uspešno ste popeli akciju %s", actionName)
-	metadataBytes, err := json.Marshal(map[string]interface{}{
-		"akcijaId":    akcija.ID,
+	metadata := MarshalMetadata(ActionNotificationMetadata(akcija.ID, map[string]any{
 		"akcijaNaziv": actionName,
-	})
-	if err != nil {
-		metadataBytes = []byte(fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
-	}
+	}))
 	NotifyUsers(
 		db,
 		[]uint{userID},
 		models.ObavestenjeTipSummitReward,
 		title,
 		body,
-		fmt.Sprintf("/akcije/%d?claimReward=1", akcija.ID),
-		string(metadataBytes),
+		BuildActionNotificationLink(akcija.ID, true),
+		metadata,
 	)
 }

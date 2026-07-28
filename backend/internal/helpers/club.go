@@ -14,14 +14,13 @@ import (
 )
 
 var (
-	ErrClubMemberLimit   = errors.New("Dostignut je maksimalan broj članova za ovaj klub")
-	ErrClubAdminLimit    = errors.New("Dostignut je maksimalan broj admina za ovaj klub")
-	ErrClubStorageLimit  = errors.New("Dostignut je limit prostora za ovaj klub (GB)")
+	ErrClubMemberLimit  = errors.New("Dostignut je maksimalan broj članova za ovaj klub")
+	ErrClubAdminLimit   = errors.New("Dostignut je maksimalan broj admina za ovaj klub")
+	ErrClubStorageLimit = errors.New("Dostignut je limit prostora za ovaj klub (GB)")
 )
 
 const HoldDaysAfterSubscriptionEnd = 14
 const WarningDaysAfterSubscriptionEnd = 7 // 7 dana posle isteka pošalji upozorenje da će za 7 dana klub na hold
-
 
 const XClubIDHeader = "X-Club-Id"
 
@@ -49,7 +48,6 @@ func GetEffectiveClubID(c *gin.Context, db *gorm.DB) (clubID uint, ok bool) {
 		}
 		return 0, true
 	}
-
 
 	raw := c.GetHeader(XClubIDHeader)
 	if raw == "" {
@@ -169,7 +167,7 @@ func ProcessClubSubscriptionState(db *gorm.DB, clubID uint) error {
 		if err := db.Model(&models.Korisnik{}).Where("klub_id = ? AND role IN ?", clubID, []string{"admin", "sekretar"}).Pluck("id", &adminIDs).Error; err == nil && len(adminIDs) > 0 {
 			title := "Upozorenje: klub će biti pauziran za 7 dana"
 			body := "Subskripcija vašeg kluba \"" + club.Naziv + "\" je istekla. Ukoliko se subskripcija ne obnovi, klub će biti privremeno pauziran (hold) za 7 dana i članovi neće moći da se loguju. Kontaktirajte superadmina za produženje."
-			notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, "/home", "")
+			notifications.NotifyUsers(db, adminIDs, models.ObavestenjeTipSubskripcija, title, body, notifications.BuildHomeNotificationLink(), "")
 			t := now
 			club.SubscriptionWarningSentAt = &t
 			_ = db.Model(&club).Update("subscription_warning_sent_at", t)

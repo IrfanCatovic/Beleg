@@ -35,6 +35,28 @@ describe('resolveWebNotificationPath', () => {
     ).toBe('/akcije/8?claimReward=1')
   })
 
+  it('profile with targetUserId → /users/:id on web', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 4,
+        type: 'follow',
+        link: '/korisnik/old-name',
+        metadata: JSON.stringify({ targetUserId: 12, targetUsername: 'old-name' }),
+      }),
+    ).toBe('/users/12')
+  })
+
+  it('stale username with valid id still uses id route', () => {
+    expect(
+      resolveWebNotificationPath({
+        id: 6,
+        type: 'follow',
+        link: '/korisnik/renamed',
+        metadata: JSON.stringify({ targetUserId: 99, targetUsername: 'old' }),
+      }),
+    ).toBe('/users/99')
+  })
+
   it('follow with valid metadata → profile', () => {
     expect(
       resolveWebNotificationPath({

@@ -701,7 +701,15 @@ func CreateAkcija(c *gin.Context) {
 		} else {
 			db.Model(&models.Korisnik{}).Where("klub_id = ?", clubID).Pluck("id", &notifyUserIDs)
 		}
-		notifications.NotifyUsers(db, notifyUserIDs, models.ObavestenjeTipAkcija, "Nova akcija u kalendaru", akcija.Naziv, "/akcije/"+strconv.Itoa(int(akcija.ID)), fmt.Sprintf(`{"akcijaId":%d}`, akcija.ID))
+		notifications.NotifyUsers(
+			db,
+			notifyUserIDs,
+			models.ObavestenjeTipAkcija,
+			"Nova akcija u kalendaru",
+			akcija.Naziv,
+			notifications.BuildActionNotificationLink(akcija.ID, false),
+			notifications.MarshalMetadata(notifications.ActionNotificationMetadata(akcija.ID, nil)),
+		)
 	}
 
 	files := form.File["slika"]

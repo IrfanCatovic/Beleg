@@ -4,7 +4,6 @@ import (
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -121,16 +120,14 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 	if clubName != "" {
 		body += " Klub domaćin: " + clubName + "."
 	}
-	metaMap := map[string]any{
+	metaMap := notifications.ActionNotificationMetadata(req.Akcija.ID, map[string]any{
 		"requestId":         req.ID,
-		"akcijaId":          req.Akcija.ID,
 		"akcijaNaziv":       req.Akcija.Naziv,
 		"requesterId":       req.RequestedBy.ID,
 		"requesterUsername": req.RequestedBy.Username,
 		"requesterFullName": req.RequestedBy.FullName,
 		"hostClubName":      clubName,
-	}
-	metaBytes, _ := json.Marshal(metaMap)
+	})
 	// In-app insert pa push (NotifyUsers); greške su best-effort i ne smiju vratiti domain TX.
 	notifications.NotifyUsers(
 		db,
@@ -138,8 +135,8 @@ func createActionParticipationRequestNotification(db *gorm.DB, req models.Action
 		models.ObavestenjeTipActionParticipationRequest,
 		title,
 		body,
-		"",
-		string(metaBytes),
+		notifications.BuildActionNotificationLink(req.Akcija.ID, false),
+		notifications.MarshalMetadata(metaMap),
 	)
 }
 

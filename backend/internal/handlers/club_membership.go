@@ -131,7 +131,7 @@ func CreateClubJoinRequest(c *gin.Context) {
 			models.ObavestenjeTipBroadcast,
 			"Novi zahtev za prijem u klub",
 			fmt.Sprintf("%s je poslao/la zahtev za prijem u klub.", displayName),
-			"/klub",
+			notifications.BuildOwnClubNotificationLink(),
 			fmt.Sprintf(`{"clubJoinRequestId":%d,"requesterUsername":%q,"requesterFullName":%q}`, req.ID, user.Username, strings.TrimSpace(user.FullName)),
 		)
 	}
@@ -329,7 +329,7 @@ func AcceptClubJoinRequest(c *gin.Context) {
 		models.ObavestenjeTipBroadcast,
 		"Zahtev je prihvaćen",
 		"Vaš zahtev za prijem u klub je prihvaćen.",
-		"/klub",
+		notifications.BuildOwnClubNotificationLink(),
 		"",
 	)
 
@@ -348,7 +348,7 @@ func AcceptClubJoinRequest(c *gin.Context) {
 			models.ObavestenjeTipBroadcast,
 			"Novi član kluba",
 			fmt.Sprintf("%s je postao/la član kluba.", name),
-			"/users",
+			notifications.BuildOwnClubNotificationLink(),
 			"",
 		)
 	}
@@ -387,7 +387,7 @@ func RejectClubJoinRequest(c *gin.Context) {
 		models.ObavestenjeTipBroadcast,
 		"Zahtev je odbijen",
 		"Vaš zahtev za prijem u klub je odbijen.",
-		"/klub",
+		notifications.BuildOwnClubNotificationLink(),
 		"",
 	)
 	c.JSON(http.StatusOK, gin.H{"message": "Zahtev je odbijen."})
@@ -436,7 +436,7 @@ func BlockClubJoinRequest(c *gin.Context) {
 		models.ObavestenjeTipBroadcast,
 		"Zahtev je blokiran",
 		"Klub je blokirao dalje zahteve za prijem.",
-		"/klub",
+		notifications.BuildOwnClubNotificationLink(),
 		"",
 	)
 	c.JSON(http.StatusOK, gin.H{"message": "Korisnik je blokiran za dalje zahteve ka ovom klubu."})
@@ -503,7 +503,7 @@ func RemoveMemberFromClub(c *gin.Context) {
 		models.ObavestenjeTipBroadcast,
 		"Status članstva je promenjen",
 		msg,
-		"/home",
+		notifications.BuildHomeNotificationLink(),
 		"",
 	)
 

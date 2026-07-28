@@ -69,7 +69,7 @@ func GetPostComments(c *gin.Context) {
 	}
 
 	type CommentDTO struct {
-		ID        uint            `json:"id"`
+		ID        uint           `json:"id"`
 		Content   string         `json:"content"`
 		CreatedAt string         `json:"createdAt"`
 		User      CommentUserDTO `json:"user"`
@@ -188,14 +188,15 @@ func CreatePostComment(c *gin.Context) {
 			snippet = string(runes[:120]) + "..."
 		}
 
+		meta := notifications.PostNotificationMetadata(uint(postID), korisnik.ID, korisnik.Username, nil)
 		notifications.NotifyUsers(
 			db,
 			[]uint{post.UserID},
 			models.ObavestenjeTipPost,
 			"Novi komentar na vašoj objavi",
 			fmt.Sprintf("%s je komentarisao/la: %s", commenterName, snippet),
-			"/home",
-			fmt.Sprintf(`{"postId":%d}`, postID),
+			notifications.BuildHomeNotificationLink(),
+			notifications.MarshalMetadata(meta),
 		)
 	}
 

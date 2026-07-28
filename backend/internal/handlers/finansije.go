@@ -20,7 +20,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 func checkFinanceRole(c *gin.Context) bool {
 	roleVal, _ := c.Get("role")
 	role, _ := roleVal.(string)
@@ -32,7 +31,6 @@ func checkDeleteTransakcijaRole(c *gin.Context) bool {
 	role, _ := roleVal.(string)
 	return role == "admin" || role == "superadmin"
 }
-
 
 func GetDashboard(c *gin.Context) {
 	if !checkFinanceRole(c) {
@@ -105,11 +103,11 @@ func GetDashboard(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"saldo":       saldo,
-		"uplate":     ukupnoUplate,
-		"isplate":    ukupnoIsplate,
+		"uplate":      ukupnoUplate,
+		"isplate":     ukupnoIsplate,
 		"transakcije": transakcije,
-		"from":       fromStr,
-		"to":         toStr,
+		"from":        fromStr,
+		"to":          toStr,
 	})
 }
 
@@ -311,7 +309,7 @@ func CreateTransakcija(c *gin.Context) {
 		models.ObavestenjeTipUplata,
 		"Nova transakcija",
 		body.Opis,
-		"/finansije",
+		notifications.BuildFinancesNotificationLink(),
 		fmt.Sprintf(`{"transakcijaId":%d}`, t.ID),
 	)
 	c.JSON(http.StatusCreated, t)
@@ -436,11 +434,11 @@ func PostClanarinaPlati(c *gin.Context) {
 
 	clanID := body.KorisnikID
 	t := models.Transakcija{
-		Tip:                "uplata",
-		Iznos:              body.Iznos,
-		Opis:               "Članarina – " + clan.FullName,
-		Datum:              datum,
-		KorisnikID:         ulogovan.ID,
+		Tip:                 "uplata",
+		Iznos:               body.Iznos,
+		Opis:                "Članarina – " + clan.FullName,
+		Datum:               datum,
+		KorisnikID:          ulogovan.ID,
 		ClanarinaKorisnikID: &clanID,
 	}
 	if err := db.Create(&t).Error; err != nil {
@@ -456,7 +454,7 @@ func PostClanarinaPlati(c *gin.Context) {
 		models.ObavestenjeTipUplata,
 		"Evidentirana nova uplata članarine",
 		"Članarina – "+clan.FullName,
-		"/finansije",
+		notifications.BuildFinancesNotificationLink(),
 		fmt.Sprintf(`{"transakcijaId":%d}`, t.ID),
 	)
 	c.JSON(http.StatusCreated, t)

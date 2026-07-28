@@ -190,6 +190,68 @@ describe('resolveNotificationNavigationTarget', () => {
     ).toEqual({ kind: 'profile', username: 'marko' })
   })
 
+  it('targetUserId → profile with stable id', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        metadata: { targetUserId: 42, targetUsername: 'ana' },
+      }),
+    ).toEqual({ kind: 'profile', userId: 42, username: 'ana' })
+    expect(buildWebNotificationPath({ kind: 'profile', userId: 42 })).toBe('/users/42')
+  })
+
+  it('targetUserId has priority over stale username and profile link', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        link: '/korisnik/old-name',
+        metadata: { targetUserId: 9, targetUsername: 'old-name' },
+      }),
+    ).toEqual({ kind: 'profile', userId: 9, username: 'old-name' })
+    expect(
+      buildWebNotificationPath({
+        kind: 'profile',
+        userId: 9,
+        username: 'renamed-later',
+      }),
+    ).toBe('/users/9')
+  })
+
+  it('username rename does not break navigation when targetUserId exists', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        link: '/korisnik/old-name',
+        metadata: { targetUserId: 15, targetUsername: 'old-name' },
+      }),
+    ).toEqual({ kind: 'profile', userId: 15, username: 'old-name' })
+  })
+
+  it('profile with only username still works', () => {
+    expect(
+      resolveNotificationNavigationTarget({ type: 'follow', link: '/korisnik/amar' }),
+    ).toEqual({ kind: 'profile', username: 'amar' })
+    expect(buildWebNotificationPath({ kind: 'profile', username: 'amar' })).toBe('/korisnik/amar')
+  })
+
+  it('invalid profile target falls back to notification detail', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        type: 'follow',
+        link: '',
+        metadata: {},
+        notificationId: 3,
+      }),
+    ).toEqual({ kind: 'notification-detail', notificationId: 3 })
+  })
+
+  it('parses /users/:id profile route', () => {
+    expect(parseCanonicalNotificationLink('/users/55')).toEqual({
+      kind: 'profile',
+      userId: 55,
+    })
+  })
+
   it('empty link without metadata + notification ID → detail', () => {
     expect(
       resolveNotificationNavigationTarget({

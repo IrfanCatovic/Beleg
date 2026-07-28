@@ -6,7 +6,6 @@ import (
 	"beleg-app/backend/internal/notifications"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -132,16 +131,14 @@ func createSignupRequestNotification(db *gorm.DB, req models.ActionSignupRequest
 	}
 	title := "Novi zahtev za prijavu na akciju"
 	body := requesterName + " želi da se prijavi na akciju \"" + actionName + "\". Pregledajte zahtev i odobrite ili odbijte prijavu."
-	metaMap := map[string]any{
+	metaMap := notifications.ActionNotificationMetadata(req.Akcija.ID, map[string]any{
 		"requestId":         req.ID,
-		"akcijaId":          req.Akcija.ID,
 		"akcijaNaziv":       req.Akcija.Naziv,
 		"requesterId":       req.Requester.ID,
 		"requesterUsername": req.Requester.Username,
 		"requesterFullName": req.Requester.FullName,
-	}
-	metaBytes, _ := json.Marshal(metaMap)
-	link := fmt.Sprintf("/akcije/%d", req.Akcija.ID)
+	})
+	link := notifications.BuildActionNotificationLink(req.Akcija.ID, false)
 	approvers := resolveSignupApprovers(db, &req.Akcija)
 	if len(approvers) == 0 {
 		return
@@ -153,7 +150,7 @@ func createSignupRequestNotification(db *gorm.DB, req models.ActionSignupRequest
 		title,
 		body,
 		link,
-		string(metaBytes),
+		notifications.MarshalMetadata(metaMap),
 	)
 }
 
@@ -170,13 +167,11 @@ func notifySignupRequestResponded(db *gorm.DB, req models.ActionSignupRequest, a
 		title = "Prijava na akciju odbijena"
 		body = "Vaš zahtev za prijavu na akciju \"" + actionName + "\" je odbijen."
 	}
-	metaMap := map[string]any{
+	metaMap := notifications.ActionNotificationMetadata(req.Akcija.ID, map[string]any{
 		"requestId": req.ID,
-		"akcijaId":  req.Akcija.ID,
 		"accepted":  accepted,
-	}
-	metaBytes, _ := json.Marshal(metaMap)
-	link := fmt.Sprintf("/akcije/%d", req.Akcija.ID)
+	})
+	link := notifications.BuildActionNotificationLink(req.Akcija.ID, false)
 	notifications.NotifyUsers(
 		db,
 		[]uint{req.RequesterID},
@@ -184,7 +179,7 @@ func notifySignupRequestResponded(db *gorm.DB, req models.ActionSignupRequest, a
 		title,
 		body,
 		link,
-		string(metaBytes),
+		notifications.MarshalMetadata(metaMap),
 	)
 }
 
