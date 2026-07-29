@@ -52,7 +52,6 @@ export default function ClubScreen({ navigation }: Props) {
   const scrollRef = useRef<ScrollView>(null)
   const [aboutOffset, setAboutOffset] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [highlightClubId, setHighlightClubId] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<ClubForm>({
     naziv: '',
@@ -182,7 +181,7 @@ export default function ClubScreen({ navigation }: Props) {
       <View style={styles.root}>
         <AppTopBar title={t('title')} onSearchPress={() => setSearchOpen(true)} />
         <ScrollView contentContainerStyle={styles.noClub}>
-          <NoClubJoinView highlightClubId={highlightClubId} />
+          <NoClubJoinView />
         </ScrollView>
         <GlobalSearchModal
           visible={searchOpen}
@@ -191,7 +190,7 @@ export default function ClubScreen({ navigation }: Props) {
             navigation.navigate('UserProfile', { id: u.id, username: u.username })
           }
           onSelectAction={(a) => navigation.navigate('ActionDetail', { id: a.id })}
-          onSelectClub={(club) => setHighlightClubId(club.id)}
+          onSelectClub={(club) => navigation.navigate('PublicClub', { clubId: club.id })}
         />
       </View>
     )
@@ -339,6 +338,7 @@ export default function ClubScreen({ navigation }: Props) {
           navigation.navigate('UserProfile', { id: u.id, username: u.username })
         }
         onSelectAction={(a) => navigation.navigate('ActionDetail', { id: a.id })}
+        onSelectClub={(club) => navigation.navigate('PublicClub', { clubId: club.id })}
       />
     </View>
   )

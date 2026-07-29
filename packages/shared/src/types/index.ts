@@ -8,7 +8,7 @@ export type {
   MojaSignupRequestPayload,
 } from './actionSignupRequest'
 export type { ObavestenjeItem, ParticipationRequestItem, FollowRequestItem } from './obavestenje'
-export type { KlubData, ClubAdminStats, ClubJoinRequestItem } from './klub'
+export type { KlubData, PublicClub, ClubAdminStats, ClubJoinRequestItem } from './klub'
 export type { UspesnaAkcija, KorisnikStatistika } from './uspesnaAkcija'
 export type { Task, TaskAssignee, TaskFormData, ZadatakRole } from './zadatak'
 export type { Post, PostComment, PostFeedItem, PostLikeUser, PostUser } from './post'

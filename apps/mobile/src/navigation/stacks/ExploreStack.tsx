@@ -9,6 +9,7 @@ import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import GuidesScreen from '../../features/explore/GuidesScreen'
 import MapScreen from '../../features/explore/MapScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import PublicClubScreen from '../../features/club/PublicClubScreen'
 import { rootStackScreenOptions, stackScreenOptions } from '../screenOptions'
 import type { ExploreStackParamList } from '../types'
 
@@ -27,6 +28,7 @@ export function ExploreStack() {
       <Stack.Screen name="Guides" component={GuidesScreen} />
       <Stack.Screen name="Map" component={MapScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PublicClub" component={PublicClubScreen} options={{ title: 'Klub' }} />
     </Stack.Navigator>
   )
 }

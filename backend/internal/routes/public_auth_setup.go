@@ -9,6 +9,8 @@ import (
 
 func RegisterSetupPublicRoutes(r *gin.Engine, db *gorm.DB, setupAdminRateLimiter gin.HandlerFunc) {
 	r.GET("/api/setup/status", handlers.GetSetupStatus(db))
+	// Register /id/:id before /:naziv so "id" is not captured as a club name.
+	r.GET("/api/klubovi/id/:id", handlers.GetPublicKlubByID(db))
 	r.GET("/api/klubovi/:naziv", handlers.GetPublicKlubByNaziv(db))
 	r.POST("/api/setup/admin", setupAdminRateLimiter, handlers.RegisterSetupAdmin(db))
 }

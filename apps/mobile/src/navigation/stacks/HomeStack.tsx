@@ -4,6 +4,7 @@ import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
 import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import PublicClubScreen from '../../features/club/PublicClubScreen'
 import PostDetailScreen from '../../features/home/PostDetailScreen'
 import NotificationsScreen from '../../features/notifications/NotificationsScreen'
 import NotificationDetailScreen from '../../features/notifications/NotificationDetailScreen'
@@ -21,6 +22,7 @@ export function HomeStack() {
       <Stack.Screen name="ActionEdit" component={ActionEditScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PublicClub" component={PublicClubScreen} options={{ title: 'Klub' }} />
       <Stack.Screen name="NotificationsList" component={NotificationsScreen} />
       <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
     </Stack.Navigator>

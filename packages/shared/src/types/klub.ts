@@ -12,6 +12,7 @@ export interface KlubData {
   sediste?: string
   web_sajt?: string
   datum_osnivanja?: string
+  datum_osnovanja?: string
   korisnik_admin_limit?: number
   korisnik_limit?: number
   max_storage_gb?: number
@@ -23,6 +24,16 @@ export interface KlubData {
   onHold?: boolean
   createdAt?: string
   updatedAt?: string
+}
+
+/** Public club profile — safe fields only (matches backend PublicClubDTO). */
+export interface PublicClub {
+  id: number
+  naziv: string
+  logoUrl?: string
+  sediste?: string
+  web_sajt?: string
+  datum_osnovanja?: string
 }
 
 export interface ClubAdminStats {

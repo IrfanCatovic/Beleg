@@ -1,13 +1,20 @@
 import type { AxiosInstance } from 'axios'
-import type { ClubAdminStats, ClubJoinRequestItem, KlubData } from '../types/klub'
+import type { ClubAdminStats, ClubJoinRequestItem, KlubData, PublicClub } from '../types/klub'
 
 export async function fetchKlub(client: AxiosInstance): Promise<KlubData> {
   const res = await client.get<{ klub: KlubData }>('/api/klub')
   return res.data.klub
 }
 
-export async function fetchKlubByNaziv(client: AxiosInstance, naziv: string): Promise<KlubData> {
-  const res = await client.get<{ klub: KlubData }>(`/api/klubovi/${encodeURIComponent(naziv)}`)
+/** Legacy public lookup by name — returns hardened PublicClub DTO. */
+export async function fetchKlubByNaziv(client: AxiosInstance, naziv: string): Promise<PublicClub> {
+  const res = await client.get<{ klub: PublicClub }>(`/api/klubovi/${encodeURIComponent(naziv)}`)
+  return res.data.klub
+}
+
+/** Canonical public club lookup by stable id. */
+export async function fetchPublicClubById(client: AxiosInstance, clubId: number): Promise<PublicClub> {
+  const res = await client.get<{ klub: PublicClub }>(`/api/klubovi/id/${clubId}`)
   return res.data.klub
 }
 
@@ -56,7 +63,7 @@ export async function leaveClub(client: AxiosInstance): Promise<void> {
 export async function searchKlubovi(
   client: AxiosInstance,
   search?: string,
-): Promise<{ klubovi?: KlubData[] }> {
+): Promise<{ klubovi?: PublicClub[] }> {
   const res = await client.get('/api/klubovi', { params: search ? { search } : undefined })
   return res.data
 }

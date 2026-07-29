@@ -12,6 +12,7 @@ export type HomeStackParamList = {
   ActionEdit: { id: number }
   FerrataDetail: { slug: string }
   UserProfile: { username?: string; id?: number }
+  PublicClub: { clubId: number }
   PostDetail: { id: number; focusComment?: boolean }
   NotificationsList: undefined
   NotificationDetail: { id: number }
@@ -43,6 +44,7 @@ export type ExploreStackParamList = {
   Guides: undefined
   Map: undefined
   UserProfile: { username?: string; id?: number }
+  PublicClub: { clubId: number }
 }
 
 export type ClubStackParamList = {
@@ -55,6 +57,7 @@ export type ClubStackParamList = {
   Tasks: undefined
   Finance: undefined
   UserProfile: { username?: string; id?: number }
+  PublicClub: { clubId: number }
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
 }

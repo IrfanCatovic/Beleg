@@ -8,7 +8,7 @@ import {
   fetchMyJoinRequests,
   searchKlubovi,
 } from '@beleg/shared/services'
-import type { KlubData } from '@beleg/shared'
+import type { PublicClub } from '@beleg/shared'
 import { client } from '../../api/client'
 import { useModal } from '../../context/ModalContext'
 import { Avatar, Button, Card, EmptyState, ErrorView, Loader, Text } from '../../components/ui'
@@ -78,7 +78,7 @@ export default function NoClubJoinView({ highlightClubId }: NoClubJoinViewProps)
         keyExtractor={(item) => String(item.id)}
         scrollEnabled={false}
         ListEmptyComponent={<EmptyState title="Nema klubova" message="Pretraži klubove pomoću lupice." />}
-        renderItem={({ item }: { item: KlubData }) => {
+        renderItem={({ item }: { item: PublicClub }) => {
           const pending = pendingByClubId.get(item.id)
           const highlighted = highlightClubId === item.id
           return (

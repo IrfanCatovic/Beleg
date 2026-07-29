@@ -23,34 +23,6 @@ type removeMemberBody struct {
 	Reason string `json:"reason"`
 }
 
-func GetPublicKluboviList(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		search := strings.TrimSpace(c.Query("search"))
-		q := db.Model(&models.Klubovi{})
-		if search != "" {
-			like := "%" + strings.ToLower(search) + "%"
-			q = q.Where("LOWER(naziv) LIKE ?", like)
-		}
-		var klubovi []models.Klubovi
-		if err := q.Order("naziv ASC").Limit(50).Find(&klubovi).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju klubova"})
-			return
-		}
-		out := make([]gin.H, 0, len(klubovi))
-		for _, k := range klubovi {
-			out = append(out, gin.H{
-				"id":      k.ID,
-				"naziv":   k.Naziv,
-				"adresa":  k.Adresa,
-				"telefon": k.Telefon,
-				"email":   k.Email,
-				"logoUrl": k.LogoURL,
-			})
-		}
-		c.JSON(http.StatusOK, gin.H{"klubovi": out})
-	}
-}
-
 func currentUser(c *gin.Context, db *gorm.DB) (*models.Korisnik, bool) {
 	usernameVal, exists := c.Get("username")
 	if !exists {

@@ -80,7 +80,33 @@ export default function Klub() {
     setLoading(true)
     setError('')
     try {
-      let k = naziv ? await fetchKlubByNaziv(naziv) : await fetchKlub()
+      let k: KlubData
+      if (naziv) {
+        const pub = await fetchKlubByNaziv(naziv)
+        k = {
+          id: pub.id,
+          naziv: pub.naziv,
+          logoUrl: pub.logoUrl,
+          sediste: pub.sediste,
+          web_sajt: pub.web_sajt,
+          datum_osnivanja: pub.datum_osnovanja ?? undefined,
+          datum_osnovanja: pub.datum_osnovanja ?? undefined,
+        }
+        // Own-club members/admins need internal fields; public DTO is contact-hardened.
+        const isOwnClub = user?.role === 'superadmin' || Number(user?.klubId) === pub.id
+        if (isOwnClub || canManageThisClub(user, pub.id)) {
+          try {
+            const full = await fetchKlub()
+            if (full?.id === pub.id) {
+              k = full
+            }
+          } catch {
+            /* ostaje javni sklop */
+          }
+        }
+      } else {
+        k = await fetchKlub()
+      }
 
       // Superadmin: odmah postavimo effective klub (X-Club-Id) na klub koji trenutno gledamo,
       // da /api/klub/admin-stats i /api/klub rade za pravi klub.
@@ -89,23 +115,12 @@ export default function Klub() {
         localStorage.setItem('superadmin_club_name', k.naziv ?? '')
       }
 
-      // Javni profil nema limite/subskripciju — ako korisnik upravlja ovim klubom, učitaj pune podatke.
-      if (naziv && canManageThisClub(user, k.id)) {
-        try {
-          const full = await fetchKlub()
-          if (full?.id === k.id) {
-            k = full
-          }
-        } catch {
-          /* ostaje javni sklop */
-        }
-      }
-
       setKlub(k)
       // Ako smo došli preko starog /klub, nakon učitavanja preusmeri na /klubovi/:naziv
       if (!naziv && k.naziv) {
         navigate(`/klubovi/${encodeURIComponent(k.naziv)}`, { replace: true })
       }
+      const founded = k.datum_osnivanja ?? k.datum_osnovanja
       setForm({
         naziv: k.naziv ?? '',
         adresa: k.adresa ?? '',
@@ -116,7 +131,7 @@ export default function Klub() {
         ziro_racun: k.ziro_racun ?? '',
         sediste: k.sediste ?? '',
         web_sajt: k.web_sajt ?? '',
-        datum_osnivanja: k.datum_osnivanja ? k.datum_osnivanja.slice(0, 10) : '',
+        datum_osnivanja: founded ? String(founded).slice(0, 10) : '',
       })
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e && e.response && typeof e.response === 'object' && 'data' in e.response && e.response.data && typeof e.response.data === 'object' && 'error' in e.response.data

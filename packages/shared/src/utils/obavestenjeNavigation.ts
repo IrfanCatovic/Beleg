@@ -34,11 +34,17 @@ export type ProfileNotificationTarget = {
   username?: string
 }
 
+export type ClubNotificationTarget = {
+  kind: 'club'
+  clubId?: number
+  clubName?: string
+}
+
 export type NotificationNavigationTarget =
   | { kind: 'action'; actionId: number; claimReward?: boolean }
   | ProfileNotificationTarget
   | { kind: 'own-club' }
-  | { kind: 'club'; clubName: string }
+  | ClubNotificationTarget
   | { kind: 'guides' }
   | { kind: 'tasks' }
   | { kind: 'finances' }
@@ -319,6 +325,16 @@ function resolveTypeMetadataTarget(
   return null
 }
 
+function resolveClubFromMetadata(meta: Record<string, unknown>): ClubNotificationTarget | null {
+  const clubId = positiveId(meta.clubId)
+  const clubName = trimString(meta.clubName) ?? trimString(meta.clubNaziv)
+  if (clubId != null) {
+    return clubName ? { kind: 'club', clubId, clubName } : { kind: 'club', clubId }
+  }
+  if (clubName) return { kind: 'club', clubName }
+  return null
+}
+
 /**
  * Canonical resolver: metadata → link → notification detail → none.
  * Never throws; never navigates.
@@ -334,15 +350,24 @@ export function resolveNotificationNavigationTarget(
   const fromMeta = resolveTypeMetadataTarget(type, meta)
   if (fromMeta) return fromMeta
 
+  // Stable clubId in metadata wins over stale /klubovi/{name} links.
+  const clubFromMeta = resolveClubFromMetadata(meta)
+  if (clubFromMeta?.clubId != null) return clubFromMeta
+
   if (link) {
     const fromLink = parseCanonicalNotificationLink(link)
     if (fromLink) {
       if (fromLink.kind === 'home' && positiveId(meta.postId) != null) {
         return { kind: 'home', postId: positiveId(meta.postId)! }
       }
+      if (fromLink.kind === 'club') {
+        return clubFromMeta ?? fromLink
+      }
       return fromLink
     }
   }
+
+  if (clubFromMeta) return clubFromMeta
 
   if (notificationId != null) {
     return { kind: 'notification-detail', notificationId }
@@ -365,7 +390,9 @@ export function buildWebNotificationPath(target: NotificationNavigationTarget): 
     case 'own-club':
       return '/klub'
     case 'club':
-      return `/klubovi/${encodeURIComponent(target.clubName)}`
+      // Web has no public-by-id route yet; name path remains for legacy/web.
+      if (target.clubName) return `/klubovi/${encodeURIComponent(target.clubName)}`
+      return null
     case 'guides':
       return '/vodici'
     case 'tasks':

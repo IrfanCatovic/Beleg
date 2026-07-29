@@ -62,6 +62,35 @@ describe('navigateMobileNotificationTarget', () => {
     })
   })
 
+  it('own-club → ClubHome', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'own-club' })).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('ClubTab', {
+      screen: 'ClubHome',
+      params: undefined,
+    })
+  })
+
+  it('club with clubId → PublicClub', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(
+      navigateMobileNotificationTarget({ kind: 'club', clubId: 42, clubName: 'stale' }),
+    ).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'PublicClub',
+      params: { clubId: 42 },
+    })
+  })
+
+  it('club name-only → NotificationDetail fallback', async () => {
+    const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
+    expect(navigateMobileNotificationTarget({ kind: 'club', clubName: 'Demo' }, 55)).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('HomeTab', {
+      screen: 'NotificationDetail',
+      params: { id: 55 },
+    })
+  })
+
   it('home without postId → Feed', async () => {
     const { navigateMobileNotificationTarget } = await import('./navigateMobileNotificationTarget')
     expect(navigateMobileNotificationTarget({ kind: 'home' })).toBe(true)

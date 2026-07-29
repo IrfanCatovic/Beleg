@@ -126,6 +126,22 @@ describe('resolveNotificationNavigationTarget', () => {
       kind: 'club',
       clubName: 'Demo klub',
     })
+    expect(parseCanonicalNotificationLink('/klubovi/Planina%2B')).toEqual({
+      kind: 'club',
+      clubName: 'Planina+',
+    })
+    expect(parseCanonicalNotificationLink('/klubovi/Klub%2FRegion')).toEqual({
+      kind: 'club',
+      clubName: 'Klub/Region',
+    })
+    expect(parseCanonicalNotificationLink('/klubovi/Klub%3FTest')).toEqual({
+      kind: 'club',
+      clubName: 'Klub?Test',
+    })
+    expect(parseCanonicalNotificationLink('/klubovi/Klub%231')).toEqual({
+      kind: 'club',
+      clubName: 'Klub#1',
+    })
     expect(parseCanonicalNotificationLink('/vodici')).toEqual({ kind: 'guides' })
     expect(parseCanonicalNotificationLink('/zadaci')).toEqual({ kind: 'tasks' })
     expect(parseCanonicalNotificationLink('/finansije')).toEqual({ kind: 'finances' })
@@ -134,6 +150,30 @@ describe('resolveNotificationNavigationTarget', () => {
       kind: 'notification-detail',
       notificationId: 25,
     })
+  })
+
+  it('clubId metadata wins over stale club name link', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        link: '/klubovi/old-name',
+        metadata: { clubId: 42, clubName: 'stale' },
+      }),
+    ).toEqual({ kind: 'club', clubId: 42, clubName: 'stale' })
+  })
+
+  it('clubId-only metadata is valid club target', () => {
+    expect(
+      resolveNotificationNavigationTarget({
+        metadata: { clubId: 7 },
+      }),
+    ).toEqual({ kind: 'club', clubId: 7 })
+  })
+
+  it('buildWebNotificationPath uses name; id-only returns null', () => {
+    expect(buildWebNotificationPath({ kind: 'club', clubName: 'Demo Klub' })).toBe(
+      '/klubovi/Demo%20Klub',
+    )
+    expect(buildWebNotificationPath({ kind: 'club', clubId: 3 })).toBeNull()
   })
 
   it('external URL → invalid/fallback to detail when id known', () => {

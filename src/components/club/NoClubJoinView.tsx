@@ -9,9 +9,7 @@ import {
 type Club = {
   id: number
   naziv: string
-  adresa?: string
-  telefon?: string
-  email?: string
+  sediste?: string
   logoUrl?: string
 }
 
@@ -143,8 +141,9 @@ export default function NoClubJoinView() {
               return (
                 <div key={club.id} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
                   <h3 className="text-lg font-semibold text-gray-900">{club.naziv}</h3>
-                  <p className="mt-1 text-sm text-gray-600">{club.adresa || 'Adresa nije uneta'}</p>
-                  <p className="mt-1 text-xs text-gray-500">{club.email || club.telefon || 'Nema kontakt podataka'}</p>
+                  {club.sediste ? (
+                    <p className="mt-1 text-sm text-gray-600">{club.sediste}</p>
+                  ) : null}
 
                   <div className="mt-4">
                     {pendingReq ? (

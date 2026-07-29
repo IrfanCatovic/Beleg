@@ -11,10 +11,12 @@ export {
   resolveObavestenjeNavigationTarget,
 } from './obavestenjeNavigation'
 export type {
+  ClubNotificationTarget,
   KnownNotificationType,
   NotificationNavigationTarget,
   ObavestenjeNavigationInput,
   ObavestenjeNavigationTarget,
+  ProfileNotificationTarget,
 } from './obavestenjeNavigation'
 export {
   decideFeedPostFocus,

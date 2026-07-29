@@ -40,6 +40,21 @@ export function navigateMobileNotificationTarget(
     }
     case 'own-club':
       return navigateTabScreen('ClubTab', 'ClubHome')
+    case 'club': {
+      if (
+        typeof target.clubId === 'number' &&
+        Number.isInteger(target.clubId) &&
+        target.clubId > 0
+      ) {
+        const params = { clubId: target.clubId }
+        return (
+          navigateTabScreen('HomeTab', 'PublicClub', params) ||
+          navigateTabScreen('ExploreTab', 'PublicClub', params) ||
+          navigateTabScreen('ClubTab', 'PublicClub', params)
+        )
+      }
+      break
+    }
     case 'guides':
       return navigateTabScreen('ExploreTab', 'Guides')
     case 'tasks':
@@ -63,7 +78,6 @@ export function navigateMobileNotificationTarget(
     }
     case 'notification-detail':
       return navigateTabScreen('HomeTab', 'NotificationDetail', { id: target.notificationId })
-    case 'club':
     case 'none':
       break
   }

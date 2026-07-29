@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import type { AkcijaListItem, KlubData, Korisnik } from '@beleg/shared'
+import type { AkcijaListItem, Korisnik, PublicClub } from '@beleg/shared'
 import { fetchAkcije, fetchKorisnici, searchKlubovi } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { Avatar, Input, SegmentedToggle, Text } from '../../components/ui'
@@ -15,7 +15,7 @@ interface GlobalSearchModalProps {
   onClose: () => void
   onSelectUser: (user: Korisnik) => void
   onSelectAction: (action: AkcijaListItem) => void
-  onSelectClub?: (club: KlubData) => void
+  onSelectClub?: (club: PublicClub) => void
   /** Kada je true, korisnici se traže samo u klubu. */
   clubMembersOnly?: boolean
   showClubs?: boolean
@@ -103,7 +103,7 @@ export function GlobalSearchModal({
     const list = clubsQuery.data?.klubovi ?? []
     if (!q) return list.slice(0, 20)
     return list
-      .filter((c) => matchesQuery([c.naziv, c.sediste, c.adresa].filter(Boolean).join(' '), q))
+      .filter((c) => matchesQuery([c.naziv, c.sediste].filter(Boolean).join(' '), q))
       .slice(0, 30)
   }, [clubsQuery.data, query])
 
@@ -218,14 +218,20 @@ export function GlobalSearchModal({
                   style={styles.row}
                   onPress={() => {
                     handleClose()
-                    onSelectClub?.(item)
+                    if (
+                      typeof item.id === 'number' &&
+                      Number.isInteger(item.id) &&
+                      item.id > 0
+                    ) {
+                      onSelectClub?.(item)
+                    }
                   }}
                 >
                   <Avatar uri={item.logoUrl} name={item.naziv} size={40} />
                   <View style={styles.rowText}>
                     <Text variant="label">{item.naziv}</Text>
                     <Text variant="small" color={colors.textMuted}>
-                      {item.sediste || item.adresa || 'Planinarski klub'}
+                      {item.sediste || 'Planinarski klub'}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
