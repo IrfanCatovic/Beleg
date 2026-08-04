@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RequireAnyRole returns false and writes 403 when the JWT role is not in roles.
+// RequireAnyRole returns false and writes 403 when context role is not in roles.
+// Context role mora biti postavljen iz DB (LoadUserMiddleware) — ne iz JWT claima.
 func RequireAnyRole(c *gin.Context, message string, roles ...string) bool {
 	roleVal, _ := c.Get("role")
 	role, _ := roleVal.(string)

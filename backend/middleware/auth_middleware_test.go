@@ -149,8 +149,8 @@ func TestAuthMiddleware_ValidJWT(t *testing.T) {
 func TestAuthMiddleware_MissingUsernameClaim(t *testing.T) {
 	token := signTestToken(t, jwt.MapClaims{"role": "clan"})
 	status, called := runAuthProtected(t, "Bearer "+token)
-	if status != http.StatusOK || !called {
-		t.Fatalf("middleware allows empty username claim: status=%d called=%v", status, called)
+	if status != http.StatusUnauthorized || called {
+		t.Fatalf("missing username must be unauthorized: status=%d called=%v", status, called)
 	}
 }
 

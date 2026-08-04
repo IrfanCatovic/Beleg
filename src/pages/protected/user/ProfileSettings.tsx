@@ -88,9 +88,9 @@ function PasswordInput({
   describedBy?: string
 }) {
   const [visible, setVisible] = useState(false)
-  const labelClass = 'block text-xs font-medium text-gray-500 mb-1'
+  const labelClass = 'block text-xs font-medium text-slate-500 mb-1.5'
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
+    'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
   return (
     <div>
       <label htmlFor={id} className={labelClass}>
@@ -109,7 +109,7 @@ function PasswordInput({
         />
         <button
           type="button"
-          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-800"
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-700"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? 'Sakrij lozinku' : 'Prikaži lozinku'}
         >
@@ -501,10 +501,16 @@ export default function ProfileSettings() {
   }
 
   const disabledInputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed'
+    'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-slate-50 text-slate-500 cursor-not-allowed'
   const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500'
-  const labelClass = 'block text-xs font-medium text-gray-500 mb-1'
+    'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500'
+  const labelClass = 'block text-xs font-medium text-slate-500 mb-1.5'
+  const primaryBtnClass =
+    'inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 hover:shadow transition-all disabled:opacity-50 disabled:hover:shadow-sm'
+  const secondaryBtnClass =
+    'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors'
+  const adminCardClass = 'rounded-2xl bg-white shadow-sm ring-1 ring-black/5 overflow-visible'
+  const adminCardHeaderClass = 'px-5 py-4 border-b border-slate-100/90'
 
   if (!isLoggedIn) return null
   if (loading) return <Loader />
@@ -524,20 +530,20 @@ export default function ProfileSettings() {
   const saveDisabled = saving || (!isAdminEdit && !isDirty)
 
   return (
-    <div className="min-h-[60vh] bg-gradient-to-b from-gray-50 to-white">
-      <div className="border-b border-gray-200/80 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-[60vh] bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+      <div className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link
                 to={backTo}
-                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeftIcon className="h-5 w-5" />
                 {t('back')}
               </Link>
-              <div className="h-14 w-px bg-gray-200 hidden sm:block" />
-              <div className="flex items-center gap-4">
+              <div className="h-10 w-px bg-slate-200 hidden sm:block" />
+              <div className="flex items-center gap-3.5">
                 {!isAdminEdit ? (
                   <>
                     <input
@@ -549,7 +555,7 @@ export default function ProfileSettings() {
                       aria-label={t('chooseProfileImage')}
                     />
                     <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
-                      <div className="h-full w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl overflow-hidden">
+                      <div className="h-full w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl overflow-hidden ring-2 ring-white shadow-md">
                         {avatarPreview ? (
                           <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
                         ) : (
@@ -559,7 +565,7 @@ export default function ProfileSettings() {
                       <button
                         type="button"
                         onClick={() => setAvatarActionsOpen(true)}
-                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-700 hover:text-emerald-600 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-700 hover:text-emerald-600 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                         aria-label="Izmeni profilnu sliku"
                       >
                         <PencilSquareIcon className="h-4 w-4" />
@@ -567,7 +573,7 @@ export default function ProfileSettings() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden">
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl shrink-0 overflow-hidden ring-2 ring-white shadow-md">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -576,31 +582,28 @@ export default function ProfileSettings() {
                   </div>
                 )}
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">
+                  <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                     {isAdminEdit ? t('userSettings') : t('profileSettings')}
                   </h1>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm text-slate-500 mt-0.5 leading-snug">
                     {isAdminEdit ? t('adminSubtitle') : t('selfSubtitle')}
                   </p>
                 </div>
               </div>
             </div>
             {!isAdminEdit && (
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <button
                   type="submit"
                   form="profile-settings-form"
                   disabled={saveDisabled}
                   aria-busy={saving}
                   aria-label={saving ? t('saving') : t('saveChanges')}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
+                  className={primaryBtnClass}
                 >
                   {saving ? t('saving') : t('saveChanges')}
                 </button>
-                <Link
-                  to={backTo}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
+                <Link to={backTo} className={secondaryBtnClass}>
                   {t('cancel')}
                 </Link>
               </div>
@@ -611,24 +614,24 @@ export default function ProfileSettings() {
 
       <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6 lg:px-8" aria-live="polite" aria-atomic="true">
         {success && (
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200/80 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
             {t('savedRedirecting')}
           </div>
         )}
         {statusMessage && !success ? (
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200/80 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
             {statusMessage}
           </div>
         ) : null}
         {error && (
-          <div className="mt-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700" role="alert">
+          <div className="mt-2 rounded-xl bg-rose-50 border border-rose-200/80 px-4 py-3 text-sm text-rose-700" role="alert">
             {error}
           </div>
         )}
       </div>
       {mustCompleteProfile && (
         <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          <div className="rounded-xl bg-amber-50 border border-amber-200/80 px-4 py-3 text-sm text-amber-900">
             <p>
               Pre nastavka korišćenja aplikacije obavezno popunite i sačuvajte: email, pol i datum rođenja.
               {!emailVerified &&
@@ -641,15 +644,15 @@ export default function ProfileSettings() {
       <form
         id="profile-settings-form"
         onSubmit={handleSubmit}
-        className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8"
+        className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 pb-28 sm:pb-8"
       >
         {isAdminEdit ? (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+            <div className={adminCardClass}>
+              <div className={adminCardHeaderClass}>
                 <div className="flex items-center gap-2">
                   <UserCircleIcon className="h-5 w-5 text-emerald-600" />
-                  <h2 className="text-base font-semibold text-gray-900">{t('role')}</h2>
+                  <h2 className="text-base font-semibold text-slate-900 tracking-tight">{t('role')}</h2>
                 </div>
               </div>
               <div className="p-5">
@@ -669,11 +672,11 @@ export default function ProfileSettings() {
                 />
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+            <div className={adminCardClass}>
+              <div className={adminCardHeaderClass}>
                 <div className="flex items-center gap-2">
                   <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                  <h2 className="text-base font-semibold text-gray-900">{t('disciplineNotesTitle')}</h2>
+                  <h2 className="text-base font-semibold text-slate-900 tracking-tight">{t('disciplineNotesTitle')}</h2>
                 </div>
               </div>
               <div className="p-5 space-y-4">
@@ -703,13 +706,13 @@ export default function ProfileSettings() {
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-visible">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+            <div className={adminCardClass}>
+              <div className={adminCardHeaderClass}>
                 <div className="flex items-center gap-2">
                   <KeyIcon className="h-5 w-5 text-emerald-600" />
-                  <h2 className="text-base font-semibold text-gray-900">{t('setNewPassword')}</h2>
+                  <h2 className="text-base font-semibold text-slate-900 tracking-tight">{t('setNewPassword')}</h2>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">{t('leaveEmptyIfNoChange')}</p>
+                <p className="mt-1 text-xs text-slate-500">{t('leaveEmptyIfNoChange')}</p>
               </div>
               <div className="p-5 space-y-4">
                 <PasswordInput
@@ -734,14 +737,11 @@ export default function ProfileSettings() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
+                className={primaryBtnClass}
               >
                 {saving ? t('saving') : t('saveChanges')}
               </button>
-              <Link
-                to={backTo}
-                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
+              <Link to={backTo} className={secondaryBtnClass}>
                 {t('cancel')}
               </Link>
             </div>
@@ -786,14 +786,14 @@ export default function ProfileSettings() {
                   />
                 </div>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 Profilna fotografija se menja preko dugmeta na slici iznad. Cover fotografija se uređuje na javnom
                 profilu.
               </p>
               {publicPath ? (
                 <Link
                   to={publicPath}
-                  className="inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  className="inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
                 >
                   {PRIVACY_COPY.publicProfileLink}
                 </Link>
@@ -922,7 +922,7 @@ export default function ProfileSettings() {
                   className={disabledInputClass}
                   aria-describedby="klub-hint"
                 />
-                <p id="klub-hint" className="mt-1 text-xs text-gray-500">
+                <p id="klub-hint" className="mt-1 text-xs text-slate-500">
                   {PRIVACY_COPY.clubManagedHint}
                 </p>
               </div>
@@ -978,13 +978,13 @@ export default function ProfileSettings() {
                   />
                 </div>
               </div>
-              <div className="space-y-4 border-t border-gray-100 pt-4">
+              <div className="space-y-4 border-t border-slate-100 pt-4">
                 <div className="flex items-center gap-2">
                   <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-600" />
-                  <h3 className="text-sm font-semibold text-gray-900">{t('disciplineNotesTitle')}</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">{t('disciplineNotesTitle')}</h3>
                 </div>
                 {!canEditAdminFields && (
-                  <p className="text-xs text-gray-500" id="discipline-admin-hint">
+                  <p className="text-xs text-slate-500" id="discipline-admin-hint">
                     {t('adminOnlyFields')} {PRIVACY_COPY.clubManagedHint}
                   </p>
                 )}
@@ -1045,13 +1045,13 @@ export default function ProfileSettings() {
               icon={<KeyIcon className="h-5 w-5 text-emerald-600" />}
             >
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">Status potvrde emaila</p>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">Status potvrde emaila</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                       emailVerified
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
+                        : 'bg-amber-50 text-amber-900 border border-amber-200/80'
                     }`}
                   >
                     {emailVerified ? 'Email je potvrđen' : 'Email nije potvrđen'}
@@ -1061,7 +1061,7 @@ export default function ProfileSettings() {
                       type="button"
                       onClick={() => void handleResendEmail()}
                       disabled={resendingEmail || saving}
-                      className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
+                      className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 disabled:opacity-50 transition-colors"
                     >
                       {resendingEmail ? 'Šaljem…' : 'Pošalji ponovo potvrdu'}
                     </button>
@@ -1100,22 +1100,21 @@ export default function ProfileSettings() {
               />
             </ProfilePrivacySection>
 
-            <div className="flex flex-wrap gap-3 sticky bottom-3 z-10 rounded-xl bg-white/95 p-2 shadow-sm border border-gray-100 sm:static sm:bg-transparent sm:border-0 sm:shadow-none sm:p-0">
-              <button
-                type="submit"
-                disabled={saveDisabled}
-                aria-busy={saving}
-                aria-label={saving ? t('saving') : t('saveChanges')}
-                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {saving ? t('saving') : t('saveChanges')}
-              </button>
-              <Link
-                to={backTo}
-                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                {t('cancel')}
-              </Link>
+            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/80 bg-white/90 p-3 backdrop-blur-md sm:static sm:inset-auto sm:z-auto sm:mt-2 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+              <div className="mx-auto flex max-w-3xl flex-wrap gap-3 sm:mx-0">
+                <button
+                  type="submit"
+                  disabled={saveDisabled}
+                  aria-busy={saving}
+                  aria-label={saving ? t('saving') : t('saveChanges')}
+                  className={`${primaryBtnClass} flex-1 sm:flex-none`}
+                >
+                  {saving ? t('saving') : t('saveChanges')}
+                </button>
+                <Link to={backTo} className={`${secondaryBtnClass} flex-1 sm:flex-none`}>
+                  {t('cancel')}
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -1127,23 +1126,23 @@ export default function ProfileSettings() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Promena profilne slike</h3>
-              <p className="mt-1 text-sm text-gray-500">Izaberite šta želite da uradite.</p>
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+            <div className="px-5 py-4 border-b border-slate-100">
+              <h3 className="text-base font-semibold text-slate-900">Promena profilne slike</h3>
+              <p className="mt-1 text-sm text-slate-500">Izaberite šta želite da uradite.</p>
             </div>
             <div className="p-4 space-y-2">
               <button
                 type="button"
                 onClick={handleChooseAvatarFromGallery}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-gray-800 hover:bg-gray-50"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 transition-colors"
               >
                 Dodaj iz galerije
               </button>
               <button
                 type="button"
                 onClick={handleRemoveAvatar}
-                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-100"
+                className="w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-100 transition-colors"
               >
                 Ukloni profilnu
               </button>
@@ -1152,7 +1151,7 @@ export default function ProfileSettings() {
               <button
                 type="button"
                 onClick={() => setAvatarActionsOpen(false)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 Otkaži
               </button>

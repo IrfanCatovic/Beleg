@@ -62,8 +62,28 @@ func GetTokenFromRequest(c *gin.Context) string {
 	return ""
 }
 
+// jwtUsernameClaimValid vraća kanonski username ili false ako claim nije validan string identitet.
+// JWT role claim se ne koristi za autorizaciju — LoadUserMiddleware postavlja DB role.
+func jwtUsernameClaimValid(claims jwt.MapClaims) (string, bool) {
+	raw, ok := claims["username"]
+	if !ok || raw == nil {
+		return "", false
+	}
+	usernameClaim, ok := raw.(string)
+	if !ok {
+		return "", false
+	}
+	username := helpers.NormalizeUsername(usernameClaim)
+	// Canonical dužina kao u ValidateUsername (2–30); prazan/whitespace → unauthorized.
+	if len(username) < 2 || len(username) > 30 {
+		return "", false
+	}
+	return username, true
+}
+
 // AuthMiddleware prima isti JWT secret kao main (nakon godotenv.Load()), da verifikacija odgovara potpisivanju.
 // Token: Authorization Bearer (prioritet) ili HttpOnly cookie auth_token.
+// JWT potvrđuje session/identitet; role claim je samo informativan dok LoadUser ne postavi DB role.
 func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := GetTokenFromRequest(c)
@@ -95,8 +115,14 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		usernameClaim, _ := claims["username"].(string)
-		c.Set("username", helpers.NormalizeUsername(usernameClaim))
+		username, ok := jwtUsernameClaimValid(claims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			return
+		}
+
+		c.Set("username", username)
+		// Informativno do LoadUser; autorizacija mora koristiti DB role nakon LoadUserMiddleware.
 		c.Set("role", claims["role"])
 
 		c.Next()

@@ -37,6 +37,7 @@ func TestLoadUserMiddleware_SetsContext(t *testing.T) {
 	r.Use(func(c *gin.Context) {
 		c.Set("db", db)
 		c.Set("username", "tester")
+		c.Set("role", "admin") // stale JWT claim — must be overwritten
 		c.Next()
 	})
 	r.Use(LoadUserMiddleware())
@@ -50,6 +51,10 @@ func TestLoadUserMiddleware_SetsContext(t *testing.T) {
 			return
 		}
 		if kid, _ := c.Get(ContextKeyKlubID); kid.(uint) != klubID {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		if role, _ := c.Get("role"); role != "clan" {
 			c.Status(http.StatusInternalServerError)
 			return
 		}

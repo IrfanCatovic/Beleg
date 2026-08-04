@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RequireRoles aborts with 403 unless JWT role claim matches one of roles.
+// RequireRoles aborts with 403 unless context role matches one of roles.
+// Context role mora biti postavljen iz DB (LoadUserMiddleware) — ne iz JWT claima.
 func RequireRoles(roles ...string) gin.HandlerFunc {
 	allowed := make(map[string]struct{}, len(roles))
 	for _, r := range roles {

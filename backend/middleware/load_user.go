@@ -17,16 +17,17 @@ const (
 )
 
 // LoadUserMiddleware učitava Korisnik jednom po zahtevu (posle AuthMiddleware).
+// Postavlja context role iz DB — JWT role claim nije autoritativan za RBAC.
 func LoadUserMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		usernameVal, exists := c.Get("username")
 		if !exists {
-			c.Next()
+			apperror.Abort(c, apperror.New("UNAUTHORIZED", "Niste prijavljeni", http.StatusUnauthorized))
 			return
 		}
 		username, _ := usernameVal.(string)
 		if username == "" {
-			c.Next()
+			apperror.Abort(c, apperror.New("UNAUTHORIZED", "Niste prijavljeni", http.StatusUnauthorized))
 			return
 		}
 
@@ -52,6 +53,8 @@ func LoadUserMiddleware() gin.HandlerFunc {
 		if korisnik.KlubID != nil {
 			c.Set(ContextKeyKlubID, *korisnik.KlubID)
 		}
+		// Canonical RBAC source: aktuelna DB role pregazi JWT claim.
+		c.Set("role", korisnik.Role)
 		c.Next()
 	}
 }

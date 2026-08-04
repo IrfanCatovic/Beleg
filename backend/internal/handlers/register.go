@@ -171,6 +171,8 @@ func RegisterUser(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
+		// /api/register je van protected middleware lanca (bootstrap superadmin bez tokena).
+		// Autentifikovani ogranak: JWT potvrđuje identitet; RBAC iz DB role (ne JWT claim).
 		tokenStr := middleware.GetTokenFromRequest(c)
 		if tokenStr == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste prijavljeni"})
@@ -191,14 +193,33 @@ func RegisterUser(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
-		roleVal, _ := claims["role"].(string)
+		usernameVal, _ := claims["username"].(string)
+		callerUsername := helpers.NormalizeUsername(usernameVal)
+		if len(callerUsername) < 2 || len(callerUsername) > 30 {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			return
+		}
+		var caller models.Korisnik
+		if err := helpers.DBWhereUsername(db, callerUsername).First(&caller).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
+			return
+		}
+		if caller.Role == "deleted" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Nalog je deaktiviran."})
+			return
+		}
+		roleVal := caller.Role
 		if roleVal != "admin" && roleVal != "sekretar" && roleVal != "superadmin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Samo admin, superadmin ili sekretar mogu da kreiraju nove korisnike"})
 			return
 		}
-		usernameVal, _ := claims["username"].(string)
 		c.Set("role", roleVal)
-		c.Set("username", helpers.NormalizeUsername(usernameVal))
+		c.Set("username", callerUsername)
+		c.Set(middleware.ContextKeyKorisnik, caller)
+		c.Set(middleware.ContextKeyUserID, caller.ID)
+		if caller.KlubID != nil {
+			c.Set(middleware.ContextKeyKlubID, *caller.KlubID)
+		}
 
 		clubID, ok := helpers.GetEffectiveClubID(c, db)
 		if !ok {
