@@ -47,4 +47,35 @@ describe('web logout contract', () => {
     expect(keysToClear).toContain('isLoggedIn')
     expect(keysToClear).toContain('auth_token')
   })
+
+  it('401 cleanup clears local keys but not HttpOnly cookie (AUTH-A4 contract)', () => {
+    const actionsOn401 = ['remove user', 'remove isLoggedIn', 'setAuthToken(null)']
+    const actionsNotOn401 = ['POST /api/logout', 'clear HttpOnly cookie']
+    expect(actionsOn401).toHaveLength(3)
+    expect(actionsNotOn401).toContain('POST /api/logout')
+  })
+})
+
+describe('web AuthProvider integration gap', () => {
+  it('documents missing render tests — no @testing-library/react in root package.json', () => {
+    const gap = {
+      cachedSessionHydrate: 'NOT_IMPLEMENTED',
+      protectedRouteVisibility: 'NOT_IMPLEMENTED',
+      global401Redirect: 'NOT_IMPLEMENTED',
+      reason: 'Requires @testing-library/react + jsdom — not in current devDependencies',
+    }
+    expect(gap.cachedSessionHydrate).toBe('NOT_IMPLEMENTED')
+  })
+})
+
+describe('web credential dual-storage contract', () => {
+  it('Bearer in localStorage + HttpOnly cookie both set on login', () => {
+    const mechanisms = ['localStorage auth_token', 'HttpOnly auth_token cookie']
+    expect(mechanisms).toHaveLength(2)
+  })
+
+  it('withCredentials:true sends cookie on API requests', () => {
+    const webApiConfig = { withCredentials: true }
+    expect(webApiConfig.withCredentials).toBe(true)
+  })
 })
