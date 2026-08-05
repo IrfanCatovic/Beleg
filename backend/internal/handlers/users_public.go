@@ -34,13 +34,9 @@ func GetPublicKorisnik(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 	param := c.Param("id")
-	korisnik := getKorisnikByIDOrUsername(db, param)
-	if korisnik == nil {
-		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
-		return
-	}
-	if viewer, ok := AuthUser(c); ok && viewer.ID != korisnik.ID && isBlockedEitherDirection(db, viewer.ID, korisnik.ID) {
-		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+	korisnik, err := getVisiblePublicKorisnik(c, db, param)
+	if err != nil {
+		respondPublicKorisnikNotFound(c)
 		return
 	}
 	if korisnik.KlubID != nil {
@@ -92,9 +88,9 @@ func GetPublicKorisnikStatistika(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 	param := c.Param("id")
-	korisnik := getKorisnikByIDOrUsername(db, param)
-	if korisnik == nil {
-		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+	korisnik, err := getVisiblePublicKorisnik(c, db, param)
+	if err != nil {
+		respondPublicKorisnikNotFound(c)
 		return
 	}
 
@@ -135,9 +131,9 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 	param := c.Param("id")
-	korisnik := getKorisnikByIDOrUsername(db, param)
-	if korisnik == nil {
-		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+	korisnik, err := getVisiblePublicKorisnik(c, db, param)
+	if err != nil {
+		respondPublicKorisnikNotFound(c)
 		return
 	}
 	targetID := int(korisnik.ID)
@@ -173,14 +169,13 @@ func GetPublicKorisnikPopeoSe(c *gin.Context) {
 	})
 }
 
-// GetPublicKorisnikVodio: završene ture koje je korisnik vodio.
 func GetPublicKorisnikVodio(c *gin.Context) {
 	dbAny, _ := c.Get("db")
 	db := dbAny.(*gorm.DB)
 	param := c.Param("id")
-	korisnik := getKorisnikByIDOrUsername(db, param)
-	if korisnik == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+	korisnik, err := getVisiblePublicKorisnik(c, db, param)
+	if err != nil {
+		respondPublicKorisnikNotFound(c)
 		return
 	}
 

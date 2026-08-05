@@ -165,59 +165,108 @@ func CreateFollowRequestHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete pratiti sami sebe"})
 		return
 	}
-	if isBlockedEitherDirection(db, currentUser.ID, req.TargetID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Nije moguće pratiti korisnika zbog blokade"})
-		return
-	}
 
-	var target models.Korisnik
-	if err := db.First(&target, req.TargetID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
-			return
+	type followCreateOutcome struct {
+		existing bool
+		created  bool
+		follow   models.Follow
+		target   models.Korisnik
+	}
+	var outcome followCreateOutcome
+
+	var err error
+	for attempt := 0; attempt < 5; attempt++ {
+		outcome = followCreateOutcome{}
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := lockUserPair(tx, currentUser.ID, req.TargetID); err != nil {
+				if errors.Is(err, errFollowSelf) {
+					return errFollowSelf
+				}
+				if errors.Is(err, errUserPairNotFound) || errors.Is(err, errUserPairDeleted) {
+					return gorm.ErrRecordNotFound
+				}
+				return err
+			}
+			if isBlockedEitherDirectionTx(tx, currentUser.ID, req.TargetID) {
+				return errFollowBlocked
+			}
+
+			var existing models.Follow
+			if err := tx.Where("requester_id = ? AND target_id = ?", currentUser.ID, req.TargetID).First(&existing).Error; err == nil {
+				outcome.existing = true
+				outcome.follow = existing
+				return nil
+			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+
+			f := models.Follow{
+				RequesterID: currentUser.ID,
+				TargetID:    req.TargetID,
+				Status:      models.FollowStatusPending,
+			}
+			if err := tx.Create(&f).Error; err != nil {
+				return err
+			}
+			outcome.created = true
+			outcome.follow = f
+
+			var target models.Korisnik
+			if err := tx.First(&target, req.TargetID).Error; err != nil {
+				return err
+			}
+			outcome.target = target
+			return nil
+		})
+		if err == nil || !isDeadlockError(err) {
+			break
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
-		return
 	}
-	if target.Role == "deleted" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+	if isDeadlockError(err) {
+		if isBlockedEitherDirection(db, currentUser.ID, req.TargetID) {
+			err = errFollowBlocked
+		} else {
+			var existing models.Follow
+			if db.Where("requester_id = ? AND target_id = ?", currentUser.ID, req.TargetID).First(&existing).Error == nil {
+				outcome.existing = true
+				outcome.follow = existing
+				err = nil
+			}
+		}
+	}
+
+	if err != nil {
+		switch {
+		case errors.Is(err, errFollowSelf):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete pratiti sami sebe"})
+		case errors.Is(err, errFollowBlocked):
+			c.JSON(http.StatusForbidden, gin.H{"error": "Nije moguće pratiti korisnika zbog blokade"})
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju zahteva"})
+		}
 		return
 	}
 
-	// Idempotentno: ako već postoji red za (requester,target), vraćamo ga.
-	var existing models.Follow
-	if err := db.Where("requester_id = ? AND target_id = ?", currentUser.ID, req.TargetID).First(&existing).Error; err == nil {
-		c.JSON(http.StatusOK, gin.H{"follow": existing})
-		return
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri postojeće veze"})
+	if outcome.existing {
+		c.JSON(http.StatusOK, gin.H{"follow": outcome.follow})
 		return
 	}
 
-	f := models.Follow{
-		RequesterID: currentUser.ID,
-		TargetID:    req.TargetID,
-		Status:      models.FollowStatusPending,
-	}
-	if err := db.Create(&f).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju zahteva"})
-		return
-	}
-
-	// Obaveštenje target korisniku: da može da prihvati/odbije iz Obaveštenja detalja.
 	requesterName := currentUser.FullName
 	if requesterName == "" {
 		requesterName = currentUser.Username
 	}
 	meta := notifications.ProfileNotificationMetadata(currentUser.ID, currentUser.Username, map[string]any{
-		"followId":          f.ID,
+		"followId":          outcome.follow.ID,
 		"requesterId":       currentUser.ID,
 		"requesterUsername": currentUser.Username,
 		"requesterFullName": currentUser.FullName,
 	})
 	notifications.NotifyUsers(
 		db,
-		[]uint{target.ID},
+		[]uint{outcome.target.ID},
 		models.ObavestenjeTipFollow,
 		"Novi zahtev za praćenje",
 		fmt.Sprintf("%s želi da te zaprati.", requesterName),
@@ -225,7 +274,7 @@ func CreateFollowRequestHandler(c *gin.Context) {
 		notifications.MarshalMetadata(meta),
 	)
 
-	c.JSON(http.StatusCreated, gin.H{"follow": f})
+	c.JSON(http.StatusCreated, gin.H{"follow": outcome.follow})
 }
 
 // PATCH /api/follows/requests/:id/accept
@@ -245,45 +294,104 @@ func AcceptFollowRequestHandler(c *gin.Context) {
 		return
 	}
 
-	var f models.Follow
-	if err := db.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusPending).
-		First(&f).Error; err != nil {
+	type acceptOutcome struct {
+		accepted    bool
+		idempotent  bool
+		follow      models.Follow
+	}
+	var outcome acceptOutcome
+
+	for attempt := 0; attempt < 5; attempt++ {
+		err = db.Transaction(func(tx *gorm.DB) error {
+			var pending models.Follow
+			if err := tx.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusPending).
+				First(&pending).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					var accepted models.Follow
+					if err2 := tx.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusAccepted).
+						First(&accepted).Error; err2 == nil {
+						outcome.idempotent = true
+						outcome.follow = accepted
+						return nil
+					}
+				}
+				return err
+			}
+
+			if err := lockUserPair(tx, pending.RequesterID, currentUser.ID); err != nil {
+				if errors.Is(err, errUserPairDeleted) || errors.Is(err, errUserPairNotFound) {
+					return gorm.ErrRecordNotFound
+				}
+				return err
+			}
+
+			if isBlockedEitherDirectionTx(tx, pending.RequesterID, currentUser.ID) {
+				_ = deleteFollowsBetweenUsers(tx, pending.RequesterID, currentUser.ID)
+				return gorm.ErrRecordNotFound
+			}
+
+			res := tx.Model(&models.Follow{}).
+				Where("id = ? AND status = ?", pending.ID, models.FollowStatusPending).
+				Update("status", models.FollowStatusAccepted)
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				var accepted models.Follow
+				if err := tx.Where("id = ? AND target_id = ? AND status = ?", pending.ID, currentUser.ID, models.FollowStatusAccepted).
+					First(&accepted).Error; err == nil {
+					outcome.idempotent = true
+					outcome.follow = accepted
+					return nil
+				}
+				return gorm.ErrRecordNotFound
+			}
+
+			outcome.accepted = true
+			outcome.follow = pending
+			outcome.follow.Status = models.FollowStatusAccepted
+			return nil
+		})
+		if err == nil || !isDeadlockError(err) {
+			break
+		}
+	}
+	if isDeadlockError(err) {
+		err = gorm.ErrRecordNotFound
+	}
+
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen ili više nije pending"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju zahteva"})
-		return
-	}
-
-	if err := db.Model(&f).Update("status", models.FollowStatusAccepted).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri prihvatanju zahteva"})
 		return
 	}
-	f.Status = models.FollowStatusAccepted
 
-	// Obaveštenje requester-u: target (currentUser) je prihvatio.
-	targetName := currentUser.FullName
-	if targetName == "" {
-		targetName = currentUser.Username
+	if outcome.accepted {
+		targetName := currentUser.FullName
+		if targetName == "" {
+			targetName = currentUser.Username
+		}
+		meta := notifications.ProfileNotificationMetadata(currentUser.ID, currentUser.Username, map[string]any{
+			"followId":       outcome.follow.ID,
+			"targetId":       currentUser.ID,
+			"targetUsername": currentUser.Username,
+			"targetFullName": currentUser.FullName,
+		})
+		notifications.NotifyUsers(
+			db,
+			[]uint{outcome.follow.RequesterID},
+			models.ObavestenjeTipFollow,
+			"Zahtev prihvaćen",
+			fmt.Sprintf("%s je prihvatio/la tvoj zahtev za praćenje.", targetName),
+			notifications.BuildProfileNotificationLink(currentUser.Username),
+			notifications.MarshalMetadata(meta),
+		)
 	}
-	meta := notifications.ProfileNotificationMetadata(currentUser.ID, currentUser.Username, map[string]any{
-		"followId":       f.ID,
-		"targetId":       currentUser.ID,
-		"targetUsername": currentUser.Username,
-		"targetFullName": currentUser.FullName,
-	})
-	notifications.NotifyUsers(
-		db,
-		[]uint{f.RequesterID},
-		models.ObavestenjeTipFollow,
-		"Zahtev prihvaćen",
-		fmt.Sprintf("%s je prihvatio/la tvoj zahtev za praćenje.", targetName),
-		notifications.BuildProfileNotificationLink(currentUser.Username),
-		notifications.MarshalMetadata(meta),
-	)
 
-	c.JSON(http.StatusOK, gin.H{"follow": f})
+	c.JSON(http.StatusOK, gin.H{"follow": outcome.follow})
 }
 
 // DELETE /api/follows/requests/:id
@@ -303,14 +411,35 @@ func RejectFollowRequestHandler(c *gin.Context) {
 		return
 	}
 
-	res := db.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusPending).
-		Delete(&models.Follow{})
-	if res.Error != nil {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		var pending models.Follow
+		if err := tx.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusPending).
+			First(&pending).Error; err != nil {
+			return err
+		}
+		if err := lockUserPair(tx, pending.RequesterID, currentUser.ID); err != nil {
+			if errors.Is(err, errUserPairDeleted) || errors.Is(err, errUserPairNotFound) {
+				return gorm.ErrRecordNotFound
+			}
+			return err
+		}
+		res := tx.Where("id = ? AND target_id = ? AND status = ?", uint(followIDUint), currentUser.ID, models.FollowStatusPending).
+			Delete(&models.Follow{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen ili više nije pending"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri odbijanju zahteva"})
-		return
-	}
-	if res.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Zahtev nije pronađen ili više nije pending"})
 		return
 	}
 
@@ -339,13 +468,35 @@ func UnfollowUserHandler(c *gin.Context) {
 		return
 	}
 
-	res := db.Where("requester_id = ? AND target_id = ?", currentUser.ID, targetID).Delete(&models.Follow{})
-	if res.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otpraćivanju"})
-		return
-	}
-	if res.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Veza praćenja nije pronađena"})
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := lockUserPair(tx, currentUser.ID, targetID); err != nil {
+			if errors.Is(err, errFollowSelf) {
+				return errFollowSelf
+			}
+			if errors.Is(err, errUserPairNotFound) || errors.Is(err, errUserPairDeleted) {
+				return gorm.ErrRecordNotFound
+			}
+			return err
+		}
+		res := tx.Where("requester_id = ? AND target_id = ?", currentUser.ID, targetID).Delete(&models.Follow{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, errFollowSelf):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete otpratiti sebe"})
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Veza praćenja nije pronađena"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri otpraćivanju"})
+		}
 		return
 	}
 
@@ -372,29 +523,60 @@ func BlockUserHandler(c *gin.Context) {
 		return
 	}
 
-	var target models.Korisnik
-	if err := db.First(&target, targetID).Error; err != nil || target.Role == "deleted" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+	var blockResult models.Block
+
+	for attempt := 0; attempt < 5; attempt++ {
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := lockUserPair(tx, currentUser.ID, targetID); err != nil {
+				if errors.Is(err, errFollowSelf) {
+					return errFollowSelf
+				}
+				if errors.Is(err, errUserPairNotFound) || errors.Is(err, errUserPairDeleted) {
+					return gorm.ErrRecordNotFound
+				}
+				return err
+			}
+
+			var existing models.Block
+			if err := tx.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).First(&existing).Error; err == nil {
+				blockResult = existing
+			} else if errors.Is(err, gorm.ErrRecordNotFound) {
+				blockResult = models.Block{BlockerID: currentUser.ID, BlockedID: targetID}
+				if err := tx.Create(&blockResult).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+
+			return deleteFollowsBetweenUsers(tx, currentUser.ID, targetID)
+		})
+		if err == nil || !isDeadlockError(err) {
+			break
+		}
+	}
+	if isDeadlockError(err) {
+		var existing models.Block
+		if db.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).First(&existing).Error == nil {
+			blockResult = existing
+			_ = deleteFollowsBetweenUsers(db, currentUser.ID, targetID)
+			err = nil
+		}
+	}
+
+	if err != nil {
+		switch {
+		case errors.Is(err, errFollowSelf):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ne možete blokirati sebe"})
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri blokiranju korisnika"})
+		}
 		return
 	}
 
-	var existing models.Block
-	if err := db.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).First(&existing).Error; err == nil {
-		c.JSON(http.StatusOK, gin.H{"block": existing})
-		return
-	}
-
-	b := models.Block{BlockerID: currentUser.ID, BlockedID: targetID}
-	if err := db.Create(&b).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri blokiranju korisnika"})
-		return
-	}
-
-	// Blok prekida sve follow veze u oba smera.
-	_ = db.Where("(requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)", currentUser.ID, targetID, targetID, currentUser.ID).
-		Delete(&models.Follow{}).Error
-
-	c.JSON(http.StatusOK, gin.H{"block": b})
+	c.JSON(http.StatusOK, gin.H{"block": blockResult})
 }
 
 // DELETE /api/blocks/:targetId
@@ -410,14 +592,28 @@ func UnblockUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći targetId"})
 		return
 	}
+	targetID := uint(targetIDUint)
 
-	res := db.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, uint(targetIDUint)).Delete(&models.Block{})
-	if res.Error != nil {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if targetID != currentUser.ID {
+			_ = lockUserPair(tx, currentUser.ID, targetID)
+		}
+		res := tx.Where("blocker_id = ? AND blocked_id = ?", currentUser.ID, targetID).Delete(&models.Block{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije blokiran"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju blokade"})
-		return
-	}
-	if res.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije blokiran"})
 		return
 	}
 	c.Status(http.StatusNoContent)

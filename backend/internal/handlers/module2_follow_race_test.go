@@ -158,29 +158,42 @@ func TestFollowRace_AcceptAccept_Idempotent(t *testing.T) {
 		t.Fatal("exactly one follow row")
 	}
 	notifs := countNotifications(t, db, alice.ID, models.ObavestenjeTipFollow)
-	if notifs > 2 {
-		t.Fatalf("at most 2 accept notifications, got %d", notifs)
+	if notifs > 1 {
+		t.Fatalf("at most 1 accept notification, got %d", notifs)
 	}
 }
 
-func TestFollowRace_BlockFollow_SimulatedLateFollow_WriteInconsistency(t *testing.T) {
-	// Deterministic interleaving: block completes (deletes follows), then follow create wins.
-	db := testFollowRaceDB(t)
-	alice := seedFollowUser(t, db, "sim_alice")
-	bob := seedFollowUser(t, db, "sim_bob")
-	_ = db.Create(&models.Block{BlockerID: bob.ID, BlockedID: alice.ID})
-	_ = db.Create(&models.Follow{RequesterID: alice.ID, TargetID: bob.ID, Status: models.FollowStatusPending})
+func TestFollowRace_BlockFollow_SerializedBlockWins(t *testing.T) {
+	const iterations = 20
+	for i := 0; i < iterations; i++ {
+		db := testFollowRaceDB(t)
+		alice := seedFollowUser(t, db, "ser_alice_"+strconv.Itoa(i))
+		bob := seedFollowUser(t, db, "ser_bob_"+strconv.Itoa(i))
 
-	var blockCnt, followCnt int64
-	db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", bob.ID, alice.ID).Count(&blockCnt)
-	db.Model(&models.Follow{}).Where("requester_id = ? AND target_id = ?", alice.ID, bob.ID).Count(&followCnt)
-	if blockCnt != 1 || followCnt != 1 {
-		t.Fatalf("simulated race state block=%d follow=%d", blockCnt, followCnt)
-	}
+		body, _ := json.Marshal(CreateFollowRequest{TargetID: bob.ID})
+		tid := strconv.FormatUint(uint64(alice.ID), 10)
 
-	// M2-RACE-BF-1 P2: this DB state is reachable via block×follow race interleaving
-	if blockCnt == 1 && followCnt == 1 {
-		t.Fatalf("M2-RACE-BF-1 P2: block and pending follow must not coexist in DB after block×follow race")
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			callFollowHandler(t, db, alice, CreateFollowRequestHandler, http.MethodPost, "/requests", nil, body)
+		}()
+		go func() {
+			defer wg.Done()
+			callFollowHandler(t, db, bob, BlockUserHandler, http.MethodPost, "/blocks/"+tid,
+				gin.Params{{Key: "targetId", Value: tid}}, nil)
+		}()
+		wg.Wait()
+
+		var blockCnt, followCnt int64
+		db.Model(&models.Block{}).Where("blocker_id = ? AND blocked_id = ?", bob.ID, alice.ID).Count(&blockCnt)
+		db.Model(&models.Follow{}).
+			Where("(requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)", alice.ID, bob.ID, bob.ID, alice.ID).
+			Count(&followCnt)
+		if blockCnt != 1 || followCnt != 0 {
+			t.Fatalf("iter=%d block=%d follow=%d want block=1 follow=0", i, blockCnt, followCnt)
+		}
 	}
 }
 

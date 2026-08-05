@@ -31,7 +31,7 @@ func callPublicSubroute(t *testing.T, db *gorm.DB, handler gin.HandlerFunc, para
 	return w.Code, body
 }
 
-func TestPublicSubroutes_BlockGap_Documented(t *testing.T) {
+func TestPublicSubroutes_BlockReturns404(t *testing.T) {
 	db := testPublicProfileDB(t)
 	alice := models.Korisnik{Username: "sub_alice", Password: "x", Role: "clan", FullName: "Alice"}
 	bob := models.Korisnik{Username: "sub_bob", Password: "x", Role: "clan", FullName: "Bob"}
@@ -45,7 +45,6 @@ func TestPublicSubroutes_BlockGap_Documented(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Main profile is blocked (404)
 	mainCode, _, _ := callGetPublicKorisnik(t, db, "sub_alice", &bob)
 	if mainCode != http.StatusNotFound {
 		t.Fatalf("main profile must be 404 when blocked, got %d", mainCode)
@@ -58,20 +57,32 @@ func TestPublicSubroutes_BlockGap_Documented(t *testing.T) {
 		{"statistika", GetPublicKorisnikStatistika},
 		{"popeo-se", GetPublicKorisnikPopeoSe},
 		{"vodio", GetPublicKorisnikVodio},
+		{"recenzije-vodica", GetPublicKorisnikGuideRecenzije},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			code, body := callPublicSubroute(t, db, tc.handler, "sub_alice", &bob)
-			// M2-SUBROUTE-1: sub-routes lack block check — document actual behavior
-			if code == http.StatusOK {
-				t.Fatalf("M2-SUBROUTE-1 P2: %s returns 200 when main profile is 404 for blocked viewer; body keys=%v", tc.name, keysOf(body))
-			}
 			if code != http.StatusNotFound {
-				t.Fatalf("unexpected status %d for %s", code, tc.name)
+				t.Fatalf("%s must return 404 when blocked, got %d body=%v", tc.name, code, body)
+			}
+			if _, hasStat := body["statistika"]; hasStat {
+				t.Fatalf("%s must not leak statistika on block", tc.name)
+			}
+			if _, hasGuide := body["guide"]; hasGuide {
+				t.Fatalf("%s must not leak guide data on block", tc.name)
 			}
 		})
 	}
+
+	t.Run("viewer-blocked-direction", func(t *testing.T) {
+		_ = db.Where("blocker_id = ? AND blocked_id = ?", bob.ID, alice.ID).Delete(&models.Block{})
+		_ = db.Create(&models.Block{BlockerID: alice.ID, BlockedID: bob.ID})
+		code, body := callPublicSubroute(t, db, GetPublicKorisnikStatistika, "sub_bob", &alice)
+		if code != http.StatusNotFound {
+			t.Fatalf("reverse block must be 404, got %d body=%v", code, body)
+		}
+	})
 }
 
 func TestPublicSubroutes_DeletedUser404(t *testing.T) {
@@ -89,6 +100,7 @@ func TestPublicSubroutes_DeletedUser404(t *testing.T) {
 		{"statistika", GetPublicKorisnikStatistika},
 		{"popeo-se", GetPublicKorisnikPopeoSe},
 		{"vodio", GetPublicKorisnikVodio},
+		{"recenzije-vodica", GetPublicKorisnikGuideRecenzije},
 	}
 
 	for _, h := range handlers {

@@ -256,9 +256,9 @@ func SubmitGuideRatingForAkcija(c *gin.Context) {
 func GetPublicKorisnikGuideRecenzije(c *gin.Context) {
 	db := DB(c)
 	param := c.Param("id")
-	korisnik := getKorisnikByIDOrUsername(db, param)
-	if korisnik == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
+	korisnik, err := getVisiblePublicKorisnik(c, db, param)
+	if err != nil {
+		respondPublicKorisnikNotFound(c)
 		return
 	}
 	if !helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID) {

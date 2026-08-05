@@ -328,6 +328,10 @@ func UpdateMe(jwtSecret []byte) gin.HandlerFunc {
 			}
 			return nil
 		}); err != nil {
+			if isDuplicateUsernameDBError(err) {
+				c.JSON(http.StatusConflict, gin.H{"error": "Korisničko ime je već zauzeto"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čuvanju profila"})
 			return
 		}

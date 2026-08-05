@@ -24,5 +24,5 @@ func MemoryDSN(t *testing.T, packagePrefix string) string {
 	}
 	n := atomic.AddUint64(&dsnSeq, 1)
 	name := strings.ReplaceAll(t.Name(), "/", "_")
-	return fmt.Sprintf("file:%s_%s_%d?mode=memory&cache=shared", packagePrefix, name, n)
+	return fmt.Sprintf("file:%s_%s_%d?mode=memory&cache=shared&_busy_timeout=5000", packagePrefix, name, n)
 }

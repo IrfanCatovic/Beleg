@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -38,15 +39,15 @@ func TestRenameConcurrent_TwoUsersSameUsername_OneWins(t *testing.T) {
 	wg.Wait()
 
 	success := 0
-	conflictOrError := 0
+	conflict := 0
 	for i, code := range codes {
 		switch code {
 		case http.StatusOK:
 			success++
 		case http.StatusConflict:
-			conflictOrError++
+			conflict++
 		case http.StatusInternalServerError:
-			conflictOrError++ // unique violation surfaces as 500 today
+			t.Fatalf("loser must not get 500, codes=%v bodies=%v", codes, bodies)
 		default:
 			t.Fatalf("unexpected status[%d]=%d", i, code)
 		}
@@ -54,8 +55,8 @@ func TestRenameConcurrent_TwoUsersSameUsername_OneWins(t *testing.T) {
 	if success != 1 {
 		t.Fatalf("expected exactly one success, codes=%v", codes)
 	}
-	if conflictOrError != 1 {
-		t.Fatalf("expected one conflict/error, codes=%v", codes)
+	if conflict != 1 {
+		t.Fatalf("expected one 409 conflict, codes=%v", codes)
 	}
 
 	var count int64
@@ -102,36 +103,41 @@ func TestRenameConcurrent_SameUserDualRename_DeterministicFinal(t *testing.T) {
 	}
 }
 
-func TestRenameConcurrent_LoserGets500Not409_Documented(t *testing.T) {
-	db := testUpdateMeDB(t)
-	a := seedUpdateMeUser(t, db, "race_a", "pass12345")
-	b := seedUpdateMeUser(t, db, "race_b", "pass12345")
+func TestRenameConcurrent_LoserAlways409(t *testing.T) {
+	const iterations = 20
+	for i := 0; i < iterations; i++ {
+		db := testUpdateMeDB(t)
+		a := seedUpdateMeUser(t, db, "race_a_"+strconv.Itoa(i), "pass12345")
+		b := seedUpdateMeUser(t, db, "race_b_"+strconv.Itoa(i), "pass12345")
+		target := "race_target_" + strconv.Itoa(i)
 
-	var wg sync.WaitGroup
-	codes := make([]int, 2)
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		codes[0], _, _ = callUpdateMe(t, db, a.Username, renameFields(a, "race_target"))
-	}()
-	go func() {
-		defer wg.Done()
-		codes[1], _, _ = callUpdateMe(t, db, b.Username, renameFields(b, "race_target"))
-	}()
-	wg.Wait()
+		var wg sync.WaitGroup
+		codes := make([]int, 2)
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			codes[0], _, _ = callUpdateMe(t, db, a.Username, renameFields(a, target))
+		}()
+		go func() {
+			defer wg.Done()
+			codes[1], _, _ = callUpdateMe(t, db, b.Username, renameFields(b, target))
+		}()
+		wg.Wait()
 
-	has500, has409 := false, false
-	for _, c := range codes {
-		if c == http.StatusInternalServerError {
-			has500 = true
+		success, conflict, serverErr := 0, 0, 0
+		for _, c := range codes {
+			switch c {
+			case http.StatusOK:
+				success++
+			case http.StatusConflict:
+				conflict++
+			case http.StatusInternalServerError:
+				serverErr++
+			}
 		}
-		if c == http.StatusConflict {
-			has409 = true
+		if success != 1 || conflict != 1 || serverErr != 0 {
+			t.Fatalf("iter=%d codes=%v want one 200 one 409", i, codes)
 		}
-	}
-	// M2-RACE-RENAME-1: unique race loser may get 500 instead of canonical 409
-	if has500 && !has409 {
-		t.Log("M2-RACE-RENAME-1 documented: concurrent rename loser returns 500 not 409")
 	}
 }
 
