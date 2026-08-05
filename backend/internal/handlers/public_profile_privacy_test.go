@@ -24,7 +24,13 @@ func testPublicProfileDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&models.Korisnik{}, &models.GuideProfile{}, &models.Block{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.Korisnik{},
+		&models.GuideProfile{},
+		&models.Block{},
+		&models.Prijava{},
+		&models.Akcija{},
+	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
