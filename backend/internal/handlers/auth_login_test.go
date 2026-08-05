@@ -393,6 +393,33 @@ func TestLogout_ClearsCookie(t *testing.T) {
 	}
 }
 
+func TestLogout_IdempotentWithoutCookieOrAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	req := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
+	req.Header.Set("Authorization", "Bearer not.a.valid.jwt")
+	c.Request = req
+	Logout()(c)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d body=%s", rec.Code, rec.Body.String())
+	}
+	cookies := rec.Result().Cookies()
+	for _, ck := range cookies {
+		if ck.Name == "auth_token" {
+			if ck.MaxAge >= 0 {
+				t.Fatalf("expected deletion cookie, got MaxAge=%d", ck.MaxAge)
+			}
+			if ck.Path != "/" {
+				t.Fatalf("Path=%q want /", ck.Path)
+			}
+			if !ck.HttpOnly {
+				t.Fatal("expected HttpOnly on clear cookie")
+			}
+		}
+	}
+}
+
 func TestLogin_ResponseUserPayloadShape(t *testing.T) {
 	db := testLoginDB(t)
 	klubID := uint(3)

@@ -108,10 +108,18 @@ export function createApiClient(config: ApiClientConfig): ApiClientBundle {
       const method = (error.config?.method || '').toLowerCase()
       const isLoginPost =
         method === 'post' && (reqUrl === '/login' || reqUrl.endsWith('/login'))
+      const isLogoutPost =
+        method === 'post' && (reqUrl === '/api/logout' || reqUrl.endsWith('/api/logout'))
       const isActivityRequest = reqUrl.includes('/api/activities')
       const requestGeneration = (error.config as RequestConfigWithSession | undefined)
         ?.__sessionGeneration
-      if (error.response?.status === 401 && onUnauthorized && !isLoginPost && !isActivityRequest) {
+      if (
+        error.response?.status === 401 &&
+        onUnauthorized &&
+        !isLoginPost &&
+        !isLogoutPost &&
+        !isActivityRequest
+      ) {
         if (shouldInvokeUnauthorizedHandler(requestGeneration)) {
           onUnauthorized()
         }

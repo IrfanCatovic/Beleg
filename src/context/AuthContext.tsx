@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { setUnauthorizedHandler, setAuthToken } from '../services/api'
-import { fetchMeProfile, logoutSession } from '../services/auth'
+import { fetchMeProfile } from '../services/auth'
 import { sessionGeneration } from '../auth/sessionGeneration'
+import { clearWebServerAuthCookieBestEffort } from '../auth/clearWebServerAuthCookie'
 import {
   IS_LOGGED_IN_KEY,
   USER_STORAGE_KEY,
@@ -44,13 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const invalidateSession = useCallback(() => {
     sessionGeneration.advanceSessionGeneration()
     clearLocalAuthState()
+    void clearWebServerAuthCookieBestEffort()
   }, [clearLocalAuthState])
 
   const logout = useCallback(async () => {
     sessionGeneration.advanceSessionGeneration()
     setAuthLoading(false)
-    await logoutSession()
     clearLocalAuthState()
+    await clearWebServerAuthCookieBestEffort()
   }, [clearLocalAuthState])
 
   const refreshUser = useCallback(async () => {
@@ -145,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => {
       sessionGeneration.advanceSessionGeneration()
       clearLocalAuthState()
+      void clearWebServerAuthCookieBestEffort()
     })
     return () => setUnauthorizedHandler(null)
   }, [clearLocalAuthState])

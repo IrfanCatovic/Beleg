@@ -48,11 +48,11 @@ describe('web logout contract', () => {
     expect(keysToClear).toContain('auth_token')
   })
 
-  it('401 cleanup clears local keys but not HttpOnly cookie (AUTH-A4 contract)', () => {
-    const actionsOn401 = ['remove user', 'remove isLoggedIn', 'setAuthToken(null)']
-    const actionsNotOn401 = ['POST /api/logout', 'clear HttpOnly cookie']
-    expect(actionsOn401).toHaveLength(3)
-    expect(actionsNotOn401).toContain('POST /api/logout')
+  it('401 cleanup clears local keys and triggers server cookie clear (AUTH-A4 contract)', () => {
+    const actionsOn401 = ['advance generation', 'remove user', 'remove isLoggedIn', 'setAuthToken(null)', 'POST /api/logout without Bearer']
+    const actionsNotBlockingLocal = ['wait for network before local clear']
+    expect(actionsOn401).toContain('POST /api/logout without Bearer')
+    expect(actionsNotBlockingLocal).toHaveLength(1)
   })
 })
 

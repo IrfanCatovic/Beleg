@@ -82,6 +82,15 @@ describe('createApiClient unauthorized coordinator', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
+  it('logout POST 401 does not trigger global logout handler (recursion guard)', async () => {
+    const { bundle, onRejected } = captureResponseRejectHandler()
+    const handler = vi.fn()
+    bundle.setUnauthorizedHandler(handler)
+
+    await expect(onRejected(makeAxiosError(401, '/api/logout', 'post'))).rejects.toBeTruthy()
+    expect(handler).not.toHaveBeenCalled()
+  })
+
   it('403 club hold triggers unauthorized handler', async () => {
     const { bundle, onRejected } = captureResponseRejectHandler()
     const handler = vi.fn()
