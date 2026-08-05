@@ -23,10 +23,21 @@ type CreateCommentRequest struct {
 func GetPostComments(c *gin.Context) {
 	db := DB(c)
 
+	currentUser, ok := AuthUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
 	idStr := c.Param("id")
 	postID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID objave"})
+		return
+	}
+
+	if _, err := getVisiblePostForViewer(db, currentUser, uint(postID)); err != nil {
+		respondPostNotFound(c)
 		return
 	}
 
@@ -116,16 +127,9 @@ func GetPostComments(c *gin.Context) {
 func CreatePostComment(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -152,10 +156,9 @@ func CreatePostComment(c *gin.Context) {
 		return
 	}
 
-	// Proveri da post postoji
-	var post models.Post
-	if err := db.First(&post, postID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+	post, err := getVisiblePostForViewer(db, korisnik, uint(postID))
+	if err != nil {
+		respondPostNotFound(c)
 		return
 	}
 
@@ -170,18 +173,15 @@ func CreatePostComment(c *gin.Context) {
 		return
 	}
 
-	// Notifikuj označene (@username) u komentaru — samo članove kluba kojem objava pripada.
 	mentions := extractMentionUsernames(req.Content)
 	notifyMentionsFromContent(db, mentions, korisnik, req.Content, korisnik.ID, uint(postID), post.ClubID)
 
-	// Obavesti vlasnika objave samo ako komentar nije od vlasnika i ako je komentator u istom klubu kao objava.
 	if post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
 		commenterName := strings.TrimSpace(korisnik.FullName)
 		if commenterName == "" {
 			commenterName = korisnik.Username
 		}
 
-		// Kratki odlomak komentara (da ne bude ogroman body).
 		runes := []rune(req.Content)
 		snippet := req.Content
 		if len(runes) > 120 {

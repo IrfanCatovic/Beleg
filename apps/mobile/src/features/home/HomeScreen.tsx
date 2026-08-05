@@ -4,7 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import * as ImagePicker from 'expo-image-picker'
 import { useTranslation } from 'react-i18next'
-import { getApiErrorMessage } from '@beleg/shared'
+import { getApiErrorMessage, mergeUniquePostsById } from '@beleg/shared'
 import {
   createPost,
   fetchAkcije,
@@ -132,7 +132,14 @@ export default function HomeScreen({ navigation, route }: Props) {
     onError: (err) => showAlert(t('publishFailedTitle'), getApiErrorMessage(err, t('publishFailed'))),
   })
 
-  const posts = postsQuery.data?.pages.flatMap((p) => p.posts) ?? []
+  const posts = useMemo(() => {
+    const pages = postsQuery.data?.pages ?? []
+    let acc: typeof pages[number]['posts'] = []
+    for (const page of pages) {
+      acc = mergeUniquePostsById(acc, page.posts)
+    }
+    return acc
+  }, [postsQuery.data])
   const aktivneAkcije = useMemo(
     () =>
       mergeAkcijeById(

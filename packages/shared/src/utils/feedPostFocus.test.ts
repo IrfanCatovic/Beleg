@@ -4,6 +4,7 @@ import {
   findPostIndexById,
   insertOrMovePostIntoFeedPages,
   insertOrMovePostIntoList,
+  mergeUniquePostsById,
   normalizeFeedPostId,
 } from './feedPostFocus'
 
@@ -62,6 +63,45 @@ describe('findPostIndexById / insert helpers', () => {
   })
 })
 
+describe('mergeUniquePostsById', () => {
+  it('keeps existing order and appends unknown ids', () => {
+    const existing = [{ id: 1, v: 'a' }, { id: 2, v: 'b' }]
+    const incoming = [{ id: 3, v: 'c' }, { id: 2, v: 'b2' }]
+    const merged = mergeUniquePostsById(existing, incoming)
+    expect(merged.map((p) => p.id)).toEqual([1, 2, 3])
+    expect(merged[1]).toEqual({ id: 2, v: 'b2' })
+    expect(existing[1]).toEqual({ id: 2, v: 'b' })
+  })
+
+  it('focused insert then page append does not duplicate', () => {
+    const afterFocus = insertOrMovePostIntoList([{ id: 1 }, { id: 2 }], { id: 99 })
+    const nextPage = [{ id: 3 }, { id: 99 }]
+    const merged = mergeUniquePostsById(afterFocus, nextPage)
+    expect(merged.filter((p) => p.id === 99)).toHaveLength(1)
+    expect(merged.map((p) => p.id)).toEqual([99, 1, 2, 3])
+  })
+
+  it('is immutable', () => {
+    const a = [{ id: 1 }]
+    const b = [{ id: 2 }]
+    const m = mergeUniquePostsById(a, b)
+    expect(a).toEqual([{ id: 1 }])
+    expect(b).toEqual([{ id: 2 }])
+    expect(m).toEqual([{ id: 1 }, { id: 2 }])
+  })
+})
+
+describe('stale focus generation guard', () => {
+  it('ignores older A response after B intent', () => {
+    let gen = 0
+    const shouldApply = (requestId: number) => requestId === gen
+    const aStart = ++gen
+    const bStart = ++gen
+    expect(shouldApply(bStart)).toBe(true)
+    expect(shouldApply(aStart)).toBe(false)
+  })
+})
+
 describe('decideFeedPostFocus', () => {
   const base = {
     postId: 42,
@@ -81,9 +121,10 @@ describe('decideFeedPostFocus', () => {
   })
 
   it('scrolls when already loaded', () => {
-    expect(
-      decideFeedPostFocus({ ...base, loadedPostIds: [10, 42, 3], fetchStatus: 'idle' }),
-    ).toEqual({ action: 'scroll', index: 1 })
+    expect(decideFeedPostFocus({ ...base, loadedPostIds: [1, 42, 3] })).toEqual({
+      action: 'scroll',
+      index: 1,
+    })
   })
 
   it('fetches when missing', () => {
@@ -113,28 +154,5 @@ describe('decideFeedPostFocus', () => {
         fetchStatus: 'idle',
       }),
     ).toEqual({ action: 'noop' })
-  })
-})
-
-/**
- * M3-CLIENT-DEDUP-1: after postId focus inserts an out-of-window post at the front,
- * consumers append the next page with offset=loadedLength and no id dedupe.
- * That produces duplicate ids (React key collision on web/mobile).
- * Document expected consumer contract: append must dedupe by id.
- */
-describe('M3-CLIENT-DEDUP-1 feed focus insert then naive append', () => {
-  it('documents duplicate when next page re-includes focused post', () => {
-    const focused = { id: 99 }
-    const afterFocus = insertOrMovePostIntoList([{ id: 1 }, { id: 2 }], focused)
-    // Simulated next page from server that still contains 99 (natural position)
-    const nextPage = [{ id: 3 }, { id: 99 }]
-    const naiveAppend = [...afterFocus, ...nextPage]
-    const dupCount = naiveAppend.filter((p) => p.id === 99).length
-    if (dupCount > 1) {
-      throw new Error(
-        `M3-CLIENT-DEDUP-1 P2: naive append after focus insert duplicates postId; count=${dupCount} ids=${naiveAppend.map((p) => p.id).join(',')}`,
-      )
-    }
-    expect(dupCount).toBe(1)
   })
 })

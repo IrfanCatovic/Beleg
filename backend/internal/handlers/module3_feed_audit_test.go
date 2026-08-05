@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -176,7 +177,7 @@ func TestModule3_GetPost_OutsideAllowList_404(t *testing.T) {
 	}
 }
 
-func TestModule3_FeedList_BlockParity_Documented(t *testing.T) {
+func TestModule3_FeedList_BlockParity(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "club_feed_block")
 	alice := seedPostUser(t, db, "fb_alice", &club.ID)
@@ -195,7 +196,7 @@ func TestModule3_FeedList_BlockParity_Documented(t *testing.T) {
 	}
 	ids := postIDsFromFeed(listBody)
 	if containsPostID(ids, post.ID) {
-		t.Fatalf("M3-FEED-BLOCK-1 P2: feed list returns blocked author post id=%d while GET /posts/:id is 404; ids=%v", post.ID, ids)
+		t.Fatalf("feed list must not return blocked author post id=%d; ids=%v", post.ID, ids)
 	}
 }
 
@@ -271,7 +272,7 @@ func TestModule3_FeedPagination_OrderingDesc(t *testing.T) {
 	}
 }
 
-func TestModule3_Comments_BypassFeedVisibility_Documented(t *testing.T) {
+func TestModule3_Comments_BypassFeedVisibility(t *testing.T) {
 	db := testPostsDB(t)
 	clubA := seedClub(t, db, "cvis_a")
 	clubB := seedClub(t, db, "cvis_b")
@@ -289,18 +290,12 @@ func TestModule3_Comments_BypassFeedVisibility_Documented(t *testing.T) {
 	w, c := withPostUserContext(t, db, outsider, http.MethodGet, "/api/posts/"+id+"/comments", nil)
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	GetPostComments(c)
-	var body map[string]any
-	_ = json.Unmarshal(w.Body.Bytes(), &body)
-	comments, _ := body["comments"].([]any)
-	if w.Code == http.StatusOK && len(comments) > 0 {
-		t.Fatalf("M3-ENGAGE-1 P1: outsider reads comments on inaccessible post; GetPost=404 but comments=%d status=%d", len(comments), w.Code)
-	}
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for inaccessible post comments, got %d", w.Code)
 	}
 }
 
-func TestModule3_CommentCreate_BypassFeedVisibility_Documented(t *testing.T) {
+func TestModule3_CommentCreate_BypassFeedVisibility(t *testing.T) {
 	db := testPostsDB(t)
 	clubA := seedClub(t, db, "cc_a")
 	clubB := seedClub(t, db, "cc_b")
@@ -316,12 +311,12 @@ func TestModule3_CommentCreate_BypassFeedVisibility_Documented(t *testing.T) {
 
 	var cnt int64
 	db.Model(&models.PostComment{}).Where("post_id = ? AND user_id = ?", post.ID, outsider.ID).Count(&cnt)
-	if w.Code == http.StatusCreated || cnt > 0 {
-		t.Fatalf("M3-ENGAGE-2 P1: outsider created comment on inaccessible post status=%d cnt=%d", w.Code, cnt)
+	if w.Code != http.StatusNotFound || cnt > 0 {
+		t.Fatalf("outsider comment create want 404 and no row, status=%d cnt=%d", w.Code, cnt)
 	}
 }
 
-func TestModule3_Like_BypassFeedVisibility_Documented(t *testing.T) {
+func TestModule3_Like_BypassFeedVisibility(t *testing.T) {
 	db := testPostsDB(t)
 	clubA := seedClub(t, db, "lk_a")
 	clubB := seedClub(t, db, "lk_b")
@@ -336,12 +331,12 @@ func TestModule3_Like_BypassFeedVisibility_Documented(t *testing.T) {
 
 	var cnt int64
 	db.Model(&models.PostLike{}).Where("post_id = ? AND user_id = ?", post.ID, outsider.ID).Count(&cnt)
-	if w.Code == http.StatusOK && cnt > 0 {
-		t.Fatalf("M3-ENGAGE-3 P1: outsider liked inaccessible post status=%d liked=%d", w.Code, cnt)
+	if w.Code != http.StatusNotFound || cnt > 0 {
+		t.Fatalf("outsider like want 404 and no row, status=%d liked=%d", w.Code, cnt)
 	}
 }
 
-func TestModule3_LikeList_BypassFeedVisibility_Documented(t *testing.T) {
+func TestModule3_LikeList_BypassFeedVisibility(t *testing.T) {
 	db := testPostsDB(t)
 	clubA := seedClub(t, db, "ll_a")
 	clubB := seedClub(t, db, "ll_b")
@@ -355,15 +350,12 @@ func TestModule3_LikeList_BypassFeedVisibility_Documented(t *testing.T) {
 	w, c := withPostUserContext(t, db, outsider, http.MethodGet, "/api/posts/"+id+"/likes", nil)
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	GetPostLikes(c)
-	var body map[string]any
-	_ = json.Unmarshal(w.Body.Bytes(), &body)
-	likes, _ := body["likes"].([]any)
-	if w.Code == http.StatusOK && len(likes) > 0 {
-		t.Fatalf("M3-ENGAGE-4 P1: outsider reads likes on inaccessible post; likes=%d", len(likes))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("outsider likes list want 404, got %d body=%s", w.Code, w.Body.String())
 	}
 }
 
-func TestModule3_Comments_BlockAuthorPost_Documented(t *testing.T) {
+func TestModule3_Comments_BlockAuthorPost(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "cb_club")
 	alice := seedPostUser(t, db, "cb_alice", &club.ID)
@@ -381,15 +373,12 @@ func TestModule3_Comments_BlockAuthorPost_Documented(t *testing.T) {
 	w, c := withPostUserContext(t, db, bob, http.MethodGet, "/api/posts/"+id+"/comments", nil)
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	GetPostComments(c)
-	var body map[string]any
-	_ = json.Unmarshal(w.Body.Bytes(), &body)
-	comments, _ := body["comments"].([]any)
-	if w.Code == http.StatusOK && len(comments) > 0 {
-		t.Fatalf("M3-ENGAGE-BLOCK-1 P2: blocked viewer reads comments while GetPost is 404")
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("blocked viewer comments want 404, got %d", w.Code)
 	}
 }
 
-func TestModule3_GetComments_MissingPost_Documented(t *testing.T) {
+func TestModule3_GetComments_MissingPost(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "miss_c")
 	viewer := seedPostUser(t, db, "miss_v", &club.ID)
@@ -397,8 +386,8 @@ func TestModule3_GetComments_MissingPost_Documented(t *testing.T) {
 	w, c := withPostUserContext(t, db, viewer, http.MethodGet, "/api/posts/99999/comments", nil)
 	c.Params = gin.Params{{Key: "id", Value: "99999"}}
 	GetPostComments(c)
-	if w.Code == http.StatusOK {
-		t.Fatalf("M3-COMMENTS-MISSING-1 P2: GET comments for missing post returned 200 (expected 404)")
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("GET comments for missing post returned %d (expected 404)", w.Code)
 	}
 }
 
@@ -463,7 +452,7 @@ func TestModule3_UpdatePost_NonAuthorForbidden(t *testing.T) {
 	}
 }
 
-func TestModule3_DeleteComment_AuthorCannot_Documented(t *testing.T) {
+func TestModule3_DeleteComment_AuthorCannot(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "dca")
 	alice := seedPostUser(t, db, "dca_alice", &club.ID)
@@ -538,8 +527,213 @@ func TestModule3_LikeConcurrent_NoDuplicateRows(t *testing.T) {
 	}
 	for _, code := range codes {
 		if code == http.StatusInternalServerError {
-			t.Fatalf("M3-LIKE-RACE-1 P2: concurrent like returned 500 codes=%v (unique race leak)", codes)
+			t.Fatalf("concurrent like returned 500 codes=%v", codes)
 		}
+		if code != http.StatusOK {
+			t.Fatalf("expected 200, codes=%v", codes)
+		}
+	}
+	var notifs int64
+	db.Model(&models.Obavestenje{}).
+		Where("user_id = ? AND type = ?", alice.ID, models.ObavestenjeTipPost).
+		Count(&notifs)
+	if notifs > 1 {
+		t.Fatalf("at most 1 like notification, got %d", notifs)
+	}
+	// Linearized toggles may leave 0 or 1 row; unique-conflict path keeps 1 without 500.
+	if cnt == 1 && notifs > 1 {
+		t.Fatalf("notification must not exceed like creates")
+	}
+}
+
+func TestModule3_LikeUnlikeConcurrent_No500(t *testing.T) {
+	db := testPostsDB(t)
+	club := seedClub(t, db, "lu_race")
+	alice := seedPostUser(t, db, "lu_alice", &club.ID)
+	bob := seedPostUser(t, db, "lu_bob", &club.ID)
+	post := seedPost(t, db, alice, club.ID, "p")
+	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: bob.ID})
+	id := strconv.FormatUint(uint64(post.ID), 10)
+
+	var wg sync.WaitGroup
+	codes := make([]int, 2)
+	wg.Add(2)
+	for i := 0; i < 2; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			w, c := withPostUserContext(t, db, bob, http.MethodPost, "/api/posts/"+id+"/like", nil)
+			c.Params = gin.Params{{Key: "id", Value: id}}
+			TogglePostLike(c)
+			codes[idx] = w.Code
+		}(i)
+	}
+	wg.Wait()
+	for _, code := range codes {
+		if code == http.StatusInternalServerError {
+			t.Fatalf("like×unlike race 500 codes=%v", codes)
+		}
+	}
+	var cnt int64
+	db.Model(&models.PostLike{}).Where("post_id = ? AND user_id = ?", post.ID, bob.ID).Count(&cnt)
+	if cnt > 1 {
+		t.Fatalf("duplicate like rows=%d", cnt)
+	}
+}
+
+func TestModule3_FeedFilter_BeforePagination(t *testing.T) {
+	db := testPostsDB(t)
+	club := seedClub(t, db, "pag_f")
+	alice := seedPostUser(t, db, "pagf_alice", &club.ID)
+	bob := seedPostUser(t, db, "pagf_bob", &club.ID)
+	viewer := seedPostUser(t, db, "pagf_view", &club.ID)
+	now := time.Now().UTC()
+	// Newest: alice (blocked), then bob (visible), then alice again
+	pBlockedNew := models.Post{ClubID: club.ID, UserID: alice.ID, AuthorID: alice.ID, Content: "b1", CreatedAt: now}
+	pVisible := models.Post{ClubID: club.ID, UserID: bob.ID, AuthorID: bob.ID, Content: "v", CreatedAt: now.Add(-time.Minute)}
+	pBlockedOld := models.Post{ClubID: club.ID, UserID: alice.ID, AuthorID: alice.ID, Content: "b0", CreatedAt: now.Add(-2 * time.Minute)}
+	for _, p := range []*models.Post{&pBlockedNew, &pVisible, &pBlockedOld} {
+		if err := db.Create(p).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: alice.ID})
+
+	code, body := callGetPosts(t, db, viewer, "limit=1&offset=0")
+	if code != http.StatusOK {
+		t.Fatalf("status %d", code)
+	}
+	ids := postIDsFromFeed(body)
+	if len(ids) != 1 || ids[0] != pVisible.ID {
+		t.Fatalf("limit=1 after block filter must return visible post %d, got %v", pVisible.ID, ids)
+	}
+	total, _ := body["total"].(float64)
+	if int(total) != 1 {
+		// viewer own posts none + bob only
+		t.Fatalf("total must count only visible authors, got %v", body["total"])
+	}
+}
+
+func TestModule3_EngagementParity_Matrix(t *testing.T) {
+	db := testPostsDB(t)
+	clubA := seedClub(t, db, "mx_a")
+	clubB := seedClub(t, db, "mx_b")
+	alice := seedPostUser(t, db, "mx_alice", &clubA.ID)
+	clubmate := seedPostUser(t, db, "mx_mate", &clubA.ID)
+	outsider := seedPostUser(t, db, "mx_out", &clubB.ID)
+	post := seedPost(t, db, alice, clubA.ID, "mx")
+
+	assertEngagement404 := func(t *testing.T, viewer models.Korisnik) {
+		t.Helper()
+		id := strconv.FormatUint(uint64(post.ID), 10)
+		if code, _ := callGetPost(t, db, viewer, post.ID); code != http.StatusNotFound {
+			t.Fatalf("GetPost want 404 got %d", code)
+		}
+		w, c := withPostUserContext(t, db, viewer, http.MethodGet, "/api/posts/"+id+"/comments", nil)
+		c.Params = gin.Params{{Key: "id", Value: id}}
+		GetPostComments(c)
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("comments want 404 got %d", w.Code)
+		}
+		body, _ := json.Marshal(CreateCommentRequest{Content: "x"})
+		w2, c2 := withPostUserContext(t, db, viewer, http.MethodPost, "/api/posts/"+id+"/comments", body)
+		c2.Params = gin.Params{{Key: "id", Value: id}}
+		CreatePostComment(c2)
+		if w2.Code != http.StatusNotFound {
+			t.Fatalf("create comment want 404 got %d", w2.Code)
+		}
+		w3, c3 := withPostUserContext(t, db, viewer, http.MethodPost, "/api/posts/"+id+"/like", nil)
+		c3.Params = gin.Params{{Key: "id", Value: id}}
+		TogglePostLike(c3)
+		if w3.Code != http.StatusNotFound {
+			t.Fatalf("like want 404 got %d", w3.Code)
+		}
+		w4, c4 := withPostUserContext(t, db, viewer, http.MethodGet, "/api/posts/"+id+"/likes", nil)
+		c4.Params = gin.Params{{Key: "id", Value: id}}
+		GetPostLikes(c4)
+		if w4.Code != http.StatusNotFound {
+			t.Fatalf("likes list want 404 got %d", w4.Code)
+		}
+	}
+
+	t.Run("outsider", func(t *testing.T) { assertEngagement404(t, outsider) })
+
+	t.Run("viewer-blocked-author", func(t *testing.T) {
+		_ = db.Where("1=1").Delete(&models.Block{})
+		_ = db.Create(&models.Block{BlockerID: clubmate.ID, BlockedID: alice.ID})
+		assertEngagement404(t, clubmate)
+	})
+
+	t.Run("author-blocked-viewer", func(t *testing.T) {
+		_ = db.Where("1=1").Delete(&models.Block{})
+		_ = db.Create(&models.Block{BlockerID: alice.ID, BlockedID: clubmate.ID})
+		assertEngagement404(t, clubmate)
+	})
+
+	t.Run("clubmate-ok", func(t *testing.T) {
+		_ = db.Where("1=1").Delete(&models.Block{})
+		code, _ := callGetPost(t, db, clubmate, post.ID)
+		if code != http.StatusOK {
+			t.Fatalf("GetPost want 200 got %d", code)
+		}
+		id := strconv.FormatUint(uint64(post.ID), 10)
+		w, c := withPostUserContext(t, db, clubmate, http.MethodGet, "/api/posts/"+id+"/comments", nil)
+		c.Params = gin.Params{{Key: "id", Value: id}}
+		GetPostComments(c)
+		if w.Code != http.StatusOK {
+			t.Fatalf("comments want 200 got %d", w.Code)
+		}
+	})
+}
+
+func TestModule3_LikerDTO_NoSensitiveFields(t *testing.T) {
+	db := testPostsDB(t)
+	club := seedClub(t, db, "dto_c")
+	alice := seedPostUser(t, db, "dto_alice", &club.ID)
+	bob := seedPostUser(t, db, "dto_bob", &club.ID)
+	_ = db.Model(&bob).Updates(map[string]any{
+		"email":   "secret@example.com",
+		"telefon": "061111",
+		"adresa":  "ulica 1",
+	})
+	post := seedPost(t, db, alice, club.ID, "p")
+	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: bob.ID})
+	id := strconv.FormatUint(uint64(post.ID), 10)
+	w, c := withPostUserContext(t, db, alice, http.MethodGet, "/api/posts/"+id+"/likes", nil)
+	c.Params = gin.Params{{Key: "id", Value: id}}
+	GetPostLikes(c)
+	raw := w.Body.String()
+	for _, leak := range []string{"secret@example.com", "061111", "ulica 1", "password", "email"} {
+		if strings.Contains(strings.ToLower(raw), strings.ToLower(leak)) && leak != "email" {
+			t.Fatalf("likes DTO leaked %q in %s", leak, raw)
+		}
+	}
+	if strings.Contains(raw, `"email"`) {
+		t.Fatalf("likes DTO must not include email key: %s", raw)
+	}
+}
+
+func TestModule3_DeletedAuthor_Engagement404(t *testing.T) {
+	db := testPostsDB(t)
+	club := seedClub(t, db, "del_e")
+	alice := seedPostUser(t, db, "dele_alice", &club.ID)
+	bob := seedPostUser(t, db, "dele_bob", &club.ID)
+	post := seedPost(t, db, alice, club.ID, "ghost")
+	_ = db.Model(&alice).Update("role", "deleted")
+
+	if code, _ := callGetPost(t, db, bob, post.ID); code != http.StatusNotFound {
+		t.Fatalf("GetPost deleted author want 404 got %d", code)
+	}
+	id := strconv.FormatUint(uint64(post.ID), 10)
+	w, c := withPostUserContext(t, db, bob, http.MethodPost, "/api/posts/"+id+"/like", nil)
+	c.Params = gin.Params{{Key: "id", Value: id}}
+	TogglePostLike(c)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("like want 404 got %d", w.Code)
+	}
+	var cnt int64
+	db.Model(&models.PostLike{}).Where("post_id = ?", post.ID).Count(&cnt)
+	if cnt != 0 {
+		t.Fatalf("no like row on hidden post, got %d", cnt)
 	}
 }
 
@@ -570,7 +764,7 @@ func TestModule3_FeedCounts_MatchAggregates(t *testing.T) {
 	t.Fatal("post missing from feed")
 }
 
-func TestModule3_DeletedAuthor_StillInFeedAllowList_Documented(t *testing.T) {
+func TestModule3_DeletedAuthor_NotInFeed(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "del_c")
 	alice := seedPostUser(t, db, "del_alice", &club.ID)
@@ -581,7 +775,7 @@ func TestModule3_DeletedAuthor_StillInFeedAllowList_Documented(t *testing.T) {
 	code, body := callGetPosts(t, db, bob, "")
 	ids := postIDsFromFeed(body)
 	if code == http.StatusOK && containsPostID(ids, post.ID) {
-		t.Fatalf("M3-DELETED-1 P3: deleted author post still in clubmate feed ids=%v", ids)
+		t.Fatalf("deleted author post must not appear in feed ids=%v", ids)
 	}
 }
 

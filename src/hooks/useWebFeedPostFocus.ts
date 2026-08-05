@@ -31,6 +31,7 @@ export function useWebFeedPostFocus(opts: {
   const postIdParam = searchParams.get('postId')
   const consumedForRef = useRef<number | null>(null)
   const mountedRef = useRef(true)
+  const focusGenRef = useRef(0)
   const [fetchStatus, setFetchStatus] = useState<FeedPostFetchStatus>('idle')
   const [activePostId, setActivePostId] = useState<number | null>(null)
 
@@ -44,6 +45,7 @@ export function useWebFeedPostFocus(opts: {
   useEffect(() => {
     const next = normalizeFeedPostId(postIdParam)
     if (next == null) return
+    focusGenRef.current += 1
     consumedForRef.current = null
     queueMicrotask(() => {
       if (!mountedRef.current) return
@@ -104,18 +106,23 @@ export function useWebFeedPostFocus(opts: {
     }
 
     if (decision.action === 'fetch') {
+      const focusRequestId = focusGenRef.current
       queueMicrotask(() => {
-        if (mountedRef.current) setFetchStatus('loading')
+        if (mountedRef.current && focusRequestId === focusGenRef.current) {
+          setFetchStatus('loading')
+        }
       })
       void (async () => {
         try {
           const raw = await fetchPostById(postId)
           if (!mountedRef.current) return
+          if (focusRequestId !== focusGenRef.current) return
           const post = toPost(raw)
           opts.setPosts((prev) => insertOrMovePostIntoList(prev, post))
           setFetchStatus('found')
         } catch (err) {
           if (!mountedRef.current) return
+          if (focusRequestId !== focusGenRef.current) return
           setFetchStatus(isNotFoundError(err) ? 'missing' : 'error')
         }
       })()

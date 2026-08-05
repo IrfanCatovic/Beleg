@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/notifications"
 
@@ -33,16 +32,9 @@ type PostLikeUserDTO struct {
 func TogglePostLike(c *gin.Context) {
 	db := DB(c)
 
-	usernameVal, exists := c.Get("username")
-	if !exists {
+	korisnik, ok := AuthUser(c)
+	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
-		return
-	}
-	username, _ := usernameVal.(string)
-
-	var korisnik models.Korisnik
-	if err := helpers.DBWhereUsername(db, username).First(&korisnik).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
@@ -53,16 +45,16 @@ func TogglePostLike(c *gin.Context) {
 		return
 	}
 
-	// Proveri da post postoji
-	var post models.Post
-	if err := db.First(&post, postID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+	post, err := getVisiblePostForViewer(db, korisnik, uint(postID))
+	if err != nil {
+		respondPostNotFound(c)
 		return
 	}
 
 	var existing models.PostLike
 	likeErr := db.Where("post_id = ? AND user_id = ?", postID, korisnik.ID).First(&existing).Error
 	liked := false
+	createdNew := false
 	if likeErr == nil {
 		if err := db.Delete(&existing).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri uklanjanju lajkа"})
@@ -71,10 +63,18 @@ func TogglePostLike(c *gin.Context) {
 		liked = false
 	} else if errors.Is(likeErr, gorm.ErrRecordNotFound) {
 		if err := db.Create(&models.PostLike{PostID: uint(postID), UserID: korisnik.ID}).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju lajkа"})
-			return
+			if isDuplicateKeyDBError(err) {
+				// Parallel create already succeeded — same like intent, no second notification.
+				liked = true
+				createdNew = false
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri dodavanju lajkа"})
+				return
+			}
+		} else {
+			liked = true
+			createdNew = true
 		}
-		liked = true
 	} else {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri proveri lajkа"})
 		return
@@ -83,8 +83,7 @@ func TogglePostLike(c *gin.Context) {
 	var likeCount int64
 	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
 
-	// Obavesti vlasnika objave samo kada korisnik doda lajk — i samo ako su u istom klubu kao objava.
-	if liked && post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
+	if createdNew && post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
 		likerName := strings.TrimSpace(korisnik.FullName)
 		if likerName == "" {
 			likerName = korisnik.Username
@@ -111,6 +110,12 @@ func TogglePostLike(c *gin.Context) {
 func GetPostLikes(c *gin.Context) {
 	db := DB(c)
 
+	currentUser, ok := AuthUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
 	idStr := c.Param("id")
 	postID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -118,9 +123,8 @@ func GetPostLikes(c *gin.Context) {
 		return
 	}
 
-	var post models.Post
-	if err := db.First(&post, postID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+	if _, err := getVisiblePostForViewer(db, currentUser, uint(postID)); err != nil {
+		respondPostNotFound(c)
 		return
 	}
 

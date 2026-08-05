@@ -114,59 +114,6 @@ type UpdatePostRequest struct {
 	ImageURL *string `json:"imageUrl"`
 }
 
-// feedAllowedAuthorIDs mirrors GetPosts visibility: self ∪ club members ∪ accepted follows.
-func feedAllowedAuthorIDs(db *gorm.DB, currentUser models.Korisnik) []uint {
-	allowedUserIDSet := map[uint]struct{}{
-		currentUser.ID: {},
-	}
-
-	if currentUser.KlubID != nil {
-		var clubUserIDs []uint
-		if err := db.Model(&models.Korisnik{}).
-			Where("klub_id = ?", *currentUser.KlubID).
-			Pluck("id", &clubUserIDs).Error; err == nil {
-			for _, id := range clubUserIDs {
-				allowedUserIDSet[id] = struct{}{}
-			}
-		}
-	}
-
-	var acceptedFollowTargetIDs []uint
-	_ = db.Model(&models.Follow{}).
-		Where("requester_id = ? AND status = ?", currentUser.ID, models.FollowStatusAccepted).
-		Pluck("target_id", &acceptedFollowTargetIDs).Error
-	for _, id := range acceptedFollowTargetIDs {
-		allowedUserIDSet[id] = struct{}{}
-	}
-
-	allowedUserIDs := make([]uint, 0, len(allowedUserIDSet))
-	for id := range allowedUserIDSet {
-		allowedUserIDs = append(allowedUserIDs, id)
-	}
-	return allowedUserIDs
-}
-
-func authorInFeedAllowList(allowed []uint, authorID uint) bool {
-	for _, id := range allowed {
-		if id == authorID {
-			return true
-		}
-	}
-	return false
-}
-
-// canViewerAccessFeedPost applies the same access rules as the feed list (+ block).
-// Hidden / private / blocked posts return false without distinguishing the reason.
-func canViewerAccessFeedPost(db *gorm.DB, viewer models.Korisnik, authorID uint) bool {
-	if authorID == 0 {
-		return false
-	}
-	if isBlockedEitherDirection(db, viewer.ID, authorID) {
-		return false
-	}
-	return authorInFeedAllowList(feedAllowedAuthorIDs(db, viewer), authorID)
-}
-
 func GetPosts(c *gin.Context) {
 	db := DB(c)
 
@@ -352,6 +299,11 @@ func GetPost(c *gin.Context) {
 		return
 	}
 
+	if _, err := getVisiblePostForViewer(db, currentUser, uint(postID)); err != nil {
+		respondPostNotFound(c)
+		return
+	}
+
 	var post models.Post
 	if err := db.
 		Preload("User", func(tx *gorm.DB) *gorm.DB {
@@ -361,13 +313,7 @@ func GetPost(c *gin.Context) {
 			return tx.Select("id, naziv, logo_url")
 		}).
 		First(&post, postID).Error; err != nil {
-		// Uniform 404 — do not leak existence of private/deleted posts.
-		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
-		return
-	}
-
-	if !canViewerAccessFeedPost(db, currentUser, post.UserID) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Objava nije pronađena"})
+		respondPostNotFound(c)
 		return
 	}
 

@@ -23,6 +23,7 @@ export {
   findPostIndexById,
   insertOrMovePostIntoFeedPages,
   insertOrMovePostIntoList,
+  mergeUniquePostsById,
   normalizeFeedPostId,
   prefersReducedMotion,
   scrollPostElementIntoView,

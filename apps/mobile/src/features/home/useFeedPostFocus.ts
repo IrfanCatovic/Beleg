@@ -32,6 +32,7 @@ export function useFeedPostFocus(opts: {
   const mountedRef = useRef(true)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fetchingRef = useRef(false)
+  const focusGenRef = useRef(0)
   const [fetchStatus, setFetchStatus] = useState<FeedPostFetchStatus>('idle')
   const [activePostId, setActivePostId] = useState<number | null>(null)
   const postIdParam = opts.postIdParam
@@ -50,6 +51,7 @@ export function useFeedPostFocus(opts: {
   useEffect(() => {
     const next = normalizeFeedPostId(postIdParam)
     if (next == null) return
+    focusGenRef.current += 1
     consumedForRef.current = null
     fetchingRef.current = false
     queueMicrotask(() => {
@@ -141,13 +143,17 @@ export function useFeedPostFocus(opts: {
     if (decision.action === 'fetch') {
       if (fetchingRef.current) return
       fetchingRef.current = true
+      const focusRequestId = focusGenRef.current
       queueMicrotask(() => {
-        if (mountedRef.current) setFetchStatus('loading')
+        if (mountedRef.current && focusRequestId === focusGenRef.current) {
+          setFetchStatus('loading')
+        }
       })
       void (async () => {
         try {
           const post = await fetchPostById(client, postId)
           if (!mountedRef.current) return
+          if (focusRequestId !== focusGenRef.current) return
           opts.queryClient.setQueryData<InfiniteData<PostsPage>>(
             ['posts', 'feed'],
             (prev) => insertOrMovePostIntoFeedPages(prev, post) as InfiniteData<PostsPage>,
@@ -155,9 +161,12 @@ export function useFeedPostFocus(opts: {
           setFetchStatus('found')
         } catch (err) {
           if (!mountedRef.current) return
+          if (focusRequestId !== focusGenRef.current) return
           setFetchStatus(isNotFoundError(err) ? 'missing' : 'error')
         } finally {
-          fetchingRef.current = false
+          if (focusRequestId === focusGenRef.current) {
+            fetchingRef.current = false
+          }
         }
       })()
     }

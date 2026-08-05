@@ -17,6 +17,7 @@ import PostCard, { type Post, type MentionUser } from '../../components/PostCard
 import FollowControls from '../../components/buttons/FollowControls'
 import { UserNameWithProfiBadge } from '../../components/users/UserNameWithProfiBadge'
 import { useWebFeedPostFocus } from '../../hooks/useWebFeedPostFocus'
+import { mergeUniquePostsById } from '@beleg/shared'
 
 interface Statistika {
   ukupnoKm: number
@@ -175,7 +176,9 @@ export default function Home() {
     try {
       const data = await loadPosts(POST_LIMIT, offset)
       if (append) {
-        setPosts(prev => [...prev, ...((data.posts || []) as unknown as Post[])])
+        setPosts(prev =>
+          mergeUniquePostsById(prev, (data.posts || []) as unknown as Post[]),
+        )
       } else {
         setPosts((data.posts || []) as unknown as Post[])
       }
