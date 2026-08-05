@@ -73,6 +73,74 @@ func isBlockedEitherDirection(db *gorm.DB, a, b uint) bool {
 	return cnt > 0
 }
 
+func neutralFollowStatusResponse() FollowStatusResponse {
+	return FollowStatusResponse{Outgoing: "none", Incoming: "none"}
+}
+
+func buildFollowUserList(db *gorm.DB, orderedIDs []uint, viewerID uint) ([]FollowUserDTO, error) {
+	if len(orderedIDs) == 0 {
+		return []FollowUserDTO{}, nil
+	}
+
+	blockedSet := loadKorisniciBlockSet(db, viewerID)
+
+	var users []models.Korisnik
+	if err := db.Where("id IN ? AND role != ?", orderedIDs, "deleted").Preload("Klub").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	byID := make(map[uint]models.Korisnik, len(users))
+	visibleIDs := make([]uint, 0, len(orderedIDs))
+	for _, u := range users {
+		byID[u.ID] = u
+	}
+	for _, id := range orderedIDs {
+		if _, blocked := blockedSet[id]; blocked {
+			continue
+		}
+		if _, ok := byID[id]; !ok {
+			continue
+		}
+		visibleIDs = append(visibleIDs, id)
+	}
+
+	profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, visibleIDs)
+	out := make([]FollowUserDTO, 0, len(visibleIDs))
+	for _, id := range visibleIDs {
+		out = append(out, toFollowUserDTO(byID[id], profiSet))
+	}
+	return out, nil
+}
+
+func countVisibleFollowing(db *gorm.DB, targetID, viewerID uint) int64 {
+	q := db.Model(&models.Follow{}).
+		Joins("JOIN korisnici k ON k.id = follows.target_id").
+		Where("follows.requester_id = ? AND follows.status = ? AND k.role <> ?", targetID, models.FollowStatusAccepted, "deleted")
+	if viewerID > 0 {
+		q = q.Where(`NOT EXISTS (
+			SELECT 1 FROM blocks b
+			WHERE (b.blocker_id = ? AND b.blocked_id = k.id) OR (b.blocker_id = k.id AND b.blocked_id = ?)
+		)`, viewerID, viewerID)
+	}
+	var count int64
+	_ = q.Count(&count).Error
+	return count
+}
+
+func countVisibleFollowers(db *gorm.DB, targetID, viewerID uint) int64 {
+	q := db.Model(&models.Follow{}).
+		Joins("JOIN korisnici k ON k.id = follows.requester_id").
+		Where("follows.target_id = ? AND follows.status = ? AND k.role <> ?", targetID, models.FollowStatusAccepted, "deleted")
+	if viewerID > 0 {
+		q = q.Where(`NOT EXISTS (
+			SELECT 1 FROM blocks b
+			WHERE (b.blocker_id = ? AND b.blocked_id = k.id) OR (b.blocker_id = k.id AND b.blocked_id = ?)
+		)`, viewerID, viewerID)
+	}
+	var count int64
+	_ = q.Count(&count).Error
+	return count
+}
+
 // POST /api/follows/requests
 // Kreira zahtev za praćenje (status = "pending").
 func CreateFollowRequestHandler(c *gin.Context) {
@@ -442,7 +510,12 @@ func GetFollowStatusHandler(c *gin.Context) {
 	}
 	targetID := uint(targetIDUint)
 
-	resp := FollowStatusResponse{Outgoing: "none", Incoming: "none"}
+	if isBlockedEitherDirection(db, currentUser.ID, targetID) {
+		c.JSON(http.StatusOK, neutralFollowStatusResponse())
+		return
+	}
+
+	resp := neutralFollowStatusResponse()
 
 	// outgoing: currentUser → target
 	var outgoing models.Follow
@@ -572,26 +645,23 @@ type FollowCountsResponse struct {
 }
 
 // GET /api/follows/user/:id/counts
-// :id može biti numeric id ili username. Broji samo accepted.
+// :id može biti numeric id ili username. Broji samo accepted, vidljive viewer-u.
 func GetFollowCountsHandler(c *gin.Context) {
 	db := DB(c)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
 
-	// zahteva auth (routes su protected), ali counts su vezani za target user
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
 
-	var following int64
-	db.Model(&models.Follow{}).
-		Where("requester_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
-		Count(&following)
-
-	var followers int64
-	db.Model(&models.Follow{}).
-		Where("target_id = ? AND status = ?", target.ID, models.FollowStatusAccepted).
-		Count(&followers)
+	following := countVisibleFollowing(db, target.ID, currentUser.ID)
+	followers := countVisibleFollowers(db, target.ID, currentUser.ID)
 
 	c.JSON(http.StatusOK, FollowCountsResponse{Following: following, Followers: followers})
 }
@@ -624,6 +694,12 @@ func toFollowUserDTO(u models.Korisnik, profiSet map[uint]bool) FollowUserDTO {
 // GET /api/follows/user/:id/following
 func GetFollowingListHandler(c *gin.Context) {
 	db := DB(c)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
@@ -638,35 +714,11 @@ func GetFollowingListHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju liste"})
 		return
 	}
-	if len(ids) == 0 {
-		c.JSON(http.StatusOK, gin.H{"users": []FollowUserDTO{}})
-		return
-	}
 
-	var users []models.Korisnik
-	if err := db.Where("id IN ?", ids).Preload("Klub").Find(&users).Error; err != nil {
+	out, err := buildFollowUserList(db, ids, currentUser.ID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
 		return
-	}
-
-	byID := make(map[uint]models.Korisnik, len(users))
-	for _, u := range users {
-		byID[u.ID] = u
-	}
-
-	userIDs := make([]uint, 0, len(users))
-	for _, u := range users {
-		userIDs = append(userIDs, u.ID)
-	}
-	profiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, userIDs)
-
-	out := make([]FollowUserDTO, 0, len(ids))
-	for _, id := range ids {
-		u, ok := byID[id]
-		if !ok {
-			continue
-		}
-		out = append(out, toFollowUserDTO(u, profiSet))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }
@@ -674,6 +726,12 @@ func GetFollowingListHandler(c *gin.Context) {
 // GET /api/follows/user/:id/followers
 func GetFollowersListHandler(c *gin.Context) {
 	db := DB(c)
+	currentUser, ok := getCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Niste ulogovani"})
+		return
+	}
+
 	target, ok := getUserByIDOrUsername(db, c.Param("id"))
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
@@ -688,35 +746,11 @@ func GetFollowersListHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju liste"})
 		return
 	}
-	if len(ids) == 0 {
-		c.JSON(http.StatusOK, gin.H{"users": []FollowUserDTO{}})
-		return
-	}
 
-	var users []models.Korisnik
-	if err := db.Where("id IN ?", ids).Preload("Klub").Find(&users).Error; err != nil {
+	out, err := buildFollowUserList(db, ids, currentUser.ID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju korisnika"})
 		return
-	}
-
-	byID := make(map[uint]models.Korisnik, len(users))
-	for _, u := range users {
-		byID[u.ID] = u
-	}
-
-	followerUserIDs := make([]uint, 0, len(users))
-	for _, u := range users {
-		followerUserIDs = append(followerUserIDs, u.ID)
-	}
-	followerProfiSet := helpers.ApprovedProfiGuideKorisnikIDs(db, followerUserIDs)
-
-	out := make([]FollowUserDTO, 0, len(ids))
-	for _, id := range ids {
-		u, ok := byID[id]
-		if !ok {
-			continue
-		}
-		out = append(out, toFollowUserDTO(u, followerProfiSet))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": out})
 }

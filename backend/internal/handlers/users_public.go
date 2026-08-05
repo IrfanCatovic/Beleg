@@ -39,6 +39,10 @@ func GetPublicKorisnik(c *gin.Context) {
 		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
+	if viewer, ok := AuthUser(c); ok && viewer.ID != korisnik.ID && isBlockedEitherDirection(db, viewer.ID, korisnik.ID) {
+		c.JSON(404, gin.H{"error": "Korisnik nije pronađen"})
+		return
+	}
 	if korisnik.KlubID != nil {
 		var klub models.Klubovi
 		if db.First(&klub, *korisnik.KlubID).Error == nil {

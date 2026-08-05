@@ -31,7 +31,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 		forgotPasswordRateLimiter,
 	)
 
-	RegisterUsersPublicRoutes(r)
+	RegisterUsersPublicRoutes(r, jwtSecret)
 	RegisterFerrataPublicRoutes(r)
 
 	// PROTECTED RUTE SVE UNUTAR JEDNOG BLOKA
