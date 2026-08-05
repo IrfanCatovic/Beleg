@@ -115,3 +115,26 @@ describe('decideFeedPostFocus', () => {
     ).toEqual({ action: 'noop' })
   })
 })
+
+/**
+ * M3-CLIENT-DEDUP-1: after postId focus inserts an out-of-window post at the front,
+ * consumers append the next page with offset=loadedLength and no id dedupe.
+ * That produces duplicate ids (React key collision on web/mobile).
+ * Document expected consumer contract: append must dedupe by id.
+ */
+describe('M3-CLIENT-DEDUP-1 feed focus insert then naive append', () => {
+  it('documents duplicate when next page re-includes focused post', () => {
+    const focused = { id: 99 }
+    const afterFocus = insertOrMovePostIntoList([{ id: 1 }, { id: 2 }], focused)
+    // Simulated next page from server that still contains 99 (natural position)
+    const nextPage = [{ id: 3 }, { id: 99 }]
+    const naiveAppend = [...afterFocus, ...nextPage]
+    const dupCount = naiveAppend.filter((p) => p.id === 99).length
+    if (dupCount > 1) {
+      throw new Error(
+        `M3-CLIENT-DEDUP-1 P2: naive append after focus insert duplicates postId; count=${dupCount} ids=${naiveAppend.map((p) => p.id).join(',')}`,
+      )
+    }
+    expect(dupCount).toBe(1)
+  })
+})
