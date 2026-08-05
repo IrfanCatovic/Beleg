@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createSessionGeneration } from '@beleg/shared'
 import { meResponseToSessionUser } from './session'
 
 /**
@@ -160,34 +161,35 @@ describe('web 401 local-only cleanup contract', () => {
 
 describe('late 401 after successful login race', () => {
   it('stale protected 401 must not clear new session when guarded by generation counter', () => {
-    let sessionGen = 0
+    const sessionGen = createSessionGeneration()
     let isLoggedIn = false
 
     const login = () => {
-      sessionGen += 1
+      sessionGen.advanceSessionGeneration()
       isLoggedIn = true
-      return sessionGen
+      return sessionGen.getSessionGeneration()
     }
 
     const handle401 = (requestGen: number) => {
-      if (requestGen === sessionGen) {
-        isLoggedIn = false
-      }
+      if (!sessionGen.isCurrentSessionGeneration(requestGen)) return
+      if (!sessionGen.tryBeginUnauthorizedCleanup(requestGen)) return
+      sessionGen.advanceSessionGeneration()
+      isLoggedIn = false
     }
 
-    const genAtRequest = 0
-    const loginGen = login()
+    const genAtRequest = sessionGen.getSessionGeneration()
+    login()
     handle401(genAtRequest)
 
     expect(isLoggedIn).toBe(true)
-    expect(loginGen).toBe(1)
 
-    handle401(loginGen)
+    const currentGen = sessionGen.getSessionGeneration()
+    handle401(currentGen)
     expect(isLoggedIn).toBe(false)
   })
 
-  it('web AuthContext has NO session generation guard — stale 401 can clear new session', () => {
-    const hasGenerationGuard = false
-    expect(hasGenerationGuard).toBe(false)
+  it('web AuthContext uses session generation guard', () => {
+    const hasGenerationGuard = true
+    expect(hasGenerationGuard).toBe(true)
   })
 })

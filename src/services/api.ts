@@ -3,6 +3,7 @@ import {
   setApiInstance,
   type StorageAdapter,
 } from '@beleg/shared'
+import { sessionGeneration } from '../auth/sessionGeneration'
 
 const webStorage: StorageAdapter = {
   getItem: (key) => localStorage.getItem(key),
@@ -20,6 +21,7 @@ const bundle = createApiClient({
   baseURL: apiBaseURL,
   storage: webStorage,
   withCredentials: true,
+  sessionGeneration,
 })
 
 setApiInstance(bundle.client)

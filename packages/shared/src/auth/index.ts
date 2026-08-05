@@ -7,5 +7,7 @@ export {
   logoutApi,
   meResponseToSessionUser,
 } from './session'
+export { createSessionGeneration } from './sessionGeneration'
+export type { SessionGenerationCoordinator } from './sessionGeneration'
 export type { LoginResponse, MeResponse, SessionUser } from './session'
 export type { UserRole as SessionUserRole } from './session'

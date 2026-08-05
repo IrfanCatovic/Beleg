@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { createApiClient } from './createApiClient'
+import { createSessionGeneration } from '../auth/sessionGeneration'
 
 type ResponseRejectHandler = (error: AxiosError) => Promise<never>
 
@@ -31,17 +32,23 @@ function captureParallel401Handler() {
   }
 
   vi.spyOn(axios, 'create').mockReturnValue(instance as never)
+  const sessionGen = createSessionGeneration()
   const bundle = createApiClient({
     baseURL: 'http://localhost:8080',
     storage,
     withCredentials: false,
+    sessionGeneration: sessionGen,
   })
-  return { bundle, onRejected, store }
+  return { bundle, onRejected, store, sessionGen }
 }
 
-function makeAxiosError(status: number, url: string): AxiosError {
+function makeAxiosError(status: number, url: string, requestGeneration?: number, method = 'get'): AxiosError {
   return {
-    config: { url, method: 'get' } as InternalAxiosRequestConfig,
+    config: {
+      url,
+      method,
+      __sessionGeneration: requestGeneration,
+    } as InternalAxiosRequestConfig & { __sessionGeneration?: number },
     response: { status, data: { error: 'unauthorized' } },
     isAxiosError: true,
     name: 'AxiosError',
@@ -59,56 +66,54 @@ describe('createApiClient parallel 401 cleanup', () => {
     vi.restoreAllMocks()
   })
 
-  it('5 concurrent 401s invoke handler 5 times (idempotent, no coordinator)', async () => {
-    const { bundle, onRejected } = captureParallel401Handler()
+  it('5 concurrent 401s invoke handler once with session generation single-flight', async () => {
+    const { bundle, onRejected, sessionGen } = captureParallel401Handler()
     const handler = vi.fn()
     bundle.setUnauthorizedHandler(handler)
 
+    const gen = sessionGen.getSessionGeneration()
     const errors = [
-      makeAxiosError(401, '/api/me'),
-      makeAxiosError(401, '/api/klub'),
-      makeAxiosError(401, '/api/obavestenja'),
-      makeAxiosError(401, '/api/akcije'),
-      makeAxiosError(401, '/api/korisnik/alice'),
+      makeAxiosError(401, '/api/me', gen),
+      makeAxiosError(401, '/api/klub', gen),
+      makeAxiosError(401, '/api/obavestenja', gen),
+      makeAxiosError(401, '/api/akcije', gen),
+      makeAxiosError(401, '/api/korisnik/alice', gen),
     ]
 
     await Promise.all(
       errors.map((err) => onRejected(err).catch(() => undefined)),
     )
 
-    expect(handler).toHaveBeenCalledTimes(5)
+    expect(handler).toHaveBeenCalledTimes(1)
   })
 
-  it('repeated handler invocation does not throw (idempotent clearAuthState pattern)', async () => {
-    const { bundle, onRejected } = captureParallel401Handler()
-    const cleared: string[] = []
-    const handler = vi.fn(() => {
-      cleared.push('clear')
-    })
-    bundle.setUnauthorizedHandler(handler)
-
-    const err = makeAxiosError(401, '/api/me')
-    for (let i = 0; i < 3; i++) {
-      await onRejected(err).catch(() => undefined)
-    }
-    expect(handler).toHaveBeenCalledTimes(3)
-    expect(cleared).toEqual(['clear', 'clear', 'clear'])
-  })
-
-  it('login 401 during parallel protected 401s does not invoke global handler', async () => {
-    const { bundle, onRejected } = captureParallel401Handler()
+  it('repeated handler invocation on new generations can cleanup again', async () => {
+    const { bundle, onRejected, sessionGen } = captureParallel401Handler()
     const handler = vi.fn()
     bundle.setUnauthorizedHandler(handler)
 
+    const gen1 = sessionGen.getSessionGeneration()
+    await onRejected(makeAxiosError(401, '/api/me', gen1)).catch(() => undefined)
+    expect(handler).toHaveBeenCalledTimes(1)
+
+    sessionGen.advanceSessionGeneration()
+    const gen2 = sessionGen.getSessionGeneration()
+    await onRejected(makeAxiosError(401, '/api/me', gen2)).catch(() => undefined)
+    expect(handler).toHaveBeenCalledTimes(2)
+  })
+
+  it('login POST 401 does not trigger global logout handler', async () => {
+    const { bundle, onRejected, sessionGen } = captureParallel401Handler()
+    const handler = vi.fn()
+    bundle.setUnauthorizedHandler(handler)
+
+    const gen = sessionGen.getSessionGeneration()
     await Promise.all([
-      onRejected(makeAxiosError(401, '/api/me')).catch(() => undefined),
-      onRejected({
-        ...makeAxiosError(401, '/login'),
-        config: { url: '/login', method: 'post' } as InternalAxiosRequestConfig,
-      }).catch(() => undefined),
-      onRejected(makeAxiosError(401, '/api/klub')).catch(() => undefined),
+      onRejected(makeAxiosError(401, '/api/me', gen)).catch(() => undefined),
+      onRejected(makeAxiosError(401, '/login', gen, 'post')).catch(() => undefined),
+      onRejected(makeAxiosError(401, '/api/klub', gen)).catch(() => undefined),
     ])
 
-    expect(handler).toHaveBeenCalledTimes(2)
+    expect(handler).toHaveBeenCalledTimes(1)
   })
 })

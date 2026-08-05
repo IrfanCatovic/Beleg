@@ -1,4 +1,5 @@
 import type { AxiosInstance } from 'axios'
+import type { SessionGenerationCoordinator } from '../auth/sessionGeneration'
 
 export interface StorageAdapter {
   getItem(key: string): string | null | Promise<string | null>
@@ -10,6 +11,7 @@ export interface ApiClientConfig {
   baseURL: string
   storage: StorageAdapter
   withCredentials?: boolean
+  sessionGeneration?: SessionGenerationCoordinator
 }
 
 export interface ApiClientBundle {

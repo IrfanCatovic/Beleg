@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { setUnauthorizedHandler, setAuthToken } from '../services/api'
 import { fetchMeProfile, logoutSession } from '../services/auth'
+import { sessionGeneration } from '../auth/sessionGeneration'
 import {
   IS_LOGGED_IN_KEY,
   USER_STORAGE_KEY,
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true)
   const [pendingSummitReward, setPendingSummitReward] = useState<LoginResponse['pendingSummitReward'] | null>(null)
 
-  const clearAuthState = useCallback(() => {
+  const clearLocalAuthState = useCallback(() => {
     setIsLoggedIn(false)
     setUser(null)
     setPendingSummitReward(null)
@@ -40,14 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(null)
   }, [])
 
+  const invalidateSession = useCallback(() => {
+    sessionGeneration.advanceSessionGeneration()
+    clearLocalAuthState()
+  }, [clearLocalAuthState])
+
   const logout = useCallback(async () => {
+    sessionGeneration.advanceSessionGeneration()
+    setAuthLoading(false)
     await logoutSession()
-    clearAuthState()
-  }, [clearAuthState])
+    clearLocalAuthState()
+  }, [clearLocalAuthState])
 
   const refreshUser = useCallback(async () => {
+    const refreshGen = sessionGeneration.getSessionGeneration()
     try {
       const data = await fetchMeProfile()
+      if (!sessionGeneration.isCurrentSessionGeneration(refreshGen)) return false
       if (!data) return false
       const userData = meResponseToSessionUser(data)
       setUser(userData)
@@ -59,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback((data: LoginResponse) => {
+    sessionGeneration.advanceSessionGeneration()
+    setAuthLoading(false)
     if (data.token && data.token.length > 10) {
       setAuthToken(data.token)
     }
@@ -87,9 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    const bootstrapGen = sessionGeneration.getSessionGeneration()
     const cachedUser = localStorage.getItem(USER_STORAGE_KEY)
     const cachedLoggedIn = localStorage.getItem(IS_LOGGED_IN_KEY) === 'true'
-    if (cachedUser && cachedLoggedIn) {
+    if (cachedUser && cachedLoggedIn && sessionGeneration.isCurrentSessionGeneration(bootstrapGen)) {
       try {
         const parsed = JSON.parse(cachedUser) as User
         if (parsed?.username && parsed?.role) {
@@ -104,8 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     fetchMeProfile()
       .then((data) => {
+        if (!sessionGeneration.isCurrentSessionGeneration(bootstrapGen)) return
         if (!data) {
-          clearAuthState()
+          invalidateSession()
           return
         }
         if (data.username && typeof data.role === 'string') {
@@ -116,15 +130,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(IS_LOGGED_IN_KEY, 'true')
         }
       })
-      .catch(() => {})
-      .finally(() => setAuthLoading(false))
+      .catch(() => {
+        if (!sessionGeneration.isCurrentSessionGeneration(bootstrapGen)) return
+      })
+      .finally(() => {
+        if (sessionGeneration.isCurrentSessionGeneration(bootstrapGen)) {
+          setAuthLoading(false)
+        }
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    setUnauthorizedHandler(clearAuthState)
+    setUnauthorizedHandler(() => {
+      sessionGeneration.advanceSessionGeneration()
+      clearLocalAuthState()
+    })
     return () => setUnauthorizedHandler(null)
-  }, [clearAuthState])
+  }, [clearLocalAuthState])
 
   return (
     <AuthContext.Provider

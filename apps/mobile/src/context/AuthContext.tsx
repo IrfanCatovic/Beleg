@@ -17,6 +17,7 @@ import {
   type SessionUser,
 } from '@beleg/shared'
 import { client, setAuthToken, setUnauthorizedHandler } from '../api/client'
+import { sessionGeneration } from '../auth/sessionGeneration'
 import { clearAuthenticatedUserQueryState } from '../lib/clearAuthenticatedUserQueryState'
 import { finishClearAuthSideEffects, performMobileLogout } from '../lib/performMobileLogout'
 import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
@@ -44,10 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true)
   const logoutInFlightRef = useRef(false)
 
-  const clearAuthState = useCallback(async () => {
-    // Auth UI/state prvo — RootNavigator odmah prelazi na AuthStack (nema back na protected).
-    // Does NOT clear pending push target: session restore / initial logged-out must not
-    // wipe a destination saved from a cold-start or logged-out tap.
+  const clearLocalAuthState = useCallback(async () => {
     setIsLoggedIn(false)
     setUser(null)
     await finishClearAuthSideEffects({
@@ -60,7 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       clearQueryState: clearAuthenticatedUserQueryState,
     })
-    // Ako je storage pao prije setAuthToken, pokušaj još jednom skinuti token.
     try {
       await setAuthToken(null)
     } catch {
@@ -68,19 +65,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const invalidateSession = useCallback(async () => {
+    sessionGeneration.advanceSessionGeneration()
+    await clearLocalAuthState()
+  }, [clearLocalAuthState])
+
   const logout = useCallback(async () => {
+    sessionGeneration.advanceSessionGeneration()
+    setAuthLoading(false)
     await clearPendingNavigationOnSessionEnd()
     await performMobileLogout({
       inFlight: logoutInFlightRef,
       logoutApi: () => logoutApi(client),
-      clearAuthState,
+      clearAuthState: clearLocalAuthState,
     })
-  }, [clearAuthState])
-
+  }, [clearLocalAuthState])
 
   const refreshUser = useCallback(async () => {
+    const refreshGen = sessionGeneration.getSessionGeneration()
     try {
       const data = await fetchMe(client)
+      if (!sessionGeneration.isCurrentSessionGeneration(refreshGen)) return false
       if (!data) return false
       const userData = meResponseToSessionUser(data)
       setUser(userData)
@@ -92,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback((data: LoginResponse, rememberMe = true) => {
+    sessionGeneration.advanceSessionGeneration()
+    setAuthLoading(false)
     if (data.token && data.token.length > 10) {
       void setAuthToken(data.token)
     }
@@ -117,61 +124,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
+    const restoreGen = sessionGeneration.getSessionGeneration()
 
     async function restoreSession() {
-      const rememberMe = (await mobileStorage.getItem(REMEMBER_ME_KEY)) !== 'false'
-      const cachedUser = rememberMe ? await mobileStorage.getItem(USER_STORAGE_KEY) : null
-      const cachedLoggedIn = rememberMe && (await mobileStorage.getItem(IS_LOGGED_IN_KEY)) === 'true'
-
-      if (cachedUser && cachedLoggedIn) {
-        try {
-          const parsed = JSON.parse(cachedUser) as User
-          if (parsed?.username && parsed?.role) {
-            setUser(parsed)
-            setIsLoggedIn(true)
-          }
-        } catch {
-          await mobileStorage.removeItem(USER_STORAGE_KEY)
-          await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
-        }
-      }
+      let rememberMe = true
+      let cachedUser: string | null = null
+      let cachedLoggedIn = false
 
       try {
-        const data = await fetchMe(client)
-        if (cancelled) return
-        if (!data) {
-          await clearAuthState()
+        try {
+          rememberMe = (await mobileStorage.getItem(REMEMBER_ME_KEY)) !== 'false'
+          cachedUser = rememberMe ? await mobileStorage.getItem(USER_STORAGE_KEY) : null
+          cachedLoggedIn = rememberMe && (await mobileStorage.getItem(IS_LOGGED_IN_KEY)) === 'true'
+        } catch {
+          if (sessionGeneration.isCurrentSessionGeneration(restoreGen)) {
+            await clearLocalAuthState()
+          }
           return
         }
-        if (data.username && typeof data.role === 'string') {
-          const userData = meResponseToSessionUser(data)
-          setUser(userData)
-          setIsLoggedIn(true)
-          if (rememberMe) {
-            await mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData))
-            await mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+
+        if (
+          cachedUser &&
+          cachedLoggedIn &&
+          sessionGeneration.isCurrentSessionGeneration(restoreGen)
+        ) {
+          try {
+            const parsed = JSON.parse(cachedUser) as User
+            if (parsed?.username && parsed?.role) {
+              setUser(parsed)
+              setIsLoggedIn(true)
+            }
+          } catch {
+            await mobileStorage.removeItem(USER_STORAGE_KEY)
+            await mobileStorage.removeItem(IS_LOGGED_IN_KEY)
           }
         }
-      } catch {
-        // keep cached session if offline
+
+        try {
+          const data = await fetchMe(client)
+          if (!sessionGeneration.isCurrentSessionGeneration(restoreGen)) return
+          if (!data) {
+            await invalidateSession()
+            return
+          }
+          if (data.username && typeof data.role === 'string') {
+            const userData = meResponseToSessionUser(data)
+            setUser(userData)
+            setIsLoggedIn(true)
+            if (rememberMe) {
+              await mobileStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData))
+              await mobileStorage.setItem(IS_LOGGED_IN_KEY, 'true')
+            }
+          }
+        } catch {
+          if (!sessionGeneration.isCurrentSessionGeneration(restoreGen)) return
+        }
       } finally {
-        if (!cancelled) setAuthLoading(false)
+        if (sessionGeneration.isCurrentSessionGeneration(restoreGen)) {
+          setAuthLoading(false)
+        }
       }
     }
 
     void restoreSession()
-    return () => {
-      cancelled = true
-    }
-  }, [clearAuthState])
+  }, [clearLocalAuthState, invalidateSession])
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      void clearPendingNavigationOnSessionEnd().then(() => clearAuthState())
+      sessionGeneration.advanceSessionGeneration()
+      void clearPendingNavigationOnSessionEnd().then(() => clearLocalAuthState())
     })
     return () => setUnauthorizedHandler(null)
-  }, [clearAuthState])
+  }, [clearLocalAuthState])
 
   return (
     <AuthContext.Provider

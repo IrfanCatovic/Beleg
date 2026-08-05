@@ -6,6 +6,10 @@ import {
 } from './constants'
 import type { ApiClientBundle, ApiClientConfig } from './types'
 
+type RequestConfigWithSession = {
+  __sessionGeneration?: number
+}
+
 async function storageGet(
   storage: ApiClientConfig['storage'],
   key: string,
@@ -32,7 +36,7 @@ async function storageRemove(
 }
 
 export function createApiClient(config: ApiClientConfig): ApiClientBundle {
-  const { storage, baseURL, withCredentials = false } = config
+  const { storage, baseURL, withCredentials = false, sessionGeneration } = config
 
   const client: AxiosInstance = axios.create({
     baseURL,
@@ -53,7 +57,18 @@ export function createApiClient(config: ApiClientConfig): ApiClientBundle {
 
   const getAuthToken = () => storageGet(storage, AUTH_TOKEN_KEY)
 
+  const shouldInvokeUnauthorizedHandler = (requestGeneration: number | undefined): boolean => {
+    if (!sessionGeneration) return true
+    if (requestGeneration === undefined) return false
+    if (!sessionGeneration.isCurrentSessionGeneration(requestGeneration)) return false
+    return sessionGeneration.tryBeginUnauthorizedCleanup(requestGeneration)
+  }
+
   client.interceptors.request.use(async (reqConfig) => {
+    if (sessionGeneration) {
+      ;(reqConfig as RequestConfigWithSession).__sessionGeneration =
+        sessionGeneration.getSessionGeneration()
+    }
     const bearer = await storageGet(storage, AUTH_TOKEN_KEY)
     if (bearer) {
       reqConfig.headers.Authorization = `Bearer ${bearer}`
@@ -94,12 +109,18 @@ export function createApiClient(config: ApiClientConfig): ApiClientBundle {
       const isLoginPost =
         method === 'post' && (reqUrl === '/login' || reqUrl.endsWith('/login'))
       const isActivityRequest = reqUrl.includes('/api/activities')
+      const requestGeneration = (error.config as RequestConfigWithSession | undefined)
+        ?.__sessionGeneration
       if (error.response?.status === 401 && onUnauthorized && !isLoginPost && !isActivityRequest) {
-        onUnauthorized()
+        if (shouldInvokeUnauthorizedHandler(requestGeneration)) {
+          onUnauthorized()
+        }
       } else if (error.response?.status === 403 && onUnauthorized) {
         const msg = (error.response?.data as { error?: string })?.error ?? ''
         if (msg.includes('hold') || msg.includes('suspendovan')) {
-          onUnauthorized()
+          if (shouldInvokeUnauthorizedHandler(requestGeneration)) {
+            onUnauthorized()
+          }
         }
       }
       return Promise.reject(error)

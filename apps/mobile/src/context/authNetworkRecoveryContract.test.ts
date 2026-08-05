@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createSessionGeneration } from '@beleg/shared'
 
 /**
  * Mobile network recovery + session revalidation contract (pure simulation).
@@ -47,13 +48,14 @@ describe('mobile network recovery contract', () => {
 })
 
 describe('mobile parallel 401 contract', () => {
-  it('no in-flight guard on global unauthorized handler (same as web)', () => {
+  it('single-flight guard allows one cleanup per generation', () => {
+    const sessionGen = createSessionGeneration()
+    const gen = sessionGen.getSessionGeneration()
     let cleanupCount = 0
-    const onUnauthorized = () => {
-      cleanupCount += 1
+    for (let i = 0; i < 5; i++) {
+      if (sessionGen.tryBeginUnauthorizedCleanup(gen)) cleanupCount += 1
     }
-    for (let i = 0; i < 5; i++) onUnauthorized()
-    expect(cleanupCount).toBe(5)
+    expect(cleanupCount).toBe(1)
   })
 })
 
