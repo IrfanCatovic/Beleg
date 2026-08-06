@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// postUserContextNoT is safe to call from goroutines (no testing.T).
+func postUserContextNoT(db *gorm.DB, user models.Korisnik, method, path string, body []byte) (*httptest.ResponseRecorder, *gin.Context) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	if body != nil {
+		c.Request = httptest.NewRequest(method, path, bytes.NewReader(body))
+		c.Request.Header.Set("Content-Type", "application/json")
+	} else {
+		c.Request = httptest.NewRequest(method, path, nil)
+	}
+	c.Set("db", db)
+	c.Set(middleware.ContextKeyKorisnik, user)
+	c.Set("username", user.Username)
+	c.Set("role", user.Role)
+	return w, c
+}
 
 // --- Blocked individual commenter on visible post (author C, commenter B, viewer A) ---
 
@@ -293,14 +312,14 @@ func TestModule3Final_CommentCreatePostDeleteRace(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, actor, http.MethodPost, "/api/posts/"+id+"/comments", payload)
+		w, c := postUserContextNoT(db, actor, http.MethodPost, "/api/posts/"+id+"/comments", payload)
 		c.Params = gin.Params{{Key: "id", Value: id}}
 		CreatePostComment(c)
 		codes[0] = w.Code
 	}()
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, author, http.MethodDelete, "/api/posts/"+id, nil)
+		w, c := postUserContextNoT(db, author, http.MethodDelete, "/api/posts/"+id, nil)
 		c.Params = gin.Params{{Key: "id", Value: id}}
 		DeletePost(c)
 		codes[1] = w.Code
@@ -335,14 +354,14 @@ func TestModule3Final_LikePostDeleteRace(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, actor, http.MethodPost, "/api/posts/"+id+"/like", nil)
+		w, c := postUserContextNoT(db, actor, http.MethodPost, "/api/posts/"+id+"/like", nil)
 		c.Params = gin.Params{{Key: "id", Value: id}}
 		TogglePostLike(c)
 		codes[0] = w.Code
 	}()
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, author, http.MethodDelete, "/api/posts/"+id, nil)
+		w, c := postUserContextNoT(db, author, http.MethodDelete, "/api/posts/"+id, nil)
 		c.Params = gin.Params{{Key: "id", Value: id}}
 		DeletePost(c)
 		codes[1] = w.Code
@@ -380,14 +399,14 @@ func TestModule3Final_CommentDeletePostDeleteRace(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, author, http.MethodDelete, "/api/posts/"+pid+"/comments/"+cid, nil)
+		w, c := postUserContextNoT(db, author, http.MethodDelete, "/api/posts/"+pid+"/comments/"+cid, nil)
 		c.Params = gin.Params{{Key: "id", Value: pid}, {Key: "commentId", Value: cid}}
 		DeletePostComment(c)
 		codes[0] = w.Code
 	}()
 	go func() {
 		defer wg.Done()
-		w, c := withPostUserContext(t, db, author, http.MethodDelete, "/api/posts/"+pid, nil)
+		w, c := postUserContextNoT(db, author, http.MethodDelete, "/api/posts/"+pid, nil)
 		c.Params = gin.Params{{Key: "id", Value: pid}}
 		DeletePost(c)
 		codes[1] = w.Code
