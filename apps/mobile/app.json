@@ -33,7 +33,8 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Planiner prati rutu avanture u pozadini dok je aktivnost u toku.",
         "UIBackgroundModes": ["location"],
         "NSMotionUsageDescription": "Planiner koristi brojač koraka da prikaže dnevni napredak i korake tokom aktivnosti.",
-        "NSPhotoLibraryUsageDescription": "Planiner koristi pristup slikama da postavite profilnu i naslovnu fotografiju i fotografije akcija."
+        "NSPhotoLibraryUsageDescription": "Planiner koristi pristup slikama da postavite profilnu i naslovnu fotografiju i fotografije akcija.",
+        "NSPhotoLibraryAddUsageDescription": "Planiner koristi pristup fotografijama da sačuva sliku vašeg uspešnog uspona."
       }
     },
     "android": {

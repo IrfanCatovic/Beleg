@@ -92,29 +92,8 @@ func resolveSignupApprovers(db *gorm.DB, akcija *models.Akcija) []uint {
 }
 
 func canApproveSignupRequest(c *gin.Context, db *gorm.DB, akcija *models.Akcija) bool {
-	if akcija == nil {
-		return false
-	}
-	roleVal, _ := c.Get("role")
-	role, _ := roleVal.(string)
-	if role == "superadmin" {
-		return true
-	}
-	usernameVal, exists := c.Get("username")
-	if !exists {
-		return false
-	}
-	var viewer models.Korisnik
-	if err := helpers.DBWhereUsername(db, helpers.UsernameFromContext(usernameVal)).First(&viewer).Error; err != nil {
-		return false
-	}
-	if akcija.VodicID > 0 || akcija.AddedByID > 0 {
-		return helpers.IsAkcijaLeader(akcija, viewer.ID)
-	}
-	if akcija.KlubID != nil && viewer.KlubID != nil && *viewer.KlubID == *akcija.KlubID {
-		return role == "admin" || role == "sekretar"
-	}
-	return false
+	// Canonical action-management policy (isti kao edit/finish/cancel status).
+	return helpers.CanManageAkcijaEx(c, db, akcija)
 }
 
 func createSignupRequestNotification(db *gorm.DB, req models.ActionSignupRequest) {

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   buildActionInviteWhatsAppMessage,
   buildActionShareUrl,
+  decideSummitClaimIntent,
   encodeWhatsAppShareMessage,
   isActionCancelled,
   isActionLifecycleActive,
+  isSummitRewardEligible,
   resolveActionInviteShareUrl,
 } from '@beleg/shared'
 import api from '../../services/api'
@@ -65,6 +67,7 @@ export function useActionShare({
   const [actionShareLoading, setActionShareLoading] = useState(false)
   const [actionShareCopied, setActionShareCopied] = useState(false)
   const [actionShareError, setActionShareError] = useState('')
+  const claimIntentConsumedRef = useRef(false)
 
   useEffect(() => {
     if (!summitShareOpen) return
@@ -78,6 +81,10 @@ export function useActionShare({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [summitShareOpen])
+
+  useEffect(() => {
+    claimIntentConsumedRef.current = false
+  }, [id])
 
   useEffect(() => {
     if (!akcija) {
@@ -237,13 +244,30 @@ export function useActionShare({
   }
 
   useEffect(() => {
-    if (!claimRewardRequested) return
-    if (!user || !akcija) return
-    if (mojaPrijava === undefined) return
-    if (mojaPrijava?.status !== 'popeo se') return
-    if (summitShareOpen) return
+    const decision = decideSummitClaimIntent({
+      claimReward: claimRewardRequested,
+      alreadyConsumed: claimIntentConsumedRef.current,
+      modalOpen: summitShareOpen,
+      isLoggedIn: !!user,
+      isLoaded: !!akcija && mojaPrijava !== undefined,
+      isCompleted: !!akcija?.isCompleted,
+      isCancelled: akcija ? isActionCancelled(akcija) : false,
+      participationStatus: mojaPrijava?.status ?? null,
+    })
+
+    if (decision.action === 'wait' || decision.action === 'noop') {
+      return
+    }
+
+    claimIntentConsumedRef.current = true
+    navigate(location.pathname, { replace: true })
+
+    if (decision.action === 'consume-without-open') {
+      return
+    }
 
     const run = async () => {
+      if (!akcija) return
       setSummitPickedAspect(null)
       setSummitShareOpen(true)
       setSummitShareStep(1)
@@ -280,8 +304,6 @@ export function useActionShare({
           setActionShareLoading(false)
         }
       }
-
-      navigate(location.pathname, { replace: true })
     }
 
     void run()
@@ -297,6 +319,17 @@ export function useActionShare({
   }
 
   const openSummitShareModal = async () => {
+    if (
+      !isSummitRewardEligible({
+        isLoggedIn: !!user,
+        isLoaded: !!akcija && mojaPrijava !== undefined,
+        isCompleted: !!akcija?.isCompleted,
+        isCancelled: akcija ? isActionCancelled(akcija) : false,
+        participationStatus: mojaPrijava?.status ?? null,
+      })
+    ) {
+      return
+    }
     setSummitShareStep(0)
     setSummitPickedAspect(null)
     setSummitShareOpen(true)
@@ -402,8 +435,13 @@ export function useActionShare({
   }
 
   const isFerrataReward = akcija?.tipAkcije === 'via_ferrata'
-  const canClaimSummitReward =
-    !!user && mojaPrijava !== undefined && mojaPrijava?.status === 'popeo se'
+  const canClaimSummitReward = isSummitRewardEligible({
+    isLoggedIn: !!user,
+    isLoaded: !!akcija && mojaPrijava !== undefined,
+    isCompleted: !!akcija?.isCompleted,
+    isCancelled: akcija ? isActionCancelled(akcija) : false,
+    participationStatus: mojaPrijava?.status ?? null,
+  })
 
   return {
     summitShareOpen,

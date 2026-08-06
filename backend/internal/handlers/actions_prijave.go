@@ -65,6 +65,9 @@ func PrijaviNaAkciju(c *gin.Context) {
 		if err := validateSignupAccess(tx, locked, &korisnik, inviteToken); err != nil {
 			return err
 		}
+		if isBlockedFromActionSignupTx(tx, korisnik.ID, locked) {
+			return errActionSignupBlocked
+		}
 
 		created, err := createPendingActionSignupRequestTx(tx, locked, &korisnik, choices)
 		if err != nil {
@@ -74,6 +77,10 @@ func PrijaviNaAkciju(c *gin.Context) {
 		return nil
 	}); err != nil {
 		errMsg := err.Error()
+		if errors.Is(err, errActionSignupBlocked) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, helpers.ErrDuplicatePrijava) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

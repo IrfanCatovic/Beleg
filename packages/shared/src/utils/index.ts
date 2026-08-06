@@ -87,6 +87,16 @@ export type { ActionLifecycleBadge, ActionLifecycleFields } from './actionLifecy
 export { formatActionDate, formatActionDateShort, parseLocalDate } from './dateFormat'
 export { dateFromHHMM, formatHHMM, isValidHHMM, parseHHMM } from './timeFormat'
 export {
+  decideSummitClaimIntent,
+  isClaimRewardParamEnabled,
+  isSummitRewardEligible,
+} from './summitRewardEligibility'
+export type {
+  SummitClaimIntentDecision,
+  SummitClaimIntentInput,
+  SummitRewardEligibilityInput,
+} from './summitRewardEligibility'
+export {
   buildActionInviteWhatsAppMessage,
   buildActionShareUrl,
   encodeWhatsAppShareMessage,

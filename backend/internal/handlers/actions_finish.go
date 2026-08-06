@@ -727,6 +727,10 @@ func UpdatePrijavaStatus(c *gin.Context) {
 	}
 
 	var outPrijava models.Prijava
+	var summitNotifyUserID uint
+	var summitNotifyAkcija models.Akcija
+	shouldNotifySummit := false
+
 	err = db.Transaction(func(tx *gorm.DB) error {
 		lockedAkcija, err := helpers.LockAkcijaForUpdate(tx, existing.AkcijaID)
 		if err != nil {
@@ -773,7 +777,10 @@ func UpdatePrijavaStatus(c *gin.Context) {
 				return err
 			}
 			if willBePopeoSe {
-				notifications.NotifySummitReward(tx, korisnik.ID, *lockedAkcija)
+				// Snapshot za post-commit notify — nikad push/network unutar TX.
+				shouldNotifySummit = true
+				summitNotifyUserID = korisnik.ID
+				summitNotifyAkcija = *lockedAkcija
 			}
 		}
 
@@ -796,6 +803,10 @@ func UpdatePrijavaStatus(c *gin.Context) {
 		}
 		c.JSON(500, gin.H{"error": "Greška pri ažuriranju statusa"})
 		return
+	}
+	if shouldNotifySummit {
+		// Best-effort: failure ne smije rollbackovati participation status.
+		notifications.NotifySummitReward(db, summitNotifyUserID, summitNotifyAkcija)
 	}
 	c.JSON(200, gin.H{"message": "Status ažuriran", "prijava": outPrijava})
 }

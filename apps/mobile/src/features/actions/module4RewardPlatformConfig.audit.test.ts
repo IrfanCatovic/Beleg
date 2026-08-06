@@ -19,9 +19,7 @@ const IOS = {
   scheme: 'planiner',
   associatedDomains: ['applinks:www.planiner.com'],
   nsPhotoLibraryUsageDescription: true,
-  // infoPlist in app.json does not list NSPhotoLibraryAddUsageDescription explicitly;
-  // expo-media-library savePhotosPermission may inject it at prebuild.
-  nsPhotoLibraryAddUsageDescriptionInAppJson: false,
+  nsPhotoLibraryAddUsageDescriptionInAppJson: true,
   hasMediaLibraryPlugin: true,
   hasExpoSharing: true,
   hasViewShot: true,
@@ -44,9 +42,9 @@ describe('M4 iOS reward/share config audit', () => {
     expect(IOS.associatedDomains[0]).toContain('applinks:')
   })
 
-  it('documents missing explicit NSPhotoLibraryAddUsageDescription in app.json', () => {
+  it('has explicit NSPhotoLibraryAddUsageDescription in app.json', () => {
     expect(IOS.nsPhotoLibraryUsageDescription).toBe(true)
-    expect(IOS.nsPhotoLibraryAddUsageDescriptionInAppJson).toBe(false)
+    expect(IOS.nsPhotoLibraryAddUsageDescriptionInAppJson).toBe(true)
   })
 
   it('share/save libraries present', () => {

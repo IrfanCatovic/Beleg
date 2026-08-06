@@ -1,24 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { isSummitRewardEligible } from './utils/summitRewardEligibility'
+import {
+  decideSummitClaimIntent,
+  isClaimRewardParamEnabled,
+  isSummitRewardEligible,
+} from '@beleg/shared'
 
 /**
- * Documents web vs mobile claimReward eligibility gap.
- * Mobile requires isCompleted; web useActionShare opens on popeo se alone.
+ * Web/mobile claimReward eligibility parity (M4-REWARD-WEB-1 closed).
  */
 
-function webClaimRewardWouldOpen(input: {
-  claimRewardRequested: boolean
-  isLoggedIn: boolean
-  akcijaLoaded: boolean
-  participationStatus: string | null
-}): boolean {
-  if (!input.claimRewardRequested) return false
-  if (!input.isLoggedIn || !input.akcijaLoaded) return false
-  // Actual web (src/hooks/action-details/useActionShare.ts): no isCompleted / isCancelled check.
-  return input.participationStatus === 'popeo se'
-}
-
-describe('M4-REWARD-WEB-CLAIM gap', () => {
+describe('M4-REWARD-WEB-CLAIM parity', () => {
   const unfinishedPopeoSe = {
     claimRewardRequested: true,
     isLoggedIn: true,
@@ -40,24 +31,41 @@ describe('M4-REWARD-WEB-CLAIM gap', () => {
     ).toBe(false)
   })
 
-  it('web currently opens claimReward without isCompleted — documented actual', () => {
-    expect(webClaimRewardWouldOpen(unfinishedPopeoSe)).toBe(true)
-  })
-
-  it('expected parity: web should match mobile and deny unfinished', () => {
-    const expected =
-      unfinishedPopeoSe.claimRewardRequested &&
-      isSummitRewardEligible({
+  it('web decideSummitClaimIntent denies unfinished + claimReward=1', () => {
+    expect(
+      decideSummitClaimIntent({
+        claimReward: unfinishedPopeoSe.claimRewardRequested,
+        alreadyConsumed: false,
+        modalOpen: false,
         isLoggedIn: unfinishedPopeoSe.isLoggedIn,
         isLoaded: unfinishedPopeoSe.akcijaLoaded,
         isCompleted: unfinishedPopeoSe.isCompleted,
         isCancelled: unfinishedPopeoSe.isCancelled,
         participationStatus: unfinishedPopeoSe.participationStatus,
-      })
-    if (webClaimRewardWouldOpen(unfinishedPopeoSe) && !expected) {
-      throw new Error(
-        'M4-REWARD-WEB-1 P2: web claimReward opens without isCompleted while mobile requires completed',
-      )
-    }
+      }),
+    ).toEqual({ action: 'consume-without-open' })
+  })
+
+  it('claimReward param only accepts exact 1', () => {
+    expect(isClaimRewardParamEnabled('1')).toBe(true)
+    expect(isClaimRewardParamEnabled(true)).toBe(true)
+    expect(isClaimRewardParamEnabled('0')).toBe(false)
+    expect(isClaimRewardParamEnabled('true')).toBe(false)
+    expect(isClaimRewardParamEnabled('2')).toBe(false)
+  })
+
+  it('completed + popeo se opens once', () => {
+    expect(
+      decideSummitClaimIntent({
+        claimReward: true,
+        alreadyConsumed: false,
+        modalOpen: false,
+        isLoggedIn: true,
+        isLoaded: true,
+        isCompleted: true,
+        isCancelled: false,
+        participationStatus: 'popeo se',
+      }),
+    ).toEqual({ action: 'open' })
   })
 })

@@ -4,7 +4,7 @@ import { isActionCancelled } from '@beleg/shared'
 import {
   decideSummitClaimIntent,
   isSummitRewardEligible,
-} from '../utils/summitRewardEligibility'
+} from '@beleg/shared'
 import { isFerrataSummitAction } from '../utils/summitShareData'
 
 type NavigationLike = {

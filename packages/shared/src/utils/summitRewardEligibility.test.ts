@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   decideSummitClaimIntent,
   isSummitRewardEligible,
-} from '@beleg/shared'
+} from './summitRewardEligibility'
 
 describe('isSummitRewardEligible', () => {
   const base = {
