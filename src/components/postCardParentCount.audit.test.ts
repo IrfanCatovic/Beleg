@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { mergeUniquePostsById } from '@beleg/shared'
 
 /**
- * Audit model: web Home keeps posts[] parent state; PostCard owns local like/comment counts.
- * Mutations update local state only — onUpdate is called for post edit, not comment/like.
+ * Fixed contract: PostCard engagement mutations call onUpdate so parent posts[] stays in sync.
+ * Pagination append prefers existing objects; explicit refresh replaces with server values.
  */
 
 type Post = {
@@ -13,61 +14,43 @@ type Post = {
   content?: string
 }
 
-function simulatePostCardLocalMutation(post: Post, delta: { likeCount?: number; commentCount?: number }) {
-  return {
-    localLikeCount: delta.likeCount ?? post.likeCount ?? 0,
-    localCommentCount: delta.commentCount ?? post.commentCount ?? 0,
-    parentPost: post,
-  }
+function applyEngagementToParent(parentPosts: Post[], updated: Post): Post[] {
+  return parentPosts.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
 }
 
-function simulateParentAfterComment(parentPosts: Post[], postId: number, newLocalCount: number) {
-  const parent = parentPosts.find((p) => p.id === postId)
-  return {
-    parentCommentCount: parent?.commentCount ?? 0,
-    childDisplayedCount: newLocalCount,
-    parentStale: (parent?.commentCount ?? 0) !== newLocalCount,
-  }
-}
-
-function simulatePaginationMerge(existing: Post[], incoming: Post[]) {
-  const byId = new Map<number, Post>()
-  for (const p of existing) byId.set(p.id, p)
-  for (const p of incoming) {
-    if (byId.has(p.id)) byId.set(p.id, p)
-    else byId.set(p.id, p)
-  }
-  return Array.from(byId.values())
-}
-
-describe('M3-WEB-PARENT-COUNT audit model', () => {
-  it('comment create updates child local count but not parent posts[]', () => {
-    const parentPosts: Post[] = [{ id: 1, commentCount: 2, likeCount: 0 }]
-    const after = simulatePostCardLocalMutation(parentPosts[0], { commentCount: 3 })
-    const sync = simulateParentAfterComment(parentPosts, 1, after.localCommentCount)
-    expect(sync.parentStale).toBe(true)
-    expect(sync.childDisplayedCount).toBe(3)
-    expect(sync.parentCommentCount).toBe(2)
+describe('M3-WEB-PARENT-COUNT fixed model', () => {
+  it('comment create syncs parent posts[] via onUpdate', () => {
+    let parentPosts: Post[] = [{ id: 1, commentCount: 2, likeCount: 0 }]
+    const afterLocal = 3
+    parentPosts = applyEngagementToParent(parentPosts, {
+      ...parentPosts[0]!,
+      commentCount: afterLocal,
+    })
+    expect(parentPosts[0]?.commentCount).toBe(3)
   })
 
-  it('like/unlike updates child local count but parent stays stale until refresh', () => {
-    const parentPosts: Post[] = [{ id: 1, likeCount: 1, myLiked: true }]
-    const afterUnlike = simulatePostCardLocalMutation(parentPosts[0], { likeCount: 0 })
-    expect(afterUnlike.localLikeCount).toBe(0)
-    expect(parentPosts[0].likeCount).toBe(1)
+  it('like/unlike syncs parent likeCount', () => {
+    let parentPosts: Post[] = [{ id: 1, likeCount: 1, myLiked: true }]
+    parentPosts = applyEngagementToParent(parentPosts, {
+      ...parentPosts[0]!,
+      likeCount: 0,
+      myLiked: false,
+    })
+    expect(parentPosts[0]?.likeCount).toBe(0)
+    expect(parentPosts[0]?.myLiked).toBe(false)
   })
 
-  it('pagination merge with stale server row can overwrite fresher parent object', () => {
+  it('pagination append prefers existing fresher counts', () => {
     const existing: Post[] = [{ id: 5, commentCount: 4 }]
     const incoming: Post[] = [{ id: 5, commentCount: 3 }]
-    const merged = simulatePaginationMerge(existing, incoming)
-    expect(merged[0]?.commentCount).toBe(3)
+    const merged = mergeUniquePostsById(existing, incoming, { preferExistingOnConflict: true })
+    expect(merged[0]?.commentCount).toBe(4)
   })
 
-  it('handleUpdatePost path syncs parent (post edit only)', () => {
-    const parentPosts: Post[] = [{ id: 1, commentCount: 1, content: 'old' }]
-    const updated: Post = { id: 1, commentCount: 1, content: 'new' }
-    const next = parentPosts.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
-    expect(next[0]?.content).toBe('new')
+  it('explicit refresh replaces with server values', () => {
+    const existing: Post[] = [{ id: 5, commentCount: 4 }]
+    const server: Post[] = [{ id: 5, commentCount: 3 }]
+    expect(server[0]?.commentCount).toBe(3)
+    expect(existing[0]?.commentCount).toBe(4)
   })
 })

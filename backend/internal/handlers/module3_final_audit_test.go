@@ -117,6 +117,7 @@ func TestModule3Final_BlockedCommenter_ABlockedB(t *testing.T) {
 	author := seedPostUser(t, db, "fbc_author", &club.ID)
 	post := seedPost(t, db, author, club.ID, "visible")
 	_ = db.Create(&models.PostComment{PostID: post.ID, UserID: commenter.ID, Content: "from blocked user"})
+	_ = db.Create(&models.PostComment{PostID: post.ID, UserID: author.ID, Content: "author note"})
 	_ = db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: commenter.ID})
 
 	code, body := auditGetComments(t, db, viewer, post.ID)
@@ -124,32 +125,31 @@ func TestModule3Final_BlockedCommenter_ABlockedB(t *testing.T) {
 		t.Fatalf("comments status=%d", code)
 	}
 	ids := commentUserIDs(body)
-	if len(ids) != 1 || ids[0] != commenter.ID {
-		t.Fatalf("M3-BLOCK-COMMENT-1: blocked commenter still in list ids=%v", ids)
+	if containsUint(ids, commenter.ID) {
+		t.Fatalf("blocked commenter must be hidden ids=%v", ids)
 	}
-	raw, _ := json.Marshal(body)
-	if !strings.Contains(string(raw), commenter.Username) {
-		t.Fatalf("M3-BLOCK-COMMENT-1: blocked commenter identity exposed")
+	if !containsUint(ids, author.ID) {
+		t.Fatalf("author comment must remain visible ids=%v", ids)
 	}
 	total, _ := body["total"].(float64)
 	if int(total) != 1 {
-		t.Fatalf("comment total=%v want 1 (includes blocked commenter)", total)
+		t.Fatalf("comment total=%v want 1 (blocked excluded)", total)
 	}
 	if feedCommentCount(t, db, viewer, post.ID) != 1 {
-		t.Fatalf("feed commentCount includes blocked commenter")
+		t.Fatalf("feed commentCount must exclude blocked commenter")
 	}
 	if singleCommentCount(t, db, viewer, post.ID) != 1 {
-		t.Fatalf("single-post commentCount includes blocked commenter")
+		t.Fatalf("single-post commentCount must exclude blocked commenter")
 	}
 
-	// Blocked commenter can still comment on visible post via author C.
+	// Blocked commenter can still comment on visible post via author C (post-level visibility).
 	bodyJSON, _ := json.Marshal(CreateCommentRequest{Content: "blocked tries again"})
 	id := strconv.FormatUint(uint64(post.ID), 10)
 	w, c := withPostUserContext(t, db, commenter, http.MethodPost, "/api/posts/"+id+"/comments", bodyJSON)
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	CreatePostComment(c)
 	if w.Code != http.StatusCreated {
-		t.Fatalf("blocked commenter new comment status=%d (no block gate on create)", w.Code)
+		t.Fatalf("blocked commenter new comment status=%d", w.Code)
 	}
 }
 
@@ -168,9 +168,18 @@ func TestModule3Final_BlockedCommenter_BBlockedA(t *testing.T) {
 		t.Fatalf("status=%d", code)
 	}
 	ids := commentUserIDs(body)
-	if len(ids) != 1 || ids[0] != commenter.ID {
-		t.Fatalf("reverse block: commenter still visible ids=%v", ids)
+	if containsUint(ids, commenter.ID) {
+		t.Fatalf("reverse block: commenter must be hidden ids=%v", ids)
 	}
+}
+
+func containsUint(ids []uint, want uint) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
 }
 
 // --- Blocked individual liker on visible post ---
@@ -183,6 +192,7 @@ func TestModule3Final_BlockedLiker_Matrix(t *testing.T) {
 	author := seedPostUser(t, db, "fbl_author", &club.ID)
 	post := seedPost(t, db, author, club.ID, "liked post")
 	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: liker.ID})
+	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: author.ID})
 	_ = db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: liker.ID})
 
 	code, body := auditGetLikes(t, db, viewer, post.ID)
@@ -190,12 +200,11 @@ func TestModule3Final_BlockedLiker_Matrix(t *testing.T) {
 		t.Fatalf("likes status=%d", code)
 	}
 	ids := likerUserIDs(body)
-	if len(ids) != 1 || ids[0] != liker.ID {
-		t.Fatalf("M3-BLOCK-LIKE-1: blocked liker in list ids=%v", ids)
+	if containsUint(ids, liker.ID) {
+		t.Fatalf("blocked liker must be hidden ids=%v", ids)
 	}
-	raw, _ := json.Marshal(body)
-	if !strings.Contains(string(raw), liker.Username) {
-		t.Fatalf("blocked liker identity exposed")
+	if !containsUint(ids, author.ID) {
+		t.Fatalf("author like must remain ids=%v", ids)
 	}
 
 	_, feedBody := callGetPosts(t, db, viewer, "")
@@ -203,7 +212,7 @@ func TestModule3Final_BlockedLiker_Matrix(t *testing.T) {
 		m := item.(map[string]any)
 		if uint(m["id"].(float64)) == post.ID {
 			if int(m["likeCount"].(float64)) != 1 {
-				t.Fatalf("likeCount includes blocked liker")
+				t.Fatalf("likeCount must exclude blocked liker, got %v", m["likeCount"])
 			}
 			if m["myLiked"].(bool) {
 				t.Fatalf("myLiked should be false for viewer")
@@ -212,6 +221,43 @@ func TestModule3Final_BlockedLiker_Matrix(t *testing.T) {
 		}
 	}
 	t.Fatal("post missing from feed")
+}
+
+func TestModule3Final_DeletedCommenterAndLiker_Hidden(t *testing.T) {
+	db := testPostsDB(t)
+	club := seedClub(t, db, "del_eng")
+	viewer := seedPostUser(t, db, "deleng_viewer", &club.ID)
+	ghost := seedPostUser(t, db, "deleng_ghost", &club.ID)
+	author := seedPostUser(t, db, "deleng_author", &club.ID)
+	post := seedPost(t, db, author, club.ID, "p")
+	_ = db.Create(&models.PostComment{PostID: post.ID, UserID: ghost.ID, Content: "gone"})
+	_ = db.Create(&models.PostComment{PostID: post.ID, UserID: author.ID, Content: "stay"})
+	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: ghost.ID})
+	_ = db.Create(&models.PostLike{PostID: post.ID, UserID: author.ID})
+	_ = db.Model(&ghost).Update("role", "deleted")
+
+	_, cBody := auditGetComments(t, db, viewer, post.ID)
+	if containsUint(commentUserIDs(cBody), ghost.ID) {
+		t.Fatal("deleted commenter must be hidden")
+	}
+	if feedCommentCount(t, db, viewer, post.ID) != 1 {
+		t.Fatal("commentCount must exclude deleted commenter")
+	}
+	_, lBody := auditGetLikes(t, db, viewer, post.ID)
+	if containsUint(likerUserIDs(lBody), ghost.ID) {
+		t.Fatal("deleted liker must be hidden")
+	}
+	_, feedBody := callGetPosts(t, db, viewer, "")
+	for _, item := range feedBody["posts"].([]any) {
+		m := item.(map[string]any)
+		if uint(m["id"].(float64)) == post.ID {
+			if int(m["likeCount"].(float64)) != 1 {
+				t.Fatalf("likeCount must exclude deleted liker got %v", m["likeCount"])
+			}
+			return
+		}
+	}
+	t.Fatal("post missing")
 }
 
 func TestModule3Final_BlockedLiker_CanStillLikeVisiblePost(t *testing.T) {
@@ -246,27 +292,27 @@ func TestModule3Final_DeleteComment_AuthorizationMatrix(t *testing.T) {
 	_ = db.Create(&superadmin)
 
 	post := seedPost(t, db, author, club.ID, "p")
-	cm := models.PostComment{PostID: post.ID, UserID: commenter.ID, Content: "x"}
-	_ = db.Create(&cm)
 
 	tryDelete := func(actor models.Korisnik, want int) {
 		t.Helper()
+		cm := models.PostComment{PostID: post.ID, UserID: commenter.ID, Content: "x"}
+		if err := db.Create(&cm).Error; err != nil {
+			t.Fatal(err)
+		}
 		pid := strconv.FormatUint(uint64(post.ID), 10)
 		cid := strconv.FormatUint(uint64(cm.ID), 10)
 		w, c := withPostUserContext(t, db, actor, http.MethodDelete, "/api/posts/"+pid+"/comments/"+cid, nil)
 		c.Params = gin.Params{{Key: "id", Value: pid}, {Key: "commentId", Value: cid}}
 		DeletePostComment(c)
 		if w.Code != want {
-			t.Fatalf("actor=%s want %d got %d", actor.Username, want, w.Code)
+			t.Fatalf("actor=%s want %d got %d body=%s", actor.Username, want, w.Code, w.Body.String())
 		}
 	}
 
-	tryDelete(commenter, http.StatusForbidden)
+	tryDelete(commenter, http.StatusOK)
 	tryDelete(other, http.StatusForbidden)
 	tryDelete(author, http.StatusOK)
-	_ = db.Create(&cm)
 	tryDelete(admin, http.StatusOK)
-	_ = db.Create(&cm)
 	tryDelete(superadmin, http.StatusOK)
 }
 
@@ -335,7 +381,7 @@ func TestModule3Final_CommentCreatePostDeleteRace(t *testing.T) {
 		}
 	}
 	if postCnt == 0 && commentCnt > 0 {
-		t.Logf("AUDIT M3-RACE-COMMENT-1 P2: orphan comments=%d after post deleted codes=%v", commentCnt, codes)
+		t.Fatalf("orphan comments=%d after post deleted codes=%v", commentCnt, codes)
 	}
 }
 
@@ -377,7 +423,7 @@ func TestModule3Final_LikePostDeleteRace(t *testing.T) {
 		}
 	}
 	if postCnt == 0 && likeCnt > 0 {
-		t.Logf("AUDIT M3-RACE-LIKE-1 P2: orphan likes=%d after post deleted codes=%v", likeCnt, codes)
+		t.Fatalf("orphan likes=%d after post deleted codes=%v", likeCnt, codes)
 	}
 }
 
@@ -545,21 +591,9 @@ func TestModule3Final_GlobalBlock_PublicProfile404_CommentsShowIdentity(t *testi
 	_ = db.Create(&models.PostComment{PostID: post.ID, UserID: blocked.ID, Content: "hi"})
 	_ = db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: blocked.ID})
 
-	gin.SetMode(gin.TestMode)
-	wProf := httptest.NewRecorder()
-	cProf, _ := gin.CreateTestContext(wProf)
-	cProf.Request = httptest.NewRequest(http.MethodGet, "/api/korisnici/"+blocked.Username, nil)
-	cProf.Params = gin.Params{{Key: "id", Value: blocked.Username}}
-	cProf.Set("db", db)
-	cProf.Set(middleware.ContextKeyKorisnik, viewer)
-	cProf.Set("username", viewer.Username)
-	cProf.Set("role", viewer.Role)
-	// Public profile handler name varies; use getVisiblePublicKorisnik contract via GetPublicKorisnik if routed.
 	_, commBody := auditGetComments(t, db, viewer, post.ID)
 	ids := commentUserIDs(commBody)
-	if len(ids) != 1 {
-		t.Fatalf("comments show blocked user")
+	if containsUint(ids, blocked.ID) {
+		t.Fatalf("blocked individual commenter must be hidden from comments list")
 	}
-	// Document mixed rule C: profile hidden path checked separately in public_user tests.
-	_ = wProf
 }

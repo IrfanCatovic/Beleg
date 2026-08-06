@@ -177,7 +177,9 @@ export default function Home() {
       const data = await loadPosts(POST_LIMIT, offset)
       if (append) {
         setPosts(prev =>
-          mergeUniquePostsById(prev, (data.posts || []) as unknown as Post[]),
+          mergeUniquePostsById(prev, (data.posts || []) as unknown as Post[], {
+            preferExistingOnConflict: true,
+          }),
         )
       } else {
         setPosts((data.posts || []) as unknown as Post[])

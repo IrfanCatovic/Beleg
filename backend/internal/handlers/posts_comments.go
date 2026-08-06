@@ -54,16 +54,22 @@ func GetPostComments(c *gin.Context) {
 		}
 	}
 
+	base := scopeVisibleEngagementActors(db.Model(&models.PostComment{}), currentUser.ID, "post_comments.user_id").
+		Where("post_comments.post_id = ?", postID)
+
 	var total int64
-	db.Model(&models.PostComment{}).Where("post_id = ?", postID).Count(&total)
+	if err := base.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju komentara"})
+		return
+	}
 
 	var comments []models.PostComment
-	if err := db.
+	if err := scopeVisibleEngagementActors(db.Model(&models.PostComment{}), currentUser.ID, "post_comments.user_id").
 		Preload("User", func(tx *gorm.DB) *gorm.DB {
 			return tx.Select("id, username, full_name, avatar_url")
 		}).
-		Where("post_id = ?", postID).
-		Order("created_at ASC").
+		Where("post_comments.post_id = ?", postID).
+		Order("post_comments.created_at ASC").
 		Limit(limit).
 		Offset(offset).
 		Find(&comments).Error; err != nil {
@@ -168,8 +174,18 @@ func CreatePostComment(c *gin.Context) {
 		Content: req.Content,
 	}
 
+	if err := ensurePostStillExists(db, uint(postID)); err != nil {
+		respondPostNotFound(c)
+		return
+	}
 	if err := db.Create(&comment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju komentara"})
+		return
+	}
+	// Parallel delete may have removed the post — roll back our orphan row.
+	if err := ensurePostStillExists(db, uint(postID)); err != nil {
+		_ = db.Delete(&comment).Error
+		respondPostNotFound(c)
 		return
 	}
 
@@ -200,28 +216,24 @@ func CreatePostComment(c *gin.Context) {
 		)
 	}
 
-	db.Preload("User", func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("id, username, full_name, avatar_url")
-	}).First(&comment, comment.ID)
-
 	c.JSON(http.StatusCreated, gin.H{
 		"comment": gin.H{
 			"id":        comment.ID,
 			"content":   comment.Content,
 			"createdAt": comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			"user": gin.H{
-				"id":           comment.User.ID,
-				"username":     comment.User.Username,
-				"fullName":     comment.User.FullName,
-				"avatarUrl":    comment.User.AvatarURL,
-				"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, comment.User.ID),
+				"id":           korisnik.ID,
+				"username":     korisnik.Username,
+				"fullName":     korisnik.FullName,
+				"avatarUrl":    korisnik.AvatarURL,
+				"isProfiGuide": helpers.KorisnikIsApprovedProfiGuide(db, korisnik.ID),
 			},
 		},
 	})
 }
 
 // DELETE /api/posts/:id/comments/:commentId
-// Dozvoljeno: vlasnik objave, admin kluba kome objava pripada, ili superadmin.
+// Dozvoljeno: autor komentara, vlasnik objave, admin kluba kome objava pripada, ili superadmin.
 func DeletePostComment(c *gin.Context) {
 	db := DB(c)
 
@@ -276,10 +288,11 @@ func DeletePostComment(c *gin.Context) {
 		return
 	}
 
+	isCommentAuthor := korisnik.ID == comment.UserID
 	isPostOwner := korisnik.ID == post.UserID
 	isSuperadmin := role == "superadmin"
 	isClubAdmin := role == "admin" && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID
-	if !isPostOwner && !isSuperadmin && !isClubAdmin {
+	if !isCommentAuthor && !isPostOwner && !isSuperadmin && !isClubAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Nemate pravo da obrišete ovaj komentar"})
 		return
 	}

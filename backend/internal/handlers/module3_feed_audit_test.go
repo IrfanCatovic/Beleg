@@ -452,7 +452,7 @@ func TestModule3_UpdatePost_NonAuthorForbidden(t *testing.T) {
 	}
 }
 
-func TestModule3_DeleteComment_AuthorCannot(t *testing.T) {
+func TestModule3_DeleteComment_AuthorCan(t *testing.T) {
 	db := testPostsDB(t)
 	club := seedClub(t, db, "dca")
 	alice := seedPostUser(t, db, "dca_alice", &club.ID)
@@ -466,8 +466,13 @@ func TestModule3_DeleteComment_AuthorCannot(t *testing.T) {
 	w, c := withPostUserContext(t, db, bob, http.MethodDelete, "/api/posts/"+pid+"/comments/"+cid, nil)
 	c.Params = gin.Params{{Key: "id", Value: pid}, {Key: "commentId", Value: cid}}
 	DeletePostComment(c)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("comment author delete expected 403 by contract, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("comment author delete expected 200, got %d", w.Code)
+	}
+	var cnt int64
+	db.Model(&models.PostComment{}).Where("id = ?", cm.ID).Count(&cnt)
+	if cnt != 0 {
+		t.Fatal("comment must be deleted")
 	}
 }
 

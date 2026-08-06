@@ -168,25 +168,8 @@ func GetPosts(c *gin.Context) {
 		postIDs = append(postIDs, p.ID)
 	}
 
-	type likeCountRow struct {
-		PostID uint
-		Cnt    int64
-	}
-	likeCountMap := make(map[uint]int64, len(posts))
-	if len(postIDs) > 0 {
-		var likeRows []likeCountRow
-		if err := db.Model(&models.PostLike{}).
-			Select("post_id, count(*) as cnt").
-			Where("post_id IN ?", postIDs).
-			Group("post_id").
-			Scan(&likeRows).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju lajkova"})
-			return
-		}
-		for _, r := range likeRows {
-			likeCountMap[r.PostID] = r.Cnt
-		}
-	}
+	likeCountMap := countVisibleLikesByPostIDs(db, currentUser.ID, postIDs)
+	commentCountMap := countVisibleCommentsByPostIDs(db, currentUser.ID, postIDs)
 
 	likedSet := make(map[uint]bool, len(posts))
 	if len(postIDs) > 0 {
@@ -196,26 +179,6 @@ func GetPosts(c *gin.Context) {
 			Pluck("post_id", &likedPostIDs).Error
 		for _, pid := range likedPostIDs {
 			likedSet[pid] = true
-		}
-	}
-
-	type commentCountRow struct {
-		PostID uint
-		Cnt    int64
-	}
-	commentCountMap := make(map[uint]int64, len(posts))
-	if len(postIDs) > 0 {
-		var commentRows []commentCountRow
-		if err := db.Model(&models.PostComment{}).
-			Select("post_id, count(*) as cnt").
-			Where("post_id IN ?", postIDs).
-			Group("post_id").
-			Scan(&commentRows).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju komentara"})
-			return
-		}
-		for _, r := range commentRows {
-			commentCountMap[r.PostID] = r.Cnt
 		}
 	}
 
@@ -317,10 +280,8 @@ func GetPost(c *gin.Context) {
 		return
 	}
 
-	var likeCount int64
-	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
-	var commentCount int64
-	db.Model(&models.PostComment{}).Where("post_id = ?", postID).Count(&commentCount)
+	likeCount := countVisibleLikesForViewer(db, currentUser.ID, uint(postID))
+	commentCount := countVisibleCommentsForViewer(db, currentUser.ID, uint(postID))
 	myLiked := false
 	var existingLike models.PostLike
 	if db.Where("post_id = ? AND user_id = ?", postID, currentUser.ID).First(&existingLike).Error == nil {
@@ -619,10 +580,8 @@ func UpdatePost(c *gin.Context) {
 		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), oldImage)
 	}
 
-	likeCount := int64(0)
-	commentCount := int64(0)
-	_ = db.Model(&models.PostLike{}).Where("post_id = ?", post.ID).Count(&likeCount).Error
-	_ = db.Model(&models.PostComment{}).Where("post_id = ?", post.ID).Count(&commentCount).Error
+	likeCount := countVisibleLikesForViewer(db, korisnik.ID, post.ID)
+	commentCount := countVisibleCommentsForViewer(db, korisnik.ID, post.ID)
 
 	// myLiked: za autora nije bitno, ali vrati realno stanje (po korisniku).
 	myLiked := false
@@ -685,18 +644,24 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	// Čisti engagement kako ne bi ostali orphan zapisi.
-	_ = db.Where("post_id = ?", postID).Delete(&models.PostLike{}).Error
-	_ = db.Where("post_id = ?", postID).Delete(&models.PostComment{}).Error
-
-	// Zakaži brisanje Cloudinary slike (ako je post ima).
-	if post.ImageURL != "" {
-		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), post.ImageURL)
-	}
-
-	if err := db.Delete(&post).Error; err != nil {
+	imageURL := post.ImageURL
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		// Delete post first so concurrent create/like after-checks see it gone and roll back.
+		if err := tx.Delete(&post).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("post_id = ?", postID).Delete(&models.PostLike{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("post_id = ?", postID).Delete(&models.PostComment{}).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri brisanju objave"})
 		return
+	}
+
+	// Zakaži brisanje Cloudinary slike poslije uspješnog DB commit-a.
+	if imageURL != "" {
+		helpers.ScheduleCloudinaryDeletion(db, os.Getenv("CLOUDINARY_CLOUD_NAME"), imageURL)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Objava obrisana"})

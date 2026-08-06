@@ -170,6 +170,7 @@ export default function PostCard({
       const { comments, total } = await fetchPostComments(post.id)
       setComments(comments)
       setCommentCount(total)
+      onUpdate?.({ ...post, commentCount: total, likeCount: post.likeCount, myLiked: post.myLiked })
     } catch {
       setComments([])
       setCommentCount(0)
@@ -178,7 +179,7 @@ export default function PostCard({
       setCommentsLoading(false)
       commentsFetchInFlightRef.current = false
     }
-  }, [post.id, showAlert])
+  }, [post, showAlert, onUpdate, t])
 
   const fetchLikes = useCallback(async () => {
     setLikesLoading(true)
@@ -218,8 +219,11 @@ export default function PostCard({
     try {
       setLiking(true)
       const data = await togglePostLike(post.id)
-      setLiked(!!data.liked)
-      setLikeCount(data.likeCount ?? 0)
+      const nextLiked = !!data.liked
+      const nextLikeCount = data.likeCount ?? 0
+      setLiked(nextLiked)
+      setLikeCount(nextLikeCount)
+      syncParentEngagement({ myLiked: nextLiked, likeCount: nextLikeCount, commentCount })
       if (likesOpen) {
         await fetchLikes()
       }
@@ -238,6 +242,15 @@ export default function PostCard({
     if (next) {
       await fetchLikes()
     }
+  }
+
+  const syncParentEngagement = (next: { likeCount?: number; commentCount?: number; myLiked?: boolean }) => {
+    onUpdate?.({
+      ...post,
+      likeCount: next.likeCount ?? likeCount,
+      commentCount: next.commentCount ?? commentCount,
+      myLiked: next.myLiked ?? liked,
+    })
   }
 
   const handleSubmitComment = async () => {
@@ -260,7 +273,7 @@ export default function PostCard({
   const isOwner = currentUsername === post.user.username
   const isAdmin = currentRole === 'admin' || currentRole === 'superadmin'
   const canDelete = isOwner || isAdmin
-  const canDeleteComments = isOwner || currentRole === 'admin' || currentRole === 'superadmin'
+  const canModerateComments = isOwner || currentRole === 'admin' || currentRole === 'superadmin'
 
   const handleSaveEditPost = async () => {
     const content = editContent.trim()
@@ -536,7 +549,7 @@ export default function PostCard({
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5">{formatRelativeTime(cm.createdAt)}</p>
                     </div>
-                    {canDeleteComments ? (
+                    {(canModerateComments || currentUsername === cm.user.username) ? (
                       <button
                         type="button"
                         onClick={() => void handleDeleteComment(cm.id)}

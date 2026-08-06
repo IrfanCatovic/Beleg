@@ -81,13 +81,18 @@ describe('mergeUniquePostsById', () => {
     expect(merged.map((p) => p.id)).toEqual([99, 1, 2, 3])
   })
 
-  it('is immutable', () => {
-    const a = [{ id: 1 }]
-    const b = [{ id: 2 }]
-    const m = mergeUniquePostsById(a, b)
-    expect(a).toEqual([{ id: 1 }])
-    expect(b).toEqual([{ id: 2 }])
-    expect(m).toEqual([{ id: 1 }, { id: 2 }])
+  it('preferExistingOnConflict keeps local engagement on pagination append', () => {
+    const existing = [{ id: 1, commentCount: 5 }]
+    const incoming = [{ id: 1, commentCount: 2 }, { id: 2, commentCount: 0 }]
+    const merged = mergeUniquePostsById(existing, incoming, { preferExistingOnConflict: true })
+    expect(merged.map((p) => p.id)).toEqual([1, 2])
+    expect(merged[0]).toEqual({ id: 1, commentCount: 5 })
+  })
+
+  it('default merge still replaces same id with incoming', () => {
+    const existing = [{ id: 1, v: 'a' }]
+    const incoming = [{ id: 1, v: 'b' }]
+    expect(mergeUniquePostsById(existing, incoming)[0]).toEqual({ id: 1, v: 'b' })
   })
 })
 

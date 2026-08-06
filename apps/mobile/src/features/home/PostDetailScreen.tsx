@@ -89,6 +89,7 @@ export default function PostDetailScreen({ route, navigation }: Props) {
     mutationFn: (commentId: number) => deletePostComment(client, id, commentId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['post', id, 'comments'] })
+      void queryClient.invalidateQueries({ queryKey: ['post', id] })
       void queryClient.invalidateQueries({ queryKey: ['posts'] })
     },
   })
@@ -253,7 +254,12 @@ export default function PostDetailScreen({ route, navigation }: Props) {
             )
           }
           renderItem={({ item }) => {
-            const canDelete = user?.username === item.user.username
+            const isCommentAuthor = !!user?.username && user.username === item.user.username
+            const canDelete =
+              isCommentAuthor ||
+              isOwner ||
+              user?.role === 'admin' ||
+              user?.role === 'superadmin'
             return (
               <View style={styles.comment}>
                 <Avatar uri={item.user.avatarUrl} name={item.user.fullName || item.user.username} size={36} />

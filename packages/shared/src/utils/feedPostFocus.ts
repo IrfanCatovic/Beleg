@@ -18,14 +18,18 @@ export function findPostIndexById<T extends { id: number }>(
 }
 
 /**
- * Merge posts by stable numeric id: keep existing order, append unknown ids,
- * replace same-id objects with the incoming version (fresher engagement fields).
+ * Merge posts by stable numeric id: keep existing order, append unknown ids.
+ * By default, same-id objects are replaced with the incoming version.
+ * When preferExistingOnConflict is true (pagination append), keep the existing
+ * object so fresher local engagement counts are not overwritten by stale pages.
  * Does not mutate inputs.
  */
 export function mergeUniquePostsById<T extends { id: number }>(
   existing: readonly T[],
   incoming: readonly T[],
+  options?: { preferExistingOnConflict?: boolean },
 ): T[] {
+  const preferExisting = options?.preferExistingOnConflict === true
   const byId = new Map<number, T>()
   const order: number[] = []
   for (const item of existing) {
@@ -40,7 +44,9 @@ export function mergeUniquePostsById<T extends { id: number }>(
   for (const item of incoming) {
     if (typeof item?.id !== 'number' || !Number.isFinite(item.id)) continue
     if (byId.has(item.id)) {
-      byId.set(item.id, item)
+      if (!preferExisting) {
+        byId.set(item.id, item)
+      }
     } else {
       byId.set(item.id, item)
       order.push(item.id)

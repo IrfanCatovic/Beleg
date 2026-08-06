@@ -62,6 +62,10 @@ func TogglePostLike(c *gin.Context) {
 		}
 		liked = false
 	} else if errors.Is(likeErr, gorm.ErrRecordNotFound) {
+		if err := ensurePostStillExists(db, uint(postID)); err != nil {
+			respondPostNotFound(c)
+			return
+		}
 		if err := db.Create(&models.PostLike{PostID: uint(postID), UserID: korisnik.ID}).Error; err != nil {
 			if isDuplicateKeyDBError(err) {
 				// Parallel create already succeeded — same like intent, no second notification.
@@ -80,8 +84,16 @@ func TogglePostLike(c *gin.Context) {
 		return
 	}
 
-	var likeCount int64
-	db.Model(&models.PostLike{}).Where("post_id = ?", postID).Count(&likeCount)
+	// Parallel delete may have removed the post — clean our row and hide.
+	if err := ensurePostStillExists(db, uint(postID)); err != nil {
+		if createdNew {
+			_ = db.Where("post_id = ? AND user_id = ?", postID, korisnik.ID).Delete(&models.PostLike{}).Error
+		}
+		respondPostNotFound(c)
+		return
+	}
+
+	likeCount := countVisibleLikesForViewer(db, korisnik.ID, uint(postID))
 
 	if createdNew && post.UserID != korisnik.ID && korisnik.KlubID != nil && post.ClubID == *korisnik.KlubID {
 		likerName := strings.TrimSpace(korisnik.FullName)
@@ -128,13 +140,17 @@ func GetPostLikes(c *gin.Context) {
 		return
 	}
 
+	blockedIDs := blockedUserIDSlice(loadKorisniciBlockSet(db, currentUser.ID))
 	likers := make([]PostLikeUserDTO, 0)
-	if err := db.Table("post_likes AS pl").
+	q := db.Table("post_likes AS pl").
 		Select("k.id, k.username, k.full_name, k.avatar_url, k.role").
 		Joins("JOIN korisnici AS k ON k.id = pl.user_id").
 		Where("pl.post_id = ?", postID).
-		Order("pl.created_at DESC").
-		Scan(&likers).Error; err != nil {
+		Where("k.role <> ?", "deleted")
+	if len(blockedIDs) > 0 {
+		q = q.Where("pl.user_id NOT IN ?", blockedIDs)
+	}
+	if err := q.Order("pl.created_at DESC").Scan(&likers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri učitavanju lajkova"})
 		return
 	}
