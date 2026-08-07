@@ -8,12 +8,11 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
 	"beleg-app/backend/internal/models"
-	"beleg-app/backend/middleware"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func TestModule4_Block_ApplicantBlockedGuide_ApplyForbidden(t *testing.T) {
@@ -29,8 +28,9 @@ func TestModule4_Block_ApplicantBlockedGuide_ApplyForbidden(t *testing.T) {
 	if code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d %v", code, body)
 	}
-	assertNoPendingSignup(t, db, akcija.ID, viewer.ID)
-	assertNoSignupNotifsFor(t, db, guide.ID)
+	if countPendingSignups(t, db, akcija.ID) != 0 {
+		t.Fatal("no signup on blocked apply")
+	}
 }
 
 func TestModule4_Block_GuideBlockedApplicant_ApplyForbidden(t *testing.T) {
@@ -154,11 +154,11 @@ func TestModule4_Block_ConfirmedCanWithdraw(t *testing.T) {
 	if err := db.Create(&models.Block{BlockerID: guide.ID, BlockedID: viewer.ID}).Error; err != nil {
 		t.Fatal(err)
 	}
-	w, c := m4ManageCtx(t, db, viewer, http.MethodDelete, "/api/akcije/"+strconv.FormatUint(uint64(akcija.ID), 10)+"/prijava", nil)
+	w, c := m4ManageCtx(t, db, viewer, http.MethodDelete, "/api/akcije/"+strconv.FormatUint(uint64(akcija.ID), 10)+"/prijavi", nil)
 	c.Params = gin.Params{{Key: "id", Value: strconv.FormatUint(uint64(akcija.ID), 10)}}
 	OtkaziPrijavuNaAkciju(c)
-	if w.Code != http.StatusOK && w.Code != http.StatusNoContent {
-		t.Fatalf("withdraw expected success, got %d %s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("withdraw expected 200, got %d %s", w.Code, w.Body.String())
 	}
 }
 
@@ -190,7 +190,6 @@ func TestModule4_Auth_ApproveMatrix(t *testing.T) {
 	participant := m4User(t, db, "m4_part", "clan", &club.ID)
 	outsider := m4User(t, db, "m4_out", "clan", &other.ID)
 	superadmin := m4User(t, db, "m4_sa", "superadmin", nil)
-	requester := m4User(t, db, "m4_req", "clan", &club.ID)
 
 	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
 	if err := db.Model(&akcija).Update("added_by_id", creator.ID).Error; err != nil {
@@ -199,37 +198,41 @@ func TestModule4_Auth_ApproveMatrix(t *testing.T) {
 	_ = db.First(&akcija, akcija.ID)
 
 	cases := []struct {
-		name   string
-		actor  models.Korisnik
-		allow  bool
+		name    string
+		actor   models.Korisnik
+		allow   bool
+		xClubID string
 	}{
-		{"creator", creator, true},
-		{"guide", guide, true},
-		{"hostAdmin", hostAdmin, true},
-		{"hostSecretary", hostSec, false}, // CanManageAkcijaEx does not include sekretar
-		{"superadmin", superadmin, true},
-		{"participant", participant, false},
-		{"outsider", outsider, false},
-		{"otherAdmin", otherAdmin, false},
-		{"otherSecretary", otherSec, false},
+		{"creator", creator, true, ""},
+		{"guide", guide, true, ""},
+		{"hostAdmin", hostAdmin, true, ""},
+		{"hostSecretary", hostSec, false, ""},
+		{"superadmin", superadmin, true, strconv.FormatUint(uint64(club.ID), 10)},
+		{"participant", participant, false, ""},
+		{"outsider", outsider, false, ""},
+		{"otherAdmin", otherAdmin, false, ""},
+		{"otherSecretary", otherSec, false, ""},
 	}
 
-	for _, tc := range cases {
+	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			reqUser := m4User(t, db, "m4_req_"+tc.name+"_"+strconv.Itoa(i), "clan", &club.ID)
 			req := models.ActionSignupRequest{
-				AkcijaID: akcija.ID, RequesterID: requester.ID,
-				Status: models.ActionSignupRequestPending,
-				SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+				AkcijaID: akcija.ID, RequesterID: reqUser.ID,
+				Status:               models.ActionSignupRequestPending,
+				SelectedSmestajIDs:   "[]",
+				SelectedPrevozIDs:    "[]",
+				SelectedRentItemsRaw: "[]",
 			}
 			if err := db.Create(&req).Error; err != nil {
 				t.Fatal(err)
 			}
-			code, _ := callRespondSignupM4(t, db, akcija.ID, req.ID, tc.actor, "accept")
+			code, body := callRespondSignupWithClub(t, db, akcija.ID, req.ID, tc.actor, "accept", tc.xClubID)
 			if tc.allow && code != http.StatusOK {
-				t.Fatalf("expected allow 200, got %d", code)
+				t.Fatalf("expected allow 200, got %d %v", code, body)
 			}
 			if !tc.allow && code != http.StatusForbidden {
-				t.Fatalf("expected deny 403, got %d", code)
+				t.Fatalf("expected deny 403, got %d %v", code, body)
 			}
 		})
 	}
@@ -248,7 +251,7 @@ func TestModule4_Auth_CancelledAndCompletedDeny(t *testing.T) {
 		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
 	}
 	_ = db.Create(&req1)
-	code, _ := callRespondSignupM4(t, db, cancelled.ID, req1.ID, guide, "accept")
+	code, _ := callRespondSignup(t, db, cancelled.ID, req1.ID, guide, "accept")
 	if code < 400 {
 		t.Fatalf("cancelled must deny, got %d", code)
 	}
@@ -260,7 +263,7 @@ func TestModule4_Auth_CancelledAndCompletedDeny(t *testing.T) {
 		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
 	}
 	_ = db.Create(&req2)
-	code, _ = callRespondSignupM4(t, db, completed.ID, req2.ID, guide, "accept")
+	code, _ = callRespondSignup(t, db, completed.ID, req2.ID, guide, "accept")
 	if code < 400 {
 		t.Fatalf("completed must deny, got %d", code)
 	}
@@ -277,11 +280,11 @@ func TestModule4_Auth_DuplicateApproveControlled(t *testing.T) {
 		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
 	}
 	_ = db.Create(&req)
-	code1, _ := callRespondSignupM4(t, db, akcija.ID, req.ID, guide, "accept")
+	code1, _ := callRespondSignup(t, db, akcija.ID, req.ID, guide, "accept")
 	if code1 != http.StatusOK {
 		t.Fatalf("first accept: %d", code1)
 	}
-	code2, body := callRespondSignupM4(t, db, akcija.ID, req.ID, guide, "accept")
+	code2, body := callRespondSignup(t, db, akcija.ID, req.ID, guide, "accept")
 	if code2 != http.StatusConflict {
 		t.Fatalf("duplicate expect 409, got %d %v", code2, body)
 	}
@@ -293,9 +296,9 @@ func TestModule4_Auth_DuplicateApproveControlled(t *testing.T) {
 }
 
 func TestModule4_LastSlot_ParallelApprove_OneWins(t *testing.T) {
+	// MaxOpenConns(1) kao ostali signup parallel testovi: SQLite serializacija konekcija,
+	// a i dalje pokriva last-slot capacity (jedan OK, jedan controlled 4xx).
 	db := testModule4DB(t)
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxOpenConns(4)
 
 	club := m4Club(t, db, "m4_race")
 	guide := m4User(t, db, "m4_gr", "vodic", &club.ID)
@@ -320,25 +323,25 @@ func TestModule4_LastSlot_ParallelApprove_OneWins(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		codes[0], _ = callRespondSignupM4(t, db, akcija.ID, r1.ID, guide, "accept")
+		codes[0], _ = callRespondSignup(t, db, akcija.ID, r1.ID, guide, "accept")
 	}()
 	go func() {
 		defer wg.Done()
-		codes[1], _ = callRespondSignupM4(t, db, akcija.ID, r2.ID, guide, "accept")
+		codes[1], _ = callRespondSignup(t, db, akcija.ID, r2.ID, guide, "accept")
 	}()
 	wg.Wait()
 
-	ok, bad := 0, 0
+	ok, controlled := 0, 0
 	for _, c := range codes {
 		if c == http.StatusOK {
 			ok++
 		} else if c >= 400 && c < 500 {
-			bad++
+			controlled++
 		} else {
 			t.Fatalf("unexpected codes=%v", codes)
 		}
 	}
-	if ok != 1 || bad != 1 {
+	if ok != 1 || controlled != 1 {
 		t.Fatalf("expected 1 ok + 1 controlled error, codes=%v", codes)
 	}
 	var prijavaCnt int64
@@ -355,9 +358,9 @@ func TestModule4_SummitNotify_PostCommitOnlyOnTransition(t *testing.T) {
 	member := m4User(t, db, "m4_ms", "clan", &club.ID)
 	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
 	_ = db.Model(&akcija).Updates(map[string]any{
-		"is_completed": true,
-		"ukupno_km_akcija": 10,
-		"ukupno_metara_uspona_akcija": 500,
+		"is_completed":               true,
+		"ukupno_km_akcija":           10.0,
+		"ukupno_metara_uspona_akcija": 500.0,
 	})
 	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
 	_ = db.Create(&prijava)
@@ -388,7 +391,7 @@ func TestModule4_SummitNotify_PostCommitOnlyOnTransition(t *testing.T) {
 		t.Fatalf("duplicate popeo se must not notify again, got %d", n2)
 	}
 
-	// Documented product: re-transition nije uspeo → popeo se sends another notification (status change).
+	// Documented contract: nije uspeo → popeo se sends another notification (real transition).
 	body3, _ := json.Marshal(map[string]string{"status": "nije uspeo"})
 	w3, c3 := m4ManageCtx(t, db, guide, http.MethodPut, "/api/prijave/"+strconv.FormatUint(uint64(prijava.ID), 10)+"/status", body3)
 	c3.Params = gin.Params{{Key: "id", Value: strconv.FormatUint(uint64(prijava.ID), 10)}}
@@ -410,36 +413,293 @@ func TestModule4_SummitNotify_PostCommitOnlyOnTransition(t *testing.T) {
 	}
 }
 
-func assertNoPendingSignup(t *testing.T, db interface {
-	Model(any) interface{ Where(any, ...any) interface{ Count(*int64) error } }
-}, akcijaID, userID uint) {
-	t.Helper()
+func TestModule4_Block_NoNotificationOnBlockedApply(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_bn")
+	guide := m4User(t, db, "m4_gn", "vodic", &club.ID)
+	viewer := m4User(t, db, "m4_vn", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	if err := db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: guide.ID}).Error; err != nil {
+		t.Fatal(err)
+	}
+	before := countObavestenja(t, db)
+	code, _ := callPrijaviNaAkciju(t, db, akcija.ID, viewer.Username)
+	if code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", code)
+	}
+	if countObavestenja(t, db) != before {
+		t.Fatal("blocked apply must not create notifications")
+	}
 }
 
-func assertNoSignupNotifsFor(t *testing.T, db interface{}, userID uint) {
-	t.Helper()
+func TestModule4_Block_ListDetailStillVisible(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_vis")
+	guide := m4User(t, db, "m4_gvis", "vodic", &club.ID)
+	viewer := m4User(t, db, "m4_vvis", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	if err := db.Create(&models.Block{BlockerID: viewer.ID, BlockedID: guide.ID}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	code, body := callGetPublicAkcijaByID(t, db, akcija.ID)
+	if code != http.StatusOK {
+		t.Fatalf("detail must stay visible under block, got %d %v", code, body)
+	}
+	if body["id"] == nil {
+		t.Fatalf("expected action id in detail, body=%v", body)
+	}
+
+	// List includes public club actions regardless of block with guide.
+	w, c := m4ManageCtx(t, db, viewer, http.MethodGet, "/api/akcije", nil)
+	GetAkcije(c)
+	if w.Code != http.StatusOK {
+		t.Fatalf("list must stay available under block, got %d %s", w.Code, w.Body.String())
+	}
 }
 
-func callRespondSignupM4(t *testing.T, db interface {
-}, akcijaID, requestID uint, actor models.Korisnik, action string) (int, map[string]any) {
-	t.Helper()
+func TestModule4_Auth_RejectMatrix_CreatorAndGuide(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_rej")
+	creator := m4User(t, db, "m4_crej", "clan", &club.ID)
+	guide := m4User(t, db, "m4_grej", "vodic", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	_ = db.Model(&akcija).Update("added_by_id", creator.ID)
+
+	for i, actor := range []models.Korisnik{creator, guide} {
+		reqUser := m4User(t, db, "m4_rrej_"+strconv.Itoa(i), "clan", &club.ID)
+		req := models.ActionSignupRequest{
+			AkcijaID: akcija.ID, RequesterID: reqUser.ID, Status: models.ActionSignupRequestPending,
+			SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+		}
+		_ = db.Create(&req)
+		code, _ := callRespondSignup(t, db, akcija.ID, req.ID, actor, "reject")
+		if code != http.StatusOK {
+			t.Fatalf("%s reject expected 200, got %d", actor.Username, code)
+		}
+	}
+}
+
+func TestModule4_Auth_ActorCannotBeSpoofedViaBody(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_spoof")
+	guide := m4User(t, db, "m4_gspoof", "vodic", &club.ID)
+	outsider := m4User(t, db, "m4_ospoof", "clan", &club.ID)
+	requester := m4User(t, db, "m4_rspoof", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	req := models.ActionSignupRequest{
+		AkcijaID: akcija.ID, RequesterID: requester.ID, Status: models.ActionSignupRequestPending,
+		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+	}
+	_ = db.Create(&req)
+
 	gin.SetMode(gin.TestMode)
-	payload, _ := json.Marshal(map[string]string{"action": action})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	path := "/api/akcije/" + strconv.FormatUint(uint64(akcijaID), 10) + "/signup-requests/" + strconv.FormatUint(uint64(requestID), 10) + "/respond"
-	c.Request = httptest.NewRequest(http.MethodPost, path, bytes.NewReader(payload))
+	body, _ := json.Marshal(map[string]any{
+		"action":     "accept",
+		"reviewedBy": guide.ID,
+		"actorId":    guide.ID,
+		"userId":     guide.ID,
+	})
+	path := "/akcije/" + strconv.FormatUint(uint64(akcija.ID), 10) +
+		"/signup-requests/" + strconv.FormatUint(uint64(req.ID), 10) + "/respond"
+	c.Request = httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
 	c.Request.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{
+		{Key: "id", Value: strconv.FormatUint(uint64(akcija.ID), 10)},
+		{Key: "requestId", Value: strconv.FormatUint(uint64(req.ID), 10)},
+	}
+	c.Set("db", db)
+	c.Set("username", outsider.Username)
+	c.Set("role", outsider.Role)
+	RespondToActionSignupRequest(c)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("spoofed body must not authorize outsider, got %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestModule4_WithdrawApprove_ParallelLinearized(t *testing.T) {
+	// MaxOpenConns(1) kao TestCancelSignup_ParallelWithAccept — SQLite-safe serializacija.
+	db := testModule4DB(t)
+
+	club := m4Club(t, db, "m4_wa")
+	guide := m4User(t, db, "m4_gwa", "vodic", &club.ID)
+	requester := m4User(t, db, "m4_rwa", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	req := models.ActionSignupRequest{
+		AkcijaID: akcija.ID, RequesterID: requester.ID, Status: models.ActionSignupRequestPending,
+		SelectedSmestajIDs: "[]", SelectedPrevozIDs: "[]", SelectedRentItemsRaw: "[]",
+	}
+	_ = db.Create(&req)
+
+	var wg sync.WaitGroup
+	var cancelCode, acceptCode int
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		cancelCode, _ = callCancelSignupCapture(t, db, akcija.ID, requester.Username)
+	}()
+	go func() {
+		defer wg.Done()
+		acceptCode, _ = callRespondSignup(t, db, akcija.ID, req.ID, guide, "accept")
+	}()
+	wg.Wait()
+
+	got := reloadSignupRequest(t, db, req.ID)
+	var prijavaCnt int64
+	db.Model(&models.Prijava{}).Where("akcija_id = ? AND korisnik_id = ?", akcija.ID, requester.ID).Count(&prijavaCnt)
+
+	switch got.Status {
+	case models.ActionSignupRequestAccepted:
+		if acceptCode != http.StatusOK {
+			t.Fatalf("accepted but acceptCode=%d cancel=%d", acceptCode, cancelCode)
+		}
+		if prijavaCnt != 1 {
+			t.Fatalf("accepted must have Prijava, got %d", prijavaCnt)
+		}
+		if cancelCode == http.StatusOK {
+			t.Fatal("cannot have both cancel OK and accepted")
+		}
+	case models.ActionSignupRequestCancelled:
+		if cancelCode != http.StatusOK {
+			t.Fatalf("cancelled but cancelCode=%d accept=%d", cancelCode, acceptCode)
+		}
+		if prijavaCnt != 0 {
+			t.Fatalf("cancelled must not leave active Prijava, got %d", prijavaCnt)
+		}
+		if acceptCode == http.StatusOK {
+			t.Fatal("cannot have both accept OK and cancelled")
+		}
+	default:
+		t.Fatalf("expected accepted or cancelled, got %s codes cancel=%d accept=%d", got.Status, cancelCode, acceptCode)
+	}
+	if acceptCode >= 500 || cancelCode >= 500 {
+		t.Fatalf("no 500 allowed: cancel=%d accept=%d", cancelCode, acceptCode)
+	}
+}
+
+func TestModule4_SummitNotify_NijeUspeoNoNotify(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_nu")
+	guide := m4User(t, db, "m4_gnu", "vodic", &club.ID)
+	member := m4User(t, db, "m4_mnu", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	_ = db.Model(&akcija).Updates(map[string]any{
+		"is_completed": true, "ukupno_km_akcija": 10.0, "ukupno_metara_uspona_akcija": 500.0,
+	})
+	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
+	_ = db.Create(&prijava)
+
+	body, _ := json.Marshal(map[string]string{"status": "nije uspeo"})
+	w, c := m4ManageCtx(t, db, guide, http.MethodPut, "/api/prijave/"+strconv.FormatUint(uint64(prijava.ID), 10)+"/status", body)
+	c.Params = gin.Params{{Key: "id", Value: strconv.FormatUint(uint64(prijava.ID), 10)}}
+	UpdatePrijavaStatus(c)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: %d", w.Code)
+	}
+	var n int64
+	db.Model(&models.Obavestenje{}).Where("user_id = ? AND type = ?", member.ID, "summit_reward").Count(&n)
+	if n != 0 {
+		t.Fatalf("nije uspeo must not notify, got %d", n)
+	}
+}
+
+func TestModule4_SummitNotify_CancelledActionNoNotify(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_sc")
+	guide := m4User(t, db, "m4_gsc", "vodic", &club.ID)
+	member := m4User(t, db, "m4_msc", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	_ = db.Model(&akcija).Updates(map[string]any{
+		"is_completed": true, "is_cancelled": true,
+		"ukupno_km_akcija": 10.0, "ukupno_metara_uspona_akcija": 500.0,
+	})
+	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
+	_ = db.Create(&prijava)
+
+	body, _ := json.Marshal(map[string]string{"status": "popeo se"})
+	w, c := m4ManageCtx(t, db, guide, http.MethodPut, "/api/prijave/"+strconv.FormatUint(uint64(prijava.ID), 10)+"/status", body)
+	c.Params = gin.Params{{Key: "id", Value: strconv.FormatUint(uint64(prijava.ID), 10)}}
+	UpdatePrijavaStatus(c)
+	if w.Code < 400 {
+		t.Fatalf("cancelled action must deny status update, got %d", w.Code)
+	}
+	var n int64
+	db.Model(&models.Obavestenje{}).Where("user_id = ? AND type = ?", member.ID, "summit_reward").Count(&n)
+	if n != 0 {
+		t.Fatalf("cancelled must not notify, got %d", n)
+	}
+}
+
+func TestModule4_SummitNotify_UnauthorizedNoNotify(t *testing.T) {
+	db := testModule4DB(t)
+	club := m4Club(t, db, "m4_su")
+	guide := m4User(t, db, "m4_gsu", "vodic", &club.ID)
+	member := m4User(t, db, "m4_msu", "clan", &club.ID)
+	outsider := m4User(t, db, "m4_osu", "clan", &club.ID)
+	akcija := m4Akcija(t, db, club.ID, guide.ID, true)
+	_ = db.Model(&akcija).Updates(map[string]any{
+		"is_completed": true, "ukupno_km_akcija": 10.0, "ukupno_metara_uspona_akcija": 500.0,
+	})
+	prijava := models.Prijava{AkcijaID: akcija.ID, KorisnikID: member.ID, Status: "prijavljen"}
+	_ = db.Create(&prijava)
+
+	body, _ := json.Marshal(map[string]string{"status": "popeo se"})
+	w, c := m4ManageCtx(t, db, outsider, http.MethodPut, "/api/prijave/"+strconv.FormatUint(uint64(prijava.ID), 10)+"/status", body)
+	c.Params = gin.Params{{Key: "id", Value: strconv.FormatUint(uint64(prijava.ID), 10)}}
+	UpdatePrijavaStatus(c)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+	var n int64
+	db.Model(&models.Obavestenje{}).Where("user_id = ? AND type = ?", member.ID, "summit_reward").Count(&n)
+	if n != 0 {
+		t.Fatalf("unauthorized must not notify, got %d", n)
+	}
+	var got models.Prijava
+	_ = db.First(&got, prijava.ID)
+	if got.Status != "prijavljen" {
+		t.Fatalf("status must stay prijavljen, got %s", got.Status)
+	}
+}
+
+func callRespondSignupWithClub(
+	t *testing.T,
+	db *gorm.DB,
+	akcijaID, requestID uint,
+	reviewer models.Korisnik,
+	action string,
+	xClubID string,
+) (int, map[string]any) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body, _ := json.Marshal(map[string]string{"action": action})
+	path := "/akcije/" + strconv.FormatUint(uint64(akcijaID), 10) +
+		"/signup-requests/" + strconv.FormatUint(uint64(requestID), 10) + "/respond"
+	c.Request = httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+	if xClubID != "" {
+		c.Request.Header.Set("X-Club-Id", xClubID)
+	}
 	c.Params = gin.Params{
 		{Key: "id", Value: strconv.FormatUint(uint64(akcijaID), 10)},
 		{Key: "requestId", Value: strconv.FormatUint(uint64(requestID), 10)},
 	}
 	c.Set("db", db)
-	c.Set(middleware.ContextKeyKorisnik, actor)
-	c.Set("username", actor.Username)
-	c.Set("role", actor.Role)
+	c.Set("username", reviewer.Username)
+	c.Set("role", reviewer.Role)
 	RespondToActionSignupRequest(c)
-	var body map[string]any
-	_ = json.Unmarshal(w.Body.Bytes(), &body)
-	return w.Code, body
+	var out map[string]any
+	_ = json.Unmarshal(w.Body.Bytes(), &out)
+	return w.Code, out
+}
+
+func countObavestenja(t *testing.T, db *gorm.DB) int64 {
+	t.Helper()
+	var n int64
+	db.Model(&models.Obavestenje{}).Count(&n)
+	return n
 }

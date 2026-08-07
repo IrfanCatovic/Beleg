@@ -105,8 +105,8 @@ func m4ManageCtx(t *testing.T, db *gorm.DB, user models.Korisnik, method, path s
 	return w, c
 }
 
-// Actual behavior: block between viewer and guide does not block apply.
-func TestModule4_Block_ViewerBlockedGuide_ApplyStillAllowed_Documented(t *testing.T) {
+// Actual + expected: block between viewer and guide denies apply (M4-BLOCK-1 closed).
+func TestModule4_Block_ViewerBlockedGuide_ApplyDenied(t *testing.T) {
 	db := testModule4DB(t)
 	club := m4Club(t, db, "m4_block")
 	guide := m4User(t, db, "m4_guide", "vodic", &club.ID)
@@ -117,13 +117,12 @@ func TestModule4_Block_ViewerBlockedGuide_ApplyStillAllowed_Documented(t *testin
 	}
 
 	code, body := callPrijaviNaAkciju(t, db, akcija.ID, viewer.Username)
-	if code != http.StatusOK {
-		t.Fatalf("documented actual: apply succeeds despite block; got %d %v", code, body)
+	if code != http.StatusForbidden {
+		t.Fatalf("blocked apply must be 403; got %d %v", code, body)
 	}
 }
 
-// Expected global block parity (fails until actions honor viewer↔guide block).
-func TestModule4_Block_ExpectedDenyApply_DocumentedGap(t *testing.T) {
+func TestModule4_Block_ExpectedDenyApply_Regression(t *testing.T) {
 	db := testModule4DB(t)
 	club := m4Club(t, db, "m4_block2")
 	guide := m4User(t, db, "m4_guide2", "vodic", &club.ID)
@@ -135,7 +134,10 @@ func TestModule4_Block_ExpectedDenyApply_DocumentedGap(t *testing.T) {
 
 	code, _ := callPrijaviNaAkciju(t, db, akcija.ID, viewer.Username)
 	if code == http.StatusOK {
-		t.Fatalf("M4-BLOCK-1 P2: viewer blocked guide but apply succeeded (expected deny for global block parity)")
+		t.Fatalf("M4-BLOCK-1: viewer blocked guide but apply succeeded")
+	}
+	if code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", code)
 	}
 }
 
