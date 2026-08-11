@@ -5,6 +5,7 @@ import (
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/middleware"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/mail"
@@ -34,7 +35,18 @@ func GetMe(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Korisnik nije pronađen"})
 		return
 	}
-	c.JSON(200, korisnik)
+	raw, err := json.Marshal(korisnik)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju profila"})
+		return
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri čitanju profila"})
+		return
+	}
+	payload["profileIncomplete"] = !isProfileComplete(korisnik)
+	c.JSON(200, payload)
 }
 
 func UpdateMe(jwtSecret []byte) gin.HandlerFunc {

@@ -115,6 +115,11 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
+		if purpose, _ := claims["purpose"].(string); purpose != "" && purpose != "session" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			return
+		}
+
 		username, ok := jwtUsernameClaimValid(claims)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})

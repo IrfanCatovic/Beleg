@@ -2,9 +2,9 @@ package app
 
 import (
 	"beleg-app/backend/internal/config"
+	"beleg-app/backend/internal/database"
 	"beleg-app/backend/internal/handlers"
 	"beleg-app/backend/internal/jobs"
-	"beleg-app/backend/internal/database"
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/seed"
 	"beleg-app/backend/middleware"
@@ -146,6 +146,7 @@ func migrateAndSeed(db *gorm.DB) {
 		&models.TrackedActivity{},
 		&models.TrackedActivityPoint{},
 		&models.PushToken{},
+		&models.AuthIdentity{},
 	)
 	if err != nil {
 		log.Fatal("Greška pri automigraciji tabela:", err)
@@ -154,8 +155,15 @@ func migrateAndSeed(db *gorm.DB) {
 	if err := database.PostAutoMigrateCreatePrijavaIndexes(db); err != nil {
 		log.Fatal("Greška pri kreiranju indeksa prijava:", err)
 	}
+	if err := database.PostAutoMigrateCreateEmailIndexes(db); err != nil {
+		if database.IsDuplicateEmailError(err) {
+			log.Printf("UPOZORENJE: unique email index nije kreiran (duplikati nisu brisani ni spajani): %v", err)
+		} else {
+			log.Fatal("Greška pri kreiranju email indeksa:", err)
+		}
+	}
 
-	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi)")
+	log.Println("Tabele su migrirane (akcije, prijave, korisnici, transakcije, zadaci, zadatak_korisnici, obavestenja, klubovi, auth_identities)")
 	seed.RunIfEmpty(db)
 }
 

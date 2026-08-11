@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"beleg-app/backend/internal/googleidtoken"
 	"beleg-app/backend/internal/handlers"
+	"beleg-app/backend/middleware"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -19,4 +22,9 @@ func RegisterAuthPublicRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte, logi
 	r.POST("/login", loginRateLimiter, handlers.Login(db, jwtSecret))
 	r.POST("/api/login", loginRateLimiter, handlers.Login(db, jwtSecret))
 	r.POST("/api/logout", handlers.Logout())
+
+	googleRateLimiter := middleware.NewIPRateLimiter(12, time.Minute)
+	googleVerifier := googleidtoken.NewGoogleVerifier(googleidtoken.AudiencesFromEnv())
+	r.POST("/api/auth/social/google", googleRateLimiter, handlers.StartGoogleAuth(jwtSecret, googleVerifier))
+	r.POST("/api/auth/social/google/complete", googleRateLimiter, handlers.CompleteGoogleOnboarding(jwtSecret))
 }

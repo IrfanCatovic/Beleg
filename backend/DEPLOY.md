@@ -8,6 +8,7 @@ Go + Gin API (`backend/`). Za web/mobile universal links vidi root [`DEPLOY.md`]
 |-------------|------|
 | `JWT_SECRET` | Min. 32 karaktera |
 | `DATABASE_URL` | Postgres DSN (ili `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `DB_SSLMODE`, `DB_TIMEZONE`) |
+| `GOOGLE_OAUTH_CLIENT_IDS` | CSV Google OAuth client ID-jeva (web, Android, iOS). Backend prihvata ID token čiji je `aud` jedan od ovih ID-jeva. |
 | `GIN_MODE` | `release` u produkciji |
 | `APP_ENV` | `production` (alternativa za release mode) |
 
@@ -60,7 +61,10 @@ cd backend
 migrate -path migrations -database "$DATABASE_URL" up
 ```
 
-Baseline migracija: [`migrations/000001_baseline.up.sql`](migrations/000001_baseline.up.sql) — prazan fajl koji dokumentuje da je šema usklađena pre uvođenja migrate alata; nove izmene dodavati kao `000002_*.sql`.
+Baseline migracija: [`migrations/000001_baseline.up.sql`](migrations/000001_baseline.up.sql) — prazan fajl koji dokumentuje da je šema usklađena pre uvođenja migrate alata.
+
+- [`migrations/000002_auth_identities.up.sql`](migrations/000002_auth_identities.up.sql) — `auth_identities`
+- [`migrations/000003_korisnici_email_unique.up.sql`](migrations/000003_korisnici_email_unique.up.sql) — partial unique index na non-empty `LOWER(TRIM(email))`. Ako failuje zbog duplikata, ne brisati/merge-ovati redove; pregledati duplikate pa ponovo pokrenuti.
 
 ## Background jobs
 

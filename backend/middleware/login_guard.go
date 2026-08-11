@@ -7,8 +7,8 @@ import (
 )
 
 type loginAttemptEntry struct {
-	failCount  int
-	lastFailAt time.Time
+	failCount   int
+	lastFailAt  time.Time
 	lockedUntil time.Time
 }
 
@@ -18,9 +18,9 @@ var (
 )
 
 const (
-	loginMaxFails       = 5
-	loginFailWindow     = 15 * time.Minute
-	loginLockDuration   = 15 * time.Minute
+	loginMaxFails     = 5
+	loginFailWindow   = 15 * time.Minute
+	loginLockDuration = 15 * time.Minute
 )
 
 func loginAttemptKey(ip, username string) string {
@@ -79,5 +79,12 @@ func RegisterLoginSuccess(ip, username string) {
 	key := loginAttemptKey(ip, username)
 	loginMu.Lock()
 	delete(loginAttempts, key)
+	loginMu.Unlock()
+}
+
+// ResetLoginAttemptsForTest clears process-wide lockout state. Tests only.
+func ResetLoginAttemptsForTest() {
+	loginMu.Lock()
+	loginAttempts = map[string]loginAttemptEntry{}
 	loginMu.Unlock()
 }

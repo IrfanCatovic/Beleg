@@ -32,9 +32,11 @@ export interface MeResponse {
   email_verified_at?: string | null
   pol?: string
   datum_rodjenja?: string | null
+  profileIncomplete?: boolean
 }
 
 export interface LoginResponse {
+  status?: 'authenticated'
   role: string
   user: { username: string; fullName: string; avatar_url?: string; klubId?: number }
   profileIncomplete?: boolean

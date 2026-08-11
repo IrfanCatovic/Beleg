@@ -11,6 +11,7 @@ import (
 
 	"beleg-app/backend/internal/models"
 	"beleg-app/backend/internal/testdb"
+	"beleg-app/backend/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -62,6 +63,7 @@ func callLogin(t *testing.T, db *gorm.DB, body string) *httptest.ResponseRecorde
 	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	c.Request = req
+	middleware.ResetLoginAttemptsForTest()
 	Login(db, []byte(testLoginJWTSecret))(c)
 	return rec
 }

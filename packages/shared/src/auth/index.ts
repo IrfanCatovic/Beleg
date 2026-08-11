@@ -12,3 +12,20 @@ export type { SessionGenerationCoordinator } from './sessionGeneration'
 export { clearServerAuthCookieBestEffort } from './clearServerAuthCookie'
 export type { LoginResponse, MeResponse, SessionUser } from './session'
 export type { UserRole as SessionUserRole } from './session'
+export {
+  startGoogleAuth,
+  completeGoogleOnboarding,
+  linkGoogleAccount,
+  googleLoginApi,
+  socialLoginApi,
+  completeGoogleOnboardingApi,
+  linkGoogleAccountApi,
+} from './google'
+export type {
+  GoogleStartAuthResponse,
+  GoogleAuthAuthenticatedResponse,
+  GoogleAuthOnboardingRequiredResponse,
+  GoogleAuthLinkRequiredResponse,
+  CompleteGoogleOnboardingPayload,
+  GoogleLinkAccountResponse,
+} from './google'

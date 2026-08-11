@@ -224,3 +224,29 @@ func TestLoadUserMiddleware_UserNotFoundAfterValidToken(t *testing.T) {
 		t.Fatalf("status %d body=%s", w.Code, w.Body.String())
 	}
 }
+
+func TestAuthMiddleware_RejectsSocialOnboardingPurpose(t *testing.T) {
+	token := signTestToken(t, jwt.MapClaims{
+		"username": "alice",
+		"role":     "",
+		"purpose":  "social_onboarding",
+		"type":     "social_onboarding",
+	})
+	status, called := runAuthProtected(t, "Bearer "+token)
+	if status != http.StatusUnauthorized || called {
+		t.Fatalf("social onboarding token must not authenticate: status=%d called=%v", status, called)
+	}
+}
+
+func TestAuthMiddleware_RejectsSocialLinkPurpose(t *testing.T) {
+	token := signTestToken(t, jwt.MapClaims{
+		"username": "alice",
+		"role":     "",
+		"purpose":  "social_link",
+		"type":     "social_link",
+	})
+	status, called := runAuthProtected(t, "Bearer "+token)
+	if status != http.StatusUnauthorized || called {
+		t.Fatalf("social link token must not authenticate: status=%d called=%v", status, called)
+	}
+}

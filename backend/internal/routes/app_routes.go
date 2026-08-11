@@ -62,6 +62,7 @@ func RegisterAppRoutes(r *gin.Engine, db *gorm.DB, jwtSecret []byte) {
 		RegisterInviteRoutes(r, protected, registerRateLimiter)
 
 		RegisterProfileRoutes(protected, jwtSecret)
+		protected.POST("/auth/social/google/link", handlers.LinkGoogleAccount(jwtSecret))
 
 		RegisterActivityRoutes(protected)
 
