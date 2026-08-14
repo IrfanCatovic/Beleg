@@ -380,12 +380,14 @@ export const sr = {
     startAdventureHint: 'Koraci, km, vrijeme i ruta — stiker na kraju.',
     continueAdventure: 'Nastavi avanturu',
     adventureIdleTitle: 'Spreman za hod?',
-    adventureIdleBody: 'Pritisni play da započneš praćenje. Ruta se crta kada završiš aktivnost.',
+    adventureIdleBody: 'Pritisni play da započneš praćenje. Ruta se crta uživo na mapi.',
     adventurePlay: 'Započni',
     adventureLocationOff:
       'Lokacija na telefonu je isključena. Uključi GPS u postavkama — bez toga ne možeš započeti avanturu.',
     adventureLocationPermission:
       'Planiner nema dozvolu za lokaciju. Dozvoli pristup u postavkama da započneš avanturu.',
+    adventurePreciseLocation:
+      'Za snimanje rute uključi Preciznu lokaciju u postavkama. Približna lokacija nije dovoljna.',
     adventureLocationEnable: 'Uključi lokaciju',
     adventureLocationOpenSettings: 'Otvori postavke',
     adventureActive: 'Aktivno',

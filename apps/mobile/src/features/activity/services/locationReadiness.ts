@@ -1,7 +1,8 @@
 import * as Location from 'expo-location'
 import { Linking, Platform } from 'react-native'
+import { isPreciseLocationGranted } from './preciseLocation'
 
-export type LocationReadinessIssue = 'services_off' | 'permission_denied'
+export type LocationReadinessIssue = 'services_off' | 'permission_denied' | 'precise_location_off'
 
 export type LocationReadinessResult =
   | { ready: true }
@@ -13,9 +14,12 @@ export async function checkLocationReadiness(): Promise<LocationReadinessResult>
     return { ready: false, issue: 'services_off' }
   }
 
-  const { status } = await Location.getForegroundPermissionsAsync()
-  if (status !== 'granted') {
+  const perm = await Location.getForegroundPermissionsAsync()
+  if (perm.status !== 'granted') {
     return { ready: false, issue: 'permission_denied' }
+  }
+  if (!isPreciseLocationGranted(perm)) {
+    return { ready: false, issue: 'precise_location_off' }
   }
 
   return { ready: true }

@@ -12,8 +12,10 @@ import { client } from '../../../api/client'
 import { requestActivityPermissions } from '../services/activityPermissions'
 import {
   clearAdventurePoints,
+  stopAndGetAdventurePoints,
   wasAdventureProcessKilled,
 } from '../services/adventureLocationTask'
+import { buildFinishRouteSnapshot, collectUnsentPoints } from '../services/finishRouteSnapshot'
 import {
   getSessionStepsBaseline,
   getStoredActiveActivityId,
@@ -22,13 +24,12 @@ import {
 } from '../services/activityLocalStore'
 import {
   computeElevationGainM,
-  encodePolyline,
   sumRouteDistanceM,
   type LatLngAlt,
 } from '../services/activityMetrics'
 import { readTodayStepsFromOs, watchLiveStepDelta } from '../services/stepsProvider'
 import { useLocationTrack } from './useLocationTrack'
-import type { GpsTrackStatus } from '../services/adventureLocationTask'
+import type { GpsTrackStatus } from '../services/gpsTrackStatus'
 
 export type TrackerStatus = 'idle' | 'active' | 'paused' | 'finishing'
 
@@ -88,6 +89,7 @@ export function useActivityTracker(): ActivityTrackerState {
   const pausedAtRef = useRef<number | null>(null)
   const pendingUploadRef = useRef<GPSPoint[]>([])
   const uploadedCountRef = useRef(0)
+  const finishInFlightRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackingEnabled = status === 'active'
 
@@ -259,6 +261,7 @@ export function useActivityTracker(): ActivityTrackerState {
       setElapsedSec(0)
       setSteps(0)
       uploadedCountRef.current = 0
+      finishInFlightRef.current = false
       clear()
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e
@@ -285,96 +288,48 @@ export function useActivityTracker(): ActivityTrackerState {
   }, [])
 
   const finish = useCallback(async (): Promise<TrackedActivity | null> => {
-    if (!activityId) return null
+    if (!activityId || finishInFlightRef.current) return null
+    finishInFlightRef.current = true
     setStatus('finishing')
-    stopLocation()
-    const remaining = pendingUploadRef.current
-    pendingUploadRef.current = []
-    if (remaining.length > 0) {
-      await uploadPendingPoints(activityId, remaining)
-    }
-    const last = routePoints[routePoints.length - 1]
-    const finalElapsed = computeElapsedSec(
-      startedAt,
-      totalPausedMsRef.current,
-      pausedAtRef.current,
-    )
-    const altitudes = latLngPoints.map((p) => p.altitude).filter((a): a is number => a != null)
-    const minAlt = altitudes.length ? Math.min(...altitudes) : null
-    const maxAlt = altitudes.length ? Math.max(...altitudes) : null
-    // #region agent log
-    fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
-      body: JSON.stringify({
-        sessionId: '6cb8dd',
-        runId: 'pre-fix',
-        hypothesisId: 'D-E',
-        location: 'useActivityTracker.ts:finish',
-        message: 'finish payload',
-        data: {
-          pointCount: latLngPoints.length,
-          pointsWithAltitude: altitudes.length,
-          minAlt,
-          maxAlt,
-          netAltDelta: minAlt != null && maxAlt != null ? Math.round((maxAlt - minAlt) * 10) / 10 : null,
-          elevationGainM: Math.round(elevationGainM * 10) / 10,
-          distanceM: Math.round(distanceM),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     try {
+      const persisted = await stopAndGetAdventurePoints()
+      const snapshot = buildFinishRouteSnapshot(persisted)
+      const leftovers = collectUnsentPoints(
+        snapshot.points,
+        uploadedCountRef.current,
+        pendingUploadRef.current,
+      )
+      pendingUploadRef.current = []
+      uploadedCountRef.current = snapshot.points.length
+      if (leftovers.length > 0) {
+        await uploadPendingPoints(activityId, leftovers)
+      }
+      const finalElapsed = computeElapsedSec(
+        startedAt,
+        totalPausedMsRef.current,
+        pausedAtRef.current,
+      )
       const res = await finishActivity(client, activityId, {
         durationSec: finalElapsed,
-        distanceM,
-        elevationGainM,
+        distanceM: snapshot.distanceM,
+        elevationGainM: snapshot.elevationGainM,
         steps,
-        routePolyline: encodePolyline(latLngPoints),
-        endLat: last?.lat,
-        endLng: last?.lng,
+        routePolyline: snapshot.routePolyline,
+        endLat: snapshot.endLat,
+        endLng: snapshot.endLng,
       })
-      // #region agent log
-      fetch('http://127.0.0.1:7774/ingest/4b4823e8-e059-45d4-bd4e-f7b6e10474eb', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6cb8dd' },
-        body: JSON.stringify({
-          sessionId: '6cb8dd',
-          runId: 'pre-fix',
-          hypothesisId: 'E',
-          location: 'useActivityTracker.ts:finish:response',
-          message: 'finish response elevation',
-          data: {
-            sentElevationGainM: Math.round(elevationGainM * 10) / 10,
-            returnedElevationGainM: Math.round((res.activity.elevationGainM ?? 0) * 10) / 10,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
       await setStoredActiveActivityId(null)
       await clearAdventurePoints()
       setActivityId(null)
       clear()
       return res.activity
     } catch {
+      finishInFlightRef.current = false
       setError('Završetak aktivnosti nije uspeo.')
       setStatus('active')
       return null
     }
-  }, [
-    activityId,
-    stopLocation,
-    uploadPendingPoints,
-    routePoints,
-    startedAt,
-    distanceM,
-    elevationGainM,
-    steps,
-    latLngPoints,
-    clear,
-  ])
+  }, [activityId, uploadPendingPoints, startedAt, steps, clear])
 
   const discard = useCallback(async () => {
     if (!activityId) return
@@ -393,6 +348,7 @@ export function useActivityTracker(): ActivityTrackerState {
     clear()
     pendingUploadRef.current = []
     uploadedCountRef.current = 0
+    finishInFlightRef.current = false
   }, [activityId, stopLocation, clear])
 
   const resetToIdle = useCallback(() => {
@@ -409,6 +365,7 @@ export function useActivityTracker(): ActivityTrackerState {
     hcDeltaRef.current = 0
     liveAccumRef.current = 0
     lastLiveCumRef.current = 0
+    finishInFlightRef.current = false
     clear()
   }, [clear])
 

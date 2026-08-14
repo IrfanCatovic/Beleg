@@ -4,45 +4,48 @@ import { Camera, GeoJSONSource, Layer, Map, type CameraRef } from '@maplibre/map
 import type { GPSPoint } from '@beleg/shared'
 import { Text } from '../../../components/ui'
 import { getMobilePlaninerMapStyle } from '../../../utils/planinerMapStyle'
-import { colors } from '../../../theme'
+import { colors, radius } from '../../../theme'
+import { buildLiveRouteLineString, shouldUpdateFollowCamera, type LngLat } from '../services/liveRouteGeometry'
 
 interface Props {
   points: GPSPoint[]
   follow?: boolean
+  height?: number
 }
 
-const DEFAULT_CENTER: [number, number] = [21.0059, 44.0165]
+const DEFAULT_CENTER: LngLat = [21.0059, 44.0165]
 
-export function ActivityLiveMap({ points, follow = true }: Props) {
+export function ActivityLiveMap({ points, follow = true, height = 220 }: Props) {
   const cameraRef = useRef<CameraRef>(null)
+  const lastFollowAtMs = useRef<number | null>(null)
+  const lastFollowLngLat = useRef<LngLat | null>(null)
   const mapStyle = getMobilePlaninerMapStyle()
 
-  const coords = useMemo<[number, number][]>(
-    () => points.map((p) => [p.lng, p.lat]),
-    [points],
-  )
-
-  const last = coords.length > 0 ? coords[coords.length - 1] : DEFAULT_CENTER
-
-  const lineShape = useMemo(
-    () => ({
-      type: 'Feature' as const,
-      geometry: { type: 'LineString' as const, coordinates: coords },
-      properties: {},
-    }),
-    [coords],
-  )
+  const lastPoint = points[points.length - 1]
+  const last: LngLat = lastPoint ? [lastPoint.lng, lastPoint.lat] : DEFAULT_CENTER
+  const lineShape = useMemo(() => buildLiveRouteLineString(points), [points])
 
   useEffect(() => {
-    if (follow && coords.length > 0) {
-      cameraRef.current?.easeTo({ center: last, zoom: 15, duration: 500 })
+    if (!follow || !lastPoint) return
+    const nowMs = Date.now()
+    if (
+      !shouldUpdateFollowCamera({
+        lastFollowAtMs: lastFollowAtMs.current,
+        lastFollowLngLat: lastFollowLngLat.current,
+        nextLngLat: last,
+        nowMs,
+      })
+    ) {
+      return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords, follow])
+    lastFollowAtMs.current = nowMs
+    lastFollowLngLat.current = last
+    cameraRef.current?.easeTo({ center: last, zoom: 15, duration: 180 })
+  }, [follow, lastPoint])
 
   if (!mapStyle) {
     return (
-      <View style={styles.root}>
+      <View style={[styles.wrap, { height }]}>
         <Text variant="small" color={colors.textMuted}>
           Mapa nije dostupna.
         </Text>
@@ -51,13 +54,13 @@ export function ActivityLiveMap({ points, follow = true }: Props) {
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.wrap, { height }]}>
       <Map style={StyleSheet.absoluteFill} mapStyle={mapStyle.styleUrl} logo={false}>
         <Camera
           ref={cameraRef}
-          initialViewState={{ center: last, zoom: coords.length > 0 ? 15 : 6.2 }}
+          initialViewState={{ center: last, zoom: points.length > 0 ? 15 : 6.2 }}
         />
-        {coords.length > 1 ? (
+        {lineShape ? (
           <GeoJSONSource id="adventure-live-route" data={lineShape}>
             <Layer
               id="adventure-live-line"
@@ -73,5 +76,11 @@ export function ActivityLiveMap({ points, follow = true }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  wrap: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

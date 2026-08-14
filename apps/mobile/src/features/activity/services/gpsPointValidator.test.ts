@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { GPSPoint } from '@beleg/shared'
-import { validateGPSPoint } from './gpsPointValidator'
+import {
+  DEFAULT_GPS_VALIDATOR_CONFIG,
+  emptyGpsFilterState,
+  evaluateGpsPoint,
+  validateGPSPoint,
+  type GpsFilterState,
+} from './gpsPointValidator'
 
 const NOW = Date.parse('2026-07-04T12:00:00.000Z')
 
@@ -54,12 +60,22 @@ describe('validateGPSPoint', () => {
     expect(result.reason).toBe('accuracy_too_low')
   })
 
-  it('rejects point with timestamp older than 30s', () => {
+  it('accepts delayed delivery of a recent first point (background batch)', () => {
     const result = validateGPSPoint(
-      point(44.0165, 21.0059, 20, -31_000),
+      point(44.0165, 21.0059, 20, 0),
       [],
       undefined,
-      NOW,
+      NOW + 40_000,
+    )
+    expect(result.accepted).toBe(true)
+  })
+
+  it('rejects orphan first point older than maxOrphanAgeMs', () => {
+    const result = validateGPSPoint(
+      point(44.0165, 21.0059, 20, 0),
+      [],
+      undefined,
+      NOW + DEFAULT_GPS_VALIDATOR_CONFIG.maxOrphanAgeMs + 1000,
     )
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('stale_timestamp')
@@ -71,5 +87,15 @@ describe('validateGPSPoint', () => {
     const result = validateGPSPoint(second, [first], undefined, NOW + 5000)
     expect(result.accepted).toBe(false)
     expect(result.reason).toBe('too_close')
+  })
+
+  it('rejects out-of-order timestamp vs last accepted', () => {
+    const first = point(44.0165, 21.0059, 20, 10_000)
+    const earlier = point(44.01659, 21.0059, 20, 0)
+    let state: GpsFilterState = emptyGpsFilterState()
+    state = evaluateGpsPoint(first, state, undefined, NOW + 10_000).state
+    const result = evaluateGpsPoint(earlier, state, undefined, NOW + 12_000).result
+    expect(result.accepted).toBe(false)
+    expect(result.reason).toBe('stale_timestamp')
   })
 })

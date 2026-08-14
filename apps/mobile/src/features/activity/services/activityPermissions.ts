@@ -1,6 +1,7 @@
 import * as Location from 'expo-location'
 import { requestStepsAccess } from './stepsAccess'
 import { checkLocationReadiness } from './locationReadiness'
+import { isPreciseLocationGranted, PRECISE_LOCATION_REQUIRED_MESSAGE } from './preciseLocation'
 
 export type ActivityPermissionResult =
   | { ok: true }
@@ -15,6 +16,9 @@ export async function requestActivityPermissions(): Promise<ActivityPermissionRe
         message: 'Lokacija na telefonu je isključena. Uključi GPS u postavkama da započneš avanturu.',
       }
     }
+    if (readiness.issue === 'precise_location_off') {
+      return { ok: false, message: PRECISE_LOCATION_REQUIRED_MESSAGE }
+    }
     return {
       ok: false,
       message: 'Dozvola za lokaciju je potrebna za snimanje rute.',
@@ -23,9 +27,17 @@ export async function requestActivityPermissions(): Promise<ActivityPermissionRe
 
   const { status: locStatus } = await Location.getForegroundPermissionsAsync()
   if (locStatus !== 'granted') {
-    const { status: requested } = await Location.requestForegroundPermissionsAsync()
-    if (requested !== 'granted') {
+    const requested = await Location.requestForegroundPermissionsAsync()
+    if (requested.status !== 'granted') {
       return { ok: false, message: 'Dozvola za lokaciju je potrebna za snimanje rute.' }
+    }
+    if (!isPreciseLocationGranted(requested)) {
+      return { ok: false, message: PRECISE_LOCATION_REQUIRED_MESSAGE }
+    }
+  } else {
+    const current = await Location.getForegroundPermissionsAsync()
+    if (!isPreciseLocationGranted(current)) {
+      return { ok: false, message: PRECISE_LOCATION_REQUIRED_MESSAGE }
     }
   }
 

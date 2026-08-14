@@ -1,16 +1,17 @@
 import { StyleSheet, View } from 'react-native'
 import type { GPSPoint } from '@beleg/shared'
 import { Text } from '../../../components/ui'
-import { colors } from '../../../theme'
+import { colors, radius } from '../../../theme'
 
 interface Props {
   points: GPSPoint[]
   follow?: boolean
+  height?: number
 }
 
-export function ActivityLiveMap({ points }: Props) {
+export function ActivityLiveMap({ points, height = 220 }: Props) {
   return (
-    <View style={styles.root}>
+    <View style={[styles.wrap, { height }]}>
       <Text variant="small" color={colors.textMuted}>
         Live mapa nije dostupna u browseru
         {points.length > 0 ? ` (${points.length} tačaka)` : ''}.
@@ -20,8 +21,8 @@ export function ActivityLiveMap({ points }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  wrap: {
+    borderRadius: radius.lg,
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',

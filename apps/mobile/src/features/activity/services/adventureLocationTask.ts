@@ -2,14 +2,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import type { GPSPoint } from '@beleg/shared'
-import { validateGPSPoint } from './gpsPointValidator'
+import { recordGpsDiagEvent } from './gpsDiagnostics'
+import { ADVENTURE_GPS_BACKGROUND_OPTIONS, ADVENTURE_GPS_WATCH_OPTIONS } from './gpsLocationConfig'
+import {
+  emptyGpsFilterState,
+  evaluateGpsPoint,
+  pointTimestampMs,
+  type GpsFilterState,
+} from './gpsPointValidator'
+import { computeAdventureGpsStatus, type GpsTrackStatus } from './gpsTrackStatus'
+
+export type { GpsTrackStatus }
 
 export const ADVENTURE_LOCATION_TASK = 'planiner-adventure-location'
 const POINTS_STORAGE_KEY = 'adventure:locationPoints'
 const HEARTBEAT_KEY = 'adventure:heartbeat'
 const HEARTBEAT_INTERVAL_MS = 15_000
 const KILLED_THRESHOLD_MS = 45_000
-const GPS_WEAK_THRESHOLD_MS = 15_000
 
 export const GPS_USER_MESSAGES = {
   background_tracking_failed:
@@ -17,12 +26,6 @@ export const GPS_USER_MESSAGES = {
   gps_weak: 'GPS signal je slab. Pomjeri se na otvoreniji prostor.',
   location_unavailable: 'Lokacija trenutno nije dostupna. Provjeri GPS i dozvole.',
 } as const
-
-export type GpsTrackStatus =
-  | 'tracking'
-  | 'gps_weak'
-  | 'background_tracking_failed'
-  | 'location_unavailable'
 
 export type AdventureTrackingMode = 'background' | 'foreground_only' | 'stopped'
 
@@ -34,24 +37,29 @@ type PointListener = (points: GPSPoint[]) => void
 type GpsStatusListener = (status: GpsTrackStatus, message: string | null) => void
 
 let memoryPoints: GPSPoint[] = []
+let filterState: GpsFilterState = emptyGpsFilterState()
 let trackingMode: AdventureTrackingMode = 'stopped'
+let acceptingPoints = false
+let trackingStartedAtMs: number | null = null
 let lastAcceptedAtMs: number | null = null
+let lastRawAtMs: number | null = null
+let lastRawAccuracy: number | null = null
+let consecutiveAccuracyRejects = 0
+let ingestTail: Promise<void> = Promise.resolve()
 let foregroundSubscription: Location.LocationSubscription | null = null
 const listeners = new Set<PointListener>()
 const statusListeners = new Set<GpsStatusListener>()
 
-function pointTimestampMs(point: GPSPoint): number | null {
-  const ms = new Date(point.recordedAt).getTime()
-  return Number.isFinite(ms) ? ms : null
-}
-
 function computeGpsStatus(): GpsTrackStatus {
-  if (trackingMode === 'stopped') return 'tracking'
-  if (trackingMode === 'foreground_only') return 'background_tracking_failed'
-  if (lastAcceptedAtMs == null || Date.now() - lastAcceptedAtMs > GPS_WEAK_THRESHOLD_MS) {
-    return 'gps_weak'
-  }
-  return 'tracking'
+  return computeAdventureGpsStatus({
+    trackingMode,
+    nowMs: Date.now(),
+    trackingStartedAtMs,
+    lastRawAtMs,
+    lastAcceptedAtMs,
+    lastRawAccuracy,
+    consecutiveAccuracyRejects,
+  })
 }
 
 function messageForStatus(status: GpsTrackStatus): string | null {
@@ -82,6 +90,12 @@ async function persistPoints() {
   await AsyncStorage.setItem(POINTS_STORAGE_KEY, JSON.stringify(memoryPoints))
 }
 
+function rebuildFilterFromPoints(points: GPSPoint[]) {
+  const last = points[points.length - 1] ?? null
+  filterState = { lastAccepted: last, lastPlausible: last }
+  lastAcceptedAtMs = last ? pointTimestampMs(last) : null
+}
+
 async function loadPersistedPoints() {
   const raw = await AsyncStorage.getItem(POINTS_STORAGE_KEY)
   if (!raw) return
@@ -89,11 +103,11 @@ async function loadPersistedPoints() {
     const parsed = JSON.parse(raw) as GPSPoint[]
     if (Array.isArray(parsed)) {
       memoryPoints = parsed
-      const last = parsed[parsed.length - 1]
-      if (last) lastAcceptedAtMs = pointTimestampMs(last)
+      rebuildFilterFromPoints(parsed)
     }
   } catch {
     memoryPoints = []
+    filterState = emptyGpsFilterState()
   }
 }
 
@@ -107,28 +121,51 @@ function locationToPoint(loc: Location.LocationObject): GPSPoint {
   }
 }
 
-function tryAcceptPoint(point: GPSPoint): boolean {
-  const result = validateGPSPoint(point, memoryPoints)
+function tryAcceptPoint(point: GPSPoint, speedFromOs?: number | null): boolean {
+  const prevAccepted = filterState.lastAccepted
+  const { result, state } = evaluateGpsPoint(point, filterState)
+  filterState = state
+
+  if (result.reason === 'accuracy_too_low') {
+    consecutiveAccuracyRejects += 1
+  } else if (result.accepted) {
+    consecutiveAccuracyRejects = 0
+  }
+
+  const prevMs = prevAccepted ? pointTimestampMs(prevAccepted) : null
+  const pointMs = pointTimestampMs(point)
+  const timeDeltaMs = prevMs != null && pointMs != null ? pointMs - prevMs : undefined
+
+  recordGpsDiagEvent({
+    timestamp: point.recordedAt,
+    lat: point.lat,
+    lng: point.lng,
+    accuracy: point.accuracy,
+    speed: speedFromOs ?? result.speedMps,
+    rawReceived: true,
+    accepted: result.accepted,
+    rejectionReason: result.reason,
+    distanceDeltaM: result.distanceDeltaM,
+    timeDeltaMs,
+    gpsStatus: computeGpsStatus(),
+  })
+
   if (!result.accepted) {
-    if (__DEV__) {
-      console.log('[gps] rejected', result.reason, {
-        accuracy: point.accuracy,
-        distanceDeltaM: result.distanceDeltaM,
-        speedMps: result.speedMps,
-      })
-    }
     notifyStatus()
     return false
   }
   memoryPoints.push(point)
-  lastAcceptedAtMs = pointTimestampMs(point) ?? Date.now()
+  lastAcceptedAtMs = pointMs ?? Date.now()
   return true
 }
 
 async function ingestLocations(locations: Location.LocationObject[]): Promise<boolean> {
+  if (!acceptingPoints || locations.length === 0) return false
   let anyAccepted = false
   for (const loc of locations) {
-    if (tryAcceptPoint(locationToPoint(loc))) {
+    lastRawAtMs = Date.now()
+    lastRawAccuracy = loc.coords.accuracy ?? null
+    if (tryAcceptPoint(locationToPoint(loc), loc.coords.speed)) {
       anyAccepted = true
     }
   }
@@ -141,31 +178,33 @@ async function ingestLocations(locations: Location.LocationObject[]): Promise<bo
   return anyAccepted
 }
 
+function enqueueIngest(locations: Location.LocationObject[]): Promise<boolean> {
+  const run = ingestTail.then(() => ingestLocations(locations))
+  ingestTail = run.then(
+    () => undefined,
+    () => undefined,
+  )
+  return run
+}
+
 if (!TaskManager.isTaskDefined(ADVENTURE_LOCATION_TASK)) {
   TaskManager.defineTask(ADVENTURE_LOCATION_TASK, async ({ data, error }) => {
     if (error) {
-      if (__DEV__) console.warn('[gps] background task error', error)
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('[gps] background task error', error)
       return
     }
     const payload = data as { locations?: Location.LocationObject[] } | undefined
     const locations = payload?.locations ?? []
     if (locations.length === 0) return
-    await ingestLocations(locations)
+    await enqueueIngest(locations)
   })
 }
 
 async function startForegroundWatch(): Promise<void> {
   if (foregroundSubscription) return
-  foregroundSubscription = await Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.High,
-      timeInterval: 5000,
-      distanceInterval: 10,
-    },
-    (loc) => {
-      void ingestLocations([loc])
-    },
-  )
+  foregroundSubscription = await Location.watchPositionAsync(ADVENTURE_GPS_WATCH_OPTIONS, (loc) => {
+    void enqueueIngest([loc])
+  })
 }
 
 function stopForegroundWatch(): void {
@@ -200,7 +239,11 @@ export function getAdventurePoints(): GPSPoint[] {
 
 export async function clearAdventurePoints(): Promise<void> {
   memoryPoints = []
+  filterState = emptyGpsFilterState()
   lastAcceptedAtMs = null
+  lastRawAtMs = null
+  lastRawAccuracy = null
+  consecutiveAccuracyRejects = 0
   await AsyncStorage.multiRemove([POINTS_STORAGE_KEY, HEARTBEAT_KEY])
   notifyPoints()
   notifyStatus()
@@ -220,10 +263,16 @@ export async function wasAdventureProcessKilled(): Promise<boolean> {
 
 export async function startAdventureLocationTracking(): Promise<StartTrackingResult> {
   await loadPersistedPoints()
+  acceptingPoints = true
+  trackingStartedAtMs = Date.now()
+  lastRawAtMs = null
+  lastRawAccuracy = null
+  consecutiveAccuracyRejects = 0
 
   const servicesOn = await Location.hasServicesEnabledAsync()
   if (!servicesOn) {
     trackingMode = 'stopped'
+    acceptingPoints = false
     notifyStatus()
     return { ok: false, userMessage: GPS_USER_MESSAGES.location_unavailable }
   }
@@ -231,6 +280,7 @@ export async function startAdventureLocationTracking(): Promise<StartTrackingRes
   const fg = await Location.requestForegroundPermissionsAsync()
   if (fg.status !== 'granted') {
     trackingMode = 'stopped'
+    acceptingPoints = false
     notifyStatus()
     return { ok: false, userMessage: GPS_USER_MESSAGES.location_unavailable }
   }
@@ -244,22 +294,13 @@ export async function startAdventureLocationTracking(): Promise<StartTrackingRes
 
   try {
     await Location.requestBackgroundPermissionsAsync()
-    await Location.startLocationUpdatesAsync(ADVENTURE_LOCATION_TASK, {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: 5000,
-      distanceInterval: 10,
-      showsBackgroundLocationIndicator: true,
-      foregroundService: {
-        notificationTitle: 'Planiner avantura',
-        notificationBody: 'Praćenje rute je aktivno.',
-      },
-    })
+    await Location.startLocationUpdatesAsync(ADVENTURE_LOCATION_TASK, ADVENTURE_GPS_BACKGROUND_OPTIONS)
     trackingMode = 'background'
     await touchAdventureHeartbeat()
     notifyStatus()
     return { ok: true, mode: 'background' }
   } catch (e) {
-    if (__DEV__) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
       console.warn('[gps] startLocationUpdatesAsync failed', e)
     }
 
@@ -274,10 +315,11 @@ export async function startAdventureLocationTracking(): Promise<StartTrackingRes
         userMessage: GPS_USER_MESSAGES.background_tracking_failed,
       }
     } catch (fgError) {
-      if (__DEV__) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) {
         console.warn('[gps] foreground watchPositionAsync failed', fgError)
       }
       trackingMode = 'stopped'
+      acceptingPoints = false
       notifyStatus()
       return { ok: false, userMessage: GPS_USER_MESSAGES.location_unavailable }
     }
@@ -285,6 +327,8 @@ export async function startAdventureLocationTracking(): Promise<StartTrackingRes
 }
 
 export async function stopAdventureLocationTracking(): Promise<void> {
+  acceptingPoints = false
+  await ingestTail
   stopForegroundWatch()
   const running = await Location.hasStartedLocationUpdatesAsync(ADVENTURE_LOCATION_TASK)
   if (running) {
@@ -292,6 +336,11 @@ export async function stopAdventureLocationTracking(): Promise<void> {
   }
   trackingMode = 'stopped'
   notifyStatus()
+}
+
+export async function stopAndGetAdventurePoints(): Promise<GPSPoint[]> {
+  await stopAdventureLocationTracking()
+  return [...memoryPoints]
 }
 
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null

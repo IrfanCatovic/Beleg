@@ -48,7 +48,7 @@ export function useLocationTrack(enabled: boolean): LocationTrackState {
       return
     }
     setPermissionGranted(true)
-    setGpsStatus(result.mode === 'foreground_only' ? 'background_tracking_failed' : 'gps_weak')
+    setGpsStatus(result.mode === 'foreground_only' ? 'background_tracking_failed' : 'tracking')
     setGpsMessage(result.userMessage ?? null)
     startAdventureHeartbeat()
   }, [])

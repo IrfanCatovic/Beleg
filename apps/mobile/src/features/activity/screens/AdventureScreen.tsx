@@ -10,6 +10,7 @@ import { useModal } from '../../../context/ModalContext'
 import { colors, radius, spacing } from '../../../theme'
 import type { ExploreStackParamList } from '../../../navigation/types'
 import { ActivityGpsStatusBanner } from '../components/ActivityGpsStatusBanner'
+import { ActivityLiveMap } from '../components/ActivityLiveMap'
 import { ActivityLiveStatsBar } from '../components/ActivityLiveStatsBar'
 import { ActivityRouteMap } from '../components/ActivityRouteMap'
 import { ActivitySummaryStats } from '../components/ActivitySummaryStats'
@@ -57,6 +58,9 @@ export default function AdventureScreen({ navigation }: Props) {
     if (locationReadiness.issue === 'permission_denied') {
       return t('adventureLocationPermission')
     }
+    if (locationReadiness.issue === 'precise_location_off') {
+      return t('adventurePreciseLocation')
+    }
     return t('adventureLocationOff')
   }, [locationReadiness.ready, locationReadiness.checking, locationReadiness.issue, t])
 
@@ -79,11 +83,17 @@ export default function AdventureScreen({ navigation }: Props) {
     }
 
     if (!locationReadiness.ready) {
-      const title = locationReadiness.issue === 'permission_denied' ? 'Dozvola' : 'Lokacija'
+      const title =
+        locationReadiness.issue === 'permission_denied' ||
+        locationReadiness.issue === 'precise_location_off'
+          ? 'Dozvola'
+          : 'Lokacija'
       const message =
         locationReadiness.issue === 'permission_denied'
           ? t('adventureLocationPermission')
-          : t('adventureLocationOff')
+          : locationReadiness.issue === 'precise_location_off'
+            ? t('adventurePreciseLocation')
+            : t('adventureLocationOff')
       const open = await showConfirm(title, message, {
         confirmLabel: t('adventureLocationOpenSettings'),
         cancelLabel: 'Otkaži',
@@ -215,6 +225,11 @@ export default function AdventureScreen({ navigation }: Props) {
               distanceM={tracker.distanceM}
               elevationGainM={tracker.elevationGainM}
               steps={tracker.steps}
+            />
+            <ActivityLiveMap
+              points={tracker.routePoints}
+              follow={tracker.status === 'active'}
+              height={220}
             />
             <View style={styles.trackingActions}>
               {tracker.status === 'paused' ? (
