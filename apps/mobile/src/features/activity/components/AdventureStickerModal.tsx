@@ -7,6 +7,10 @@ import { useTranslation } from 'react-i18next'
 import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 import type { LatLngAlt } from '../services/activityMetrics'
+import {
+  ADVENTURE_STICKER_CAPTURE_OPTIONS,
+  ADVENTURE_STICKER_SHARE_MIME,
+} from '../services/adventureStickerCapture'
 import { AdventureSticker } from './AdventureSticker'
 
 interface Props {
@@ -16,6 +20,7 @@ interface Props {
   elevationGainM: number
   steps: number
   dateLabel: string
+  /** Canonical decoded final routePolyline (same as completed Adventure map). */
   routePoints?: LatLngAlt[]
   onClose: () => void
 }
@@ -36,26 +41,35 @@ export function AdventureStickerModal({
 
   const captureSticker = useCallback(async () => {
     if (!stickerRef.current) return null
-    return captureRef(stickerRef, { format: 'png', quality: 1, result: 'tmpfile' })
+    // Two frames so SVG Path has laid out before PNG capture.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
+    return captureRef(stickerRef, ADVENTURE_STICKER_CAPTURE_OPTIONS)
   }, [])
 
   const handleShare = useCallback(async () => {
+    if (busy) return
     setBusy(true)
     try {
       const uri = await captureSticker()
       if (!uri) return
       const canShare = await Sharing.isAvailableAsync()
       if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: t('stickerShare') })
+        await Sharing.shareAsync(uri, {
+          mimeType: ADVENTURE_STICKER_SHARE_MIME,
+          dialogTitle: t('stickerShare'),
+        })
       }
     } catch {
-      // ignore
+      // existing: silent failure / cancel
     } finally {
       setBusy(false)
     }
-  }, [captureSticker, t])
+  }, [busy, captureSticker, t])
 
   const handleSave = useCallback(async () => {
+    if (busy) return
     setBusy(true)
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync()
@@ -64,11 +78,11 @@ export function AdventureStickerModal({
       if (!uri) return
       await MediaLibrary.saveToLibraryAsync(uri)
     } catch {
-      // ignore
+      // existing: silent failure
     } finally {
       setBusy(false)
     }
-  }, [captureSticker])
+  }, [busy, captureSticker])
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -125,6 +139,10 @@ const styles = StyleSheet.create({
   },
   title: { textAlign: 'center' },
   subtitle: { textAlign: 'center', marginBottom: spacing.sm },
-  stickerWrap: { alignItems: 'center', marginVertical: spacing.sm },
+  stickerWrap: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
+    backgroundColor: 'transparent',
+  },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
 })

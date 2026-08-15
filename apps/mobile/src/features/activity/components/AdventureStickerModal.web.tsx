@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Button, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
+import type { LatLngAlt } from '../services/activityMetrics'
 import { AdventureSticker } from './AdventureSticker'
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   elevationGainM: number
   steps: number
   dateLabel: string
+  /** Optional: same decoded routePolyline as mobile for visual parity (no export). */
+  routePoints?: LatLngAlt[]
   onClose: () => void
 }
 
@@ -22,6 +25,7 @@ export function AdventureStickerModal({
   elevationGainM,
   steps,
   dateLabel,
+  routePoints,
   onClose,
 }: Props) {
   const { t } = useTranslation('explore')
@@ -45,6 +49,7 @@ export function AdventureStickerModal({
               elevationGainM={elevationGainM}
               steps={steps}
               dateLabel={dateLabel}
+              routePoints={routePoints}
             />
           </View>
 
@@ -77,7 +82,11 @@ const styles = StyleSheet.create({
   },
   title: { textAlign: 'center' },
   subtitle: { textAlign: 'center', marginBottom: spacing.sm },
-  stickerWrap: { alignItems: 'center', marginVertical: spacing.sm },
+  stickerWrap: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
+    backgroundColor: 'transparent',
+  },
   hint: { textAlign: 'center' },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
 })
