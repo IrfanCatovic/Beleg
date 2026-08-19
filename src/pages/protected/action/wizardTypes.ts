@@ -42,6 +42,8 @@ export interface WizardFerrataOption {
   trajanjeMax: number
   opis?: string
   quickTip?: string
+  lat?: number
+  lng?: number
 }
 
 export interface WizardValues {

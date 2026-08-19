@@ -6,6 +6,9 @@ export interface WizardGuide {
   fullName: string
   isProfiGuide?: boolean
   source?: 'club' | 'profi'
+  baseLat?: number
+  baseLng?: number
+  distanceKm?: number
 }
 
 export type ActionKind = 'planina' | 'via_ferrata'
@@ -48,6 +51,8 @@ export interface WizardFerrataOption {
   trajanjeMax: number
   opis?: string
   quickTip?: string
+  lat?: number
+  lng?: number
 }
 
 export interface WizardValues {

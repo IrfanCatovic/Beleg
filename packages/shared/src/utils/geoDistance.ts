@@ -61,14 +61,21 @@ export function sortByKnownDistanceAsc<T>(items: T[], getKm: (item: T) => number
   })
 }
 
+export function attachGuideDistanceKm<T extends { baseLat?: number; baseLng?: number; distanceKm?: number | null }>(
+  guides: T[],
+  destLat?: number | null,
+  destLng?: number | null,
+): T[] {
+  return guides.map((g) => {
+    const km = resolvePointDistanceKm(destLat, destLng, g.baseLat, g.baseLng)
+    return { ...g, distanceKm: km ?? undefined }
+  })
+}
+
 export function annotateGuidesWithDistance<T extends { baseLat?: number; baseLng?: number; distanceKm?: number | null }>(
   guides: T[],
   destLat?: number | null,
   destLng?: number | null,
 ): T[] {
-  const annotated = guides.map((g) => {
-    const km = resolvePointDistanceKm(destLat, destLng, g.baseLat, g.baseLng)
-    return { ...g, distanceKm: km ?? undefined }
-  })
-  return sortByKnownDistanceAsc(annotated, (g) => g.distanceKm)
+  return sortByKnownDistanceAsc(attachGuideDistanceKm(guides, destLat, destLng), (g) => g.distanceKm)
 }

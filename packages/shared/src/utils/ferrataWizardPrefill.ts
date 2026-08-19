@@ -1,4 +1,5 @@
 import type { WizardFerrataOption, WizardValues } from '../types/actionWizard'
+import { isValidLatLng } from './geoDistance'
 
 function formatDuzinaKm(duzinaM: number): string {
   const km = (duzinaM ?? 0) / 1000
@@ -49,6 +50,13 @@ export function buildWizardPatchFromFerrataRow(
     duzinaStazeKm: formatDuzinaKm(row.duzinaM ?? 0),
     trajanjeSati: ferrataAverageDurationHours(row),
   }
+  if (isValidLatLng(row.lat, row.lng)) {
+    patch.planinaLat = String(row.lat)
+    patch.planinaLng = String(row.lng)
+  } else {
+    patch.planinaLat = ''
+    patch.planinaLng = ''
+  }
 
   const shouldFillNaziv = opts?.fillNaziv !== false
   if (shouldFillNaziv) {
@@ -83,6 +91,8 @@ export function ferrataCatalogFromApiRow(r: {
   trajanjeMax?: number
   opis?: string
   quickTip?: string
+  lat?: number | null
+  lng?: number | null
 }): WizardFerrataOption {
   return {
     id: r.id,
@@ -97,5 +107,7 @@ export function ferrataCatalogFromApiRow(r: {
     trajanjeMax: Number(r.trajanjeMax ?? 0),
     opis: r.opis,
     quickTip: r.quickTip,
+    lat: r.lat ?? undefined,
+    lng: r.lng ?? undefined,
   }
 }

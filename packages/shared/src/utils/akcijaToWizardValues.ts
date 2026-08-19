@@ -1,6 +1,7 @@
 import type { AkcijaDetail } from '../types/akcija'
 import type { WizardValues } from '../types/actionWizard'
 import { createEmptyWizardValues } from './wizardDefaults'
+import { parseWizardActionOrigin } from './wizardGuideDistance'
 
 export function akcijaToWizardValues(akcija: AkcijaDetail): WizardValues {
   const datumStr =
@@ -18,6 +19,13 @@ export function akcijaToWizardValues(akcija: AkcijaDetail): WizardValues {
   const tip = akcija.tipAkcije || 'planina'
   const isVia = tip === 'via_ferrata'
   const tezina = (akcija.tezina === 'teško' ? 'tesko' : akcija.tezina) || ''
+  const storedOrigin = parseWizardActionOrigin(akcija.planinaLat, akcija.planinaLng)
+  const snap = akcija.ferrataSnapshot
+  const ferrataOrigin =
+    isVia && snap && parseWizardActionOrigin(snap.lat, snap.lng)
+      ? { lat: snap.lat as number, lng: snap.lng as number }
+      : null
+  const origin = storedOrigin ?? ferrataOrigin
 
   return {
     ...createEmptyWizardValues(),
@@ -49,8 +57,8 @@ export function akcijaToWizardValues(akcija: AkcijaDetail): WizardValues {
     cenaOstali: akcija.cenaOstali != null ? String(akcija.cenaOstali) : '',
     prikaziListuPrijavljenih: akcija.prikaziListuPrijavljenih ?? true,
     omoguciGrupniChat: akcija.omoguciGrupniChat ?? false,
-    planinaLat: '',
-    planinaLng: '',
+    planinaLat: origin ? String(origin.lat) : '',
+    planinaLng: origin ? String(origin.lng) : '',
     smestaj: isVia
       ? []
       : (akcija.smestaj ?? []).map((s) => ({

@@ -114,6 +114,8 @@ export interface AkcijaDetail extends AkcijaListItem {
   oprema?: AkcijaOprema[]
   opremaRent?: AkcijaOpremaRent[]
   prevoz?: AkcijaPrevoz[]
+  planinaLat?: number
+  planinaLng?: number
 }
 
 /** Alias za kompatibilnost sa postojećim kodom. */

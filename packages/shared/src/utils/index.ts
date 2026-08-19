@@ -1,5 +1,6 @@
 export { getApiErrorMessage } from './apiError'
 export {
+  attachGuideDistanceKm,
   annotateGuidesWithDistance,
   distanceKmHaversine,
   formatDistanceKmDisplay,
@@ -71,6 +72,14 @@ export type {
   CanConfirmCancelActionInput,
 } from './cancelActionUi'
 export { createEmptyWizardValues } from './wizardDefaults'
+export {
+  buildWizardGuidesFromCatalog,
+  parseWizardActionOrigin,
+  resolveWizardActionOrigin,
+  wizardGuideDistanceLabel,
+  wizardGuideRowLabel,
+  withWizardGuideDistances,
+} from './wizardGuideDistance'
 export { buildActionWizardFormData } from './buildActionWizardFormData'
 export {
   buildWizardPatchFromFerrataRow,

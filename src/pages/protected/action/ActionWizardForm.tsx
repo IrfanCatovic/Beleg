@@ -19,6 +19,7 @@ import {
 
 import { WizardStep1, WizardStep2, WizardStep3, WizardStep4 } from './ActionWizardSteps'
 import type { WizardStepProps } from './wizardStepProps'
+import { resolveWizardActionOrigin, wizardGuideRowLabel, withWizardGuideDistances } from '@beleg/shared'
 
 export type { OrganizerKind, WizardGuide, WizardSmestaj, WizardOprema, WizardPrevoz, WizardFerrataOption, WizardValues }
 
@@ -122,34 +123,40 @@ export function ActionWizardForm({
   const organizerLabel =
     values.organizerType === 'vodic' ? t('wizard.organizer.guide') : t('wizard.organizer.club')
   const isGuideOrganizer = values.organizerType === 'vodic'
-  const selectedGuide = guides.find((g) => String(g.id) === values.vodicId)
-  const selectedGuideLabel = selectedGuide
-    ? `${selectedGuide.fullName} (@${selectedGuide.username})`
-    : ''
+  const actionOrigin = useMemo(
+    () => resolveWizardActionOrigin(values, selectedFerrata),
+    [values.planinaLat, values.planinaLng, selectedFerrata],
+  )
+  const guidesWithDistance = useMemo(
+    () => withWizardGuideDistances(guides, actionOrigin),
+    [guides, actionOrigin],
+  )
+  const selectedGuide = guidesWithDistance.find((g) => String(g.id) === values.vodicId)
+  const selectedGuideLabel = selectedGuide ? wizardGuideRowLabel(selectedGuide) : ''
 
   const guideDropdownOptions = useMemo(() => {
-    const club = guides.filter((g) => g.source !== 'profi')
-    const profi = guides.filter((g) => g.source === 'profi')
+    const club = guidesWithDistance.filter((g) => g.source !== 'profi')
+    const profi = guidesWithDistance.filter((g) => g.source === 'profi')
     const opts: { value: string; label: string; disabled?: boolean }[] = [{ value: '', label: t('guide.pick') }]
     if (club.length > 0) {
       opts.push({ value: '__club_hdr__', label: t('wizard.guidePicker.clubSection'), disabled: true })
       for (const g of club) {
-        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+        opts.push({ value: String(g.id), label: wizardGuideRowLabel(g) })
       }
     }
     if (profi.length > 0) {
       opts.push({ value: '__profi_hdr__', label: t('wizard.guidePicker.profiSection'), disabled: true })
       for (const g of profi) {
-        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+        opts.push({ value: String(g.id), label: wizardGuideRowLabel(g) })
       }
     }
     if (club.length === 0 && profi.length === 0) {
-      for (const g of guides) {
-        opts.push({ value: String(g.id), label: `${g.fullName} (@${g.username})` })
+      for (const g of guidesWithDistance) {
+        opts.push({ value: String(g.id), label: wizardGuideRowLabel(g) })
       }
     }
     return opts
-  }, [guides, t])
+  }, [guidesWithDistance, t])
 
   const addSmestaj = () =>
     patch({
@@ -202,7 +209,7 @@ export function ActionWizardForm({
     selectedFerrata,
     selectedGuideLabel,
     guideDropdownOptions,
-    guides,
+    guides: guidesWithDistance,
     minDate,
     initialImageUrl,
     imageHelpText,

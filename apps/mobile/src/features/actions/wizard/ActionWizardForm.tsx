@@ -14,6 +14,10 @@ import {
   buildWizardPatchFromFerrataRow,
   filterFerrataCatalog,
   parseLocalDate,
+  resolveWizardActionOrigin,
+  wizardGuideDistanceLabel,
+  wizardGuideRowLabel,
+  withWizardGuideDistances,
 } from '@beleg/shared'
 import { ChipRow } from '../../../components/ui/ChipRow'
 import { Button, Card, DatePickerField, Input, Text, TimePickerField } from '../../../components/ui'
@@ -84,6 +88,9 @@ function GuidePicker({
               <Text variant="label">
                 {g.fullName} (@{g.username})
               </Text>
+              <Text variant="small" color={colors.textMuted}>
+                {wizardGuideDistanceLabel(g)}
+              </Text>
             </Pressable>
           )
         })}
@@ -106,6 +113,9 @@ function GuidePicker({
               >
                 <Text variant="label">
                   {g.fullName} (@{g.username})
+                </Text>
+                <Text variant="small" color={colors.textMuted}>
+                  {wizardGuideDistanceLabel(g)}
                 </Text>
               </Pressable>
             )
@@ -207,16 +217,22 @@ export function ActionWizardForm({
     () => ferrataCatalog.find((x) => String(x.id) === values.ferrataId.trim()),
     [ferrataCatalog, values.ferrataId],
   )
+  const actionOrigin = useMemo(
+    () => resolveWizardActionOrigin(values, selectedFerrata),
+    [values.planinaLat, values.planinaLng, selectedFerrata],
+  )
+  const guidesWithDistance = useMemo(
+    () => withWizardGuideDistances(guides, actionOrigin),
+    [guides, actionOrigin],
+  )
 
   const rokMaxDate = useMemo(
     () => parseLocalDate(values.datum) ?? undefined,
     [values.datum],
   )
 
-  const selectedGuide = guides.find((g) => String(g.id) === values.vodicId)
-  const selectedGuideLabel = selectedGuide
-    ? `${selectedGuide.fullName} (@${selectedGuide.username})`
-    : ''
+  const selectedGuide = guidesWithDistance.find((g) => String(g.id) === values.vodicId)
+  const selectedGuideLabel = selectedGuide ? wizardGuideRowLabel(selectedGuide) : ''
 
   const totalOptionalPreview = useMemo(() => {
     const sm = values.smestaj.reduce((acc, s) => acc + Number(s.cenaPoOsobiUkupno || 0), 0)
@@ -622,7 +638,7 @@ export function ActionWizardForm({
                   <>
                     <Text variant="label">Vodič</Text>
                     <GuidePicker
-                      guides={guides}
+                      guides={guidesWithDistance}
                       value={values.vodicId}
                       onChange={(id) => patch({ vodicId: id })}
                     />
