@@ -61,7 +61,7 @@ export function GuideCatalogCard({
             </div>
             {profileTo && (
               <span className="shrink-0 text-xs font-bold text-emerald-700">
-                {tGuide('catalog.viewProfile')} →
+                {tGuide('catalog.viewProfile')}
               </span>
             )}
           </div>

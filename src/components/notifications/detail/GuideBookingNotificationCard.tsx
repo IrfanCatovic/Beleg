@@ -83,7 +83,7 @@ export function GuideBookingNotificationCard({
             to={`/ferrate/${(booking as FerrataGuideBookingPublic).ferrata.slug}`}
             className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
           >
-            Otvori feratu →
+            Otvori feratu
           </Link>
         )}
         {kind === 'peak' && (

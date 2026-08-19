@@ -85,7 +85,7 @@ export function FerrataMapPopup({ ferrata, onClose, onBook, canCreateGuideAction
               to={`/ferate/${ferrata.slug}`}
               className="planiner-map-popup-stagger planiner-map-popup-stagger-4 inline-flex w-full items-center justify-center rounded-lg py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:text-emerald-700"
             >
-              {t('mapExplore.popupDetails')} →
+              {t('mapExplore.popupDetails')}
             </Link>
           )}
         </div>

@@ -125,7 +125,7 @@ export function FerrataGuideBookingHotelsStep(props: {
           onClick={props.onViewAllHotels}
           className="w-full text-center text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
         >
-          {t('bookGuideViewAllHotels')} →
+          {t('bookGuideViewAllHotels')}
         </button>
       )}
 

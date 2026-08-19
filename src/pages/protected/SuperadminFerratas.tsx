@@ -480,7 +480,7 @@ export default function SuperadminFerratas() {
                 <td className="px-4 py-2 font-medium">
                   <span className="block">{r.naziv}</span>
                   <Link to={`/ferate/${String(r.slug)}`} className="text-[11px] font-semibold text-emerald-700 hover:underline" target="_blank" rel="noreferrer">
-                    {t('superadminPublicPage')} →
+                    {t('superadminPublicPage')}
                   </Link>
                 </td>
                 <td className="px-4 py-2">{r.status}</td>

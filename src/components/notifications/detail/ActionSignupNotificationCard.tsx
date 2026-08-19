@@ -80,7 +80,7 @@ export function ActionSignupNotificationCard({
             to={`/akcije/${akcijaId}`}
             className="inline-flex text-sm font-semibold text-emerald-600 hover:text-emerald-700"
           >
-            Otvori akciju →
+            Otvori akciju
           </Link>
         )}
       </div>

@@ -574,7 +574,7 @@ export default function AddAction() {
                 to={`/akcije/${raceLostActionId}`}
                 className="mt-2 inline-flex font-semibold text-amber-800 hover:text-amber-950"
               >
-                Otvori vašu akciju →
+                Otvori vašu akciju
               </Link>
             </div>
           )}
