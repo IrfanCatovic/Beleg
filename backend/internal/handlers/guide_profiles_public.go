@@ -20,7 +20,7 @@ type guideWithDist struct {
 	km float64
 }
 
-func guideNearbyToPublicDTO(gp *models.GuideProfile, k *models.Korisnik, tourTypes []string, distanceKm float64) gin.H {
+func guideNearbyToPublicDTO(gp *models.GuideProfile, k *models.Korisnik, tourTypes []string, distanceKm *float64) gin.H {
 	jezici := parseJeziciJSON(gp.JeziciJSON)
 	resp := gin.H{
 		"id":               gp.ID,
@@ -34,7 +34,9 @@ func guideNearbyToPublicDTO(gp *models.GuideProfile, k *models.Korisnik, tourTyp
 		"prosecnaOcena":    gp.ProsecnaOcena,
 		"brojOcena":        gp.BrojOcena,
 		"brojVodjenihTura": gp.BrojVodjenihTura,
-		"distanceKm":       math.Round(distanceKm*100) / 100,
+	}
+	if distanceKm != nil {
+		resp["distanceKm"] = math.Round(*distanceKm*100) / 100
 	}
 	if gp.BaseLat != nil {
 		resp["baseLat"] = *gp.BaseLat
@@ -70,7 +72,7 @@ func ListGuidesNearby(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Parametri lat i lng su obavezni i moraju biti brojevi."})
 		return
 	}
-	if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+	if !geo.ValidLatLng(lat, lng) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Koordinate nisu u dozvoljenom opsegu."})
 		return
 	}
@@ -125,7 +127,8 @@ func ListGuidesNearby(c *gin.Context) {
 	out := make([]gin.H, 0, len(list))
 	for _, x := range list {
 		types, _ := loadTourTypeStrings(db, x.gp.ID)
-		out = append(out, guideNearbyToPublicDTO(x.gp, x.k, types, x.km))
+		km := x.km
+		out = append(out, guideNearbyToPublicDTO(x.gp, x.k, types, &km))
 	}
 	c.JSON(http.StatusOK, gin.H{"guides": out})
 }
@@ -209,15 +212,60 @@ func ListGuidesCatalog(c *gin.Context) {
 		}
 		return strings.ToLower(ni) < strings.ToLower(nj)
 	})
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
+	originLat, originLng, hasOrigin := parseOptionalGuideOrigin(c)
+
+	type catalogItem struct {
+		gp *models.GuideProfile
+		km *float64
+	}
+	items := make([]catalogItem, 0, len(filtered))
+	for _, gp := range filtered {
+		var kmPtr *float64
+		if hasOrigin && gp.BaseLat != nil && gp.BaseLng != nil && geo.ValidLatLng(*gp.BaseLat, *gp.BaseLng) {
+			d := geo.DistanceKmHaversine(originLat, originLng, *gp.BaseLat, *gp.BaseLng)
+			kmPtr = &d
+		}
+		items = append(items, catalogItem{gp: gp, km: kmPtr})
 	}
 
-	out := make([]gin.H, 0, len(filtered))
-	for _, gp := range filtered {
-		k := gp.Korisnik
-		types, _ := loadTourTypeStrings(db, gp.ID)
-		out = append(out, guideNearbyToPublicDTO(gp, &k, types, 0))
+	if hasOrigin {
+		sort.SliceStable(items, func(i, j int) bool {
+			ai, aj := items[i].km, items[j].km
+			if ai != nil && aj != nil {
+				return *ai < *aj
+			}
+			if ai != nil && aj == nil {
+				return true
+			}
+			if ai == nil && aj != nil {
+				return false
+			}
+			return false
+		})
+	}
+	if len(items) > limit {
+		items = items[:limit]
+	}
+
+	out := make([]gin.H, 0, len(items))
+	for _, it := range items {
+		k := it.gp.Korisnik
+		types, _ := loadTourTypeStrings(db, it.gp.ID)
+		out = append(out, guideNearbyToPublicDTO(it.gp, &k, types, it.km))
 	}
 	c.JSON(http.StatusOK, gin.H{"guides": out})
+}
+
+func parseOptionalGuideOrigin(c *gin.Context) (lat, lng float64, ok bool) {
+	latStr := strings.TrimSpace(c.Query("lat"))
+	lngStr := strings.TrimSpace(c.Query("lng"))
+	if latStr == "" || lngStr == "" {
+		return 0, 0, false
+	}
+	lat, err1 := strconv.ParseFloat(latStr, 64)
+	lng, err2 := strconv.ParseFloat(lngStr, 64)
+	if err1 != nil || err2 != nil || !geo.ValidLatLng(lat, lng) {
+		return 0, 0, false
+	}
+	return lat, lng, true
 }

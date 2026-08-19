@@ -4,6 +4,7 @@ import StepsScreen from '../../features/activity/screens/StepsScreen'
 import AdventureScreen from '../../features/activity/screens/AdventureScreen'
 import FerrataListScreen from '../../features/explore/FerrataListScreen'
 import FerrataDetailScreen from '../../features/explore/FerrataDetailScreen'
+import HotelDetailScreen from '../../features/explore/HotelDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
 import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import GuidesScreen from '../../features/explore/GuidesScreen'
@@ -23,6 +24,7 @@ export function ExploreStack() {
       <Stack.Screen name="Adventure" component={AdventureScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataList" component={FerrataListScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
+      <Stack.Screen name="HotelDetail" component={HotelDetailScreen} options={{ title: 'Hotel' }} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />
       <Stack.Screen name="ActionEdit" component={ActionEditScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="Guides" component={GuidesScreen} />

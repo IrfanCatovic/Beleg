@@ -1,3 +1,4 @@
+import { annotateGuidesWithDistance } from '@beleg/shared'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listGuidesNearby, type GuideNearbyPublic } from '../../services/guidesPublic'
@@ -22,13 +23,17 @@ export function FerrataGuidesSection(props: {
     async function run() {
       setLoading(true)
       try {
-        const list = await listGuidesNearby({
-          lat: props.ferrataLat,
-          lng: props.ferrataLng,
-          radiusKm: 100,
-          limit: 30,
-          tourType: props.tourType,
-        })
+        const list = annotateGuidesWithDistance(
+          await listGuidesNearby({
+            lat: props.ferrataLat,
+            lng: props.ferrataLng,
+            radiusKm: 100,
+            limit: 30,
+            tourType: props.tourType,
+          }),
+          props.ferrataLat,
+          props.ferrataLng,
+        )
         if (!cancelled) setRows(list)
       } catch {
         if (!cancelled) setRows([])

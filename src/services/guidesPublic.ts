@@ -28,11 +28,14 @@ export type GuideCatalogCategory = 'all' | 'ferrata' | 'planine'
 export async function listGuidesCatalog(params?: {
   category?: GuideCatalogCategory
   limit?: number
+  lat?: number
+  lng?: number
 }): Promise<GuideNearbyPublic[]> {
   const res = await api.get<{ guides?: GuideNearbyPublic[] }>('/api/guides', {
     params: {
       category: params?.category ?? 'all',
       limit: params?.limit ?? 100,
+      ...(params?.lat != null && params?.lng != null ? { lat: params.lat, lng: params.lng } : {}),
     },
   })
   return res.data?.guides ?? []

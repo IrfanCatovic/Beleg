@@ -1,5 +1,24 @@
 export { getApiErrorMessage } from './apiError'
 export {
+  annotateGuidesWithDistance,
+  distanceKmHaversine,
+  formatDistanceKmDisplay,
+  formatGuideDistancePart,
+  isValidLatLng,
+  resolvePointDistanceKm,
+  roundDistanceKm,
+  sortByKnownDistanceAsc,
+} from './geoDistance'
+export { normalizeInstagramUrl, safeHttpUrl } from './safeHttpUrl'
+export {
+  HOTEL_PRIVATE_DTO_KEYS,
+  HOTEL_PUBLIC_DTO_KEYS,
+  hotelPublicPath,
+  hotelPublicVisibleSections,
+  positiveHotelId,
+} from './hotelPublic'
+export type { HotelPublicFields } from './hotelPublic'
+export {
   NOTIFICATION_TYPE_ACTION_CANCELLED,
   buildWebNotificationPath,
   getNotificationActionId,

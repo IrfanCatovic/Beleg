@@ -44,5 +44,12 @@ export const hotelsTranslations = {
   photosMaxReached: 'Maksimum je 20 slika po hotelu.',
   removePhotoAria: 'Ukloni sliku sa liste',
   bookingUrlLabel: 'Booking link (opciono)',
-  instagramUrlLabel: 'Instagram — @korisnik ili pun URL (opciono)',
+  publicNotFound: 'Hotel nije pronađen',
+  publicLoadError: 'Greška pri učitavanju.',
+  publicAbout: 'O hotelu',
+  publicGallery: 'Galerija',
+  publicLocation: 'Lokacija',
+  publicPhone: 'Telefon',
+  publicBooking: 'Rezerviši',
+  publicInstagram: 'Instagram',
 }

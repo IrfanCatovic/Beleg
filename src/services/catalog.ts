@@ -33,6 +33,11 @@ export async function fetchPeakById(peakId: number | string) {
   return res.data
 }
 
+export async function fetchHotelById(hotelId: number) {
+  const res = await api.get(`/api/hotels/${hotelId}`)
+  return res.data
+}
+
 export async function fetchFerrataBySlug(slug: string) {
   const res = await api.get(`/api/ferratas/slug/${encodeURIComponent(slug)}`)
   return res.data

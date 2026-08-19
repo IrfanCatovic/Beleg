@@ -151,6 +151,15 @@ func TestListGuidesNearby_PublicNoContactFields(t *testing.T) {
 	}
 }
 
+func TestGuideNearbyToPublicDTO_OmitsDistanceWhenUnknown(t *testing.T) {
+	k := &models.Korisnik{ID: 3, Username: "u", FullName: "F"}
+	gp := &models.GuideProfile{ID: 7, Naslov: "N", Opis: "O"}
+	dto := guideNearbyToPublicDTO(gp, k, nil, nil)
+	if _, ok := dto["distanceKm"]; ok {
+		t.Fatal("unknown distance must omit distanceKm, not send 0")
+	}
+}
+
 func TestGuideNearbyToPublicDTO_OmitsContact(t *testing.T) {
 	lat, lng := 1.0, 2.0
 	k := &models.Korisnik{
@@ -160,7 +169,8 @@ func TestGuideNearbyToPublicDTO_OmitsContact(t *testing.T) {
 	gp := &models.GuideProfile{
 		ID: 7, Naslov: "N", Opis: "O", Grad: "G", BaseLat: &lat, BaseLng: &lng,
 	}
-	dto := guideNearbyToPublicDTO(gp, k, []string{models.GuideTourViaFerrata}, 1.23)
+	km := 1.23
+	dto := guideNearbyToPublicDTO(gp, k, []string{models.GuideTourViaFerrata}, &km)
 	b, err := json.Marshal(dto)
 	if err != nil {
 		t.Fatal(err)

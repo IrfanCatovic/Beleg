@@ -49,6 +49,30 @@ func marshalHotelSlikeJSON(urls []string) []byte {
 	return b
 }
 
+func hotelToPublicMap(h *models.Hotel) gin.H {
+	m := gin.H{
+		"id":    h.ID,
+		"naziv": h.Naziv,
+		"slug":  h.Slug,
+		"lat":   h.Lat,
+		"lng":   h.Lng,
+		"slike": hotelSlikeFromJSON(h.SlikeJSON),
+	}
+	if t := strings.TrimSpace(h.Opis); t != "" {
+		m["opis"] = t
+	}
+	if t := strings.TrimSpace(h.Telefon); t != "" {
+		m["telefon"] = t
+	}
+	if t := strings.TrimSpace(h.BookingURL); t != "" {
+		m["bookingUrl"] = t
+	}
+	if t := strings.TrimSpace(h.InstagramURL); t != "" {
+		m["instagramUrl"] = t
+	}
+	return m
+}
+
 func hotelToMap(h *models.Hotel) gin.H {
 	return gin.H{
 		"id":           h.ID,

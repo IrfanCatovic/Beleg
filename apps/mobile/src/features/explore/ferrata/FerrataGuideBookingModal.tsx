@@ -11,7 +11,14 @@ import {
 } from 'react-native'
 import { useMutation } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { formatActionDate, getApiErrorMessage, isValidHHMM } from '@beleg/shared'
+import {
+  annotateGuidesWithDistance,
+  formatActionDate,
+  formatGuideDistancePart,
+  getApiErrorMessage,
+  isValidHHMM,
+  isValidLatLng,
+} from '@beleg/shared'
 import type {
   GuideBookingEquipmentStatus,
   GuideBookingGroupExperience,
@@ -90,7 +97,7 @@ export function FerrataGuideBookingModal({
   const [localError, setLocalError] = useState('')
   const [step2Error, setStep2Error] = useState('')
 
-  const hasCoords = ferrataLat != null && ferrataLng != null
+  const hasCoords = isValidLatLng(ferrataLat, ferrataLng)
 
   useEffect(() => {
     if (!visible) return
@@ -157,11 +164,15 @@ export function FerrataGuideBookingModal({
     }
     setGuidesLoading(true)
     try {
-      const list = await listGuidesNearby(client, {
-        lat: ferrataLat!,
-        lng: ferrataLng!,
-        tourType: 'via_ferrata',
-      })
+      const list = annotateGuidesWithDistance(
+        await listGuidesNearby(client, {
+          lat: ferrataLat!,
+          lng: ferrataLng!,
+          tourType: 'via_ferrata',
+        }),
+        ferrataLat,
+        ferrataLng,
+      )
       setGuides(list)
       setShowAllGuides(false)
     } catch {
@@ -174,7 +185,11 @@ export function FerrataGuideBookingModal({
   const loadAllGuides = async () => {
     setGuidesLoading(true)
     try {
-      const list = await listGuidesCatalog(client, { category: 'ferrata', limit: 100 })
+      const list = annotateGuidesWithDistance(
+        await listGuidesCatalog(client, { category: 'ferrata', limit: 100, lat: ferrataLat, lng: ferrataLng }),
+        ferrataLat,
+        ferrataLng,
+      )
       setGuides(list)
       setShowAllGuides(true)
     } catch {
@@ -357,8 +372,12 @@ export function FerrataGuideBookingModal({
                         <View style={styles.guideInfo}>
                           <Text variant="label">{name}</Text>
                           <Text variant="small" color={colors.textMuted}>
-                            {[g.grad, g.region].filter(Boolean).join(' · ')}
-                            {g.distanceKm != null ? ` · ${g.distanceKm.toFixed(0)} km` : ''}
+                            {[
+                              [g.grad, g.region].filter(Boolean).join(' · '),
+                              formatGuideDistancePart(g.distanceKm),
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </Text>
                         </View>
                         {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.brand} /> : null}

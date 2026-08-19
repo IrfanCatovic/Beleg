@@ -11,6 +11,7 @@ export type HomeStackParamList = {
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
   FerrataDetail: { slug: string }
+  HotelDetail: { hotelId: number }
   UserProfile: { username?: string; id?: number }
   PublicClub: { clubId: number }
   PostDetail: { id: number; focusComment?: boolean }
@@ -39,6 +40,7 @@ export type ExploreStackParamList = {
   Adventure: undefined
   FerrataList: undefined
   FerrataDetail: { slug: string }
+  HotelDetail: { hotelId: number }
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
   Guides: undefined

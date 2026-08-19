@@ -2,6 +2,7 @@ import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from '
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import type { HotelNearbyPublic } from '@beleg/shared'
+import { normalizeInstagramUrl, safeHttpUrl } from '@beleg/shared'
 import { Button, Card, Text } from '../../../components/ui'
 import { colors, radius, spacing } from '../../../theme'
 import { FerrataDetailMapSection } from './FerrataDetailMapSection'
@@ -10,6 +11,7 @@ interface FerrataHotelsSectionProps {
   hotels: HotelNearbyPublic[]
   loading?: boolean
   onDetailOpenChange?: (open: boolean) => void
+  onOpenHotelDetail?: (hotelId: number) => void
 }
 
 function hotelThumb(h: HotelNearbyPublic): string | null {
@@ -25,7 +27,7 @@ function formatDistanceKm(km: number | undefined): string {
   return String(rounded).replace(/\.0$/, '')
 }
 
-export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange }: FerrataHotelsSectionProps) {
+export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange, onOpenHotelDetail }: FerrataHotelsSectionProps) {
   const [selected, setSelected] = useState<HotelNearbyPublic | null>(null)
   const [imgIx, setImgIx] = useState(0)
 
@@ -66,7 +68,12 @@ export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange }: Fe
         </Text>
         <View style={styles.list}>
           {hotels.slice(0, 8).map((h) => (
-            <HotelCard key={h.id} hotel={h} onPress={() => setSelected(h)} />
+            <HotelCard
+              key={h.id}
+              hotel={h}
+              onPress={() => setSelected(h)}
+              onOpenDetail={onOpenHotelDetail ? () => onOpenHotelDetail(h.id) : undefined}
+            />
           ))}
         </View>
       </Card>
@@ -155,18 +162,18 @@ export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange }: Fe
                   onPress={() => void Linking.openURL(`tel:${selected.telefon}`)}
                 />
               ) : null}
-              {selected.bookingUrl ? (
+              {selected.bookingUrl && safeHttpUrl(String(selected.bookingUrl)) ? (
                 <Button
                   title="Rezerviši (Booking)"
-                  onPress={() => void Linking.openURL(String(selected.bookingUrl))}
+                  onPress={() => void Linking.openURL(safeHttpUrl(String(selected.bookingUrl))!)}
                 />
               ) : null}
-              {selected.instagramUrl || selected.instagram ? (
+              {normalizeInstagramUrl(selected.instagramUrl || selected.instagram) ? (
                 <Button
                   title="Instagram profil"
                   variant="secondary"
                   onPress={() =>
-                    void Linking.openURL(String(selected.instagramUrl || selected.instagram))
+                    void Linking.openURL(normalizeInstagramUrl(selected.instagramUrl || selected.instagram)!)
                   }
                 />
               ) : null}
@@ -178,7 +185,15 @@ export function FerrataHotelsSection({ hotels, loading, onDetailOpenChange }: Fe
   )
 }
 
-function HotelCard({ hotel, onPress }: { hotel: HotelNearbyPublic; onPress: () => void }) {
+function HotelCard({
+  hotel,
+  onPress,
+  onOpenDetail,
+}: {
+  hotel: HotelNearbyPublic
+  onPress: () => void
+  onOpenDetail?: () => void
+}) {
   const thumb = hotelThumb(hotel)
   const title = hotel.naziv?.trim() || 'Hotel'
 
@@ -204,6 +219,13 @@ function HotelCard({ hotel, onPress }: { hotel: HotelNearbyPublic; onPress: () =
               {formatDistanceKm(hotel.distanceKm)} km
             </Text>
           </View>
+        ) : null}
+        {onOpenDetail ? (
+          <Pressable onPress={onOpenDetail} hitSlop={8}>
+            <Text variant="small" color={colors.brand}>
+              Detaljnije
+            </Text>
+          </Pressable>
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

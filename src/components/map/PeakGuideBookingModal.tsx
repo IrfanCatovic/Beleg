@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { annotateGuidesWithDistance, isValidLatLng } from '@beleg/shared'
 import { fetchMeProfile } from '../../services/auth'
 import { useAuth } from '../../context/AuthContext'
 import { listGuidesNearby, listGuidesCatalog, type GuideNearbyPublic } from '../../services/guidesPublic'
@@ -69,8 +70,8 @@ export function PeakGuideBookingModal(props: {
   peakMountain: string
   peakLocation: string
   peakHeightM?: number
-  peakLat: number
-  peakLng: number
+  peakLat?: number
+  peakLng?: number
 }) {
   const { t } = useTranslation('peaks')
   const { t: tShared } = useTranslation('ferrate')
@@ -119,7 +120,7 @@ export function PeakGuideBookingModal(props: {
     return guides.filter((g) => guideMatchesSearch(g, q))
   }, [guides, guideSearch])
 
-  const hasMapCoords = Number.isFinite(props.peakLat) && Number.isFinite(props.peakLng)
+  const hasMapCoords = isValidLatLng(props.peakLat, props.peakLng)
 
   useEffect(() => {
     if (!props.open) return
@@ -148,14 +149,18 @@ export function PeakGuideBookingModal(props: {
 
     const loadGuides = async () => {
       try {
-        const nearby = filterValidGuides(
-          await listGuidesNearby({
-            lat: props.peakLat,
-            lng: props.peakLng,
-            radiusKm: 100,
-            limit: 30,
-            tourType: 'uspon_na_vrh',
-          }),
+        const nearby = annotateGuidesWithDistance(
+          filterValidGuides(
+            await listGuidesNearby({
+              lat: props.peakLat as number,
+              lng: props.peakLng as number,
+              radiusKm: 100,
+              limit: 30,
+              tourType: 'uspon_na_vrh',
+            }),
+          ),
+          props.peakLat,
+          props.peakLng,
         )
         if (cancelled) return
 
@@ -166,12 +171,18 @@ export function PeakGuideBookingModal(props: {
           return
         }
 
-        const catalog = filterValidGuides(
-          await listGuidesCatalog({
-            category: 'planine',
-            limit: 100,
-          }),
-          false,
+        const catalog = annotateGuidesWithDistance(
+          filterValidGuides(
+            await listGuidesCatalog({
+              category: 'planine',
+              limit: 100,
+              lat: props.peakLat,
+              lng: props.peakLng,
+            }),
+            false,
+          ),
+          props.peakLat,
+          props.peakLng,
         )
         if (cancelled) return
         setGuides(catalog)
@@ -587,8 +598,8 @@ export function PeakGuideBookingModal(props: {
 
           {step === 3 && hasMapCoords && (
             <FerrataGuideBookingHotelsStep
-              ferrataLat={props.peakLat}
-              ferrataLng={props.peakLng}
+              ferrataLat={props.peakLat as number}
+              ferrataLng={props.peakLng as number}
               onViewAllHotels={viewAllHotels}
             />
           )}

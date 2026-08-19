@@ -28,7 +28,7 @@ func ListHotelsAll(c *gin.Context) {
 	}
 	out := make([]gin.H, 0, len(rows))
 	for i := range rows {
-		out = append(out, hotelToMap(&rows[i]))
+		out = append(out, hotelToPublicMap(&rows[i]))
 	}
 	c.JSON(http.StatusOK, gin.H{"hotels": out})
 }
@@ -82,11 +82,27 @@ func ListHotelsNearby(c *gin.Context) {
 
 	out := make([]gin.H, 0, len(list))
 	for _, x := range list {
-		m := hotelToMap(&x.h)
+		m := hotelToPublicMap(&x.h)
 		m["distanceKm"] = math.Round(x.km*100) / 100
 		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, gin.H{"hotels": out})
+}
+
+// GetHotelByID GET /api/hotels/:id — javni detalj aktivnog hotela.
+func GetHotelByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nevažeći ID"})
+		return
+	}
+	db := DB(c)
+	var h models.Hotel
+	if err := db.Where("id = ? AND status = ?", id, "active").First(&h).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Hotel nije pronađen"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"hotel": hotelToPublicMap(&h)})
 }
 
 func parsePositiveFloat(s string) float64 {

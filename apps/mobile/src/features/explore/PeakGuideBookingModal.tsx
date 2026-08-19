@@ -11,7 +11,14 @@ import {
 } from 'react-native'
 import { useMutation } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { formatActionDate, getApiErrorMessage, isValidHHMM } from '@beleg/shared'
+import {
+  annotateGuidesWithDistance,
+  formatActionDate,
+  formatGuideDistancePart,
+  getApiErrorMessage,
+  isValidHHMM,
+  isValidLatLng,
+} from '@beleg/shared'
 import type {
   GuideBookingEquipmentStatus,
   GuideBookingGroupExperience,
@@ -90,7 +97,7 @@ export function PeakGuideBookingModal({
   const [localError, setLocalError] = useState('')
   const [step2Error, setStep2Error] = useState('')
 
-  const hasCoords = peakLat != null && peakLng != null
+  const hasCoords = isValidLatLng(peakLat, peakLng)
 
   useEffect(() => {
     if (!visible) return
@@ -157,20 +164,28 @@ export function PeakGuideBookingModal({
     }
     setGuidesLoading(true)
     try {
-      const list = await listGuidesNearby(client, {
-        lat: peakLat!,
-        lng: peakLng!,
-        radiusKm: 100,
-        limit: 30,
-        tourType: 'uspon_na_vrh',
-      })
+      const list = annotateGuidesWithDistance(
+        await listGuidesNearby(client, {
+          lat: peakLat!,
+          lng: peakLng!,
+          radiusKm: 100,
+          limit: 30,
+          tourType: 'uspon_na_vrh',
+        }),
+        peakLat,
+        peakLng,
+      )
       if (list.length > 0) {
         setGuides(list)
         setShowAllGuides(false)
         setSelectedGuideIds(new Set(list.map((g) => g.id)))
         return
       }
-      const catalog = await listGuidesCatalog(client, { category: 'planine', limit: 100 })
+      const catalog = annotateGuidesWithDistance(
+        await listGuidesCatalog(client, { category: 'planine', limit: 100, lat: peakLat, lng: peakLng }),
+        peakLat,
+        peakLng,
+      )
       setGuides(catalog)
       setShowAllGuides(true)
       setSelectedGuideIds(new Set())
@@ -184,7 +199,11 @@ export function PeakGuideBookingModal({
   const loadAllGuides = async () => {
     setGuidesLoading(true)
     try {
-      const list = await listGuidesCatalog(client, { category: 'planine', limit: 100 })
+      const list = annotateGuidesWithDistance(
+        await listGuidesCatalog(client, { category: 'planine', limit: 100, lat: peakLat, lng: peakLng }),
+        peakLat,
+        peakLng,
+      )
       setGuides(list)
       setShowAllGuides(true)
     } catch {
@@ -367,8 +386,12 @@ export function PeakGuideBookingModal({
                         <View style={styles.guideInfo}>
                           <Text variant="label">{name}</Text>
                           <Text variant="small" color={colors.textMuted}>
-                            {[g.grad, g.region].filter(Boolean).join(' · ')}
-                            {g.distanceKm != null ? ` · ${g.distanceKm.toFixed(0)} km` : ''}
+                            {[
+                              [g.grad, g.region].filter(Boolean).join(' · '),
+                              formatGuideDistancePart(g.distanceKm),
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </Text>
                         </View>
                         {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.brand} /> : null}

@@ -1,3 +1,4 @@
+import { formatDistanceKmDisplay } from '@beleg/shared'
 import { Link } from 'react-router-dom'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 import { MapPinIcon, UserIcon } from '@heroicons/react/24/outline'
@@ -6,10 +7,8 @@ import type { TFunction } from 'i18next'
 import type { GuideNearbyPublic } from '../../services/guidesPublic'
 import { ProfiGuideBadge } from '../guides/ProfiGuideBadge'
 
-export function formatGuideDistanceKm(km: number | undefined): string {
-  if (km == null || !Number.isFinite(km)) return '—'
-  const rounded = Math.round(km * 10) / 10
-  return String(rounded).replace(/\.0$/, '')
+export function formatGuideDistanceKm(km: number | undefined): string | null {
+  return formatDistanceKmDisplay(km)
 }
 
 export function formatGuideRating(avg: number | undefined): string {
@@ -39,6 +38,8 @@ export function GuideNearbyCard({
 }) {
   const name = guideDisplayName(g)
   const km = formatGuideDistanceKm(g.distanceKm)
+  const distanceLabel =
+    km != null ? t('detailGuideDistanceShort', { km }) : t('detailGuideDistanceUnavailable')
   const username = g.user?.username
   const avatar = g.user?.avatarUrl?.trim()
   const tourTypes = (g.tourTypes ?? []).slice(0, 4)
@@ -77,7 +78,7 @@ export function GuideNearbyCard({
 
           <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-gray-500">
             <MapPinIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
-            <span className="truncate">{t('detailGuideDistanceShort', { km })}</span>
+            <span className="truncate">{distanceLabel}</span>
           </p>
 
           {showStats && (

@@ -1,5 +1,7 @@
+import { hotelPublicPath } from '@beleg/shared'
 import { HomeModernIcon, MapPinIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import type { HotelNearbyPublic } from './FerrataHotelsSection'
 
 function formatDistanceKm(km: number | undefined): string {
@@ -51,6 +53,12 @@ export function HotelNearbyCard(props: { hotel: HotelNearbyPublic; onOpen: () =>
           >
             {t('detailHotelViewCta')}
           </button>
+          <Link
+            to={hotelPublicPath(hotel.id)}
+            className="mt-2 block w-full text-center text-xs font-semibold text-emerald-800 hover:underline"
+          >
+            {t('detailHotelMoreCta')}
+          </Link>
         </div>
       </article>
     </li>

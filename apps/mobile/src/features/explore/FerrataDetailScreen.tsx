@@ -11,6 +11,7 @@ import {
   fetchHotelsNearby,
   listGuidesNearby,
 } from '@beleg/shared/services'
+import { annotateGuidesWithDistance } from '@beleg/shared'
 import { client } from '../../api/client'
 import { Badge, Button, Card, ErrorView, Loader, Screen, Text } from '../../components/ui'
 import { colors, spacing } from '../../theme'
@@ -51,12 +52,16 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
 
   const guidesQuery = useQuery({
     queryKey: ['ferrata', ferrataId, 'guides', lat, lng],
-    queryFn: () =>
-      listGuidesNearby(client, {
-        lat: lat!,
-        lng: lng!,
-        tourType: 'via_ferrata',
-      }),
+    queryFn: async () =>
+      annotateGuidesWithDistance(
+        await listGuidesNearby(client, {
+          lat: lat!,
+          lng: lng!,
+          tourType: 'via_ferrata',
+        }),
+        lat,
+        lng,
+      ),
     enabled: lat != null && lng != null,
   })
 
@@ -184,6 +189,10 @@ export default function FerrataDetailScreen({ route, navigation }: Props) {
             hotels={hotelsQuery.data ?? []}
             loading={hotelsQuery.isLoading}
             onDetailOpenChange={setHotelDetailOpen}
+            onOpenHotelDetail={(id) => {
+              const stackNav = navigation as NativeStackNavigationProp<ExploreStackParamList>
+              stackNav.navigate('HotelDetail', { hotelId: id })
+            }}
           />
 
           {lat != null && lng != null ? (

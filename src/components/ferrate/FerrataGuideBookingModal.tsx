@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { annotateGuidesWithDistance, isValidLatLng } from '@beleg/shared'
 import { fetchMeProfile } from '../../services/auth'
 import { useAuth } from '../../context/AuthContext'
 import { listGuidesNearby, listGuidesCatalog, type GuideNearbyPublic } from '../../services/guidesPublic'
@@ -68,8 +69,8 @@ export function FerrataGuideBookingModal(props: {
   ferrataSlug?: string
   ferrataName: string
   ferrataLocation: string
-  ferrataLat: number
-  ferrataLng: number
+  ferrataLat?: number
+  ferrataLng?: number
 }) {
   const { t } = useTranslation('ferrate')
   const { t: tGuide } = useTranslation('guideProfiles')
@@ -117,7 +118,7 @@ export function FerrataGuideBookingModal(props: {
     return guides.filter((g) => guideMatchesSearch(g, q))
   }, [guides, guideSearch])
 
-  const hasMapCoords = Number.isFinite(props.ferrataLat) && Number.isFinite(props.ferrataLng)
+  const hasMapCoords = isValidLatLng(props.ferrataLat, props.ferrataLng)
 
   useEffect(() => {
     if (!props.open) return
@@ -146,14 +147,18 @@ export function FerrataGuideBookingModal(props: {
 
     const loadGuides = async () => {
       try {
-        const nearby = filterValidGuides(
-          await listGuidesNearby({
-            lat: props.ferrataLat,
-            lng: props.ferrataLng,
-            radiusKm: 100,
-            limit: 30,
-            tourType: 'via_ferrata',
-          }),
+        const nearby = annotateGuidesWithDistance(
+          filterValidGuides(
+            await listGuidesNearby({
+              lat: props.ferrataLat as number,
+              lng: props.ferrataLng as number,
+              radiusKm: 100,
+              limit: 30,
+              tourType: 'via_ferrata',
+            }),
+          ),
+          props.ferrataLat,
+          props.ferrataLng,
         )
         if (cancelled) return
 
@@ -164,12 +169,18 @@ export function FerrataGuideBookingModal(props: {
           return
         }
 
-        const catalog = filterValidGuides(
-          await listGuidesCatalog({
-            category: 'ferrata',
-            limit: 100,
-          }),
-          false,
+        const catalog = annotateGuidesWithDistance(
+          filterValidGuides(
+            await listGuidesCatalog({
+              category: 'ferrata',
+              limit: 100,
+              lat: props.ferrataLat,
+              lng: props.ferrataLng,
+            }),
+            false,
+          ),
+          props.ferrataLat,
+          props.ferrataLng,
         )
         if (cancelled) return
         setGuides(catalog)
@@ -591,8 +602,8 @@ export function FerrataGuideBookingModal(props: {
 
           {step === 3 && hasMapCoords && (
             <FerrataGuideBookingHotelsStep
-              ferrataLat={props.ferrataLat}
-              ferrataLng={props.ferrataLng}
+              ferrataLat={props.ferrataLat as number}
+              ferrataLng={props.ferrataLng as number}
               onViewAllHotels={viewAllHotels}
             />
           )}

@@ -9,6 +9,15 @@ import "math"
 
 const earthRadiusKm = 6371.0
 
+// ValidLatLng je true samo za konačne koordinate u geografskom opsegu.
+// 0,0 je validna tačka; nedostatak se ne sme mapirati na 0 u caller-u.
+func ValidLatLng(lat, lng float64) bool {
+	if math.IsNaN(lat) || math.IsInf(lat, 0) || math.IsNaN(lng) || math.IsInf(lng, 0) {
+		return false
+	}
+	return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+}
+
 // DistanceKmHaversine vraća udaljenost između dve tačke na površi Zemlje u kilometrima.
 func DistanceKmHaversine(lat1, lng1, lat2, lng2 float64) float64 {
 	r1 := lat1 * math.Pi / 180

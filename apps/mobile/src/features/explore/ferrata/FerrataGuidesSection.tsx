@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { GuideNearbyPublic } from '@beleg/shared/services'
+import { formatGuideDistancePart } from '@beleg/shared'
 import { Avatar, Card, Text } from '../../../components/ui'
 import { colors, spacing } from '../../../theme'
 
@@ -35,8 +36,12 @@ export function FerrataGuidesSection({ guides, loading, onPressGuide }: FerrataG
             <View style={styles.info}>
               <Text variant="label">{name}</Text>
               <Text variant="small" color={colors.textMuted}>
-                {[g.grad, g.region].filter(Boolean).join(' · ')}
-                {g.distanceKm != null ? ` · ${g.distanceKm.toFixed(0)} km` : ''}
+                {[
+                  [g.grad, g.region].filter(Boolean).join(' · '),
+                  formatGuideDistancePart(g.distanceKm),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CalendarDaysIcon, ArrowTopRightOnSquareIcon, PhoneIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { hotelPublicPath } from '@beleg/shared'
 import { MapPopupShell } from './MapPopupShell'
 import { HotelPhotoCarousel } from './HotelPhotoCarousel'
 import { difficultyBadgeClass } from '../utils/difficultyBadgeClass'
@@ -144,8 +145,13 @@ export function HotelMapPopup({ hotel, onClose, t }: HotelPopupProps) {
           </a>
         )}
 
-        {(hotel.bookingUrl?.trim() || hotel.instagramUrl?.trim()) && (
-          <div className="planiner-map-popup-actions">
+        <div className="planiner-map-popup-actions">
+          <Link
+            to={hotelPublicPath(hotel.id)}
+            className={`${btnGhost} planiner-map-popup-stagger planiner-map-popup-stagger-2 border-amber-200 bg-white/80 text-amber-900 hover:border-amber-300 hover:bg-amber-50`}
+          >
+            {t('mapExplore.popupDetails')}
+          </Link>
             {hotel.bookingUrl?.trim() && (
               <a
                 href={hotel.bookingUrl}
@@ -167,8 +173,7 @@ export function HotelMapPopup({ hotel, onClose, t }: HotelPopupProps) {
                 {t('mapExplore.popupInstagram')}
               </a>
             )}
-          </div>
-        )}
+        </div>
       </div>
     </MapPopupShell>
   )

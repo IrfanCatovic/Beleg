@@ -1,6 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import type { FerrataRow } from '../types/ferrata'
-import type { HotelNearbyPublic, HotelRow } from '../types/hotel'
+import type { HotelNearbyPublic, HotelPublicDetail, HotelRow } from '../types/hotel'
 import type { PeakRow } from '../types/peak'
 
 export interface FetchFerratasParams {
@@ -169,13 +169,23 @@ export async function fetchExploreMapData(client: AxiosInstance): Promise<Explor
 
 export async function listGuidesCatalog(
   client: AxiosInstance,
-  params?: { category?: string; limit?: number },
+  params?: { category?: string; limit?: number; lat?: number; lng?: number },
 ): Promise<GuideNearbyPublic[]> {
   const res = await client.get<{ guides?: GuideNearbyPublic[] }>('/api/guides', {
     params: {
       category: params?.category ?? 'all',
       limit: params?.limit ?? 100,
+      ...(params?.lat != null && params?.lng != null ? { lat: params.lat, lng: params.lng } : {}),
     },
   })
   return res.data.guides ?? []
+}
+
+export async function fetchHotelById(client: AxiosInstance, hotelId: number): Promise<HotelPublicDetail> {
+  const res = await client.get<{ hotel?: HotelPublicDetail }>(`/api/hotels/${hotelId}`)
+  const hotel = res.data.hotel
+  if (!hotel) {
+    throw new Error('Hotel nije pronađen')
+  }
+  return hotel
 }

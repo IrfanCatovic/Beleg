@@ -4,7 +4,7 @@ import { Camera, Map, Marker, type CameraRef } from '@maplibre/maplibre-react-na
 import { useQuery } from '@tanstack/react-query'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { FerrataRow, HotelRow, PeakRow } from '@beleg/shared'
-import { getApiErrorMessage } from '@beleg/shared'
+import { getApiErrorMessage, safeHttpUrl } from '@beleg/shared'
 import { fetchExploreMapData } from '@beleg/shared/services'
 import { client } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -234,6 +234,10 @@ export default function MapScreenMapLibre({ navigation }: Props) {
           setBookingPeak(p)
         }}
         onOpenFerrata={openFerrataDetail}
+        onOpenHotel={(hotelId) => {
+          setActive(null)
+          navigation.navigate('HotelDetail', { hotelId })
+        }}
         onCreateFerrataAction={openFerrataActionWizard}
         onCreatePeakAction={openPeakActionWizard}
       />
@@ -274,6 +278,7 @@ function PinSheet({
   onBookFerrata,
   onBookPeak,
   onOpenFerrata,
+  onOpenHotel,
   onCreateFerrataAction,
   onCreatePeakAction,
 }: {
@@ -283,6 +288,7 @@ function PinSheet({
   onBookFerrata: (f: FerrataRow) => void
   onBookPeak: (p: PeakRow) => void
   onOpenFerrata: (slug: string) => void
+  onOpenHotel: (hotelId: number) => void
   onCreateFerrataAction: (ferrataId: number) => void
   onCreatePeakAction: (peakId: number) => void
 }) {
@@ -335,6 +341,7 @@ function PinSheet({
 
           {active.kind === 'hotel' ? (
             <>
+              <Button title="Detaljnije" onPress={() => onOpenHotel(active.data.id)} fullWidth />
               {active.data.telefon ? (
                 <Button
                   title={`Pozovi ${active.data.telefon}`}
@@ -343,19 +350,19 @@ function PinSheet({
                   fullWidth
                 />
               ) : null}
-              {active.data.bookingUrl ? (
+              {safeHttpUrl(String(active.data.bookingUrl ?? '')) ? (
                 <Button
                   title="Booking"
                   variant="secondary"
-                  onPress={() => void Linking.openURL(String(active.data.bookingUrl))}
+                  onPress={() => void Linking.openURL(safeHttpUrl(String(active.data.bookingUrl))!)}
                   fullWidth
                 />
               ) : null}
-              {active.data.instagramUrl ? (
+              {safeHttpUrl(String(active.data.instagramUrl ?? '')) ? (
                 <Button
                   title="Instagram"
                   variant="ghost"
-                  onPress={() => void Linking.openURL(String(active.data.instagramUrl))}
+                  onPress={() => void Linking.openURL(safeHttpUrl(String(active.data.instagramUrl))!)}
                   fullWidth
                 />
               ) : null}

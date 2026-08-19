@@ -32,6 +32,7 @@ import Obavestenja from './pages/protected/Obavestenja'
 import ObavestenjeDetalj from './pages/protected/ObavestenjeDetalj'
 import FerrataList from './pages/public/FerrataList'
 import FerrataDetail from './pages/public/FerrataDetail'
+import HotelDetail from './pages/public/HotelDetail'
 import MapaExplore from './pages/public/MapaExplore'
 import GuidesList from './pages/public/GuidesList'
 import Landing from './pages/public/Landing'
@@ -138,6 +139,7 @@ const router = createBrowserRouter([
       { path: '/akcije/:id', element: <ActionDetails /> },
       { path: '/ferate', element: <FerrataList /> },
       { path: '/ferate/:slug', element: <FerrataDetail /> },
+      { path: '/hoteli/:hotelId', element: <HotelDetail /> },
       { path: '/mapa', element: <MapaExplore /> },
       { path: '/vodici', element: <GuidesList /> },
       { path: '/users/:id', element: <UserProfile /> },

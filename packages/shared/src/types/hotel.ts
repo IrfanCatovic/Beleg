@@ -13,6 +13,19 @@ export interface HotelRow {
   [key: string]: unknown
 }
 
+export interface HotelPublicDetail {
+  id: number
+  naziv: string
+  slug?: string
+  lat?: number
+  lng?: number
+  opis?: string
+  telefon?: string
+  slike?: string[]
+  bookingUrl?: string
+  instagramUrl?: string
+}
+
 export interface HotelNearbyPublic {
   id: number
   naziv: string
