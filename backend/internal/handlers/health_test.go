@@ -18,6 +18,23 @@ func TestHealth(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
+	assertHealthOK(t, w)
+}
+
+func TestHealthz_PublicNoAuthNoDB(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/healthz", Health)
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assertHealthOK(t, w)
+}
+
+func assertHealthOK(t *testing.T, w *httptest.ResponseRecorder) {
+	t.Helper()
 	if w.Code != http.StatusOK {
 		t.Fatalf("status %d, want 200", w.Code)
 	}
@@ -27,5 +44,11 @@ func TestHealth(t *testing.T) {
 	}
 	if body["ok"] != true {
 		t.Fatalf("expected ok:true, got %v", body["ok"])
+	}
+	if _, hasError := body["error"]; hasError {
+		t.Fatalf("keep-alive body must not include extra fields, got %v", body)
+	}
+	if len(body) != 1 {
+		t.Fatalf("keep-alive body must be {ok:true} only, got %v", body)
 	}
 }

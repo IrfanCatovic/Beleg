@@ -41,6 +41,7 @@ func Run(registerRoutes RouteRegistrar) {
 	injectDatabase(router, db)
 
 	router.GET("/health", handlers.Health)
+	router.GET("/healthz", handlers.Health)
 	router.GET("/ready", handlers.Ready)
 
 	registerRoutes(router, db, jwtSecret)
