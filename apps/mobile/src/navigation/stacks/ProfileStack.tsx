@@ -3,6 +3,7 @@ import BecomeGuideScreen from '../../features/profile/BecomeGuideScreen'
 import MyProfileScreen from '../../features/profile/MyProfileScreen'
 import ProfileSettingsScreen from '../../features/profile/ProfileSettingsScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import GuideReviewsScreen from '../../features/profile/GuideReviewsScreen'
 import FinanceScreen from '../../features/finance/FinanceScreen'
 import TasksScreen from '../../features/tasks/TasksScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
@@ -19,6 +20,7 @@ export function ProfileStack() {
       <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
       <Stack.Screen name="BecomeGuide" component={BecomeGuideScreen} options={{ title: 'Postani vodič' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GuideReviews" component={GuideReviewsScreen} options={{ title: 'Recenzije vodiča' }} />
       <Stack.Screen name="Finance" component={FinanceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Tasks" component={TasksScreen} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} />

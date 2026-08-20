@@ -5,6 +5,7 @@ import HotelDetailScreen from '../../features/explore/HotelDetailScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
 import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import GuideReviewsScreen from '../../features/profile/GuideReviewsScreen'
 import PublicClubScreen from '../../features/club/PublicClubScreen'
 import PostDetailScreen from '../../features/home/PostDetailScreen'
 import NotificationsScreen from '../../features/notifications/NotificationsScreen'
@@ -24,6 +25,7 @@ export function HomeStack() {
       <Stack.Screen name="FerrataDetail" component={FerrataDetailScreen} />
       <Stack.Screen name="HotelDetail" component={HotelDetailScreen} options={{ title: 'Hotel' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GuideReviews" component={GuideReviewsScreen} options={{ title: 'Recenzije vodiča' }} />
       <Stack.Screen name="PublicClub" component={PublicClubScreen} options={{ title: 'Klub' }} />
       <Stack.Screen name="NotificationsList" component={NotificationsScreen} />
       <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />

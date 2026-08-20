@@ -13,6 +13,7 @@ export type HomeStackParamList = {
   FerrataDetail: { slug: string }
   HotelDetail: { hotelId: number }
   UserProfile: { username?: string; id?: number }
+  GuideReviews: { username?: string; id?: number }
   PublicClub: { clubId: number }
   PostDetail: { id: number; focusComment?: boolean }
   NotificationsList: undefined
@@ -32,6 +33,7 @@ export type ActionsStackParamList = {
   }
   AddPastAction: { tip: 'planina' | 'via_ferrata' }
   UserProfile: { username?: string; id?: number }
+  GuideReviews: { username?: string; id?: number }
 }
 
 export type ExploreStackParamList = {
@@ -46,6 +48,7 @@ export type ExploreStackParamList = {
   Guides: undefined
   Map: undefined
   UserProfile: { username?: string; id?: number }
+  GuideReviews: { username?: string; id?: number }
   PublicClub: { clubId: number }
 }
 
@@ -59,6 +62,7 @@ export type ClubStackParamList = {
   Tasks: undefined
   Finance: undefined
   UserProfile: { username?: string; id?: number }
+  GuideReviews: { username?: string; id?: number }
   PublicClub: { clubId: number }
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
@@ -71,6 +75,7 @@ export type ProfileStackParamList = {
   Finance: undefined
   Tasks: undefined
   UserProfile: { username?: string; id?: number }
+  GuideReviews: { username?: string; id?: number }
   ActionDetail: ActionDetailParams
   ActionEdit: { id: number }
 }

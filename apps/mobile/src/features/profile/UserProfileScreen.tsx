@@ -66,6 +66,7 @@ import {
 } from './profileIdentity'
 import type {
   ActionsStackParamList,
+  ClubStackParamList,
   ExploreStackParamList,
   HomeStackParamList,
   ProfileStackParamList,
@@ -81,6 +82,7 @@ type Props =
   | NativeStackScreenProps<HomeStackParamList, 'UserProfile'>
   | NativeStackScreenProps<ActionsStackParamList, 'UserProfile'>
   | NativeStackScreenProps<ExploreStackParamList, 'UserProfile'>
+  | NativeStackScreenProps<ClubStackParamList, 'UserProfile'>
 
 type ActionsTab = 'climbed' | 'guided'
 
@@ -663,7 +665,16 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                 </Pressable>
               ) : null}
               {isProfiGuide ? (
-                <GuideRatingChip summary={readGuideRatingSummary(korisnik)} />
+                <GuideRatingChip
+                  summary={readGuideRatingSummary(korisnik)}
+                  onPress={() => {
+                    dismissImageFocus()
+                    navigation.navigate('GuideReviews', {
+                      username: korisnik.username,
+                      id: korisnik.id,
+                    })
+                  }}
+                />
               ) : null}
             </View>
           ) : isMe ? (
@@ -983,32 +994,33 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
 function GuideRatingChip({
   summary,
+  onPress,
 }: {
   summary: ReturnType<typeof readGuideRatingSummary>
+  onPress: () => void
 }) {
   const presentation = getGuideRatingPresentation(summary ?? undefined)
   const ratingLabel =
     presentation.hasRatings && presentation.averageLabel
-      ? presentation.averageLabel
+      ? `${presentation.averageLabel} (${presentation.reviewCount})`
       : presentation.emptyLabel
-  const comments = summary?.brojKomentara ?? 0
 
   return (
-    <View style={styles.guideChip} accessibilityRole="text">
-      <View style={styles.guideChipSegment}>
-        <Ionicons name="star" size={14} color="#f59e0b" />
-        <Text variant="small" style={styles.guideChipValue}>
-          {ratingLabel}
-        </Text>
-      </View>
-      <View style={styles.guideChipDivider} />
-      <View style={styles.guideChipSegment}>
-        <Ionicons name="chatbubble-ellipses-outline" size={14} color="#8b5cf6" />
-        <Text variant="small" style={styles.guideChipValue}>
-          {comments}
-        </Text>
-      </View>
-    </View>
+    <Pressable
+      style={styles.guideChip}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={
+        presentation.hasRatings
+          ? `Prosječna ocjena ${presentation.averageLabel}, ${presentation.reviewCount} ocjena. Otvori recenzije.`
+          : 'Još nema ocjena. Otvori recenzije.'
+      }
+    >
+      <Ionicons name="star" size={14} color="#f59e0b" />
+      <Text variant="small" style={styles.guideChipValue}>
+        {ratingLabel}
+      </Text>
+    </Pressable>
   )
 }
 
@@ -1154,8 +1166,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     flexShrink: 0,
   },
-  guideChipSegment: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  guideChipDivider: { width: 1, height: 16, backgroundColor: colors.border },
   guideChipValue: { fontWeight: '800', color: colors.text },
   headerCard: {
     backgroundColor: colors.surface,

@@ -5,6 +5,7 @@ import ActionEditScreen from '../../features/actions/ActionEditScreen'
 import ActionWizardScreen from '../../features/actions/ActionWizardScreen'
 import AddPastActionScreen from '../../features/actions/AddPastActionScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import GuideReviewsScreen from '../../features/profile/GuideReviewsScreen'
 import { rootStackScreenOptions, stackScreenOptions } from '../screenOptions'
 import type { ActionsStackParamList } from '../types'
 
@@ -19,6 +20,7 @@ export function ActionsStack() {
       <Stack.Screen name="ActionWizard" component={ActionWizardScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="AddPastAction" component={AddPastActionScreen} options={rootStackScreenOptions} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GuideReviews" component={GuideReviewsScreen} options={{ title: 'Recenzije vodiča' }} />
     </Stack.Navigator>
   )
 }

@@ -36,19 +36,12 @@ export function ProfileGuideExperience({
           <StarIcon className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
           {presentation.hasRatings && presentation.averageLabel ? (
             <span className="text-sm font-extrabold tabular-nums text-gray-900">
-              {presentation.averageLabel}
+              {presentation.averageLabel} ({presentation.reviewCount})
             </span>
           ) : (
             <span className="text-sm font-semibold text-gray-500">{presentation.emptyLabel}</span>
           )}
         </span>
-        {presentation.hasRatings ? (
-          <span className="text-sm text-gray-600 tabular-nums">
-            <span className="font-extrabold text-gray-900">{presentation.reviewCount}</span>
-            {' '}
-            {presentation.reviewCount === 1 ? 'recenzija' : 'recenzija'}
-          </span>
-        ) : null}
         {guidedCount > 0 ? (
           <span className="text-sm text-gray-600 tabular-nums">
             <span className="font-extrabold text-gray-900">{guidedCount}</span>

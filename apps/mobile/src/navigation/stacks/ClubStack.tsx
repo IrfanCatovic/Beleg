@@ -6,6 +6,7 @@ import ClubManageUsersScreen from '../../features/club/ClubManageUsersScreen'
 import RegisterClubMemberScreen from '../../features/club/RegisterClubMemberScreen'
 import ClubMemberAdminScreen from '../../features/club/ClubMemberAdminScreen'
 import UserProfileScreen from '../../features/profile/UserProfileScreen'
+import GuideReviewsScreen from '../../features/profile/GuideReviewsScreen'
 import PublicClubScreen from '../../features/club/PublicClubScreen'
 import ActionDetailScreen from '../../features/actions/ActionDetailScreen'
 import ActionEditScreen from '../../features/actions/ActionEditScreen'
@@ -32,6 +33,7 @@ export function ClubStack() {
       <Stack.Screen name="Tasks" component={TasksScreen} options={{ title: 'Zadaci' }} />
       <Stack.Screen name="Finance" component={FinanceScreen} options={{ headerShown: false }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="GuideReviews" component={GuideReviewsScreen} options={{ title: 'Recenzije vodiča' }} />
       <Stack.Screen name="PublicClub" component={PublicClubScreen} options={{ title: 'Klub' }} />
       <Stack.Screen name="ActionDetail" component={ActionDetailScreen} options={{ title: 'Akcija' }} />
       <Stack.Screen name="ActionEdit" component={ActionEditScreen} options={{ title: 'Izmena akcije' }} />

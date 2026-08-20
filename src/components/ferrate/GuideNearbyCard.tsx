@@ -86,7 +86,9 @@ export function GuideNearbyCard({
               {hasRating && (
                 <>
                   <StarIcon className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
-                  <span>{formatGuideRating(g.prosecnaOcena)}</span>
+                  <span>
+                    {formatGuideRating(g.prosecnaOcena)} ({g.brojOcena ?? 0})
+                  </span>
                 </>
               )}
               {hasRating && toursCount > 0 && <span className="font-normal text-gray-400">•</span>}

@@ -1213,7 +1213,7 @@ export const resources = {
       guided: 'Vodio',
       guideReviewsRating: 'Ocena',
       guideReviewsComments: 'Komentara',
-      guideReviewsChipAria: 'Prosečna ocena {{rating}}, {{count}} komentara. Otvori recenzije.',
+      guideReviewsChipAria: 'Prosečna ocena {{rating}}, {{count}} ocena. Otvori recenzije.',
       guideReviewsTitle: 'Recenzije i komentari na ture',
       guideReviewsBack: 'Nazad na profil',
       guideReviewsEmpty: 'Još nema recenzija za ovog vodiča.',
