@@ -21,6 +21,7 @@ import {
   fetchKorisnikVodio,
   fetchUserFollowersList,
   fetchUserFollowingList,
+  rejectFollowRequest,
   sendFollowRequest,
   unfollowUser,
   unblockUser,
@@ -43,7 +44,6 @@ import { useDailySteps } from '../../context/DailyStepsContext'
 import { formatCompactSteps } from './formatCompactSteps'
 import {
   getOwnerPrimaryCtaLabel,
-  getPublicPrimaryCtaLabel,
   shouldShowOwnerStepsCard,
 } from './profilePassportHeaderModel'
 import {
@@ -76,6 +76,7 @@ import { FollowListModal } from './FollowListModal'
 import { ProfileActionGrid } from './ProfileActionGrid'
 import { ProfileActionsToggle } from './ProfileActionsToggle'
 import { ProfileImageActionModal } from './ProfileImageActionModal'
+import { ProfileFollowActions } from './ProfileFollowActions'
 
 type Props =
   | NativeStackScreenProps<ProfileStackParamList, 'UserProfile'>
@@ -194,16 +195,28 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   }
 
   const followMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (action: 'follow' | 'unfollow' | 'cancel' | 'accept' | 'reject') => {
       if (!targetId) return
       const status = followStatusQuery.data
-      if (status?.outgoing === 'accepted') await unfollowUser(client, targetId)
-      else if (status?.outgoing === 'pending') await cancelFollowRequest(client, targetId)
-      else if (status?.incoming === 'pending' && status.incomingFollowId) {
-        await acceptFollowRequest(client, status.incomingFollowId)
-      } else {
-        await sendFollowRequest(client, targetId)
+      if (action === 'unfollow') {
+        await unfollowUser(client, targetId)
+        return
       }
+      if (action === 'cancel') {
+        await cancelFollowRequest(client, targetId)
+        return
+      }
+      if (action === 'accept') {
+        if (!status?.incomingFollowId) throw new Error('Nedostaje zahtev za praćenje.')
+        await acceptFollowRequest(client, status.incomingFollowId)
+        return
+      }
+      if (action === 'reject') {
+        if (!status?.incomingFollowId) throw new Error('Nedostaje zahtev za praćenje.')
+        await rejectFollowRequest(client, status.incomingFollowId)
+        return
+      }
+      await sendFollowRequest(client, targetId)
     },
     onSuccess: invalidateSocial,
     onError: (err) => showAlert('Greška', getApiErrorMessage(err, 'Akcija nije uspela.')),
@@ -487,17 +500,8 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const showOwnerMenu = canOpenSettings
   const showPublicOverflowMenu = !isMe && !blockedByTarget
 
-  let followLabel = 'Zaprati'
-  if (followStatus?.outgoing === 'accepted') followLabel = 'Otprati'
-  else if (followStatus?.outgoing === 'pending') followLabel = 'Otkaži zahtev'
-  else if (followStatus?.incoming === 'pending') followLabel = 'Prihvati zahtev'
-
   const ownerPrimaryLabel = getOwnerPrimaryCtaLabel(canOpenSettings)
-  const publicPrimaryLabel = getPublicPrimaryCtaLabel({
-    isMe,
-    blockedByTarget: !!blockedByTarget,
-    followLabel,
-  })
+  const showPublicFollowActions = !isMe && !blockedByTarget
   const showStepsCard = shouldShowOwnerStepsCard(isMe)
 
   const openSettings = () => {
@@ -706,14 +710,12 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             </View>
           ) : null}
 
-          {publicPrimaryLabel ? (
+          {showPublicFollowActions ? (
             <View style={styles.primaryActionsRow}>
-              <Button
-                title={publicPrimaryLabel}
-                onPress={() => followMutation.mutate()}
+              <ProfileFollowActions
+                status={followStatus}
                 loading={followMutation.isPending}
-                fullWidth
-                accessibilityLabel={publicPrimaryLabel}
+                onAction={(action) => followMutation.mutate(action)}
               />
             </View>
           ) : null}
