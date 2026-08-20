@@ -104,7 +104,10 @@ export default function GuideReviewsScreen({ route, navigation }: Props) {
 
   const openRater = (username?: string, id?: number) => {
     if (!username && id == null) return
-    navigation.navigate('UserProfile', { username, id })
+    ;(navigation as { navigate: (name: string, params: object) => void }).navigate('UserProfile', {
+      username,
+      id,
+    })
   }
 
   if (reviewsQuery.isLoading) {

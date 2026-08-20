@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { shouldSkipFetchMe, shouldAdvanceGenerationOnBootstrapNullMe } from './authBootstrapRules'
 
 /**
  * Mobile auth bootstrap contract (pure decisions mirrored from AuthContext.restoreSession).
- * Full AuthProvider integration is a documented test gap.
  */
 describe('mobile auth bootstrap contract', () => {
   function shouldHydrateFromCache(rememberMe: boolean, cachedUser: string | null, cachedLoggedIn: boolean) {
@@ -21,9 +21,12 @@ describe('mobile auth bootstrap contract', () => {
     expect(shouldHydrateFromCache(true, '{"username":"a","role":"clan"}', true)).toBe(true)
   })
 
-  it('fetchMe null clears session even if cache existed', () => {
-    const fetchMeResult = null
-    expect(fetchMeResult).toBeNull()
+  it('fresh install no token skips fetchMe and ends unauthenticated', () => {
+    expect(shouldSkipFetchMe(null)).toBe(true)
+  })
+
+  it('fetchMe null clears session without advancing generation', () => {
+    expect(shouldAdvanceGenerationOnBootstrapNullMe()).toBe(false)
   })
 
   it('network error during fetchMe keeps cached session (offline tolerance)', () => {

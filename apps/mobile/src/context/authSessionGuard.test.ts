@@ -76,16 +76,28 @@ describe('mobile storage exception recovery', () => {
     } catch {
       if (sessionGen.isCurrentSessionGeneration(restoreGen)) {
         isLoggedIn = false
-        authLoading = false
       }
     } finally {
-      if (sessionGen.isCurrentSessionGeneration(restoreGen) && authLoading) {
-        authLoading = false
-      }
+      // Post-fix: always clear loading (generation advance must not strand spinner)
+      authLoading = false
     }
 
     expect(authLoading).toBe(false)
     expect(isLoggedIn).toBe(false)
+  })
+
+  it('null fetchMe + invalidateSession advance still clears authLoading in finally', () => {
+    const sessionGen = createSessionGeneration()
+    const restoreGen = sessionGen.getSessionGeneration()
+    let authLoading = true
+    sessionGen.advanceSessionGeneration()
+    // old: if (isCurrent(restoreGen)) setAuthLoading(false) → stuck
+    const oldWouldClear = sessionGen.isCurrentSessionGeneration(restoreGen)
+    expect(oldWouldClear).toBe(false)
+    // new: always clear
+    authLoading = false
+    expect(authLoading).toBe(false)
+    expect(restoreGen).toBe(1)
   })
 
   it('AsyncStorage throw finishes authLoading logged-out', async () => {

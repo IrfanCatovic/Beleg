@@ -673,10 +673,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
                   summary={readGuideRatingSummary(korisnik)}
                   onPress={() => {
                     dismissImageFocus()
-                    navigation.navigate('GuideReviews', {
-                      username: korisnik.username,
-                      id: korisnik.id,
-                    })
+                    ;(navigation as { navigate: (name: string, params: object) => void }).navigate(
+                      'GuideReviews',
+                      {
+                        username: korisnik.username,
+                        id: korisnik.id,
+                      },
+                    )
                   }}
                 />
               ) : null}
