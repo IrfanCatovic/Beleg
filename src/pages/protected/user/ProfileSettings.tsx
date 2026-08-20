@@ -592,7 +592,7 @@ export default function ProfileSettings() {
               </div>
             </div>
             {!isAdminEdit && (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="submit"
                   form="profile-settings-form"
@@ -644,7 +644,7 @@ export default function ProfileSettings() {
       <form
         id="profile-settings-form"
         onSubmit={handleSubmit}
-        className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 pb-28 sm:pb-8"
+        className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 pb-40 sm:pb-8"
       >
         {isAdminEdit ? (
           <div className="space-y-6">
@@ -1100,7 +1100,8 @@ export default function ProfileSettings() {
               />
             </ProfilePrivacySection>
 
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/80 bg-white/90 p-3 backdrop-blur-md sm:static sm:inset-auto sm:z-auto sm:mt-2 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            {/* Iznad AppLayoutMobileBottomBar (md:hidden, ~4rem) da „Sačuvaj“ ne bude ispod nava */}
+            <div className="fixed inset-x-0 bottom-16 z-30 border-t border-slate-200/80 bg-white/90 p-3 backdrop-blur-md sm:static sm:inset-auto sm:bottom-auto sm:z-auto sm:mt-2 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
               <div className="mx-auto flex max-w-3xl flex-wrap gap-3 sm:mx-0">
                 <button
                   type="submit"
