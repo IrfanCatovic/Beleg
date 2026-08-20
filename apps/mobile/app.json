@@ -16,11 +16,11 @@
     "userInterfaceStyle": "light",
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/icon.jpg"
+      "favicon": "./assets/logo_mobile.png"
     },
-    "icon": "./assets/icon.jpg",
+    "icon": "./assets/logo_mobile.png",
     "splash": {
-      "image": "./assets/icon.jpg",
+      "image": "./assets/logo_mobile.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
@@ -56,7 +56,7 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.jpg",
+        "foregroundImage": "./assets/logo_mobile.png",
         "backgroundColor": "#1a6b52"
       },
       "softwareKeyboardLayoutMode": "resize",
@@ -99,7 +99,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.jpg",
+          "icon": "./assets/logo_mobile.png",
           "color": "#1a6b52",
           "defaultChannel": "default",
           "sounds": []
