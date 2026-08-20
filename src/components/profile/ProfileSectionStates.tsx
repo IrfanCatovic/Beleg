@@ -69,7 +69,7 @@ export function ProfileActionsEmpty({
 export function ProfileStatsSkeleton() {
   return (
     <>
-      {Array.from({ length: 3 }, (_, i) => (
+      {Array.from({ length: 4 }, (_, i) => (
         <div
           key={i}
           className="flex flex-col items-center py-4 gap-2"

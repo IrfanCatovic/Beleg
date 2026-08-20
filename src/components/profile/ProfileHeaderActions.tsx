@@ -30,6 +30,9 @@ export function ProfileHeaderActions({
   blockedEither,
   onBlockChange,
   onFollowStatusChange,
+  /** stacked = full-width CTA kao na mobilnoj app; overflow ide na cover ⋯ */
+  layout = 'inline',
+  hideOverflow = false,
 }: {
   isOwn: boolean
   userId: string | number
@@ -41,6 +44,8 @@ export function ProfileHeaderActions({
   blockedEither: boolean
   onBlockChange: (byMe: boolean, byThem: boolean) => void
   onFollowStatusChange: () => void
+  layout?: 'inline' | 'stacked'
+  hideOverflow?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const menuId = useId()
@@ -81,18 +86,32 @@ export function ProfileHeaderActions({
       clubName: clubName || '',
     })
 
+  const stacked = layout === 'stacked'
+
   return (
-    <div className="flex flex-wrap items-center gap-2" data-testid="profile-header-actions" ref={rootRef}>
+    <div
+      className={stacked ? 'flex w-full flex-col gap-2' : 'flex flex-wrap items-center gap-2'}
+      data-testid="profile-header-actions"
+      data-layout={layout}
+      ref={rootRef}
+    >
       {isOwn ? (
         <Link
           to={settingsHref}
           data-testid="profile-edit-primary"
-          className="inline-flex items-center justify-center min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors"
+          className={
+            stacked
+              ? 'inline-flex w-full items-center justify-center min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors'
+              : 'inline-flex items-center justify-center min-h-11 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors'
+          }
         >
           Uredi profil
         </Link>
       ) : canShowFollow ? (
-        <div data-testid="profile-follow-primary" className="min-h-11 flex items-center">
+        <div
+          data-testid="profile-follow-primary"
+          className={stacked ? 'min-h-11 w-full flex items-center [&>*]:w-full' : 'min-h-11 flex items-center'}
+        >
           <FollowControls
             targetId={Number(userId)}
             hidden={blockedEither}
@@ -101,8 +120,8 @@ export function ProfileHeaderActions({
         </div>
       ) : null}
 
-      {canSeeOverflowActions ? (
-        <div className="relative">
+      {canSeeOverflowActions && !hideOverflow ? (
+        <div className={stacked ? 'relative self-end' : 'relative'}>
           <button
             type="button"
             aria-label="Više akcija na profilu"

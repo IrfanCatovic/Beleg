@@ -546,30 +546,33 @@ export default function ProfileSettings() {
               <div className="flex items-center gap-3.5">
                 {!isAdminEdit ? (
                   <>
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                      aria-label={t('chooseProfileImage')}
-                    />
-                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
-                      <div className="h-full w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl overflow-hidden ring-2 ring-white shadow-md">
-                        {avatarPreview ? (
-                          <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
-                        )}
+                    {/* Avatar se na mobilnom menja na profilu (kao app); na desktopu i ovde */}
+                    <div className="hidden sm:contents">
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                        aria-label={t('chooseProfileImage')}
+                      />
+                      <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
+                        <div className="h-full w-full rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-2xl overflow-hidden ring-2 ring-white shadow-md">
+                          {avatarPreview ? (
+                            <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span>{(form.fullName || form.username || '?').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAvatarActionsOpen(true)}
+                          className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-700 hover:text-emerald-600 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                          aria-label="Izmeni profilnu sliku"
+                        >
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setAvatarActionsOpen(true)}
-                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-700 hover:text-emerald-600 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                        aria-label="Izmeni profilnu sliku"
-                      >
-                        <PencilSquareIcon className="h-4 w-4" />
-                      </button>
                     </div>
                   </>
                 ) : (
@@ -787,8 +790,13 @@ export default function ProfileSettings() {
                 </div>
               </div>
               <p className="text-xs text-slate-500">
-                Profilna fotografija se menja preko dugmeta na slici iznad. Cover fotografija se uređuje na javnom
-                profilu.
+                <span className="sm:hidden">
+                  Profilna i cover fotografija se menjaju na javnom profilu (kao u aplikaciji).
+                </span>
+                <span className="hidden sm:inline">
+                  Profilna fotografija se menja preko dugmeta na slici iznad. Cover fotografija se uređuje na javnom
+                  profilu.
+                </span>
               </p>
               {publicPath ? (
                 <Link
@@ -1123,7 +1131,7 @@ export default function ProfileSettings() {
 
       {!isAdminEdit && avatarActionsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 p-4"
+          className="hidden sm:flex fixed inset-0 z-50 items-end sm:items-center justify-center bg-black/45 p-4"
           role="dialog"
           aria-modal="true"
         >

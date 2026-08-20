@@ -25,8 +25,10 @@ import { formatDate } from '../../utils/dateUtils'
 import { computeRank, formatRankDisplayName } from '../../utils/rankingUtils'
 import { ProfileActionGrid, ProfileActionGridSkeleton } from '../../components/profile/ProfileActionGrid'
 import { ProfileHeaderActions } from '../../components/profile/ProfileHeaderActions'
+import { ProfileImageActionModal } from '../../components/profile/ProfileImageActionModal'
 import { ProfileClubIdentity } from '../../components/profile/ProfileClubIdentity'
 import { ProfiGuideRatingChip } from '../../components/guides/ProfiGuideRatingChip'
+import BlockUserButton from '../../components/buttons/BlockUserButton'
 import type { MemberPdfData } from '../../utils/generateMemberPdf'
 import {
   ProfileActionsEmpty,
@@ -43,7 +45,7 @@ import {
 } from '../../utils/profileIdentity'
 import { isOwnProfile } from '../../utils/profileOwnership'
 import { mergeOwnProfileFromSession } from '../../utils/profileSettingsIntegration'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, EllipsisHorizontalIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 
 interface UspesnaAkcija {
   id: number
@@ -108,7 +110,7 @@ export default function UserProfile() {
   const { t, i18n } = useTranslation('userProfile')
   const { t: tGuide } = useTranslation('guideProfiles')
   const { id, username } = useParams<{ id?: string; username?: string }>()
-  const { user: currentUser, refreshUser } = useAuth()
+  const { user: currentUser, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -116,7 +118,12 @@ export default function UserProfile() {
   const [akcije, setAkcije] = useState<UspesnaAkcija[]>([])
   const [vodeneAkcije, setVodeneAkcije] = useState<UspesnaAkcija[]>([])
   const [profileActionsTab, setProfileActionsTab] = useState<'climbed' | 'guided'>('climbed')
-  const [stats, setStats] = useState<{ ukupnoKm: number; ukupnoMetaraUspona: number; brojPopeoSe: number } | null>(null)
+  const [stats, setStats] = useState<{
+    ukupnoKm: number
+    ukupnoMetaraUspona: number
+    brojPopeoSe: number
+    ukupnoKoraka?: number
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statsLoading, setStatsLoading] = useState(false)
@@ -135,6 +142,10 @@ export default function UserProfile() {
   const [coverUploading, setCoverUploading] = useState(false)
   const [avatarUpdating, setAvatarUpdating] = useState(false)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
+  const [avatarFocus, setAvatarFocus] = useState(false)
+  const [coverFocus, setCoverFocus] = useState(false)
+  const [imageModalKind, setImageModalKind] = useState<'avatar' | 'cover' | null>(null)
+  const [coverMenuOpen, setCoverMenuOpen] = useState(false)
 
   const [followCounts, setFollowCounts] = useState<{ following: number; followers: number }>({ following: 0, followers: 0 })
   const [blockedEither, setBlockedEither] = useState(false)
@@ -346,7 +357,7 @@ export default function UserProfile() {
     brojOcena: 0,
     brojKomentara: 0,
   }
-  const renderHeaderActions = () =>
+  const renderHeaderActions = (opts?: { layout?: 'inline' | 'stacked'; hideOverflow?: boolean }) =>
     korisnik != null ? (
       <ProfileHeaderActions
         isOwn={!!isOwn}
@@ -359,8 +370,39 @@ export default function UserProfile() {
         blockedEither={blockedEither}
         onBlockChange={(byMe, byThem) => setBlockedEither(byMe || byThem)}
         onFollowStatusChange={fetchFollowCounts}
+        layout={opts?.layout}
+        hideOverflow={opts?.hideOverflow}
       />
     ) : null
+
+  const dismissImageFocus = useCallback(() => {
+    setAvatarFocus(false)
+    setCoverFocus(false)
+  }, [])
+
+  const handleMobileAvatarPress = () => {
+    if (!isOwn) {
+      if (korisnik?.avatar_url) setAvatarLightboxOpen(true)
+      return
+    }
+    if (avatarUpdating) return
+    if (!avatarFocus) {
+      setAvatarFocus(true)
+      setCoverFocus(false)
+      return
+    }
+    setImageModalKind('avatar')
+  }
+
+  const handleMobileCoverPress = () => {
+    if (!isOwn || coverUploading || positioning) return
+    if (!coverFocus) {
+      setCoverFocus(true)
+      setAvatarFocus(false)
+      return
+    }
+    setImageModalKind('cover')
+  }
 
   useEffect(() => {
     if (!isOwn || !currentUser) {
@@ -424,6 +466,7 @@ export default function UserProfile() {
     if (!file || !korisnik) return
     if (!file.type.startsWith('image/')) return
     setCoverUploading(true)
+    dismissImageFocus()
     try {
       const formData = new FormData()
       formData.append('coverImage', file)
@@ -563,7 +606,17 @@ export default function UserProfile() {
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 pb-12">
 
       {/* ══════════ COVER ══════════ */}
-      <div className="relative h-56 sm:h-44 md:h-64 lg:h-80 xl:h-96 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2">
+      <div
+        className={`relative h-56 sm:h-44 md:h-64 lg:h-80 xl:h-96 overflow-hidden select-none group/cover -mt-6 w-screen left-1/2 -translate-x-1/2 ${
+          isOwn && !positioning ? 'md:cursor-default' : ''
+        }`}
+        onClick={(e) => {
+          /* Mobilni: tap cover → focus → modal (kao app). Desktop zadržava pencil. */
+          if (window.matchMedia('(min-width: 768px)').matches) return
+          if ((e.target as HTMLElement).closest('[data-cover-menu]')) return
+          handleMobileCoverPress()
+        }}
+      >
         {hasCover ? (
           <img
             src={korisnik.cover_image_url}
@@ -573,11 +626,22 @@ export default function UserProfile() {
             draggable={false}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-emerald-900/80 to-teal-800" />
+          <div className="absolute inset-0 bg-teal-800 md:bg-gradient-to-br md:from-slate-800 md:via-emerald-900/80 md:to-teal-800" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-black/20 md:bg-gradient-to-t md:from-black/60 md:via-black/20 md:to-transparent pointer-events-none" />
 
-        {/* Gornji levi ugao: otvara panel za cover opcije + poziciju */}
+        {isOwn && coverFocus && !coverUploading && !positioning ? (
+          <div className="md:hidden absolute inset-0 z-10 flex items-center justify-center bg-black/35 pointer-events-none">
+            <PencilSquareIcon className="h-8 w-8 text-white" aria-hidden />
+          </div>
+        ) : null}
+        {coverUploading ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+            <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+          </div>
+        ) : null}
+
+        {/* Desktop: pencil otvara pozicioni panel (md+) */}
         {isOwn && !positioning && (
           <>
             <input
@@ -589,11 +653,14 @@ export default function UserProfile() {
             />
             <button
               type="button"
-              onClick={() => setPositioning(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setPositioning(true)
+              }}
               disabled={coverUploading}
               title={hasCover ? t('cover.replace') : t('cover.add')}
               aria-label={hasCover ? t('cover.replace') : t('cover.add')}
-              className="absolute top-4 left-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed md:opacity-0 md:group-hover/cover:opacity-100 opacity-100"
+              className="hidden md:flex absolute top-4 left-4 z-20 h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm border border-white/25 shadow-sm hover:bg-black/50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover/cover:opacity-100"
             >
               {coverUploading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
@@ -604,6 +671,58 @@ export default function UserProfile() {
               )}
             </button>
           </>
+        )}
+
+        {/* Mobilni: ⋯ meni na coveru (kao app) */}
+        {(isOwn || canShowBlockControls) && (
+          <div className="md:hidden absolute top-3 right-3 z-20" data-cover-menu>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                dismissImageFocus()
+                setCoverMenuOpen((v) => !v)
+              }}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-md border border-white/80 backdrop-blur-sm"
+              aria-label="Meni profila"
+              aria-expanded={coverMenuOpen}
+            >
+              <EllipsisHorizontalIcon className="h-5 w-5" aria-hidden />
+            </button>
+            {coverMenuOpen ? (
+              <div
+                className="absolute right-0 mt-2 min-w-[11rem] rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg"
+                role="menu"
+              >
+                {isOwn ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-50"
+                    onClick={() => {
+                      setCoverMenuOpen(false)
+                      logout()
+                      navigate('/home', { replace: true })
+                    }}
+                  >
+                    Odjavi se
+                  </button>
+                ) : null}
+                {!isOwn && canShowBlockControls ? (
+                  <div className="px-1 py-0.5">
+                    <BlockUserButton
+                      targetId={Number(korisnik.id)}
+                      variant="menuItem"
+                      onBlockChange={(byMe, byThem) => {
+                        setBlockedEither(byMe || byThem)
+                        setCoverMenuOpen(false)
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         )}
 
         {/* Desktop: overlay preko covera (md+) */}
@@ -686,7 +805,7 @@ export default function UserProfile() {
         )}
       </div>
 
-      {/* Mobilni: donji sheet — van cover div-a da fixed radi (cover ima transform) */}
+      {/* Mobilni cover pozicioni sheet — zadržan samo ako se eksplicitno otvori (desktop flow); na mobilnom app-parity koristi modal */}
       {positioning && isOwn && (
         <div
           className="md:hidden fixed inset-0 z-[200] flex flex-col justify-end"
@@ -796,19 +915,23 @@ export default function UserProfile() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-3 sm:pb-6">
 
-            {/* mobile layout */}
-            <div className="sm:hidden">
-              <div className="flex items-center gap-3">
-                {/* avatar — klik otvara punu sliku (izmena profila: zupčanik gore na coveru) */}
-                <div className="relative w-20 h-20 flex-shrink-0">
-                  {korisnik.avatar_url && !avatarFail ? (
-                    <button
-                      type="button"
-                      onClick={() => setAvatarLightboxOpen(true)}
-                      className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                      aria-label={t('cover.showAvatarFull')}
-                      title={t('cover.clickForFull')}
-                    >
+            {/* mobile layout — usklađen sa mobilnom app */}
+            <div className="sm:hidden" onClick={dismissImageFocus}>
+              <div className="flex items-start gap-3">
+                <div className="relative w-20 h-20 flex-shrink-0 -mt-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleMobileAvatarPress()
+                    }}
+                    disabled={isOwn && avatarUpdating}
+                    className="relative h-full w-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 ring-[3px] ring-white shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                    aria-label={
+                      isOwn ? 'Profilna slika, dodirnite za izmjenu' : t('cover.showAvatarFull')
+                    }
+                  >
+                    {korisnik.avatar_url && !avatarFail ? (
                       <img
                         src={korisnik.avatar_url}
                         alt={korisnik.fullName || korisnik.username || ''}
@@ -816,15 +939,25 @@ export default function UserProfile() {
                         draggable={false}
                         onError={() => setAvatarFail(true)}
                       />
-                    </button>
-                  ) : (
-                    <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-3xl font-bold text-white ring-[3px] ring-white shadow-xl">
-                      <span>{initial}</span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center text-3xl font-bold text-white">
+                        {initial}
+                      </span>
+                    )}
+                    {isOwn && avatarFocus && !avatarUpdating ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <PencilSquareIcon className="h-6 w-6 text-white" aria-hidden />
+                      </span>
+                    ) : null}
+                    {avatarUpdating ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                      </span>
+                    ) : null}
+                  </button>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 pt-1">
                   <UserNameWithProfiBadge
                     name={korisnik.fullName || korisnik.username}
                     isProfiGuide={showProfiGuideBadge}
@@ -840,24 +973,6 @@ export default function UserProfile() {
                   </div>
                 </div>
               </div>
-
-              {/* contact pills — samo kad public/own payload stvarno ima vrijednosti */}
-              {showContactPills && (
-                <div className="flex flex-wrap items-center justify-start gap-2 mt-3">
-                  {korisnik.email && (
-                    <a href={`mailto:${korisnik.email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
-                      {korisnik.email}
-                    </a>
-                  )}
-                  {korisnik.telefon && (
-                    <a href={`tel:${korisnik.telefon}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/60 text-[11px] text-gray-500 hover:text-emerald-700 font-medium transition-all">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                      {korisnik.telefon}
-                    </a>
-                  )}
-                </div>
-              )}
 
               {(korisnik.klubNaziv || (isOwn && !korisnik.klubNaziv) || showProfiGuideBadge) && (
                 <div className="mt-2.5 flex items-center justify-between gap-2 min-w-0">
@@ -881,10 +996,20 @@ export default function UserProfile() {
                   ) : null}
                 </div>
               )}
-              {isOwn && myGuideProfile !== undefined && (
-                <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} />
-              )}
-              <div className="mt-3">{renderHeaderActions()}</div>
+
+              <div className="mt-3 space-y-2">
+                {renderHeaderActions({ layout: 'stacked', hideOverflow: true })}
+                {isOwn &&
+                !showProfiGuideBadge &&
+                (myGuideProfile === null || myGuideProfile?.status === 'rejected') ? (
+                  <Link
+                    to="/profil/postani-vodic"
+                    className="inline-flex w-full items-center justify-center min-h-11 px-4 rounded-xl border border-emerald-500 bg-white text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+                  >
+                    {myGuideProfile?.status === 'rejected' ? tGuide('status.resubmit') : tGuide('becomeGuide')}
+                  </Link>
+                ) : null}
+              </div>
             </div>
 
             {/* desktop/tablet layout (existing) */}
@@ -1041,10 +1166,13 @@ export default function UserProfile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-gray-100" data-testid="profile-passport-kpis">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100"
+            data-testid="profile-passport-kpis"
+          >
             {statsError && !stats ? (
               <div
-                className="col-span-3 flex flex-col items-center justify-center gap-2 py-6 px-4 text-center"
+                className="col-span-2 sm:col-span-4 flex flex-col items-center justify-center gap-2 py-6 px-4 text-center"
                 role="alert"
                 data-testid="profile-stats-error"
               >
@@ -1080,6 +1208,12 @@ export default function UserProfile() {
                   label={t('climbedCount')}
                   accent="text-amber-500"
                   ariaLabel={`${passportKpis.summits.value} ${t('climbedCount')}`}
+                />
+                <StatCell
+                  value={(stats?.ukupnoKoraka ?? 0).toLocaleString(i18n.language)}
+                  label="Koraci"
+                  accent="text-violet-500"
+                  ariaLabel={`${(stats?.ukupnoKoraka ?? 0).toLocaleString(i18n.language)} koraka`}
                 />
               </>
             )}
@@ -1180,7 +1314,59 @@ export default function UserProfile() {
         </div>
       </div>
 
-      {/* Puna veličina profilne slike */}
+      {/* Hidden file inputs (shared: lightbox + mobile modal) */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          void handleAvatarImageChange(e)
+          setImageModalKind(null)
+          dismissImageFocus()
+        }}
+      />
+
+      <ProfileImageActionModal
+        open={imageModalKind === 'avatar'}
+        title="Promena profilne slike"
+        onClose={() => {
+          setImageModalKind(null)
+          dismissImageFocus()
+        }}
+        onPickGallery={() => {
+          setImageModalKind(null)
+          avatarInputRef.current?.click()
+        }}
+        onRemove={() => {
+          setImageModalKind(null)
+          dismissImageFocus()
+          void handleRemoveAvatar()
+        }}
+        canRemove={!!korisnik.avatar_url}
+        removeLabel="Ukloni profilnu"
+      />
+      <ProfileImageActionModal
+        open={imageModalKind === 'cover'}
+        title="Promena cover fotografije"
+        onClose={() => {
+          setImageModalKind(null)
+          dismissImageFocus()
+        }}
+        onPickGallery={() => {
+          setImageModalKind(null)
+          coverInputRef.current?.click()
+        }}
+        onRemove={() => {
+          setImageModalKind(null)
+          dismissImageFocus()
+          void handleRemoveCover()
+        }}
+        canRemove={hasCover}
+        removeLabel="Ukloni cover"
+      />
+
+      {/* Puna veličina profilne slike (tuđi profil / desktop pregled) */}
       {avatarLightboxOpen && korisnik.avatar_url && (
         <div
           className="fixed inset-0 z-[280] flex items-center justify-center bg-black/90 p-4 sm:p-8"
@@ -1189,13 +1375,6 @@ export default function UserProfile() {
           aria-label={t('cover.avatarImage')}
           onClick={() => setAvatarLightboxOpen(false)}
         >
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarImageChange}
-          />
           <button
             type="button"
             className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -1214,32 +1393,6 @@ export default function UserProfile() {
             onClick={(e) => e.stopPropagation()}
             draggable={false}
           />
-          {isOwn && (
-            <div className="absolute inset-x-4 bottom-4 z-10 flex gap-2 sm:justify-center">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  void handleRemoveAvatar()
-                }}
-                disabled={avatarUpdating}
-                className="flex-1 sm:flex-none rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
-              >
-                Ukloni profilnu
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  avatarInputRef.current?.click()
-                }}
-                disabled={avatarUpdating}
-                className="flex-1 sm:flex-none rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-100 disabled:opacity-60"
-              >
-                Dodaj profilnu
-              </button>
-            </div>
-          )}
         </div>
       )}
 
