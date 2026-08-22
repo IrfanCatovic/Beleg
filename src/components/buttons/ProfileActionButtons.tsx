@@ -14,6 +14,8 @@ interface ProfileActionButtonsProps {
   actionClassName?: string
   actionOrder?: Array<'settings' | 'info' | 'print'>
   direction?: 'row' | 'column'
+  /** Ikona + kratki label u overflow meniju (desktop) */
+  showLabels?: boolean
 }
 
 export default function ProfileActionButtons({
@@ -27,6 +29,7 @@ export default function ProfileActionButtons({
   actionClassName = '',
   actionOrder = ['settings', 'info', 'print'],
   direction = 'row',
+  showLabels = false,
 }: ProfileActionButtonsProps) {
   // Na tuđim profilima samo admin i sekretar vide ova 3 dugmeta (info, gear, štampaj); ostali ih ne vide
   const canSeeProfileActions = !currentUser || isOwnProfile || currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'sekretar'
@@ -51,13 +54,19 @@ export default function ProfileActionButtons({
   const renderedActions: React.ReactNode[] = []
   actionOrder.forEach((action) => {
     if (action === 'settings' && showSettings) {
-      renderedActions.push(<ProfileSettingsButton key="settings" to={settingsLink} className={actionClassName} />)
+      renderedActions.push(
+        <ProfileSettingsButton key="settings" to={settingsLink} className={actionClassName} showLabel={showLabels} />,
+      )
     }
     if (action === 'info' && showInfo) {
-      renderedActions.push(<ProfileInfoButton key="info" to={infoLink} className={actionClassName} />)
+      renderedActions.push(
+        <ProfileInfoButton key="info" to={infoLink} className={actionClassName} showLabel={showLabels} />,
+      )
     }
     if (action === 'print' && showPrint) {
-      renderedActions.push(<ProfilePrintButton key="print" onClick={onPrintClick} className={actionClassName} />)
+      renderedActions.push(
+        <ProfilePrintButton key="print" onClick={onPrintClick} className={actionClassName} showLabel={showLabels} />,
+      )
     }
   })
 

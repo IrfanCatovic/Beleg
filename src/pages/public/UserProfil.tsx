@@ -357,7 +357,11 @@ export default function UserProfile() {
     brojOcena: 0,
     brojKomentara: 0,
   }
-  const renderHeaderActions = (opts?: { layout?: 'inline' | 'stacked'; hideOverflow?: boolean }) =>
+  const renderHeaderActions = (opts?: {
+    layout?: 'inline' | 'stacked'
+    hideOverflow?: boolean
+    showActionLabels?: boolean
+  }) =>
     korisnik != null ? (
       <ProfileHeaderActions
         isOwn={!!isOwn}
@@ -372,6 +376,7 @@ export default function UserProfile() {
         onFollowStatusChange={fetchFollowCounts}
         layout={opts?.layout}
         hideOverflow={opts?.hideOverflow}
+        showActionLabels={opts?.showActionLabels}
       />
     ) : null
 
@@ -912,7 +917,10 @@ export default function UserProfile() {
 
       {/* ══════════ PROFILE HEADER ══════════ */}
       <div className="relative bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="hidden sm:flex absolute top-3 right-4 sm:right-6 lg:right-8 z-20 items-center gap-2">
+            {renderHeaderActions({ showActionLabels: true })}
+          </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4 sm:gap-5 -mt-12 sm:-mt-14 pb-3 sm:pb-6">
 
             {/* mobile layout — usklađen sa mobilnom app */}
@@ -1100,7 +1108,6 @@ export default function UserProfile() {
                 {isOwn && myGuideProfile !== undefined && (
                   <GuideOwnProfileCta guideProfile={myGuideProfile} tGuide={tGuide} className="mt-3" />
                 )}
-                <div className="mt-3">{renderHeaderActions()}</div>
               </div>
             </div>
           </div>

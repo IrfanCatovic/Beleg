@@ -33,6 +33,8 @@ export function ProfileHeaderActions({
   /** stacked = full-width CTA kao na mobilnoj app; overflow ide na cover ⋯ */
   layout = 'inline',
   hideOverflow = false,
+  /** desktop overflow: ikonica + kratki label (Podešavanje, Info, Štampaj) */
+  showActionLabels = false,
 }: {
   isOwn: boolean
   userId: string | number
@@ -46,6 +48,7 @@ export function ProfileHeaderActions({
   onFollowStatusChange: () => void
   layout?: 'inline' | 'stacked'
   hideOverflow?: boolean
+  showActionLabels?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const menuId = useId()
@@ -72,10 +75,14 @@ export function ProfileHeaderActions({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
-    document.addEventListener('mousedown', onDoc)
+    // Odloži listener da isti klik koji otvara meni ne zatvori meni odmah.
+    const timer = window.setTimeout(() => {
+      document.addEventListener('click', onDoc, true)
+    }, 0)
     document.addEventListener('keydown', onKey)
     return () => {
-      document.removeEventListener('mousedown', onDoc)
+      window.clearTimeout(timer)
+      document.removeEventListener('click', onDoc, true)
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
@@ -130,7 +137,11 @@ export function ProfileHeaderActions({
             data-testid="profile-actions-overflow"
             data-overflow-order={overflowOrder.join(',')}
             data-can-block={canShowBlock && !isOwn ? 'true' : 'false'}
-            onClick={() => setOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen((v) => !v)
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition-colors"
           >
             <EllipsisHorizontalIcon className="h-6 w-6" aria-hidden />
@@ -150,6 +161,7 @@ export function ProfileHeaderActions({
                 currentUser={currentUser}
                 onPrintClick={print}
                 actionOrder={overflowOrder}
+                showLabels={showActionLabels}
                 actionClassName="!w-full !justify-start"
                 className="!gap-1"
               />
