@@ -17,6 +17,7 @@ export type KnownNotificationType =
   | 'summit_reward'
   | 'guide_booking_request'
   | 'action_signup_request'
+  | 'user_registered'
   | typeof NOTIFICATION_TYPE_ACTION_CANCELLED
   | string
 

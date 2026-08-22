@@ -13,6 +13,7 @@ import (
 
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -402,6 +403,7 @@ func RegisterInvite(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 		return
 	}
+	notifications.NotifySuperadminsNewUser(db, korisnik, notifications.UserRegistrationSourceInvite, k.Naziv)
 	rawToken, tokenErr := createEmailVerificationToken(db, korisnik.ID)
 	if tokenErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri kreiranju verifikacionog tokena"})

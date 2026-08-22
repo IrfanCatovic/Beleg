@@ -3,6 +3,7 @@ package handlers
 import (
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 	"beleg-app/backend/middleware"
 	"context"
 	"fmt"
@@ -380,6 +381,13 @@ func RegisterUser(db *gorm.DB, jwtSecret []byte) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "Korisnik sa ovim username već postoji"})
 			return
 		}
+
+		clubName := ""
+		var klub models.Klubovi
+		if err := db.Select("naziv").First(&klub, clubID).Error; err == nil {
+			clubName = klub.Naziv
+		}
+		notifications.NotifySuperadminsNewUser(db, korisnik, notifications.UserRegistrationSourceAdmin, clubName)
 
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Korisnik uspešno kreiran",

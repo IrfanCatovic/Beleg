@@ -4,6 +4,7 @@ import (
 	"beleg-app/backend/internal/email"
 	"beleg-app/backend/internal/helpers"
 	"beleg-app/backend/internal/models"
+	"beleg-app/backend/internal/notifications"
 	"errors"
 	"fmt"
 	"log"
@@ -238,6 +239,11 @@ func verifyEmailFromPending(c *gin.Context, db *gorm.DB, pending *models.Pending
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Greška pri potvrdi email adrese"})
 		return
+	}
+
+	var created models.Korisnik
+	if err := helpers.DBWhereUsername(db, pending.Username).First(&created).Error; err == nil {
+		notifications.NotifySuperadminsNewUser(db, created, notifications.UserRegistrationSourceOpen, "")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Email adresa je uspešno potvrđena"})

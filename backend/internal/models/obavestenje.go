@@ -16,6 +16,7 @@ const (
 	ObavestenjeTipGuideBookingRequest        = "guide_booking_request" // zahtev za vođenje na ferati → odabrani vodiči
 	ObavestenjeTipActionSignupRequest        = "action_signup_request" // zahtev za prijavu na akciju → vodič ili admin kluba
 	ObavestenjeTipActionCancelled            = "action_cancelled"      // akcija otkazana → potvrđeni učesnici + pending requesteri
+	ObavestenjeTipUserRegistered             = "user_registered"       // novi korisnik → superadmin
 )
 
 // Obavestenje je jedno obaveštenje za jednog korisnika (recipient).
