@@ -7,6 +7,8 @@ import {
   regenerateClubInviteCode,
 } from '../../services/invite'
 
+const MEMBER_REGISTRATION_URL = 'https://planiner.com/registracija-kod'
+
 function formatCooldown(ms: number): string {
   if (ms <= 0) return ''
   const totalSec = Math.ceil(ms / 1000)
@@ -27,6 +29,7 @@ export default function ClubInviteCodePanel() {
   const [refreshing, setRefreshing] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [copyError, setCopyError] = useState(false)
   const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0)
 
@@ -61,13 +64,18 @@ export default function ClubInviteCodePanel() {
     load()
   }, [load])
 
-  const copyCode = async () => {
-    if (!data?.inviteCode) return
+  const copyText = async (text: string, which: 'code' | 'link') => {
+    if (!text) return
     setCopyError(false)
     try {
-      await navigator.clipboard.writeText(data.inviteCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(text)
+      if (which === 'code') {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        setLinkCopied(true)
+        setTimeout(() => setLinkCopied(false), 2000)
+      }
     } catch {
       setCopyError(true)
     }
@@ -116,7 +124,7 @@ export default function ClubInviteCodePanel() {
     )
   }
 
-  if (loadError || !data) {
+  if (loadError || !data?.inviteCode) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         {t('adminPanel.loadError')}
@@ -158,7 +166,7 @@ export default function ClubInviteCodePanel() {
             </code>
             <button
               type="button"
-              onClick={copyCode}
+              onClick={() => void copyText(data.inviteCode, 'code')}
               className="shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition"
             >
               {copied ? t('adminPanel.copied') : t('adminPanel.copy')}
@@ -171,6 +179,29 @@ export default function ClubInviteCodePanel() {
             <span className="font-medium">{t('adminPanel.expiresLabel')}: </span>
             {expiresLabel(data.expiresAt)}
           </p>
+          <div className="mt-3 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">
+              {t('adminPanel.shareLinkLabel')}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={MEMBER_REGISTRATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium text-emerald-800 underline-offset-2 hover:underline break-all"
+              >
+                {MEMBER_REGISTRATION_URL}
+              </a>
+              <button
+                type="button"
+                onClick={() => void copyText(MEMBER_REGISTRATION_URL, 'link')}
+                className="shrink-0 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition"
+              >
+                {linkCopied ? t('adminPanel.linkCopied') : t('adminPanel.copyLink')}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-emerald-800/75">{t('adminPanel.shareHint')}</p>
+          </div>
         </div>
 
         <div className="flex flex-col items-stretch sm:items-end gap-2">

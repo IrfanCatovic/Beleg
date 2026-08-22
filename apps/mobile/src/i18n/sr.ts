@@ -271,6 +271,21 @@ export const sr = {
     success: 'Uspeh',
     done: 'Gotovo',
     error: 'Greška',
+    inviteTitle: 'Kod za samoregistraciju članova',
+    inviteSubtitle:
+      'Podeli kod i link članovima. Na prijavi biraju „Imam kod kluba”, unose kod i popunjavaju formu — uloga im je uvek član.',
+    inviteLoading: 'Učitavanje koda...',
+    inviteLoadError: 'Invite kod nije učitan. Proveri internet vezu ili pokušaj ponovo.',
+    inviteRefresh: 'Osveži',
+    inviteRefreshing: 'Osvežavam...',
+    inviteRegenerate: 'Generiši novi kod',
+    inviteRegenerating: 'Generišem...',
+    inviteRegenError: 'Zamena koda nije uspela.',
+    inviteExpires: 'Važi do: {{date}}',
+    inviteCooldown: 'Novi kod možeš za: {{time}}',
+    inviteShare: 'Podeli kod i link',
+    inviteShareMessage:
+      'Pridruži se našem klubu u Planineru!\n\n1) Otvori: {{url}}\n2) Unesi kod: {{code}}\n\nIli u mobilnoj app: Prijava → Imam kod kluba',
   },
   guideRating: {
     title: 'Oceni vodiča',

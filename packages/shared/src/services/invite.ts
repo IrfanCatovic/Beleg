@@ -33,32 +33,32 @@ export async function registerMemberByInvite(
   })
 }
 
+type ClubInviteCodeAdminApiResponse = {
+  /** Backend polje (GET/POST /api/klub/invite-code*) */
+  code?: string
+  inviteCode?: string
+  regenAvailableInMs?: number
+  expiresAt?: string | null
+}
+
+function mapClubInviteCodeAdminResponse(data: ClubInviteCodeAdminApiResponse): ClubInviteCodeForAdmin {
+  return {
+    inviteCode: data.inviteCode ?? data.code ?? '',
+    regenAvailableInMs: data.regenAvailableInMs,
+    expiresAt: data.expiresAt,
+  }
+}
+
 export async function fetchClubInviteCodeForAdmin(
   client: AxiosInstance,
 ): Promise<ClubInviteCodeForAdmin> {
-  const res = await client.get<{
-    inviteCode?: string
-    regenAvailableInMs?: number
-    expiresAt?: string | null
-  }>('/api/klub/invite-code')
-  return {
-    inviteCode: res.data.inviteCode ?? '',
-    regenAvailableInMs: res.data.regenAvailableInMs,
-    expiresAt: res.data.expiresAt,
-  }
+  const res = await client.get<ClubInviteCodeAdminApiResponse>('/api/klub/invite-code')
+  return mapClubInviteCodeAdminResponse(res.data)
 }
 
 export async function regenerateClubInviteCode(
   client: AxiosInstance,
 ): Promise<ClubInviteCodeForAdmin> {
-  const res = await client.post<{
-    inviteCode?: string
-    regenAvailableInMs?: number
-    expiresAt?: string | null
-  }>('/api/klub/invite-code/regenerate')
-  return {
-    inviteCode: res.data.inviteCode ?? '',
-    regenAvailableInMs: res.data.regenAvailableInMs,
-    expiresAt: res.data.expiresAt,
-  }
+  const res = await client.post<ClubInviteCodeAdminApiResponse>('/api/klub/invite-code/regenerate')
+  return mapClubInviteCodeAdminResponse(res.data)
 }

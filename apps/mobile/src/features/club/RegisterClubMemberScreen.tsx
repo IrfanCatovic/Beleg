@@ -18,6 +18,7 @@ import {
   validateMemberForm,
 } from '../auth/memberRegistrationForm'
 import { clubMemberKeys } from './queryKeys'
+import ClubInviteCodeCard from './ClubInviteCodeCard'
 
 type Props = NativeStackScreenProps<ClubStackParamList, 'RegisterClubMember'>
 
@@ -69,6 +70,7 @@ export default function RegisterClubMemberScreen({ navigation }: Props) {
 
   return (
     <Screen scroll>
+      <ClubInviteCodeCard />
       <View style={styles.header}>
         <Text variant="title" color={colors.brand}>{t('addMemberTitle')}</Text>
         <Text variant="muted">{t('addMemberSubtitle')}</Text>
