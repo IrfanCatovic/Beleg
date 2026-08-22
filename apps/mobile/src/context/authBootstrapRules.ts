@@ -72,3 +72,12 @@ export function isValidReleaseApiUrl(url: string | undefined | null): boolean {
 }
 
 export const EXPECTED_PRODUCTION_API_URL = 'https://planiner-api.onrender.com'
+
+/** SecureStore / AsyncStorage reads during cold start — must not hang forever on Android APK. */
+export const BOOTSTRAP_STORAGE_TIMEOUT_MS = 8_000
+
+/** Best-effort session cleanup during bootstrap — must not block loading dismissal. */
+export const BOOTSTRAP_CLEAR_AUTH_TIMEOUT_MS = 5_000
+
+/** Last-resort cap so authLoading always clears even if an await never settles. */
+export const BOOTSTRAP_SAFETY_TIMEOUT_MS = 30_000

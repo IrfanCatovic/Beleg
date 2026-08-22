@@ -13,10 +13,14 @@ import { sessionGeneration } from '../auth/sessionGeneration'
 import { clearAuthenticatedUserQueryState } from '../lib/clearAuthenticatedUserQueryState'
 import { finishClearAuthSideEffects, performMobileLogout } from '../lib/performMobileLogout'
 import { bootTrace } from '../lib/bootTrace'
+import { withTimeout } from '../lib/withTimeout'
 import { clearSuperadminClubStorage } from '../storage/superadminClubStorage'
 import { mobileStorage } from '../storage/mobileStorage'
 import { clearPendingNavigationOnSessionEnd } from '../navigation/consumePendingNavigation'
 import {
+  BOOTSTRAP_CLEAR_AUTH_TIMEOUT_MS,
+  BOOTSTRAP_SAFETY_TIMEOUT_MS,
+  BOOTSTRAP_STORAGE_TIMEOUT_MS,
   shouldAdvanceGenerationOnBootstrapNullMe,
   shouldSkipFetchMe,
 } from './authBootstrapRules'
@@ -132,6 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bootTrace('BOOT:complete')
     }
 
+    const safetyTimer = setTimeout(() => {
+      bootTrace('BOOT:safety_timeout')
+      finishAuthLoading()
+    }, BOOTSTRAP_SAFETY_TIMEOUT_MS)
+
+    const clearLocalAuthStateWithTimeout = async () => {
+      try {
+        await withTimeout(
+          clearLocalAuthState(),
+          BOOTSTRAP_CLEAR_AUTH_TIMEOUT_MS,
+          'clearLocalAuthState',
+        )
+      } catch {
+        bootTrace('clearAuth:timeout_or_error')
+      }
+    }
+
     async function restoreSession() {
       bootTrace('BOOT:start', { restoreGen })
       let rememberMe = true
@@ -141,9 +162,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         try {
           bootTrace('storage:start')
-          rememberMe = (await mobileStorage.getItem(REMEMBER_ME_KEY)) !== 'false'
-          cachedUser = rememberMe ? await mobileStorage.getItem(USER_STORAGE_KEY) : null
-          cachedLoggedIn = rememberMe && (await mobileStorage.getItem(IS_LOGGED_IN_KEY)) === 'true'
+          rememberMe =
+            (await withTimeout(
+              Promise.resolve(mobileStorage.getItem(REMEMBER_ME_KEY)),
+              BOOTSTRAP_STORAGE_TIMEOUT_MS,
+              'storage:remember_me',
+            )) !== 'false'
+          cachedUser = rememberMe
+            ? await withTimeout(
+                Promise.resolve(mobileStorage.getItem(USER_STORAGE_KEY)),
+                BOOTSTRAP_STORAGE_TIMEOUT_MS,
+                'storage:user',
+              )
+            : null
+          cachedLoggedIn =
+            rememberMe &&
+            (await withTimeout(
+              Promise.resolve(mobileStorage.getItem(IS_LOGGED_IN_KEY)),
+              BOOTSTRAP_STORAGE_TIMEOUT_MS,
+              'storage:isLoggedIn',
+            )) === 'true'
           bootTrace('storage:success', {
             rememberMe,
             hasCachedUser: !!cachedUser,
@@ -152,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           bootTrace('storage:error')
           if (sessionGeneration.isCurrentSessionGeneration(restoreGen)) {
-            await clearLocalAuthState()
+            await clearLocalAuthStateWithTimeout()
           }
           bootTrace('BOOT:unauthenticated')
           return
@@ -178,7 +216,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         let token: string | null = null
         try {
-          token = await getAuthToken()
+          token = await withTimeout(
+            Promise.resolve(getAuthToken()),
+            BOOTSTRAP_STORAGE_TIMEOUT_MS,
+            'storage:auth_token',
+          )
         } catch {
           bootTrace('token:error')
           token = null
@@ -207,9 +249,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Clear session without advancing generation from this path so we
             // do not recreate the infinite-spinner race (AUTH-F2 ownership).
             if (!shouldAdvanceGenerationOnBootstrapNullMe()) {
-              await clearLocalAuthState()
+              await clearLocalAuthStateWithTimeout()
             } else {
-              await invalidateSession()
+              sessionGeneration.advanceSessionGeneration()
+              await clearLocalAuthStateWithTimeout()
             }
             bootTrace('BOOT:unauthenticated', { reason: 'me_null' })
             return
@@ -239,15 +282,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         bootTrace('BOOT:error')
         if (sessionGeneration.isCurrentSessionGeneration(restoreGen)) {
-          await clearLocalAuthState()
+          await clearLocalAuthStateWithTimeout()
         }
       } finally {
+        clearTimeout(safetyTimer)
         finishAuthLoading()
       }
     }
 
     void restoreSession()
-  }, [clearLocalAuthState, invalidateSession])
+
+    return () => {
+      clearTimeout(safetyTimer)
+    }
+  }, [clearLocalAuthState])
 
   useEffect(() => {
     setUnauthorizedHandler(() => {

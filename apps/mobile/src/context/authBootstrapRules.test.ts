@@ -88,9 +88,10 @@ describe('release API URL contract', () => {
     expect(isValidReleaseApiUrl(EXPECTED_PRODUCTION_API_URL)).toBe(true)
   })
 
-  it('rejects localhost / LAN / empty', () => {
+  it('rejects localhost / LAN / empty / undefined', () => {
     expect(isValidReleaseApiUrl(undefined)).toBe(false)
     expect(isValidReleaseApiUrl('')).toBe(false)
+    expect(isValidReleaseApiUrl('undefined')).toBe(false)
     expect(isValidReleaseApiUrl('http://localhost:8080')).toBe(false)
     expect(isValidReleaseApiUrl('http://127.0.0.1:8080')).toBe(false)
     expect(isValidReleaseApiUrl('http://10.0.2.2:8080')).toBe(false)
@@ -126,5 +127,19 @@ describe('Google audit helpers absent from runtime App entry', () => {
     const appSrc = readFileSync(resolve(__dirname, '../../App.tsx'), 'utf8')
     expect(appSrc).not.toMatch(/GAUTH-MISSING|\.audit\.test/)
     expect(appSrc).not.toMatch(/googleAuthAudit/)
+  })
+
+  it('index.ts does not import audit test modules', () => {
+    const indexSrc = readFileSync(resolve(__dirname, '../../index.ts'), 'utf8')
+    expect(indexSrc).not.toMatch(/\.audit\.test|GAUTH-MISSING/)
+  })
+})
+
+describe('bootstrap timeout constants exported', () => {
+  it('defines storage, clear-auth, and safety caps', async () => {
+    const rules = await import('./authBootstrapRules')
+    expect(rules.BOOTSTRAP_STORAGE_TIMEOUT_MS).toBeGreaterThan(0)
+    expect(rules.BOOTSTRAP_CLEAR_AUTH_TIMEOUT_MS).toBeGreaterThan(0)
+    expect(rules.BOOTSTRAP_SAFETY_TIMEOUT_MS).toBeGreaterThan(rules.BOOTSTRAP_STORAGE_TIMEOUT_MS)
   })
 })
